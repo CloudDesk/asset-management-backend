@@ -1,0 +1,379 @@
+import { query } from "../database/postgres.js";
+import { ErrorHandler } from "../errorHandler/errorHandler.js";
+import { sendMail } from "../Gmail/gmail.js";
+import dataTypeCheck from "../utils/Datatype/checkDatatype.js";
+import { hashGenerate, hashValidator } from "../utils/hashing/hashing.js";
+import { v4 as uuidv4 } from 'uuid';
+import { saveSession } from "./session.service.js";
+import { REDIRECT_INVENTORY_URL } from "../config/config.js";
+import { getOtp, saveOtp } from "./otp.service.js";
+let generatedotp;
+
+export module userService {
+  export const getUsersData = async (request: any) => {
+    try {
+      const pageNumber = parseInt(request.query.page) || 1;
+      const recordCount = parseInt(request.query.count) || 5000;
+      const keys = Object.keys(request.query);
+      const values = Object.values(request.query);
+
+      let whereClauses: string[] = [];
+      let parameterIndex = 1;
+      const queryParams: any[] = [];
+      let orderByField = "modifieddate";
+      let orderByDirection = "DESC";
+
+      keys.forEach((key, index) => {
+        const paramValues: any = Array.isArray(values[index])
+          ? values[index]
+          : [values[index]];
+        if (key === "displaysize" || key === "price") {
+          const rangeClauses = paramValues.map((range) => {
+            const [lowerBound, upperBound] = range.split("-");
+            queryParams.push(lowerBound, upperBound);
+            const clause = `(${key} BETWEEN $${parameterIndex} AND $${parameterIndex + 1
+              })`;
+
+            parameterIndex += 2;
+            return clause;
+          });
+          whereClauses.push(`(${rangeClauses.join(" OR ")})`);
+        } else if (key === "sortby") {
+          const [fieldName, direction] = paramValues[0].split("-");
+          orderByField = fieldName;
+          orderByDirection = direction.toUpperCase() === "ASC" ? "ASC" : "DESC";
+        } else if (paramValues[0].startsWith("NOT ")) {
+          const cleanValue = paramValues[0].slice(4);
+          whereClauses.push(`(${key} != $${parameterIndex})`);
+          queryParams.push(cleanValue);
+          parameterIndex++;
+        } else if (key !== "page" && key !== "count") {
+          const clauses = paramValues.map(
+            (_, idx) => `${key} = $${parameterIndex + idx}`
+          );
+          whereClauses.push(`(${clauses.join(" OR ")})`);
+          queryParams.push(...paramValues);
+          parameterIndex += paramValues.length;
+        }
+      });
+      const offset = (pageNumber - 1) * recordCount;
+      const whereClause =
+        whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : ``;
+      const orderByClause = `ORDER BY ${orderByField} ${orderByDirection}`;
+
+      let queryText = `SELECT * FROM users ${whereClause} ${orderByClause}`;
+
+      if (pageNumber && recordCount) {
+        queryText += ` OFFSET $${parameterIndex} LIMIT $${parameterIndex + 1}`;
+        queryParams.push(offset, recordCount);
+      }
+
+      const result = await query(queryText, queryParams);
+      let datatypeCheckResult = await dataTypeCheck(result);
+      return datatypeCheckResult;
+    } catch (error) {
+      console.error("Query Execution Error: IN getUsersData", error);
+      let ErrorMessage = await ErrorHandler.handleQueryError(error);
+      return ErrorMessage;
+    }
+  };
+
+  export const forgotuser = async (request: any) => {
+    try {
+      request.query.useremail = request.body.useremail;
+      let data: any = { email: request.body.useremail }
+      if (!request.body.otp) {
+        generatedotp = Math.floor(1000 + Math.random() * 9000);
+        request.body.subject = "OTP Verification Code";
+        request.body.text =
+          "Your otp code to Reset Password For Revo Site is " + generatedotp;
+        request.body.to = request.body.useremail;
+        let otpsave = await saveOtp(request.query.useremail, generatedotp);
+        let finduser = await getUsersData(request);
+        if (finduser && finduser.length > 0) {
+          data.otp = generatedotp
+          let emailresult = await sendMail(request, generatedotp);
+          return { status: "success", Message: "OTP sent Successfuly" };
+        } else {
+          return {
+            status: "failure",
+            Message:
+              "Entered User Email Is wrong.please Enter correct Email to Reset Password",
+          };
+        }
+      } else if (request.body.otp) {
+        let finduser = await getUsersData(request);
+        let optmatch = await getOtp(request.query.useremail, request.body.otp)
+        if (optmatch) {
+          return {
+            status: "success",
+            Message: "Entered otp is correct",
+            data: finduser,
+          };
+        } else {
+          return { status: "failure", Message: "Invalid or expired OTP. Please regenerate or enter the correct OTP." };
+        }
+      }
+    } catch (error) {
+      console.error("Query Execution Error: IN forgotuser", error);
+      let ErrorMessage = await ErrorHandler.handleQueryError(error);
+      return ErrorMessage;
+    }
+  };
+
+  export const getLoggedInUsersData = async (request, reply) => {
+    console.log("getLoggedInUsersData", request.params)
+    try {
+      const ecomQuery = `SELECT * FROM users WHERE LOWER(useremail) = LOWER($1)`;
+      const ecomResult = await query(ecomQuery, [request.params.useremail]);
+      if (ecomResult.rows.length > 0) {
+        let validatePassword = await hashValidator(
+          request.params.userpassword,
+          ecomResult.rows[0].userpassword
+        );
+
+        if (validatePassword) {
+          const sessionId = uuidv4();
+          const sessionData = {
+            useremail: request.params.useremail,
+            userpassword: request.params.userpassword
+          };
+          let sessionSaved = await saveSession(sessionId, sessionData);
+
+          if (sessionSaved) {
+            return { sessionId, userdata: ecomResult.rows };
+          } else {
+            return "Please Contact Admin. You are Not Authorized to Login";
+          }
+        } else {
+          return "User Credentials are wrong. Please try again";
+        }
+      } else {
+        console.log("else")
+        const inventoryQuery = `SELECT * FROM inventoryusers WHERE useremail = $1`;
+        const inventoryResult = await query(inventoryQuery, [request.params.useremail]);
+
+        if (inventoryResult.rows.length > 0) {
+          let validatePassword = await hashValidator(
+            request.params.userpassword,
+            inventoryResult.rows[0].userpassword
+          );
+          if (validatePassword) {
+            const sessionId = uuidv4();
+            const sessionData = {
+              firstname: inventoryResult.rows[0].firstname,
+              id: inventoryResult.rows[0].id,
+              lastname: inventoryResult.rows[0].lastname,
+              location: inventoryResult.rows[0].location,
+              role: inventoryResult.rows[0].role,
+              useremail: inventoryResult.rows[0].useremail,
+              userpassword: inventoryResult.rows[0].userpassword,
+              usersphonenumber: inventoryResult.rows[0].usersphonenumber
+
+            };
+            let sessionSaved = await saveSession(sessionId, sessionData);
+
+            if (sessionSaved) {
+              return {
+                sessionId, userdata: inventoryResult.rows,
+                redirect: true,
+                inventoryAppUrl: `${REDIRECT_INVENTORY_URL}?sessionId=${sessionId}`
+              };
+            } else {
+              return "Please Contact Admin. You are Not Authorized to Login";
+            }
+          }
+          else {
+            return "User Credentials are wrong. Please try again";
+          }
+        } else {
+          return "No Users Found With this Email ID. Please Sign up";
+        }
+      }
+    } catch (error) {
+      console.error("Query Execution Error: IN getLoggedInUsersData", error);
+      let ErrorMessage = await ErrorHandler.handleQueryError(error);
+      return ErrorMessage;
+    }
+  };
+  export const deleteUser = async (id: number) => {
+    try {
+      const result: any = await query(`DELETE FROM users WHERE id = $1`, [id]);
+      if (result.rowCount != 0) {
+        return `${result.rowCount} User deleted successfully`;
+      } else {
+        return `User not found with id ${id}`;
+      }
+    } catch (error) {
+      console.error("Query Execution Error: IN deleteUser", error);
+      let ErrorMessage = await ErrorHandler.handleQueryError(error);
+      return ErrorMessage;
+    }
+  };
+  export const userlogout = async (request, reply) => {
+    try {
+      let sessionId = request.cookies.sessionId
+      reply.clearCookie('sessionId', {
+        path: '/',
+        httpOnly: true,
+        secure: true,
+        sameSite: 'Strict'
+      });
+
+      reply.send({ status: 'Session deleted' });
+    } catch (error) {
+      console.error("Query Execution Error: IN userlogout", error);
+      let ErrorMessage = await ErrorHandler.handleQueryError(error);
+      return ErrorMessage;
+    }
+  };
+
+  export const upsertUser = async (userData: any) => {
+    try {
+
+      if (!userData.id) {
+        const checkEmailQuery = `
+          SELECT id, 'users' as table_name FROM users WHERE useremail = $1
+          UNION ALL
+          SELECT id, 'inventoryusers' as table_name FROM inventoryusers WHERE useremail = $1
+        `;
+        const emailCheckResult = await query(checkEmailQuery, [userData.useremail]);
+
+        if (emailCheckResult.rows.length > 0) {
+          return {
+            command: 'Fail',
+            message: "Email already exists. Please try sign in with new E-Mail"
+          };
+        }
+
+        const hashedPassword = await hashGenerate(userData.userpassword);
+
+        const insertData = {
+          firstname: userData.firstname,
+          lastname: userData.lastname,
+          useremail: userData.useremail,
+          userpassword: hashedPassword,
+          usermobilenumber: userData.usermobilenumber
+        };
+
+        const insertFields = Object.keys(insertData);
+        const insertValues = Object.values(insertData);
+
+        const insertQuery = `
+          INSERT INTO users (${insertFields.join(", ")}) 
+          VALUES (${insertFields.map((_, index) => `$${index + 1}`).join(", ")}) 
+          RETURNING *
+        `;
+
+        const result = await query(insertQuery, insertValues);
+
+        return {
+          command: "INSERT",
+          rows: result.rows
+        };
+      }
+
+      const { id, ...updateFields } = userData;
+
+      const checkUserQuery = `
+        SELECT * FROM users WHERE id = $1
+      `;
+      const userExists = await query(checkUserQuery, [id]);
+
+      if (userExists.rows.length === 0) {
+        return { command: 'Fail', message: "User not found" };
+      }
+
+      const updateData: any = {};
+
+      if (updateFields.useremail) {
+        updateData.useremail = updateFields.useremail;
+      }
+      if (updateFields.userpassword) {
+        updateData.userpassword = await hashGenerate(updateFields.userpassword);
+      }
+
+      if (Object.keys(updateData).length === 0) {
+        return { command: 'Fail', message: "No fields to update" };
+      }
+
+      const updateQueryFields = Object.keys(updateData);
+      const updateValues = Object.values(updateData);
+
+      const updateQuery = `
+        UPDATE users 
+        SET ${updateQueryFields.map((field, index) => `${field} = $${index + 1}`).join(", ")} 
+        WHERE id = $${updateQueryFields.length + 1} 
+        RETURNING *
+      `;
+
+      const result = await query(updateQuery, [...updateValues, id]);
+
+      return {
+        command: "UPDATE",
+        rows: result.rows
+      };
+
+    } catch (error) {
+      console.error("Query Execution Error in upsertUser:", error);
+      const errorMessage = await ErrorHandler.handleQueryError(error);
+      return errorMessage;
+    }
+  };
+
+  export const upsertFcmidUser = async (userData: any) => {
+    try {
+      let querydata: string;
+      let params: any[];
+      const { id, ...upsertFields } = userData;
+      if (id) {
+        if (upsertFields.useremail) {
+          querydata = `select * from users where useremail = '${upsertFields.useremail}'`;
+          const result = await query(querydata, []);
+          let iddaata = result.rows[0].id;
+          if (iddaata) {
+            let updatedfieldNames = Object.keys(upsertFields);
+            let updatedfieldValues = Object.values(upsertFields);
+            querydata = `UPDATE users SET ${updatedfieldNames
+              .map((field, index) => `${field} = $${index + 1}`)
+              .join(", ")} WHERE id = $${updatedfieldNames.length + 1
+              } RETURNING *`;
+            params = [...updatedfieldValues, iddaata];
+            const result = await query(querydata, params);
+            return result;
+          } else {
+            return "Entered Email is Wrong.Please Enter Correct Email";
+          }
+        }
+      } else {
+        if (upsertFields.useremail) {
+          querydata = `select * from users where useremail = '${upsertFields.useremail}'`;
+          const result = await query(querydata, []);
+          if (result.rows.length > 0) {
+            return "Users already Exist";
+          } else {
+            let hashingResult = await hashGenerate(upsertFields.userpassword);
+            if (hashingResult) {
+              upsertFields.userpassword = hashingResult;
+            }
+            let updatedfieldNames = Object.keys(upsertFields);
+            let updatedfieldValues = Object.values(upsertFields);
+            querydata = `INSERT INTO users (${updatedfieldNames.join(
+              ", "
+            )}) VALUES (${updatedfieldNames
+              .map((_, index) => `$${index + 1}`)
+              .join(", ")}) RETURNING *`;
+            params = updatedfieldValues;
+            const result = await query(querydata, params);
+            return result;
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Query Execution Error: IN upsertFcmidUser", error);
+      let ErrorMessage = await ErrorHandler.handleQueryError(error);
+      return ErrorMessage;
+    }
+  };
+
+}
