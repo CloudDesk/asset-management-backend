@@ -5,7 +5,7 @@ import {
   GCP_PROJECT_LOCATION,
   GCP_PROJECT_QUEUE,
   GCP_TASK_URL,
-} from "../config/config.js";
+} from "../constants/appConstants.js";
 let project = GCP_PROJECT_ID;
 let queue = GCP_PROJECT_QUEUE;
 let location = GCP_PROJECT_LOCATION;

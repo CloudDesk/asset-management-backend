@@ -6,7 +6,7 @@ import { fileURLToPath } from "url";
 import { dirname, join, resolve } from "path";
 import { checkDatabaseConnection } from "./database/postgres.js";
 import cors from "@fastify/cors";
-import { PORT } from "./config/config.js";
+import { PORT } from "./constants/appConstants.js";
 import formbody from "@fastify/formbody";
 
 import fs from "fs";

@@ -1,4 +1,4 @@
-import { REDIS_SESSIONEXSEC } from '../config/config.js';
+import { REDIS_SESSIONEXSEC } from '../constants/appConstants.js';
 import { redisClient } from '../database/redis.session.js';
 
 export const saveSession = async (sessionId, sessionData): Promise<string> => {

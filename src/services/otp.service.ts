@@ -1,4 +1,4 @@
-import { REDIS_EMAIL_OTPEXPSEC } from '../config/config.js';
+import { REDIS_EMAIL_OTPEXPSEC } from '../constants/appConstants.js';
 import { redisClient } from '../database/redis.session.js';
  
 export const saveOtp = async (useremail, generatedotp) => {  

@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer'
 import { fileURLToPath } from 'url';
 import { dirname, join, resolve } from 'path';
-import { GMAIL_AUTH_PASSWORD, GMAIL_AUTH_USER, GMAIL_HOST, GMAIL_PORT, GMAIL_SERVICE } from '../config/config.js';
+import { GMAIL_AUTH_PASSWORD, GMAIL_AUTH_USER, GMAIL_HOST, GMAIL_PORT, GMAIL_SERVICE } from '../constants/appConstants.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const parentDir = resolve(__dirname, '..');
