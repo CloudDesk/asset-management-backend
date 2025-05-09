@@ -2,7 +2,7 @@ import Jimp from 'jimp';
 import fs from 'fs';
 import path, { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
-import { PROTOCOL } from '../constants/appConstants.js';
+import { PROTOCOL } from '../config/config.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 

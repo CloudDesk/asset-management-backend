@@ -5,7 +5,7 @@ import dataTypeCheck from "../utils/Datatype/checkDatatype.js";
 import { hashGenerate, hashValidator } from "../utils/hashing/hashing.js";
 import { v4 as uuidv4 } from 'uuid';
 import { saveSession } from "./session.service.js";
-import { REDIRECT_INVENTORY_URL } from "../constants/appConstants.js";
+import { REDIRECT_INVENTORY_URL } from "../config/config.js";
 import { getOtp, saveOtp } from "./otp.service.js";
 let generatedotp;
 

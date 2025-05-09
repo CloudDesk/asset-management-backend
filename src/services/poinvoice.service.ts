@@ -1,4 +1,4 @@
-import { PROTOCOL } from "../constants/appConstants.js";
+import { PROTOCOL } from "../config/config.js";
 import { query } from "../database/postgres.js";
 import { ErrorHandler } from "../errorHandler/errorHandler.js";
 import dataTypeCheck from "../utils/Datatype/checkDatatype.js";

@@ -1,6 +1,6 @@
 import fastifyPlugin from "fastify-plugin"
 import fastifyPostgres from "@fastify/postgres";
-import { POSTGRES_HOST, POSTGRES_PASSWORD, POSTGRES_PORT, POSTGRES_USER, POSTGRES__DATABASE } from "../constants/appConstants.js";
+import { POSTGRES_HOST, POSTGRES_PASSWORD, POSTGRES_PORT, POSTGRES_USER, POSTGRES__DATABASE } from "../config/config.js";
 const dbconnector = async function (fastify: any, opts: any) {
     try {
         await fastify.register((fastifyPostgres), {

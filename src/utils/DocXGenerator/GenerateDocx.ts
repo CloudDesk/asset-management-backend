@@ -5,7 +5,7 @@ import path, { dirname, join, resolve } from "path";
 import util from "util";
 import { exec } from "child_process";
 import { fileURLToPath } from "url";
-import { PROTOCOL } from "../../constants/appConstants.js";
+import { PROTOCOL } from "../../config/config.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 console.log(__dirname, "DIRNAME");

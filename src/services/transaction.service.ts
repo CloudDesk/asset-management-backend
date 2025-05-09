@@ -8,7 +8,7 @@ import {
   REDIRECT_URL_FAILURE,
   REDIRECT_URL_PAYMENT_STATUS,
   REDIRECT_URL_SUCCESS,
-} from "../constants/appConstants.js";
+} from "../config/config.js";
 import { productrevoService } from "./productrevo.service.js";
 import { createHttpTask } from "../googletask/createtask.js";
 import { cartservice } from "./cart.service.js";

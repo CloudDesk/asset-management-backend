@@ -6,7 +6,7 @@ import {
   POSTGRES_PORT,
   POSTGRES_USER,
   POSTGRES__DATABASE,
-} from "../constants/appConstants.js";
+} from "../config/config.js";
 import axios from "axios";
 import { ErrorHandler } from "../errorHandler/errorHandler.js";
 const pool = new pkg.Pool({
