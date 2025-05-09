@@ -11,14 +11,20 @@ let queue = GCP_PROJECT_QUEUE;
 let location = GCP_PROJECT_LOCATION;
 let url = GCP_TASK_URL;
 let inSeconds: any = 120;
+console.log(project ,'Test');
+console.log(queue ,'Test');
+console.log(location ,'Test');
+console.log(url ,'Test');
+console.log(inSeconds ,'Test');
+
 // import { CloudTasksClient } from "@google-cloud/tasks";
-let client;
-try {
-  // client = new CloudTasksClient();
-} catch (error) {
-  // console.error("Error initializing CloudTasksClient:", error);
-  // process.exit(1);
-}
+// let client;
+// try {
+//   client = new CloudTasksClient();
+// } catch (error) {
+//   console.error("Error initializing CloudTasksClient:", error);
+//   process.exit(1);
+// }
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -49,4 +55,6 @@ export async function createHttpTask(merchantid: any) {
   //   console.error("Error in createHttpTask1:", error);
   //   return { success: false, error };
   // }
+  return { success: true };
+
 }

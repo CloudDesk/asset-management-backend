@@ -5,554 +5,508 @@ import imageResize from "../imageResize/imageRessize.js";
 import { ErrorHandler } from "../errorHandler/errorHandler.js";
 import { cartservice } from "./cart.service.js";
 import { performance } from 'perf_hooks';
+import {
+  ProductServiceResponse,
+  ProductFileResponse,
+  ProductErrorResponse,
+  ProductServiceResult,
+  ProductQueryParams,
+  ProductData,
+  BatchUpdateData,
+  ImageData
+} from "../interfaces/product.interface.js";
 
-export module productrevoService {
+export class ProductRevoService {
 
-  const TIMEOUT_THRESHOLD = 5000;
+  private readonly TIMEOUT_THRESHOLD = 5000;
 
-  export const getproductsData = async (request: any) => {
+  /**
+   * Get all products with pagination and filtering
+   */
+  public async getproductsData(request: { query: ProductQueryParams }): Promise<ProductServiceResult> {
     try {
-      const pageNumber = parseInt(request.query.page) || 1;
-      const recordCount = parseInt(request.query.count) || 5000;
-      const keys = Object.keys(request.query);
-      const values = Object.values(request.query);
+      const { pageNumber, recordCount, whereClauses, queryParams, orderByField, orderByDirection } =
+        this.buildQueryParameters(request.query);
 
-      let whereClauses: string[] = [];
-      let parameterIndex = 1;
-      const queryParams: any[] = [];
-      let orderByField = "modifieddate";
-      let orderByDirection = "DESC";
+      const baseConditions = `(isarchive = FALSE OR isarchive IS NULL) AND (isdeleted = FALSE OR isdeleted IS NULL) AND (removefromrecyclebin = FALSE OR removefromrecyclebin IS NULL)`;
+      const whereClause = whereClauses.length > 0
+        ? `WHERE ${whereClauses.join(" AND ")} AND ${baseConditions}`
+        : `WHERE ${baseConditions}`;
 
-      keys.forEach((key, index) => {
-        const paramValues: any = Array.isArray(values[index]) ? values[index] : [values[index]];
-        if (key === "displaysize" || key === "price") {
-          const rangeClauses = paramValues.map(range => {
-            const [lowerBound, upperBound] = range.split("-");
-            queryParams.push(lowerBound, upperBound);
-            const clause = `(${key} BETWEEN $${parameterIndex} AND $${parameterIndex + 1})`;
-            parameterIndex += 2;
-            return clause;
-          });
-          whereClauses.push(`(${rangeClauses.join(" OR ")})`);
-        } else if (key === "sortby") {
-          const [fieldName, direction] = paramValues[0].split("-");
-          orderByField = fieldName;
-          orderByDirection = direction.toUpperCase() === "ASC" ? "ASC" : "DESC";
-        } else if (paramValues[0].startsWith("NOT ")) {
-          const cleanValue = paramValues[0].slice(4);
-          whereClauses.push(`(${key} != $${parameterIndex})`);
-          queryParams.push(cleanValue);
-          parameterIndex++;
-        } else if (key !== "page" && key !== "count") {
-          const clauses = paramValues.map((_, idx) => `${key} = $${parameterIndex + idx}`);
-          whereClauses.push(`(${clauses.join(" OR ")})`);
-          queryParams.push(...paramValues);
-          parameterIndex += paramValues.length;
-        }
-      });
-      const offset = (pageNumber - 1) * recordCount;
-      const baseConditions = `(isarchive = FALSE OR isarchive IS NULL) AND (isdeleted = FALSE OR isdeleted IS NULL) AND  (removefromrecyclebin = FALSE OR removefromrecyclebin IS NULL)`;
-      const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")} AND ${baseConditions}` : `WHERE ${baseConditions}`;
       const orderByClause = `ORDER BY ${orderByField} ${orderByDirection}`;
+      const offset = (pageNumber - 1) * recordCount;
 
       let queryText = `SELECT * FROM product_revo ${whereClause} ${orderByClause}`;
 
-
       if (pageNumber && recordCount) {
-        queryText += ` OFFSET $${parameterIndex} LIMIT $${parameterIndex + 1}`;
+        queryText += ` OFFSET $${queryParams.length + 1} LIMIT $${queryParams.length + 2}`;
         queryParams.push(offset, recordCount);
       }
 
       const result = await query(queryText, queryParams);
-      let datatypeCheckResult = await dataTypeCheck(result)
-      return datatypeCheckResult
-    }
-
-    catch (error) {
+      return await dataTypeCheck(result);
+    } catch (error) {
       console.error("Query Execution Error: IN getproductsData", error);
-      let ErrorMessage = await ErrorHandler.handleQueryError(error)
-      return ErrorMessage
+      return await ErrorHandler.handleQueryError(error);
     }
-  };
+  }
 
-
-  export const getEcomProducts = async (request: any) => {
+  /**
+   * Get e-commerce products with pagination and filtering
+   */
+  public async getEcomProducts(request: { query: ProductQueryParams }): Promise<ProductServiceResult> {
     try {
-      const pageNumber = parseInt(request.query.page) || 1;
-      const recordCount = parseInt(request.query.count) || 5000;
-      const keys = Object.keys(request.query);
-      const values = Object.values(request.query);
+      const { pageNumber, recordCount, whereClauses, queryParams, orderByField, orderByDirection } =
+        this.buildQueryParameters(request.query);
 
-      let whereClauses: string[] = [];
-      let parameterIndex = 1;
-      const queryParams: any[] = [];
-      let orderByField = "modifieddate";
-      let orderByDirection = "DESC";
-      let additionalSortCriteria = "";
-      keys.forEach((key, index) => {
-        let paramValues: any = Array.isArray(values[index]) ? values[index] : [values[index]];
-        if (key === "displaysize" || key === "price") {
-          const rangeClauses = paramValues.map(range => {
-            const [lowerBound, upperBound] = range.split("-");
-            queryParams.push(lowerBound, upperBound);
-            const clause = `(${key} BETWEEN $${parameterIndex} AND $${parameterIndex + 1})`;
-            parameterIndex += 2;
-            return clause;
-          });
-          whereClauses.push(`(${rangeClauses.join(" OR ")})`);
-        }
-        else if (key === "sortby") {
-          const [fieldName, direction] = paramValues[0].split("-");
-          orderByField = fieldName;
-          orderByDirection = direction.toUpperCase() === "ASC" ? "ASC" : "DESC";
-        } else if (key !== "page" && key !== "count") {
-          const normalClauses = [];
-          const notClauses = [];
-          const nullClauses = [];
-          paramValues.forEach((value: string) => {
-            if (value.startsWith("NOT ") || value.startsWith("not ")) {
-              const cleanValue = value.slice(4);
-              notClauses.push(`${key} != $${parameterIndex}`);
-              queryParams.push(cleanValue);
-              parameterIndex++;
-            } else if (value.toUpperCase() === 'NULL') {
-              nullClauses.push(`${key} IS NULL`);
-            } else {
-              normalClauses.push(`${key} = $${parameterIndex}`);
-              queryParams.push(value);
-              parameterIndex++;
-            }
-          });
+      const baseConditions = `(isarchive = FALSE OR isarchive IS NULL) AND (isdeleted = FALSE OR isdeleted IS NULL) AND (removefromrecyclebin = FALSE OR removefromrecyclebin IS NULL)`;
+      const whereClause = whereClauses.length > 0
+        ? `WHERE ${whereClauses.join(" AND ")} AND ${baseConditions}`
+        : `WHERE ${baseConditions}`;
 
-          const combinedClauses = [
-            ...normalClauses,
-            ...notClauses,
-            ...nullClauses
-          ];
-          if (combinedClauses.length > 0) {
-            whereClauses.push(`(${combinedClauses.join(" OR ")})`);
-          }
-        }
-      });
-
-      const offset = (pageNumber - 1) * recordCount;
-      const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
-      const baseConditions = `(isarchive = FALSE OR isarchive IS NULL) AND (isdeleted = FALSE OR isdeleted IS NULL)  AND  (removefromrecyclebin = FALSE OR removefromrecyclebin IS NULL)`;
       const orderByClause = `ORDER BY ${orderByField} ${orderByDirection}`;
-      let queryText = `SELECT * FROM product_revo`;
-      if (whereClause) {
-        queryText += ` ${whereClause} AND ${baseConditions} ${orderByClause}`;
-      } else {
-        queryText += ` WHERE ${baseConditions} ${orderByClause}`;
-      }
+      const offset = (pageNumber - 1) * recordCount;
 
-      queryText += ` OFFSET $${parameterIndex} LIMIT $${parameterIndex + 1}`;
+      let queryText = `SELECT * FROM product_revo ${whereClause} ${orderByClause} OFFSET $${queryParams.length + 1} LIMIT $${queryParams.length + 2}`;
       queryParams.push(offset, recordCount);
 
-      const result: QueryResult = await query(queryText, queryParams);
-      const datatypeCheckResult = await dataTypeCheck(result);
-      return datatypeCheckResult;
+      const result = await query(queryText, queryParams);
+      return await dataTypeCheck(result);
     } catch (error) {
       console.error("Query Execution Error: IN getEcomProducts", error);
-      let ErrorMessage = await ErrorHandler.handleQueryError(error)
-      return ErrorMessage
+      return await ErrorHandler.handleQueryError(error);
     }
-  };
+  }
 
-  export const getSimilarProducts = async (request: any) => {
+  /**
+   * Get similar products based on criteria
+   */
+  public async getSimilarProducts(request: { query: ProductQueryParams }): Promise<ProductServiceResult> {
     try {
-      const pageNumber = parseInt(request.query.page) || 1;
-      const recordCount = parseInt(request.query.count) || 5000;
-      const keys = Object.keys(request.query);
-      const values = Object.values(request.query);
-
-      let whereClauses: string[] = [];
-      let parameterIndex = 1;
-      const queryParams: any[] = [];
-
-      keys.forEach((key, index) => {
-        if (key !== "page" && key !== "count") {
-          let paramValues: any = Array.isArray(values[index]) ? values[index] : [values[index]];
-          const clauses = paramValues.map((_, idx) => `${key} = $${parameterIndex + idx}`);
-          whereClauses.push(`(${clauses.join(" OR ")})`);
-          queryParams.push(...paramValues);
-          parameterIndex += paramValues.length;
-        }
-      });
+      const { pageNumber, recordCount, whereClauses, queryParams } = this.buildQueryParameters(request.query);
+      const baseConditions = `(isarchive = FALSE OR isarchive IS NULL) AND (isdeleted = FALSE OR isdeleted IS NULL) AND (removefromrecyclebin = FALSE OR removefromrecyclebin IS NULL)`;
+      const whereClause = whereClauses.length > 0
+        ? `WHERE ${whereClauses.join(" AND ")} AND ${baseConditions}`
+        : `WHERE ${baseConditions}`;
 
       const offset = (pageNumber - 1) * recordCount;
-      const baseConditions = `(isarchive = FALSE OR isarchive IS NULL) AND (isdeleted = FALSE OR isdeleted IS NULL) AND  (removefromrecyclebin = FALSE OR removefromrecyclebin IS NULL)`;
-      const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")} AND ${baseConditions}` : `WHERE ${baseConditions}`;
-      const orderByClause = `ORDER BY modifieddate DESC`;
-
-      let queryText = `SELECT * FROM product_revo ${whereClause} ${orderByClause} OFFSET $${parameterIndex} LIMIT $${parameterIndex + 1}`;
+      const queryText = `SELECT * FROM product_revo ${whereClause} ORDER BY modifieddate DESC OFFSET $${queryParams.length + 1} LIMIT $${queryParams.length + 2}`;
       queryParams.push(offset, recordCount);
 
-      const result: QueryResult = await query(queryText, queryParams);
+      const result = await query(queryText, queryParams);
 
       if (result.rows.length <= 1) {
-        let queryTextLatest = '';
-        const queryParamsLatest: any[] = [];
-
-        keys.forEach((key, index) => {
-          if (key === "subcategory") {
-            const paramValues: any = Array.isArray(values[index]) ? values[index] : [values[index]];
-            const clauses = paramValues.map((_, idx) => `${key} = $1`);
-            const whereClauseLatest = `(${clauses.join(" OR ")}) AND ${baseConditions}`;
-            queryTextLatest = `SELECT * FROM products WHERE ${whereClauseLatest} ${orderByClause} OFFSET $2 LIMIT $3`;
-            queryParamsLatest.push(...paramValues, offset, recordCount);
-          }
-        });
-
-        const resultLatest: QueryResult = await query(queryTextLatest, queryParamsLatest);
-        return await dataTypeCheck(resultLatest);
-      } else {
-        return await dataTypeCheck(result);
+        return await this.getLatestProducts(request.query);
       }
+
+      return await dataTypeCheck(result);
     } catch (error) {
       console.error("Query Execution Error: IN getSimilarProducts", error);
-      let ErrorMessage = await ErrorHandler.handleQueryError(error)
-      return ErrorMessage
+      return await ErrorHandler.handleQueryError(error);
     }
-  };
+  }
 
-  export const deleteProductrevo = async (id: number) => {
+  /**
+   * Delete a product by ID
+   */
+  public async deleteProductrevo(id: number): Promise<ProductServiceResult> {
     try {
-      const result: any = await query(`DELETE FROM product_revo WHERE id = $1`, [id]);
-      if (result.rowCount != 0) {
-        return `Data Deleted Successfully`;
-      } else {
-        return `Product not found with id ${id}`;
-      }
+      const result = await query(`DELETE FROM product_revo WHERE id = $1`, [id]);
+      return result.rowCount !== 0
+        ? { command: 'DELETE', message: 'Data Deleted Successfully' }
+        : { command: 'DELETE', message: `Product not found with id ${id}` };
     } catch (error) {
       console.error("Query Execution Error: IN deleteProductrevo", error);
-      let ErrorMessage = await ErrorHandler.handleQueryError(error)
-      return ErrorMessage
+      return await ErrorHandler.handleQueryError(error);
     }
-  };
+  }
 
-  export const upsertProductrevo = async (productrevoData: any) => {
+  /**
+   * Create or update a product
+   */
+  public async upsertProductrevo(productData: ProductData): Promise<ProductServiceResult> {
     try {
-      let querydata: string;
-      let params: any[];
-      const { id, ...upsertFields } = productrevoData;
+      const { id, ...upsertFields } = productData;
       const fieldNames = Object.keys(upsertFields);
       const fieldValues = Object.values(upsertFields);
+
+      let queryText: string;
+      let params: any[];
+
       if (id) {
-        querydata = `UPDATE product_revo SET ${fieldNames
+        queryText = `UPDATE product_revo SET ${fieldNames
           .map((field, index) => `${field} = $${index + 1}`)
           .join(", ")} WHERE id = $${fieldNames.length + 1} RETURNING *`;
         params = [...fieldValues, id];
       } else {
-        querydata = `INSERT INTO product_revo (${fieldNames.join(
-          ", "
-        )}) VALUES (${fieldNames
-          .map((_, index) => `$${index + 1}`)
-          .join(", ")}) RETURNING *`;
+        queryText = `INSERT INTO product_revo (${fieldNames.join(", ")}) 
+                    VALUES (${fieldNames.map((_, index) => `$${index + 1}`).join(", ")}) 
+                    RETURNING *`;
         params = fieldValues;
       }
 
-      const result = await query(querydata, params)
-      return result;
+      const result = await query(queryText, params);
+      return { command: id ? 'UPDATE' : 'INSERT', ...result.rows[0] };
     } catch (error) {
       console.error("Query Execution Error: IN upsertProductrevo", error);
-      let ErrorMessage = await ErrorHandler.handleQueryError(error)
-      return ErrorMessage
+      return await ErrorHandler.handleQueryError(error);
     }
-
   }
 
-  export const getArcheivedProductsrevo = async (request: any) => {
+  /**
+   * Get latest products when similar products are not found
+   */
+  private async getLatestProducts(queryParams: ProductQueryParams): Promise<ProductServiceResult> {
     try {
-      const pageNumber = request.query.page || 1
-      const recordCount = request.query.count || 5000
-      const keys = Object.keys(request.query);
-      const values = Object.values(request.query);
-      let whereClause = "";
-      let parameterIndex = 1;
-      let queryParams = [];
-      keys.forEach((key, index) => {
+      const { pageNumber, recordCount, whereClauses, queryParams: params } = this.buildQueryParameters(queryParams);
+      const baseConditions = `(isarchive = FALSE OR isarchive IS NULL) AND (isdeleted = FALSE OR isdeleted IS NULL) AND (removefromrecyclebin = FALSE OR removefromrecyclebin IS NULL)`;
 
-        if (key !== 'page' && key != 'count') {
-          const paramValues: any = Array.isArray(values[index])
-            ? values[index]
-            : [values[index]];
-          if (index !== 0) {
-            whereClause += " AND ";
-          }
-          whereClause += `(${paramValues
-            .map((_, idx) => `${key} = $${parameterIndex + idx}`)
-            .join(" OR ")})`;
-          parameterIndex += paramValues.length;
+      const whereClause = whereClauses.length > 0
+        ? `WHERE ${whereClauses.join(" AND ")} AND ${baseConditions}`
+        : `WHERE ${baseConditions}`;
 
-          queryParams.push(...paramValues);
-        }
-
-      });
       const offset = (pageNumber - 1) * recordCount;
-      let queryText = `SELECT * FROM product_revo`;
-      if (whereClause) {
-        queryText += ` WHERE ${whereClause} AND isarchive = true AND removefromrecyclebin = false  OFFSET $${parameterIndex} LIMIT $${parameterIndex + 1
-          }`;
-      }
-      else if (pageNumber && recordCount) {
-        queryText += ` WHERE isarchive = true AND removefromrecyclebin = false  OFFSET $${parameterIndex} LIMIT $${parameterIndex + 1
-          }`;
+      const queryText = `SELECT * FROM products ${whereClause} ORDER BY modifieddate DESC OFFSET $${params.length + 1} LIMIT $${params.length + 2}`;
+      params.push(offset, recordCount);
 
-        queryParams.push(offset, recordCount);
-
-      }
-      else {
-        queryText += ` WHERE isarchive = true AND removefromrecyclebin = false`;
-      }
-      const result: QueryResult = await query(queryText, queryParams);
-      let datatypecheckResult = await dataTypeCheck(result);
-      return datatypecheckResult;
+      const result = await query(queryText, params);
+      return await dataTypeCheck(result);
     } catch (error) {
-      console.error("Query Execution Error: IN getArcheivedProductsrevo", error);
-      let ErrorMessage = await ErrorHandler.handleQueryError(error)
-      return ErrorMessage
+      console.error("Query Execution Error: IN getLatestProducts", error);
+      return await ErrorHandler.handleQueryError(error);
     }
-
   }
 
-  export const getEachProductsRevo = async function (request: any, id: Number) {
-    try {
-      const result: QueryResult = await query(
-        `SELECT * FROM product_revo where id=${id}`,
-        []
-      );
-      let getvalues = { objectName: "null" };
-      getvalues.objectName = "products";
-      let datatypecheckResult = await dataTypeCheck(result);
-      return datatypecheckResult;
-    } catch (error) {
-      console.error("Query Execution Error: IN getEachProductsRevo", error);
-      let ErrorMessage = await ErrorHandler.handleQueryError(error)
-      return ErrorMessage
-    }
-  };
-
-  export const upsertProductwithFileRevo = async (request: any) => {
+  /**
+   * Create or update a product with file
+   */
+  public async upsertProductwithFileRevo(request: any): Promise<ProductFileResponse> {
     try {
       const { productid } = request.params;
-      let existingProductData: any = {};
-      const upsertProductData: any = [];
-      if (productid) {
-        existingProductData = await query(
-          `SELECT * FROM product_revo where id=${productid}`,
-          {}
-        );
-      }
-      let data: any = {};
-      if (existingProductData.rows && existingProductData.rows.length > 0) {
-        data = existingProductData?.rows[0];
-      }
-      let imageData: any;
-      if (request.files) {
-        imageData = await imageResize(request);
-        upsertProductData.large = data?.large
-          ? [...data.large, ...imageData.url.Large]
-          : imageData.url.Large;
-        upsertProductData.medium = data?.medium
-          ? [...data.medium, ...imageData.url.Medium]
-          : imageData.url.Medium;
-        upsertProductData.small = data?.small
-          ? [...data.small, ...imageData.url.Small]
-          : imageData.url.Small;
-      }
-      const pathurldatas = imageData?.path || null;
-      const { ...upsertFields } = upsertProductData;
-      const fieldNames = Object.keys(upsertFields);
-      const fieldValues = Object.values(upsertFields);
-      let querydata;
-      let params: any[] = [];
-      if (productid) {
-        querydata = `UPDATE product_revo SET ${fieldNames
-          .map((field, index) => `${field} = $${index + 1}`)
-          .join(", ")} WHERE id = $${fieldNames.length + 1} RETURNING *`;
-        params = [...fieldValues, Number(productid)];
-      }
-      const result = await query(querydata, params);
-      return { result, productid, pathurldatas };
-    } catch (error) {
-      console.error("Query Execution Error: IN upsertProductwithFileRevo", error);
-      let ErrorMessage = await ErrorHandler.handleQueryError(error)
-      return ErrorMessage
-    }
-  };
-  export const upsertProductwithfileRevogcp = async (request: any) => {
-    try {
-      const { productid } = request.body;
-      let existingProductData: any = {};
-      const upsertProductData: any = [];
-      let data: any = {};
-      if (productid) {
-        existingProductData = await query(
-          `SELECT * FROM product_revo where id=${productid}`,
-          {}
-        );
-      }
-      if (existingProductData.rows && existingProductData.rows.length > 0) {
-        data = existingProductData?.rows[0];
-      }
-      let imageData: any;
-      if (request.body.url) {
-        imageData = request.body;
-        upsertProductData.large = data?.large
-          ? [...data.large, ...imageData.url.Large]
-          : imageData.url.Large;
-        upsertProductData.medium = data?.medium
-          ? [...data.medium, ...imageData.url.Medium]
-          : imageData.url.Medium;
-        upsertProductData.small = data?.small
-          ? [...data.small, ...imageData.url.Small]
-          : imageData.url.Small;
-      }
-      const pathurldatas = imageData?.url || null;
-      const { ...upsertFields } = upsertProductData;
-      const fieldNames = Object.keys(upsertFields);
-      const fieldValues = Object.values(upsertFields);
-      let querydata;
-      let params: any[] = [];
-      if (productid) {
-        querydata = `UPDATE product_revo SET ${fieldNames
-          .map((field, index) => `${field} = $${index + 1}`)
-          .join(", ")} WHERE id = $${fieldNames.length + 1} RETURNING *`;
-        params = [...fieldValues, Number(productid)];
-      }
-      const result = await query(querydata, params);
-      return { result, productid, pathurldatas };
-    } catch (error) {
-      console.error("Query Execution Error: IN upsertProductwithFileRevo", error);
-      let ErrorMessage = await ErrorHandler.handleQueryError(error)
-      return ErrorMessage
-    }
-  };
+      const existingProduct = productid ? await this.getProductById(productid) : null;
+      const imageData = request.files ? await imageResize(request) as ImageData : null;
 
-  export const rearrangeImageRevo = async (request) => {
+      const upsertData = this.prepareUpsertData(existingProduct, imageData);
+      const result = await this.executeUpsert(productid, upsertData);
+
+      return {
+        result,
+        productid: Number(productid),
+        pathurldatas: imageData?.path || null
+      };
+    } catch (error) {
+      console.error("Query Execution Error: IN upsertProductwithFileRevo", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update product quantities in batch
+   */
+  public async testupsertQuantityFieldsBatch(batchData: BatchUpdateData[], issold: boolean): Promise<ProductServiceResult> {
+    try {
+      const updateQueryBase = this.buildBatchUpdateQuery(issold);
+      const updateQueries = batchData.map(data => ({
+        query: updateQueryBase,
+        params: [
+          data.location,
+          data.quantity,
+          data.ecompublishedquantity,
+          data.soldquantity,
+          data.availablequantity,
+          data.puc
+        ]
+      }));
+
+      const updatePromises = updateQueries.map(update => query(update.query, update.params));
+      const updateResults = await Promise.all(updatePromises);
+      return {
+        command: 'UPDATE',
+        message: 'Batch update completed successfully',
+        data: updateResults
+      } as ProductServiceResponse;
+    } catch (error) {
+      console.error("Error in testupsertQuantityFieldsBatch", error);
+      return await ErrorHandler.handleQueryError(error);
+    }
+  }
+
+  /**
+   * Rearrange product images
+   */
+  public async rearrangeImageRevo(request: { params: { productid: number }, body: any }): Promise<ProductServiceResult> {
     try {
       const { productid } = request.params;
       const { ...upsertFields } = request.body;
       const fieldNames = Object.keys(upsertFields);
       const fieldValues = Object.values(upsertFields);
-      let querydata;
-      let params: any[] = [];
 
-      let getData = await query(
-        `select large,medium,small from product_revo where id =${productid}`,
-        {}
-      );
-      let value = getData.rows[0];
-      if (getData.rows.length > 0) {
-        querydata = `UPDATE product_revo SET ${fieldNames
-          .map((field, index) => `${field} = $${index + 1}`)
-          .join(", ")} WHERE id = $${fieldNames.length + 1} RETURNING *`;
-        params = [...fieldValues, Number(productid)];
+      // First verify if the product exists and get current image data
+      const existingProduct = await this.getProductById(productid);
+      if (!existingProduct) {
+        return {
+          command: 'UPDATE',
+          message: `Product not found with id ${productid}`
+        };
       }
-      let result = await query(querydata, params);
 
-      return result;
+      // Build and execute the update query
+      const queryText = `UPDATE product_revo SET ${fieldNames
+        .map((field, index) => `${field} = $${index + 1}`)
+        .join(", ")} WHERE id = $${fieldNames.length + 1} RETURNING *`;
+
+      const params = [...fieldValues, Number(productid)];
+      const result = await query(queryText, params);
+
+      return {
+        command: 'UPDATE',
+        message: 'Image Rearranged successfully',
+        data: result.rows[0]
+      };
     } catch (error) {
       console.error("Query Execution Error: IN rearrangeImageRevo", error);
-      let ErrorMessage = await ErrorHandler.handleQueryError(error)
-      return ErrorMessage
-    }
-  };
-
-  export const updateRemoveFromRecyclebinRevo = async () => {
-    const updateQuery = `
-            UPDATE product_revo
-            SET removefromrecyclebin = true
-            WHERE isdeleted = true AND removefromrecyclebin = false
-            AND to_timestamp(modifieddate) <= (CURRENT_TIMESTAMP - INTERVAL '30 days')
-        `;
-    let data = await query(updateQuery, []);
-    return data
-  };
-
-  export const updateAvgRatingProductrevo = async (avgRating: number, productid: number) => {
-    try {
-      const result: any = await query(`UPDATE product_revo SET averagerating = $1 WHERE id = $2`, [avgRating, productid]);
-
-      if (result.rowCount != 0) {
-        return `Average rating updated successfully for productid ${productid}`;
-      } else {
-        return `Product not found with productid ${productid}`;
-      }
-    } catch (error) {
-      console.error("Query Execution Error: IN updateAvgRatingProductrevo", error);
-      let ErrorMessage = await ErrorHandler.handleQueryError(error)
-      return ErrorMessage
+      return await ErrorHandler.handleQueryError(error);
     }
   }
 
-  export const upsertQuantityFields = async (upsertData: any, orderedquantitydata, issold: boolean) => {
-    const { quantity, ecompublishedquantity, soldquantity, availablequantity, puc, orderedquantity } = upsertData;
+  /**
+   * Bulk update product lock quantities
+   */
+  public async bulkupsertProducttosetZero(data: any[], setzero: boolean): Promise<ProductServiceResult> {
     try {
-      let productquery = await query(`SELECT orderedquantity FROM product_revo WHERE puc = $1`, [puc]);
-      let orderedquantityvalue = productquery.rows[0].orderedquantity;
-      let productStatusValue: string
-      if (availablequantity > 5) {
-        productStatusValue = 'in_stock'
-      }
-      else if (availablequantity > 0 && availablequantity <= 5) {
-        productStatusValue = 'low_stock'
-      }
-      else if (availablequantity === 0) {
-        productStatusValue = 'out_of_stock'
-      }
-      let orderedquantityNumber = Number(orderedquantitydata);
-
-      let updateQueryBase = `UPDATE product_revo SET quantity = $1, ecompublishedquantity = $2, soldquantity = $3, 
-        availablequantity = $4, productstatus = $5`;
-      let updateQuery = ''
-      if (issold && !isNaN(orderedquantityNumber)) {
-        updateQueryBase += `, orderedquantity = orderedquantity - $6`;
-        updateQuery = `${updateQueryBase} WHERE puc = $7 RETURNING *`;
-      } else if (!issold && isNaN(orderedquantityNumber)) {
-        updateQuery = `${updateQueryBase} WHERE puc = $6 RETURNING *`;
-      }
-      else {
-        updateQuery = `${updateQueryBase} WHERE puc = $6 RETURNING *`;
-
+      if (data.length === 0) {
+        return { command: 'UPDATE', message: 'No data to update' };
       }
 
-      let updateParams = []
-      if (issold && !isNaN(orderedquantityNumber)) {
-        updateParams = [quantity, ecompublishedquantity, soldquantity, availablequantity, productStatusValue, orderedquantityNumber, puc]
+      let querytext = 'UPDATE product_revo SET lock_qty = CASE id ';
+      const values = [];
 
-      }
-      else {
-        updateParams = [quantity, ecompublishedquantity, soldquantity, availablequantity, productStatusValue, puc]
-
-      }
-      const updateResult = await query(updateQuery, updateParams);
-      let cartData = {
-        productid: updateResult.rows[0].id,
-        availablequantity
-      }
-      const updateCartQuantity = await cartservice.upsertCartQuantity(cartData)
-      if (updateCartQuantity?.command === 'UPDATE' || updateCartQuantity === null) {
-        return updateResult.rows[0];
-      }
-      else {
-        let message = {
-          product: updateResult.rows[0],
-          cart: 'Problem In Cart Quantity Updaations.Please contact support Team'
+      data.forEach((item, index) => {
+        if (setzero) {
+          const idPlaceholder = index + 1;
+          querytext += `WHEN $${idPlaceholder} THEN 0 `;
+          values.push(item.productid);
+        } else {
+          const idPlaceholder = index * 2 + 1;
+          const quantityPlaceholder = index * 2 + 2;
+          querytext += `WHEN $${idPlaceholder} THEN lock_qty + $${quantityPlaceholder} `;
+          values.push(item.productid, item.quantity);
         }
-        return message
-      }
-    } catch (error) {
-      console.error("Query Execution Error: IN upsertQuantityFields", error);
-      let ErrorMessage = await ErrorHandler.handleQueryError(error)
-      return ErrorMessage
-    }
-  };
+      });
 
-  export const testupsertQuantityFieldsBatch = async (batchData: any[], issold: boolean) => {
+      querytext += 'ELSE lock_qty END WHERE id IN (';
+
+      if (setzero) {
+        querytext += data.map((_, index) => `$${index + 1}`).join(', ');
+      } else {
+        querytext += data.map((_, index) => `$${index * 2 + 1}`).join(', ');
+      }
+
+      querytext += ');';
+
+      await query(querytext, values);
+      return { command: 'UPDATE', message: 'Bulk update successful' };
+    } catch (error) {
+      console.error("Query Execution Error: bulkupsertProducttosetZero result", error);
+      return await ErrorHandler.handleQueryError(error);
+    }
+  }
+
+  /**
+   * Get archived products
+   */
+  public async getArcheivedProductsrevo(request: { query: ProductQueryParams }): Promise<ProductServiceResult> {
     try {
-      let updateQueryBase = `
+      const { pageNumber, recordCount, whereClauses, queryParams } = this.buildQueryParameters(request.query);
+      const baseConditions = `isarchive = true AND removefromrecyclebin = false`;
+      const whereClause = whereClauses.length > 0
+        ? `WHERE ${whereClauses.join(" AND ")} AND ${baseConditions}`
+        : `WHERE ${baseConditions}`;
+
+      const offset = (pageNumber - 1) * recordCount;
+      let queryText = `SELECT * FROM product_revo ${whereClause}`;
+
+      if (pageNumber && recordCount) {
+        queryText += ` OFFSET $${queryParams.length + 1} LIMIT $${queryParams.length + 2}`;
+        queryParams.push(offset, recordCount);
+      }
+
+      const result = await query(queryText, queryParams);
+      return await dataTypeCheck(result);
+    } catch (error) {
+      console.error("Query Execution Error: IN getArcheivedProductsrevo", error);
+      return await ErrorHandler.handleQueryError(error);
+    }
+  }
+
+  /**
+   * Get a single product by ID
+   */
+  public async getEachProductsRevo(request: any, id: number): Promise<ProductServiceResult> {
+    try {
+      const result = await query(
+        `SELECT * FROM product_revo WHERE id = $1`,
+        [id]
+      );
+      return await dataTypeCheck(result);
+    } catch (error) {
+      console.error("Query Execution Error: IN getEachProductsRevo", error);
+      return await ErrorHandler.handleQueryError(error);
+    }
+  }
+
+  /**
+   * Update ordered quantity array
+   */
+  public async updateOrderedQuantityarray(updatedData: any[]): Promise<ProductServiceResult> {
+    try {
+      const results = await Promise.all(
+        updatedData.map(async (item) => {
+          const { id, orderedquantity } = item;
+          const queryText = `
+                        UPDATE product_revo
+                        SET orderedquantity = orderedquantity + $1,
+                            lock_qty = 0 
+                        WHERE id = $2
+                        RETURNING *`;
+
+          return await query(queryText, [orderedquantity, id]);
+        })
+      );
+
+      return {
+        command: 'UPDATE',
+        message: 'Ordered quantities updated successfully',
+        data: results.map(r => r.rows[0])
+      };
+    } catch (error) {
+      console.error('Error in updateOrderedQuantityarray:', error);
+      return await ErrorHandler.handleQueryError(error);
+    }
+  }
+
+  /**
+   * Update removed from recycle bin
+   */
+  public async updateRemoveFromRecyclebinRevo(): Promise<ProductServiceResult> {
+    try {
+      const updateQuery = `
+                UPDATE product_revo
+                SET removefromrecyclebin = true
+                WHERE isdeleted = true AND removefromrecyclebin = false
+                AND to_timestamp(modifieddate) <= (CURRENT_TIMESTAMP - INTERVAL '30 days')
+            `;
+      const result = await query(updateQuery, []);
+      return {
+        command: 'UPDATE',
+        message: 'Recycle bin updated successfully',
+        data: result.rows
+      };
+    } catch (error) {
+      console.error("Query Execution Error: IN updateRemoveFromRecyclebinRevo", error);
+      return await ErrorHandler.handleQueryError(error);
+    }
+  }
+
+  // Private helper methods
+  private buildQueryParameters(query: ProductQueryParams) {
+    const pageNumber = parseInt(query.page?.toString()) || 1;
+    const recordCount = parseInt(query.count?.toString()) || 5000;
+    const keys = Object.keys(query);
+    const values = Object.values(query);
+
+    let whereClauses: string[] = [];
+    let parameterIndex = 1;
+    const queryParams: any[] = [];
+    let orderByField = "modifieddate";
+    let orderByDirection = "DESC";
+
+    keys.forEach((key, index) => {
+      if (key === "page" || key === "count") return;
+
+      const paramValues = Array.isArray(values[index]) ? values[index] : [values[index]];
+
+      if (key === "displaysize" || key === "price") {
+        whereClauses.push(this.buildRangeClause(key, paramValues, queryParams, parameterIndex));
+        parameterIndex += paramValues.length * 2;
+      } else if (key === "sortby") {
+        [orderByField, orderByDirection] = this.parseSortBy(paramValues[0]);
+      } else {
+        whereClauses.push(this.buildStandardClause(key, paramValues, queryParams, parameterIndex));
+        parameterIndex += paramValues.length;
+      }
+    });
+
+    return { pageNumber, recordCount, whereClauses, queryParams, orderByField, orderByDirection };
+  }
+
+  private buildRangeClause(key: string, values: any[], params: any[], startIndex: number): string {
+    const rangeClauses = values.map(range => {
+      const [lowerBound, upperBound] = range.split("-");
+      params.push(lowerBound, upperBound);
+      return `(${key} BETWEEN $${startIndex} AND $${startIndex + 1})`;
+    });
+    return `(${rangeClauses.join(" OR ")})`;
+  }
+
+  private buildStandardClause(key: string, values: any[], params: any[], startIndex: number): string {
+    const clauses = values.map((value, idx) => {
+      if (value.startsWith("NOT ")) {
+        const cleanValue = value.slice(4);
+        params.push(cleanValue);
+        return `${key} != $${startIndex + idx}`;
+      } else if (value.toUpperCase() === 'NULL') {
+        return `${key} IS NULL`;
+      } else {
+        params.push(value);
+        return `${key} = $${startIndex + idx}`;
+      }
+    });
+    return `(${clauses.join(" OR ")})`;
+  }
+
+  private parseSortBy(sortBy: string): [string, string] {
+    const [fieldName, direction] = sortBy.split("-");
+    return [fieldName, direction.toUpperCase() === "ASC" ? "ASC" : "DESC"];
+  }
+
+  private async getProductById(id: number): Promise<any> {
+    const result = await query(`SELECT * FROM product_revo WHERE id = $1`, [id]);
+    return result.rows[0] || null;
+  }
+
+  private prepareUpsertData(existingProduct: any, imageData: any): any {
+    if (!imageData) return {};
+
+    return {
+      large: existingProduct?.large
+        ? [...existingProduct.large, ...imageData.url.Large]
+        : imageData.url.Large,
+      medium: existingProduct?.medium
+        ? [...existingProduct.medium, ...imageData.url.Medium]
+        : imageData.url.Medium,
+      small: existingProduct?.small
+        ? [...existingProduct.small, ...imageData.url.Small]
+        : imageData.url.Small
+    };
+  }
+
+  private async executeUpsert(productId: number, data: any): Promise<ProductServiceResponse> {
+    const fieldNames = Object.keys(data);
+    const fieldValues = Object.values(data);
+
+    const queryText = `UPDATE product_revo SET ${fieldNames
+      .map((field, index) => `${field} = $${index + 1}`)
+      .join(", ")} WHERE id = $${fieldNames.length + 1} RETURNING *`;
+
+    const params = [...fieldValues, Number(productId)];
+    const result = await query(queryText, params);
+
+    return { command: 'UPDATE', ...result.rows[0] };
+  }
+
+  private buildBatchUpdateQuery(issold: boolean): string {
+    return `
             UPDATE product_revo
             SET quantityforlocation = 
                 jsonb_set(
@@ -568,138 +522,8 @@ export module productrevoService {
             WHERE puc = $6
             RETURNING *
         `;
-      if (issold) {
-        updateQueryBase = `
-            UPDATE product_revo
-            SET quantityforlocation = 
-              jsonb_set(
-                COALESCE(quantityforlocation, '{}'::jsonb),
-                array[$1]::text[],
-                jsonb_build_object(
-                  'quantity', $2::integer,
-                  'ecompublishedquantity', $3::integer,
-                  'soldquantity', $4::integer,
-                  'availablequantity', $5::integer
-                )
-              )
-            WHERE puc = $6
-            RETURNING *
-          `;
-      }
-      const updateQueries = batchData.map(data => {
-        return {
-          query: updateQueryBase,
-          params: [
-            data.location,
-            data.quantity,
-            data.ecompublishedquantity,
-            data.soldquantity,
-            data.availablequantity,
-            data.puc
-          ]
-        };
-      });
-      const updatePromises = updateQueries.map(update => query(update.query, update.params));
-      const updateResults = await Promise.all(updatePromises);
-      return updateResults;
-
-    } catch (error) {
-      console.error("Error in testupsertQuantityFieldsBatch", error);
-      let ErrorMessage = await ErrorHandler.handleQueryError(error);
-      return ErrorMessage;
-    }
-  };
-
-  export const bulkupsertProducttosetZero = (async (data, setzero) => {
-    try {
-
-      console.log(data + 'data for bulk upsert product to set zero');
-      if (data.length === 0) {
-        return { message: 'No data to update' };
-      }
-
-      let querytext = 'UPDATE product_revo SET lock_qty = CASE id ';
-      const values = [];
-
-      data.forEach((item, index) => {
-        if (setzero) {
-          const idPlaceholder = index + 1;  
-          querytext += `WHEN $${idPlaceholder} THEN 0 `;
-          values.push(item.productid);  
-        } else {
-          const idPlaceholder = index * 2 + 1;  
-          const quantityPlaceholder = index * 2 + 2;  
-          querytext += `WHEN $${idPlaceholder} THEN lock_qty + $${quantityPlaceholder} `;
-          values.push(item.productid, item.quantity);  
-        }
-      });
-
-      querytext += 'ELSE lock_qty END WHERE id IN (';
-
-      if (setzero) {
-        querytext += data.map((_, index) => `$${index + 1}`).join(', '); 
-      } else {
-        querytext += data.map((_, index) => `$${index * 2 + 1}`).join(', '); 
-      }
-
-      querytext += ');';
-
-      await query(querytext, values);
-console.log('success bulk upsert product to set zero');
-      return { message: 'Bulk update successful' };
-    } catch (error) {
-      console.error("Query Execution Error: bulkupsertProducttosetZero result", error);
-      let ErrorMessage = await ErrorHandler.handleQueryError(error);
-      return ErrorMessage;
-    }
-  });
-
-  export async function updateOrderedQuantity(productIds: Array<number>, orderedquantity: number) {
-
-    try {
-      return 'resultdata'
-    } catch (error) {
-      console.error('Error in updateOrderedQuantity:', error);
-    }
   }
-
-
-  export async function updateOrderedQuantityarray(updatedData) {
-    try {
-
-      let data = []
-      updatedData.forEach(async (e) => {
-        let id = e.id;
-        let orderedquantity = e.orderedquantity;
-
-        const queryText = `
-        UPDATE product_revo
-        SET orderedquantity = orderedquantity + ${orderedquantity},
-        lock_qty = 0 
-        WHERE id = ${id}
-        RETURNING *`;
-
-        let result = await query(queryText, [])
-        data.push(result)
-      })
-
-    } catch (error) {
-      console.error('Error in updateOrderedQuantityarray:', error);
-    }
-  };
-
-
-  export async function updateCancelledOrderedQuantity(productIds: Array<number>, quantitydata: number) {
-
-    try {
-      const queryvalue = `UPDATE product_revo SET orderedquantity = orderedquantity - ${quantitydata} 
-      WHERE id = ANY($1::int[])    AND orderedquantity > 0
-      returning *`;
-      let resultdata = await query(queryvalue, [productIds]);
-      return resultdata
-    } catch (error) {
-      console.error('Error in updateCancelledOrderedQuantity:', error);
-    }
-  }
-
 }
+
+// Export a singleton instance
+export const productrevoService = new ProductRevoService();
