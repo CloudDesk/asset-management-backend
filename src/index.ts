@@ -17,6 +17,7 @@ interface CustomRequest extends FastifyRequest {
   startTime?: [number, number];
 }
 
+// DEV 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const parentDir = resolve(__dirname, "..");
