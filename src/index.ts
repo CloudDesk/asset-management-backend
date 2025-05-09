@@ -39,6 +39,7 @@ fs.stat(logFilePath, (err, stats) => {
 
 fastify.register(cors);
 
+console.log('Test');
 // Log each request to CSV
 fastify.addHook("onRequest", (request: CustomRequest, reply, done) => {
   request.startTime = process.hrtime(); // Start timer
