@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import { productrevoService } from "../services/productrevo.service.js";
+import { ProductRevoService, productrevoService } from "../services/productrevo.service.js";
 import uploadtos3 from "../aws/uploadtos3.js";
 import { 
     ProductRequest, 
@@ -11,6 +11,15 @@ import {
     ProductData,
     ProductErrorResponse
 } from "../interfaces/product.interface.js";
+import {
+    sendSuccessResponse,
+    sendErrorResponse,
+    handleControllerError,
+    isSuccessfulOperation,
+    getOperationMessage,
+    formatResponse,
+    validateRequiredFields
+} from "../utils/controllerHelpers.js";
 
 interface ProductParams {
     id: string;
@@ -18,229 +27,218 @@ interface ProductParams {
 }
 
 export class ProductRevoController {
-    constructor(private readonly productService = productrevoService) {}
+    constructor(private readonly productService: ProductRevoService = productrevoService) {
+        // Bind all methods to this instance
+        this.getProductsrevoData = this.getProductsrevoData.bind(this);
+        this.getProductsEcomrevoData = this.getProductsEcomrevoData.bind(this);
+        this.getSimilarProducts = this.getSimilarProducts.bind(this);
+        this.upsertlockqty = this.upsertlockqty.bind(this);
+        this.getArcheivedProductsRevo = this.getArcheivedProductsRevo.bind(this);
+        this.getEachProductsRevo = this.getEachProductsRevo.bind(this);
+        this.updateOrderedQuantityarray = this.updateOrderedQuantityarray.bind(this);
+        this.deleteProductrevo = this.deleteProductrevo.bind(this);
+        this.upsertProductrevo = this.upsertProductrevo.bind(this);
+        this.upsertProductwithfileRevo = this.upsertProductwithfileRevo.bind(this);
+        this.upsertProductwithfileRevogcp = this.upsertProductwithfileRevogcp.bind(this);
+        this.rearrangeImageRevo = this.rearrangeImageRevo.bind(this);
+        this.updateRemovedFromRecyclebinRevo = this.updateRemovedFromRecyclebinRevo.bind(this);
+    }
 
     /**
      * Get all products data
      */
-    public getProductsrevoData = async (request: FastifyRequest<{ Querystring: ProductQueryParams }>, reply: FastifyReply): Promise<void> => {
+    public async getProductsrevoData(request: ProductRequest, reply: FastifyReply): Promise<void> {
         try {
             const result = await this.productService.getproductsData(request);
-            this.sendSuccessResponse(reply, result);
+            sendSuccessResponse(reply, result);
         } catch (error) {
-            this.handleError(error, reply, 'getProductsrevoData');
+            handleControllerError(error, reply, 'getProductsrevoData');
         }
     }
 
     /**
      * Get e-commerce products data
      */
-    public getProductsEcomrevoData = async (request: FastifyRequest<{ Querystring: ProductQueryParams }>, reply: FastifyReply): Promise<void> => {
+    public async getProductsEcomrevoData(request: ProductRequest, reply: FastifyReply): Promise<void> {
         try {
             const result = await this.productService.getEcomProducts(request);
-            this.sendSuccessResponse(reply, result);
+            sendSuccessResponse(reply, result);
         } catch (error) {
-            this.handleError(error, reply, 'getProductsEcomrevoData');
+            handleControllerError(error, reply, 'getProductsEcomrevoData');
         }
     }
 
     /**
      * Get similar products
      */
-    public getSimilarProducts = async (request: FastifyRequest<{ Querystring: ProductQueryParams }>, reply: FastifyReply): Promise<void> => {
+    public async getSimilarProducts(request: ProductRequest, reply: FastifyReply): Promise<void> {
         try {
             const result = await this.productService.getSimilarProducts(request);
-            this.sendSuccessResponse(reply, result);
+            sendSuccessResponse(reply, result);
         } catch (error) {
-            this.handleError(error, reply, 'getSimilarProducts');
+            handleControllerError(error, reply, 'getSimilarProducts');
         }
     }
 
     /**
      * Update product lock quantity
      */
-    public upsertlockqty = async (request: FastifyRequest<{ Body: { productid: number; quantity: number }[] }>, reply: FastifyReply): Promise<void> => {
+    public async upsertlockqty(request: ProductRequest, reply: FastifyReply): Promise<void> {
         try {
             const result = await this.productService.bulkupsertProducttosetZero(request.body, true);
-            this.sendSuccessResponse(reply, result);
+            if (isSuccessfulOperation(result)) {
+                sendSuccessResponse(reply, formatResponse(result, 'Lock quantity updated successfully'));
+            } else {
+                sendErrorResponse(reply, 400, 'Failed to update lock quantity');
+            }
         } catch (error) {
-            this.handleError(error, reply, 'upsertlockqty');
+            handleControllerError(error, reply, 'upsertlockqty');
         }
     }
 
     /**
      * Get archived products
      */
-    public getArcheivedProductsRevo = async (request: FastifyRequest<{ Querystring: ProductQueryParams }>, reply: FastifyReply): Promise<void> => {
+    public async getArcheivedProductsRevo(request: ProductRequest, reply: FastifyReply): Promise<void> {
         try {
             const result = await this.productService.getArcheivedProductsrevo(request);
-            this.sendSuccessResponse(reply, result);
+            sendSuccessResponse(reply, result);
         } catch (error) {
-            this.handleError(error, reply, 'getArcheivedProductsRevo');
+            handleControllerError(error, reply, 'getArcheivedProductsRevo');
         }
     }
 
     /**
-     * Get a single product by ID
+     * Get single product by ID
      */
-    public getEachProductsRevo = async (request: FastifyRequest<{ Params: ProductParams }>, reply: FastifyReply): Promise<void> => {
+    public async getEachProductsRevo(request: ProductRequest, reply: FastifyReply): Promise<void> {
         try {
-            const { id } = request.params;
-            const result = await this.productService.getEachProductsRevo(request, Number(id));
-            this.sendSuccessResponse(reply, result);
+            const result = await this.productService.getEachProductsRevo(request, request.params.id);
+            sendSuccessResponse(reply, result);
         } catch (error) {
-            this.handleError(error, reply, 'getEachProductsRevo');
+            handleControllerError(error, reply, 'getEachProductsRevo');
         }
     }
 
     /**
      * Update ordered quantity array
      */
-    public updateOrderedQuantityarray = async (request: FastifyRequest<{ Body: { id: number; orderedquantity: number }[] }>, reply: FastifyReply): Promise<void> => {
+    public async updateOrderedQuantityarray(request: ProductRequest, reply: FastifyReply): Promise<void> {
         try {
             const result = await this.productService.updateOrderedQuantityarray(request.body);
-            this.sendSuccessResponse(reply, result);
-        } catch (error) {
-            this.handleError(error, reply, 'updateOrderedQuantityarray');
-        }
-    }
-
-    /**
-     * Delete a product
-     */
-    public deleteProductrevo = async (request: FastifyRequest<{ Params: ProductParams }>, reply: FastifyReply): Promise<void> => {
-        try {
-            const { id } = request.params;
-            const result = await this.productService.deleteProductrevo(Number(id));
-            this.sendSuccessResponse(reply, result);
-        } catch (error) {
-            this.handleError(error, reply, 'deleteProductrevo');
-        }
-    }
-
-    /**
-     * Create or update a product
-     */
-    public upsertProductrevo = async (request: FastifyRequest<{ Body: ProductData }>, reply: FastifyReply): Promise<void> => {
-        try {
-            const result : any = await this.productService.upsertProductrevo(request.body);
-            if (this.isSuccessfulOperation(result)) {
-                const message = this.getOperationMessage(result.command);
-                this.sendSuccessResponse(reply, { message });
+            if (isSuccessfulOperation(result)) {
+                sendSuccessResponse(reply, formatResponse(result, 'Ordered quantity updated successfully'));
             } else {
-                this.sendErrorResponse(reply, 404, result);
+                sendErrorResponse(reply, 400, 'Failed to update ordered quantity');
             }
         } catch (error) {
-            this.handleError(error, reply, 'upsertProductrevo');
+            handleControllerError(error, reply, 'updateOrderedQuantityarray');
         }
     }
 
     /**
-     * Create or update a product with file
+     * Delete product
      */
-    public upsertProductwithfileRevo = async (request: FastifyRequest<{ Params: ProductParams }>, reply: FastifyReply): Promise<void> => {
+    public async deleteProductrevo(request: ProductRequest, reply: FastifyReply): Promise<void> {
         try {
-            const result = await this.productService.upsertProductwithFileRevo(request) as ProductFileResponse;
-            if (this.isSuccessfulOperation(result)) {
-                if (result.productid) {
-                    await uploadtos3(result.pathurldatas, result.productid);
-                }
-                const message = this.getOperationMessage(result.result.command, 'File');
-                this.sendSuccessResponse(reply, { message });
+            const result = await this.productService.deleteProductrevo(request.params.id);
+            if (isSuccessfulOperation(result)) {
+                sendSuccessResponse(reply, formatResponse(null, 'Product deleted successfully'));
+            } else {
+                const message = 'command' in result ? result.message : 'Product not found';
+                sendErrorResponse(reply, 404, message);
             }
         } catch (error) {
-            this.handleError(error, reply, 'upsertProductwithfileRevo');
+            handleControllerError(error, reply, 'deleteProductrevo');
         }
     }
 
     /**
-     * Create or update a product with file in GCP
+     * Create or update product
      */
-    public upsertProductwithfileRevogcp = async (request: FastifyRequest<{ Params: ProductParams }>, reply: FastifyReply): Promise<void> => {
+    public async upsertProductrevo(request: ProductRequest, reply: FastifyReply): Promise<void> {
         try {
-            const result = await this.productService.upsertProductwithFileRevo(request) as ProductFileResponse;
-            if (this.isSuccessfulOperation(result)) {
-                const message = this.getOperationMessage(result.result.command, 'File');
-                this.sendSuccessResponse(reply, { message });
+            const result = await this.productService.upsertProductrevo(request.body);
+            if (isSuccessfulOperation(result)) {
+                const message = 'command' in result ? getOperationMessage(result.command) : 'Operation successful';
+                sendSuccessResponse(reply, formatResponse(result, message));
+            } else {
+                sendErrorResponse(reply, 400, 'Failed to create/update product');
             }
         } catch (error) {
-            this.handleError(error, reply, 'upsertProductwithfileRevogcp');
+            handleControllerError(error, reply, 'upsertProductrevo');
+        }
+    }
+
+    /**
+     * Create or update product with file
+     */
+    public async upsertProductwithfileRevo(request: ProductRequest, reply: FastifyReply): Promise<void> {
+        try {
+            const result = await this.productService.upsertProductwithFileRevo(request);
+            if (isSuccessfulOperation(result)) {
+                const message = 'result' in result ? getOperationMessage(result.result.command) : 'Operation successful';
+                sendSuccessResponse(reply, formatResponse(result, message));
+            } else {
+                sendErrorResponse(reply, 400, 'Failed to create/update product with file');
+            }
+        } catch (error) {
+            handleControllerError(error, reply, 'upsertProductwithfileRevo');
+        }
+    }
+
+    /**
+     * Create or update product with file in GCP
+     */
+    public async upsertProductwithfileRevogcp(request: ProductRequest, reply: FastifyReply): Promise<void> {
+        try {
+            const result = await this.productService.upsertProductwithFileRevo(request);
+            if (isSuccessfulOperation(result)) {
+                const message = 'result' in result ? getOperationMessage(result.result.command) : 'Operation successful';
+                sendSuccessResponse(reply, formatResponse(result, message));
+            } else {
+                sendErrorResponse(reply, 400, 'Failed to create/update product with file in GCP');
+            }
+        } catch (error) {
+            handleControllerError(error, reply, 'upsertProductwithfileRevogcp');
         }
     }
 
     /**
      * Rearrange product images
      */
-    public rearrangeImageRevo = async (request: FastifyRequest<{ Params: ProductParams; Body: Record<string, unknown> }>, reply: FastifyReply): Promise<void> => {
+    public async rearrangeImageRevo(request: ProductRequest, reply: FastifyReply): Promise<void> {
         try {
             const result = await this.productService.rearrangeImageRevo({
-                params: { productid: Number(request.params.productid) },
+                params: { productid: request.params.id },
                 body: request.body
             });
-            if (this.isSuccessfulOperation(result)) {
-                const message = 'Image Rearranged successfully';
-                this.sendSuccessResponse(reply, { message });
+            if (isSuccessfulOperation(result)) {
+                sendSuccessResponse(reply, formatResponse(result, 'Images rearranged successfully'));
             } else {
-                this.sendErrorResponse(reply, 500, result);
+                sendErrorResponse(reply, 400, 'Failed to rearrange images');
             }
         } catch (error) {
-            this.handleError(error, reply, 'rearrangeImageRevo');
+            handleControllerError(error, reply, 'rearrangeImageRevo');
         }
     }
 
     /**
      * Update removed from recycle bin
      */
-    public updateRemovedFromRecyclebinRevo = async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
+    public async updateRemovedFromRecyclebinRevo(request: ProductRequest, reply: FastifyReply): Promise<void> {
         try {
             const result = await this.productService.updateRemoveFromRecyclebinRevo();
-            this.sendSuccessResponse(reply, result);
+            if (isSuccessfulOperation(result)) {
+                sendSuccessResponse(reply, formatResponse(result, 'Recycle bin updated successfully'));
+            } else {
+                sendErrorResponse(reply, 400, 'Failed to update recycle bin');
+            }
         } catch (error) {
-            this.handleError(error, reply, 'updateRemovedFromRecyclebinRevo');
+            handleControllerError(error, reply, 'updateRemovedFromRecyclebinRevo');
         }
-    }
-
-    // Private helper methods
-    private sendSuccessResponse(reply: FastifyReply, data: unknown): void {
-        console.log(data, ' Data is in controller ');
-        reply.send(data);
-    }
-
-    private sendErrorResponse(reply: FastifyReply, statusCode: number, error: unknown): void {
-        reply.status(statusCode).send(error instanceof Error ? error.message : String(error));
-    }
-
-    private handleError(error: unknown, reply: FastifyReply, methodName: string): void {
-        console.error(`ERROR IN Controller ${methodName}:`, error);
-        this.sendErrorResponse(reply, 500, error);
-    }
-
-    private isProductServiceResponse(result: ProductServiceResult): result is ProductServiceResponse {
-        return 'command' in result && !('result' in result);
-    }
-
-    private isProductFileResponse(result: ProductServiceResult): result is ProductFileResponse {
-        return 'result' in result && 'command' in result.result;
-    }
-
-    private isProductErrorResponse(result: ProductServiceResult): result is ProductErrorResponse {
-        return 'errorMessage' in result;
-    }
-
-    private isSuccessfulOperation(result: ProductServiceResult): boolean {
-        if (this.isProductServiceResponse(result)) {
-            return result.command === 'INSERT' || result.command === 'UPDATE';
-        }
-        if (this.isProductFileResponse(result)) {
-            return result.result.command === 'INSERT' || result.result.command === 'UPDATE';
-        }
-        return false;
-    }
-
-    private getOperationMessage(command: string, type: string = 'Product'): string {
-        return `${type} ${command === 'UPDATE' ? 'Updated' : 'Inserted'} successfully`;
     }
 }
 
-// Export a singleton instance
-export const productrevoController = new ProductRevoController();
+// Create and export a singleton instance with proper dependency injection
+export const productrevoController = new ProductRevoController(productrevoService);

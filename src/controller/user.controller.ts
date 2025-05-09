@@ -1,115 +1,125 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import { userService } from "../services/user.service.js";
+import { UserService, userService } from "../services/user.service.js";
+import { 
+    UserRequest, 
+    UserResponse, 
+    UserServiceResponse,
+    UserServiceResult,
+    UserQueryParams,
+    UserData,
+    UserLoginResponse
+} from "../interfaces/user.interface.js";
+import {
+    sendSuccessResponse,
+    sendErrorResponse,
+    handleControllerError,
+    isSuccessfulOperation,
+    getOperationMessage,
+    formatResponse
+} from "../utils/controllerHelpers.js";
 
-interface idparams {
-    id: number
+export class UserController {
+    constructor(private readonly userService: UserService) {}
+
+    /**
+     * Get all users data
+     */
+    public async getUsersData(request: UserRequest, reply: FastifyReply): Promise<void> {
+        try {
+            const result = await this.userService.getUsersData(request);
+            sendSuccessResponse(reply, result);
+        } catch (error) {
+            handleControllerError(error, reply, 'getUsersData');
+        }
+    }
+
+    /**
+     * Handle forgot password request
+     */
+    public async forgotuser(request: UserRequest, reply: FastifyReply): Promise<void> {
+        try {
+            const result = await this.userService.forgotuser(request);
+            sendSuccessResponse(reply, result);
+        } catch (error) {
+            handleControllerError(error, reply, 'forgotuser');
+        }
+    }
+
+    /**
+     * Get logged in user data
+     */
+    public async getLoggedInUsersData(request: UserRequest, reply: FastifyReply): Promise<void> {
+        try {
+            const result = await this.userService.getLoggedInUsersData(request, reply);
+            sendSuccessResponse(reply, result);
+        } catch (error) {
+            handleControllerError(error, reply, 'getLoggedInUsersData');
+        }
+    }
+
+    /**
+     * Delete user by ID
+     */
+    public async deleteUserData(request: UserRequest, reply: FastifyReply): Promise<void> {
+        try {
+            const result = await this.userService.deleteUser(request.params.id);
+            if (isSuccessfulOperation(result)) {
+                sendSuccessResponse(reply, formatResponse(null, 'User deleted successfully'));
+            } else {
+                const message = 'command' in result ? result.message : 'User not found';
+                sendErrorResponse(reply, 404, message);
+            }
+        } catch (error) {
+            handleControllerError(error, reply, 'deleteUserData');
+        }
+    }
+
+    /**
+     * Create or update user
+     */
+    public async upsertUser(request: UserRequest, reply: FastifyReply): Promise<void> {
+        try {
+            const result = await this.userService.upsertUser(request.body);
+            if (isSuccessfulOperation(result)) {
+                const message = 'command' in result ? getOperationMessage(result.command) : 'Operation successful';
+                sendSuccessResponse(reply, formatResponse(result, message));
+            } else {
+                sendErrorResponse(reply, 400, 'Failed to create/update user');
+            }
+        } catch (error) {
+            handleControllerError(error, reply, 'upsertUser');
+        }
+    }
+
+    /**
+     * Handle user logout
+     */
+    public async userlogout(request: UserRequest, reply: FastifyReply): Promise<void> {
+        try {
+            await this.userService.userlogout(request, reply);
+            sendSuccessResponse(reply, formatResponse(null, 'Logged out successfully'));
+        } catch (error) {
+            handleControllerError(error, reply, 'userlogout');
+        }
+    }
+
+    /**
+     * Update user FCM ID
+     */
+    public async upsertFcmidUser(request: UserRequest, reply: FastifyReply): Promise<void> {
+        try {
+            const result = await this.userService.upsertFcmidUser(request.body);
+            if (isSuccessfulOperation(result)) {
+                sendSuccessResponse(reply, formatResponse(result, 'FCM ID updated successfully'));
+            } else {
+                sendErrorResponse(reply, 400, 'Failed to update FCM ID');
+            }
+        } catch (error) {
+            handleControllerError(error, reply, 'upsertFcmidUser');
+        }
+    }
 }
 
-export module userController {
+// Create and export a singleton instance with proper dependency injection
+export const userController = new UserController(userService);
 
-    export const getUsersData = async (request: FastifyRequest, reply: FastifyReply) => {
-        try {
-            let getUsersDataResult = await userService.getUsersData(request);
-            reply.send(getUsersDataResult);
-        } catch (error) {
-            console.error("Error in getUsersData", error);
-            reply.send(error.message);
-        }
-    }
-    export const forgotuser = async (request: FastifyRequest, reply: FastifyReply) => {
-        try {
-            let forgotuserData: any = await userService.forgotuser(request);
-            if (forgotuserData.status === 'success') {
-                reply.send(forgotuserData);
-
-            }
-            else {
-                reply.status(404).send(forgotuserData.Message)
-            }
-        } catch (error) {
-            console.error("Error in forgotuser", error);
-            reply.send(error.message);
-        }
-    }
-    export const getLoggedInUsersData = async (request: FastifyRequest, reply: FastifyReply) => {
-
-        try {
-            let getUsersDataResult:any = await userService.getLoggedInUsersData(request, reply);
-            if (getUsersDataResult && getUsersDataResult.userdata && !Array.isArray(getUsersDataResult.userdata)) {
-                reply.status(401).send({ error: getUsersDataResult })
-            }
-            else {
-                reply.send(getUsersDataResult);
-            }
-        } catch (error) {
-            console.error("Error in getLoggedInUsersData", error);
-            reply.send(error.message);
-        }
-    }
-
-    export const deleteUserData = async (request: FastifyRequest<{ Params: idparams }>, reply: FastifyReply) => {
-        try {
-            const { id } = request.params;
-            let deleteUserResult = await userService.deleteUser(Number(id));
-            reply.send(deleteUserResult);
-        } catch (error) {
-            console.error("Error in deleteUserData", error);
-            reply.send(error.message);
-        }
-    }
-
-    export const upsertUser = async (request: any, reply: any) => {
-        try {
-            const userData = request.body;
-            let upsertUserResult : any = await userService.upsertUser(userData);
-            if (upsertUserResult.command == 'UPDATE') {
-                reply.status(200).send('User Updated successfully');
-            } else if(upsertUserResult.command == 'INSERT'){
-                reply.status(200).send('User signup done successfully');
-            }
-            else {
-    
-                reply.status(401).send(upsertUserResult.message)
-            }
-        } catch (error) {
-            console.error("Error in upsertUser", error);
-            reply.send(error.message);
-        }
-    }
-    
-    export const userlogout = async (request: any, reply: any) => {
-        try {
-            const userData = request.body;
-            console.log(request.cookies.sessionId
-            );
-            let upsertUserResult = await userService.userlogout(request,reply);           
-                reply.status(200).send('Logged Out Successfully')
-        } catch (error) {
-            console.error("Error in userlogout", error);
-            reply.send(error.message);
-        }
-    }
-
-
-    export const upsertFcmidUser = async (request: any, reply: any) => {
-        try {
-            const userData = request.body;
-            let upsertUserResult = await userService.upsertFcmidUser(userData);
-            if (upsertUserResult?.command === "UPDATE" || upsertUserResult?.command === "INSERT") {
-                let message: any = {};
-                message = {
-                    user: upsertUserResult?.command === "UPDATE"
-                        ? ` User Updated successfully`
-                        : ` User signup done successfully`
-                };
-                reply.status(200).send(message);
-            }
-            else {
-                reply.status(500).send(upsertUserResult)
-            }
-        } catch (error) {
-            console.error("Error in upsertFcmidUser", error);
-            reply.send(error.message);
-        }
-    }
-}

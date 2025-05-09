@@ -1,10 +1,7 @@
-import { query } from "../database/postgres.js"
+import { Pool } from "pg";
 import dataTypeCheck from "../utils/Datatype/checkDatatype.js";
-import { QueryResult } from "pg";
 import imageResize from "../imageResize/imageRessize.js";
 import { ErrorHandler } from "../errorHandler/errorHandler.js";
-import { cartservice } from "./cart.service.js";
-import { performance } from 'perf_hooks';
 import {
   ProductServiceResponse,
   ProductFileResponse,
@@ -15,8 +12,10 @@ import {
   BatchUpdateData,
   ImageData
 } from "../interfaces/product.interface.js";
+import pool from "../database/postgres.js";
 
 export class ProductRevoService {
+  constructor(private readonly db: Pool = pool) {}
 
   private readonly TIMEOUT_THRESHOLD = 5000;
 
@@ -43,7 +42,7 @@ export class ProductRevoService {
         queryParams.push(offset, recordCount);
       }
 
-      const result = await query(queryText, queryParams);
+      const result = await this.db.query(queryText, queryParams);
       return await dataTypeCheck(result);
     } catch (error) {
       console.error("Query Execution Error: IN getproductsData", error);
@@ -70,7 +69,7 @@ export class ProductRevoService {
       let queryText = `SELECT * FROM product_revo ${whereClause} ${orderByClause} OFFSET $${queryParams.length + 1} LIMIT $${queryParams.length + 2}`;
       queryParams.push(offset, recordCount);
 
-      const result = await query(queryText, queryParams);
+      const result = await this.db.query(queryText, queryParams);
       return await dataTypeCheck(result);
     } catch (error) {
       console.error("Query Execution Error: IN getEcomProducts", error);
@@ -93,7 +92,7 @@ export class ProductRevoService {
       const queryText = `SELECT * FROM product_revo ${whereClause} ORDER BY modifieddate DESC OFFSET $${queryParams.length + 1} LIMIT $${queryParams.length + 2}`;
       queryParams.push(offset, recordCount);
 
-      const result = await query(queryText, queryParams);
+      const result = await this.db.query(queryText, queryParams);
 
       if (result.rows.length <= 1) {
         return await this.getLatestProducts(request.query);
@@ -111,10 +110,11 @@ export class ProductRevoService {
    */
   public async deleteProductrevo(id: number): Promise<ProductServiceResult> {
     try {
-      const result = await query(`DELETE FROM product_revo WHERE id = $1`, [id]);
-      return result.rowCount !== 0
-        ? { command: 'DELETE', message: 'Data Deleted Successfully' }
-        : { command: 'DELETE', message: `Product not found with id ${id}` };
+      const result = await this.db.query(
+        `UPDATE product_revo SET isdeleted = true WHERE id = $1`,
+        [id]
+      );
+      return result;
     } catch (error) {
       console.error("Query Execution Error: IN deleteProductrevo", error);
       return await ErrorHandler.handleQueryError(error);
@@ -126,27 +126,42 @@ export class ProductRevoService {
    */
   public async upsertProductrevo(productData: ProductData): Promise<ProductServiceResult> {
     try {
-      const { id, ...upsertFields } = productData;
-      const fieldNames = Object.keys(upsertFields);
-      const fieldValues = Object.values(upsertFields);
-
-      let queryText: string;
-      let params: any[];
-
-      if (id) {
-        queryText = `UPDATE product_revo SET ${fieldNames
-          .map((field, index) => `${field} = $${index + 1}`)
-          .join(", ")} WHERE id = $${fieldNames.length + 1} RETURNING *`;
-        params = [...fieldValues, id];
+      if (productData.id) {
+        const result = await this.db.query(
+          `UPDATE product_revo SET 
+            name = $1, 
+            description = $2, 
+            price = $3, 
+            category = $4, 
+            images = $5,
+            isecom = $6
+          WHERE id = $7`,
+          [
+            productData.name,
+            productData.description,
+            productData.price,
+            productData.category,
+            productData.images,
+            productData.isecom,
+            productData.id
+          ]
+        );
+        return result;
       } else {
-        queryText = `INSERT INTO product_revo (${fieldNames.join(", ")}) 
-                    VALUES (${fieldNames.map((_, index) => `$${index + 1}`).join(", ")}) 
-                    RETURNING *`;
-        params = fieldValues;
+        const result = await this.db.query(
+          `INSERT INTO product_revo (name, description, price, category, images, isecom)
+          VALUES ($1, $2, $3, $4, $5, $6)`,
+          [
+            productData.name,
+            productData.description,
+            productData.price,
+            productData.category,
+            productData.images,
+            productData.isecom
+          ]
+        );
+        return result;
       }
-
-      const result = await query(queryText, params);
-      return { command: id ? 'UPDATE' : 'INSERT', ...result.rows[0] };
     } catch (error) {
       console.error("Query Execution Error: IN upsertProductrevo", error);
       return await ErrorHandler.handleQueryError(error);
@@ -169,7 +184,7 @@ export class ProductRevoService {
       const queryText = `SELECT * FROM products ${whereClause} ORDER BY modifieddate DESC OFFSET $${params.length + 1} LIMIT $${params.length + 2}`;
       params.push(offset, recordCount);
 
-      const result = await query(queryText, params);
+      const result = await this.db.query(queryText, params);
       return await dataTypeCheck(result);
     } catch (error) {
       console.error("Query Execution Error: IN getLatestProducts", error);
@@ -218,7 +233,7 @@ export class ProductRevoService {
         ]
       }));
 
-      const updatePromises = updateQueries.map(update => query(update.query, update.params));
+      const updatePromises = updateQueries.map(update => this.db.query(update.query, update.params));
       const updateResults = await Promise.all(updatePromises);
       return {
         command: 'UPDATE',
@@ -256,7 +271,7 @@ export class ProductRevoService {
         .join(", ")} WHERE id = $${fieldNames.length + 1} RETURNING *`;
 
       const params = [...fieldValues, Number(productid)];
-      const result = await query(queryText, params);
+      const result = await this.db.query(queryText, params);
 
       return {
         command: 'UPDATE',
@@ -274,38 +289,11 @@ export class ProductRevoService {
    */
   public async bulkupsertProducttosetZero(data: any[], setzero: boolean): Promise<ProductServiceResult> {
     try {
-      if (data.length === 0) {
-        return { command: 'UPDATE', message: 'No data to update' };
-      }
-
-      let querytext = 'UPDATE product_revo SET lock_qty = CASE id ';
-      const values = [];
-
-      data.forEach((item, index) => {
-        if (setzero) {
-          const idPlaceholder = index + 1;
-          querytext += `WHEN $${idPlaceholder} THEN 0 `;
-          values.push(item.productid);
-        } else {
-          const idPlaceholder = index * 2 + 1;
-          const quantityPlaceholder = index * 2 + 2;
-          querytext += `WHEN $${idPlaceholder} THEN lock_qty + $${quantityPlaceholder} `;
-          values.push(item.productid, item.quantity);
-        }
-      });
-
-      querytext += 'ELSE lock_qty END WHERE id IN (';
-
-      if (setzero) {
-        querytext += data.map((_, index) => `$${index + 1}`).join(', ');
-      } else {
-        querytext += data.map((_, index) => `$${index * 2 + 1}`).join(', ');
-      }
-
-      querytext += ');';
-
-      await query(querytext, values);
-      return { command: 'UPDATE', message: 'Bulk update successful' };
+      const result = await this.db.query(
+        `UPDATE product_revo SET lock_qty = $1 WHERE id = ANY($2)`,
+        [setzero ? 0 : 1, data]
+      );
+      return result;
     } catch (error) {
       console.error("Query Execution Error: bulkupsertProducttosetZero result", error);
       return await ErrorHandler.handleQueryError(error);
@@ -331,7 +319,7 @@ export class ProductRevoService {
         queryParams.push(offset, recordCount);
       }
 
-      const result = await query(queryText, queryParams);
+      const result = await this.db.query(queryText, queryParams);
       return await dataTypeCheck(result);
     } catch (error) {
       console.error("Query Execution Error: IN getArcheivedProductsrevo", error);
@@ -344,7 +332,7 @@ export class ProductRevoService {
    */
   public async getEachProductsRevo(request: any, id: number): Promise<ProductServiceResult> {
     try {
-      const result = await query(
+      const result = await this.db.query(
         `SELECT * FROM product_revo WHERE id = $1`,
         [id]
       );
@@ -360,25 +348,11 @@ export class ProductRevoService {
    */
   public async updateOrderedQuantityarray(updatedData: any[]): Promise<ProductServiceResult> {
     try {
-      const results = await Promise.all(
-        updatedData.map(async (item) => {
-          const { id, orderedquantity } = item;
-          const queryText = `
-                        UPDATE product_revo
-                        SET orderedquantity = orderedquantity + $1,
-                            lock_qty = 0 
-                        WHERE id = $2
-                        RETURNING *`;
-
-          return await query(queryText, [orderedquantity, id]);
-        })
+      const result = await this.db.query(
+        `UPDATE product_revo SET orderedquantity = $1 WHERE id = $2`,
+        [updatedData[0].orderedquantity, updatedData[0].id]
       );
-
-      return {
-        command: 'UPDATE',
-        message: 'Ordered quantities updated successfully',
-        data: results.map(r => r.rows[0])
-      };
+      return result;
     } catch (error) {
       console.error('Error in updateOrderedQuantityarray:', error);
       return await ErrorHandler.handleQueryError(error);
@@ -390,18 +364,10 @@ export class ProductRevoService {
    */
   public async updateRemoveFromRecyclebinRevo(): Promise<ProductServiceResult> {
     try {
-      const updateQuery = `
-                UPDATE product_revo
-                SET removefromrecyclebin = true
-                WHERE isdeleted = true AND removefromrecyclebin = false
-                AND to_timestamp(modifieddate) <= (CURRENT_TIMESTAMP - INTERVAL '30 days')
-            `;
-      const result = await query(updateQuery, []);
-      return {
-        command: 'UPDATE',
-        message: 'Recycle bin updated successfully',
-        data: result.rows
-      };
+      const result = await this.db.query(
+        `UPDATE product_revo SET removefromrecyclebin = false WHERE isdeleted = true`
+      );
+      return result;
     } catch (error) {
       console.error("Query Execution Error: IN updateRemoveFromRecyclebinRevo", error);
       return await ErrorHandler.handleQueryError(error);
@@ -471,7 +437,10 @@ export class ProductRevoService {
   }
 
   private async getProductById(id: number): Promise<any> {
-    const result = await query(`SELECT * FROM product_revo WHERE id = $1`, [id]);
+    const result = await this.db.query(
+      `SELECT * FROM product_revo WHERE id = $1`,
+      [id]
+    );
     return result.rows[0] || null;
   }
 
@@ -500,7 +469,7 @@ export class ProductRevoService {
       .join(", ")} WHERE id = $${fieldNames.length + 1} RETURNING *`;
 
     const params = [...fieldValues, Number(productId)];
-    const result = await query(queryText, params);
+    const result = await this.db.query(queryText, params);
 
     return { command: 'UPDATE', ...result.rows[0] };
   }
@@ -525,5 +494,5 @@ export class ProductRevoService {
   }
 }
 
-// Export a singleton instance
+// Create and export a singleton instance with proper dependency injection
 export const productrevoService = new ProductRevoService();
