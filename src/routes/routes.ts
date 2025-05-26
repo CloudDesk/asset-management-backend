@@ -10,7 +10,7 @@ import { globalSearchController } from "../controller/globalsearch.controller.js
 import { recycleBinController } from "../controller/recyclebin.controller.js";
 import { cartController } from "../controller/cart.controller.js";
 import { wishListController } from "../controller/wishlist.controller.js";
-import { UserController } from "../controller/user.controller.js";
+import { userController } from "../controller/user.controller.js";
 import { supplierController } from "../controller/supplier.controller.js";
 import { addressController } from "../controller/address.controller.js";
 import { cartInsertSchema } from "../schemas/cart.shema.js";
@@ -49,10 +49,9 @@ import { locationhistrorycontroller } from "../controller/locationhistory.contro
 import { getSession } from "../services/session.service.js";
 import { sessionController } from "../controller/session.controller.js";
 import { testSendFCMNotification } from "../services/test.service.js";
-import { UserService } from "../services/user.service.js";
+import { userService } from "../services/user.service.js";
 import { request } from "http";
 import { sendPushNotification } from "../firebase/firebasepushmessage.js";
-import { userSchemas } from "../schemas/user.schema.js";
 
 const Revo365Routes = async function (fastify: FastifyInstance, opts: any) {
     //product version 1
@@ -98,207 +97,21 @@ const Revo365Routes = async function (fastify: FastifyInstance, opts: any) {
     }
     )
     // verison 2 -> product
-    fastify.get('/v2/product', { 
-      preHandler: [getSession],
-      schema: {
-        querystring: {
-          type: 'object',
-          properties: {
-            page: { type: 'number' },
-            count: { type: 'number' }
-          }
-        }
-      }
-    }, productrevoController.getProductsrevoData);
-
-    fastify.get('/v2/product-ecommerce', {
-      preHandler: [getSession],
-      schema: {
-        querystring: {
-          type: 'object',
-          properties: {
-            page: { type: 'number' },
-            count: { type: 'number' }
-          }
-        }
-      }
-    }, productrevoController.getProductsrevoData);
-
-    fastify.get('/v2/product/Archieve', { 
-      preHandler: [getSession],
-      schema: {
-        querystring: {
-          type: 'object',
-          properties: {
-            page: { type: 'number' },
-            count: { type: 'number' }
-          }
-        }
-      }
-    }, productrevoController.getArcheivedProductsrevo);
-
-    fastify.get('/v2/product-ecom/:id', {
-      preHandler: [getSession],
-      schema: {
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'number' }
-          },
-          required: ['id']
-        }
-      }
-    }, productrevoController.getEachProductsRevo);
-
-    fastify.get('/v2/product/:id', { 
-      preHandler: [getSession],
-      schema: {
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'number' }
-          },
-          required: ['id']
-        }
-      }
-    }, productrevoController.getEachProductsRevo);
-
-    fastify.post('/v2/product', { 
-      preHandler: [getSession],
-      schema: {
-        body: {
-          type: 'object',
-          properties: {
-            id: { type: 'number' },
-            quantity: { type: 'number' },
-            puc: { type: 'number' },
-            name: { type: 'string' },
-            description: { type: 'string' },
-            category: { type: 'string' },
-            status: { type: 'string' }
-          }
-        }
-      }
-    }, productrevoController.upsertProduct);
-
-    fastify.delete('/v2/product/:id', { 
-      preHandler: [getSession],
-      schema: {
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'number' }
-          },
-          required: ['id']
-        }
-      }
-    }, productrevoController.deleteProduct);
-
-    // File upload routes
-    fastify.post('/v2/product/upload', {
-      preHandler: [getSession, filesUpload],
-      schema: {
-        body: {
-          type: 'object',
-          properties: {
-            productid: { type: 'number' }
-          },
-          required: ['productid']
-        }
-      }
-    }, productrevoController.upsertProductWithFile);
-
-    fastify.post('/v2/product/upload/gcp', {
-      preHandler: [getSession],
-      schema: {
-        body: {
-          type: 'object',
-          properties: {
-            productid: { type: 'number' },
-            url: { type: 'string' }
-          },
-          required: ['productid', 'url']
-        }
-      }
-    }, productrevoController.upsertProductWithFileGcp);
-
-    fastify.post('/v2/product/rearrange', {
-      preHandler: [getSession],
-      schema: {
-        body: {
-          type: 'object',
-          properties: {
-            productid: { type: 'number' },
-            imageid: { type: 'number' },
-            position: { type: 'number' }
-          },
-          required: ['productid', 'imageid', 'position']
-        }
-      }
-    }, productrevoController.rearrangeImageRevo);
-
-    fastify.get('/v2/product/updaterecyclebin', { 
-      preHandler: [getSession]
-    }, productrevoController.updateRemoveFromRecyclebinRevo);
-
-    fastify.get('/v2/product-similar', { 
-      preHandler: [getSession],
-      schema: {
-        querystring: {
-          type: 'object',
-          properties: {
-            page: { type: 'number' },
-            count: { type: 'number' }
-          }
-        }
-      }
-    }, productrevoController.getProductsrevoData);
-
-    fastify.get('/v2/product-ecom-similar', {
-      schema: {
-        querystring: {
-          type: 'object',
-          properties: {
-            page: { type: 'number' },
-            count: { type: 'number' }
-          }
-        }
-      }
-    }, productrevoController.getProductsrevoData);
-
-    fastify.post('/v2/product/lockqty', { 
-      preHandler: [getSession],
-      schema: {
-        body: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              productid: { type: 'number' },
-              quantity: { type: 'number' }
-            },
-            required: ['productid']
-          }
-        }
-      }
-    }, productrevoController.bulkupsertProducttosetZero);
-
-    fastify.post('/test/updateorderquantity', { 
-      preHandler: [getSession],
-      schema: {
-        body: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              id: { type: 'number' },
-              orderedquantity: { type: 'number' }
-            },
-            required: ['id', 'orderedquantity']
-          }
-        }
-      }
-    }, productrevoController.updateOrderedQuantityarray);
+    fastify.get('/v2/product', { preHandler: [getSession] }, productrevoController.getProductsrevoData);
+    fastify.get('/v2/product-ecommerce', productrevoController.getProductsrevoData);
+    fastify.get('/v2/product/Archieve', { preHandler: [getSession] }, productrevoController.getArcheivedProductsRevo);
+    fastify.get('/v2/product-ecom/:id', productrevoController.getEachProductsRevo);
+    fastify.get('/v2/product/:id', { preHandler: [getSession] }, productrevoController.getEachProductsRevo);
+    fastify.post('/v2/product', { preHandler: [getSession] },/* { preHandler: [validateRequestBody(productInsertSchema)] } ,*/ productrevoController.upsertProductrevo);
+    fastify.delete('/v2/product/:id', { preHandler: [getSession] },/* { preHandler: validateRequestBody(deleteProductSchema) } , */ productrevoController.deleteProductrevo);
+    fastify.post('/v2/product-file/:productid', { preHandler: [getSession, filesUpload] }, productrevoController.upsertProductwithfileRevo);
+    fastify.post('/v3/product-file', productrevoController.upsertProductwithfileRevogcp);
+    fastify.post('/v2/rearange-image/:productid', { preHandler: [getSession] }, productrevoController.rearrangeImageRevo);
+    fastify.get('/v2/product/updaterecyclebin', { preHandler: [getSession] }, productrevoController.updateRemovedFromRecyclebinRevo);
+    fastify.get(`/v2/product-ecom`, productrevoController.getProductsEcomrevoData);
+    fastify.get('/v2/product-similar', { preHandler: [getSession] }, productrevoController.getSimilarProducts);
+    fastify.get('/v2/product-ecom-similar', productrevoController.getSimilarProducts);
+    fastify.post('/v2/product/lockqty', { preHandler: [getSession] }, productrevoController.upsertlockqty);
 
     //version 2 -> stock
     fastify.get('/v2/stock', { preHandler: [getSession] }, stockRevoController.getStockRevoData);
@@ -354,33 +167,14 @@ const Revo365Routes = async function (fastify: FastifyInstance, opts: any) {
     fastify.post('/wishlist', { preHandler: [getSession] }, wishListController.upsertToWishlist);
 
     //users
-    fastify.get('/users', { 
-      preHandler: [getSession],
-      schema: userSchemas.getUsers
-    }, UserController.getUsersData);
+    fastify.get('/users', { preHandler: [getSession] }, userController.getUsersData);
+    fastify.get('/users/:useremail/:userpassword', userController.getLoggedInUsersData);
+    fastify.post('/users', userController.upsertUser);
+    fastify.post('/users/fcmid', userController.upsertFcmidUser);
+    fastify.get('/users/logout', userController.userlogout);
 
-    fastify.post('/login', {
-      schema: userSchemas.login
-    }, UserController.login);
-
-    fastify.post('/upsertUser', {
-      preHandler: [getSession],
-      schema: userSchemas.upsertUser
-    }, UserController.upsertUser);
-
-    fastify.post('/logout', {
-      preHandler: [getSession],
-      schema: userSchemas.logout
-    }, UserController.logout);
-
-    fastify.delete('/user/:id', {
-      preHandler: [getSession],
-      schema: userSchemas.deleteUser
-    }, UserController.deleteUser);
-
-    fastify.post('/user-forgot', {
-      schema: userSchemas.forgotPassword
-    }, UserController.forgotPassword);
+    fastify.delete('/users/:id', userController.deleteUserData);
+    fastify.post('/user-forgot', userController.forgotuser);
 
     //Invetroyusers
     fastify.get('/inventoryusers', { preHandler: [getSession] }, InventoryuserController.getInventoryUsersData);
@@ -413,9 +207,9 @@ const Revo365Routes = async function (fastify: FastifyInstance, opts: any) {
     fastify.delete('/orders/:id', { preHandler: [getSession] }, ordersController.deleteOrder);
 
 
-    // fastify.post('/test/task', { preHandler: [getSession] }, productrevoController.updateOrderedQuantityarray);
+    fastify.post('/test/task', { preHandler: [getSession] }, productrevoController.updateOrderedQuantityarray)
 
-    // fastify.post('/test/updateorderquantity', { preHandler: [getSession] }, productrevoController.updateOrderedQuantityarray)
+    fastify.post('/test/updateorderquantity', { preHandler: [getSession] }, productrevoController.updateOrderedQuantityarray)
 
     //supplier
     fastify.get('/supplier', { preHandler: [getSession] }, supplierController.getSupplier);
@@ -428,32 +222,11 @@ const Revo365Routes = async function (fastify: FastifyInstance, opts: any) {
 
     // data loader
     fastify.post('/dataloader', { preHandler: [getSession] }, dataLoaderController.insertDataLoaderData);
-    fastify.post('/get-dataloader', { 
-      preHandler: [getSession, filesUpload],
-      schema: {
-        body: {
-          type: 'object',
-          properties: {
-            type: { type: 'string' }
-          },
-          required: ['type']
-        }
-      }
-    }, dataLoaderController.getDataLoaderData);
+    fastify.post('/get-dataloader', { preHandler: [getSession, filesUpload] }, dataLoaderController.getDataLoaderData);
 
     //stockrevo dataloader
-    fastify.post('/get-dataloader/stock', { 
-      preHandler: [getSession, filesUpload],
-      schema: {
-        body: {
-          type: 'object',
-          properties: {
-            type: { type: 'string' }
-          },
-          required: ['type']
-        }
-      }
-    }, dataLoaderController.getDataLoaderDataStock);
+    fastify.post('/get-dataloader/stock', { preHandler: [getSession, filesUpload] }, dataLoaderController.getDataLoaderDataStock);
+    fastify.post('/dataloader/stock', { preHandler: [getSession] }, dataLoaderController.insertBulkDataStock);
 
     //data loader
     fastify.post('/dataloader/test', { preHandler: [getSession] }, dataLoaderController.insertDataLoaderDatalatest);
@@ -472,34 +245,14 @@ const Revo365Routes = async function (fastify: FastifyInstance, opts: any) {
 
     // productrevo
     fastify.get('/productrevo', { preHandler: [getSession] }, productrevoController.getProductsrevoData);
-    fastify.delete('/productrevo/:id', { preHandler: [getSession] }, productrevoController.deleteProduct);
-    fastify.post('/productrevo', { preHandler: [getSession] }, productrevoController.upsertProductWithFile);
-    fastify.post('/productrevo/gcp', { preHandler: [getSession] }, productrevoController.upsertProductWithFileGcp);
-    fastify.post('/productrevo/bulk', { preHandler: [getSession] }, productrevoController.bulkupsertProducttosetZero);
-    fastify.get('/productrevo/archived', { preHandler: [getSession] }, productrevoController.getArcheivedProductsrevo);
-    fastify.get('/productrevo/:id', { preHandler: [getSession] }, productrevoController.getEachProductsRevo);
-    fastify.post('/productrevo/rearrange', { preHandler: [getSession] }, productrevoController.rearrangeImageRevo);
-    fastify.post('/productrevo/restore/:id', { preHandler: [getSession] }, productrevoController.updateRemoveFromRecyclebinRevo);
-    fastify.post('/test/task', { preHandler: [getSession] }, productrevoController.updateOrderedQuantityarray);
+    fastify.delete('/productrevo/:id', { preHandler: [getSession] }, productrevoController.deleteProductrevo);
+    fastify.post('/productrevo', { preHandler: [getSession] }, productrevoController.upsertProductrevo);
 
     // rating
     fastify.get('/rating', { preHandler: [getSession] }, ratingController.getRatingData);
     fastify.get('/rating-ecom', ratingController.getRatingData);
     fastify.delete('/rating/:id', { preHandler: [getSession] }, ratingController.deleteRating);
-    fastify.post('/rating', { 
-      preHandler: [getSession, filesUpload],
-      schema: {
-        body: {
-          type: 'object',
-          properties: {
-            productid: { type: 'number' },
-            rating: { type: 'number' },
-            review: { type: 'string' }
-          },
-          required: ['productid', 'rating']
-        }
-      }
-    }, ratingController.upsertRating);
+    fastify.post('/rating', { preHandler: [getSession, filesUpload] }, ratingController.upsertRating);
     fastify.post('/v2/rating', ratingController.upsertGcpRating);
     fastify.post('/rating-image/delete', { preHandler: [getSession] }, ratingController.deleteImageRating);
 
@@ -528,51 +281,16 @@ const Revo365Routes = async function (fastify: FastifyInstance, opts: any) {
     fastify.post('/note', { preHandler: [getSession, validateRequestBody(notesSchema)] }, notesController.upsertnotes);
 
     //attach quote
-    fastify.post('/quote/file', { 
-      preHandler: [getSession, filesUpload],
-      schema: {
-        body: {
-          type: 'object',
-          properties: {
-            quoteid: { type: 'number' }
-          },
-          required: ['quoteid']
-        }
-      }
-    }, quoteController.attachQuotefiles);
+    fastify.post('/quote/file', { preHandler: [getSession, filesUpload] }, quoteController.attachQuotefiles);
     fastify.post('/v2/quote/file', quoteController.attachGcpQuotefiles);
 
     //poinvoice
     fastify.get('/poinvoice', { preHandler: [getSession] }, poinvoicecontroller.getPOInvoice);
-    fastify.post('/poinvoice', { 
-      preHandler: [getSession, filesUpload],
-      schema: {
-        body: {
-          type: 'object',
-          properties: {
-            poid: { type: 'number' }
-          },
-          required: ['poid']
-        }
-      }
-    }, poinvoicecontroller.upsertPoInvoice);
+    fastify.post('/poinvoice', { preHandler: [getSession, filesUpload] }, poinvoicecontroller.upsertPoInvoice);
     fastify.post('/v2/poinvoice', poinvoicecontroller.upsertGcpPoInvoice);
 
     //Gmail
-    fastify.post('/gmail', { 
-      preHandler: [getSession, filesUpload],
-      schema: {
-        body: {
-          type: 'object',
-          properties: {
-            to: { type: 'string' },
-            subject: { type: 'string' },
-            text: { type: 'string' }
-          },
-          required: ['to', 'subject', 'text']
-        }
-      }
-    }, sendMail);
+    fastify.post('/gmail', { preHandler: [getSession, filesUpload] }, sendMail);
 
     //orderRFID
     // fastify.post('/order-rfid', ordersController.upsertOrderrfid);
@@ -583,20 +301,7 @@ const Revo365Routes = async function (fastify: FastifyInstance, opts: any) {
     fastify.get('/tickets', { preHandler: [getSession] }, ticketController.getTicketsData);
     fastify.get('/customer/tickets', { preHandler: [getSession] }, ticketController.getTicketDynamicData);
     fastify.get('/tickets/queue', { preHandler: [getSession] }, ticketController.getQueueTicketsData);
-    fastify.post('/tickets', { 
-      preHandler: [getSession, filesUpload],
-      schema: {
-        body: {
-          type: 'object',
-          properties: {
-            title: { type: 'string' },
-            description: { type: 'string' },
-            priority: { type: 'string' }
-          },
-          required: ['title', 'description', 'priority']
-        }
-      }
-    }, ticketController.upsertTickets);
+    fastify.post('/tickets', { preHandler: [getSession, filesUpload] }, ticketController.upsertTickets);
     fastify.post('/v2/tickets', ticketController.upsertGcpTickets);
 
     // Merchant Transaction Id - 

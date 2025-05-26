@@ -1,281 +1,180 @@
-import { FastifyRequest, FastifyReply } from 'fastify';
 import { stockRevoService } from "../services/stockRevo.service.js";
-import { stockrevoSchema, stockrevoIdSchema, stockrevoUpsertSchema, stockrevoDeleteSchema, stockrevoArchiveSchema, stockrevoRfidSchema } from '../schemas/stockRevo.schema.js';
-
-interface StockRevoUpsertResponse {
-    command: string;
-    result: {
-        puc: string;
-        rows: Array<{
-            puc: string;
-            isdeleted?: boolean;
-            isarchive?: boolean;
-        }>;
-    };
-    totalCount: number;
-}
-
-interface StockRevoErrorResponse {
-    errorMessage: string;
-    errorDetails: string;
-    statusCode: number;
-}
-
-type StockRevoServiceResponse = StockRevoUpsertResponse | StockRevoErrorResponse;
 
 export module stockRevoController {
-    export const getStockRevoData = async (request: FastifyRequest, reply: FastifyReply) => {
+    export const getStockRevoData = async (request: any, reply: any) => {
         try {
-            const result = await stockRevoService.getStockRevoData(request);
-            return reply.send(result);
+            let result = await stockRevoService.getStockRevoData(request);
+            reply.send(result);
         } catch (error) {
             console.error("Error in getStockRevoData", error);
-            return reply.send({
-                success: false,
-                data: null,
-                total: 0,
-                page: 1,
-                limit: 0,
-                message: error instanceof Error ? error.message : 'Unknown error'
-            });
+            reply.send(error.message);
         }
     };
-
-    export const getEachStockRevoData = async (request: FastifyRequest, reply: FastifyReply) => {
+    export const getEachStockRevoData = async (request: any, reply: any) => {
         try {
-            const result = await stockRevoService.getEachStockRevoData(request);
-            return reply.send(result);
+            let result = await stockRevoService.getEachStockRevoData(request);
+            reply.send(result);
         } catch (error) {
             console.error("Error in getEachStockRevoData", error);
-            return reply.send({
-                success: false,
-                data: null,
-                total: 0,
-                page: 1,
-                limit: 0,
-                message: error instanceof Error ? error.message : 'Unknown error'
-            });
+            reply.send(error.message);
         }
     };
 
-    export const getEwasteStocksRevo = async (request: FastifyRequest, reply: FastifyReply) => {
+    export const getEwasteStocksRevo = async (request: any, reply: any) => {
         try {
-            const result = await stockRevoService.getEwasteStocksrevo(request);
-            return reply.send(result);
+            let getProductsResult = await stockRevoService.getEwasteStocksrevo(request)
+            reply.send(getProductsResult)
+
         } catch (error) {
             console.error("Error in getEwasteStocksRevo", error);
-            return reply.send({
-                success: false,
-                data: null,
-                total: 0,
-                page: 1,
-                limit: 0,
-                message: error instanceof Error ? error.message : 'Unknown error'
-            });
+            reply.send(`${error.message} error in get Products`)
         }
-    };
+    }
 
-    export const updateEwaste = async (request: FastifyRequest, reply: FastifyReply) => {
+    export const updateEwaste = async (request: any, reply: any) => {
         try {
-            const { id } = request.params as { id: number };
-            const result = await stockRevoService.updateEwaste(id);
-            return reply.send(result);
+            const { id } = request.params; 
+            let deleteStockResult = await stockRevoService.updateEwaste(id); 
+            reply.send(deleteStockResult);
         } catch (error) {
             console.error("Error in updateEwaste", error);
-            return reply.send({
-                success: false,
-                data: null,
-                total: 0,
-                page: 1,
-                limit: 0,
-                message: error instanceof Error ? error.message : 'Unknown error'
-            });
+            reply.send(error.message); 
         }
     };
 
-    export const getDeletedStocksRevo = async (request: FastifyRequest, reply: FastifyReply) => {
+    export const getDeletedStocksRevo = async (request: any, reply: any) => {
         try {
-            const result = await stockRevoService.getDeletedStocksrevo(request);
-            return reply.send(result);
+            let getProductsResult = await stockRevoService.getDeletedStocksrevo(request)
+            reply.send(getProductsResult)
+
         } catch (error) {
             console.error("Error in getDeletedStocksRevo", error);
-            return reply.send({
-                success: false,
-                data: null,
-                total: 0,
-                page: 1,
-                limit: 0,
-                message: error instanceof Error ? error.message : 'Unknown error'
-            });
+            reply.send(`${error.message} error in get Products`)
         }
-    };
-
-    export const updateRemovedFromRecyclebinRevo = async (request: FastifyRequest, reply: FastifyReply) => {
+    }
+    export const updateRemovedFromRecyclebinRevo = async (request: any, reply: any) => {
         try {
-            const result = await stockRevoService.updateRemoveFromRecyclebin();
-            return reply.send(result);
+            let resultremoverecyclebin = await stockRevoService.updateRemoveFromRecyclebin()
+            reply.send(resultremoverecyclebin)
         } catch (error) {
             console.error("Error in updateRemovedFromRecyclebinRevo", error);
-            return reply.send({
-                success: false,
-                data: null,
-                total: 0,
-                page: 1,
-                limit: 0,
-                message: error instanceof Error ? error.message : 'Unknown error'
-            });
+            reply.send(`Error in updating recyclebin : ${error.message}`)
         }
-    };
+    }
 
-    export const upsertStockRevoData = async (request: FastifyRequest, reply: FastifyReply) => {
+
+    export const upsertStockRevoData = async (request: any, reply: any) => {
         try {
-            const result = await stockRevoService.upsertStockRevoData(request.body) as StockRevoServiceResponse;
-            if ('command' in result && (result.command === "UPDATE" || result.command === "INSERT")) {
-                const puc = result.result.puc;
-                const pucArray: string[] = Array.from(new Set(result.result.rows.map(row => row.puc)));
-                await stockRevoService.updateQuantity(pucArray);
-                return reply.send({
-                    product: result.command === "UPDATE" ? "Stock Updated successfully" : "Stock Inserted successfully"
-                });
-            } else if ('statusCode' in result) {
-                return reply.status(404).send({ error: [result.errorMessage] });
+            let upsertStockResult: any = await stockRevoService.upsertStockRevoData(request.body);
+            if (upsertStockResult.command === "UPDATE" || upsertStockResult.command === "INSERT") {
+                const puc = upsertStockResult.result.puc; 
+                const pucArray: string[] = Array.from(new Set(upsertStockResult.result.rows.map(row => row.puc)));
+                 let updateQuantity = await stockRevoService.updateQuantity(pucArray);
+                let message: any = {
+                    product: upsertStockResult.command === "UPDATE"
+                        ? `Stock Updated successfully`
+                        : `Stock Inserted successfully`,
+                };
+                reply.status(200).send(message);
             } else {
-                return reply.status(404).send({ error: [result] });
+                reply.status(404).send({ error: [upsertStockResult] });
             }
         } catch (error) {
             console.error("Error in upsertStockRevoData", error);
-            return reply.send({
-                success: false,
-                data: null,
-                total: 0,
-                page: 1,
-                limit: 0,
-                message: error instanceof Error ? error.message : 'Unknown error'
-            });
+            reply.send(error.message);
         }
     };
 
-    export const assetlocationstock = async (request: FastifyRequest, reply: FastifyReply) => {
+    export const assetlocationstock = async (request: any, reply: any) => {
         try {
-            const result = await stockRevoService.upsertStockRevoData(request.body) as StockRevoServiceResponse;
-            if ('command' in result && (result.command === "UPDATE" || result.command === "INSERT")) {
-                const puc = result.result.puc;
-                const pucArray: string[] = Array.from(new Set(result.result.rows.map(row => row.puc)));
-                await stockRevoService.updateQuantity(pucArray);
-                return reply.send({
-                    product: result.command === "UPDATE" ? "Stock Updated successfully" : "Stock Inserted successfully"
-                });
-            } else if ('statusCode' in result) {
-                return reply.status(404).send({ error: [result.errorMessage] });
+            let upsertStockResult: any = await stockRevoService.upsertStockRevoData(request.body);
+            if (upsertStockResult.command === "UPDATE" || upsertStockResult.command === "INSERT") {
+                const puc = upsertStockResult.result.puc; 
+                const pucArray: string[] = Array.from(new Set(upsertStockResult.result.rows.map(row => row.puc)));
+                let updateQuantity = await stockRevoService.updateQuantity(pucArray);
+                let message: any = {
+                    product: upsertStockResult.command === "UPDATE"
+                        ? `Stock Updated successfully`
+                        : `Stock Inserted successfully`,
+                };
+                reply.status(200).send(message);
             } else {
-                return reply.status(404).send({ error: [result] });
+                reply.status(404).send({ error: [upsertStockResult] });
             }
         } catch (error) {
             console.error("Error in assetlocationstock", error);
-            return reply.send({
-                success: false,
-                data: null,
-                total: 0,
-                page: 1,
-                limit: 0,
-                message: error instanceof Error ? error.message : 'Unknown error'
-            });
+            reply.send(error.message);
         }
     };
 
-    export const upsertStockRevoDatadelete = async (request: FastifyRequest, reply: FastifyReply) => {
+    export const upsertStockRevoDatadelete = async (request: any, reply: any) => {
         try {
-            const result = await stockRevoService.upsertStockRevoDatadelete(request.body) as StockRevoServiceResponse;
-            if ('command' in result && (result.command === "UPDATE" || result.command === "INSERT")) {
-                const puc = result.result.puc;
-                const pucArray: string[] = Array.from(new Set(result.result.rows.map(row => row.puc)));
-                await stockRevoService.updateQuantity(pucArray);
-                return reply.send({
-                    Stock: result.command === "UPDATE" && result.result.rows[0]?.isdeleted === true
-                        ? "Stock Deleted successfully"
-                        : "Stock Restored successfully"
-                });
-            } else if ('statusCode' in result) {
-                return reply.status(404).send({ error: [result.errorMessage] });
-            } else {
-                return reply.status(404).send({ error: [result] });
+            let upsertStockResult: any = await stockRevoService.upsertStockRevoDatadelete(request.body);
+            if (upsertStockResult?.command === "UPDATE" || upsertStockResult?.command === "INSERT") {
+                const puc = upsertStockResult.result.puc; 
+                const pucArray: string[] = Array.from(new Set(upsertStockResult.result.rows.map(row => row.puc)));
+                 let updateQuantity = await stockRevoService.updateQuantity(pucArray);
+                let message: any = {
+                    Stock: upsertStockResult.command === "UPDATE" && upsertStockResult.result.rows[0]?.isdeleted === true
+                        ? `Stock Deleted successfully`
+                        : `Stock Restored succcessfully`,
+                };
+                reply.status(200).send(message);
+            } else if (upsertStockResult.status === 400) {
+                reply.status(404).send({ error: [upsertStockResult.message] });
+            }
+            else {
+                reply.status(404).send({ error: [upsertStockResult] });
             }
         } catch (error) {
             console.error("Error in upsertStockRevoDatadelete", error);
-            return reply.send({
-                success: false,
-                data: null,
-                total: 0,
-                page: 1,
-                limit: 0,
-                message: error instanceof Error ? error.message : 'Unknown error'
-            });
+            reply.send(error.message);
         }
     };
-
-    export const upsertStockRevoDataarchive = async (request: FastifyRequest, reply: FastifyReply) => {
+    export const upsertStockRevoDataarchive = async (request: any, reply: any) => {
         try {
-            const result = await stockRevoService.upsertStockRevoDataarchive(request.body) as StockRevoServiceResponse;
-            if ('command' in result && (result.command === "UPDATE" || result.command === "INSERT")) {
-                const puc = result.result.puc;
-                const pucArray: string[] = Array.from(new Set(result.result.rows.map(row => row.puc)));
-                await stockRevoService.updateQuantity(pucArray);
-                return reply.send({
-                    Stock: result.command === "UPDATE" && result.result.rows[0]?.isarchive === true
-                        ? "Stock successfully archived"
-                        : "Stock successfully unarchived"
-                });
-            } else if ('statusCode' in result) {
-                return reply.status(404).send({ error: [result.errorMessage] });
-            } else {
-                return reply.status(404).send({ error: [result] });
+            let upsertStockResult: any = await stockRevoService.upsertStockRevoDataarchive(request.body);
+            if (upsertStockResult?.command === "UPDATE" || upsertStockResult?.command === "INSERT") {
+                const puc = upsertStockResult.result.puc; // Get the puc from the result
+                const pucArray: string[] = Array.from(new Set(upsertStockResult.result.rows.map(row => row.puc)));
+                 let updateQuantity = await stockRevoService.updateQuantity(pucArray);
+                let message: any = {
+                    Stock: upsertStockResult.command === "UPDATE" && upsertStockResult.result.rows[0]?.isarchive === true
+                        ? `Stock successfully archived`
+                        : `Stock  successfully unarchived`,
+                };
+                reply.status(200).send(message);
+            } else if (upsertStockResult.status === 400) {
+                reply.status(404).send({ error: [upsertStockResult.message] });
+            }
+
+            else {
+                reply.status(404).send({ error: [upsertStockResult] });
             }
         } catch (error) {
             console.error("Error in upsertStockRevoDataarchive", error);
-            return reply.send({
-                success: false,
-                data: null,
-                total: 0,
-                page: 1,
-                limit: 0,
-                message: error instanceof Error ? error.message : 'Unknown error'
-            });
+            reply.send(error.message);
         }
     };
-
-    export const deleteStockRevoData = async (request: FastifyRequest, reply: FastifyReply) => {
+    export const deleteStockRevoData = async (request: any, reply: any) => {
         try {
-            const { id } = request.params as { id: number };
-            const result = await stockRevoService.deleteStockrevo(id);
-            return reply.send(result);
+            const { id } = request.params
+            let deleteStockResult = await stockRevoService.deleteStockrevo(id);
+            reply.send(deleteStockResult);
         } catch (error) {
             console.error("Error in deleteStockRevoData", error);
-            return reply.send({
-                success: false,
-                data: null,
-                total: 0,
-                page: 1,
-                limit: 0,
-                message: error instanceof Error ? error.message : 'Unknown error'
-            });
+            reply.send(error.message);
         }
     };
-
-    export const getArcheivedStocksRevo = async (request: FastifyRequest, reply: FastifyReply) => {
+    export const getArcheivedStocksRevo = async (request: any, reply: any) => {
         try {
-            const result = await stockRevoService.getArcheivedStocksrevo(request);
-            return reply.send(result);
+            let getProductsResult = await stockRevoService.getArcheivedStocksrevo(request)
+            reply.send(getProductsResult)
+
         } catch (error) {
             console.error("Error in getArcheivedStocksRevo", error);
-            return reply.send({
-                success: false,
-                data: null,
-                total: 0,
-                page: 1,
-                limit: 0,
-                message: error instanceof Error ? error.message : 'Unknown error'
-            });
+            reply.send(`${error.message} error in get Products`)
         }
-    };
+    }
 }
 

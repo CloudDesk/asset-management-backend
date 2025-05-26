@@ -7,122 +7,157 @@ import { v4 as uuidv4 } from 'uuid';
 import { saveSession } from "./session.service.js";
 import { REDIRECT_INVENTORY_URL } from "../config/config.js";
 import { getOtp, saveOtp } from "./otp.service.js";
-import { QueryBuilder } from "../utils/QueryBuilder.js";
-import { 
-  User, 
-  UserQueryParams, 
-  UserLoginParams, 
-  UserForgotPasswordRequest,
-  UserServiceResponse 
-} from "../interfaces/user.interface.js";
+let generatedotp;
 
-export class UserService {
-  private static readonly DEFAULT_PAGE_SIZE = 5000;
-  private static readonly DEFAULT_PAGE_NUMBER = 1;
-  private static readonly TABLE_NAME = 'users';
-
-  public static async getUsersData(request: { query: UserQueryParams }): Promise<UserServiceResponse> {
+export module userService {
+  export const getUsersData = async (request: any) => {
     try {
-      const pageNumber = parseInt(request.query.page?.toString()) || this.DEFAULT_PAGE_NUMBER;
-      const recordCount = parseInt(request.query.count?.toString()) || this.DEFAULT_PAGE_SIZE;
-      
-      const queryBuilder = new QueryBuilder(this.TABLE_NAME);
-      queryBuilder.buildWhereClause(request.query);
-      const { query: queryText, params: queryParams } = queryBuilder.buildQuery(pageNumber, recordCount);
+      const pageNumber = parseInt(request.query.page) || 1;
+      const recordCount = parseInt(request.query.count) || 5000;
+      const keys = Object.keys(request.query);
+      const values = Object.values(request.query);
+
+      let whereClauses: string[] = [];
+      let parameterIndex = 1;
+      const queryParams: any[] = [];
+      let orderByField = "modifieddate";
+      let orderByDirection = "DESC";
+
+      keys.forEach((key, index) => {
+        const paramValues: any = Array.isArray(values[index])
+          ? values[index]
+          : [values[index]];
+        if (key === "displaysize" || key === "price") {
+          const rangeClauses = paramValues.map((range) => {
+            const [lowerBound, upperBound] = range.split("-");
+            queryParams.push(lowerBound, upperBound);
+            const clause = `(${key} BETWEEN $${parameterIndex} AND $${parameterIndex + 1
+              })`;
+
+            parameterIndex += 2;
+            return clause;
+          });
+          whereClauses.push(`(${rangeClauses.join(" OR ")})`);
+        } else if (key === "sortby") {
+          const [fieldName, direction] = paramValues[0].split("-");
+          orderByField = fieldName;
+          orderByDirection = direction.toUpperCase() === "ASC" ? "ASC" : "DESC";
+        } else if (paramValues[0].startsWith("NOT ")) {
+          const cleanValue = paramValues[0].slice(4);
+          whereClauses.push(`(${key} != $${parameterIndex})`);
+          queryParams.push(cleanValue);
+          parameterIndex++;
+        } else if (key !== "page" && key !== "count") {
+          const clauses = paramValues.map(
+            (_, idx) => `${key} = $${parameterIndex + idx}`
+          );
+          whereClauses.push(`(${clauses.join(" OR ")})`);
+          queryParams.push(...paramValues);
+          parameterIndex += paramValues.length;
+        }
+      });
+      const offset = (pageNumber - 1) * recordCount;
+      const whereClause =
+        whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : ``;
+      const orderByClause = `ORDER BY ${orderByField} ${orderByDirection}`;
+
+      let queryText = `SELECT * FROM users ${whereClause} ${orderByClause}`;
+
+      if (pageNumber && recordCount) {
+        queryText += ` OFFSET $${parameterIndex} LIMIT $${parameterIndex + 1}`;
+        queryParams.push(offset, recordCount);
+      }
 
       const result = await query(queryText, queryParams);
-      const datatypeCheckResult = await dataTypeCheck(result);
-      return { rows: datatypeCheckResult };
+      let datatypeCheckResult = await dataTypeCheck(result);
+      return datatypeCheckResult;
     } catch (error) {
       console.error("Query Execution Error: IN getUsersData", error);
-      const errorMessage = await ErrorHandler.handleQueryError(error);
-      return errorMessage;
+      let ErrorMessage = await ErrorHandler.handleQueryError(error);
+      return ErrorMessage;
     }
-  }
+  };
 
-  public static async forgotPassword(request: UserForgotPasswordRequest): Promise<UserServiceResponse> {
+  export const forgotuser = async (request: any) => {
     try {
-      if (!request.otp) {
-        const generatedotp = Math.floor(1000 + Math.random() * 9000);
-        const emailData = {
-          subject: "OTP Verification Code",
-          text: `Your otp code to Reset Password For Revo Site is ${generatedotp}`,
-          to: request.useremail
-        };
-
-        const otpsave = await saveOtp(request.useremail, generatedotp);
-        const finduser = await this.getUsersData({ query: { useremail: request.useremail } });
-
-        if (finduser.rows && finduser.rows.length > 0) {
-          await sendMail(emailData, generatedotp);
-          return { status: "success", message: "OTP sent Successfully" };
+      request.query.useremail = request.body.useremail;
+      let data: any = { email: request.body.useremail }
+      if (!request.body.otp) {
+        generatedotp = Math.floor(1000 + Math.random() * 9000);
+        request.body.subject = "OTP Verification Code";
+        request.body.text =
+          "Your otp code to Reset Password For Revo Site is " + generatedotp;
+        request.body.to = request.body.useremail;
+        let otpsave = await saveOtp(request.query.useremail, generatedotp);
+        let finduser = await getUsersData(request);
+        if (finduser && finduser.length > 0) {
+          data.otp = generatedotp
+          let emailresult = await sendMail(request, generatedotp);
+          return { status: "success", Message: "OTP sent Successfuly" };
         } else {
           return {
             status: "failure",
-            message: "Entered User Email Is wrong. Please Enter correct Email to Reset Password"
+            Message:
+              "Entered User Email Is wrong.please Enter correct Email to Reset Password",
           };
         }
-      } else {
-        const finduser = await this.getUsersData({ query: { useremail: request.useremail } });
-        const optmatch = await getOtp(request.useremail, request.otp);
-        
+      } else if (request.body.otp) {
+        let finduser = await getUsersData(request);
+        let optmatch = await getOtp(request.query.useremail, request.body.otp)
         if (optmatch) {
           return {
             status: "success",
-            message: "Entered otp is correct",
-            data: finduser.rows
+            Message: "Entered otp is correct",
+            data: finduser,
           };
         } else {
-          return { 
-            status: "failure", 
-            message: "Invalid or expired OTP. Please regenerate or enter the correct OTP." 
-          };
+          return { status: "failure", Message: "Invalid or expired OTP. Please regenerate or enter the correct OTP." };
         }
       }
     } catch (error) {
-      console.error("Query Execution Error: IN forgotPassword", error);
-      const errorMessage = await ErrorHandler.handleQueryError(error);
-      return errorMessage;
+      console.error("Query Execution Error: IN forgotuser", error);
+      let ErrorMessage = await ErrorHandler.handleQueryError(error);
+      return ErrorMessage;
     }
-  }
+  };
 
-  public static async login(params: UserLoginParams): Promise<UserServiceResponse> {
+  export const getLoggedInUsersData = async (request, reply) => {
+    console.log("getLoggedInUsersData", request.params)
     try {
       const ecomQuery = `SELECT * FROM users WHERE LOWER(useremail) = LOWER($1)`;
-      const ecomResult = await query(ecomQuery, [params.useremail]);
-
+      const ecomResult = await query(ecomQuery, [request.params.useremail]);
       if (ecomResult.rows.length > 0) {
-        const validatePassword = await hashValidator(
-          params.userpassword,
+        let validatePassword = await hashValidator(
+          request.params.userpassword,
           ecomResult.rows[0].userpassword
         );
 
         if (validatePassword) {
           const sessionId = uuidv4();
           const sessionData = {
-            useremail: params.useremail,
-            userpassword: params.userpassword
+            useremail: request.params.useremail,
+            userpassword: request.params.userpassword
           };
-          const sessionSaved = await saveSession(sessionId, sessionData);
+          let sessionSaved = await saveSession(sessionId, sessionData);
 
           if (sessionSaved) {
             return { sessionId, userdata: ecomResult.rows };
           } else {
-            return { message: "Please Contact Admin. You are Not Authorized to Login" };
+            return "Please Contact Admin. You are Not Authorized to Login";
           }
         } else {
-          return { message: "User Credentials are wrong. Please try again" };
+          return "User Credentials are wrong. Please try again";
         }
       } else {
+        console.log("else")
         const inventoryQuery = `SELECT * FROM inventoryusers WHERE useremail = $1`;
-        const inventoryResult = await query(inventoryQuery, [params.useremail]);
+        const inventoryResult = await query(inventoryQuery, [request.params.useremail]);
 
         if (inventoryResult.rows.length > 0) {
-          const validatePassword = await hashValidator(
-            params.userpassword,
+          let validatePassword = await hashValidator(
+            request.params.userpassword,
             inventoryResult.rows[0].userpassword
           );
-
           if (validatePassword) {
             const sessionId = uuidv4();
             const sessionData = {
@@ -134,54 +169,68 @@ export class UserService {
               useremail: inventoryResult.rows[0].useremail,
               userpassword: inventoryResult.rows[0].userpassword,
               usersphonenumber: inventoryResult.rows[0].usersphonenumber
+
             };
-            const sessionSaved = await saveSession(sessionId, sessionData);
+            let sessionSaved = await saveSession(sessionId, sessionData);
 
             if (sessionSaved) {
               return {
-                sessionId,
-                userdata: inventoryResult.rows,
+                sessionId, userdata: inventoryResult.rows,
                 redirect: true,
                 inventoryAppUrl: `${REDIRECT_INVENTORY_URL}?sessionId=${sessionId}`
               };
             } else {
-              return { message: "Please Contact Admin. You are Not Authorized to Login" };
+              return "Please Contact Admin. You are Not Authorized to Login";
             }
-          } else {
-            return { message: "User Credentials are wrong. Please try again" };
+          }
+          else {
+            return "User Credentials are wrong. Please try again";
           }
         } else {
-          return { message: "No Users Found With this Email ID. Please Sign up" };
+          return "No Users Found With this Email ID. Please Sign up";
         }
       }
     } catch (error) {
-      console.error("Query Execution Error: IN login", error);
-      const errorMessage = await ErrorHandler.handleQueryError(error);
-      return errorMessage;
+      console.error("Query Execution Error: IN getLoggedInUsersData", error);
+      let ErrorMessage = await ErrorHandler.handleQueryError(error);
+      return ErrorMessage;
     }
-  }
-
-  public static async deleteUser(id: number): Promise<UserServiceResponse> {
+  };
+  export const deleteUser = async (id: number) => {
     try {
-      const result = await query(`DELETE FROM users WHERE id = $1`, [id]);
-      if (result.rowCount !== 0) {
-        return { message: `${result.rowCount} User deleted successfully` };
+      const result: any = await query(`DELETE FROM users WHERE id = $1`, [id]);
+      if (result.rowCount != 0) {
+        return `${result.rowCount} User deleted successfully`;
       } else {
-        return { message: `User not found with id ${id}` };
+        return `User not found with id ${id}`;
       }
     } catch (error) {
       console.error("Query Execution Error: IN deleteUser", error);
-      const errorMessage = await ErrorHandler.handleQueryError(error);
-      return errorMessage;
+      let ErrorMessage = await ErrorHandler.handleQueryError(error);
+      return ErrorMessage;
     }
-  }
-
-  public static async logout(): Promise<UserServiceResponse> {
-    return { status: "Session deleted" };
-  }
-
-  public static async upsertUser(userData: User): Promise<UserServiceResponse> {
+  };
+  export const userlogout = async (request, reply) => {
     try {
+      let sessionId = request.cookies.sessionId
+      reply.clearCookie('sessionId', {
+        path: '/',
+        httpOnly: true,
+        secure: true,
+        sameSite: 'Strict'
+      });
+
+      reply.send({ status: 'Session deleted' });
+    } catch (error) {
+      console.error("Query Execution Error: IN userlogout", error);
+      let ErrorMessage = await ErrorHandler.handleQueryError(error);
+      return ErrorMessage;
+    }
+  };
+
+  export const upsertUser = async (userData: any) => {
+    try {
+
       if (!userData.id) {
         const checkEmailQuery = `
           SELECT id, 'users' as table_name FROM users WHERE useremail = $1
@@ -226,14 +275,16 @@ export class UserService {
 
       const { id, ...updateFields } = userData;
 
-      const checkUserQuery = `SELECT * FROM users WHERE id = $1`;
+      const checkUserQuery = `
+        SELECT * FROM users WHERE id = $1
+      `;
       const userExists = await query(checkUserQuery, [id]);
 
       if (userExists.rows.length === 0) {
         return { command: 'Fail', message: "User not found" };
       }
 
-      const updateData: Partial<User> = {};
+      const updateData: any = {};
 
       if (updateFields.useremail) {
         updateData.useremail = updateFields.useremail;
@@ -262,10 +313,67 @@ export class UserService {
         command: "UPDATE",
         rows: result.rows
       };
+
     } catch (error) {
       console.error("Query Execution Error in upsertUser:", error);
       const errorMessage = await ErrorHandler.handleQueryError(error);
       return errorMessage;
     }
-  }
+  };
+
+  export const upsertFcmidUser = async (userData: any) => {
+    try {
+      let querydata: string;
+      let params: any[];
+      const { id, ...upsertFields } = userData;
+      if (id) {
+        if (upsertFields.useremail) {
+          querydata = `select * from users where useremail = '${upsertFields.useremail}'`;
+          const result = await query(querydata, []);
+          let iddaata = result.rows[0].id;
+          if (iddaata) {
+            let updatedfieldNames = Object.keys(upsertFields);
+            let updatedfieldValues = Object.values(upsertFields);
+            querydata = `UPDATE users SET ${updatedfieldNames
+              .map((field, index) => `${field} = $${index + 1}`)
+              .join(", ")} WHERE id = $${updatedfieldNames.length + 1
+              } RETURNING *`;
+            params = [...updatedfieldValues, iddaata];
+            const result = await query(querydata, params);
+            return result;
+          } else {
+            return "Entered Email is Wrong.Please Enter Correct Email";
+          }
+        }
+      } else {
+        if (upsertFields.useremail) {
+          querydata = `select * from users where useremail = '${upsertFields.useremail}'`;
+          const result = await query(querydata, []);
+          if (result.rows.length > 0) {
+            return "Users already Exist";
+          } else {
+            let hashingResult = await hashGenerate(upsertFields.userpassword);
+            if (hashingResult) {
+              upsertFields.userpassword = hashingResult;
+            }
+            let updatedfieldNames = Object.keys(upsertFields);
+            let updatedfieldValues = Object.values(upsertFields);
+            querydata = `INSERT INTO users (${updatedfieldNames.join(
+              ", "
+            )}) VALUES (${updatedfieldNames
+              .map((_, index) => `$${index + 1}`)
+              .join(", ")}) RETURNING *`;
+            params = updatedfieldValues;
+            const result = await query(querydata, params);
+            return result;
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Query Execution Error: IN upsertFcmidUser", error);
+      let ErrorMessage = await ErrorHandler.handleQueryError(error);
+      return ErrorMessage;
+    }
+  };
+
 }

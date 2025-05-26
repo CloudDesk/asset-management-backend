@@ -1,5 +1,4 @@
 import { getStockLocationData } from "../utils/StockLocationPicklist/locationpicklist.js";
-import { Type } from '@sinclair/typebox';
 
 const locationdataajv = await getStockLocationData()
 
@@ -98,8 +97,10 @@ export const stockrevoSchema = {
         },
         serialnumber: {
             type: ["string"],
+            // pattern: "^(?!\\d+$).*",
             errorMessage: {
                 type: "Serial number should be a string",
+                // pattern: "Serial number should not consist only of digits",
             },
         },
         stockstatus: {
@@ -162,8 +163,10 @@ export const stockrevoSchema = {
         },
         location:{
             type: ['string', 'null'],
+            "enum":locationdataajv,
             errorMessage: {
                 type: 'Location should be String',
+                 enum:"Entered location may not be available or check spelling."
             }
         }
     },
@@ -214,6 +217,7 @@ export const deletestockrevoSchema = {
     }
 }
 
+
 export const archivestockrevoSchema = {
     type: 'object',
     properties: {
@@ -231,8 +235,10 @@ export const archivestockrevoSchema = {
         },
         serialnumber: {
             type: ["string"],
+            // pattern: "^(?!\\d+$).*",
             errorMessage: {
                 type: "Serial number should be a string",
+                // pattern: "Serial number should not consist only of digits",
             },
         },
         isarchive: {
@@ -254,143 +260,3 @@ export const archivestockrevoSchema = {
         }
     }
 }
-
-export const stockrevoIdSchema = {
-    params: Type.Object({
-        id: Type.Number()
-    }),
-    response: {
-        200: Type.Object({
-            success: Type.Boolean(),
-            data: Type.Any(),
-            total: Type.Number(),
-            page: Type.Number(),
-            limit: Type.Number()
-        })
-    }
-}
-
-export const stockrevoUpsertSchema = {
-    body: Type.Object({
-        id: Type.Optional(Type.Number()),
-        puc: Type.String(),
-        name: Type.String(),
-        description: Type.Optional(Type.String()),
-        category: Type.Optional(Type.String()),
-        status: Type.Optional(Type.String()),
-        quantity: Type.Optional(Type.Number()),
-        price: Type.Optional(Type.Number()),
-        displaysize: Type.Optional(Type.String()),
-        manufacturedyear: Type.Optional(Type.String()),
-        releaseyear: Type.Optional(Type.String()),
-        location: Type.Optional(Type.String()),
-        stockstatus: Type.Optional(Type.String()),
-        ecompublish: Type.Optional(Type.Boolean()),
-        isdeleted: Type.Optional(Type.Boolean()),
-        isarchive: Type.Optional(Type.Boolean()),
-        removefromrecyclebin: Type.Optional(Type.Boolean()),
-        ewaste: Type.Optional(Type.Boolean()),
-        rfid: Type.Optional(Type.String()),
-        orderlinenumber: Type.Optional(Type.String())
-    }),
-    response: {
-        200: Type.Object({
-            command: Type.String(),
-            result: Type.Any(),
-            totalCount: Type.Number()
-        })
-    }
-}
-
-export const stockrevoDeleteSchema = {
-    body: Type.Object({
-        id: Type.Number(),
-        isdeleted: Type.Boolean(),
-        removefromrecyclebin: Type.Boolean()
-    }),
-    response: {
-        200: Type.Object({
-            command: Type.String(),
-            result: Type.Any(),
-            totalCount: Type.Number()
-        })
-    }
-}
-
-export const stockrevoArchiveSchema = {
-    body: Type.Object({
-        id: Type.Number(),
-        isarchive: Type.Boolean(),
-        removefromrecyclebin: Type.Boolean()
-    }),
-    response: {
-        200: Type.Object({
-            command: Type.String(),
-            result: Type.Any(),
-            totalCount: Type.Number()
-        })
-    }
-}
-
-export const stockrevoRfidSchema = {
-    body: Type.Array(Type.Object({
-        rfid: Type.String(),
-        productid: Type.Number(),
-        orderlinenumber: Type.String()
-    })),
-    response: {
-        200: Type.Object({
-            command: Type.String(),
-            result: Type.Any(),
-            totalCount: Type.Number(),
-            arraylength: Type.Number()
-        })
-    }
-}
-
-export const StockQuerySchema = Type.Object({
-  page: Type.Optional(Type.Number({ default: 1 })),
-  limit: Type.Optional(Type.Number({ default: 10 })),
-  search: Type.Optional(Type.String()),
-  sortBy: Type.Optional(Type.String()),
-  sortOrder: Type.Optional(Type.Union([Type.Literal('asc'), Type.Literal('desc')])),
-  filters: Type.Optional(Type.Record(Type.String(), Type.Any()))
-});
-
-export const StockResponseSchema = Type.Object({
-  success: Type.Boolean(),
-  data: Type.Array(Type.Object({
-    id: Type.Number(),
-    puc: Type.String(),
-    quantity: Type.Number(),
-    isdeleted: Type.Boolean(),
-    isarchive: Type.Boolean(),
-    isewaste: Type.Boolean(),
-    created_at: Type.String(),
-    updated_at: Type.String()
-  })),
-  total: Type.Number(),
-  page: Type.Number(),
-  limit: Type.Number()
-});
-
-export const StockUpdateSchema = Type.Object({
-  puc: Type.String(),
-  quantity: Type.Number(),
-  isdeleted: Type.Optional(Type.Boolean()),
-  isarchive: Type.Optional(Type.Boolean()),
-  isewaste: Type.Optional(Type.Boolean())
-});
-
-export const StockRFIDSchema = Type.Object({
-  rfid: Type.String(),
-  puc: Type.String(),
-  quantity: Type.Number()
-});
-
-export const StockBulkUpdateSchema = Type.Array(StockUpdateSchema);
-
-export const StockUpdateResponseSchema = Type.Object({
-  success: Type.Boolean(),
-  message: Type.String()
-});
