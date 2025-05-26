@@ -1,115 +1,113 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import { userService } from "../services/user.service.js";
+import { UserService } from "../services/user.service.js";
+import { 
+  User, 
+  UserQueryParams, 
+  UserLoginParams, 
+  UserForgotPasswordRequest,
+  UserControllerResponse 
+} from "../interfaces/user.interface.js";
 
-interface idparams {
-    id: number
+interface FastifyReplyWithCookie extends FastifyReply {
+  clearCookie: (name: string, options?: any) => void;
 }
 
-export module userController {
-
-    export const getUsersData = async (request: FastifyRequest, reply: FastifyReply) => {
-        try {
-            let getUsersDataResult = await userService.getUsersData(request);
-            reply.send(getUsersDataResult);
-        } catch (error) {
-            console.error("Error in getUsersData", error);
-            reply.send(error.message);
-        }
+export class UserController {
+  public static async getUsersData(
+    request: FastifyRequest<{ Querystring: UserQueryParams }>,
+    reply: FastifyReply
+  ): Promise<void> {
+    try {
+      const result = await UserService.getUsersData(request);
+      reply.send(result);
+    } catch (error) {
+      console.error("Error in getUsersData", error);
+      reply.status(500).send({ error: error.message });
     }
-    export const forgotuser = async (request: FastifyRequest, reply: FastifyReply) => {
-        try {
-            let forgotuserData: any = await userService.forgotuser(request);
-            if (forgotuserData.status === 'success') {
-                reply.send(forgotuserData);
+  }
 
-            }
-            else {
-                reply.status(404).send(forgotuserData.Message)
-            }
-        } catch (error) {
-            console.error("Error in forgotuser", error);
-            reply.send(error.message);
-        }
+  public static async forgotPassword(
+    request: FastifyRequest<{ Body: UserForgotPasswordRequest }>,
+    reply: FastifyReply
+  ): Promise<void> {
+    try {
+      const result = await UserService.forgotPassword(request.body);
+      if (result.status === 'success') {
+        reply.send(result);
+      } else {
+        reply.status(404).send({ message: result.message });
+      }
+    } catch (error) {
+      console.error("Error in forgotPassword", error);
+      reply.status(500).send({ error: error.message });
     }
-    export const getLoggedInUsersData = async (request: FastifyRequest, reply: FastifyReply) => {
+  }
 
-        try {
-            let getUsersDataResult:any = await userService.getLoggedInUsersData(request, reply);
-            if (getUsersDataResult && getUsersDataResult.userdata && !Array.isArray(getUsersDataResult.userdata)) {
-                reply.status(401).send({ error: getUsersDataResult })
-            }
-            else {
-                reply.send(getUsersDataResult);
-            }
-        } catch (error) {
-            console.error("Error in getLoggedInUsersData", error);
-            reply.send(error.message);
-        }
+  public static async login(
+    request: FastifyRequest<{ Body: UserLoginParams }>,
+    reply: FastifyReply
+  ): Promise<void> {
+    try {
+      const result = await UserService.login(request.body);
+      if (result.userdata && !Array.isArray(result.userdata)) {
+        reply.status(401).send({ error: result.message });
+      } else {
+        reply.send(result);
+      }
+    } catch (error) {
+      console.error("Error in login", error);
+      reply.status(500).send({ error: error.message });
     }
+  }
 
-    export const deleteUserData = async (request: FastifyRequest<{ Params: idparams }>, reply: FastifyReply) => {
-        try {
-            const { id } = request.params;
-            let deleteUserResult = await userService.deleteUser(Number(id));
-            reply.send(deleteUserResult);
-        } catch (error) {
-            console.error("Error in deleteUserData", error);
-            reply.send(error.message);
-        }
+  public static async deleteUser(
+    request: FastifyRequest<{ Params: { id: number } }>,
+    reply: FastifyReply
+  ): Promise<void> {
+    try {
+      const result = await UserService.deleteUser(request.params.id);
+      reply.send(result);
+    } catch (error) {
+      console.error("Error in deleteUser", error);
+      reply.status(500).send({ error: error.message });
     }
+  }
 
-    export const upsertUser = async (request: any, reply: any) => {
-        try {
-            const userData = request.body;
-            let upsertUserResult : any = await userService.upsertUser(userData);
-            if (upsertUserResult.command == 'UPDATE') {
-                reply.status(200).send('User Updated successfully');
-            } else if(upsertUserResult.command == 'INSERT'){
-                reply.status(200).send('User signup done successfully');
-            }
-            else {
-    
-                reply.status(401).send(upsertUserResult.message)
-            }
-        } catch (error) {
-            console.error("Error in upsertUser", error);
-            reply.send(error.message);
-        }
+  public static async upsertUser(
+    request: FastifyRequest<{ Body: User }>,
+    reply: FastifyReply
+  ): Promise<void> {
+    try {
+      const result = await UserService.upsertUser(request.body);
+      if (result.command === 'UPDATE') {
+        reply.status(200).send('User Updated successfully');
+      } else if (result.command === 'INSERT') {
+        reply.status(200).send('User signup done successfully');
+      } else {
+        reply.status(401).send({ message: result.message });
+      }
+    } catch (error) {
+      console.error("Error in upsertUser", error);
+      reply.status(500).send({ error: error.message });
     }
-    
-    export const userlogout = async (request: any, reply: any) => {
-        try {
-            const userData = request.body;
-            console.log(request.cookies.sessionId
-            );
-            let upsertUserResult = await userService.userlogout(request,reply);           
-                reply.status(200).send('Logged Out Successfully')
-        } catch (error) {
-            console.error("Error in userlogout", error);
-            reply.send(error.message);
-        }
-    }
+  }
 
-
-    export const upsertFcmidUser = async (request: any, reply: any) => {
-        try {
-            const userData = request.body;
-            let upsertUserResult = await userService.upsertFcmidUser(userData);
-            if (upsertUserResult?.command === "UPDATE" || upsertUserResult?.command === "INSERT") {
-                let message: any = {};
-                message = {
-                    user: upsertUserResult?.command === "UPDATE"
-                        ? ` User Updated successfully`
-                        : ` User signup done successfully`
-                };
-                reply.status(200).send(message);
-            }
-            else {
-                reply.status(500).send(upsertUserResult)
-            }
-        } catch (error) {
-            console.error("Error in upsertFcmidUser", error);
-            reply.send(error.message);
-        }
+  public static async logout(
+    request: FastifyRequest,
+    reply: FastifyReplyWithCookie
+  ): Promise<void> {
+    try {
+      const result = await UserService.logout();
+      reply.clearCookie('sessionId', {
+        path: '/',
+        httpOnly: true,
+        secure: true,
+        sameSite: 'Strict'
+      });
+      reply.status(200).send(result);
+    } catch (error) {
+      console.error("Error in logout", error);
+      reply.status(500).send({ error: error.message });
     }
+  }
 }

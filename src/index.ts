@@ -8,6 +8,8 @@ import { checkDatabaseConnection } from "./database/postgres.js";
 import cors from "@fastify/cors";
 import { PORT } from "./config/config.js";
 import formbody from "@fastify/formbody";
+import swagger from '@fastify/swagger';
+import swaggerUi from '@fastify/swagger-ui';
 
 import fs from "fs";
 
@@ -93,6 +95,7 @@ fastify.register(fastifyStatic, {
   root: join(parentDir, "/uploads"),
 });
 
+// Register Swagger
 
 fastify.addHook("onReady", async () => {
   try {
