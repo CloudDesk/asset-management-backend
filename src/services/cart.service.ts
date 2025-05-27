@@ -39,7 +39,7 @@ export module cartservice {
             p.colour AS products_colour,
             p.category AS products_category,
             FROM cart c
-            INNER JOIN product_revo p ON p.id = c.productid where iscart = true  and iswishlist = false`;
+            INNER JOIN product p ON p.id = c.productid where iscart = true  and iswishlist = false`;
             if (whereClause) {
                 queryText += ` WHERE ${whereClause} ORDER BY modifieddate DESC  OFFSET $${parameterIndex} LIMIT $${parameterIndex + 1
                     }`;
@@ -109,7 +109,7 @@ export module cartservice {
             p.orderedquantity AS products_orderedquantity,
             p.discount AS products_discount
             FROM cart c
-            INNER JOIN product_revo p ON p.id = c.productid where iscart = true  and iswishlist = false`;
+            INNER JOIN product p ON p.id = c.productid where iscart = true  and iswishlist = false`;
             if (whereClause && pageNumber && recordcount) {
                 queryText += ` AND ${whereClause} ORDER BY c.modifieddate DESC  OFFSET $${parameterIndex} LIMIT $${parameterIndex + 1}`;
             }

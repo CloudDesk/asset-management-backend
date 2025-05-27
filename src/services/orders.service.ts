@@ -4,7 +4,7 @@ import dataTypeCheck from "../utils/Datatype/checkDatatype.js";
 import { QueryResult } from "pg";
 import { cartservice } from "./cart.service.js";
 import { stockRevoService } from "./stockRevo.service.js";
-import { productrevoService } from "./productrevo.service.js";
+import { productService } from "./product.service.js";
 import { sendMail } from "../Gmail/gmail.js";
 import emailTemplates from "../utils/emailtemplates/emailtemplate.js";
 import { transactionService } from "./transaction.service.js";
@@ -288,7 +288,7 @@ export module ordersService {
             FROM 
                 orders o
             JOIN 
-            product_revo p ON o.productid = p.id
+            product p ON o.productid = p.id
             JOIN 
                 address a ON o.addressid = a.id
             Left JOIN 
@@ -393,7 +393,7 @@ export module ordersService {
             // Fetch product images
             const productimagequery = `
             SELECT p.id, p.small, p.medium, p.large
-            FROM product_revo AS p
+            FROM product AS p
             JOIN orderline AS o ON p.id = o.productid
             WHERE o.productid IN (${data.rows.map(row => row.productid).join(',')});`
 
@@ -703,7 +703,7 @@ ${whereClause} ${orderByClause}`;
             FROM 
                 orders o
             JOIN 
-            product_revo p ON o.productid = p.id
+            product p ON o.productid = p.id
             JOIN 
                 address a ON o.addressid = a.id
             Left JOIN 
@@ -757,7 +757,7 @@ ${whereClause} ${orderByClause}`;
             if (result.rows[0].orderstatus === 'cancelled') {
                 let productid = result.rows[0].productid;
                 let quantitydata = result.rows[0].quantity
-                let updateQuantity = await productrevoService.updateCancelledOrderedQuantity([productid], Number(quantitydata));
+                let updateQuantity = await productService.updateCancelledOrderedQuantity([productid], Number(quantitydata));
                 let userid = result.rows[0].userid;
                 let getuser = await query(`SELECT * FROM users WHERE id = $1`, [userid]);
                 const template = emailTemplates.orders.cancelled;
@@ -810,7 +810,7 @@ ${whereClause} ${orderByClause}`;
             if (result.rows[0].orderstatus === 'cancelled') {
                 let productid = result.rows[0].productid;
                 let quantitydata = result.rows[0].quantity
-                let updateQuantity = await productrevoService.updateCancelledOrderedQuantity([productid], Number(quantitydata));
+                let updateQuantity = await productService.updateCancelledOrderedQuantity([productid], Number(quantitydata));
                 let userid = result.rows[0].userid;
                 let getuser = await query(`SELECT * FROM users WHERE id = $1`, [userid]);
                 const template = emailTemplates.orders.cancelled;
@@ -905,7 +905,7 @@ ${whereClause} ${orderByClause}`;
                 SELECT rfid, puc 
                 FROM stock_revo 
                 WHERE rfid = ANY($1)
-                AND puc IN (SELECT puc FROM product_revo WHERE id = ANY($2))
+                AND puc IN (SELECT puc FROM product WHERE id = ANY($2))
                 AND stockstatus = 'Available'
             `;
             const rfids = orderData.map(item => item.rfid);
@@ -1188,7 +1188,7 @@ Thank You!`,
             if (productIdOrderlineResult.rows.length > 0) {
                 const productIds = productIdOrderlineResult.rows.map(row => row.productid);
 
-                const updateLockQtyQuery = `UPDATE product_revo SET lock_qty = 0 WHERE id = ANY($1::int[])`;
+                const updateLockQtyQuery = `UPDATE product SET lock_qty = 0 WHERE id = ANY($1::int[])`;
                 await query(updateLockQtyQuery, [productIds]);
             }
 

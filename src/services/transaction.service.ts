@@ -9,7 +9,7 @@ import {
   REDIRECT_URL_PAYMENT_STATUS,
   REDIRECT_URL_SUCCESS,
 } from "../config/config.js";
-import { productrevoService } from "./productrevo.service.js";
+import { productService } from "./product.service.js";
 import { createHttpTask } from "../googletask/createtask.js";
 import { cartservice } from "./cart.service.js";
 import { messageinitialization } from "../firebase/firebasepushmessage.js";
@@ -110,13 +110,13 @@ export module transactionService {
       let orderdata = request.body.order;
       dummyorderdata = orderdata.map((element: any) => ({ ...element }));
       productupdateorderqty = orderdata.map((element: any) => ({ ...element }));
-      let insertdata = await productrevoService.bulkupsertProducttosetZero(
+      let insertdata = await productService.bulkupsertProducttosetZero(
         orderdata,
         false
       );
       const productId =
         productid && productid.map((_, index) => `$${index + 1}`).join(", ");
-      const queryText = `SELECT id, availablequantity,orderedquantity,lock_qty FROM product_revo WHERE id IN (${productId})`;
+      const queryText = `SELECT id, availablequantity,orderedquantity,lock_qty FROM product WHERE id IN (${productId})`;
       const result = await query(queryText, productid);
       const allQuantitiesAvailable = result.rows.every(
         (product) =>
@@ -202,7 +202,7 @@ export module transactionService {
         insersertdordderdatawithprocessing = insertorderdata.rows;
       } catch (error) {
         console.log(error.message, "Error in Task paymentInitialization");
-        let insertdata = await productrevoService.bulkupsertProducttosetZero(
+        let insertdata = await productService.bulkupsertProducttosetZero(
           dummyorderdata,
           true
         );
@@ -216,7 +216,7 @@ export module transactionService {
         error.message
       );
       let ErrorMessage = await ErrorHandler.handleQueryError(error);
-      let insertdata = await productrevoService.bulkupsertProducttosetZero(
+      let insertdata = await productService.bulkupsertProducttosetZero(
         dummyorderdata,
         true
       );
@@ -272,7 +272,7 @@ export module transactionService {
               });
             });
             const updatedOrderQuantity: any =
-              await productrevoService.updateOrderedQuantityarray(
+              await productService.updateOrderedQuantityarray(
                 updateproductorderquantiydata
               );
             let deleteCartData = await cartservice.deleteCart(cartIddata);
@@ -289,14 +289,14 @@ export module transactionService {
             }
           }
         } else {
-          let insertdata = await productrevoService.bulkupsertProducttosetZero(
+          let insertdata = await productService.bulkupsertProducttosetZero(
             dummyorderdata,
             true
           );
           return "Transaction Failure If payment debited it will be refunded in 5 business Days";
         }
       } else {
-        let insertdata = await productrevoService.bulkupsertProducttosetZero(
+        let insertdata = await productService.bulkupsertProducttosetZero(
           dummyorderdata,
           true
         );
@@ -324,7 +324,7 @@ export module transactionService {
 
       reply.redirect(url);
     } catch (error) {
-      let insertdata = await productrevoService.bulkupsertProducttosetZero(
+      let insertdata = await productService.bulkupsertProducttosetZero(
         dummyorderdata,
         true
       );

@@ -261,14 +261,14 @@ export module recordCountService {
       ) {
         console.log("1 st condition");
         const baseQuery = `select count(*) from ${objectName} where ${
-          objectName.toLowerCase() === "product_revo" ||
+          objectName.toLowerCase() === "product" ||
           objectName.toLowerCase() === "stock_revo"
             ? "removefromrecyclebin = false AND "
             : ""
         } ${whereClause}`;
         const productsQuery = ` AND (isarchive = FALSE or isarchive IS NULL) AND (isdeleted = FALSE or isdeleted IS NULL)`;
         let dat = await getCountQuery(
-          objectName.toLowerCase() === "product_revo" ||
+          objectName.toLowerCase() === "product" ||
             objectName.toLowerCase() === "stock_revo"
             ? `${baseQuery}${productsQuery}`
             : baseQuery,
@@ -283,7 +283,7 @@ export module recordCountService {
         const baseQuery = `select count(*) from ${objectName} where removefromrecyclebin = false AND ${whereClause}`;
         const productsQuery = ` AND (isarchive = FALSE or isarchive IS NULL) AND (isdeleted = FALSE or isdeleted IS NULL)`;
         return await getCountQuery(
-          objectName.toLowerCase() === "product_revo" ||
+          objectName.toLowerCase() === "product" ||
             objectName.toLowerCase() === "stock_revo"
             ? `${baseQuery}${productsQuery}`
             : baseQuery,
@@ -307,13 +307,13 @@ export module recordCountService {
       }
       if (
         (!whereClause && productecom) ||
-        objectName.toLocaleLowerCase() === "product_revo"
+        objectName.toLocaleLowerCase() === "product"
       ) {
         console.log("4th condition");
         const baseQuery = `select count(*) from ${objectName} where removefromrecyclebin = false`;
         const productsQuery = ` AND (isarchive = FALSE or isarchive IS NULL) AND (isdeleted = FALSE or isdeleted IS NULL)`;
         return await getCountQuery(
-          objectName.toLocaleLowerCase() === "product_revo"
+          objectName.toLocaleLowerCase() === "product"
             ? `${baseQuery}${productsQuery}`
             : baseQuery,
           queryParamsList
@@ -331,7 +331,7 @@ export module recordCountService {
         const baseQuery = `select count(*) from ${objectName} `;
         const productsQuery = ` where removefromrecyclebin = false AND (isarchive = FALSE or isarchive IS NULL) AND (isdeleted = FALSE or isdeleted IS NULL) AND (ewaste = FALSE or ewaste IS NULL)`;
         return await getCountQuery(
-          objectName.toLowerCase() === "product_revo" ||
+          objectName.toLowerCase() === "product" ||
             objectName.toLowerCase() === "stock_revo"
             ? `${baseQuery}${productsQuery}`
             : baseQuery,
@@ -531,7 +531,7 @@ export module recordCountService {
 
       let countQueryText = `
             SELECT COUNT(*) 
-            FROM product_revo 
+            FROM product 
             WHERE searchtext @@ to_tsquery('english', $1)
         `;
 

@@ -105,7 +105,7 @@ export module globalserachService {
             }
             let queryText = `
                 SELECT * 
-                FROM product_revo 
+                FROM product 
                 WHERE searchtext @@ to_tsquery('english', $1)
             `;
 
@@ -167,7 +167,7 @@ export module globalserachService {
                 product: {  
                     text: `
                         SELECT * 
-                        FROM product_revo 
+                        FROM product 
                         WHERE searchtext @@ to_tsquery('english', $1)
                     `,
                     params: [newSearch]
@@ -184,10 +184,10 @@ export module globalserachService {
     
             if (/\d/.test(globalsearch)) {
                 const numericPart = globalsearch.match(/\d+/)[0];
-                queries.product.text += ` OR qrcode ILIKE $${queries.product.params.length + 1}`; // Use qrcode for product_revo
+                queries.product.text += ` OR qrcode ILIKE $${queries.product.params.length + 1}`; // Use qrcode for product
                 queries.product.params.push(`%${numericPart}%`);
 
-                queries.product.text += ` OR barcode ILIKE $${queries.product.params.length + 1}`; // Use barcode for product_revo
+                queries.product.text += ` OR barcode ILIKE $${queries.product.params.length + 1}`; // Use barcode for product
                 queries.product.params.push(`%${numericPart}%`);
                 
                 queries.tickets.text += ` OR ticketnumber ILIKE $${queries.tickets.params.length + 1}`;

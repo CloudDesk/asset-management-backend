@@ -17,7 +17,7 @@ export module getTables {
                 revoinvoice: "Revo Invoice",
                 inventoryusers: "Inventory Users",
                 supplier: "Supplier",
-                product_revo: "Products",
+                product: "Products",
                 tickets: "Service Requests",
                 orders: "Orders",
                 poinvoice: "Supplier Invoice",

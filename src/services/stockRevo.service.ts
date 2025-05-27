@@ -1,7 +1,7 @@
 import { query } from "../database/postgres.js";
 import { ErrorHandler } from "../errorHandler/errorHandler.js";
 import dataTypeCheck from "../utils/Datatype/checkDatatype.js";
-import { productrevoService } from "./productrevo.service.js";
+import { productService } from "./product.service.js";
 import { DateCustomize } from "../utils/Date/Date.js";
 export module stockRevoService {
     export const getStockRevoData = async (request: any) => {
@@ -406,7 +406,7 @@ export module stockRevoService {
             }
 
             const updateQuantityResults = await Promise.all(
-                quantitiesList.map(quantities => productrevoService.upsertQuantityFields(quantities, orderedquantity, issold))
+                quantitiesList.map(quantities => productService.upsertQuantityFields(quantities, orderedquantity, issold))
             );
 
 
@@ -471,7 +471,7 @@ export module stockRevoService {
                 soldquantity: parseInt(row.soldquantity, 10),
                 availablequantity: parseInt(row.availablequantity, 10)
             }));
-            const updateResults = await productrevoService.testupsertQuantityFieldsBatch(batchUpdateData, issold);
+            const updateResults = await productService.testupsertQuantityFieldsBatch(batchUpdateData, issold);
             return updateResults;
 
         } catch (error) {
@@ -581,7 +581,7 @@ export module stockRevoService {
                     rfid = NULL
                 WHERE 
                     rfid IN (${rfidValues.map((rfid) => `'${rfid}'`).join(',')}) 
-                    AND puc IN (SELECT puc FROM product_revo WHERE id = $1)
+                    AND puc IN (SELECT puc FROM product WHERE id = $1)
                     AND stockstatus = 'Available'
                 RETURNING *;
             `;

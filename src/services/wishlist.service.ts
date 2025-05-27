@@ -54,7 +54,7 @@ export module wishListService {
             p.soldquantity AS products_soldquantity,
             p.orderedquantity AS products_orderedquantity
             FROM cart c
-            INNER JOIN product_revo p ON p.id = c.productid where iscart = false  and iswishlist = true`;
+            INNER JOIN product p ON p.id = c.productid where iscart = false  and iswishlist = true`;
             if (whereClause && offset && recordcount) {
                 queryText += ` and ${whereClause}   OFFSET $${parameterIndex} LIMIT $${parameterIndex + 1
                     }`;
@@ -110,7 +110,7 @@ export module wishListService {
 
             let queryText = `SELECT c.id as cartid ,c.quantity as quantity,c.productid as c_productid,c.userid,c.createddate as c_createddate,c.iscart as iscart,c.iswishlist, p.*
             FROM cart c
-            INNER JOIN product_revo p ON p.id = c.productid where iscart = false  and iswishlist = true and c.userid = ${userId}`;
+            INNER JOIN product p ON p.id = c.productid where iscart = false  and iswishlist = true and c.userid = ${userId}`;
             if (whereClause) {
                 queryText += ` WHERE ${whereClause}   OFFSET $${parameterIndex} LIMIT $${parameterIndex + 1
                     }`;

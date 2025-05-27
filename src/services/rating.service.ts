@@ -2,7 +2,7 @@ import { PROTOCOL } from "../config/config.js";
 import { query } from "../database/postgres.js";
 import { ErrorHandler } from "../errorHandler/errorHandler.js";
 import dataTypeCheck from "../utils/Datatype/checkDatatype.js";
-import { productrevoService } from "./productrevo.service.js";
+import { productService } from "./product.service.js";
 
 export module ratingService {
   export const getRatingData = async (request: any) => {
@@ -209,7 +209,7 @@ export module ratingService {
 
       const avgRating = parseFloat((totalRating / ratingCount).toFixed(1));
 
-      const updateAvgRatingInProductrevo = await productrevoService.updateAvgRatingProductrevo(avgRating, productid)
+      const updateAvgRatingInProductrevo = await productService.updateAvgRatingProductrevo(avgRating, productid)
       return updateAvgRatingInProductrevo;
 
     } catch (error) {

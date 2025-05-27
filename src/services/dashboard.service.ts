@@ -62,7 +62,7 @@ export module dashboardservice {
                     COALESCE(SUM(o.quantity), 0) AS total_quantity, 
                     COALESCE(SUM(o.orderamount), 0) AS total_orderamount
                 FROM orders AS o
-                JOIN product_revo AS p ON o.productid = p.id
+                JOIN product AS p ON o.productid = p.id
                 WHERE ${conditions.join(' AND ')}
             `;
             const result: QueryResult = await query(queryText, queryParams);
@@ -306,7 +306,7 @@ ORDER BY
             };
 
             const orderColumns = await getColumns('orders');
-            const productRevoColumns = await getColumns('product_revo');
+            const productRevoColumns = await getColumns('product');
 
             const orderColumnsSet = new Set(orderColumns);
             const productRevoColumnsSet = new Set(productRevoColumns);
@@ -346,7 +346,7 @@ ORDER BY
                     } else if (productRevoColumnsSet.has(field)) {
                         selectedColumns.push(`p.${field}`);
                         groupByColumns.push(`p.${field}`);
-                        const distinctQuery = `SELECT DISTINCT p.${field} FROM product_revo AS p`;
+                        const distinctQuery = `SELECT DISTINCT p.${field} FROM product AS p`;
                         const result = await query(distinctQuery, []);
                         distinctValues[field] = result.rows.map(row => row[field]);
                     } else {
@@ -366,7 +366,7 @@ ORDER BY
                     COALESCE(SUM(o.orderamount), 0) AS total_amount,
                     ${selectedColumns.join(', ')}
                 FROM orders AS o
-                JOIN product_revo AS p ON o.productid = p.id
+                JOIN product AS p ON o.productid = p.id
                 WHERE o.createddate BETWEEN $1 AND $2
             `;
 
@@ -453,7 +453,7 @@ ORDER BY
             };
 
             const orderColumns = await getColumns('orders');
-            const productRevoColumns = await getColumns('product_revo');
+            const productRevoColumns = await getColumns('product');
 
             const orderColumnsSet = new Set(orderColumns);
             const productRevoColumnsSet = new Set(productRevoColumns);
@@ -536,7 +536,7 @@ ORDER BY
                 COALESCE(SUM(o.orderamount), 0) AS total_amount,
                 ${selectedColumns.join(', ')}
             FROM orders AS o
-            JOIN product_revo AS p ON o.productid = p.id
+            JOIN product AS p ON o.productid = p.id
             WHERE ${whereClauses.join(' AND ')}
         `;
 
@@ -570,7 +570,7 @@ ORDER BY
             };
 
             const orderColumns = await getColumns('orders');
-            const productRevoColumns = await getColumns('product_revo');
+            const productRevoColumns = await getColumns('product');
 
             const orderColumnsSet = new Set(orderColumns);
             const productRevoColumnsSet = new Set(productRevoColumns);
@@ -642,7 +642,7 @@ ORDER BY
             SELECT
                 ${selectedColumns.join(', ')}
             FROM orders AS o
-            JOIN product_revo AS p ON o.productid = p.id
+            JOIN product AS p ON o.productid = p.id
             WHERE ${whereClauses.join(' AND ')}
         `;
 
@@ -676,7 +676,7 @@ ORDER BY
             };
 
             const orderColumns = await getColumns('orders');
-            const productRevoColumns = await getColumns('product_revo');
+            const productRevoColumns = await getColumns('product');
 
             const orderColumnsSet = new Set(orderColumns);
             const productRevoColumnsSet = new Set(productRevoColumns);
@@ -729,7 +729,7 @@ ORDER BY
             SELECT
                 ${selectedColumns.join(', ')}
             FROM orders AS o
-            JOIN product_revo AS p ON o.productid = p.id
+            JOIN product AS p ON o.productid = p.id
             WHERE ${whereClauses.join(' AND ')}
         `;
 
@@ -959,7 +959,7 @@ ORDER BY
             let countlabel: string;
             if (objectName === 'stock_revo') {
                 countlabel = 'stockcount';
-            } else if (objectName === 'product_revo') {
+            } else if (objectName === 'product') {
                 countlabel = 'product';
             } else {
                 countlabel = objectName;
@@ -1386,7 +1386,7 @@ ORDER BY
                 SELECT
                     ${selectClauses.join(',\n                ')}
                 FROM
-                    product_revo
+                    product
             `;
 
             const result = await query(queryText, []);
@@ -1564,7 +1564,7 @@ ORDER BY
                        COUNT(s.id) AS total_count,
                        SUM(p.price) AS total
                 FROM stock_revo AS s
-                JOIN product_revo AS p ON s.puc = p.puc
+                JOIN product AS p ON s.puc = p.puc
                 WHERE s.isarchive = FALSE
                   AND s.isdeleted = FALSE
                   AND s.removefromrecyclebin = FALSE
@@ -1636,7 +1636,7 @@ ORDER BY
                       AND s.stockstatus = 'Available'
                     GROUP BY s.category, s.subcategory, s.puc
                 ) AS s
-                JOIN product_revo AS p
+                JOIN product AS p
                 ON p.puc = s.puc
                 GROUP BY s.category, s.subcategory;
             `;
@@ -2006,7 +2006,7 @@ ORDER BY
                        COUNT(s.id) AS soldcount, 
                        (p.price * COUNT(s.id)) AS total
                 FROM stock_revo AS s 
-                JOIN product_revo AS p ON s.puc = p.puc 
+                JOIN product AS p ON s.puc = p.puc 
                 WHERE s.stockstatus = 'Sold' 
                   AND s.solddate >= $1 
                   AND s.solddate <= $2

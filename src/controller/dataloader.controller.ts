@@ -1,55 +1,55 @@
 import { validateDataLoader } from "../schemas/ajv.schema.js";
 import { productInsertSchema } from "../schemas/v1/product.schema.js";
 import { dataLoaderService } from "../services/dataloader.service.js"
-import { productService } from "../services/product.service.js";
+// import { productService } from "../services/product.service.js";
 import _ from 'lodash'
 import { stockRevoService } from "../services/stockRevo.service.js";
 import { ErrorHandler } from "../errorHandler/errorHandler.js";
 export module dataLoaderController {
 
-    export const insertDataLoaderData = async (request: any, reply: any) => {
-        try {
+    // export const insertDataLoaderData = async (request: any, reply: any) => {
+    //     try {
 
-            let jsonresult = request.body
-            let totalRecords = jsonresult.length;
-            let successCount = 0;
-            let failureCount = 0;
-            let failuredata = []
-            await Promise.all(jsonresult.map(async (e: any, index: any) => {
-                try {
-                    let validationresult = await validateDataLoader(productInsertSchema, e);
-                    if (validationresult === true) {
-                        let productUpsertResult: any = await productService.upsertProduct(e);
-                        if (productUpsertResult?.command === "UPDATE" || productUpsertResult?.command === "INSERT") {
-                            successCount++;
-                        } else {
-                            failureCount++;
-                        }
-                    } else {
-                        failureCount++;
-                        const errorObject: any = {};
+    //         let jsonresult = request.body
+    //         let totalRecords = jsonresult.length;
+    //         let successCount = 0;
+    //         let failureCount = 0;
+    //         let failuredata = []
+    //         await Promise.all(jsonresult.map(async (e: any, index: any) => {
+    //             try {
+    //                 let validationresult = await validateDataLoader(productInsertSchema, e);
+    //                 if (validationresult === true) {
+    //                     let productUpsertResult: any = await productService.upsertProduct(e);
+    //                     if (productUpsertResult?.command === "UPDATE" || productUpsertResult?.command === "INSERT") {
+    //                         successCount++;
+    //                     } else {
+    //                         failureCount++;
+    //                     }
+    //                 } else {
+    //                     failureCount++;
+    //                     const errorObject: any = {};
 
-                        validationresult.error.forEach(error => {
-                            const key = error.instancePath.slice(1);
-                            const value = error.message;
-                            errorObject.rowNumber = index + 2
-                            errorObject[key] = value;
+    //                     validationresult.error.forEach(error => {
+    //                         const key = error.instancePath.slice(1);
+    //                         const value = error.message;
+    //                         errorObject.rowNumber = index + 2
+    //                         errorObject[key] = value;
 
-                        });
-                        failuredata.push(errorObject)
-                    }
-                } catch (error) {
-                    failureCount++;
-                    console.log(`Error in forEach validation test values are: ${error}`);
-                }
-            }));
-            return { totalRecords, failureCount, successCount, failuredata }
-        } catch (error) {
-            console.log('ERROR IN  Controller insertDataLoaderData', error);
-            let errordata = await ErrorHandler.handleQueryError(error)
-            reply.status(404).send(errordata);
-        }
-    }
+    //                     });
+    //                     failuredata.push(errorObject)
+    //                 }
+    //             } catch (error) {
+    //                 failureCount++;
+    //                 console.log(`Error in forEach validation test values are: ${error}`);
+    //             }
+    //         }));
+    //         return { totalRecords, failureCount, successCount, failuredata }
+    //     } catch (error) {
+    //         console.log('ERROR IN  Controller insertDataLoaderData', error);
+    //         let errordata = await ErrorHandler.handleQueryError(error)
+    //         reply.status(404).send(errordata);
+    //     }
+    // }
 
     export const insertDataLoaderDatalatest = async (request: any, reply: any) => {
         try {

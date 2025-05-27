@@ -1,5 +1,4 @@
 import { FastifyInstance } from "fastify";
-import { productController } from "../controller/Product.controller.js";
 import { productInsertSchema } from "../schemas/v1/product.schema.js";
 import { validateRequestBody } from "../schemas/ajv.schema.js";
 import { filesUpload } from "../multer/Multer.js";
@@ -19,7 +18,8 @@ import { stockController } from "../controller/stock.controller.js";
 import { dataLoaderController } from "../controller/dataloader.controller.js";
 import { generatePurchaseOrderController } from "../controller/pogenerate.controller.js";
 import { purchaseOrderController } from "../controller/purchaseorder.controller.js";
-import { productrevoController } from "../controller/productrevo.controller.js";
+
+import { productController } from "../controller/Product.controller.js";
 import { stockRevoController } from "../controller/stockrevo.controller.js";
 import { archivestockrevoSchema, deletestockrevoSchema, stockrevoSchema } from "../schemas/stockRevo.schema.js";
 import { ratingController } from "../controller/rating.controller.js";
@@ -54,17 +54,7 @@ import { request } from "http";
 import { sendPushNotification } from "../firebase/firebasepushmessage.js";
 
 const Revo365Routes = async function (fastify: FastifyInstance, opts: any) {
-    //product version 1
-    // fastify.get('/product/:pageNumber/:recordCount', productController.getProducts);
-    // fastify.get('/product/Archieve/:pageNumber/:recordCount', productController.getArcheivedProducts);
-    // fastify.get('/product/:id', productController.getEachProducts);
-    // fastify.post('/product', { preHandler: [validateRequestBody(productInsertSchema)] }, productController.upsertProduct);
-    // fastify.delete('/product/:id',/* { preHandler: validateRequestBody(deleteProductSchema) } , */ productController.deleteProduct);
-    // fastify.post('/product-file/:productid', { preHandler: [filesUpload] }, productController.upsertProductwithfile);
-    // fastify.post('/rearange-image/:productid', productController.rearrangeImage);
-    // fastify.get('/product/updaterecyclebin', productController.updateRemovedFromRecyclebin);
-    // fastify.get('/product-similar/:pageNumber/:recordCount', productController.getSimilarProducts);
-    // fastify.get(`/product-ecom`, productController.getEcomProducts);
+
 
     // stock v1
     fastify.get(`/stock`, stockController.getStockData);
@@ -97,21 +87,21 @@ const Revo365Routes = async function (fastify: FastifyInstance, opts: any) {
     }
     )
     // verison 2 -> product
-    fastify.get('/v2/product', { preHandler: [getSession] }, productrevoController.getProductsrevoData);
-    fastify.get('/v2/product-ecommerce', productrevoController.getProductsrevoData);
-    fastify.get('/v2/product/Archieve', { preHandler: [getSession] }, productrevoController.getArcheivedProductsRevo);
-    fastify.get('/v2/product-ecom/:id', productrevoController.getEachProductsRevo);
-    fastify.get('/v2/product/:id', { preHandler: [getSession] }, productrevoController.getEachProductsRevo);
-    fastify.post('/v2/product', { preHandler: [getSession] },/* { preHandler: [validateRequestBody(productInsertSchema)] } ,*/ productrevoController.upsertProductrevo);
-    fastify.delete('/v2/product/:id', { preHandler: [getSession] },/* { preHandler: validateRequestBody(deleteProductSchema) } , */ productrevoController.deleteProductrevo);
-    fastify.post('/v2/product-file/:productid', { preHandler: [getSession, filesUpload] }, productrevoController.upsertProductwithfileRevo);
-    fastify.post('/v3/product-file', productrevoController.upsertProductwithfileRevogcp);
-    fastify.post('/v2/rearange-image/:productid', { preHandler: [getSession] }, productrevoController.rearrangeImageRevo);
-    fastify.get('/v2/product/updaterecyclebin', { preHandler: [getSession] }, productrevoController.updateRemovedFromRecyclebinRevo);
-    fastify.get(`/v2/product-ecom`, productrevoController.getProductsEcomrevoData);
-    fastify.get('/v2/product-similar', { preHandler: [getSession] }, productrevoController.getSimilarProducts);
-    fastify.get('/v2/product-ecom-similar', productrevoController.getSimilarProducts);
-    fastify.post('/v2/product/lockqty', { preHandler: [getSession] }, productrevoController.upsertlockqty);
+    fastify.get('/v2/product', { preHandler: [getSession] }, productController.getProductsrevoData);
+    fastify.get('/v2/product-ecommerce', productController.getProductsrevoData);
+    fastify.get('/v2/product/Archieve', { preHandler: [getSession] }, productController.getArcheivedProductsRevo);
+    fastify.get('/v2/product-ecom/:id', productController.getEachProductsRevo);
+    fastify.get('/v2/product/:id', { preHandler: [getSession] }, productController.getEachProductsRevo);
+    fastify.post('/v2/product', { preHandler: [getSession] },/* { preHandler: [validateRequestBody(productInsertSchema)] } ,*/ productController.upsertProductrevo);
+    fastify.delete('/v2/product/:id', { preHandler: [getSession] },/* { preHandler: validateRequestBody(deleteProductSchema) } , */ productController.deleteProductrevo);
+    fastify.post('/v2/product-file/:productid', { preHandler: [getSession, filesUpload] }, productController.upsertProductwithfileRevo);
+    fastify.post('/v3/product-file', productController.upsertProductwithfileRevogcp);
+    fastify.post('/v2/rearange-image/:productid', { preHandler: [getSession] }, productController.rearrangeImageRevo);
+    fastify.get('/v2/product/updaterecyclebin', { preHandler: [getSession] }, productController.updateRemovedFromRecyclebinRevo);
+    fastify.get(`/v2/product-ecom`, productController.getProductsEcomrevoData);
+    fastify.get('/v2/product-similar', { preHandler: [getSession] }, productController.getSimilarProducts);
+    fastify.get('/v2/product-ecom-similar', productController.getSimilarProducts);
+    fastify.post('/v2/product/lockqty', { preHandler: [getSession] }, productController.upsertlockqty);
 
     //version 2 -> stock
     fastify.get('/v2/stock', { preHandler: [getSession] }, stockRevoController.getStockRevoData);
@@ -207,9 +197,9 @@ const Revo365Routes = async function (fastify: FastifyInstance, opts: any) {
     fastify.delete('/orders/:id', { preHandler: [getSession] }, ordersController.deleteOrder);
 
 
-    fastify.post('/test/task', { preHandler: [getSession] }, productrevoController.updateOrderedQuantityarray)
+    fastify.post('/test/task', { preHandler: [getSession] }, productController.updateOrderedQuantityarray)
 
-    fastify.post('/test/updateorderquantity', { preHandler: [getSession] }, productrevoController.updateOrderedQuantityarray)
+    fastify.post('/test/updateorderquantity', { preHandler: [getSession] }, productController.updateOrderedQuantityarray)
 
     //supplier
     fastify.get('/supplier', { preHandler: [getSession] }, supplierController.getSupplier);
@@ -221,7 +211,7 @@ const Revo365Routes = async function (fastify: FastifyInstance, opts: any) {
     fastify.get('/supplier-name', { preHandler: [getSession] }, supplierController.getSupplierName);
 
     // data loader
-    fastify.post('/dataloader', { preHandler: [getSession] }, dataLoaderController.insertDataLoaderData);
+    // fastify.post('/dataloader', { preHandler: [getSession] }, dataLoaderController.insertDataLoaderData);
     fastify.post('/get-dataloader', { preHandler: [getSession, filesUpload] }, dataLoaderController.getDataLoaderData);
 
     //stockrevo dataloader
@@ -244,9 +234,9 @@ const Revo365Routes = async function (fastify: FastifyInstance, opts: any) {
     fastify.delete('/purchase-order/:id', { preHandler: [getSession] }, purchaseOrderController.deletePurchaseOrder);
 
     // productrevo
-    fastify.get('/productrevo', { preHandler: [getSession] }, productrevoController.getProductsrevoData);
-    fastify.delete('/productrevo/:id', { preHandler: [getSession] }, productrevoController.deleteProductrevo);
-    fastify.post('/productrevo', { preHandler: [getSession] }, productrevoController.upsertProductrevo);
+    fastify.get('/productrevo', { preHandler: [getSession] }, productController.getProductsrevoData);
+    fastify.delete('/productrevo/:id', { preHandler: [getSession] }, productController.deleteProductrevo);
+    fastify.post('/productrevo', { preHandler: [getSession] }, productController.upsertProductrevo);
 
     // rating
     fastify.get('/rating', { preHandler: [getSession] }, ratingController.getRatingData);
@@ -308,7 +298,7 @@ const Revo365Routes = async function (fastify: FastifyInstance, opts: any) {
     fastify.post('/delete/merchantid', { preHandler: [getSession] }, ordersController.deleteBasedOnMerchantId)
 
     // Dashboard
-    // orders - product_revo
+    // orders - product
     fastify.get('/dashboard/totalsales', { preHandler: [getSession] }, dashboardController.getPerMonthSalesData);
     fastify.get('/dashboard/monthwise-sales', { preHandler: [getSession] }, dashboardController.getSalesMonthlyData);
     fastify.get('/dashboard/monthwise-sales/location', { preHandler: [getSession] }, dashboardController.getSalesMonthlyLocationData);

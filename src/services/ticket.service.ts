@@ -149,7 +149,7 @@ export module ticketService {
 ) AS i ON i.id = t.assignedid
    LEFT JOIN (
     SELECT id,warranty
-    FROM product_revo p
+    FROM product p
 ) AS p ON p.id = t.productid
       ${whereClause} ${orderByClause}`;
       if (pageNumber && recordCount) {
