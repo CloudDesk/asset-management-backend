@@ -1,735 +1,212 @@
-import { query } from "../database/postgres.js"
-import dataTypeCheck from "../utils/Datatype/checkDatatype.js";
-import { QueryResult } from "pg";
-import imageResize from "../imageResize/imageRessize.js";
-import { ErrorHandler } from "../errorHandler/errorHandler.js";
-import { cartservice } from "./cart.service.js";
+import { prisma } from '../models/prisma.js';
+import { Prisma } from '@prisma/client';
+import { 
+  CreateProductInput, 
+  UpdateProductInput, 
+  UpsertProductInput,
+  validateProductDynamicFields 
+} from '../schemas/product.schema.js';
+import { PaginationResult, createPaginationResult, getPrismaSkipTake } from '../utils/pagination.js';
+import { buildProductFilters, FilterOptions } from '../utils/filterBuilder.js';
+import { 
+  safeFilterInputData, 
+  safeProcessDbResult, 
+  safeProcessDbResults, 
+  safePrismaOperation 
+} from '../utils/safeDbOperations.js';
+import { 
+  dynamicFindMany, 
+  dynamicCount, 
+  dynamicFindUnique, 
+  dynamicCreate, 
+  dynamicUpdate, 
+  dynamicDelete,
+  dynamicFindManyWithFilters
+} from '../utils/dynamicDbOperations.js';
+import { logger } from '../config/logger.js';
 
-export namespace productService {
-
-  const TIMEOUT_THRESHOLD = 5000;
-
-  /**
-   * Retrieves paginated product data from the database with dynamic filtering and sorting.
-   * @param request - The HTTP request object containing query parameters for filtering, sorting, and pagination.
-   * @returns The filtered, sorted, and paginated product data.
-   */
-  export const getProductsData = async (request: any) => {
+export class ProductService {
+  async findMany(
+    filters: FilterOptions,
+    page: number,
+    limit: number
+  ): Promise<PaginationResult<any>> {
     try {
-      // Parse pagination parameters with defaults
-      const page = parseInt(request.query.page) || 1;
-      const count = parseInt(request.query.count) || 5000;
-      const queryKeys = Object.keys(request.query);
-      const queryValues = Object.values(request.query);
+      logger.info({ filters, page, limit }, 'Starting dynamic product findMany with filters');
 
-      // Prepare SQL query components
-      let filterClauses: string[] = [];
-      let paramIndex = 1;
-      const sqlParams: any[] = [];
-      let sortField = "modifieddate";
-      let sortDirection = "DESC";
+      const { skip, take } = getPrismaSkipTake(page, limit);
 
-      // Helper: Build SQL filter for range fields (e.g., price, displaysize)
-      const buildRangeClause = (field: string, ranges: string[]) => {
-        return ranges.map(range => {
-          const [min, max] = range.split("-");
-          sqlParams.push(min, max);
-          const clause = `(${field} BETWEEN $${paramIndex} AND $${paramIndex + 1})`;
-          paramIndex += 2;
-          return clause;
-        }).join(" OR ");
-      };
-
-      // Helper: Build SQL filter for NOT conditions
-      const buildNotClause = (field: string, value: string) => {
-        sqlParams.push(value);
-        const clause = `(${field} != $${paramIndex})`;
-        paramIndex++;
-        return clause;
-      };
-
-      // Helper: Build SQL filter for equality (multiple values)
-      const buildEqualityClause = (field: string, values: any[]) => {
-        const clauses = values.map((_, idx) => `${field} = $${paramIndex + idx}`);
-        sqlParams.push(...values);
-        paramIndex += values.length;
-        return `(${clauses.join(" OR ")})`;
-      };
-
-      // Build WHERE clauses based on query parameters
-      queryKeys.forEach((key, idx) => {
-        const paramValues: any[] = Array.isArray(queryValues[idx]) ? queryValues[idx] : [queryValues[idx]];
-        if (key === "displaysize" || key === "price") {
-          filterClauses.push(`(${buildRangeClause(key, paramValues)})`);
-        } else if (key === "sortby") {
-          const [field, direction] = paramValues[0].split("-");
-          sortField = field;
-          sortDirection = direction?.toUpperCase() === "ASC" ? "ASC" : "DESC";
-        } else if (paramValues[0].startsWith("NOT ")) {
-          const value = paramValues[0].slice(4);
-          filterClauses.push(buildNotClause(key, value));
-        } else if (key !== "page" && key !== "count") {
-          filterClauses.push(buildEqualityClause(key, paramValues));
-        }
+      // Use the new dynamic filtering system
+      const { data: products, total } = await dynamicFindManyWithFilters('product', filters, {
+        skip,
+        take,
+        useAllColumns: true // Get all available columns
       });
 
-      // Pagination and base conditions
-      const offset = (page - 1) * count;
-      const baseFilter = `(
-        isarchive = FALSE OR isarchive IS NULL
-      ) AND (
-        isdeleted = FALSE OR isdeleted IS NULL
-      ) AND (
-        removefromrecyclebin = FALSE OR removefromrecyclebin IS NULL
-      )`;
-      const whereClause = filterClauses.length > 0
-        ? `WHERE ${filterClauses.join(" AND ")} AND ${baseFilter}`
-        : `WHERE ${baseFilter}`;
-      const orderByClause = `ORDER BY ${sortField} ${sortDirection}`;
+      logger.info({
+        productCount: products.length, 
+        total,
+        filtered: Object.keys(filters).length > 0,
+        appliedFilters: Object.keys(filters),
+        availableFields: products.length > 0 ? Object.keys(products[0]) : []
+      }, 'Dynamic product findMany with filters completed');
 
-      // Build final SQL query
-      let sqlQuery = `SELECT * FROM product ${whereClause} ${orderByClause}`;
-      if (page && count) {
-        sqlQuery += ` OFFSET $${paramIndex} LIMIT $${paramIndex + 1}`;
-        sqlParams.push(offset, count);
+      return createPaginationResult(products, total, page, limit);
+    } catch (error) {
+      logger.error({ error, filters, page, limit }, 'Error in dynamic product findMany operation');
+      throw error;
+    }
+  }
+
+  async findById(id: string) {
+    try {
+      logger.debug({ productId: id }, 'Starting dynamic product findById operation');
+
+      const product = await dynamicFindUnique('product', { id });
+
+      if (!product) {
+        throw new Error('Product not found');
       }
 
-      // Execute query and run datatype check
-      const dbResult = await query(sqlQuery, sqlParams);
-      const checkedResult = await dataTypeCheck(dbResult);
-      return checkedResult;
+      logger.debug({ 
+        productId: id, 
+        availableFields: Object.keys(product) 
+      }, 'Dynamic product findById completed');
+
+      return product;
     } catch (error) {
-      console.error("Query Execution Error: IN getProductsData", error);
-      const errorMessage = await ErrorHandler.handleQueryError(error);
-      return errorMessage;
+      logger.error({ error, productId: id }, 'Error in product findById operation');
+      throw error;
     }
-  };
+  }
 
-
-  export const getEcomProducts = async (request: any) => {
+  async create(data: CreateProductInput & Record<string, any>) {
     try {
-      const pageNumber = parseInt(request.query.page) || 1;
-      const recordCount = parseInt(request.query.count) || 5000;
-      const keys = Object.keys(request.query);
-      const values = Object.values(request.query);
+      logger.debug({ originalData: data }, 'Starting dynamic product create operation');
 
-      let whereClauses: string[] = [];
-      let parameterIndex = 1;
-      const queryParams: any[] = [];
-      let orderByField = "modifieddate";
-      let orderByDirection = "DESC";
-      let additionalSortCriteria = "";
-      keys.forEach((key, index) => {
-        let paramValues: any = Array.isArray(values[index]) ? values[index] : [values[index]];
-        if (key === "displaysize" || key === "price") {
-          const rangeClauses = paramValues.map(range => {
-            const [lowerBound, upperBound] = range.split("-");
-            queryParams.push(lowerBound, upperBound);
-            const clause = `(${key} BETWEEN $${parameterIndex} AND $${parameterIndex + 1})`;
-            parameterIndex += 2;
-            return clause;
-          });
-          whereClauses.push(`(${rangeClauses.join(" OR ")})`);
-        }
-        else if (key === "sortby") {
-          const [fieldName, direction] = paramValues[0].split("-");
-          orderByField = fieldName;
-          orderByDirection = direction.toUpperCase() === "ASC" ? "ASC" : "DESC";
-        } else if (key !== "page" && key !== "count") {
-          const normalClauses = [];
-          const notClauses = [];
-          const nullClauses = [];
-          paramValues.forEach((value: string) => {
-            if (value.startsWith("NOT ") || value.startsWith("not ")) {
-              const cleanValue = value.slice(4);
-              notClauses.push(`${key} != $${parameterIndex}`);
-              queryParams.push(cleanValue);
-              parameterIndex++;
-            } else if (value.toUpperCase() === 'NULL') {
-              nullClauses.push(`${key} IS NULL`);
-            } else {
-              normalClauses.push(`${key} = $${parameterIndex}`);
-              queryParams.push(value);
-              parameterIndex++;
-            }
-          });
+      const product = await dynamicCreate('product', data);
 
-          const combinedClauses = [
-            ...normalClauses,
-            ...notClauses,
-            ...nullClauses
-          ];
-          if (combinedClauses.length > 0) {
-            whereClauses.push(`(${combinedClauses.join(" OR ")})`);
-          }
-        }
-      });
-
-      const offset = (pageNumber - 1) * recordCount;
-      const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
-      const baseConditions = `(isarchive = FALSE OR isarchive IS NULL) AND (isdeleted = FALSE OR isdeleted IS NULL)  AND  (removefromrecyclebin = FALSE OR removefromrecyclebin IS NULL)`;
-      const orderByClause = `ORDER BY ${orderByField} ${orderByDirection}`;
-      let queryText = `SELECT * FROM product`;
-      if (whereClause) {
-        queryText += ` ${whereClause} AND ${baseConditions} ${orderByClause}`;
-      } else {
-        queryText += ` WHERE ${baseConditions} ${orderByClause}`;
+      if (!product) {
+        throw new Error('Failed to create product - no valid fields provided');
       }
 
-      queryText += ` OFFSET $${parameterIndex} LIMIT $${parameterIndex + 1}`;
-      queryParams.push(offset, recordCount);
+      logger.info({ 
+        productId: product.id, 
+        availableFields: Object.keys(product) 
+      }, 'Dynamic product create completed');
 
-      const result: QueryResult = await query(queryText, queryParams);
-      const datatypeCheckResult = await dataTypeCheck(result);
-      return datatypeCheckResult;
+      return product;
     } catch (error) {
-      console.error("Query Execution Error: IN getEcomProducts", error);
-      let ErrorMessage = await ErrorHandler.handleQueryError(error)
-      return ErrorMessage
+      logger.error({ error, data }, 'Error in product create operation');
+      throw error;
     }
-  };
+  }
 
-  export const getSimilarProducts = async (request: any) => {
+  async update(id: string, data: UpdateProductInput & Record<string, any>) {
     try {
-      const pageNumber = parseInt(request.query.page) || 1;
-      const recordCount = parseInt(request.query.count) || 5000;
-      const keys = Object.keys(request.query);
-      const values = Object.values(request.query);
+      // Check if product exists
+      await this.findById(id);
 
-      let whereClauses: string[] = [];
-      let parameterIndex = 1;
-      const queryParams: any[] = [];
+      logger.debug({ originalData: data, productId: id }, 'Starting dynamic product update operation');
 
-      keys.forEach((key, index) => {
-        if (key !== "page" && key !== "count") {
-          let paramValues: any = Array.isArray(values[index]) ? values[index] : [values[index]];
-          const clauses = paramValues.map((_, idx) => `${key} = $${parameterIndex + idx}`);
-          whereClauses.push(`(${clauses.join(" OR ")})`);
-          queryParams.push(...paramValues);
-          parameterIndex += paramValues.length;
-        }
-      });
+      const product = await dynamicUpdate('product', { id }, data);
 
-      const offset = (pageNumber - 1) * recordCount;
-      const baseConditions = `(isarchive = FALSE OR isarchive IS NULL) AND (isdeleted = FALSE OR isdeleted IS NULL) AND  (removefromrecyclebin = FALSE OR removefromrecyclebin IS NULL)`;
-      const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")} AND ${baseConditions}` : `WHERE ${baseConditions}`;
-      const orderByClause = `ORDER BY modifieddate DESC`;
-
-      let queryText = `SELECT * FROM product ${whereClause} ${orderByClause} OFFSET $${parameterIndex} LIMIT $${parameterIndex + 1}`;
-      queryParams.push(offset, recordCount);
-
-      const result: QueryResult = await query(queryText, queryParams);
-
-      if (result.rows.length <= 1) {
-        let queryTextLatest = '';
-        const queryParamsLatest: any[] = [];
-
-        keys.forEach((key, index) => {
-          if (key === "subcategory") {
-            const paramValues: any = Array.isArray(values[index]) ? values[index] : [values[index]];
-            const clauses = paramValues.map((_, idx) => `${key} = $1`);
-            const whereClauseLatest = `(${clauses.join(" OR ")}) AND ${baseConditions}`;
-            queryTextLatest = `SELECT * FROM products WHERE ${whereClauseLatest} ${orderByClause} OFFSET $2 LIMIT $3`;
-            queryParamsLatest.push(...paramValues, offset, recordCount);
-          }
-        });
-
-        const resultLatest: QueryResult = await query(queryTextLatest, queryParamsLatest);
-        return await dataTypeCheck(resultLatest);
-      } else {
-        return await dataTypeCheck(result);
+      if (!product) {
+        throw new Error('Failed to update product - no valid fields provided');
       }
-    } catch (error) {
-      console.error("Query Execution Error: IN getSimilarProducts", error);
-      let ErrorMessage = await ErrorHandler.handleQueryError(error)
-      return ErrorMessage
-    }
-  };
 
-  export const deleteProductrevo = async (id: number) => {
+      logger.info({ 
+        productId: id, 
+        availableFields: Object.keys(product) 
+      }, 'Dynamic product update completed');
+
+      return product;
+    } catch (error) {
+      logger.error({ error, data, productId: id }, 'Error in product update operation');
+      throw error;
+    }
+  }
+
+  async delete(id: string) {
     try {
-      const result: any = await query(`DELETE FROM product WHERE id = $1`, [id]);
-      if (result.rowCount != 0) {
-        return `Data Deleted Successfully`;
-      } else {
-        return `Product not found with id ${id}`;
+      // Check if product exists
+      await this.findById(id);
+
+      logger.debug({ productId: id }, 'Starting dynamic product delete operation');
+
+      const success = await dynamicDelete('product', { id });
+
+      if (!success) {
+        throw new Error('Failed to delete product');
       }
-    } catch (error) {
-      console.error("Query Execution Error: IN deleteProductrevo", error);
-      let ErrorMessage = await ErrorHandler.handleQueryError(error)
-      return ErrorMessage
-    }
-  };
 
-  export const upsertProductrevo = async (productrevoData: any) => {
+      logger.info({ productId: id }, 'Dynamic product delete completed successfully');
+    } catch (error) {
+      logger.error({ error, productId: id }, 'Error in product delete operation');
+      throw error;
+    }
+  }
+
+  async upsert(data: UpsertProductInput & Record<string, any>) {
     try {
-      let querydata: string;
-      let params: any[];
-      const { id, ...upsertFields } = productrevoData;
-      const fieldNames = Object.keys(upsertFields);
-      const fieldValues = Object.values(upsertFields);
+      const { id, ...updateData } = data;
+
       if (id) {
-        querydata = `UPDATE product SET ${fieldNames
-          .map((field, index) => `${field} = $${index + 1}`)
-          .join(", ")} WHERE id = $${fieldNames.length + 1} RETURNING *`;
-        params = [...fieldValues, id];
+        // Update existing product
+        logger.debug({ productId: id, data: updateData }, 'Upserting existing product');
+        return this.update(id, updateData);
       } else {
-        querydata = `INSERT INTO product (${fieldNames.join(
-          ", "
-        )}) VALUES (${fieldNames
-          .map((_, index) => `$${index + 1}`)
-          .join(", ")}) RETURNING *`;
-        params = fieldValues;
+        // Create new product
+        logger.debug({ data: updateData }, 'Upserting new product');
+        return this.create(updateData);
       }
-
-      const result = await query(querydata, params)
-      return result;
     } catch (error) {
-      console.error("Query Execution Error: IN upsertProductrevo", error);
-      let ErrorMessage = await ErrorHandler.handleQueryError(error)
-      return ErrorMessage
+      logger.error({ error, data }, 'Error in product upsert operation');
+      throw error;
     }
-
   }
 
-  export const getArcheivedProductsrevo = async (request: any) => {
+  async updateStockTotals(productId: string) {
     try {
-      const pageNumber = request.query.page || 1
-      const recordCount = request.query.count || 5000
-      const keys = Object.keys(request.query);
-      const values = Object.values(request.query);
-      let whereClause = "";
-      let parameterIndex = 1;
-      let queryParams = [];
-      keys.forEach((key, index) => {
+      logger.debug({ productId }, 'Starting dynamic stock totals update');
 
-        if (key !== 'page' && key != 'count') {
-          const paramValues: any = Array.isArray(values[index])
-            ? values[index]
-            : [values[index]];
-          if (index !== 0) {
-            whereClause += " AND ";
-          }
-          whereClause += `(${paramValues
-            .map((_, idx) => `${key} = $${parameterIndex + idx}`)
-            .join(" OR ")})`;
-          parameterIndex += paramValues.length;
-
-          queryParams.push(...paramValues);
-        }
-
+      const stocks = await dynamicFindMany('stock', {
+        where: { productId },
       });
-      const offset = (pageNumber - 1) * recordCount;
-      let queryText = `SELECT * FROM product`;
-      if (whereClause) {
-        queryText += ` WHERE ${whereClause} AND isarchive = true AND removefromrecyclebin = false  OFFSET $${parameterIndex} LIMIT $${parameterIndex + 1
-          }`;
+
+      if (!Array.isArray(stocks) || stocks.length === 0) {
+        logger.warn({ productId }, 'No stocks found for product, skipping stock totals update');
+        return { totalQuantity: 0, totalAvailable: 0, totalSold: 0 };
       }
-      else if (pageNumber && recordCount) {
-        queryText += ` WHERE isarchive = true AND removefromrecyclebin = false  OFFSET $${parameterIndex} LIMIT $${parameterIndex + 1
-          }`;
 
-        queryParams.push(offset, recordCount);
-
-      }
-      else {
-        queryText += ` WHERE isarchive = true AND removefromrecyclebin = false`;
-      }
-      const result: QueryResult = await query(queryText, queryParams);
-      let datatypecheckResult = await dataTypeCheck(result);
-      return datatypecheckResult;
-    } catch (error) {
-      console.error("Query Execution Error: IN getArcheivedProductsrevo", error);
-      let ErrorMessage = await ErrorHandler.handleQueryError(error)
-      return ErrorMessage
-    }
-
-  }
-
-  export const getEachProductsRevo = async function (request: any, id: Number) {
-    try {
-      const result: QueryResult = await query(
-        `SELECT * FROM product where id=${id}`,
-        []
+      const totals = stocks.reduce(
+        (acc: { totalQuantity: number; totalAvailable: number; totalSold: number }, stock: any) => ({
+          totalQuantity: acc.totalQuantity + (stock.quantity || 0),
+          totalAvailable: acc.totalAvailable + (stock.availableQuantity || stock.available_quantity || 0),
+          totalSold: acc.totalSold + (stock.soldQuantity || stock.sold_quantity || 0),
+        }),
+        { totalQuantity: 0, totalAvailable: 0, totalSold: 0 }
       );
-      let getvalues = { objectName: "null" };
-      getvalues.objectName = "products";
-      let datatypecheckResult = await dataTypeCheck(result);
-      return datatypecheckResult;
-    } catch (error) {
-      console.error("Query Execution Error: IN getEachProductsRevo", error);
-      let ErrorMessage = await ErrorHandler.handleQueryError(error)
-      return ErrorMessage
-    }
-  };
 
-  export const upsertProductwithFileRevo = async (request: any) => {
-    try {
-      const { productid } = request.params;
-      let existingProductData: any = {};
-      const upsertProductData: any = [];
-      if (productid) {
-        existingProductData = await query(
-          `SELECT * FROM product where id=${productid}`,
-          {}
-        );
-      }
-      let data: any = {};
-      if (existingProductData.rows && existingProductData.rows.length > 0) {
-        data = existingProductData?.rows[0];
-      }
-      let imageData: any;
-      if (request.files) {
-        imageData = await imageResize(request);
-        upsertProductData.large = data?.large
-          ? [...data.large, ...imageData.url.Large]
-          : imageData.url.Large;
-        upsertProductData.medium = data?.medium
-          ? [...data.medium, ...imageData.url.Medium]
-          : imageData.url.Medium;
-        upsertProductData.small = data?.small
-          ? [...data.small, ...imageData.url.Small]
-          : imageData.url.Small;
-      }
-      const pathurldatas = imageData?.path || null;
-      const { ...upsertFields } = upsertProductData;
-      const fieldNames = Object.keys(upsertFields);
-      const fieldValues = Object.values(upsertFields);
-      let querydata;
-      let params: any[] = [];
-      if (productid) {
-        querydata = `UPDATE product SET ${fieldNames
-          .map((field, index) => `${field} = $${index + 1}`)
-          .join(", ")} WHERE id = $${fieldNames.length + 1} RETURNING *`;
-        params = [...fieldValues, Number(productid)];
-      }
-      const result = await query(querydata, params);
-      return { result, productid, pathurldatas };
-    } catch (error) {
-      console.error("Query Execution Error: IN upsertProductwithFileRevo", error);
-      let ErrorMessage = await ErrorHandler.handleQueryError(error)
-      return ErrorMessage
-    }
-  };
-  export const upsertProductwithfileRevogcp = async (request: any) => {
-    try {
-      const { productid } = request.body;
-      let existingProductData: any = {};
-      const upsertProductData: any = [];
-      let data: any = {};
-      if (productid) {
-        existingProductData = await query(
-          `SELECT * FROM product where id=${productid}`,
-          {}
-        );
-      }
-      if (existingProductData.rows && existingProductData.rows.length > 0) {
-        data = existingProductData?.rows[0];
-      }
-      let imageData: any;
-      if (request.body.url) {
-        imageData = request.body;
-        upsertProductData.large = data?.large
-          ? [...data.large, ...imageData.url.Large]
-          : imageData.url.Large;
-        upsertProductData.medium = data?.medium
-          ? [...data.medium, ...imageData.url.Medium]
-          : imageData.url.Medium;
-        upsertProductData.small = data?.small
-          ? [...data.small, ...imageData.url.Small]
-          : imageData.url.Small;
-      }
-      const pathurldatas = imageData?.url || null;
-      const { ...upsertFields } = upsertProductData;
-      const fieldNames = Object.keys(upsertFields);
-      const fieldValues = Object.values(upsertFields);
-      let querydata;
-      let params: any[] = [];
-      if (productid) {
-        querydata = `UPDATE product SET ${fieldNames
-          .map((field, index) => `${field} = $${index + 1}`)
-          .join(", ")} WHERE id = $${fieldNames.length + 1} RETURNING *`;
-        params = [...fieldValues, Number(productid)];
-      }
-      const result = await query(querydata, params);
-      return { result, productid, pathurldatas };
-    } catch (error) {
-      console.error("Query Execution Error: IN upsertProductwithFileRevo", error);
-      let ErrorMessage = await ErrorHandler.handleQueryError(error)
-      return ErrorMessage
-    }
-  };
+      // Try to update stock totals if the fields exist
+      const updateData = {
+        totalStockQuantity: totals.totalQuantity,
+        totalStockAvailable: totals.totalAvailable,
+        totalStockSold: totals.totalSold,
+      };
 
-  export const rearrangeImageRevo = async (request) => {
-    try {
-      const { productid } = request.params;
-      const { ...upsertFields } = request.body;
-      const fieldNames = Object.keys(upsertFields);
-      const fieldValues = Object.values(upsertFields);
-      let querydata;
-      let params: any[] = [];
+      const updatedProduct = await dynamicUpdate('product', { id: productId }, updateData);
 
-      let getData = await query(
-        `select large,medium,small from product where id =${productid}`,
-        {}
-      );
-      let value = getData.rows[0];
-      if (getData.rows.length > 0) {
-        querydata = `UPDATE product SET ${fieldNames
-          .map((field, index) => `${field} = $${index + 1}`)
-          .join(", ")} WHERE id = $${fieldNames.length + 1} RETURNING *`;
-        params = [...fieldValues, Number(productid)];
-      }
-      let result = await query(querydata, params);
-
-      return result;
-    } catch (error) {
-      console.error("Query Execution Error: IN rearrangeImageRevo", error);
-      let ErrorMessage = await ErrorHandler.handleQueryError(error)
-      return ErrorMessage
-    }
-  };
-
-  export const updateRemoveFromRecyclebinRevo = async () => {
-    const updateQuery = `
-            UPDATE product
-            SET removefromrecyclebin = true
-            WHERE isdeleted = true AND removefromrecyclebin = false
-            AND to_timestamp(modifieddate) <= (CURRENT_TIMESTAMP - INTERVAL '30 days')
-        `;
-    let data = await query(updateQuery, []);
-    return data
-  };
-
-  export const updateAvgRatingProductrevo = async (avgRating: number, productid: number) => {
-    try {
-      const result: any = await query(`UPDATE product SET averagerating = $1 WHERE id = $2`, [avgRating, productid]);
-
-      if (result.rowCount != 0) {
-        return `Average rating updated successfully for productid ${productid}`;
+      if (updatedProduct) {
+        logger.debug({ productId, totals }, 'Updated product stock totals successfully');
       } else {
-        return `Product not found with productid ${productid}`;
+        logger.debug({ productId, totals }, 'Stock total fields not available in schema, skipping update');
       }
+
+      return totals;
     } catch (error) {
-      console.error("Query Execution Error: IN updateAvgRatingProductrevo", error);
-      let ErrorMessage = await ErrorHandler.handleQueryError(error)
-      return ErrorMessage
+      logger.error({ error, productId }, 'Error in updateStockTotals operation');
+      throw error;
     }
   }
-
-  export const upsertQuantityFields = async (upsertData: any, orderedquantitydata, issold: boolean) => {
-    const { quantity, ecompublishedquantity, soldquantity, availablequantity, puc, orderedquantity } = upsertData;
-    try {
-      let productquery = await query(`SELECT orderedquantity FROM product WHERE puc = $1`, [puc]);
-      let orderedquantityvalue = productquery.rows[0].orderedquantity;
-      let productStatusValue: string
-      if (availablequantity > 5) {
-        productStatusValue = 'in_stock'
-      }
-      else if (availablequantity > 0 && availablequantity <= 5) {
-        productStatusValue = 'low_stock'
-      }
-      else if (availablequantity === 0) {
-        productStatusValue = 'out_of_stock'
-      }
-      let orderedquantityNumber = Number(orderedquantitydata);
-
-      let updateQueryBase = `UPDATE product SET quantity = $1, ecompublishedquantity = $2, soldquantity = $3, 
-        availablequantity = $4, productstatus = $5`;
-      let updateQuery = ''
-      if (issold && !isNaN(orderedquantityNumber)) {
-        updateQueryBase += `, orderedquantity = orderedquantity - $6`;
-        updateQuery = `${updateQueryBase} WHERE puc = $7 RETURNING *`;
-      } else if (!issold && isNaN(orderedquantityNumber)) {
-        updateQuery = `${updateQueryBase} WHERE puc = $6 RETURNING *`;
-      }
-      else {
-        updateQuery = `${updateQueryBase} WHERE puc = $6 RETURNING *`;
-
-      }
-
-      let updateParams = []
-      if (issold && !isNaN(orderedquantityNumber)) {
-        updateParams = [quantity, ecompublishedquantity, soldquantity, availablequantity, productStatusValue, orderedquantityNumber, puc]
-
-      }
-      else {
-        updateParams = [quantity, ecompublishedquantity, soldquantity, availablequantity, productStatusValue, puc]
-
-      }
-      const updateResult = await query(updateQuery, updateParams);
-      let cartData = {
-        productid: updateResult.rows[0].id,
-        availablequantity
-      }
-      const updateCartQuantity = await cartservice.upsertCartQuantity(cartData)
-      if (updateCartQuantity?.command === 'UPDATE' || updateCartQuantity === null) {
-        return updateResult.rows[0];
-      }
-      else {
-        let message = {
-          product: updateResult.rows[0],
-          cart: 'Problem In Cart Quantity Updaations.Please contact support Team'
-        }
-        return message
-      }
-    } catch (error) {
-      console.error("Query Execution Error: IN upsertQuantityFields", error);
-      let ErrorMessage = await ErrorHandler.handleQueryError(error)
-      return ErrorMessage
-    }
-  };
-
-  export const testupsertQuantityFieldsBatch = async (batchData: any[], issold: boolean) => {
-    try {
-      let updateQueryBase = `
-            UPDATE product
-            SET quantityforlocation = 
-                jsonb_set(
-                    COALESCE(quantityforlocation, '{}'::jsonb),
-                    array[$1]::text[],
-                    jsonb_build_object(
-                        'quantity', $2::integer,
-                        'ecompublishedquantity', $3::integer,
-                        'soldquantity', $4::integer,
-                        'availablequantity', $5::integer
-                    )
-                )
-            WHERE puc = $6
-            RETURNING *
-        `;
-      if (issold) {
-        updateQueryBase = `
-            UPDATE product
-            SET quantityforlocation = 
-              jsonb_set(
-                COALESCE(quantityforlocation, '{}'::jsonb),
-                array[$1]::text[],
-                jsonb_build_object(
-                  'quantity', $2::integer,
-                  'ecompublishedquantity', $3::integer,
-                  'soldquantity', $4::integer,
-                  'availablequantity', $5::integer
-                )
-              )
-            WHERE puc = $6
-            RETURNING *
-          `;
-      }
-      const updateQueries = batchData.map(data => {
-        return {
-          query: updateQueryBase,
-          params: [
-            data.location,
-            data.quantity,
-            data.ecompublishedquantity,
-            data.soldquantity,
-            data.availablequantity,
-            data.puc
-          ]
-        };
-      });
-      const updatePromises = updateQueries.map(update => query(update.query, update.params));
-      const updateResults = await Promise.all(updatePromises);
-      return updateResults;
-
-    } catch (error) {
-      console.error("Error in testupsertQuantityFieldsBatch", error);
-      let ErrorMessage = await ErrorHandler.handleQueryError(error);
-      return ErrorMessage;
-    }
-  };
-
-  export const bulkupsertProducttosetZero = (async (data, setzero) => {
-    try {
-
-      console.log(data + 'data for bulk upsert product to set zero');
-      if (data.length === 0) {
-        return { message: 'No data to update' };
-      }
-
-      let querytext = 'UPDATE product SET lock_qty = CASE id ';
-      const values = [];
-
-      data.forEach((item, index) => {
-        if (setzero) {
-          const idPlaceholder = index + 1;  
-          querytext += `WHEN $${idPlaceholder} THEN 0 `;
-          values.push(item.productid);  
-        } else {
-          const idPlaceholder = index * 2 + 1;  
-          const quantityPlaceholder = index * 2 + 2;  
-          querytext += `WHEN $${idPlaceholder} THEN lock_qty + $${quantityPlaceholder} `;
-          values.push(item.productid, item.quantity);  
-        }
-      });
-
-      querytext += 'ELSE lock_qty END WHERE id IN (';
-
-      if (setzero) {
-        querytext += data.map((_, index) => `$${index + 1}`).join(', '); 
-      } else {
-        querytext += data.map((_, index) => `$${index * 2 + 1}`).join(', '); 
-      }
-
-      querytext += ');';
-
-      await query(querytext, values);
-console.log('success bulk upsert product to set zero');
-      return { message: 'Bulk update successful' };
-    } catch (error) {
-      console.error("Query Execution Error: bulkupsertProducttosetZero result", error);
-      let ErrorMessage = await ErrorHandler.handleQueryError(error);
-      return ErrorMessage;
-    }
-  });
-
-  export async function updateOrderedQuantity(productIds: Array<number>, orderedquantity: number) {
-
-    try {
-      return 'resultdata'
-    } catch (error) {
-      console.error('Error in updateOrderedQuantity:', error);
-    }
-  }
-
-
-  export async function updateOrderedQuantityarray(updatedData) {
-    try {
-
-      let data = []
-      updatedData.forEach(async (e) => {
-        let id = e.id;
-        let orderedquantity = e.orderedquantity;
-
-        const queryText = `
-        UPDATE product
-        SET orderedquantity = orderedquantity + ${orderedquantity},
-        lock_qty = 0 
-        WHERE id = ${id}
-        RETURNING *`;
-
-        let result = await query(queryText, [])
-        data.push(result)
-      })
-
-    } catch (error) {
-      console.error('Error in updateOrderedQuantityarray:', error);
-    }
-  };
-
-
-  export async function updateCancelledOrderedQuantity(productIds: Array<number>, quantitydata: number) {
-
-    try {
-      const queryvalue = `UPDATE product SET orderedquantity = orderedquantity - ${quantitydata} 
-      WHERE id = ANY($1::int[])    AND orderedquantity > 0
-      returning *`;
-      let resultdata = await query(queryvalue, [productIds]);
-      return resultdata
-    } catch (error) {
-      console.error('Error in updateCancelledOrderedQuantity:', error);
-    }
-  }
-
-}
+} 

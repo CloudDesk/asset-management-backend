@@ -1,106 +1,99 @@
+import { z } from 'zod';
 
-export const supplierInsertSchema = {
-    type: 'object',
-    properties: {
-        suppliername: {
-            type: ['string','null'],
-            minLength: 2,
-            maxLength: 300,
-            errorMessage: {
-                type: "Supplier Name must be string",
-                minLength: "Supplier Name must be alteast 2 characters",
-                maxLength: "Supplier Name must be between 2 to 300 characters"
-            }
-        },
-        doornumber: {
-            type: ['string','null'],
-            minLength: 2,
-            maxLength: 300,
-            errorMessage: {
-                type: "Door Number must be string",
-                minLength: "Door Number must be atleast 2",
-                maxLength: "Door Number must be between 2 to 300 characters"
-            }
-        },
-        supplierphonenumber: {
-            type: ['number','null'],
-            minimum: 1000000000,
-            maximum: 9999999999,
-            errorMessage: {
-                type: "Supplier Phone number should only contain numbers",
-                minimum: "Supplier Phone number length must be 10 numbers",
-                maximum: "Supplier Phone number length must be 10 numbers"
-            }
-        },
-        supplierlandline:{
-            type:['number','null'],
-            errorMessage:{
-                type: 'Supplier Land line should be number'
-            }
-        },
-        streetname: {
-            type: ['string','null'],
-            minLength: 2,
-            maxLength: 300,
-            errorMessage: {
-                type: "Street name must be string",
-                minLength: "Street name must contain atleast 2 characters",
-                maxLength: "Street name must not exceeds 300 characters"
-            }
-        },
-        city: {
-            type: ['string','null'],
-            errorMessage: {
-                type: "City should be string"
-            }
-        },
-        state: {
-            type: ['string','null'],
-            errorMessage: {
-                type: "State should be string"
-            }
-        },
-        pincode: {
-            type: ['number','null'],
-            "minimum": 100000,
-            "maximum": 999999,
-            "errorMessage": {
-                "type": "Pin code must be a number",
-                "minimum": "Pin code must contain 6 digits",
-                "maximum": "Pin code must not exceed 6 digits"
-            }
-        },
-        isdeleted:{
-            type:['boolean','null'],
-            errorMessage:{
-                type: 'IsDeleted should be boolean'
-            }
-        },
-        gstnumber:{
-            type:['string','null'],
-            errorMessage:{
-                type:'GST number should be string'
-            }
-        },
-        supplieremail:{
-            type:['string','null'],
-            errorMessage:{
-                type:'Supplier E-Mail should be string'
-            }
-        }
-    },
+// Supplier schema based on actual database fields
+export const createSupplierSchema = z.object({
+  // Actual database fields
+  suppliername: z.string().min(1).max(255).optional(),
+  suppliercode: z.string().max(50).optional(),
+  suppliertype: z.enum(['local', 'International']).optional(),
+  supplieremail: z.string().email().optional(),
+  supplierphonenumber: z.number().optional(),
+  supplierlandline: z.number().optional(),
+  city: z.string().max(100).optional(),
+  state: z.string().max(100).optional(),
+  country: z.string().max(100).optional(),
+  gstnumber: z.string().max(50).optional(),
+  doornumber: z.string().max(50).optional(),
+  streetname: z.string().max(255).optional(),
+  pincode: z.number().optional(),
+  isdeleted: z.boolean().optional(),
+}).passthrough(); // Allow any additional fields
 
-    required: [
-        // "suppliername",
-        // "doornumber",
-        // "streetname",
-        // "pincode",
-        // "supplierphonenumber",
-        "supplieremail"
-    ],
-    errorMessage:{
-        required:{
-            supplieremail: "Supplier E-Mail is required"
-        }
-    }
-};
+export const updateSupplierSchema = z.object({
+  // All fields optional for updates
+  suppliername: z.string().min(1).max(255).optional(),
+  suppliercode: z.string().max(50).optional(),
+  suppliertype: z.enum(['local', 'International']).optional(),
+  supplieremail: z.string().email().optional(),
+  supplierphonenumber: z.number().optional(),
+  supplierlandline: z.number().optional(),
+  city: z.string().max(100).optional(),
+  state: z.string().max(100).optional(),
+  country: z.string().max(100).optional(),
+  gstnumber: z.string().max(50).optional(),
+  doornumber: z.string().max(50).optional(),
+  streetname: z.string().max(255).optional(),
+  pincode: z.number().optional(),
+  isdeleted: z.boolean().optional(),
+}).passthrough();
+
+export const upsertSupplierSchema = z.object({
+  id: z.string().optional(), // Changed from uuid() to allow numeric IDs
+  
+  // Actual database fields
+  suppliername: z.string().min(1).max(255).optional(),
+  suppliercode: z.string().max(50).optional(),
+  suppliertype: z.enum(['local', 'International']).optional(),
+  supplieremail: z.string().email().optional(),
+  supplierphonenumber: z.number().optional(),
+  supplierlandline: z.number().optional(),
+  city: z.string().max(100).optional(),
+  state: z.string().max(100).optional(),
+  country: z.string().max(100).optional(),
+  gstnumber: z.string().max(50).optional(),
+  doornumber: z.string().max(50).optional(),
+  streetname: z.string().max(255).optional(),
+  pincode: z.number().optional(),
+  isdeleted: z.boolean().optional(),
+}).passthrough();
+
+export const supplierParamsSchema = z.object({
+  id: z.string().min(1, 'Invalid supplier ID'),
+});
+
+export const supplierQuerySchema = z.object({
+  // Pagination
+  page: z.string().optional(),
+  limit: z.string().optional(),
+  
+  // Filter fields based on actual database columns
+  suppliername: z.string().optional(),
+  suppliercode: z.string().optional(),
+  suppliertype: z.string().optional(),
+  supplieremail: z.string().optional(),
+  supplierphonenumber: z.string().optional(),
+  supplierlandline: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  country: z.string().optional(),
+  gstnumber: z.string().optional(),
+  doornumber: z.string().optional(),
+  streetname: z.string().optional(),
+  pincode: z.string().optional(),
+  isdeleted: z.string().optional(),
+  createddate: z.string().optional(),
+  modifieddate: z.string().optional(),
+}).passthrough(); // Allow any additional query parameters
+
+// Dynamic field validation - permissive approach
+export function validateSupplierDynamicFields(data: Record<string, any>): Record<string, any> {
+  // Just return the data as-is since we're using passthrough
+  // The database operations will filter out invalid fields
+  return data;
+}
+
+export type CreateSupplierInput = z.infer<typeof createSupplierSchema>;
+export type UpdateSupplierInput = z.infer<typeof updateSupplierSchema>;
+export type UpsertSupplierInput = z.infer<typeof upsertSupplierSchema>;
+export type SupplierParams = z.infer<typeof supplierParamsSchema>;
+export type SupplierQuery = z.infer<typeof supplierQuerySchema>; 

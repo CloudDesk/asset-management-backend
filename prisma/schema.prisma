@@ -1,0 +1,146 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id                     String   @id @default(uuid())
+  name                   String
+  description            String?
+  category               String
+  price                  Decimal  @db.Decimal(10, 2)
+  status                 String   // FK to Picklist
+  totalStockQuantity     Int      @default(0) @map("total_stock_quantity")
+  totalStockAvailable    Int      @default(0) @map("total_stock_available")
+  totalStockSold         Int      @default(0) @map("total_stock_sold")
+  
+  // Dynamic fields stored as JSON
+  dynamicFields          Json?    @map("dynamic_fields")
+  
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  stocks                 Stock[]
+  
+  @@map("product")
+}
+
+model Stock {
+  id                     String   @id @default(uuid())
+  productId              String   @map("product_id")
+  batchNumber            String   @map("batch_number")
+  warehouseLocation      String   @map("warehouse_location")
+  quantity               Int
+  availableQuantity      Int      @map("available_quantity")
+  soldQuantity           Int      @default(0) @map("sold_quantity")
+  
+  // Dynamic fields stored as JSON
+  dynamicFields          Json?    @map("dynamic_fields")
+  
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  product                Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  @@unique([productId, batchNumber])
+  @@map("stock")
+}
+
+model Picklist {
+  id                     String   @id @default(uuid())
+  type                   String   // e.g., 'PRODUCT_STATUS'
+  table                  String   // e.g., 'product'
+  field                  String   // e.g., 'status'
+  label                  String
+  value                  String
+  isActive               Boolean  @default(true) @map("is_active")
+  ordering               Int      @default(0)
+  
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+  
+  @@unique([type, value])
+  @@map("picklist")
+}
+
+model Supplier {
+  id                     String   @id @default(uuid())
+  name                   String
+  contactPerson          String?  @map("contact_person")
+  email                  String?
+  phone                  String?
+  address                String?
+  city                   String?
+  country                String?
+  status                 String   @default("active") // FK to Picklist
+  
+  // Dynamic fields stored as JSON
+  dynamicFields          Json?    @map("dynamic_fields")
+  
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  purchaseOrders         PurchaseOrder[]
+  purchaseRequests       PurchaseRequest[]
+  
+  @@map("supplier")
+}
+
+model PurchaseOrder {
+  id                     String   @id @default(uuid())
+  orderNumber            String   @unique @map("order_number")
+  supplierId             String   @map("supplier_id")
+  orderDate              DateTime @map("order_date")
+  expectedDeliveryDate   DateTime? @map("expected_delivery_date")
+  actualDeliveryDate     DateTime? @map("actual_delivery_date")
+  status                 String   @default("pending") // FK to Picklist
+  totalAmount            Decimal? @db.Decimal(10, 2) @map("total_amount")
+  notes                  String?
+  
+  // Dynamic fields stored as JSON
+  dynamicFields          Json?    @map("dynamic_fields")
+  
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  supplier               Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  
+  @@map("purchaseorder")
+}
+
+model PurchaseRequest {
+  id                     String   @id @default(uuid())
+  requestNumber          String   @unique @map("request_number")
+  supplierId             String?  @map("supplier_id")
+  requestDate            DateTime @map("request_date")
+  requiredDate           DateTime? @map("required_date")
+  status                 String   @default("draft") // FK to Picklist
+  priority               String   @default("medium") // FK to Picklist
+  requestedBy            String   @map("requested_by")
+  approvedBy             String?  @map("approved_by")
+  approvedDate           DateTime? @map("approved_date")
+  totalEstimatedAmount   Decimal? @db.Decimal(10, 2) @map("total_estimated_amount")
+  notes                  String?
+  
+  // Dynamic fields stored as JSON
+  dynamicFields          Json?    @map("dynamic_fields")
+  
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  supplier               Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  
+  @@map("purchaserequest")
+} 

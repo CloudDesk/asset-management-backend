@@ -1,269 +1,255 @@
-import { query } from "../database/postgres.js";
-import { ErrorHandler } from "../errorHandler/errorHandler.js";
-import dataTypeCheck from "../utils/Datatype/checkDatatype.js";
-import { QueryResult } from "pg";
+import { prisma } from '../models/prisma.js';
+import { 
+  CreatePurchaseOrderInput, 
+  UpdatePurchaseOrderInput, 
+  UpsertPurchaseOrderInput,
+  validatePurchaseOrderDynamicFields 
+} from '../schemas/purchaseorder.schema.js';
+import { PaginationResult, createPaginationResult, getPrismaSkipTake } from '../utils/pagination.js';
+import { buildPurchaseOrderFilters, FilterOptions } from '../utils/filterBuilder.js';
+import { 
+  dynamicFindMany, 
+  dynamicCount, 
+  dynamicFindUnique, 
+  dynamicCreate, 
+  dynamicUpdate, 
+  dynamicDelete,
+  dynamicFindManyWithFilters
+} from '../utils/dynamicDbOperations.js';
+import { logger } from '../config/logger.js';
 
-export module purchaseOrderService {
+export class PurchaseOrderService {
+  /**
+   * Find purchase orders with dynamic filtering and pagination
+   * Supports any field that exists in the database
+   */
+  async findMany(
+    filters: FilterOptions,
+    page: number,
+    limit: number
+  ): Promise<PaginationResult<any>> {
+    try {
+      logger.info({ filters, page, limit }, 'Starting dynamic purchase order findMany with filters');
 
-    export const getPurchaseOrderData = async (request: any) => {
-        try {
-            const pageNumber = parseInt(request.query.page) || 1;
-            const recordCount = parseInt(request.query.count) || 5000;
-            const keys = Object.keys(request.query);
-            const values = Object.values(request.query);
-            let whereClauses: string[] = [];
-            let parameterIndex = 1;
-            const queryParams: any[] = [];
-            let orderByField = "modifieddate";
-            let orderByDirection = "DESC";
-            keys.forEach((key, index) => {
-                const paramValues: any = Array.isArray(values[index]) ? values[index] : [values[index]];
-                if (key === "sortby") {
-                    const [fieldName, direction] = paramValues[0].split("-");
-                    orderByField = fieldName;
-                    orderByDirection = direction.toUpperCase() === "ASC" ? "ASC" : "DESC";
-                } else if (paramValues[0].startsWith("NOT ")) {
-                    const cleanValue = paramValues[0].slice(4);
-                    whereClauses.push(`(${key} != $${parameterIndex} OR ${key} IS NULL)`);
-                    queryParams.push(cleanValue);
-                    parameterIndex++;
-                } else if (key !== "page" && key !== "count") {
-                    const clauses = paramValues.map((_, idx) => `${key} = $${parameterIndex + idx}`);
-                    whereClauses.push(`(${clauses.join(" OR ")})`);
-                    queryParams.push(...paramValues);
-                    parameterIndex += paramValues.length;
-                }
-            });
-            const offset = (pageNumber - 1) * recordCount;
-            const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : ``;
-            const orderByClause = `ORDER BY ${orderByField} ${orderByDirection}`;
-            let queryText = `SELECT * FROM purchaseorder ${whereClause} ${orderByClause}`;
-            if (pageNumber && recordCount) {
-                queryText += ` OFFSET $${parameterIndex} LIMIT $${parameterIndex + 1}`;
-                queryParams.push(offset, recordCount);
-            }
-            const result = await query(queryText, queryParams);
-            let datatypecheckResult = await dataTypeCheck(result)
-            return datatypecheckResult
-        } catch (error) {
-            console.error("Query Execution Error: IN getPurchaseOrderData", error);
-            let ErrorMessage = await ErrorHandler.handleQueryError(error)
-            return ErrorMessage
-        }
+      const { skip, take } = getPrismaSkipTake(page, limit);
+
+      // Use the dynamic filtering system that adapts to any database schema
+      const { data: purchaseOrders, total } = await dynamicFindManyWithFilters('purchaseorder', filters, {
+        skip,
+        take,
+        useAllColumns: true // Get all available columns
+      });
+
+      logger.info({
+        purchaseOrderCount: purchaseOrders.length, 
+        total,
+        filtered: Object.keys(filters).length > 0,
+        appliedFilters: Object.keys(filters),
+        availableFields: purchaseOrders.length > 0 ? Object.keys(purchaseOrders[0]) : []
+      }, 'Dynamic purchase order findMany with filters completed');
+
+      return createPaginationResult(purchaseOrders, total, page, limit);
+    } catch (error) {
+      logger.error({ error, filters, page, limit }, 'Error in dynamic purchase order findMany operation');
+      throw error;
     }
-    export const getEachPurchaseOrderData = async (request: any) => {
-        try {
-            const { id } = request.params
-            const queryText = `SELECT * FROM purchaseorder where id = $${1}`;
-            const result: QueryResult = await query(queryText, [id]);
-            let datatypecheckResult = await dataTypeCheck(result);
-            return datatypecheckResult;
-        } catch (error) {
-            console.error("Query Execution Error: IN getEachPurchaseOrderData", error);
-            let ErrorMessage = await ErrorHandler.handleQueryError(error)
-            return ErrorMessage
-        }
+  }
+
+  /**
+   * Find purchase order by ID using dynamic operations
+   */
+  async findById(id: string) {
+    try {
+      logger.debug({ purchaseOrderId: id }, 'Starting dynamic purchase order findById operation');
+
+      const purchaseOrder = await dynamicFindUnique('purchaseorder', { id });
+
+      if (!purchaseOrder) {
+        throw new Error('Purchase order not found');
+      }
+
+      logger.debug({ 
+        purchaseOrderId: id, 
+        availableFields: Object.keys(purchaseOrder) 
+      }, 'Dynamic purchase order findById completed');
+
+      return purchaseOrder;
+    } catch (error) {
+      logger.error({ error, purchaseOrderId: id }, 'Error in purchase order findById operation');
+      throw error;
     }
+  }
 
-    export const upsertInvoice = async (request: any) => {
+  /**
+   * Create new purchase order with dynamic field support
+   * Only uses fields that exist in the database schema
+   */
+  async create(data: CreatePurchaseOrderInput & Record<string, any>) {
+    try {
+      logger.debug({ originalData: data }, 'Starting dynamic purchase order create operation');
 
-        try {
-            const { id } = request.params;
-            let fileurlarray = [];
-            request.files.forEach((element) => {
-                let fileurl = request.protocol + "://" + request.headers.host + '/' + element.filename;
-                fileurlarray.push(fileurl);
-            });
-            const fetchQuery = `
-            SELECT invoiceurl
-            FROM purchaseorder
-            WHERE id = $1;
-            `;
+      // Generate order number if not provided
+      if (!data.orderNumber && !data.order_number) {
+        const orderNumber = `PO-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+        data.orderNumber = orderNumber;
+        data.order_number = orderNumber; // Also set snake_case version
+      }
 
-            let currentUrls;
-            const result = await query(fetchQuery, [id]);
-            currentUrls = result.rows[0].invoiceurl || [];
+      const purchaseOrder = await dynamicCreate('purchaseorder', data);
 
-            const combinedUrls = currentUrls.concat(fileurlarray);
-            const updateQuery = `
-            UPDATE purchaseorder
-            SET invoiceurl = $1
-            WHERE id = $2;
-            `;
+      if (!purchaseOrder) {
+        throw new Error('Failed to create purchase order - no valid fields provided');
+      }
 
-            let params = [combinedUrls, id];
+      logger.info({ 
+        purchaseOrderId: purchaseOrder.id, 
+        orderNumber: purchaseOrder.orderNumber || purchaseOrder.order_number,
+        availableFields: Object.keys(purchaseOrder) 
+      }, 'Dynamic purchase order create completed');
 
-            let data = await query(updateQuery, params);
-            return data;
-        }
-        catch (error) {
-            console.error("Query Execution Error: IN upsertInvoice", error);
-            let ErrorMessage = await ErrorHandler.handleQueryError(error)
-            return ErrorMessage
-        }
+      return purchaseOrder;
+    } catch (error) {
+      logger.error({ error, data }, 'Error in purchase order create operation');
+      throw error;
+    }
+  }
 
-    };
+  /**
+   * Update purchase order with dynamic field support
+   */
+  async update(id: string, data: UpdatePurchaseOrderInput & Record<string, any>) {
+    try {
+      // Check if purchase order exists first
+      await this.findById(id);
 
-    export const updatePoStatus = async (ponumber, total, po_status) => {
-        try {
-          const purchaseordernumber = ponumber;
-    
-          const poinvoiceData = await query(
-            `SELECT paymentdata FROM poinvoice WHERE ponumber = $1`,
-            [purchaseordernumber]
-          );
-    
-          let paymentData = poinvoiceData.rows;
-    
-          const allPaymentAmounts = paymentData.flatMap((item) =>
-            item.paymentdata.map((payment) => payment.paymentamount)
-          );
-    
-          const paidAmount = allPaymentAmounts.reduce(
-            (sum, amount) => sum + amount,
-            0
-          );
-          if (po_status === "cancelled") {
-            const result = await query(
-              `UPDATE purchaseorder SET po_status = 'cancelled' WHERE ponumber ='${purchaseordernumber}'`,
-              []
-            );
-          } else if (po_status === "void") {
-            const result = await query(
-              `UPDATE purchaseorder SET po_status = 'void' WHERE ponumber ='${purchaseordernumber}'`,
-              []
-            );
-          } else {
-            if (paidAmount === Number(total)) {
-              const result = await query(
-                `UPDATE purchaseorder SET po_status = 'fulfilled' WHERE ponumber ='${purchaseordernumber}'`,
-                []
-              );
-            } else if (paidAmount === 0 || po_status === null) {
-              const result = await query(
-                `UPDATE purchaseorder SET po_status = 'in_progress' WHERE ponumber ='${purchaseordernumber}'`,
-                []
-              );
-            } else if (paidAmount < Number(total)) {
-              const result = await query(
-                `UPDATE purchaseorder SET po_status = 'partially_fulfilled' WHERE ponumber ='${purchaseordernumber}'`,
-                []
-              );
-            }
-          }
-          return "Purchase Order Status Updated Successfully";
-        } catch (error) {
-            console.error("Query Execution Error: IN updatePoStatus", error);
-            let ErrorMessage = await ErrorHandler.handleQueryError(error)
-            return ErrorMessage
-        }
+      logger.debug({ originalData: data, purchaseOrderId: id }, 'Starting dynamic purchase order update operation');
+
+      const purchaseOrder = await dynamicUpdate('purchaseorder', { id }, data);
+
+      if (!purchaseOrder) {
+        throw new Error('Failed to update purchase order - no valid fields provided');
+      }
+
+      logger.info({ 
+        purchaseOrderId: id, 
+        availableFields: Object.keys(purchaseOrder) 
+      }, 'Dynamic purchase order update completed');
+
+      return purchaseOrder;
+    } catch (error) {
+      logger.error({ error, data, purchaseOrderId: id }, 'Error in purchase order update operation');
+      throw error;
+    }
+  }
+
+  /**
+   * Delete purchase order by ID
+   */
+  async delete(id: string) {
+    try {
+      // Check if purchase order exists first
+      await this.findById(id);
+
+      logger.debug({ purchaseOrderId: id }, 'Starting dynamic purchase order delete operation');
+
+      const success = await dynamicDelete('purchaseorder', { id });
+
+      if (!success) {
+        throw new Error('Failed to delete purchase order');
+      }
+
+      logger.info({ purchaseOrderId: id }, 'Dynamic purchase order delete completed successfully');
+    } catch (error) {
+      logger.error({ error, purchaseOrderId: id }, 'Error in purchase order delete operation');
+      throw error;
+    }
+  }
+
+  /**
+   * Upsert purchase order - create if ID not provided, update if ID exists
+   */
+  async upsert(data: UpsertPurchaseOrderInput & Record<string, any>) {
+    try {
+      const { id, ...updateData } = data;
+
+      if (id) {
+        // Update existing purchase order
+        logger.debug({ purchaseOrderId: id, data: updateData }, 'Upserting existing purchase order');
+        return this.update(id, updateData);
+      } else {
+        // Create new purchase order
+        logger.debug({ data: updateData }, 'Upserting new purchase order');
+        return this.create(updateData);
+      }
+    } catch (error) {
+      logger.error({ error, data }, 'Error in purchase order upsert operation');
+      throw error;
+    }
+  }
+
+  /**
+   * Find purchase orders by supplier ID
+   */
+  async findBySupplier(supplierId: string, page: number = 1, limit: number = 10) {
+    try {
+      logger.debug({ supplierId, page, limit }, 'Finding purchase orders by supplier');
+
+      const filters = { 
+        supplier_id: supplierId,
+        supplierId: supplierId // Try both naming conventions
       };
 
-    export const upsertGcpInvoice = async (request: any) => {
+      const result = await this.findMany(filters, page, limit);
 
-        try {
-            const { id } = request.params;
-            const fetchQuery = `
-            SELECT invoiceurl
-            FROM purchaseorder
-            WHERE id = $1;
-            `;
+      logger.debug({ 
+        supplierId, 
+        purchaseOrderCount: result.data.length,
+        total: result.pagination.total
+      }, 'Found purchase orders by supplier');
 
-            let currentUrls;
-            const result = await query(fetchQuery, [id]);
-            currentUrls = result.rows[0].invoiceurl || [];
-
-            const combinedUrls = currentUrls.concat(request.body.invoiceUrl);
-            const updateQuery = `
-            UPDATE purchaseorder
-            SET invoiceurl = $1
-            WHERE id = $2;
-            `;
-
-            let params = [combinedUrls, id];
-
-            let data = await query(updateQuery, params);
-            return data;
-        }
-        catch (error) {
-            console.error("Query Execution Error: IN upsertGcpInvoice", error);
-            let ErrorMessage = await ErrorHandler.handleQueryError(error)
-            return ErrorMessage
-        }
-
-    };
-    export const deleteUrl = async (request: any) => {
-
-        try {
-            const { id } = request.params;
-            const { invoiceUrl } = request.body
-            const updateQuery = `
-            UPDATE purchaseorder
-            SET invoiceurl = $1
-            WHERE id = $2;
-            `;
-
-            let params = [invoiceUrl, id];
-
-            let data = await query(updateQuery, params);
-            return data;
-        }
-        catch (error) {
-            console.error("Query Execution Error: IN deleteUrl", error);
-            let ErrorMessage = await ErrorHandler.handleQueryError(error)
-            return ErrorMessage
-        }
-
-    };
-
-
-    export const deletePurchaseOrder = async (id: number) => {
-        try {
-            const result: any = await query(`DELETE FROM purchaseorder WHERE id = $1`, [id]);
-            if (result.rowCount != 0) {
-                return `${result.rowCount} Purchaseorder deleted successfully`;
-            } else {
-                return `Purchaseorder not found with id ${id}`;
-            }
-        } catch (error) {
-            console.error("Query Execution Error: IN deletePurchaseOrder", error);
-            let ErrorMessage = await ErrorHandler.handleQueryError(error)
-            return ErrorMessage
-        }
+      return result;
+    } catch (error) {
+      logger.error({ error, supplierId }, 'Error finding purchase orders by supplier');
+      throw error;
     }
+  }
 
-    export const upsertPurchaseOrder = async (purchaseorderData: any) => {
-        try {
-            let querydata: string;
-            let params: any[];
-            const { id, product, ...upsertFields } = purchaseorderData;
+  /**
+   * Update purchase order status
+   */
+  async updateStatus(id: string, status: string, notes?: string) {
+    try {
+      logger.debug({ purchaseOrderId: id, status, notes }, 'Updating purchase order status');
 
-            if (product) {
-                upsertFields.product = JSON.stringify(product);
-            }
-            const fieldNames = Object.keys(upsertFields);
-            const fieldValues = Object.values(upsertFields);
-            if (id) {
-                querydata = `UPDATE purchaseorder SET ${fieldNames
-                    .map((field, index) => `${field} = $${index + 1}`)
-                    .join(", ")} WHERE id = $${fieldNames.length + 1} RETURNING *`;
-                params = [...fieldValues, id];
-            } else {
-                querydata = `INSERT INTO purchaseorder (${fieldNames.join(
-                    ", "
-                )}) VALUES (${fieldNames
-                    .map((_, index) => `$${index + 1}`)
-                    .join(", ")}) RETURNING *`;
-                params = fieldValues;
-            }
+      const updateData: Record<string, any> = { 
+        status,
+        purchase_status: status // Also try snake_case
+      };
 
-            const result = await query(querydata, params);
-            return result;
-        } catch (error) {
-            console.error("Query Execution Error: IN upsertPurchaseOrder", error);
-            let ErrorMessage = await ErrorHandler.handleQueryError(error)
-            return ErrorMessage
-        }
+      if (notes) {
+        updateData.notes = notes;
+        updateData.order_notes = notes; // Also try snake_case
+      }
+
+      // If status is delivered, set actual delivery date
+      if (status.toLowerCase() === 'delivered') {
+        const now = new Date().toISOString();
+        updateData.actualDeliveryDate = now;
+        updateData.actual_delivery_date = now; // Also try snake_case
+      }
+
+      const purchaseOrder = await this.update(id, updateData);
+
+      logger.info({ 
+        purchaseOrderId: id, 
+        newStatus: status,
+        deliveryDateSet: status.toLowerCase() === 'delivered'
+      }, 'Purchase order status updated successfully');
+
+      return purchaseOrder;
+    } catch (error) {
+      logger.error({ error, purchaseOrderId: id, status }, 'Error updating purchase order status');
+      throw error;
     }
-
-}
+  }
+} 

@@ -1,123 +1,322 @@
-import { query } from "../database/postgres.js";
-import { ErrorHandler } from "../errorHandler/errorHandler.js";
-import dataTypeCheck from "../utils/Datatype/checkDatatype.js";
+import { prisma } from '../models/prisma.js';
+import { 
+  CreatePurchaseRequestInput, 
+  UpdatePurchaseRequestInput, 
+  UpsertPurchaseRequestInput,
+  validatePurchaseRequestDynamicFields 
+} from '../schemas/purchaserequest.schema.js';
+import { PaginationResult, createPaginationResult, getPrismaSkipTake } from '../utils/pagination.js';
+import { buildPurchaseRequestFilters, FilterOptions } from '../utils/filterBuilder.js';
+import { 
+  dynamicFindMany, 
+  dynamicCount, 
+  dynamicFindUnique, 
+  dynamicCreate, 
+  dynamicUpdate, 
+  dynamicDelete,
+  dynamicFindManyWithFilters
+} from '../utils/dynamicDbOperations.js';
+import { logger } from '../config/logger.js';
 
-export module purchaseRequestService {
-    export const getPurchaseRequestData = async (request: any) => {
-        try {
-            const pageNumber = parseInt(request.query.page) || 1;
-            const recordCount = parseInt(request.query.count) || 5000;
-            const keys = Object.keys(request.query);
-            const values = Object.values(request.query);
-            let whereClauses: string[] = [];
-            let parameterIndex = 1;
-            const queryParams: any[] = [];
-            let orderByField = "modifieddate";
-            let orderByDirection = "DESC";
-            keys.forEach((key, index) => {
-                const paramValues: any = Array.isArray(values[index]) ? values[index] : [values[index]];
-                if (key === "sortby") {
-                    const [fieldName, direction] = paramValues[0].split("-");
-                    orderByField = fieldName;
-                    orderByDirection = direction.toUpperCase() === "ASC" ? "ASC" : "DESC";
-                } else if (paramValues[0].startsWith("NOT ")) {
-                    const cleanValue = paramValues[0].slice(4);
-                    whereClauses.push(`(${key} != $${parameterIndex})`);
-                    queryParams.push(cleanValue);
-                    parameterIndex++;
-                } else if (key !== "page" && key !== "count") {
-                    const clauses = paramValues.map((_, idx) => `${key} = $${parameterIndex + idx}`);
-                    whereClauses.push(`(${clauses.join(" OR ")})`);
-                    queryParams.push(...paramValues);
-                    parameterIndex += paramValues.length;
-                }
-            });
-            const offset = (pageNumber - 1) * recordCount;
-            const baseConditions = ``;
-            const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : ``;
-            const orderByClause = `ORDER BY ${orderByField} ${orderByDirection}`;
-            let queryText = `SELECT * FROM purchaserequest ${whereClause} ${orderByClause}`;
-            if (pageNumber && recordCount) {
-                queryText += ` OFFSET $${parameterIndex} LIMIT $${parameterIndex + 1}`;
-                queryParams.push(offset, recordCount);
-            }
-            const result = await query(queryText, queryParams);
-            let datatypeCheckResult = await dataTypeCheck(result)
-            return datatypeCheckResult
-        } 
-        catch (error) {
-            console.error("Query Execution Error: IN getPurchaseRequestData", error);
-            let ErrorMessage = await ErrorHandler.handleQueryError(error)
-            return ErrorMessage
-        }
+export class PurchaseRequestService {
+  /**
+   * Find purchase requests with dynamic filtering and pagination
+   * Supports any field that exists in the database
+   */
+  async findMany(
+    filters: FilterOptions,
+    page: number,
+    limit: number
+  ): Promise<PaginationResult<any>> {
+    try {
+      logger.info({ filters, page, limit }, 'Starting dynamic purchase request findMany with filters');
+
+      const { skip, take } = getPrismaSkipTake(page, limit);
+
+      // Use the dynamic filtering system that adapts to any database schema
+      const { data: purchaseRequests, total } = await dynamicFindManyWithFilters('purchaserequest', filters, {
+        skip,
+        take,
+        useAllColumns: true // Get all available columns
+      });
+
+      logger.info({
+        purchaseRequestCount: purchaseRequests.length, 
+        total,
+        filtered: Object.keys(filters).length > 0,
+        appliedFilters: Object.keys(filters),
+        availableFields: purchaseRequests.length > 0 ? Object.keys(purchaseRequests[0]) : []
+      }, 'Dynamic purchase request findMany with filters completed');
+
+      return createPaginationResult(purchaseRequests, total, page, limit);
+    } catch (error) {
+      logger.error({ error, filters, page, limit }, 'Error in dynamic purchase request findMany operation');
+      throw error;
     }
+  }
 
-    export const upsertPurchaseRequestData = async (prData: any) => {
-        try {
-            let querydata: string;
-            let params: any[];
-            const { id, ...upsertFields } = prData;
-            let prdataJsonString;
-            function ensureJsonString(data) {
-                return (typeof data === 'string' || data instanceof String) ? data : JSON.stringify(data);
-            }
-            if (upsertFields.prdata) {
-                prdataJsonString = ensureJsonString(upsertFields.prdata);
-                upsertFields.prdata = prdataJsonString
-            }
+  /**
+   * Find purchase request by ID using dynamic operations
+   */
+  async findById(id: string) {
+    try {
+      logger.debug({ purchaseRequestId: id }, 'Starting dynamic purchase request findById operation');
 
-            const fieldNames = Object.keys(upsertFields);
-            const fieldValues = Object.values(upsertFields);
-            if (id) {
-                querydata = `UPDATE purchaserequest SET ${fieldNames.map((field, index) => `${field} = $${index + 1}`).join(", ")} 
-                WHERE id = $${fieldNames.length + 1} 
-                RETURNING *`;
-                params = [...fieldValues, id];
-            } else {
-                querydata = `INSERT INTO purchaserequest (${fieldNames.join(
-                    ", "
-                )}) VALUES (${fieldNames
-                    .map((_, index) => `$${index + 1}`)
-                    .join(", ")}) RETURNING *`;
-                params = fieldValues;
-            }
-            const result = await query(querydata, params)
-            return result;
-        } catch (error) {
-            console.error("Query Execution Error: IN upsertPurchaseRequestData", error);
-            let ErrorMessage = await ErrorHandler.handleQueryError(error)
-            return ErrorMessage
-        }
+      const purchaseRequest = await dynamicFindUnique('purchaserequest', { id });
 
+      if (!purchaseRequest) {
+        throw new Error('Purchase request not found');
+      }
+
+      logger.debug({ 
+        purchaseRequestId: id, 
+        availableFields: Object.keys(purchaseRequest) 
+      }, 'Dynamic purchase request findById completed');
+
+      return purchaseRequest;
+    } catch (error) {
+      logger.error({ error, purchaseRequestId: id }, 'Error in purchase request findById operation');
+      throw error;
     }
+  }
 
-    export const upsertstatusfield = async (prData: any) => {
-        try {
-            let querydata: string;
-            let params: any[];
-            const { prnumber, ...upsertFields } = prData;
-            const fieldNames = Object.keys(upsertFields);
-            const fieldValues = Object.values(upsertFields);
-            if (prnumber) {
-                querydata = `UPDATE purchaserequest SET ${fieldNames.map((field, index) => `${field} = $${index + 1}`).join(", ")} 
-                WHERE prnumber = $${fieldNames.length + 1} 
-                RETURNING *`;
-                params = [...fieldValues, prnumber];
-            } else {
-                querydata = `INSERT INTO purchaserequest (${fieldNames.join(
-                    ", "
-                )}) VALUES (${fieldNames
-                    .map((_, index) => `$${index + 1}`)
-                    .join(", ")}) RETURNING *`;
-                params = fieldValues;
-            }
-            const result = await query(querydata, params)
-            return result;
-        } catch (error) {
-            console.error("Query Execution Error: IN upsertstatusfield", error);
-            let ErrorMessage = await ErrorHandler.handleQueryError(error)
-            return ErrorMessage
-        }
+  /**
+   * Create new purchase request with dynamic field support
+   * Only uses fields that exist in the database schema
+   */
+  async create(data: CreatePurchaseRequestInput & Record<string, any>) {
+    try {
+      logger.debug({ originalData: data }, 'Starting dynamic purchase request create operation');
 
+      // Generate request number if not provided
+      if (!data.requestNumber && !data.request_number) {
+        const requestNumber = `PR-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+        data.requestNumber = requestNumber;
+        data.request_number = requestNumber; // Also set snake_case version
+      }
+
+      // Set request date if not provided
+      if (!data.requestDate && !data.request_date) {
+        const now = new Date().toISOString();
+        data.requestDate = now;
+        data.request_date = now; // Also set snake_case version
+      }
+
+      const purchaseRequest = await dynamicCreate('purchaserequest', data);
+
+      if (!purchaseRequest) {
+        throw new Error('Failed to create purchase request - no valid fields provided');
+      }
+
+      logger.info({ 
+        purchaseRequestId: purchaseRequest.id, 
+        requestNumber: purchaseRequest.requestNumber || purchaseRequest.request_number,
+        availableFields: Object.keys(purchaseRequest) 
+      }, 'Dynamic purchase request create completed');
+
+      return purchaseRequest;
+    } catch (error) {
+      logger.error({ error, data }, 'Error in purchase request create operation');
+      throw error;
     }
-}
+  }
+
+  /**
+   * Update purchase request with dynamic field support
+   */
+  async update(id: string, data: UpdatePurchaseRequestInput & Record<string, any>) {
+    try {
+      // Check if purchase request exists first
+      await this.findById(id);
+
+      logger.debug({ originalData: data, purchaseRequestId: id }, 'Starting dynamic purchase request update operation');
+
+      const purchaseRequest = await dynamicUpdate('purchaserequest', { id }, data);
+
+      if (!purchaseRequest) {
+        throw new Error('Failed to update purchase request - no valid fields provided');
+      }
+
+      logger.info({ 
+        purchaseRequestId: id, 
+        availableFields: Object.keys(purchaseRequest) 
+      }, 'Dynamic purchase request update completed');
+
+      return purchaseRequest;
+    } catch (error) {
+      logger.error({ error, data, purchaseRequestId: id }, 'Error in purchase request update operation');
+      throw error;
+    }
+  }
+
+  /**
+   * Delete purchase request by ID
+   */
+  async delete(id: string) {
+    try {
+      // Check if purchase request exists first
+      await this.findById(id);
+
+      logger.debug({ purchaseRequestId: id }, 'Starting dynamic purchase request delete operation');
+
+      const success = await dynamicDelete('purchaserequest', { id });
+
+      if (!success) {
+        throw new Error('Failed to delete purchase request');
+      }
+
+      logger.info({ purchaseRequestId: id }, 'Dynamic purchase request delete completed successfully');
+    } catch (error) {
+      logger.error({ error, purchaseRequestId: id }, 'Error in purchase request delete operation');
+      throw error;
+    }
+  }
+
+  /**
+   * Upsert purchase request - create if ID not provided, update if ID exists
+   */
+  async upsert(data: UpsertPurchaseRequestInput & Record<string, any>) {
+    try {
+      const { id, ...updateData } = data;
+
+      if (id) {
+        // Update existing purchase request
+        logger.debug({ purchaseRequestId: id, data: updateData }, 'Upserting existing purchase request');
+        return this.update(id, updateData);
+      } else {
+        // Create new purchase request
+        logger.debug({ data: updateData }, 'Upserting new purchase request');
+        return this.create(updateData);
+      }
+    } catch (error) {
+      logger.error({ error, data }, 'Error in purchase request upsert operation');
+      throw error;
+    }
+  }
+
+  /**
+   * Find purchase requests by supplier ID
+   */
+  async findBySupplier(supplierId: string, page: number = 1, limit: number = 10) {
+    try {
+      logger.debug({ supplierId, page, limit }, 'Finding purchase requests by supplier');
+
+      const filters = { 
+        supplier_id: supplierId,
+        supplierId: supplierId // Try both naming conventions
+      };
+
+      const result = await this.findMany(filters, page, limit);
+
+      logger.debug({ 
+        supplierId, 
+        purchaseRequestCount: result.data.length,
+        total: result.pagination.total
+      }, 'Found purchase requests by supplier');
+
+      return result;
+    } catch (error) {
+      logger.error({ error, supplierId }, 'Error finding purchase requests by supplier');
+      throw error;
+    }
+  }
+
+  /**
+   * Find purchase requests by requester
+   */
+  async findByRequester(requestedBy: string, page: number = 1, limit: number = 10) {
+    try {
+      logger.debug({ requestedBy, page, limit }, 'Finding purchase requests by requester');
+
+      const filters = { 
+        requested_by: requestedBy,
+        requestedBy: requestedBy // Try both naming conventions
+      };
+
+      const result = await this.findMany(filters, page, limit);
+
+      logger.debug({ 
+        requestedBy, 
+        purchaseRequestCount: result.data.length,
+        total: result.pagination.total
+      }, 'Found purchase requests by requester');
+
+      return result;
+    } catch (error) {
+      logger.error({ error, requestedBy }, 'Error finding purchase requests by requester');
+      throw error;
+    }
+  }
+
+  /**
+   * Approve purchase request
+   */
+  async approve(id: string, approvedBy: string, notes?: string) {
+    try {
+      logger.debug({ purchaseRequestId: id, approvedBy, notes }, 'Approving purchase request');
+
+      const updateData: Record<string, any> = { 
+        status: 'approved',
+        request_status: 'approved', // Also try snake_case
+        approvedBy,
+        approved_by: approvedBy, // Also try snake_case
+        approvedDate: new Date().toISOString(),
+        approved_date: new Date().toISOString() // Also try snake_case
+      };
+
+      if (notes) {
+        updateData.notes = notes;
+        updateData.request_notes = notes; // Also try snake_case
+      }
+
+      const purchaseRequest = await this.update(id, updateData);
+
+      logger.info({ 
+        purchaseRequestId: id, 
+        approvedBy,
+        approvedDate: updateData.approvedDate
+      }, 'Purchase request approved successfully');
+
+      return purchaseRequest;
+    } catch (error) {
+      logger.error({ error, purchaseRequestId: id, approvedBy }, 'Error approving purchase request');
+      throw error;
+    }
+  }
+
+  /**
+   * Reject purchase request
+   */
+  async reject(id: string, rejectedBy: string, notes?: string) {
+    try {
+      logger.debug({ purchaseRequestId: id, rejectedBy, notes }, 'Rejecting purchase request');
+
+      const updateData: Record<string, any> = { 
+        status: 'rejected',
+        request_status: 'rejected', // Also try snake_case
+        approvedBy: rejectedBy, // Use same field for rejected by
+        approved_by: rejectedBy, // Also try snake_case
+        approvedDate: new Date().toISOString(), // Use same field for rejection date
+        approved_date: new Date().toISOString() // Also try snake_case
+      };
+
+      if (notes) {
+        updateData.notes = notes;
+        updateData.request_notes = notes; // Also try snake_case
+      }
+
+      const purchaseRequest = await this.update(id, updateData);
+
+      logger.info({ 
+        purchaseRequestId: id, 
+        rejectedBy,
+        rejectedDate: updateData.approvedDate
+      }, 'Purchase request rejected successfully');
+
+      return purchaseRequest;
+    } catch (error) {
+      logger.error({ error, purchaseRequestId: id, rejectedBy }, 'Error rejecting purchase request');
+      throw error;
+    }
+  }
+} 

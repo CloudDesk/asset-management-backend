@@ -1,0 +1,1 @@
+{"version":3,"file":"stock.controller.d.ts","sourceRoot":"","sources":["../../src/controllers/stock.controller.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,cAAc,EAAE,YAAY,EAAE,MAAM,SAAS,CAAC;AAoBvD,qBAAa,eAAe;IAC1B,OAAO,CAAC,YAAY,CAAsB;IAE1C,SAAS,iEAoBN;IAEH,QAAQ,iEAOL;IAEH,WAAW,iEAOR;IAEH,WAAW,iEAQR;IAEH,WAAW,iEAOR;IAEH,WAAW,iEAQR;IAEH,gBAAgB,iEAYb;CACJ"}

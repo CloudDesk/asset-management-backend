@@ -1,204 +1,153 @@
+import { z } from 'zod';
+import { dynamicFieldConfigs } from '../config/dynamicFieldConfig.js';
 
-export const purchaseorderInsertSchema = {
-    type: 'object',
-    properties: {
-        ponumber: {
-            type: ['string', 'null'],
-            errorMessage: {
-                type: 'PO number should be String'
-            }
-        },
-        companyname: {
-            type: ['string', 'null'],
-            errorMessage: {
-                type: 'Company Name should be String'
-            }
-        },
-        companyaddress: {
-            type: ['string', 'null'],
-            errorMessage: {
-                type: 'Company Address should be String'
-            }
-        },
-        contactname: {
-            type: ['string', 'null'],
-            errorMessage: {
-                type: 'Contact Address should be String'
-            }
-        },
-        phonenumber: {
-            type: ['number', 'null'],
-            errorMessage: {
-                type: 'Phone Number should be Number'
-            }
-        },
-        gstnumber: {
-            type: ['string', 'null'],
-            errorMessage: {
-                type: 'GST Number should be string'
-            }
-        },
-        io_companyname: {
-            type: ['string', 'null'],
-            errorMessage: {
-                type: 'Invoice To Companyname should be string'
-            }
-        },
-        io_companyaddress: {
-            type: ['string', 'null'],
-            errorMessage: {
-                type: 'Invoice To Companyaddress should be string'
-            }
-        },
-        io_contactname: {
-            type: ['string', 'null'],
-            errorMessage: {
-                type: 'Invoice To contactname should be string'
-            }
-        },
-        io_phonenumber: {
-            type: ['number', 'null'],
-            errorMessage: {
-                type: 'Invoice To phonenumber should be Number'
-            }
-        },
-        io_gstnumber: {
-            type: ['string', 'null'],
-            errorMessage: {
-                type: 'Invoice To Gstnumber should be string'
-            }
-        },
-        dt_companyname: {
-            type: ['string', 'null'],
-            errorMessage: {
-                type: 'Delivery To companyname should be string'
-            }
-        },
-        dt_companyaddress: {
-            type: ['string', 'null'],
-            errorMessage: {
-                type: 'Delivery To companyaddress should be string'
-            }
-        },
-        dt_contactname: {
-            type: ['string', 'null'],
-            errorMessage: {
-                type: 'Delivery To contactname should be string'
-            }
-        },
-        dt_phonenumber: {
-            type: ['number', 'null'],
-            errorMessage: {
-                type: 'Delivery To phonenumber should be number'
-            }
-        },
-        dt_gstnumber: {
-            type: ['string', 'null'],
-            errorMessage: {
-                type: ' Delivery To Gstnumber should be string'
-            }
-        },
-        supplierid: {
-            type: ['number', 'null'],
-            errorMessage: {
-                type: 'supplierid should be number'
-            }
-        },
-        subtotal: {
-            type: ['number', 'null'],
-            errorMessage: {
-                type: 'subtotal should be number'
-            }
-        },
-        discount: {
-            type: ['number', 'null'],
-            errorMessage: {
-                type: 'discount should be number'
-            }
-        },
-        sgst: {
-            type: ['number', 'null'],
-            errorMessage: {
-                type: 'sgst should be number'
-            }
-        },
-        cgst: {
-            type: ['number', 'null'],
-            errorMessage: {
-                type: 'cgst should be number'
-            }
-        },
-        payabletaxamount: {
-            type: ['number', 'null'],
-            errorMessage: {
-                type: 'payabletaxamount should be number'
-            }
-        },
-        total: {
-            type: ['number', 'null'],
-            errorMessage: {
-                type: 'total should be number'
-            }
-        },
-        product: {        
-            type: ["array", "null"],
-            items: {
-                type: "object",
-            },
-            errorMessage: {
-                type: "product should be an array of objects"
-            }
-        },
-        po_status: {
-            type: ['string', 'null'],
-            errorMessage: {
-                type: 'po_status should be string'
-            }
-        },
-        supplieraddress: {
-            type: ['string', 'null'],
-            errorMessage: {
-                type: 'supplieraddress should be string'
-            }
-        },
-        suppliercompanyname: {
-            type: ['string', 'null'],
-            errorMessage: {
-                type: 'suppliercompanyname should be string'
-            }
-        },
-        supplierphonenumber: {
-            type: ['number', 'null'],
-            errorMessage: {
-                type: 'supplierphonenumber should be number'
-            }
-        },
-        suppliergstnumber: {
-            type: ['string', 'null'],
-            errorMessage: {
-                type: 'suppliergstnumber should be string'
-            }
-        },
-        instructions: {
-            type: ['string', 'null'],
-            errorMessage: {
-                type: 'instructions should be text'
-            }
-        },
-        fileurl: {
-            type: ['string', 'null'],
-            errorMessage: {
-                type: 'fileurl should be string'
-            }
-        },
-        invoiceurl: {
-            type: ['string', 'null'],
-            errorMessage: {
-                type: 'invoiceurl should be string'
-            }
+// Flexible purchase order schema that works with any database structure
+export const createPurchaseOrderSchema = z.object({
+  // Core fields that might exist
+  orderNumber: z.string().min(1).max(100).optional(),
+  supplierId: z.string().uuid().optional(),
+  orderDate: z.string().datetime().optional(),
+  expectedDeliveryDate: z.string().datetime().optional(),
+  actualDeliveryDate: z.string().datetime().optional(),
+  status: z.string().optional(),
+  totalAmount: z.number().positive().optional(),
+  notes: z.string().optional(),
+  
+  // Common alternative field names (snake_case)
+  order_number: z.string().min(1).max(100).optional(),
+  supplier_id: z.string().uuid().optional(),
+  order_date: z.string().datetime().optional(),
+  expected_delivery_date: z.string().datetime().optional(),
+  actual_delivery_date: z.string().datetime().optional(),
+  purchase_status: z.string().optional(),
+  total_amount: z.number().positive().optional(),
+  order_notes: z.string().optional(),
+}).passthrough(); // Allow any additional fields
+
+export const updatePurchaseOrderSchema = z.object({
+  // All fields optional for updates
+  orderNumber: z.string().min(1).max(100).optional(),
+  supplierId: z.string().uuid().optional(),
+  orderDate: z.string().datetime().optional(),
+  expectedDeliveryDate: z.string().datetime().optional(),
+  actualDeliveryDate: z.string().datetime().optional(),
+  status: z.string().optional(),
+  totalAmount: z.number().positive().optional(),
+  notes: z.string().optional(),
+  
+  // Common alternative field names
+  order_number: z.string().min(1).max(100).optional(),
+  supplier_id: z.string().uuid().optional(),
+  order_date: z.string().datetime().optional(),
+  expected_delivery_date: z.string().datetime().optional(),
+  actual_delivery_date: z.string().datetime().optional(),
+  purchase_status: z.string().optional(),
+  total_amount: z.number().positive().optional(),
+  order_notes: z.string().optional(),
+}).passthrough();
+
+export const upsertPurchaseOrderSchema = z.object({
+  id: z.string().uuid().optional(),
+  
+  // Core fields
+  orderNumber: z.string().min(1).max(100).optional(),
+  supplierId: z.string().uuid().optional(),
+  orderDate: z.string().datetime().optional(),
+  expectedDeliveryDate: z.string().datetime().optional(),
+  actualDeliveryDate: z.string().datetime().optional(),
+  status: z.string().optional(),
+  totalAmount: z.number().positive().optional(),
+  notes: z.string().optional(),
+  
+  // Common alternative field names
+  order_number: z.string().min(1).max(100).optional(),
+  supplier_id: z.string().uuid().optional(),
+  order_date: z.string().datetime().optional(),
+  expected_delivery_date: z.string().datetime().optional(),
+  actual_delivery_date: z.string().datetime().optional(),
+  purchase_status: z.string().optional(),
+  total_amount: z.number().positive().optional(),
+  order_notes: z.string().optional(),
+}).passthrough();
+
+export const purchaseOrderParamsSchema = z.object({
+  id: z.string().uuid('Invalid purchase order ID'),
+});
+
+export const purchaseOrderQuerySchema = z.object({
+  // Pagination
+  page: z.string().optional(),
+  limit: z.string().optional(),
+  
+  // Filter fields - support both naming conventions
+  orderNumber: z.string().optional(),
+  supplierId: z.string().optional(),
+  status: z.string().optional(),
+  minAmount: z.string().optional(),
+  maxAmount: z.string().optional(),
+  orderDateAfter: z.string().optional(),
+  orderDateBefore: z.string().optional(),
+  expectedDeliveryAfter: z.string().optional(),
+  expectedDeliveryBefore: z.string().optional(),
+  createdAfter: z.string().optional(),
+  createdBefore: z.string().optional(),
+  
+  // Alternative field names (snake_case)
+  order_number: z.string().optional(),
+  supplier_id: z.string().optional(),
+  purchase_status: z.string().optional(),
+  min_amount: z.string().optional(),
+  max_amount: z.string().optional(),
+  order_date_after: z.string().optional(),
+  order_date_before: z.string().optional(),
+  expected_delivery_after: z.string().optional(),
+  expected_delivery_before: z.string().optional(),
+  created_after: z.string().optional(),
+  created_before: z.string().optional(),
+});
+
+// Dynamic field validation - permissive approach
+export function validatePurchaseOrderDynamicFields(data: Record<string, any>): Record<string, any> {
+  const config = dynamicFieldConfigs.purchaseOrder;
+  const dynamicFields: Record<string, any> = {};
+  
+  for (const [key, value] of Object.entries(data)) {
+    // Accept any field, but apply type conversion for known fields
+    if (config && config.allowedFields.includes(key)) {
+      const fieldType = config.fieldTypes[key];
+      
+      try {
+        switch (fieldType) {
+          case 'string':
+            dynamicFields[key] = String(value);
+            break;
+          case 'number':
+            dynamicFields[key] = Number(value);
+            break;
+          case 'boolean':
+            dynamicFields[key] = Boolean(value);
+            break;
+          case 'date':
+            dynamicFields[key] = new Date(value);
+            break;
+          default:
+            dynamicFields[key] = value;
         }
+      } catch (error) {
+        // If type conversion fails, store as-is
+        dynamicFields[key] = value;
+      }
+    } else {
+      // For unknown fields, store as-is
+      dynamicFields[key] = value;
+    }
+  }
+  
+  return dynamicFields;
+}
 
-    },
-
-    required: []
-};
+export type CreatePurchaseOrderInput = z.infer<typeof createPurchaseOrderSchema>;
+export type UpdatePurchaseOrderInput = z.infer<typeof updatePurchaseOrderSchema>;
+export type UpsertPurchaseOrderInput = z.infer<typeof upsertPurchaseOrderSchema>;
+export type PurchaseOrderParams = z.infer<typeof purchaseOrderParamsSchema>;
+export type PurchaseOrderQuery = z.infer<typeof purchaseOrderQuerySchema>; 
