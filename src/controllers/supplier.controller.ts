@@ -15,7 +15,8 @@ import {
   asyncHandler,
   InvalidFieldError,
   ValidationError,
-  NotFoundError
+  NotFoundError,
+  validateIntegerId
 } from '../utils/errorHandler.js';
 import { logger } from '../config/logger.js';
 
@@ -24,7 +25,7 @@ interface SupplierParams {
 }
 
 export class SupplierController {
-  private supplierService = new SupplierService();
+  public supplierService = new SupplierService();
 
   /**
    * Get all suppliers with dynamic filtering and pagination
@@ -58,15 +59,41 @@ export class SupplierController {
   });
 
   /**
-   * Get supplier by ID
+   * Get supplier by ID with proper validation
    */
   getSupplier = asyncHandler(async (request: FastifyRequest<{ Params: SupplierParams }>, reply: FastifyReply) => {
-    const { id } = supplierParamsSchema.parse(request.params);
+    const { id } = request.params;
     
-    const supplier = await this.supplierService.findById(id);
+    console.log('=== DEBUG: getSupplier called with ID:', id);
     
-    const response = createSuccessResponse('Supplier retrieved successfully', supplier);
-    return reply.code(200).send(response);
+    // Validate ID format
+    validateIntegerId(id, 'Supplier');
+    
+    try {
+      const supplier = await this.supplierService.findById(id);
+      
+      const response = createSuccessResponse('Supplier retrieved successfully', supplier);
+      return reply.code(200).send(response);
+    } catch (error: any) {
+      console.log('=== DEBUG: Error caught in getSupplier:', error.message);
+      
+      // Debug: Manual error handling to see what's happening
+      if (error instanceof NotFoundError) {
+        console.log('=== DEBUG: NotFoundError detected');
+        // Try a simple direct response
+        const simpleError = {
+          success: false,
+          message: "TESTING: " + error.message,
+          statusCode: 404,
+          details: 'TESTING: The requested resource could not be found'
+        };
+        
+        console.log('=== DEBUG: Sending error response:', JSON.stringify(simpleError));
+        return reply.code(404).send(simpleError);
+      }
+      // Re-throw other errors to be handled by asyncHandler
+      throw error;
+    }
   });
 
   /**
@@ -89,10 +116,14 @@ export class SupplierController {
   });
 
   /**
-   * Update supplier by ID
+   * Update supplier by ID with proper validation
    */
   updateSupplier = asyncHandler(async (request: FastifyRequest<{ Params: SupplierParams }>, reply: FastifyReply) => {
-    const { id } = supplierParamsSchema.parse(request.params);
+    const { id } = request.params;
+    
+    // Validate ID format
+    validateIntegerId(id, 'Supplier');
+    
     const data = updateSupplierSchema.parse(request.body);
     
     const supplier = await this.supplierService.update(id, data);
@@ -102,10 +133,13 @@ export class SupplierController {
   });
 
   /**
-   * Delete supplier by ID
+   * Delete supplier by ID with proper validation
    */
   deleteSupplier = asyncHandler(async (request: FastifyRequest<{ Params: SupplierParams }>, reply: FastifyReply) => {
-    const { id } = supplierParamsSchema.parse(request.params);
+    const { id } = request.params;
+    
+    // Validate ID format
+    validateIntegerId(id, 'Supplier');
     
     await this.supplierService.delete(id);
     
@@ -119,6 +153,11 @@ export class SupplierController {
   upsertSupplier = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const data = upsertSupplierSchema.parse(request.body);
     
+    // If ID is provided, validate its format
+    if (data.id) {
+      validateIntegerId(data.id, 'Supplier');
+    }
+    
     const supplier = await this.supplierService.upsert(data);
     
     const message = data.id ? 'Supplier updated successfully' : 'Supplier created successfully';
@@ -127,10 +166,13 @@ export class SupplierController {
   });
 
   /**
-   * Get supplier statistics
+   * Get supplier statistics with proper validation
    */
   getSupplierStats = asyncHandler(async (request: FastifyRequest<{ Params: SupplierParams }>, reply: FastifyReply) => {
-    const { id } = supplierParamsSchema.parse(request.params);
+    const { id } = request.params;
+    
+    // Validate ID format
+    validateIntegerId(id, 'Supplier');
     
     const stats = await this.supplierService.getSupplierStats(id);
     

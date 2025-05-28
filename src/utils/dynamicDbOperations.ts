@@ -667,7 +667,7 @@ export async function dynamicFindUnique(
       return null;
     }
 
-    // Try Prisma first
+    // Try Prisma first for models that have proper schema definitions
     try {
       let result: any = null;
       
@@ -688,7 +688,40 @@ export async function dynamicFindUnique(
         });
       }
 
-      return result;
+      if (result) {
+        logger.debug({ 
+          modelName, 
+          foundId: result.id,
+          availableFields: Object.keys(result)
+        }, 'Prisma findUnique completed successfully');
+        return convertBigIntToNumber(result);
+      }
+
+      // For models without proper Prisma schema or when Prisma fails, use raw SQL
+      if (where.id) {
+        // Convert ID to integer if it's a numeric string (for tables with integer IDs)
+        let idValue = where.id;
+        if (typeof idValue === 'string' && /^\d+$/.test(idValue)) {
+          idValue = parseInt(idValue, 10);
+        }
+        
+        const sqlResult = await prisma.$queryRawUnsafe(
+          `SELECT * FROM ${tableName} WHERE id = $1 LIMIT 1`,
+          idValue
+        );
+        
+        const records = Array.isArray(sqlResult) ? sqlResult : [];
+        if (records.length > 0) {
+          logger.debug({ 
+            modelName, 
+            foundId: records[0].id,
+            method: 'raw_sql'
+          }, 'Raw SQL findUnique completed successfully');
+          return convertBigIntToNumber(records[0]);
+        }
+      }
+
+      return null;
     } catch (prismaError: any) {
       logger.warn({ 
         error: prismaError.message, 
@@ -698,13 +731,26 @@ export async function dynamicFindUnique(
       
       // Fallback to raw SQL
       if (where.id) {
+        // Convert ID to integer if it's a numeric string (for tables with integer IDs)
+        let idValue = where.id;
+        if (typeof idValue === 'string' && /^\d+$/.test(idValue)) {
+          idValue = parseInt(idValue, 10);
+        }
+        
         const result = await prisma.$queryRawUnsafe(
           `SELECT * FROM ${tableName} WHERE id = $1 LIMIT 1`,
-          where.id
+          idValue
         );
         
         const records = Array.isArray(result) ? result : [];
-        return records.length > 0 ? convertBigIntToNumber(records[0]) : null;
+        if (records.length > 0) {
+          logger.debug({ 
+            modelName, 
+            foundId: records[0].id,
+            method: 'raw_sql_fallback'
+          }, 'Raw SQL fallback findUnique completed successfully');
+          return convertBigIntToNumber(records[0]);
+        }
       }
       
       return null;
@@ -817,7 +863,7 @@ export async function dynamicUpdate(
       return null;
     }
 
-    // Try Prisma first
+    // Try Prisma first for models that have proper schema definitions
     try {
       let result: any = null;
       
@@ -841,13 +887,80 @@ export async function dynamicUpdate(
         });
       }
 
-      logger.info({ 
-        modelName, 
-        updatedId: result?.id,
-        fieldsUsed: Object.keys(filteredData)
-      }, 'Prisma update completed successfully');
+      if (result) {
+        logger.info({ 
+          modelName, 
+          updatedId: result?.id,
+          fieldsUsed: Object.keys(filteredData)
+        }, 'Prisma update completed successfully');
+        return result;
+      }
 
-      return result;
+      // For models without proper Prisma schema (like supplier), use raw SQL
+      const tableName = getTableName(modelName);
+      const availableColumns = await discoverTableColumns(tableName);
+      
+      // Filter data to only include existing columns
+      const rawData: Record<string, any> = {};
+      for (const [key, value] of Object.entries(filteredData)) {
+        if (availableColumns.includes(key)) {
+          rawData[key] = value;
+        }
+      }
+      
+      if (Object.keys(rawData).length === 0) {
+        logger.warn({ modelName, tableName }, 'No valid columns for raw SQL update');
+        return null;
+      }
+      
+      // Add modifieddate timestamp
+      const now = Math.floor(Date.now() / 1000);
+      if (availableColumns.includes('modifieddate')) {
+        rawData.modifieddate = now;
+      }
+      
+      // Convert ID to integer if it's a numeric string (for tables with integer IDs)
+      let idValue = where.id;
+      if (typeof idValue === 'string' && /^\d+$/.test(idValue)) {
+        idValue = parseInt(idValue, 10);
+      }
+      
+      // Build dynamic UPDATE query
+      const setClause = Object.keys(rawData)
+        .map((key, index) => `"${key}" = $${index + 2}`) // Start from $2 since $1 is for WHERE
+        .join(', ');
+      
+      const updateQuery = `
+        UPDATE "${tableName}" 
+        SET ${setClause} 
+        WHERE "id" = $1 
+        RETURNING *
+      `;
+      
+      const values = [idValue, ...Object.values(rawData)];
+      
+      logger.debug({ 
+        modelName, 
+        tableName, 
+        updateQuery,
+        values: values.length,
+        fields: Object.keys(rawData)
+      }, 'Executing dynamic update query');
+      
+      const updateResult = await prisma.$queryRawUnsafe(updateQuery, ...values);
+      const records = Array.isArray(updateResult) ? updateResult : [];
+      const updatedRecord = records.length > 0 ? records[0] : null;
+      
+      if (updatedRecord) {
+        logger.info({ 
+          modelName, 
+          updatedId: updatedRecord.id,
+          fieldsUsed: Object.keys(rawData)
+        }, 'Raw SQL update completed successfully');
+        return convertBigIntToNumber(updatedRecord);
+      }
+      
+      return null;
     } catch (prismaError: any) {
       logger.warn({ 
         error: prismaError.message, 
@@ -869,8 +982,20 @@ export async function dynamicUpdate(
       }
       
       if (Object.keys(rawData).length === 0) {
-        logger.warn({ modelName, tableName }, 'No valid columns for raw SQL update');
+        logger.warn({ modelName, tableName }, 'No valid columns for raw SQL fallback update');
         return null;
+      }
+      
+      // Add modifieddate timestamp
+      const now = Math.floor(Date.now() / 1000);
+      if (availableColumns.includes('modifieddate')) {
+        rawData.modifieddate = now;
+      }
+      
+      // Convert ID to integer if it's a numeric string (for tables with integer IDs)
+      let idValue = where.id;
+      if (typeof idValue === 'string' && /^\d+$/.test(idValue)) {
+        idValue = parseInt(idValue, 10);
       }
       
       // Build dynamic UPDATE query
@@ -885,7 +1010,7 @@ export async function dynamicUpdate(
         RETURNING *
       `;
       
-      const values = [where.id, ...Object.values(rawData)];
+      const values = [idValue, ...Object.values(rawData)];
       const result = await prisma.$queryRawUnsafe(updateQuery, ...values);
       const records = Array.isArray(result) ? result : [];
       const updatedRecord = records.length > 0 ? records[0] : null;
@@ -895,7 +1020,7 @@ export async function dynamicUpdate(
           modelName, 
           updatedId: updatedRecord.id,
           fieldsUsed: Object.keys(rawData)
-        }, 'Raw SQL update completed successfully');
+        }, 'Raw SQL fallback update completed successfully');
       }
       
       return updatedRecord ? convertBigIntToNumber(updatedRecord) : null;

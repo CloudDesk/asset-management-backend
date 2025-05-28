@@ -63,7 +63,7 @@ export async function stockRoutes(fastify: FastifyInstance) {
       params: {
         type: 'object',
         properties: {
-          id: { type: 'string', format: 'uuid' },
+          id: { type: 'string', description: 'Stock ID' },
         },
         required: ['id'],
       },
@@ -76,63 +76,91 @@ export async function stockRoutes(fastify: FastifyInstance) {
               type: 'object',
               additionalProperties: true // Allow any fields in stock object
             },
+            message: { type: 'string' },
+          },
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
           },
         },
         404: {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            error: { type: 'string' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
           },
         },
       },
     },
-  }, stockController.getStock.bind(stockController));
+  }, async (request: any, reply: any) => {
+    try {
+      const { id } = request.params;
+      
+      // Validate ID format
+      if (!/^\d+$/.test(id)) {
+        const errorResponse = {
+          success: false,
+          message: 'Invalid ID format. ID must be an integer.',
+          details: `The provided ID '${id}' is not a valid integer format.`,
+          statusCode: 400
+        };
+        return reply.code(400).send(errorResponse);
+      }
+      
+      // Call the service method directly
+      const stock = await stockController.stockService.findById(id);
+      
+      const response = {
+        success: true,
+        message: 'Stock retrieved successfully',
+        data: stock
+      };
+      return reply.code(200).send(response);
+    } catch (error: any) {
+      console.log('=== STOCK GET ERROR:', error.message);
+      
+      if (error.message.includes('not found')) {
+        const errorResponse = {
+          success: false,
+          message: `Stock with ID ${request.params.id} not found`,
+          details: 'The requested resource could not be found',
+          statusCode: 404
+        };
+        return reply.code(404).send(errorResponse);
+      }
+      
+      // Default error response
+      const errorResponse = {
+        success: false,
+        message: 'Internal server error',
+        details: 'Something went wrong on the server',
+        statusCode: 500
+      };
+      return reply.code(500).send(errorResponse);
+    }
+  });
 
   // POST /v1/stocks - Create new stock
   fastify.post('/', {
     schema: {
       description: 'Create a new stock entry',
       tags: ['Stocks'],
-      body: {
-        type: 'object',
-        properties: {
-          productId: { 
-            type: 'string', 
-            format: 'uuid', 
-            description: 'Product ID' 
-          },
-          batchNumber: { 
-            type: 'string', 
-            minLength: 1, 
-            maxLength: 100, 
-            description: 'Batch number' 
-          },
-          warehouseLocation: { 
-            type: 'string', 
-            minLength: 1, 
-            maxLength: 100, 
-            description: 'Warehouse location' 
-          },
-          quantity: { 
-            type: 'integer', 
-            minimum: 0, 
-            description: 'Total quantity' 
-          },
-          availableQuantity: { 
-            type: 'integer', 
-            minimum: 0, 
-            description: 'Available quantity' 
-          },
-          soldQuantity: { 
-            type: 'integer', 
-            minimum: 0, 
-            description: 'Sold quantity' 
-          },
-        },
-        required: ['productId', 'batchNumber', 'warehouseLocation', 'quantity', 'availableQuantity'],
-        additionalProperties: true, // Allow dynamic fields
-      },
       response: {
         201: {
           type: 'object',
@@ -175,20 +203,13 @@ export async function stockRoutes(fastify: FastifyInstance) {
       params: {
         type: 'object',
         properties: {
-          id: { type: 'string', format: 'uuid' },
+          id: { type: 'string', description: 'Stock ID' },
         },
         required: ['id'],
       },
       body: {
         type: 'object',
-        properties: {
-          batchNumber: { type: 'string', minLength: 1, maxLength: 100 },
-          warehouseLocation: { type: 'string', minLength: 1, maxLength: 100 },
-          quantity: { type: 'integer', minimum: 0 },
-          availableQuantity: { type: 'integer', minimum: 0 },
-          soldQuantity: { type: 'integer', minimum: 0 },
-        },
-        additionalProperties: true, // Allow dynamic fields
+        additionalProperties: true, // Allow any fields for dynamic updates
       },
       response: {
         200: {
@@ -202,16 +223,92 @@ export async function stockRoutes(fastify: FastifyInstance) {
             message: { type: 'string' },
           },
         },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
         404: {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            error: { type: 'string' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
           },
         },
       },
     },
-  }, stockController.updateStock.bind(stockController));
+  }, async (request: any, reply: any) => {
+    try {
+      const { id } = request.params;
+      
+      // Validate ID format
+      if (!/^\d+$/.test(id)) {
+        const errorResponse = {
+          success: false,
+          message: 'Invalid ID format. ID must be an integer.',
+          details: `The provided ID '${id}' is not a valid integer format.`,
+          statusCode: 400
+        };
+        return reply.code(400).send(errorResponse);
+      }
+      
+      // Update the stock
+      const stock = await stockController.stockService.update(id, request.body);
+      
+      const response = {
+        success: true,
+        message: 'Stock updated successfully',
+        data: stock
+      };
+      return reply.code(200).send(response);
+    } catch (error: any) {
+      console.log('=== STOCK PUT ERROR:', error.message);
+      
+      if (error.message.includes('not found')) {
+        const errorResponse = {
+          success: false,
+          message: `Stock with ID ${request.params.id} not found`,
+          details: 'The requested resource could not be found',
+          statusCode: 404
+        };
+        return reply.code(404).send(errorResponse);
+      }
+      
+      if (error.message.includes('already exists')) {
+        const errorResponse = {
+          success: false,
+          message: error.message,
+          details: 'Duplicate entry detected',
+          statusCode: 400
+        };
+        return reply.code(400).send(errorResponse);
+      }
+      
+      // Default error response
+      const errorResponse = {
+        success: false,
+        message: 'Internal server error',
+        details: 'Something went wrong on the server',
+        statusCode: 500
+      };
+      return reply.code(500).send(errorResponse);
+    }
+  });
 
   // DELETE /v1/stocks/:id - Delete stock
   fastify.delete('/:id', {
@@ -221,7 +318,7 @@ export async function stockRoutes(fastify: FastifyInstance) {
       params: {
         type: 'object',
         properties: {
-          id: { type: 'string', format: 'uuid' },
+          id: { type: 'string', description: 'Stock ID' },
         },
         required: ['id'],
       },
@@ -233,36 +330,87 @@ export async function stockRoutes(fastify: FastifyInstance) {
             message: { type: 'string' },
           },
         },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
         404: {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            error: { type: 'string' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
           },
         },
       },
     },
-  }, stockController.deleteStock.bind(stockController));
+  }, async (request: any, reply: any) => {
+    try {
+      const { id } = request.params;
+      
+      // Validate ID format
+      if (!/^\d+$/.test(id)) {
+        const errorResponse = {
+          success: false,
+          message: 'Invalid ID format. ID must be an integer.',
+          details: `The provided ID '${id}' is not a valid integer format.`,
+          statusCode: 400
+        };
+        return reply.code(400).send(errorResponse);
+      }
+      
+      // Delete the stock
+      await stockController.stockService.delete(id);
+      
+      const response = {
+        success: true,
+        message: 'Stock deleted successfully'
+      };
+      return reply.code(200).send(response);
+    } catch (error: any) {
+      console.log('=== STOCK DELETE ERROR:', error.message);
+      
+      if (error.message.includes('not found')) {
+        const errorResponse = {
+          success: false,
+          message: `Stock with ID ${request.params.id} not found`,
+          details: 'The requested resource could not be found',
+          statusCode: 404
+        };
+        return reply.code(404).send(errorResponse);
+      }
+      
+      // Default error response
+      const errorResponse = {
+        success: false,
+        message: 'Internal server error',
+        details: 'Something went wrong on the server',
+        statusCode: 500
+      };
+      return reply.code(500).send(errorResponse);
+    }
+  });
 
   // POST /v1/stocks/upsert - Upsert stock
   fastify.post('/upsert', {
     schema: {
       description: 'Create or update stock (upsert)',
       tags: ['Stocks'],
-      body: {
-        type: 'object',
-        properties: {
-          id: { type: 'string', format: 'uuid' },
-          puc: { type: 'string', format: 'uuid' },
-          category: { type: 'string', minLength: 1, maxLength: 100 },
-          subcategory: { type: 'string', minLength: 1, maxLength: 100 },
-          quantity: { type: 'integer', minimum: 0 },
-          availableQuantity: { type: 'integer', minimum: 0 },
-          soldQuantity: { type: 'integer', minimum: 0 },
-        },
-        required: ['productId', 'batchNumber', 'warehouseLocation', 'quantity', 'availableQuantity'],
-        additionalProperties: true, // Allow dynamic fields
-      },
       response: {
         200: {
           type: 'object',
@@ -273,6 +421,24 @@ export async function stockRoutes(fastify: FastifyInstance) {
               additionalProperties: true // Allow any fields in stock object
             },
             message: { type: 'string' },
+          },
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
           },
         },
       },
@@ -291,15 +457,6 @@ export async function stockRoutes(fastify: FastifyInstance) {
         },
         required: ['id'],
       },
-      body: {
-        type: 'object',
-        properties: {
-          quantity: { type: 'integer', minimum: 0 },
-          availableQuantity: { type: 'integer', minimum: 0 },
-          soldQuantity: { type: 'integer', minimum: 0 },
-        },
-        minProperties: 1,
-      },
       response: {
         200: {
           type: 'object',
@@ -313,7 +470,18 @@ export async function stockRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            error: { type: 'string' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
           },
         },
       },

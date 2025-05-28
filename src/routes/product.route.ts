@@ -26,6 +26,7 @@ export async function productRoutes(fastify: FastifyInstance) {
           // createdAfter: { type: 'string', description: 'Created after date' },
           // createdBefore: { type: 'string', description: 'Created before date' },
         },
+        additionalProperties: true, // Allow any query parameters for dynamic filtering
       },
       response: {
         200: {
@@ -50,6 +51,28 @@ export async function productRoutes(fastify: FastifyInstance) {
                 hasPrev: { type: 'boolean' },
               },
             },
+            meta: {
+              type: 'object',
+              properties: {
+                filters: { type: 'array', items: { type: 'string' } },
+                total: { type: 'number' },
+                filtered: { type: 'boolean' },
+              },
+            },
+          },
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            error: { type: 'string' },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            error: { type: 'string' },
           },
         },
       },
@@ -64,7 +87,7 @@ export async function productRoutes(fastify: FastifyInstance) {
       params: {
         type: 'object',
         properties: {
-          id: { type: 'string', format: 'uuid' },
+          id: { type: 'string', description: 'Product ID' },
         },
         required: ['id'],
       },
@@ -77,57 +100,91 @@ export async function productRoutes(fastify: FastifyInstance) {
               type: 'object',
               additionalProperties: true // Allow any fields in product object
             },
+            message: { type: 'string' },
+          },
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
           },
         },
         404: {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            error: { type: 'string' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
           },
         },
       },
     },
-  }, productController.getProduct.bind(productController));
+  }, async (request: any, reply: any) => {
+    try {
+      const { id } = request.params;
+      
+      // Validate ID format
+      if (!/^\d+$/.test(id)) {
+        const errorResponse = {
+          success: false,
+          message: 'Invalid ID format. ID must be an integer.',
+          details: `The provided ID '${id}' is not a valid integer format.`,
+          statusCode: 400
+        };
+        return reply.code(400).send(errorResponse);
+      }
+      
+      // Call the service method directly
+      const product = await productController.productService.findById(id);
+      
+      const response = {
+        success: true,
+        message: 'Product retrieved successfully',
+        data: product
+      };
+      return reply.code(200).send(response);
+    } catch (error: any) {
+      console.log('=== PRODUCT GET ERROR:', error.message);
+      
+      if (error.message.includes('not found')) {
+        const errorResponse = {
+          success: false,
+          message: `Product with ID ${request.params.id} not found`,
+          details: 'The requested resource could not be found',
+          statusCode: 404
+        };
+        return reply.code(404).send(errorResponse);
+      }
+      
+      // Default error response
+      const errorResponse = {
+        success: false,
+        message: 'Internal server error',
+        details: 'Something went wrong on the server',
+        statusCode: 500
+      };
+      return reply.code(500).send(errorResponse);
+    }
+  });
 
   // POST /v1/products - Create new product
   fastify.post('/', {
     schema: {
       description: 'Create a new product',
       tags: ['Products'],
-      body: {
-        type: 'object',
-        properties: {
-          name: { 
-            type: 'string', 
-            minLength: 1, 
-            maxLength: 255, 
-            description: 'Product name' 
-          },
-          description: { 
-            type: 'string', 
-            description: 'Product description' 
-          },
-          category: { 
-            type: 'string', 
-            minLength: 1, 
-            maxLength: 100, 
-            description: 'Product category' 
-          },
-          price: { 
-            type: 'number', 
-            minimum: 0, 
-            description: 'Product price' 
-          },
-          status: { 
-            type: 'string', 
-            minLength: 1, 
-            description: 'Product status' 
-          },
-        },
-        required: ['name', 'category', 'price', 'status'],
-        additionalProperties: true, // Allow dynamic fields
-      },
       response: {
         201: {
           type: 'object',
@@ -170,41 +227,13 @@ export async function productRoutes(fastify: FastifyInstance) {
       params: {
         type: 'object',
         properties: {
-          id: { type: 'string', format: 'uuid' },
+          id: { type: 'string', description: 'Product ID' },
         },
         required: ['id'],
       },
       body: {
         type: 'object',
-        properties: {
-          name: { 
-            type: 'string', 
-            minLength: 1, 
-            maxLength: 255, 
-            description: 'Product name' 
-          },
-          description: { 
-            type: 'string', 
-            description: 'Product description' 
-          },
-          category: { 
-            type: 'string', 
-            minLength: 1, 
-            maxLength: 100, 
-            description: 'Product category' 
-          },
-          price: { 
-            type: 'number', 
-            minimum: 0, 
-            description: 'Product price' 
-          },
-          status: { 
-            type: 'string', 
-            minLength: 1, 
-            description: 'Product status' 
-          },
-        },
-        additionalProperties: true, // Allow dynamic fields
+        additionalProperties: true, // Allow any fields for dynamic updates
       },
       response: {
         200: {
@@ -247,7 +276,63 @@ export async function productRoutes(fastify: FastifyInstance) {
         },
       },
     },
-  }, productController.updateProduct.bind(productController));
+  }, async (request: any, reply: any) => {
+    try {
+      const { id } = request.params;
+      
+      // Validate ID format
+      if (!/^\d+$/.test(id)) {
+        const errorResponse = {
+          success: false,
+          message: 'Invalid ID format. ID must be an integer.',
+          details: `The provided ID '${id}' is not a valid integer format.`,
+          statusCode: 400
+        };
+        return reply.code(400).send(errorResponse);
+      }
+      
+      // Update the product
+      const product = await productController.productService.update(id, request.body);
+      
+      const response = {
+        success: true,
+        message: 'Product updated successfully',
+        data: product
+      };
+      return reply.code(200).send(response);
+    } catch (error: any) {
+      console.log('=== PRODUCT PUT ERROR:', error.message);
+      
+      if (error.message.includes('not found')) {
+        const errorResponse = {
+          success: false,
+          message: `Product with ID ${request.params.id} not found`,
+          details: 'The requested resource could not be found',
+          statusCode: 404
+        };
+        return reply.code(404).send(errorResponse);
+      }
+      
+      if (error.message.includes('already exists')) {
+        const errorResponse = {
+          success: false,
+          message: error.message,
+          details: 'Duplicate entry detected',
+          statusCode: 400
+        };
+        return reply.code(400).send(errorResponse);
+      }
+      
+      // Default error response
+      const errorResponse = {
+        success: false,
+        message: 'Internal server error',
+        details: 'Something went wrong on the server',
+        statusCode: 500
+      };
+      return reply.code(500).send(errorResponse);
+    }
+  });
 
   // DELETE /v1/products/:id - Delete product
   fastify.delete('/:id', {
@@ -257,7 +342,7 @@ export async function productRoutes(fastify: FastifyInstance) {
       params: {
         type: 'object',
         properties: {
-          id: { type: 'string', format: 'uuid' },
+          id: { type: 'string', description: 'Product ID' },
         },
         required: ['id'],
       },
@@ -269,69 +354,93 @@ export async function productRoutes(fastify: FastifyInstance) {
             message: { type: 'string' },
           },
         },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
         404: {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            error: { type: 'string' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
           },
         },
       },
     },
-  }, productController.deleteProduct.bind(productController));
+  }, async (request: any, reply: any) => {
+    try {
+      const { id } = request.params;
+      
+      // Validate ID format
+      if (!/^\d+$/.test(id)) {
+        const errorResponse = {
+          success: false,
+          message: 'Invalid ID format. ID must be an integer.',
+          details: `The provided ID '${id}' is not a valid integer format.`,
+          statusCode: 400
+        };
+        return reply.code(400).send(errorResponse);
+      }
+      
+      // Delete the product
+      await productController.productService.delete(id);
+      
+      const response = {
+        success: true,
+        message: 'Product deleted successfully'
+      };
+      return reply.code(200).send(response);
+    } catch (error: any) {
+      console.log('=== PRODUCT DELETE ERROR:', error.message);
+      
+      if (error.message.includes('not found')) {
+        const errorResponse = {
+          success: false,
+          message: `Product with ID ${request.params.id} not found`,
+          details: 'The requested resource could not be found',
+          statusCode: 404
+        };
+        return reply.code(404).send(errorResponse);
+      }
+      
+      // Default error response
+      const errorResponse = {
+        success: false,
+        message: 'Internal server error',
+        details: 'Something went wrong on the server',
+        statusCode: 500
+      };
+      return reply.code(500).send(errorResponse);
+    }
+  });
 
   // POST /v1/products/upsert - Upsert product
   fastify.post('/upsert', {
     schema: {
       description: 'Create or update product (upsert)',
       tags: ['Products'],
-      body: {
-        type: 'object',
-        properties: {
-          id: { 
-            type: 'string', 
-            format: 'uuid', 
-            description: 'Product ID (optional for create, required for update)' 
-          },
-          name: { 
-            type: 'string', 
-            minLength: 1, 
-            maxLength: 255, 
-            description: 'Product name' 
-          },
-          description: { 
-            type: 'string', 
-            description: 'Product description' 
-          },
-          category: { 
-            type: 'string', 
-            minLength: 1, 
-            maxLength: 100, 
-            description: 'Product category' 
-          },
-          price: { 
-            type: 'number', 
-            minimum: 0, 
-            description: 'Product price' 
-          },
-          status: { 
-            type: 'string', 
-            minLength: 1, 
-            description: 'Product status' 
-          },
-        },
-        required: ['name', 'category', 'price', 'status'],
-        additionalProperties: true, // Allow dynamic fields
-      },
       response: {
         200: {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            data: { 
-              type: 'object',
-              additionalProperties: true 
-            },
+            data: { type: 'object' },
             message: { type: 'string' },
           },
         },

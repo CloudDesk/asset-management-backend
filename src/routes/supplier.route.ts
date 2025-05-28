@@ -150,19 +150,70 @@ export async function supplierRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            error: { type: 'string' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
           },
         },
         500: {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            error: { type: 'string' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
           },
         },
       },
     },
-  }, supplierController.getSupplier.bind(supplierController));
+  }, async (request: any, reply: any) => {
+    try {
+      const { id } = request.params;
+      
+      // Validate ID format
+      if (!/^\d+$/.test(id)) {
+        const errorResponse = {
+          success: false,
+          message: 'Invalid ID format. ID must be an integer.',
+          details: `The provided ID '${id}' is not a valid integer format.`,
+          statusCode: 400
+        };
+        return reply.code(400).send(errorResponse);
+      }
+      
+      // Call the controller method directly
+      const supplier = await supplierController.supplierService.findById(id);
+      
+      const response = {
+        success: true,
+        message: 'Supplier retrieved successfully',
+        data: supplier
+      };
+      return reply.code(200).send(response);
+    } catch (error: any) {
+      console.log('=== DIRECT ERROR HANDLER:', error.message);
+      
+      if (error.message.includes('not found')) {
+        const errorResponse = {
+          success: false,
+          message: `Supplier with ID ${request.params.id} not found`,
+          details: 'The requested resource could not be found',
+          statusCode: 404
+        };
+        console.log('=== SENDING ERROR RESPONSE:', JSON.stringify(errorResponse));
+        return reply.code(404).send(errorResponse);
+      }
+      
+      // Default error response
+      const errorResponse = {
+        success: false,
+        message: 'Internal server error',
+        details: 'Something went wrong on the server',
+        statusCode: 500
+      };
+      return reply.code(500).send(errorResponse);
+    }
+  });
 
   // POST /v1/suppliers - Create new supplier
   fastify.post('/', {
@@ -172,75 +223,22 @@ export async function supplierRoutes(fastify: FastifyInstance) {
       body: {
         type: 'object',
         properties: {
-          suppliername: { 
-            type: 'string', 
-            minLength: 1, 
-            maxLength: 255, 
-            description: 'Supplier name' 
-          },
-          suppliercode: { 
-            type: 'string', 
-            maxLength: 50, 
-            description: 'Supplier code' 
-          },
-          suppliertype: { 
-            type: 'string', 
-            enum: ['local', 'International'], 
-            description: 'Supplier type (local/International)' 
-          },
-          supplieremail: { 
-            type: 'string', 
-            format: 'email', 
-            description: 'Supplier email address' 
-          },
-          supplierphonenumber: { 
-            type: 'number', 
-            description: 'Supplier phone number' 
-          },
-          supplierlandline: { 
-            type: 'number', 
-            description: 'Supplier landline number' 
-          },
-          city: { 
-            type: 'string', 
-            maxLength: 100, 
-            description: 'City' 
-          },
-          state: { 
-            type: 'string', 
-            maxLength: 100, 
-            description: 'State' 
-          },
-          country: { 
-            type: 'string', 
-            maxLength: 100, 
-            description: 'Country' 
-          },
-          gstnumber: { 
-            type: 'string', 
-            maxLength: 50, 
-            description: 'GST number' 
-          },
-          doornumber: { 
-            type: 'string', 
-            maxLength: 50, 
-            description: 'Door number' 
-          },
-          streetname: { 
-            type: 'string', 
-            maxLength: 255, 
-            description: 'Street name' 
-          },
-          pincode: { 
-            type: 'number', 
-            description: 'Pincode' 
-          },
-          isdeleted: { 
-            type: 'boolean', 
-            description: 'Deletion status' 
-          },
+          suppliername: { type: 'string', minLength: 1, maxLength: 255, description: 'Supplier name' },
+          suppliercode: { type: 'string', maxLength: 50, description: 'Supplier code' },
+          suppliertype: { type: 'string', enum: ['local', 'International'], description: 'Supplier type' },
+          supplieremail: { type: 'string', format: 'email', description: 'Supplier email address' },
+          supplierphonenumber: { type: 'number', description: 'Supplier phone number' },
+          supplierlandline: { type: 'number', description: 'Supplier landline number' },
+          city: { type: 'string', maxLength: 100, description: 'City' },
+          state: { type: 'string', maxLength: 100, description: 'State' },
+          country: { type: 'string', maxLength: 100, description: 'Country' },
+          gstnumber: { type: 'string', maxLength: 50, description: 'GST number' },
+          doornumber: { type: 'string', maxLength: 50, description: 'Door number' },
+          streetname: { type: 'string', maxLength: 255, description: 'Street name' },
+          pincode: { type: 'number', description: 'PIN code' },
+          isdeleted: { type: 'boolean', description: 'Deletion status' },
         },
-        additionalProperties: true, // Allow dynamic fields
+        additionalProperties: true, // Allow additional dynamic fields
       },
       response: {
         201: {
@@ -291,75 +289,22 @@ export async function supplierRoutes(fastify: FastifyInstance) {
       body: {
         type: 'object',
         properties: {
-          suppliername: { 
-            type: 'string', 
-            minLength: 1, 
-            maxLength: 255, 
-            description: 'Supplier name' 
-          },
-          suppliercode: { 
-            type: 'string', 
-            maxLength: 50, 
-            description: 'Supplier code' 
-          },
-          suppliertype: { 
-            type: 'string', 
-            enum: ['local', 'International'], 
-            description: 'Supplier type (local/International)' 
-          },
-          supplieremail: { 
-            type: 'string', 
-            format: 'email', 
-            description: 'Supplier email address' 
-          },
-          supplierphonenumber: { 
-            type: 'number', 
-            description: 'Supplier phone number' 
-          },
-          supplierlandline: { 
-            type: 'number', 
-            description: 'Supplier landline number' 
-          },
-          city: { 
-            type: 'string', 
-            maxLength: 100, 
-            description: 'City' 
-          },
-          state: { 
-            type: 'string', 
-            maxLength: 100, 
-            description: 'State' 
-          },
-          country: { 
-            type: 'string', 
-            maxLength: 100, 
-            description: 'Country' 
-          },
-          gstnumber: { 
-            type: 'string', 
-            maxLength: 50, 
-            description: 'GST number' 
-          },
-          doornumber: { 
-            type: 'string', 
-            maxLength: 50, 
-            description: 'Door number' 
-          },
-          streetname: { 
-            type: 'string', 
-            maxLength: 255, 
-            description: 'Street name' 
-          },
-          pincode: { 
-            type: 'number', 
-            description: 'Pincode' 
-          },
-          isdeleted: { 
-            type: 'boolean', 
-            description: 'Deletion status' 
-          },
+          suppliername: { type: 'string', minLength: 1, maxLength: 255, description: 'Supplier name' },
+          suppliercode: { type: 'string', maxLength: 50, description: 'Supplier code' },
+          suppliertype: { type: 'string', enum: ['local', 'International'], description: 'Supplier type' },
+          supplieremail: { type: 'string', format: 'email', description: 'Supplier email address' },
+          supplierphonenumber: { type: 'number', description: 'Supplier phone number' },
+          supplierlandline: { type: 'number', description: 'Supplier landline number' },
+          city: { type: 'string', maxLength: 100, description: 'City' },
+          state: { type: 'string', maxLength: 100, description: 'State' },
+          country: { type: 'string', maxLength: 100, description: 'Country' },
+          gstnumber: { type: 'string', maxLength: 50, description: 'GST number' },
+          doornumber: { type: 'string', maxLength: 50, description: 'Door number' },
+          streetname: { type: 'string', maxLength: 255, description: 'Street name' },
+          pincode: { type: 'number', description: 'PIN code' },
+          isdeleted: { type: 'boolean', description: 'Deletion status' },
         },
-        additionalProperties: true, // Allow dynamic fields
+        additionalProperties: true, // Allow additional dynamic fields
       },
       response: {
         200: {
@@ -371,6 +316,15 @@ export async function supplierRoutes(fastify: FastifyInstance) {
               additionalProperties: true // Allow any fields in supplier object
             },
             message: { type: 'string' },
+          },
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
           },
         },
         404: {
@@ -393,7 +347,63 @@ export async function supplierRoutes(fastify: FastifyInstance) {
         },
       },
     },
-  }, supplierController.updateSupplier.bind(supplierController));
+  }, async (request: any, reply: any) => {
+    try {
+      const { id } = request.params;
+      
+      // Validate ID format
+      if (!/^\d+$/.test(id)) {
+        const errorResponse = {
+          success: false,
+          message: 'Invalid ID format. ID must be an integer.',
+          details: `The provided ID '${id}' is not a valid integer format.`,
+          statusCode: 400
+        };
+        return reply.code(400).send(errorResponse);
+      }
+      
+      // Update the supplier
+      const supplier = await supplierController.supplierService.update(id, request.body);
+      
+      const response = {
+        success: true,
+        message: 'Supplier updated successfully',
+        data: supplier
+      };
+      return reply.code(200).send(response);
+    } catch (error: any) {
+      console.log('=== PUT ERROR:', error.message);
+      
+      if (error.message.includes('not found')) {
+        const errorResponse = {
+          success: false,
+          message: `Supplier with ID ${request.params.id} not found`,
+          details: 'The requested resource could not be found',
+          statusCode: 404
+        };
+        return reply.code(404).send(errorResponse);
+      }
+      
+      if (error.message.includes('already exists')) {
+        const errorResponse = {
+          success: false,
+          message: error.message,
+          details: 'Duplicate entry detected',
+          statusCode: 400
+        };
+        return reply.code(400).send(errorResponse);
+      }
+      
+      // Default error response
+      const errorResponse = {
+        success: false,
+        message: 'Internal server error',
+        details: 'Something went wrong on the server',
+        statusCode: 500
+      };
+      return reply.code(500).send(errorResponse);
+    }
+  });
 
   // DELETE /v1/suppliers/:id - Delete supplier
   fastify.delete('/:id', {
@@ -415,6 +425,15 @@ export async function supplierRoutes(fastify: FastifyInstance) {
             message: { type: 'string' },
           },
         },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
         404: {
           type: 'object',
           properties: {
@@ -435,7 +454,52 @@ export async function supplierRoutes(fastify: FastifyInstance) {
         },
       },
     },
-  }, supplierController.deleteSupplier.bind(supplierController));
+  }, async (request: any, reply: any) => {
+    try {
+      const { id } = request.params;
+      
+      // Validate ID format
+      if (!/^\d+$/.test(id)) {
+        const errorResponse = {
+          success: false,
+          message: 'Invalid ID format. ID must be an integer.',
+          details: `The provided ID '${id}' is not a valid integer format.`,
+          statusCode: 400
+        };
+        return reply.code(400).send(errorResponse);
+      }
+      
+      // Delete the supplier
+      await supplierController.supplierService.delete(id);
+      
+      const response = {
+        success: true,
+        message: 'Supplier deleted successfully'
+      };
+      return reply.code(200).send(response);
+    } catch (error: any) {
+      console.log('=== DELETE ERROR:', error.message);
+      
+      if (error.message.includes('not found')) {
+        const errorResponse = {
+          success: false,
+          message: `Supplier with ID ${request.params.id} not found`,
+          details: 'The requested resource could not be found',
+          statusCode: 404
+        };
+        return reply.code(404).send(errorResponse);
+      }
+      
+      // Default error response
+      const errorResponse = {
+        success: false,
+        message: 'Internal server error',
+        details: 'Something went wrong on the server',
+        statusCode: 500
+      };
+      return reply.code(500).send(errorResponse);
+    }
+  });
 
   // POST /v1/suppliers/upsert - Upsert supplier
   fastify.post('/upsert', {
@@ -445,79 +509,23 @@ export async function supplierRoutes(fastify: FastifyInstance) {
       body: {
         type: 'object',
         properties: {
-          id: { 
-            type: 'string', 
-            description: 'Supplier ID (optional for create, required for update)' 
-          },
-          suppliername: { 
-            type: 'string', 
-            minLength: 1, 
-            maxLength: 255, 
-            description: 'Supplier name' 
-          },
-          suppliercode: { 
-            type: 'string', 
-            maxLength: 50, 
-            description: 'Supplier code' 
-          },
-          suppliertype: { 
-            type: 'string', 
-            enum: ['local', 'International'], 
-            description: 'Supplier type (local/International)' 
-          },
-          supplieremail: { 
-            type: 'string', 
-            format: 'email', 
-            description: 'Supplier email address' 
-          },
-          supplierphonenumber: { 
-            type: 'number', 
-            description: 'Supplier phone number' 
-          },
-          supplierlandline: { 
-            type: 'number', 
-            description: 'Supplier landline number' 
-          },
-          city: { 
-            type: 'string', 
-            maxLength: 100, 
-            description: 'City' 
-          },
-          state: { 
-            type: 'string', 
-            maxLength: 100, 
-            description: 'State' 
-          },
-          country: { 
-            type: 'string', 
-            maxLength: 100, 
-            description: 'Country' 
-          },
-          gstnumber: { 
-            type: 'string', 
-            maxLength: 50, 
-            description: 'GST number' 
-          },
-          doornumber: { 
-            type: 'string', 
-            maxLength: 50, 
-            description: 'Door number' 
-          },
-          streetname: { 
-            type: 'string', 
-            maxLength: 255, 
-            description: 'Street name' 
-          },
-          pincode: { 
-            type: 'number', 
-            description: 'Pincode' 
-          },
-          isdeleted: { 
-            type: 'boolean', 
-            description: 'Deletion status' 
-          },
+          id: { type: 'string', description: 'Supplier ID (optional for create, required for update)' },
+          suppliername: { type: 'string', minLength: 1, maxLength: 255, description: 'Supplier name' },
+          suppliercode: { type: 'string', maxLength: 50, description: 'Supplier code' },
+          suppliertype: { type: 'string', enum: ['local', 'International'], description: 'Supplier type' },
+          supplieremail: { type: 'string', format: 'email', description: 'Supplier email address' },
+          supplierphonenumber: { type: 'number', description: 'Supplier phone number' },
+          supplierlandline: { type: 'number', description: 'Supplier landline number' },
+          city: { type: 'string', maxLength: 100, description: 'City' },
+          state: { type: 'string', maxLength: 100, description: 'State' },
+          country: { type: 'string', maxLength: 100, description: 'Country' },
+          gstnumber: { type: 'string', maxLength: 50, description: 'GST number' },
+          doornumber: { type: 'string', maxLength: 50, description: 'Door number' },
+          streetname: { type: 'string', maxLength: 255, description: 'Street name' },
+          pincode: { type: 'number', description: 'PIN code' },
+          isdeleted: { type: 'boolean', description: 'Deletion status' },
         },
-        additionalProperties: true, // Allow dynamic fields
+        additionalProperties: true, // Allow additional dynamic fields
       },
       response: {
         200: {
@@ -587,4 +595,31 @@ export async function supplierRoutes(fastify: FastifyInstance) {
       },
     },
   }, supplierController.getSupplierStats.bind(supplierController));
+
+  // Test endpoint to verify server is using updated code
+  fastify.get('/test-error', {
+    schema: {
+      description: 'Test error handling',
+      tags: ['Suppliers'],
+      response: {
+        404: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            statusCode: { type: 'number' },
+            details: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
+    const errorResponse = {
+      success: false,
+      message: "Test error message",
+      statusCode: 404,
+      details: "This is a test error response"
+    };
+    return reply.code(404).send(errorResponse);
+  });
 } 

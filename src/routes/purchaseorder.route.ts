@@ -157,50 +157,88 @@ export async function purchaseOrderRoutes(fastify: FastifyInstance) {
             message: { type: 'string' },
           },
         },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
         404: {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            error: { type: 'string' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
           },
         },
         500: {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            error: { type: 'string' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
           },
         },
       },
     },
-  }, purchaseOrderController.getPurchaseOrder.bind(purchaseOrderController));
+  }, async (request: any, reply: any) => {
+    try {
+      const { id } = request.params;
+      
+      // Validate ID format
+      if (!/^\d+$/.test(id)) {
+        const errorResponse = {
+          success: false,
+          message: 'Invalid ID format. ID must be an integer.',
+          details: `The provided ID '${id}' is not a valid integer format.`,
+          statusCode: 400
+        };
+        return reply.code(400).send(errorResponse);
+      }
+      
+      // Call the service method directly
+      const purchaseOrder = await purchaseOrderController.purchaseOrderService.findById(id);
+      
+      const response = {
+        success: true,
+        message: 'Purchase order retrieved successfully',
+        data: purchaseOrder
+      };
+      return reply.code(200).send(response);
+    } catch (error: any) {
+      console.log('=== PURCHASE ORDER GET ERROR:', error.message);
+      
+      if (error.message.includes('not found')) {
+        const errorResponse = {
+          success: false,
+          message: `Purchase order with ID ${request.params.id} not found`,
+          details: 'The requested resource could not be found',
+          statusCode: 404
+        };
+        return reply.code(404).send(errorResponse);
+      }
+      
+      // Default error response
+      const errorResponse = {
+        success: false,
+        message: 'Internal server error',
+        details: 'Something went wrong on the server',
+        statusCode: 500
+      };
+      return reply.code(500).send(errorResponse);
+    }
+  });
 
   // POST /v1/purchaseorders - Create new purchase order
   fastify.post('/', {
     schema: {
       description: 'Create a new purchase order',
       tags: ['Purchase Orders'],
-      body: {
-        type: 'object',
-        properties: {
-          // Use actual database field names
-          ponumber: { type: 'string', minLength: 1, maxLength: 255, description: 'PO number' },
-          prnumber: { type: 'string', maxLength: 255, description: 'PR number' },
-          companyname: { type: 'string', maxLength: 255, description: 'Company name' },
-          companyaddress: { type: 'string', description: 'Company address' },
-          contactname: { type: 'string', maxLength: 255, description: 'Contact name' },
-          phonenumber: { type: 'object', description: 'Phone number (complex object)' },
-          gstnumber: { type: 'string', maxLength: 50, description: 'GST number' },
-          supplierid: { type: 'number', description: 'Supplier ID' },
-          po_status: { type: 'string', enum: ['pending', 'in_progress', 'partially_fulfilled', 'fulfilled', 'cancelled'], description: 'PO status' },
-          suppliertype: { type: 'string', enum: ['local', 'International'], description: 'Supplier type' },
-          paymentterms: { type: 'string', description: 'Payment terms' },
-          sameasinvoice: { type: 'boolean', description: 'Same as invoice flag' },
-          instructions: { type: 'string', description: 'Instructions' },
-          comments: { type: 'string', description: 'Comments' },
-        },
-        additionalProperties: true, // Allow dynamic fields
-      },
       response: {
         201: {
           type: 'object',
@@ -249,24 +287,7 @@ export async function purchaseOrderRoutes(fastify: FastifyInstance) {
       },
       body: {
         type: 'object',
-        properties: {
-          // Use actual database field names
-          ponumber: { type: 'string', minLength: 1, maxLength: 255, description: 'PO number' },
-          prnumber: { type: 'string', maxLength: 255, description: 'PR number' },
-          companyname: { type: 'string', maxLength: 255, description: 'Company name' },
-          companyaddress: { type: 'string', description: 'Company address' },
-          contactname: { type: 'string', maxLength: 255, description: 'Contact name' },
-          phonenumber: { type: 'object', description: 'Phone number (complex object)' },
-          gstnumber: { type: 'string', maxLength: 50, description: 'GST number' },
-          supplierid: { type: 'number', description: 'Supplier ID' },
-          po_status: { type: 'string', enum: ['pending', 'in_progress', 'partially_fulfilled', 'fulfilled', 'cancelled'], description: 'PO status' },
-          suppliertype: { type: 'string', enum: ['local', 'International'], description: 'Supplier type' },
-          paymentterms: { type: 'string', description: 'Payment terms' },
-          sameasinvoice: { type: 'boolean', description: 'Same as invoice flag' },
-          instructions: { type: 'string', description: 'Instructions' },
-          comments: { type: 'string', description: 'Comments' },
-        },
-        additionalProperties: true, // Allow dynamic fields
+        additionalProperties: true, // Allow any fields for dynamic updates
       },
       response: {
         200: {
@@ -280,23 +301,92 @@ export async function purchaseOrderRoutes(fastify: FastifyInstance) {
             message: { type: 'string' },
           },
         },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
         404: {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            error: { type: 'string' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
           },
         },
         500: {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            error: { type: 'string' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
           },
         },
       },
     },
-  }, purchaseOrderController.updatePurchaseOrder.bind(purchaseOrderController));
+  }, async (request: any, reply: any) => {
+    try {
+      const { id } = request.params;
+      
+      // Validate ID format
+      if (!/^\d+$/.test(id)) {
+        const errorResponse = {
+          success: false,
+          message: 'Invalid ID format. ID must be an integer.',
+          details: `The provided ID '${id}' is not a valid integer format.`,
+          statusCode: 400
+        };
+        return reply.code(400).send(errorResponse);
+      }
+      
+      // Update the purchase order
+      const purchaseOrder = await purchaseOrderController.purchaseOrderService.update(id, request.body);
+      
+      const response = {
+        success: true,
+        message: 'Purchase order updated successfully',
+        data: purchaseOrder
+      };
+      return reply.code(200).send(response);
+    } catch (error: any) {
+      console.log('=== PURCHASE ORDER PUT ERROR:', error.message);
+      
+      if (error.message.includes('not found')) {
+        const errorResponse = {
+          success: false,
+          message: `Purchase order with ID ${request.params.id} not found`,
+          details: 'The requested resource could not be found',
+          statusCode: 404
+        };
+        return reply.code(404).send(errorResponse);
+      }
+      
+      if (error.message.includes('already exists')) {
+        const errorResponse = {
+          success: false,
+          message: error.message,
+          details: 'Duplicate entry detected',
+          statusCode: 400
+        };
+        return reply.code(400).send(errorResponse);
+      }
+      
+      // Default error response
+      const errorResponse = {
+        success: false,
+        message: 'Internal server error',
+        details: 'Something went wrong on the server',
+        statusCode: 500
+      };
+      return reply.code(500).send(errorResponse);
+    }
+  });
 
   // DELETE /v1/purchaseorders/:id - Delete purchase order
   fastify.delete('/:id', {
@@ -318,23 +408,81 @@ export async function purchaseOrderRoutes(fastify: FastifyInstance) {
             message: { type: 'string' },
           },
         },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
         404: {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            error: { type: 'string' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
           },
         },
         500: {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            error: { type: 'string' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
           },
         },
       },
     },
-  }, purchaseOrderController.deletePurchaseOrder.bind(purchaseOrderController));
+  }, async (request: any, reply: any) => {
+    try {
+      const { id } = request.params;
+      
+      // Validate ID format
+      if (!/^\d+$/.test(id)) {
+        const errorResponse = {
+          success: false,
+          message: 'Invalid ID format. ID must be an integer.',
+          details: `The provided ID '${id}' is not a valid integer format.`,
+          statusCode: 400
+        };
+        return reply.code(400).send(errorResponse);
+      }
+      
+      // Delete the purchase order
+      await purchaseOrderController.purchaseOrderService.delete(id);
+      
+      const response = {
+        success: true,
+        message: 'Purchase order deleted successfully'
+      };
+      return reply.code(200).send(response);
+    } catch (error: any) {
+      console.log('=== PURCHASE ORDER DELETE ERROR:', error.message);
+      
+      if (error.message.includes('not found')) {
+        const errorResponse = {
+          success: false,
+          message: `Purchase order with ID ${request.params.id} not found`,
+          details: 'The requested resource could not be found',
+          statusCode: 404
+        };
+        return reply.code(404).send(errorResponse);
+      }
+      
+      // Default error response
+      const errorResponse = {
+        success: false,
+        message: 'Internal server error',
+        details: 'Something went wrong on the server',
+        statusCode: 500
+      };
+      return reply.code(500).send(errorResponse);
+    }
+  });
 
   // GET /v1/purchaseorders/supplier/:supplierId - Get purchase orders by supplier
   fastify.get('/supplier/:supplierId', {
@@ -386,14 +534,18 @@ export async function purchaseOrderRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            error: { type: 'string' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
           },
         },
         500: {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            error: { type: 'string' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
           },
         },
       },
@@ -412,15 +564,6 @@ export async function purchaseOrderRoutes(fastify: FastifyInstance) {
         },
         required: ['id'],
       },
-      body: {
-        type: 'object',
-        properties: {
-          po_status: { type: 'string', enum: ['pending', 'in_progress', 'partially_fulfilled', 'fulfilled', 'cancelled'], description: 'New PO status' },
-          comments: { type: 'string', description: 'Status change comments' },
-        },
-        required: ['po_status'],
-        additionalProperties: true,
-      },
       response: {
         200: {
           type: 'object',
@@ -437,14 +580,18 @@ export async function purchaseOrderRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            error: { type: 'string' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
           },
         },
         500: {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            error: { type: 'string' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
           },
         },
       },

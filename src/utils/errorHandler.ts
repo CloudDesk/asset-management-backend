@@ -36,11 +36,11 @@ export function createErrorResponse(
 ): ErrorResponse {
   const response: ErrorResponse = {
     success: false,
-    message,
-    statusCode,
+    message: message || 'An error occurred',
+    statusCode: statusCode || 500,
   };
   
-  if (details !== undefined) {
+  if (details !== undefined && details !== null && details !== '') {
     response.details = details;
   }
   
@@ -481,4 +481,85 @@ export async function errorHandler(
   
   // Send the error response
   return reply.code(errorResponse.statusCode).send(errorResponse);
+}
+
+// Utility function to validate integer IDs
+export function validateIntegerId(id: string, resourceName: string = 'Resource'): number {
+  // Check if ID is a valid integer
+  if (!/^\d+$/.test(id)) {
+    throw new ValidationError(
+      'Invalid ID format. ID must be an integer.',
+      `The provided ID '${id}' is not a valid integer format.`
+    );
+  }
+  
+  const numericId = parseInt(id, 10);
+  
+  // Check if ID is a positive number
+  if (numericId <= 0) {
+    throw new ValidationError(
+      'Invalid ID value. ID must be a positive integer.',
+      `The provided ID '${id}' must be greater than 0.`
+    );
+  }
+  
+  return numericId;
+}
+
+// Utility function to create consistent error responses for route handlers
+export function createRouteErrorResponse(error: any, resourceName: string, id?: string): { response: any; statusCode: number } {
+  console.log(`=== ${resourceName.toUpperCase()} ERROR:`, error.message);
+  
+  if (error.message.includes('not found')) {
+    return {
+      response: {
+        success: false,
+        message: `${resourceName} with ID ${id} not found`,
+        details: 'The requested resource could not be found',
+        statusCode: 404
+      },
+      statusCode: 404
+    };
+  }
+  
+  if (error.message.includes('already exists')) {
+    return {
+      response: {
+        success: false,
+        message: error.message,
+        details: 'Duplicate entry detected',
+        statusCode: 400
+      },
+      statusCode: 400
+    };
+  }
+  
+  // Default error response
+  return {
+    response: {
+      success: false,
+      message: 'Internal server error',
+      details: 'Something went wrong on the server',
+      statusCode: 500
+    },
+    statusCode: 500
+  };
+}
+
+// Utility function to validate ID and return error response if invalid
+export function validateRouteId(id: string, resourceName: string): { isValid: boolean; errorResponse?: any; statusCode?: number } {
+  if (!/^\d+$/.test(id)) {
+    return {
+      isValid: false,
+      errorResponse: {
+        success: false,
+        message: 'Invalid ID format. ID must be an integer.',
+        details: `The provided ID '${id}' is not a valid integer format.`,
+        statusCode: 400
+      },
+      statusCode: 400
+    };
+  }
+  
+  return { isValid: true };
 } 
