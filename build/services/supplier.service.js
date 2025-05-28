@@ -1,5 +1,6 @@
 import { createPaginationResult, getPrismaSkipTake } from '../utils/pagination.js';
 import { dynamicFindUnique, dynamicCreate, dynamicUpdate, dynamicDelete, dynamicFindManyWithFilters } from '../utils/dynamicDbOperations.js';
+import { NotFoundError } from '../utils/errorHandler.js';
 import { logger } from '../config/logger.js';
 export class SupplierService {
     /**
@@ -38,17 +39,21 @@ export class SupplierService {
             logger.debug({ supplierId: id }, 'Starting dynamic supplier findById operation');
             const supplier = await dynamicFindUnique('supplier', { id });
             if (!supplier) {
-                throw new Error('Supplier not found');
+                logger.warn({ supplierId: id }, 'Supplier not found in database');
+                throw new NotFoundError(`Supplier with ID ${id} not found`);
             }
             logger.debug({
                 supplierId: id,
                 availableFields: Object.keys(supplier)
-            }, 'Dynamic supplier findById completed');
+            }, 'Dynamic supplier findById completed successfully');
             return supplier;
         }
         catch (error) {
             logger.error({ error, supplierId: id }, 'Error in supplier findById operation');
-            throw error;
+            if (error instanceof NotFoundError) {
+                throw error; // Re-throw NotFoundError as-is
+            }
+            throw new Error(`Failed to retrieve supplier: ${error.message}`);
         }
     }
     /**

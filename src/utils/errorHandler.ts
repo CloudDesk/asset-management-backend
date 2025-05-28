@@ -336,33 +336,50 @@ export function processError(
   error: any,
   request: FastifyRequest
 ): ErrorResponse {
-  // Enhanced error logging with request context
-  logger.error({
-    error: {
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
-      code: (error as any).code,
-      statusCode: (error as any).statusCode,
-      meta: (error as any).meta,
-    },
-    request: {
-      method: request.method,
-      url: request.url,
-      query: request.query,
-      params: request.params,
-      body: request.body,
-      userAgent: request.headers['user-agent'],
-      ip: request.ip,
-    },
-  }, `Error occurred: ${error.message}`);
-
   let statusCode = 500;
   let message = 'Internal server error';
   let details: string | undefined;
 
-  // Handle Prisma errors first (most specific)
-  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+  // Log the error for debugging
+  logger.error({
+    error: {
+      name: error.name,
+      message: error.message,
+      code: error.code,
+      statusCode: error.statusCode,
+      validation: error.validation,
+      validationContext: error.validationContext
+    },
+    url: request.url,
+    method: request.method,
+    body: request.body
+  }, 'Processing error');
+
+  // Handle Fastify validation errors first
+  if (error.validation) {
+    statusCode = 400;
+    message = error.message || 'Validation failed';
+    details = error.message;
+    
+    // Extract more specific validation information
+    if (Array.isArray(error.validation)) {
+      const validationErrors = error.validation.map((v: any) => {
+        if (v.instancePath && v.message) {
+          return `${v.instancePath.replace('/', '')}: ${v.message}`;
+        }
+        return v.message || 'Validation error';
+      });
+      details = validationErrors.join(', ');
+    }
+  }
+  // Handle Fastify schema validation errors
+  else if (error.statusCode === 400 && (error.code === 'FST_ERR_VALIDATION' || error.name === 'FastifyError')) {
+    statusCode = 400;
+    message = error.message || 'Validation failed';
+    details = error.message;
+  }
+  // Handle Prisma known request errors
+  else if (error instanceof Prisma.PrismaClientKnownRequestError) {
     const prismaError = parsePrismaError(error, request.body);
     statusCode = prismaError.statusCode;
     message = prismaError.message;
