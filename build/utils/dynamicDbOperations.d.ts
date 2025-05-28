@@ -38,7 +38,7 @@ export declare function dynamicFindUnique(modelName: string, where: any, include
 /**
  * Performs a dynamic create operation
  */
-export declare function dynamicCreate(modelName: string, data: Record<string, any>, include?: any): Promise<any | null>;
+export declare function dynamicCreate(modelName: string, data: Record<string, any>): Promise<any | null>;
 /**
  * Performs a dynamic update operation
  */

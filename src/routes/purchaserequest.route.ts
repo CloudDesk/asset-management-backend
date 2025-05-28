@@ -1,99 +1,46 @@
 import { FastifyInstance } from 'fastify';
 import { PurchaseRequestController } from '../controllers/purchaserequest.controller.js';
+import { getPurchaseRequestSchemas, getPurchaseRequestQuerySchema } from '../swagger/purchaserequest.swagger.js';
+import { logger } from '../config/logger.js';
+import { validateAndConvertData, filterDataBySchema, validateRequiredFields } from '../utils/dataValidation.js';
 
 export async function purchaseRequestRoutes(fastify: FastifyInstance) {
   const purchaseRequestController = new PurchaseRequestController();
+
+  // Generate dynamic schemas
+  let schemas: any;
+  let querySchema: any;
+  
+  try {
+    [schemas, querySchema] = await Promise.all([
+      getPurchaseRequestSchemas(),
+      getPurchaseRequestQuerySchema()
+    ]);
+    logger.info('Dynamic purchase request schemas loaded successfully');
+  } catch (error) {
+    logger.error({ error }, 'Failed to load dynamic purchase request schemas, using fallback');
+    // Fallback schemas if dynamic generation fails
+    schemas = {
+      create: { type: 'object', additionalProperties: true },
+      update: { type: 'object', additionalProperties: true },
+      response: { type: 'object', additionalProperties: true },
+      success: { type: 'object', additionalProperties: true },
+      list: { type: 'object', additionalProperties: true },
+      error: { type: 'object', additionalProperties: true }
+    };
+    querySchema = { type: 'object', additionalProperties: true };
+  }
 
   // GET /v1/purchaserequests - Get all purchase requests with pagination and filtering
   fastify.get('/', {
     schema: {
       description: 'Get all purchase requests with pagination and filtering',
       tags: ['Purchase Requests'],
-      querystring: {
-        type: 'object',
-        properties: {
-          page: { type: 'string', description: 'Page number' },
-          limit: { type: 'string', description: 'Items per page' },
-          // Actual database fields for filtering
-          prnumber: { type: 'string', description: 'Filter by PR number' },
-          prstatus: { type: 'string', description: 'Filter by PR status' },
-          companyname: { type: 'string', description: 'Filter by company name' },
-          companyaddress: { type: 'string', description: 'Filter by company address' },
-          contactname: { type: 'string', description: 'Filter by contact name' },
-          phonenumber: { type: 'string', description: 'Filter by phone number' },
-          gstnumber: { type: 'string', description: 'Filter by GST number' },
-          companymail: { type: 'string', description: 'Filter by company email' },
-          supplierid: { type: 'string', description: 'Filter by supplier ID' },
-          supplieremail: { type: 'string', description: 'Filter by supplier email' },
-          createddate: { type: 'string', description: 'Filter by creation date (timestamp)' },
-          modifieddate: { type: 'string', description: 'Filter by modification date (timestamp)' },
-        },
-        additionalProperties: true, // Allow any query parameters for dynamic filtering
-      },
+      querystring: querySchema,
       response: {
-        200: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            data: { 
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  id: { type: 'number', description: 'Purchase request ID' },
-                  prnumber: { type: 'string', description: 'PR number' },
-                  prstatus: { type: 'string', description: 'PR status' },
-                  companyname: { type: 'string', description: 'Company name' },
-                  companyaddress: { type: 'string', description: 'Company address' },
-                  contactname: { type: 'string', description: 'Contact name' },
-                  phonenumber: { type: 'number', description: 'Phone number' },
-                  gstnumber: { type: 'string', description: 'GST number' },
-                  companymail: { type: 'string', description: 'Company email' },
-                  supplierid: { type: 'number', description: 'Supplier ID' },
-                  supplieremail: { type: 'string', nullable: true, description: 'Supplier email' },
-                  prurl: { type: 'string', nullable: true, description: 'PR document URL' },
-                  prdata: { type: 'array', description: 'PR data array with product details' },
-                  createddate: { type: 'number', description: 'Creation timestamp' },
-                  modifieddate: { type: 'number', description: 'Modification timestamp' },
-                },
-                additionalProperties: true // Allow additional dynamic fields
-              }
-            },
-            pagination: {
-              type: 'object',
-              properties: {
-                page: { type: 'number' },
-                limit: { type: 'number' },
-                total: { type: 'number' },
-                totalPages: { type: 'number' },
-                hasNext: { type: 'boolean' },
-                hasPrev: { type: 'boolean' },
-              },
-            },
-            meta: {
-              type: 'object',
-              properties: {
-                filters: { type: 'array', items: { type: 'string' } },
-                total: { type: 'number' },
-                filtered: { type: 'boolean' },
-              },
-            },
-          },
-        },
-        400: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            error: { type: 'string' },
-          },
-        },
-        500: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            error: { type: 'string' },
-          },
-        },
+        200: schemas.list,
+        400: schemas.error,
+        500: schemas.error,
       },
     },
   }, purchaseRequestController.getPurchaseRequests.bind(purchaseRequestController));
@@ -106,56 +53,22 @@ export async function purchaseRequestRoutes(fastify: FastifyInstance) {
       params: {
         type: 'object',
         properties: {
-          id: { type: 'string', description: 'Purchase request ID' },
+          id: { type: 'string', pattern: '^[0-9]+$', description: 'Purchase request ID (integer)' },
         },
         required: ['id'],
       },
       response: {
-        200: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            data: { 
-              type: 'object',
-              additionalProperties: true // Allow any fields in purchase request object
-            },
-            message: { type: 'string' },
-          },
-        },
-        400: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            details: { type: 'string' },
-            statusCode: { type: 'number' },
-          },
-        },
-        404: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            details: { type: 'string' },
-            statusCode: { type: 'number' },
-          },
-        },
-        500: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            details: { type: 'string' },
-            statusCode: { type: 'number' },
-          },
-        },
+        200: schemas.success,
+        400: schemas.error,
+        404: schemas.error,
+        500: schemas.error,
       },
     },
   }, async (request: any, reply: any) => {
     try {
       const { id } = request.params;
       
-      // Validate ID format
+      // Validate ID format (integer)
       if (!/^\d+$/.test(id)) {
         const errorResponse = {
           success: false,
@@ -163,6 +76,7 @@ export async function purchaseRequestRoutes(fastify: FastifyInstance) {
           details: `The provided ID '${id}' is not a valid integer format.`,
           statusCode: 400
         };
+        logger.warn({ purchaseRequestId: id, error: 'Invalid integer format' }, 'Purchase request GET request failed');
         return reply.code(400).send(errorResponse);
       }
       
@@ -174,14 +88,15 @@ export async function purchaseRequestRoutes(fastify: FastifyInstance) {
         message: 'Purchase request retrieved successfully',
         data: purchaseRequest
       };
+      logger.info({ purchaseRequestId: id }, 'Purchase request retrieved successfully');
       return reply.code(200).send(response);
     } catch (error: any) {
-      console.log('=== PURCHASE REQUEST GET ERROR:', error.message);
+      logger.error({ error: error.message, purchaseRequestId: request.params.id }, 'Purchase request GET error');
       
       if (error.message.includes('not found')) {
         const errorResponse = {
           success: false,
-          message: `Purchase request with ID ${request.params.id} not found`,
+          message: `Purchase request with ID ${request.params.id} not found.`,
           details: 'The requested resource could not be found',
           statusCode: 404
         };
@@ -204,39 +119,89 @@ export async function purchaseRequestRoutes(fastify: FastifyInstance) {
     schema: {
       description: 'Create a new purchase request',
       tags: ['Purchase Requests'],
+      body: schemas.create,
       response: {
-        201: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            data: { 
-              type: 'object',
-              additionalProperties: true // Allow any fields in purchase request object
-            },
-            message: { type: 'string' },
-          },
-        },
-        400: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            details: { type: 'string' },
-            statusCode: { type: 'number' },
-          },
-        },
-        500: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            details: { type: 'string' },
-            statusCode: { type: 'number' },
-          },
-        },
+        201: schemas.success,
+        400: schemas.error,
+        500: schemas.error,
       },
     },
-  }, purchaseRequestController.createPurchaseRequest.bind(purchaseRequestController));
+  }, async (request: any, reply: any) => {
+    try {
+      let data = request.body;
+      
+      // Filter and validate data based on schema
+      try {
+        data = filterDataBySchema(data, schemas.create);
+        data = validateAndConvertData(data, schemas.create);
+      } catch (validationError: any) {
+        const errorResponse = {
+          success: false,
+          message: 'Data validation failed',
+          details: validationError.message,
+          statusCode: 400
+        };
+        logger.warn({ validationError: validationError.message, data: request.body }, 'Purchase request creation failed - data validation error');
+        return reply.code(400).send(errorResponse);
+      }
+      
+      // Validate required fields
+      const missingFields = validateRequiredFields(data, schemas.create);
+      if (missingFields.length > 0) {
+        const errorResponse = {
+          success: false,
+          message: `Field ${missingFields[0]} is required.`,
+          details: `Missing required fields: ${missingFields.join(', ')}`,
+          statusCode: 400
+        };
+        logger.warn({ missingFields, data }, 'Purchase request creation failed - missing required fields');
+        return reply.code(400).send(errorResponse);
+      }
+      
+      const purchaseRequest = await purchaseRequestController.purchaseRequestService.create(data);
+      
+      const response = {
+        success: true,
+        message: 'Purchase request created successfully',
+        data: purchaseRequest
+      };
+      logger.info({ purchaseRequestId: purchaseRequest.id }, 'Purchase request created successfully');
+      return reply.code(201).send(response);
+    } catch (error: any) {
+      logger.error({ error: error.message, data: request.body }, 'Purchase request creation error');
+      
+      // Handle unique constraint violations
+      if (error.message.includes('unique') || error.message.includes('duplicate')) {
+        const errorResponse = {
+          success: false,
+          message: 'Purchase request already exists.',
+          details: 'A purchase request with this identifier already exists in the system',
+          statusCode: 400
+        };
+        return reply.code(400).send(errorResponse);
+      }
+      
+      // Handle validation errors
+      if (error.message.includes('validation') || error.message.includes('invalid')) {
+        const errorResponse = {
+          success: false,
+          message: 'Validation failed',
+          details: error.message,
+          statusCode: 400
+        };
+        return reply.code(400).send(errorResponse);
+      }
+      
+      // Default error response
+      const errorResponse = {
+        success: false,
+        message: 'Internal server error',
+        details: 'Something went wrong on the server',
+        statusCode: 500
+      };
+      return reply.code(500).send(errorResponse);
+    }
+  });
 
   // PUT /v1/purchaserequests/:id - Update purchase request
   fastify.put('/:id', {
@@ -246,60 +211,24 @@ export async function purchaseRequestRoutes(fastify: FastifyInstance) {
       params: {
         type: 'object',
         properties: {
-          id: { type: 'string', description: 'Purchase request ID' },
+          id: { type: 'string', pattern: '^[0-9]+$', description: 'Purchase request ID (integer)' },
         },
         required: ['id'],
       },
-      body: {
-        type: 'object',
-        additionalProperties: true, // Allow any fields for dynamic updates
-      },
+      body: schemas.update,
       response: {
-        200: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            data: { 
-              type: 'object',
-              additionalProperties: true // Allow any fields in purchase request object
-            },
-            message: { type: 'string' },
-          },
-        },
-        400: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            details: { type: 'string' },
-            statusCode: { type: 'number' },
-          },
-        },
-        404: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            details: { type: 'string' },
-            statusCode: { type: 'number' },
-          },
-        },
-        500: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            details: { type: 'string' },
-            statusCode: { type: 'number' },
-          },
-        },
+        200: schemas.success,
+        400: schemas.error,
+        404: schemas.error,
+        500: schemas.error,
       },
     },
   }, async (request: any, reply: any) => {
     try {
       const { id } = request.params;
+      let data = request.body;
       
-      // Validate ID format
+      // Validate ID format (integer)
       if (!/^\d+$/.test(id)) {
         const errorResponse = {
           success: false,
@@ -307,36 +236,53 @@ export async function purchaseRequestRoutes(fastify: FastifyInstance) {
           details: `The provided ID '${id}' is not a valid integer format.`,
           statusCode: 400
         };
+        logger.warn({ purchaseRequestId: id, error: 'Invalid integer format' }, 'Purchase request PUT request failed');
         return reply.code(400).send(errorResponse);
       }
       
-      // Update the purchase request
-      const purchaseRequest = await purchaseRequestController.purchaseRequestService.update(id, request.body);
+      // Filter and validate data based on schema
+      try {
+        data = filterDataBySchema(data, schemas.update);
+        data = validateAndConvertData(data, schemas.update);
+      } catch (validationError: any) {
+        const errorResponse = {
+          success: false,
+          message: 'Data validation failed',
+          details: validationError.message,
+          statusCode: 400
+        };
+        logger.warn({ validationError: validationError.message, data: request.body }, 'Purchase request update failed - data validation error');
+        return reply.code(400).send(errorResponse);
+      }
+      
+      const purchaseRequest = await purchaseRequestController.purchaseRequestService.update(id, data);
       
       const response = {
         success: true,
         message: 'Purchase request updated successfully',
         data: purchaseRequest
       };
+      logger.info({ purchaseRequestId: id }, 'Purchase request updated successfully');
       return reply.code(200).send(response);
     } catch (error: any) {
-      console.log('=== PURCHASE REQUEST PUT ERROR:', error.message);
+      logger.error({ error: error.message, purchaseRequestId: request.params.id, data: request.body }, 'Purchase request update error');
       
       if (error.message.includes('not found')) {
         const errorResponse = {
           success: false,
-          message: `Purchase request with ID ${request.params.id} not found`,
+          message: `Purchase request with ID ${request.params.id} not found.`,
           details: 'The requested resource could not be found',
           statusCode: 404
         };
         return reply.code(404).send(errorResponse);
       }
       
-      if (error.message.includes('already exists')) {
+      // Handle validation errors
+      if (error.message.includes('validation') || error.message.includes('invalid')) {
         const errorResponse = {
           success: false,
-          message: error.message,
-          details: 'Duplicate entry detected',
+          message: 'Validation failed',
+          details: error.message,
           statusCode: 400
         };
         return reply.code(400).send(errorResponse);
@@ -361,7 +307,7 @@ export async function purchaseRequestRoutes(fastify: FastifyInstance) {
       params: {
         type: 'object',
         properties: {
-          id: { type: 'string', description: 'Purchase request ID' },
+          id: { type: 'string', pattern: '^[0-9]+$', description: 'Purchase request ID (integer)' },
         },
         required: ['id'],
       },
@@ -370,43 +316,20 @@ export async function purchaseRequestRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            message: { type: 'string' },
+            message: { type: 'string' }
           },
+          required: ['success', 'message']
         },
-        400: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            details: { type: 'string' },
-            statusCode: { type: 'number' },
-          },
-        },
-        404: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            details: { type: 'string' },
-            statusCode: { type: 'number' },
-          },
-        },
-        500: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            details: { type: 'string' },
-            statusCode: { type: 'number' },
-          },
-        },
+        400: schemas.error,
+        404: schemas.error,
+        500: schemas.error,
       },
     },
   }, async (request: any, reply: any) => {
     try {
       const { id } = request.params;
       
-      // Validate ID format
+      // Validate ID format (integer)
       if (!/^\d+$/.test(id)) {
         const errorResponse = {
           success: false,
@@ -414,24 +337,25 @@ export async function purchaseRequestRoutes(fastify: FastifyInstance) {
           details: `The provided ID '${id}' is not a valid integer format.`,
           statusCode: 400
         };
+        logger.warn({ purchaseRequestId: id, error: 'Invalid integer format' }, 'Purchase request DELETE request failed');
         return reply.code(400).send(errorResponse);
       }
       
-      // Delete the purchase request
       await purchaseRequestController.purchaseRequestService.delete(id);
       
       const response = {
         success: true,
         message: 'Purchase request deleted successfully'
       };
+      logger.info({ purchaseRequestId: id }, 'Purchase request deleted successfully');
       return reply.code(200).send(response);
     } catch (error: any) {
-      console.log('=== PURCHASE REQUEST DELETE ERROR:', error.message);
+      logger.error({ error: error.message, purchaseRequestId: request.params.id }, 'Purchase request delete error');
       
       if (error.message.includes('not found')) {
         const errorResponse = {
           success: false,
-          message: `Purchase request with ID ${request.params.id} not found`,
+          message: `Purchase request with ID ${request.params.id} not found.`,
           details: 'The requested resource could not be found',
           statusCode: 404
         };

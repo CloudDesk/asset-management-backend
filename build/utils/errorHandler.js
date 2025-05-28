@@ -11,10 +11,10 @@ export function createSuccessResponse(message, data = null) {
 export function createErrorResponse(message, details, statusCode = 400) {
     const response = {
         success: false,
-        message,
-        statusCode,
+        message: message || 'An error occurred',
+        statusCode: statusCode || 500,
     };
-    if (details !== undefined) {
+    if (details !== undefined && details !== null && details !== '') {
         response.details = details;
     }
     return response;
@@ -271,31 +271,47 @@ function parsePrismaError(error, requestBody) {
 }
 // Custom error processor that handles all error types
 export function processError(error, request) {
-    // Enhanced error logging with request context
+    let statusCode = 500;
+    let message = 'Internal server error';
+    let details;
+    // Log the error for debugging
     logger.error({
         error: {
             name: error.name,
             message: error.message,
-            stack: error.stack,
             code: error.code,
             statusCode: error.statusCode,
-            meta: error.meta,
+            validation: error.validation,
+            validationContext: error.validationContext
         },
-        request: {
-            method: request.method,
-            url: request.url,
-            query: request.query,
-            params: request.params,
-            body: request.body,
-            userAgent: request.headers['user-agent'],
-            ip: request.ip,
-        },
-    }, `Error occurred: ${error.message}`);
-    let statusCode = 500;
-    let message = 'Internal server error';
-    let details;
-    // Handle Prisma errors first (most specific)
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        url: request.url,
+        method: request.method,
+        body: request.body
+    }, 'Processing error');
+    // Handle Fastify validation errors first
+    if (error.validation) {
+        statusCode = 400;
+        message = error.message || 'Validation failed';
+        details = error.message;
+        // Extract more specific validation information
+        if (Array.isArray(error.validation)) {
+            const validationErrors = error.validation.map((v) => {
+                if (v.instancePath && v.message) {
+                    return `${v.instancePath.replace('/', '')}: ${v.message}`;
+                }
+                return v.message || 'Validation error';
+            });
+            details = validationErrors.join(', ');
+        }
+    }
+    // Handle Fastify schema validation errors
+    else if (error.statusCode === 400 && (error.code === 'FST_ERR_VALIDATION' || error.name === 'FastifyError')) {
+        statusCode = 400;
+        message = error.message || 'Validation failed';
+        details = error.message;
+    }
+    // Handle Prisma known request errors
+    else if (error instanceof Prisma.PrismaClientKnownRequestError) {
         const prismaError = parsePrismaError(error, request.body);
         statusCode = prismaError.statusCode;
         message = prismaError.message;
@@ -404,5 +420,70 @@ export async function errorHandler(error, request, reply) {
     const errorResponse = processError(error, request);
     // Send the error response
     return reply.code(errorResponse.statusCode).send(errorResponse);
+}
+// Utility function to validate integer IDs
+export function validateIntegerId(id, resourceName = 'Resource') {
+    // Check if ID is a valid integer
+    if (!/^\d+$/.test(id)) {
+        throw new ValidationError('Invalid ID format. ID must be an integer.', `The provided ID '${id}' is not a valid integer format.`);
+    }
+    const numericId = parseInt(id, 10);
+    // Check if ID is a positive number
+    if (numericId <= 0) {
+        throw new ValidationError('Invalid ID value. ID must be a positive integer.', `The provided ID '${id}' must be greater than 0.`);
+    }
+    return numericId;
+}
+// Utility function to create consistent error responses for route handlers
+export function createRouteErrorResponse(error, resourceName, id) {
+    console.log(`=== ${resourceName.toUpperCase()} ERROR:`, error.message);
+    if (error.message.includes('not found')) {
+        return {
+            response: {
+                success: false,
+                message: `${resourceName} with ID ${id} not found`,
+                details: 'The requested resource could not be found',
+                statusCode: 404
+            },
+            statusCode: 404
+        };
+    }
+    if (error.message.includes('already exists')) {
+        return {
+            response: {
+                success: false,
+                message: error.message,
+                details: 'Duplicate entry detected',
+                statusCode: 400
+            },
+            statusCode: 400
+        };
+    }
+    // Default error response
+    return {
+        response: {
+            success: false,
+            message: 'Internal server error',
+            details: 'Something went wrong on the server',
+            statusCode: 500
+        },
+        statusCode: 500
+    };
+}
+// Utility function to validate ID and return error response if invalid
+export function validateRouteId(id, resourceName) {
+    if (!/^\d+$/.test(id)) {
+        return {
+            isValid: false,
+            errorResponse: {
+                success: false,
+                message: 'Invalid ID format. ID must be an integer.',
+                details: `The provided ID '${id}' is not a valid integer format.`,
+                statusCode: 400
+            },
+            statusCode: 400
+        };
+    }
+    return { isValid: true };
 }
 //# sourceMappingURL=errorHandler.js.map

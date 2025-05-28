@@ -3,20 +3,12 @@ import { Prisma } from '@prisma/client';
 import { 
   CreateProductInput, 
   UpdateProductInput, 
-  UpsertProductInput,
-  validateProductDynamicFields 
+  UpsertProductInput
 } from '../schemas/product.schema.js';
 import { PaginationResult, createPaginationResult, getPrismaSkipTake } from '../utils/pagination.js';
-import { buildProductFilters, FilterOptions } from '../utils/filterBuilder.js';
+import { FilterOptions } from '../utils/filterBuilder.js';
 import { 
-  safeFilterInputData, 
-  safeProcessDbResult, 
-  safeProcessDbResults, 
-  safePrismaOperation 
-} from '../utils/safeDbOperations.js';
-import { 
-  dynamicFindMany, 
-  dynamicCount, 
+  dynamicFindMany,
   dynamicFindUnique, 
   dynamicCreate, 
   dynamicUpdate, 

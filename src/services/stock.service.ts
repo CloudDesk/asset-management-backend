@@ -1,15 +1,12 @@
-import { prisma } from '../models/prisma.js';
 import { 
   CreateStockInput, 
   UpdateStockInput, 
-  UpsertStockInput,
-  validateStockDynamicFields 
+  UpsertStockInput
 } from '../schemas/stock.schema.js';
 import { PaginationResult, createPaginationResult, getPrismaSkipTake } from '../utils/pagination.js';
-import { buildStockFilters, FilterOptions } from '../utils/filterBuilder.js';
+import { FilterOptions } from '../utils/filterBuilder.js';
 import { 
-  dynamicFindMany, 
-  dynamicCount, 
+  dynamicFindMany,
   dynamicFindUnique, 
   dynamicCreate, 
   dynamicUpdate, 

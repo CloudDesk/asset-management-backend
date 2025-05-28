@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
+import { StockService } from '../services/stock.service.js';
 export declare class StockController {
-    private stockService;
+    stockService: StockService;
     getStocks: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     getStock: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     createStock: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;

@@ -1,15 +1,11 @@
-import { prisma } from '../models/prisma.js';
 import { 
   CreateSupplierInput, 
   UpdateSupplierInput, 
-  UpsertSupplierInput,
-  validateSupplierDynamicFields 
+  UpsertSupplierInput
 } from '../schemas/supplier.schema.js';
 import { PaginationResult, createPaginationResult, getPrismaSkipTake } from '../utils/pagination.js';
-import { buildSupplierFilters, FilterOptions } from '../utils/filterBuilder.js';
+import { FilterOptions } from '../utils/filterBuilder.js';
 import { 
-  dynamicFindMany, 
-  dynamicCount, 
   dynamicFindUnique, 
   dynamicCreate, 
   dynamicUpdate, 

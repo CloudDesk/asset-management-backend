@@ -7,8 +7,10 @@ import {
   supplierParamsSchema,
   CreateSupplierInput,
   UpdateSupplierInput,
-  UpsertSupplierInput
+  UpsertSupplierInput,
+  SupplierParams
 } from '../schemas/supplier.schema.js';
+import { getPaginationParams } from '../utils/pagination.js';
 import { 
   createSuccessResponse, 
   createErrorResponse,
@@ -20,10 +22,6 @@ import {
 } from '../utils/errorHandler.js';
 import { logger } from '../config/logger.js';
 
-interface SupplierParams {
-  id: string;
-}
-
 export class SupplierController {
   public supplierService = new SupplierService();
 
@@ -31,31 +29,55 @@ export class SupplierController {
    * Get all suppliers with dynamic filtering and pagination
    */
   getSuppliers = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
-    const { page = '1', limit = '10', ...filters } = request.query as Record<string, string>;
-    
-    const pageNum = parseInt(page, 10);
-    const limitNum = parseInt(limit, 10);
+    try {
+      // Debug: Log the raw query parameters FIRST
+      console.log('=== CONTROLLER START DEBUG ===');
+      console.log('request.query:', JSON.stringify(request.query, null, 2));
+      console.log('typeof request.query:', typeof request.query);
+      console.log('request.url:', request.url);
+      console.log('request.method:', request.method);
+      
+      const { page = '1', limit = '10', ...filters } = request.query as Record<string, string>;
+      
+      console.log('=== DEBUG: After destructuring ===');
+      console.log('page:', page, 'typeof:', typeof page);
+      console.log('limit:', limit, 'typeof:', typeof limit);
+      console.log('filters:', JSON.stringify(filters, null, 2));
 
-    if (isNaN(pageNum) || pageNum < 1) {
-      throw new ValidationError('Invalid page number', 'Page must be a positive integer');
+      const pageNum = parseInt(page, 10);
+      const limitNum = parseInt(limit, 10);
+
+      if (isNaN(pageNum) || pageNum < 1) {
+        throw new ValidationError('Invalid page number', 'Page must be a positive integer');
+      }
+
+      if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+        throw new ValidationError('Invalid limit', 'Limit must be between 1 and 100');
+      }
+
+      console.log('=== DEBUG: Before calling service ===');
+      console.log('pageNum:', pageNum, 'limitNum:', limitNum);
+      console.log('filters for service:', JSON.stringify(filters, null, 2));
+
+      const result = await this.supplierService.findMany(filters, pageNum, limitNum);
+      
+      const response = createSuccessResponse('Suppliers retrieved successfully', result.data);
+      return reply.code(200).send({
+        ...response,
+        pagination: result.pagination,
+        meta: {
+          filters: Object.keys(filters),
+          total: result.pagination.total,
+          filtered: Object.keys(filters).length > 0
+        },
+      });
+    } catch (error: any) {
+      console.log('=== CONTROLLER ERROR DEBUG ===');
+      console.log('error:', error);
+      console.log('error.message:', error.message);
+      console.log('error.stack:', error.stack);
+      throw error;
     }
-
-    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
-      throw new ValidationError('Invalid limit', 'Limit must be between 1 and 100');
-    }
-
-    const result = await this.supplierService.findMany(filters, pageNum, limitNum);
-    
-    const response = createSuccessResponse('Suppliers retrieved successfully', result.data);
-    return reply.code(200).send({
-      ...response,
-      pagination: result.pagination,
-      meta: {
-        filters: Object.keys(filters),
-        total: result.pagination.total,
-        filtered: Object.keys(filters).length > 0
-      },
-    });
   });
 
   /**
