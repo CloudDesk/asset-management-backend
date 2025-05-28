@@ -322,47 +322,71 @@ async function buildDynamicWhereClause(
     
     if (matchingColumn) {
       if (value !== undefined && value !== null && value !== '') {
+        // Safely convert value to appropriate type
+        let processedValue = value;
+        
+        // Handle arrays (take first element)
+        if (Array.isArray(value)) {
+          processedValue = value[0];
+        }
+        
+        // Handle objects (convert to string)
+        if (typeof processedValue === 'object' && processedValue !== null) {
+          processedValue = processedValue.toString();
+        }
+        
+        // Skip empty values after processing
+        if (processedValue === undefined || processedValue === null || processedValue === '') {
+          continue;
+        }
+        
         // Handle different filter types
         if (key.startsWith('min') && key.length > 3) {
           // Range filters like minPrice, minQuantity
           const baseKey = key.substring(3);
           const columnName = findMatchingColumn(baseKey);
           if (columnName) {
-            conditions.push(`"${columnName}" >= $${paramIndex}`);
-            values.push(Number(value));
-            paramIndex++;
+            const numValue = Number(processedValue);
+            if (!isNaN(numValue)) {
+              conditions.push(`"${columnName}" >= $${paramIndex}`);
+              values.push(numValue);
+              paramIndex++;
+            }
           }
         } else if (key.startsWith('max') && key.length > 3) {
           // Range filters like maxPrice, maxQuantity
           const baseKey = key.substring(3);
           const columnName = findMatchingColumn(baseKey);
           if (columnName) {
-            conditions.push(`"${columnName}" <= $${paramIndex}`);
-            values.push(Number(value));
-            paramIndex++;
+            const numValue = Number(processedValue);
+            if (!isNaN(numValue)) {
+              conditions.push(`"${columnName}" <= $${paramIndex}`);
+              values.push(numValue);
+              paramIndex++;
+            }
           }
         } else if (key.includes('date') || key.includes('Date')) {
           // Date filters
           conditions.push(`"${matchingColumn}" = $${paramIndex}`);
-          values.push(value);
+          values.push(processedValue);
           paramIndex++;
-        } else if (typeof value === 'string') {
+        } else if (typeof processedValue === 'string') {
           // String filters - support both exact match and ILIKE
-          if (value.includes('%') || value.includes('*')) {
+          if (processedValue.includes('%') || processedValue.includes('*')) {
             // Wildcard search
-            const searchValue = value.replace(/\*/g, '%');
+            const searchValue = processedValue.replace(/\*/g, '%');
             conditions.push(`"${matchingColumn}" ILIKE $${paramIndex}`);
             values.push(searchValue);
           } else {
             // Exact match (case-insensitive for strings)
             conditions.push(`LOWER("${matchingColumn}") = LOWER($${paramIndex})`);
-            values.push(value);
+            values.push(processedValue);
           }
           paramIndex++;
         } else {
           // Exact match for numbers, booleans, etc.
           conditions.push(`"${matchingColumn}" = $${paramIndex}`);
-          values.push(value);
+          values.push(processedValue);
           paramIndex++;
         }
       }
@@ -541,17 +565,29 @@ export async function dynamicFindMany(
       let result: any[] = [];
       
       if (modelName === 'product') {
-        result = await prisma.product.findMany({
-          ...options,
-        });
+        const findOptions: any = {};
+        if (options.where !== undefined) findOptions.where = options.where;
+        if (options.skip !== undefined) findOptions.skip = options.skip;
+        if (options.take !== undefined) findOptions.take = options.take;
+        if (options.orderBy !== undefined) findOptions.orderBy = options.orderBy;
+        
+        result = await prisma.product.findMany(findOptions);
       } else if (modelName === 'stock') {
-        result = await prisma.stock.findMany({
-          ...options,
-        });
+        const findOptions: any = {};
+        if (options.where !== undefined) findOptions.where = options.where;
+        if (options.skip !== undefined) findOptions.skip = options.skip;
+        if (options.take !== undefined) findOptions.take = options.take;
+        if (options.orderBy !== undefined) findOptions.orderBy = options.orderBy;
+        
+        result = await prisma.stock.findMany(findOptions);
       } else if (modelName === 'picklist') {
-        result = await prisma.picklist.findMany({
-          ...options,
-        });
+        const findOptions: any = {};
+        if (options.where !== undefined) findOptions.where = options.where;
+        if (options.skip !== undefined) findOptions.skip = options.skip;
+        if (options.take !== undefined) findOptions.take = options.take;
+        if (options.orderBy !== undefined) findOptions.orderBy = options.orderBy;
+        
+        result = await prisma.picklist.findMany(findOptions);
       }
 
       logger.debug({ 

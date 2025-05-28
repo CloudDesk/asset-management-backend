@@ -59,7 +59,7 @@ export async function stockRoutes(fastify) {
             params: {
                 type: 'object',
                 properties: {
-                    id: { type: 'string', format: 'uuid' },
+                    id: { type: 'string', description: 'Stock ID' },
                 },
                 required: ['id'],
             },
@@ -72,18 +72,81 @@ export async function stockRoutes(fastify) {
                             type: 'object',
                             additionalProperties: true // Allow any fields in stock object
                         },
+                        message: { type: 'string' },
+                    },
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
                     },
                 },
                 404: {
                     type: 'object',
                     properties: {
                         success: { type: 'boolean' },
-                        error: { type: 'string' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
                     },
                 },
             },
         },
-    }, stockController.getStock.bind(stockController));
+    }, async (request, reply) => {
+        try {
+            const { id } = request.params;
+            // Validate ID format
+            if (!/^\d+$/.test(id)) {
+                const errorResponse = {
+                    success: false,
+                    message: 'Invalid ID format. ID must be an integer.',
+                    details: `The provided ID '${id}' is not a valid integer format.`,
+                    statusCode: 400
+                };
+                return reply.code(400).send(errorResponse);
+            }
+            // Call the service method directly
+            const stock = await stockController.stockService.findById(id);
+            const response = {
+                success: true,
+                message: 'Stock retrieved successfully',
+                data: stock
+            };
+            return reply.code(200).send(response);
+        }
+        catch (error) {
+            console.log('=== STOCK GET ERROR:', error.message);
+            if (error.message.includes('not found')) {
+                const errorResponse = {
+                    success: false,
+                    message: `Stock with ID ${request.params.id} not found`,
+                    details: 'The requested resource could not be found',
+                    statusCode: 404
+                };
+                return reply.code(404).send(errorResponse);
+            }
+            // Default error response
+            const errorResponse = {
+                success: false,
+                message: 'Internal server error',
+                details: 'Something went wrong on the server',
+                statusCode: 500
+            };
+            return reply.code(500).send(errorResponse);
+        }
+    });
     // POST /v1/stocks - Create new stock
     fastify.post('/', {
         schema: {
@@ -130,9 +193,13 @@ export async function stockRoutes(fastify) {
             params: {
                 type: 'object',
                 properties: {
-                    id: { type: 'string', format: 'uuid' },
+                    id: { type: 'string', description: 'Stock ID' },
                 },
                 required: ['id'],
+            },
+            body: {
+                type: 'object',
+                additionalProperties: true, // Allow any fields for dynamic updates
             },
             response: {
                 200: {
@@ -146,6 +213,15 @@ export async function stockRoutes(fastify) {
                         message: { type: 'string' },
                     },
                 },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
                 404: {
                     type: 'object',
                     properties: {
@@ -166,7 +242,58 @@ export async function stockRoutes(fastify) {
                 },
             },
         },
-    }, stockController.updateStock.bind(stockController));
+    }, async (request, reply) => {
+        try {
+            const { id } = request.params;
+            // Validate ID format
+            if (!/^\d+$/.test(id)) {
+                const errorResponse = {
+                    success: false,
+                    message: 'Invalid ID format. ID must be an integer.',
+                    details: `The provided ID '${id}' is not a valid integer format.`,
+                    statusCode: 400
+                };
+                return reply.code(400).send(errorResponse);
+            }
+            // Update the stock
+            const stock = await stockController.stockService.update(id, request.body);
+            const response = {
+                success: true,
+                message: 'Stock updated successfully',
+                data: stock
+            };
+            return reply.code(200).send(response);
+        }
+        catch (error) {
+            console.log('=== STOCK PUT ERROR:', error.message);
+            if (error.message.includes('not found')) {
+                const errorResponse = {
+                    success: false,
+                    message: `Stock with ID ${request.params.id} not found`,
+                    details: 'The requested resource could not be found',
+                    statusCode: 404
+                };
+                return reply.code(404).send(errorResponse);
+            }
+            if (error.message.includes('already exists')) {
+                const errorResponse = {
+                    success: false,
+                    message: error.message,
+                    details: 'Duplicate entry detected',
+                    statusCode: 400
+                };
+                return reply.code(400).send(errorResponse);
+            }
+            // Default error response
+            const errorResponse = {
+                success: false,
+                message: 'Internal server error',
+                details: 'Something went wrong on the server',
+                statusCode: 500
+            };
+            return reply.code(500).send(errorResponse);
+        }
+    });
     // DELETE /v1/stocks/:id - Delete stock
     fastify.delete('/:id', {
         schema: {
@@ -175,7 +302,7 @@ export async function stockRoutes(fastify) {
             params: {
                 type: 'object',
                 properties: {
-                    id: { type: 'string', format: 'uuid' },
+                    id: { type: 'string', description: 'Stock ID' },
                 },
                 required: ['id'],
             },
@@ -187,6 +314,15 @@ export async function stockRoutes(fastify) {
                         message: { type: 'string' },
                     },
                 },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
                 404: {
                     type: 'object',
                     properties: {
@@ -207,7 +343,48 @@ export async function stockRoutes(fastify) {
                 },
             },
         },
-    }, stockController.deleteStock.bind(stockController));
+    }, async (request, reply) => {
+        try {
+            const { id } = request.params;
+            // Validate ID format
+            if (!/^\d+$/.test(id)) {
+                const errorResponse = {
+                    success: false,
+                    message: 'Invalid ID format. ID must be an integer.',
+                    details: `The provided ID '${id}' is not a valid integer format.`,
+                    statusCode: 400
+                };
+                return reply.code(400).send(errorResponse);
+            }
+            // Delete the stock
+            await stockController.stockService.delete(id);
+            const response = {
+                success: true,
+                message: 'Stock deleted successfully'
+            };
+            return reply.code(200).send(response);
+        }
+        catch (error) {
+            console.log('=== STOCK DELETE ERROR:', error.message);
+            if (error.message.includes('not found')) {
+                const errorResponse = {
+                    success: false,
+                    message: `Stock with ID ${request.params.id} not found`,
+                    details: 'The requested resource could not be found',
+                    statusCode: 404
+                };
+                return reply.code(404).send(errorResponse);
+            }
+            // Default error response
+            const errorResponse = {
+                success: false,
+                message: 'Internal server error',
+                details: 'Something went wrong on the server',
+                statusCode: 500
+            };
+            return reply.code(500).send(errorResponse);
+        }
+    });
     // POST /v1/stocks/upsert - Upsert stock
     fastify.post('/upsert', {
         schema: {

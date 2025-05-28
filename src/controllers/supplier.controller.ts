@@ -31,7 +31,31 @@ export class SupplierController {
    * Get all suppliers with dynamic filtering and pagination
    */
   getSuppliers = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
-    const { page = '1', limit = '10', ...filters } = request.query as Record<string, string>;
+    // Safely extract and normalize query parameters
+    const queryParams = request.query as Record<string, any>;
+    
+    // Helper function to safely extract string values from query parameters
+    const getStringParam = (value: any): string | undefined => {
+      if (value === undefined || value === null) return undefined;
+      if (typeof value === 'string') return value;
+      if (Array.isArray(value)) return value[0]?.toString();
+      if (typeof value === 'object') return value.toString();
+      return value.toString();
+    };
+    
+    const page = getStringParam(queryParams.page) || '1';
+    const limit = getStringParam(queryParams.limit) || '10';
+    
+    // Extract and normalize all other filters
+    const filters: Record<string, string> = {};
+    for (const [key, value] of Object.entries(queryParams)) {
+      if (key !== 'page' && key !== 'limit') {
+        const stringValue = getStringParam(value);
+        if (stringValue !== undefined && stringValue !== '') {
+          filters[key] = stringValue;
+        }
+      }
+    }
     
     const pageNum = parseInt(page, 10);
     const limitNum = parseInt(limit, 10);

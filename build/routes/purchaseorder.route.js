@@ -153,23 +153,78 @@ export async function purchaseOrderRoutes(fastify) {
                         message: { type: 'string' },
                     },
                 },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
                 404: {
                     type: 'object',
                     properties: {
                         success: { type: 'boolean' },
-                        error: { type: 'string' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
                     },
                 },
                 500: {
                     type: 'object',
                     properties: {
                         success: { type: 'boolean' },
-                        error: { type: 'string' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
                     },
                 },
             },
         },
-    }, purchaseOrderController.getPurchaseOrder.bind(purchaseOrderController));
+    }, async (request, reply) => {
+        try {
+            const { id } = request.params;
+            // Validate ID format
+            if (!/^\d+$/.test(id)) {
+                const errorResponse = {
+                    success: false,
+                    message: 'Invalid ID format. ID must be an integer.',
+                    details: `The provided ID '${id}' is not a valid integer format.`,
+                    statusCode: 400
+                };
+                return reply.code(400).send(errorResponse);
+            }
+            // Call the service method directly
+            const purchaseOrder = await purchaseOrderController.purchaseOrderService.findById(id);
+            const response = {
+                success: true,
+                message: 'Purchase order retrieved successfully',
+                data: purchaseOrder
+            };
+            return reply.code(200).send(response);
+        }
+        catch (error) {
+            console.log('=== PURCHASE ORDER GET ERROR:', error.message);
+            if (error.message.includes('not found')) {
+                const errorResponse = {
+                    success: false,
+                    message: `Purchase order with ID ${request.params.id} not found`,
+                    details: 'The requested resource could not be found',
+                    statusCode: 404
+                };
+                return reply.code(404).send(errorResponse);
+            }
+            // Default error response
+            const errorResponse = {
+                success: false,
+                message: 'Internal server error',
+                details: 'Something went wrong on the server',
+                statusCode: 500
+            };
+            return reply.code(500).send(errorResponse);
+        }
+    });
     // POST /v1/purchaseorders - Create new purchase order
     fastify.post('/', {
         schema: {
@@ -220,6 +275,10 @@ export async function purchaseOrderRoutes(fastify) {
                 },
                 required: ['id'],
             },
+            body: {
+                type: 'object',
+                additionalProperties: true, // Allow any fields for dynamic updates
+            },
             response: {
                 200: {
                     type: 'object',
@@ -230,6 +289,15 @@ export async function purchaseOrderRoutes(fastify) {
                             additionalProperties: true // Allow any fields in purchase order object
                         },
                         message: { type: 'string' },
+                    },
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
                     },
                 },
                 404: {
@@ -252,7 +320,58 @@ export async function purchaseOrderRoutes(fastify) {
                 },
             },
         },
-    }, purchaseOrderController.updatePurchaseOrder.bind(purchaseOrderController));
+    }, async (request, reply) => {
+        try {
+            const { id } = request.params;
+            // Validate ID format
+            if (!/^\d+$/.test(id)) {
+                const errorResponse = {
+                    success: false,
+                    message: 'Invalid ID format. ID must be an integer.',
+                    details: `The provided ID '${id}' is not a valid integer format.`,
+                    statusCode: 400
+                };
+                return reply.code(400).send(errorResponse);
+            }
+            // Update the purchase order
+            const purchaseOrder = await purchaseOrderController.purchaseOrderService.update(id, request.body);
+            const response = {
+                success: true,
+                message: 'Purchase order updated successfully',
+                data: purchaseOrder
+            };
+            return reply.code(200).send(response);
+        }
+        catch (error) {
+            console.log('=== PURCHASE ORDER PUT ERROR:', error.message);
+            if (error.message.includes('not found')) {
+                const errorResponse = {
+                    success: false,
+                    message: `Purchase order with ID ${request.params.id} not found`,
+                    details: 'The requested resource could not be found',
+                    statusCode: 404
+                };
+                return reply.code(404).send(errorResponse);
+            }
+            if (error.message.includes('already exists')) {
+                const errorResponse = {
+                    success: false,
+                    message: error.message,
+                    details: 'Duplicate entry detected',
+                    statusCode: 400
+                };
+                return reply.code(400).send(errorResponse);
+            }
+            // Default error response
+            const errorResponse = {
+                success: false,
+                message: 'Internal server error',
+                details: 'Something went wrong on the server',
+                statusCode: 500
+            };
+            return reply.code(500).send(errorResponse);
+        }
+    });
     // DELETE /v1/purchaseorders/:id - Delete purchase order
     fastify.delete('/:id', {
         schema: {
@@ -273,6 +392,15 @@ export async function purchaseOrderRoutes(fastify) {
                         message: { type: 'string' },
                     },
                 },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
                 404: {
                     type: 'object',
                     properties: {
@@ -293,7 +421,48 @@ export async function purchaseOrderRoutes(fastify) {
                 },
             },
         },
-    }, purchaseOrderController.deletePurchaseOrder.bind(purchaseOrderController));
+    }, async (request, reply) => {
+        try {
+            const { id } = request.params;
+            // Validate ID format
+            if (!/^\d+$/.test(id)) {
+                const errorResponse = {
+                    success: false,
+                    message: 'Invalid ID format. ID must be an integer.',
+                    details: `The provided ID '${id}' is not a valid integer format.`,
+                    statusCode: 400
+                };
+                return reply.code(400).send(errorResponse);
+            }
+            // Delete the purchase order
+            await purchaseOrderController.purchaseOrderService.delete(id);
+            const response = {
+                success: true,
+                message: 'Purchase order deleted successfully'
+            };
+            return reply.code(200).send(response);
+        }
+        catch (error) {
+            console.log('=== PURCHASE ORDER DELETE ERROR:', error.message);
+            if (error.message.includes('not found')) {
+                const errorResponse = {
+                    success: false,
+                    message: `Purchase order with ID ${request.params.id} not found`,
+                    details: 'The requested resource could not be found',
+                    statusCode: 404
+                };
+                return reply.code(404).send(errorResponse);
+            }
+            // Default error response
+            const errorResponse = {
+                success: false,
+                message: 'Internal server error',
+                details: 'Something went wrong on the server',
+                statusCode: 500
+            };
+            return reply.code(500).send(errorResponse);
+        }
+    });
     // GET /v1/purchaseorders/supplier/:supplierId - Get purchase orders by supplier
     fastify.get('/supplier/:supplierId', {
         schema: {

@@ -118,23 +118,78 @@ export async function purchaseRequestRoutes(fastify) {
                         message: { type: 'string' },
                     },
                 },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
                 404: {
                     type: 'object',
                     properties: {
                         success: { type: 'boolean' },
-                        error: { type: 'string' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
                     },
                 },
                 500: {
                     type: 'object',
                     properties: {
                         success: { type: 'boolean' },
-                        error: { type: 'string' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
                     },
                 },
             },
         },
-    }, purchaseRequestController.getPurchaseRequest.bind(purchaseRequestController));
+    }, async (request, reply) => {
+        try {
+            const { id } = request.params;
+            // Validate ID format
+            if (!/^\d+$/.test(id)) {
+                const errorResponse = {
+                    success: false,
+                    message: 'Invalid ID format. ID must be an integer.',
+                    details: `The provided ID '${id}' is not a valid integer format.`,
+                    statusCode: 400
+                };
+                return reply.code(400).send(errorResponse);
+            }
+            // Call the service method directly
+            const purchaseRequest = await purchaseRequestController.purchaseRequestService.findById(id);
+            const response = {
+                success: true,
+                message: 'Purchase request retrieved successfully',
+                data: purchaseRequest
+            };
+            return reply.code(200).send(response);
+        }
+        catch (error) {
+            console.log('=== PURCHASE REQUEST GET ERROR:', error.message);
+            if (error.message.includes('not found')) {
+                const errorResponse = {
+                    success: false,
+                    message: `Purchase request with ID ${request.params.id} not found`,
+                    details: 'The requested resource could not be found',
+                    statusCode: 404
+                };
+                return reply.code(404).send(errorResponse);
+            }
+            // Default error response
+            const errorResponse = {
+                success: false,
+                message: 'Internal server error',
+                details: 'Something went wrong on the server',
+                statusCode: 500
+            };
+            return reply.code(500).send(errorResponse);
+        }
+    });
     // POST /v1/purchaserequests - Create new purchase request
     fastify.post('/', {
         schema: {
@@ -185,6 +240,10 @@ export async function purchaseRequestRoutes(fastify) {
                 },
                 required: ['id'],
             },
+            body: {
+                type: 'object',
+                additionalProperties: true, // Allow any fields for dynamic updates
+            },
             response: {
                 200: {
                     type: 'object',
@@ -195,6 +254,15 @@ export async function purchaseRequestRoutes(fastify) {
                             additionalProperties: true // Allow any fields in purchase request object
                         },
                         message: { type: 'string' },
+                    },
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
                     },
                 },
                 404: {
@@ -217,7 +285,58 @@ export async function purchaseRequestRoutes(fastify) {
                 },
             },
         },
-    }, purchaseRequestController.updatePurchaseRequest.bind(purchaseRequestController));
+    }, async (request, reply) => {
+        try {
+            const { id } = request.params;
+            // Validate ID format
+            if (!/^\d+$/.test(id)) {
+                const errorResponse = {
+                    success: false,
+                    message: 'Invalid ID format. ID must be an integer.',
+                    details: `The provided ID '${id}' is not a valid integer format.`,
+                    statusCode: 400
+                };
+                return reply.code(400).send(errorResponse);
+            }
+            // Update the purchase request
+            const purchaseRequest = await purchaseRequestController.purchaseRequestService.update(id, request.body);
+            const response = {
+                success: true,
+                message: 'Purchase request updated successfully',
+                data: purchaseRequest
+            };
+            return reply.code(200).send(response);
+        }
+        catch (error) {
+            console.log('=== PURCHASE REQUEST PUT ERROR:', error.message);
+            if (error.message.includes('not found')) {
+                const errorResponse = {
+                    success: false,
+                    message: `Purchase request with ID ${request.params.id} not found`,
+                    details: 'The requested resource could not be found',
+                    statusCode: 404
+                };
+                return reply.code(404).send(errorResponse);
+            }
+            if (error.message.includes('already exists')) {
+                const errorResponse = {
+                    success: false,
+                    message: error.message,
+                    details: 'Duplicate entry detected',
+                    statusCode: 400
+                };
+                return reply.code(400).send(errorResponse);
+            }
+            // Default error response
+            const errorResponse = {
+                success: false,
+                message: 'Internal server error',
+                details: 'Something went wrong on the server',
+                statusCode: 500
+            };
+            return reply.code(500).send(errorResponse);
+        }
+    });
     // DELETE /v1/purchaserequests/:id - Delete purchase request
     fastify.delete('/:id', {
         schema: {
@@ -238,6 +357,15 @@ export async function purchaseRequestRoutes(fastify) {
                         message: { type: 'string' },
                     },
                 },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
                 404: {
                     type: 'object',
                     properties: {
@@ -258,7 +386,48 @@ export async function purchaseRequestRoutes(fastify) {
                 },
             },
         },
-    }, purchaseRequestController.deletePurchaseRequest.bind(purchaseRequestController));
+    }, async (request, reply) => {
+        try {
+            const { id } = request.params;
+            // Validate ID format
+            if (!/^\d+$/.test(id)) {
+                const errorResponse = {
+                    success: false,
+                    message: 'Invalid ID format. ID must be an integer.',
+                    details: `The provided ID '${id}' is not a valid integer format.`,
+                    statusCode: 400
+                };
+                return reply.code(400).send(errorResponse);
+            }
+            // Delete the purchase request
+            await purchaseRequestController.purchaseRequestService.delete(id);
+            const response = {
+                success: true,
+                message: 'Purchase request deleted successfully'
+            };
+            return reply.code(200).send(response);
+        }
+        catch (error) {
+            console.log('=== PURCHASE REQUEST DELETE ERROR:', error.message);
+            if (error.message.includes('not found')) {
+                const errorResponse = {
+                    success: false,
+                    message: `Purchase request with ID ${request.params.id} not found`,
+                    details: 'The requested resource could not be found',
+                    statusCode: 404
+                };
+                return reply.code(404).send(errorResponse);
+            }
+            // Default error response
+            const errorResponse = {
+                success: false,
+                message: 'Internal server error',
+                details: 'Something went wrong on the server',
+                statusCode: 500
+            };
+            return reply.code(500).send(errorResponse);
+        }
+    });
     // GET /v1/purchaserequests/user/:userId - Get purchase requests by user
     fastify.get('/user/:userId', {
         schema: {
