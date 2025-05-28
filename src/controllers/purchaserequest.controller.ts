@@ -5,13 +5,17 @@ import {
   updatePurchaseRequestSchema, 
   upsertPurchaseRequestSchema,
   purchaseRequestParamsSchema,
-  PurchaseRequestParams
+  purchaseRequestQuerySchema,
+  PurchaseRequestParams,
+  PurchaseRequestQuery
 } from '../schemas/purchaserequest.schema.js';
 import { getPaginationParams } from '../utils/pagination.js';
 import { 
   createSuccessResponse, 
+  createErrorResponse,
   asyncHandler,
-  ValidationError
+  ValidationError,
+  NotFoundError
 } from '../utils/errorHandler.js';
 
 export class PurchaseRequestController {

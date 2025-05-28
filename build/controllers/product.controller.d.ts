@@ -1,7 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { ProductService } from '../services/product.service.js';
 export declare class ProductController {
-    productService: ProductService;
+    private productService;
     getProducts: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     getProduct: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     createProduct: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;

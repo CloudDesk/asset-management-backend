@@ -1,13 +1,12 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { SupplierService } from '../services/supplier.service.js';
 export declare class SupplierController {
-    supplierService: SupplierService;
+    private supplierService;
     /**
      * Get all suppliers with dynamic filtering and pagination
      */
     getSuppliers: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     /**
-     * Get supplier by ID with proper validation
+     * Get supplier by ID
      */
     getSupplier: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     /**
@@ -15,11 +14,11 @@ export declare class SupplierController {
      */
     createSupplier: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     /**
-     * Update supplier by ID with proper validation
+     * Update supplier by ID
      */
     updateSupplier: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     /**
-     * Delete supplier by ID with proper validation
+     * Delete supplier by ID
      */
     deleteSupplier: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     /**
@@ -27,7 +26,7 @@ export declare class SupplierController {
      */
     upsertSupplier: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     /**
-     * Get supplier statistics with proper validation
+     * Get supplier statistics
      */
     getSupplierStats: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
 }

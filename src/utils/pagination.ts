@@ -23,20 +23,7 @@ export interface PaginationResult<T> {
 }
 
 export function getPaginationParams(query: Record<string, unknown>): PaginationParams {
-  console.log('=== getPaginationParams DEBUG ===');
-  console.log('query:', JSON.stringify(query, null, 2));
-  console.log('typeof query:', typeof query);
-  
-  // Check each parameter individually
-  if (query.page) {
-    console.log('page value:', query.page, 'typeof:', typeof query.page);
-  }
-  if (query.limit) {
-    console.log('limit value:', query.limit, 'typeof:', typeof query.limit);
-  }
-  
   const result = paginationSchema.parse(query);
-  console.log('parsed result:', result);
   return {
     page: result.page,
     limit: result.limit,

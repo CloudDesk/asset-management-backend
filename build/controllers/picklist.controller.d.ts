@@ -1,7 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { PicklistService } from '../services/picklist.service.js';
 export declare class PicklistController {
-    picklistService: PicklistService;
+    private picklistService;
     getPicklists: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     getPicklist: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     getPicklistByType: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;

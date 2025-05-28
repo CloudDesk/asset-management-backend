@@ -44,14 +44,4 @@ export declare function validateFields(inputData: Record<string, any>, validFiel
     invalidFields: string[];
 };
 export declare function errorHandler(error: any, request: FastifyRequest, reply: FastifyReply): Promise<void>;
-export declare function validateIntegerId(id: string, resourceName?: string): number;
-export declare function createRouteErrorResponse(error: any, resourceName: string, id?: string): {
-    response: any;
-    statusCode: number;
-};
-export declare function validateRouteId(id: string, resourceName: string): {
-    isValid: boolean;
-    errorResponse?: any;
-    statusCode?: number;
-};
 //# sourceMappingURL=errorHandler.d.ts.map

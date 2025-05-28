@@ -1,46 +1,56 @@
 import { FastifyInstance } from 'fastify';
 import { StockController } from '../controllers/stock.controller.js';
-import { getStockSchemas, getStockQuerySchema } from '../swagger/stock.swagger.js';
-import { logger } from '../config/logger.js';
-import { validateAndConvertData, filterDataBySchema, validateRequiredFields } from '../utils/dataValidation.js';
 
 export async function stockRoutes(fastify: FastifyInstance) {
   const stockController = new StockController();
-
-  // Generate dynamic schemas
-  let schemas: any;
-  let querySchema: any;
-  
-  try {
-    [schemas, querySchema] = await Promise.all([
-      getStockSchemas(),
-      getStockQuerySchema()
-    ]);
-    logger.info('Dynamic stock schemas loaded successfully');
-  } catch (error) {
-    logger.error({ error }, 'Failed to load dynamic stock schemas, using fallback');
-    // Fallback schemas if dynamic generation fails
-    schemas = {
-      create: { type: 'object', additionalProperties: true },
-      update: { type: 'object', additionalProperties: true },
-      response: { type: 'object', additionalProperties: true },
-      success: { type: 'object', additionalProperties: true },
-      list: { type: 'object', additionalProperties: true },
-      error: { type: 'object', additionalProperties: true }
-    };
-    querySchema = { type: 'object', additionalProperties: true };
-  }
 
   // GET /v1/stocks - Get all stocks with pagination and filtering
   fastify.get('/', {
     schema: {
       description: 'Get all stocks with pagination and filtering',
       tags: ['Stocks'],
-      querystring: querySchema,
+      querystring: {
+        type: 'object',
+        properties: {
+          page: { type: 'string', description: 'Page number' },
+          limit: { type: 'string', description: 'Items per page' },
+          puc: { type: 'string', description: 'Filter by product ID' },
+          category: { type: 'string', description: 'Filter by category' },
+          subcategory: { type: 'string', description: 'Filter by subcategory' },
+          warehouseLocation: { type: 'string', description: 'Filter by warehouse location' },
+          minQuantity: { type: 'string', description: 'Minimum quantity filter' },
+          maxQuantity: { type: 'string', description: 'Maximum quantity filter' },
+          minAvailable: { type: 'string', description: 'Minimum available quantity filter' },
+          maxAvailable: { type: 'string', description: 'Maximum available quantity filter' },
+          createdAfter: { type: 'string', description: 'Created after date' },
+          createdBefore: { type: 'string', description: 'Created before date' },
+        },
+      },
       response: {
-        200: schemas.list,
-        400: schemas.error,
-        500: schemas.error,
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            data: { 
+              type: 'array',
+              items: {
+                type: 'object',
+                additionalProperties: true // Allow any fields in stock objects
+              }
+            },
+            pagination: {
+              type: 'object',
+              properties: {
+                page: { type: 'number' },
+                limit: { type: 'number' },
+                total: { type: 'number' },
+                totalPages: { type: 'number' },
+                hasNext: { type: 'boolean' },
+                hasPrev: { type: 'boolean' },
+              },
+            },
+          },
+        },
       },
     },
   }, stockController.getStocks.bind(stockController));
@@ -53,22 +63,56 @@ export async function stockRoutes(fastify: FastifyInstance) {
       params: {
         type: 'object',
         properties: {
-          id: { type: 'string', pattern: '^[0-9]+$', description: 'Stock ID (integer)' },
+          id: { type: 'string', description: 'Stock ID' },
         },
         required: ['id'],
       },
       response: {
-        200: schemas.success,
-        400: schemas.error,
-        404: schemas.error,
-        500: schemas.error,
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            data: { 
+              type: 'object',
+              additionalProperties: true // Allow any fields in stock object
+            },
+            message: { type: 'string' },
+          },
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+        404: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
       },
     },
   }, async (request: any, reply: any) => {
     try {
       const { id } = request.params;
       
-      // Validate ID format (integer)
+      // Validate ID format
       if (!/^\d+$/.test(id)) {
         const errorResponse = {
           success: false,
@@ -76,7 +120,6 @@ export async function stockRoutes(fastify: FastifyInstance) {
           details: `The provided ID '${id}' is not a valid integer format.`,
           statusCode: 400
         };
-        logger.warn({ stockId: id, error: 'Invalid integer format' }, 'Stock GET request failed');
         return reply.code(400).send(errorResponse);
       }
       
@@ -88,15 +131,14 @@ export async function stockRoutes(fastify: FastifyInstance) {
         message: 'Stock retrieved successfully',
         data: stock
       };
-      logger.info({ stockId: id }, 'Stock retrieved successfully');
       return reply.code(200).send(response);
     } catch (error: any) {
-      logger.error({ error: error.message, stockId: request.params.id }, 'Stock GET error');
+      console.log('=== STOCK GET ERROR:', error.message);
       
       if (error.message.includes('not found')) {
         const errorResponse = {
           success: false,
-          message: `Stock with ID ${request.params.id} not found.`,
+          message: `Stock with ID ${request.params.id} not found`,
           details: 'The requested resource could not be found',
           statusCode: 404
         };
@@ -119,89 +161,39 @@ export async function stockRoutes(fastify: FastifyInstance) {
     schema: {
       description: 'Create a new stock entry',
       tags: ['Stocks'],
-      body: schemas.create,
       response: {
-        201: schemas.success,
-        400: schemas.error,
-        500: schemas.error,
+        201: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            data: { 
+              type: 'object',
+              additionalProperties: true // Allow any fields in stock object
+            },
+            message: { type: 'string' },
+          },
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
       },
     },
-  }, async (request: any, reply: any) => {
-    try {
-      let data = request.body;
-      
-      // Filter and validate data based on schema
-      try {
-        data = filterDataBySchema(data, schemas.create);
-        data = validateAndConvertData(data, schemas.create);
-      } catch (validationError: any) {
-        const errorResponse = {
-          success: false,
-          message: 'Data validation failed',
-          details: validationError.message,
-          statusCode: 400
-        };
-        logger.warn({ validationError: validationError.message, data: request.body }, 'Stock creation failed - data validation error');
-        return reply.code(400).send(errorResponse);
-      }
-      
-      // Validate required fields
-      const missingFields = validateRequiredFields(data, schemas.create);
-      if (missingFields.length > 0) {
-        const errorResponse = {
-          success: false,
-          message: `Field ${missingFields[0]} is required.`,
-          details: `Missing required fields: ${missingFields.join(', ')}`,
-          statusCode: 400
-        };
-        logger.warn({ missingFields, data }, 'Stock creation failed - missing required fields');
-        return reply.code(400).send(errorResponse);
-      }
-      
-      const stock = await stockController.stockService.create(data);
-      
-      const response = {
-        success: true,
-        message: 'Stock created successfully',
-        data: stock
-      };
-      logger.info({ stockId: stock.id }, 'Stock created successfully');
-      return reply.code(201).send(response);
-    } catch (error: any) {
-      logger.error({ error: error.message, data: request.body }, 'Stock creation error');
-      
-      // Handle unique constraint violations
-      if (error.message.includes('unique') || error.message.includes('duplicate')) {
-        const errorResponse = {
-          success: false,
-          message: 'Stock entry already exists.',
-          details: 'A stock entry with this identifier already exists in the system',
-          statusCode: 400
-        };
-        return reply.code(400).send(errorResponse);
-      }
-      
-      // Handle validation errors
-      if (error.message.includes('validation') || error.message.includes('invalid')) {
-        const errorResponse = {
-          success: false,
-          message: 'Validation failed',
-          details: error.message,
-          statusCode: 400
-        };
-        return reply.code(400).send(errorResponse);
-      }
-      
-      // Default error response
-      const errorResponse = {
-        success: false,
-        message: 'Internal server error',
-        details: 'Something went wrong on the server',
-        statusCode: 500
-      };
-      return reply.code(500).send(errorResponse);
-    }
-  });
+  }, stockController.createStock.bind(stockController));
 
   // PUT /v1/stocks/:id - Update stock
   fastify.put('/:id', {
@@ -211,24 +203,60 @@ export async function stockRoutes(fastify: FastifyInstance) {
       params: {
         type: 'object',
         properties: {
-          id: { type: 'string', pattern: '^[0-9]+$', description: 'Stock ID (integer)' },
+          id: { type: 'string', description: 'Stock ID' },
         },
         required: ['id'],
       },
-      body: schemas.update,
+      body: {
+        type: 'object',
+        additionalProperties: true, // Allow any fields for dynamic updates
+      },
       response: {
-        200: schemas.success,
-        400: schemas.error,
-        404: schemas.error,
-        500: schemas.error,
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            data: { 
+              type: 'object',
+              additionalProperties: true // Allow any fields in stock object
+            },
+            message: { type: 'string' },
+          },
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+        404: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
       },
     },
   }, async (request: any, reply: any) => {
     try {
       const { id } = request.params;
-      let data = request.body;
       
-      // Validate ID format (integer)
+      // Validate ID format
       if (!/^\d+$/.test(id)) {
         const errorResponse = {
           success: false,
@@ -236,53 +264,36 @@ export async function stockRoutes(fastify: FastifyInstance) {
           details: `The provided ID '${id}' is not a valid integer format.`,
           statusCode: 400
         };
-        logger.warn({ stockId: id, error: 'Invalid integer format' }, 'Stock PUT request failed');
         return reply.code(400).send(errorResponse);
       }
       
-      // Filter and validate data based on schema
-      try {
-        data = filterDataBySchema(data, schemas.update);
-        data = validateAndConvertData(data, schemas.update);
-      } catch (validationError: any) {
-        const errorResponse = {
-          success: false,
-          message: 'Data validation failed',
-          details: validationError.message,
-          statusCode: 400
-        };
-        logger.warn({ validationError: validationError.message, data: request.body }, 'Stock update failed - data validation error');
-        return reply.code(400).send(errorResponse);
-      }
-      
-      const stock = await stockController.stockService.update(id, data);
+      // Update the stock
+      const stock = await stockController.stockService.update(id, request.body);
       
       const response = {
         success: true,
         message: 'Stock updated successfully',
         data: stock
       };
-      logger.info({ stockId: id }, 'Stock updated successfully');
       return reply.code(200).send(response);
     } catch (error: any) {
-      logger.error({ error: error.message, stockId: request.params.id, data: request.body }, 'Stock update error');
+      console.log('=== STOCK PUT ERROR:', error.message);
       
       if (error.message.includes('not found')) {
         const errorResponse = {
           success: false,
-          message: `Stock with ID ${request.params.id} not found.`,
+          message: `Stock with ID ${request.params.id} not found`,
           details: 'The requested resource could not be found',
           statusCode: 404
         };
         return reply.code(404).send(errorResponse);
       }
       
-      // Handle validation errors
-      if (error.message.includes('validation') || error.message.includes('invalid')) {
+      if (error.message.includes('already exists')) {
         const errorResponse = {
           success: false,
-          message: 'Validation failed',
-          details: error.message,
+          message: error.message,
+          details: 'Duplicate entry detected',
           statusCode: 400
         };
         return reply.code(400).send(errorResponse);
@@ -307,7 +318,7 @@ export async function stockRoutes(fastify: FastifyInstance) {
       params: {
         type: 'object',
         properties: {
-          id: { type: 'string', pattern: '^[0-9]+$', description: 'Stock ID (integer)' },
+          id: { type: 'string', description: 'Stock ID' },
         },
         required: ['id'],
       },
@@ -316,20 +327,43 @@ export async function stockRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            message: { type: 'string' }
+            message: { type: 'string' },
           },
-          required: ['success', 'message']
         },
-        400: schemas.error,
-        404: schemas.error,
-        500: schemas.error,
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+        404: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
       },
     },
   }, async (request: any, reply: any) => {
     try {
       const { id } = request.params;
       
-      // Validate ID format (integer)
+      // Validate ID format
       if (!/^\d+$/.test(id)) {
         const errorResponse = {
           success: false,
@@ -337,25 +371,24 @@ export async function stockRoutes(fastify: FastifyInstance) {
           details: `The provided ID '${id}' is not a valid integer format.`,
           statusCode: 400
         };
-        logger.warn({ stockId: id, error: 'Invalid integer format' }, 'Stock DELETE request failed');
         return reply.code(400).send(errorResponse);
       }
       
+      // Delete the stock
       await stockController.stockService.delete(id);
       
       const response = {
         success: true,
         message: 'Stock deleted successfully'
       };
-      logger.info({ stockId: id }, 'Stock deleted successfully');
       return reply.code(200).send(response);
     } catch (error: any) {
-      logger.error({ error: error.message, stockId: request.params.id }, 'Stock delete error');
+      console.log('=== STOCK DELETE ERROR:', error.message);
       
       if (error.message.includes('not found')) {
         const errorResponse = {
           success: false,
-          message: `Stock with ID ${request.params.id} not found.`,
+          message: `Stock with ID ${request.params.id} not found`,
           details: 'The requested resource could not be found',
           statusCode: 404
         };

@@ -1,7 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { PurchaseOrderService } from '../services/purchaseorder.service.js';
 export declare class PurchaseOrderController {
-    purchaseOrderService: PurchaseOrderService;
+    private purchaseOrderService;
     /**
      * Get purchase orders with dynamic filtering and pagination
      * Supports any field that exists in the database

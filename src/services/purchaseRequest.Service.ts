@@ -1,11 +1,15 @@
+import { prisma } from '../models/prisma.js';
 import { 
   CreatePurchaseRequestInput, 
   UpdatePurchaseRequestInput, 
-  UpsertPurchaseRequestInput
+  UpsertPurchaseRequestInput,
+  validatePurchaseRequestDynamicFields 
 } from '../schemas/purchaserequest.schema.js';
 import { PaginationResult, createPaginationResult, getPrismaSkipTake } from '../utils/pagination.js';
-import { FilterOptions } from '../utils/filterBuilder.js';
+import { buildPurchaseRequestFilters, FilterOptions } from '../utils/filterBuilder.js';
 import { 
+  dynamicFindMany, 
+  dynamicCount, 
   dynamicFindUnique, 
   dynamicCreate, 
   dynamicUpdate, 

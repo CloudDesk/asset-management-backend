@@ -1,10 +1,10 @@
 import { prisma } from '../models/prisma.js';
 import { 
   CreatePicklistInput, 
-  UpdatePicklistInput
+  UpdatePicklistInput 
 } from '../schemas/picklist.schema.js';
 import { PaginationResult, createPaginationResult, getPrismaSkipTake } from '../utils/pagination.js';
-import { FilterOptions } from '../utils/filterBuilder.js';
+import { buildPicklistFilters, FilterOptions } from '../utils/filterBuilder.js';
 import { 
   dynamicFindMany, 
   dynamicCount, 

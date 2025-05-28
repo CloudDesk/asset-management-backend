@@ -1,6 +1,6 @@
 import { SupplierService } from '../services/supplier.service.js';
-import { createSupplierSchema, updateSupplierSchema, upsertSupplierSchema } from '../schemas/supplier.schema.js';
-import { createSuccessResponse, asyncHandler, ValidationError, NotFoundError, validateIntegerId } from '../utils/errorHandler.js';
+import { createSupplierSchema, updateSupplierSchema, upsertSupplierSchema, supplierParamsSchema } from '../schemas/supplier.schema.js';
+import { createSuccessResponse, asyncHandler, ValidationError } from '../utils/errorHandler.js';
 import { logger } from '../config/logger.js';
 export class SupplierController {
     supplierService = new SupplierService();
@@ -8,80 +8,35 @@ export class SupplierController {
      * Get all suppliers with dynamic filtering and pagination
      */
     getSuppliers = asyncHandler(async (request, reply) => {
-        try {
-            // Debug: Log the raw query parameters FIRST
-            console.log('=== CONTROLLER START DEBUG ===');
-            console.log('request.query:', JSON.stringify(request.query, null, 2));
-            console.log('typeof request.query:', typeof request.query);
-            console.log('request.url:', request.url);
-            console.log('request.method:', request.method);
-            const { page = '1', limit = '10', ...filters } = request.query;
-            console.log('=== DEBUG: After destructuring ===');
-            console.log('page:', page, 'typeof:', typeof page);
-            console.log('limit:', limit, 'typeof:', typeof limit);
-            console.log('filters:', JSON.stringify(filters, null, 2));
-            const pageNum = parseInt(page, 10);
-            const limitNum = parseInt(limit, 10);
-            if (isNaN(pageNum) || pageNum < 1) {
-                throw new ValidationError('Invalid page number', 'Page must be a positive integer');
-            }
-            if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
-                throw new ValidationError('Invalid limit', 'Limit must be between 1 and 100');
-            }
-            console.log('=== DEBUG: Before calling service ===');
-            console.log('pageNum:', pageNum, 'limitNum:', limitNum);
-            console.log('filters for service:', JSON.stringify(filters, null, 2));
-            const result = await this.supplierService.findMany(filters, pageNum, limitNum);
-            const response = createSuccessResponse('Suppliers retrieved successfully', result.data);
-            return reply.code(200).send({
-                ...response,
-                pagination: result.pagination,
-                meta: {
-                    filters: Object.keys(filters),
-                    total: result.pagination.total,
-                    filtered: Object.keys(filters).length > 0
-                },
-            });
+        const { page = '1', limit = '10', ...filters } = request.query;
+        const pageNum = parseInt(page, 10);
+        const limitNum = parseInt(limit, 10);
+        if (isNaN(pageNum) || pageNum < 1) {
+            throw new ValidationError('Invalid page number', 'Page must be a positive integer');
         }
-        catch (error) {
-            console.log('=== CONTROLLER ERROR DEBUG ===');
-            console.log('error:', error);
-            console.log('error.message:', error.message);
-            console.log('error.stack:', error.stack);
-            throw error;
+        if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+            throw new ValidationError('Invalid limit', 'Limit must be between 1 and 100');
         }
+        const result = await this.supplierService.findMany(filters, pageNum, limitNum);
+        const response = createSuccessResponse('Suppliers retrieved successfully', result.data);
+        return reply.code(200).send({
+            ...response,
+            pagination: result.pagination,
+            meta: {
+                filters: Object.keys(filters),
+                total: result.pagination.total,
+                filtered: Object.keys(filters).length > 0
+            },
+        });
     });
     /**
-     * Get supplier by ID with proper validation
+     * Get supplier by ID
      */
     getSupplier = asyncHandler(async (request, reply) => {
-        const { id } = request.params;
-        console.log('=== DEBUG: getSupplier called with ID:', id);
-        // Validate ID format
-        validateIntegerId(id, 'Supplier');
-        try {
-            const supplier = await this.supplierService.findById(id);
-            const response = createSuccessResponse('Supplier retrieved successfully', supplier);
-            return reply.code(200).send(response);
-        }
-        catch (error) {
-            console.log('=== DEBUG: Error caught in getSupplier:', error.message);
-            // Debug: Manual error handling to see what's happening
-            if (error instanceof NotFoundError) {
-                console.log('=== DEBUG: NotFoundError detected');
-                // Try a simple direct response
-                const simpleError = {
-                    success: false,
-                    message: "TESTING: " + error.message,
-                    statusCode: 404,
-                    details: 'TESTING: The requested resource could not be found'
-                };
-                console.log('=== DEBUG: Sending error response:', JSON.stringify(simpleError));
-                return reply.code(404).send(simpleError);
-            }
-            // Re-throw other errors to be handled by asyncHandler
-            throw error;
-        }
+        const { id } = supplierParamsSchema.parse(request.params);
+        const supplier = await this.supplierService.findById(id);
+        const response = createSuccessResponse('Supplier retrieved successfully', supplier);
+        return reply.code(200).send(response);
     });
     /**
      * Create new supplier with dynamic field support
@@ -99,24 +54,20 @@ export class SupplierController {
         return reply.code(201).send(response);
     });
     /**
-     * Update supplier by ID with proper validation
+     * Update supplier by ID
      */
     updateSupplier = asyncHandler(async (request, reply) => {
-        const { id } = request.params;
-        // Validate ID format
-        validateIntegerId(id, 'Supplier');
+        const { id } = supplierParamsSchema.parse(request.params);
         const data = updateSupplierSchema.parse(request.body);
         const supplier = await this.supplierService.update(id, data);
         const response = createSuccessResponse('Supplier updated successfully', supplier);
         return reply.code(200).send(response);
     });
     /**
-     * Delete supplier by ID with proper validation
+     * Delete supplier by ID
      */
     deleteSupplier = asyncHandler(async (request, reply) => {
-        const { id } = request.params;
-        // Validate ID format
-        validateIntegerId(id, 'Supplier');
+        const { id } = supplierParamsSchema.parse(request.params);
         await this.supplierService.delete(id);
         const response = createSuccessResponse('Supplier deleted successfully', null);
         return reply.code(200).send(response);
@@ -126,22 +77,16 @@ export class SupplierController {
      */
     upsertSupplier = asyncHandler(async (request, reply) => {
         const data = upsertSupplierSchema.parse(request.body);
-        // If ID is provided, validate its format
-        if (data.id) {
-            validateIntegerId(data.id, 'Supplier');
-        }
         const supplier = await this.supplierService.upsert(data);
         const message = data.id ? 'Supplier updated successfully' : 'Supplier created successfully';
         const response = createSuccessResponse(message, supplier);
         return reply.code(200).send(response);
     });
     /**
-     * Get supplier statistics with proper validation
+     * Get supplier statistics
      */
     getSupplierStats = asyncHandler(async (request, reply) => {
-        const { id } = request.params;
-        // Validate ID format
-        validateIntegerId(id, 'Supplier');
+        const { id } = supplierParamsSchema.parse(request.params);
         const stats = await this.supplierService.getSupplierStats(id);
         const response = createSuccessResponse('Supplier statistics retrieved successfully', stats);
         return reply.code(200).send(response);

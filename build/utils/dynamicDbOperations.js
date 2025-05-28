@@ -112,15 +112,6 @@ function convertBigIntToNumber(obj) {
     if (typeof obj === 'object') {
         const converted = {};
         for (const [key, value] of Object.entries(obj)) {
-            // Debug logging for pincode field
-            if (key === 'pincode') {
-                console.log('=== PINCODE DEBUG ===');
-                console.log('pincode value:', value);
-                console.log('pincode type:', typeof value);
-                console.log('pincode constructor:', value?.constructor?.name);
-                console.log('pincode toString:', value?.toString?.());
-                console.log('===================');
-            }
             converted[key] = convertBigIntToNumber(value);
         }
         return converted;
@@ -198,111 +189,14 @@ export async function fastFindMany(modelName, options = {}) {
     }
 }
 /**
- * Validates and converts query parameter values to prevent object conversion errors
- */
-function validateQueryParameter(key, value) {
-    console.log(`=== validateQueryParameter DEBUG ===`);
-    console.log(`key: ${key}, value:`, value, `typeof: ${typeof value}`);
-    // If value is an object, try to extract a meaningful value or skip it
-    if (typeof value === 'object' && value !== null) {
-        console.log(`HANDLING OBJECT for key: ${key}`);
-        // If it's an array, take the first element
-        if (Array.isArray(value)) {
-            if (value.length > 0) {
-                const firstValue = value[0];
-                console.log(`USING FIRST ARRAY ELEMENT for key: ${key}, value: ${firstValue}`);
-                return String(firstValue);
-            }
-            else {
-                console.log(`EMPTY ARRAY for key: ${key}`);
-                return null;
-            }
-        }
-        // If it's a plain object, try to get a string representation or skip it
-        if (value.toString && value.toString() !== '[object Object]') {
-            const stringValue = value.toString();
-            console.log(`USING OBJECT toString for key: ${key}, value: ${stringValue}`);
-            return stringValue;
-        }
-        // If we can't meaningfully convert the object, skip this parameter
-        console.log(`SKIPPING COMPLEX OBJECT for key: ${key}`);
-        return null;
-    }
-    // If value is undefined or null, return null
-    if (value === undefined || value === null) {
-        console.log(`NULL/UNDEFINED for key: ${key}`);
-        return null;
-    }
-    // Convert to string for consistency (query params are typically strings)
-    const result = String(value);
-    console.log(`CONVERTED for key: ${key}, result: ${result}`);
-    return result;
-}
-/**
- * Gets column information including data types for a table
- */
-async function getColumnInfo(tableName) {
-    try {
-        const result = await prisma.$queryRawUnsafe(`
-      SELECT column_name, data_type 
-      FROM information_schema.columns 
-      WHERE table_name = $1 AND table_schema = 'public'
-      ORDER BY ordinal_position
-    `, tableName);
-        return result;
-    }
-    catch (error) {
-        logger.error({ error, tableName }, 'Failed to get column info');
-        return [];
-    }
-}
-/**
- * Determines if a column is numeric based on its data type
- */
-function isNumericColumn(dataType) {
-    const numericTypes = [
-        'integer', 'bigint', 'smallint', 'decimal', 'numeric',
-        'real', 'double precision', 'serial', 'bigserial', 'smallserial'
-    ];
-    return numericTypes.includes(dataType.toLowerCase());
-}
-/**
- * Determines if a column is a date/time column based on its data type
- */
-function isDateTimeColumn(dataType) {
-    const dateTimeTypes = [
-        'timestamp', 'timestamp with time zone', 'timestamp without time zone',
-        'date', 'time', 'time with time zone', 'time without time zone'
-    ];
-    return dateTimeTypes.some(type => dataType.toLowerCase().includes(type));
-}
-/**
- * Determines if a column is a UUID column based on its data type
- */
-function isUuidColumn(dataType) {
-    return dataType.toLowerCase() === 'uuid';
-}
-/**
  * Builds dynamic WHERE clause for any table based on query parameters
  */
 async function buildDynamicWhereClause(tableName, filters) {
-    console.log('=== buildDynamicWhereClause DEBUG ===');
-    console.log('tableName:', tableName);
-    console.log('filters:', JSON.stringify(filters, null, 2));
-    console.log('filters keys:', Object.keys(filters));
     if (!filters || Object.keys(filters).length === 0) {
-        console.log('No filters provided, returning empty where clause');
         return { whereClause: '', values: [] };
     }
-    // Get column information including data types
-    const columnInfo = await getColumnInfo(tableName);
-    const columnMap = new Map();
-    columnInfo.forEach(col => {
-        columnMap.set(col.column_name, col.data_type);
-    });
-    const availableColumns = columnInfo.map(col => col.column_name);
-    console.log('availableColumns:', availableColumns);
-    console.log('columnTypes:', Object.fromEntries(columnMap));
+    // Get available columns for the table
+    const availableColumns = await discoverTableColumns(tableName);
     const conditions = [];
     const values = [];
     let paramIndex = 1;
@@ -334,42 +228,23 @@ async function buildDynamicWhereClause(tableName, filters) {
         }
         return null;
     }
-    for (const [key, rawValue] of Object.entries(filters)) {
-        console.log(`Processing filter: key=${key}, rawValue=`, rawValue, `typeof=${typeof rawValue}`);
+    for (const [key, value] of Object.entries(filters)) {
         // Skip pagination parameters
         if (['page', 'limit', 'skip', 'take'].includes(key)) {
-            console.log(`Skipping pagination parameter: ${key}`);
             continue;
         }
-        try {
-            // Validate and convert the query parameter
-            const value = validateQueryParameter(key, rawValue);
-            console.log(`After validation: key=${key}, value=${value}`);
-            // Skip empty values
-            if (value === null || value === '') {
-                console.log(`Skipping empty value for key: ${key}`);
-                continue;
-            }
-            // Find matching column with case variations
-            const matchingColumn = findMatchingColumn(key);
-            console.log(`Matching column for ${key}: ${matchingColumn}`);
-            if (matchingColumn) {
-                const dataType = columnMap.get(matchingColumn);
-                console.log(`Column ${matchingColumn} has data type: ${dataType}`);
+        // Find matching column with case variations
+        const matchingColumn = findMatchingColumn(key);
+        if (matchingColumn) {
+            if (value !== undefined && value !== null && value !== '') {
                 // Handle different filter types
                 if (key.startsWith('min') && key.length > 3) {
                     // Range filters like minPrice, minQuantity
                     const baseKey = key.substring(3);
                     const columnName = findMatchingColumn(baseKey);
                     if (columnName) {
-                        const numValue = Number(value);
-                        if (isNaN(numValue)) {
-                            logger.warn({ key, value }, `Invalid numeric value for range filter '${key}'`);
-                            continue;
-                        }
-                        console.log(`Adding min range condition: ${columnName} >= ${numValue}`);
                         conditions.push(`"${columnName}" >= $${paramIndex}`);
-                        values.push(numValue);
+                        values.push(Number(value));
                         paramIndex++;
                     }
                 }
@@ -378,154 +253,117 @@ async function buildDynamicWhereClause(tableName, filters) {
                     const baseKey = key.substring(3);
                     const columnName = findMatchingColumn(baseKey);
                     if (columnName) {
-                        const numValue = Number(value);
-                        if (isNaN(numValue)) {
-                            logger.warn({ key, value }, `Invalid numeric value for range filter '${key}'`);
-                            continue;
-                        }
-                        console.log(`Adding max range condition: ${columnName} <= ${numValue}`);
                         conditions.push(`"${columnName}" <= $${paramIndex}`);
-                        values.push(numValue);
+                        values.push(Number(value));
                         paramIndex++;
                     }
                 }
-                else if (isDateTimeColumn(dataType || '')) {
-                    // Date/time filters - use exact match
-                    console.log(`Adding date condition: ${matchingColumn} = ${value}`);
+                else if (key.includes('date') || key.includes('Date')) {
+                    // Date filters
                     conditions.push(`"${matchingColumn}" = $${paramIndex}`);
                     values.push(value);
                     paramIndex++;
                 }
-                else if (isNumericColumn(dataType || '')) {
-                    // Numeric filters - use exact match
-                    const numValue = Number(value);
-                    if (isNaN(numValue)) {
-                        logger.warn({ key, value, dataType }, `Invalid numeric value for numeric column '${matchingColumn}'`);
-                        continue;
-                    }
-                    console.log(`Adding numeric condition: ${matchingColumn} = ${numValue}`);
-                    conditions.push(`"${matchingColumn}" = $${paramIndex}`);
-                    values.push(numValue);
-                    paramIndex++;
-                }
-                else if (isUuidColumn(dataType || '')) {
-                    // UUID filters - use exact match
-                    console.log(`Adding UUID condition: ${matchingColumn} = ${value}`);
-                    conditions.push(`"${matchingColumn}" = $${paramIndex}`);
-                    values.push(value);
-                    paramIndex++;
-                }
-                else {
+                else if (typeof value === 'string') {
                     // String filters - support both exact match and ILIKE
                     if (value.includes('%') || value.includes('*')) {
                         // Wildcard search
                         const searchValue = value.replace(/\*/g, '%');
-                        console.log(`Adding wildcard condition: ${matchingColumn} ILIKE ${searchValue}`);
                         conditions.push(`"${matchingColumn}" ILIKE $${paramIndex}`);
                         values.push(searchValue);
                     }
                     else {
-                        // Partial match for strings (case-insensitive)
-                        console.log(`Adding string partial match condition: ${matchingColumn} ILIKE %${value}%`);
-                        conditions.push(`"${matchingColumn}" ILIKE $${paramIndex}`);
-                        values.push(`%${value}%`);
+                        // Exact match (case-insensitive for strings)
+                        conditions.push(`LOWER("${matchingColumn}") = LOWER($${paramIndex})`);
+                        values.push(value);
                     }
                     paramIndex++;
                 }
-            }
-            else {
-                console.log(`No matching column found for filter key: ${key}`);
-                logger.warn({ key, availableColumns }, `Filter key '${key}' does not match any available columns`);
+                else {
+                    // Exact match for numbers, booleans, etc.
+                    conditions.push(`"${matchingColumn}" = $${paramIndex}`);
+                    values.push(value);
+                    paramIndex++;
+                }
             }
         }
-        catch (error) {
-            console.log(`Error processing filter ${key}:`, error.message);
-            logger.error({ key, rawValue, error: error.message }, 'Error processing filter parameter');
-            throw error; // Re-throw to stop processing
+        else {
+            // Log warning for unrecognized fields
+            logger.warn({
+                tableName,
+                filterKey: key,
+                availableColumns: availableColumns.slice(0, 10), // Show first 10 columns
+                totalColumns: availableColumns.length
+            }, `Filter key '${key}' does not match any available column`);
         }
     }
-    const whereClause = conditions.length > 0 ? conditions.join(' AND ') : '';
-    console.log('Final whereClause:', whereClause);
-    console.log('Final values:', JSON.stringify(values, null, 2));
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    logger.debug({
+        tableName,
+        filters: Object.keys(filters),
+        whereClause,
+        valueCount: values.length,
+        availableColumns: availableColumns.length
+    }, 'Built dynamic WHERE clause');
     return { whereClause, values };
 }
 /**
  * Performs dynamic findMany with proper filtering and counting
  */
 export async function dynamicFindManyWithFilters(modelName, filters = {}, options = {}) {
-    console.log('=== dynamicFindManyWithFilters DEBUG ===');
-    console.log('modelName:', modelName);
-    console.log('filters:', JSON.stringify(filters, null, 2));
-    console.log('options:', JSON.stringify(options, null, 2));
     try {
         const tableName = getTableName(modelName);
         const { skip = 0, take = 10, useAllColumns = false } = options;
-        console.log('tableName:', tableName);
-        console.log('skip:', skip, 'take:', take, 'useAllColumns:', useAllColumns);
-        // Build WHERE clause from filters
+        // Build WHERE clause
         const { whereClause, values } = await buildDynamicWhereClause(tableName, filters);
-        console.log('whereClause:', whereClause);
-        console.log('values:', JSON.stringify(values, null, 2));
-        // Get columns for the table
-        const { columnList } = useAllColumns ?
-            await getSafeColumnsForTable(tableName) :
-            { columnList: getFastColumns(tableName) };
-        console.log('columnList:', columnList);
-        // Build the main query
-        const baseQuery = `SELECT ${columnList} FROM ${tableName}`;
-        const fullQuery = whereClause ?
-            `${baseQuery} WHERE ${whereClause} ORDER BY id DESC LIMIT ${take} OFFSET ${skip}` :
-            `${baseQuery} ORDER BY id DESC LIMIT ${take} OFFSET ${skip}`;
-        console.log('fullQuery:', fullQuery);
-        // Build count query
-        const countQuery = whereClause ?
-            `SELECT COUNT(*) as count FROM ${tableName} WHERE ${whereClause}` :
-            `SELECT COUNT(*) as count FROM ${tableName}`;
-        console.log('countQuery:', countQuery);
-        // Execute queries
+        // Choose columns
+        const columnList = useAllColumns ?
+            (await getSafeColumnsForTable(tableName)).columnList :
+            getFastColumns(tableName);
+        // Build queries
+        const dataQuery = `
+      SELECT ${columnList} 
+      FROM ${tableName} 
+      ${whereClause}
+      ORDER BY id DESC 
+      LIMIT ${take} OFFSET ${skip}
+    `;
+        const countQuery = `
+      SELECT COUNT(*) as count 
+      FROM ${tableName} 
+      ${whereClause}
+    `;
         logger.debug({
-            modelName,
-            tableName,
-            query: fullQuery,
+            dataQuery,
             countQuery,
-            filterCount: Object.keys(filters).length,
-            useAllColumns
-        }, 'Executing dynamic findMany with filters');
-        const [data, countResult] = await Promise.all([
-            values.length > 0 ?
-                prisma.$queryRawUnsafe(fullQuery, ...values) :
-                prisma.$queryRawUnsafe(fullQuery),
-            values.length > 0 ?
-                prisma.$queryRawUnsafe(countQuery, ...values) :
-                prisma.$queryRawUnsafe(countQuery)
+            values,
+            tableName,
+            filters: Object.keys(filters)
+        }, 'Executing dynamic filtered queries');
+        // Execute both queries in parallel
+        const [dataResult, countResult] = await Promise.all([
+            prisma.$queryRawUnsafe(dataQuery, ...values),
+            prisma.$queryRawUnsafe(countQuery, ...values)
         ]);
-        console.log('Query executed successfully');
-        console.log('data length:', Array.isArray(data) ? data.length : 'not array');
-        console.log('countResult:', countResult);
-        const total = Array.isArray(countResult) && countResult.length > 0 ?
-            Number(countResult[0].count) : 0;
-        logger.debug({
+        const data = Array.isArray(dataResult) ? convertBigIntToNumber(dataResult) : [];
+        const total = Number(countResult[0]?.count || 0);
+        logger.info({
             modelName,
-            resultCount: Array.isArray(data) ? data.length : 0,
+            filters: Object.keys(filters),
             total,
-            filtered: Object.keys(filters).length > 0
-        }, 'Dynamic findMany with filters completed');
-        return {
-            data: Array.isArray(data) ? convertBigIntToNumber(data) : [],
-            total
-        };
+            returned: data.length,
+            filtered: whereClause !== ''
+        }, 'Dynamic filtered findMany completed');
+        return { data, total };
     }
     catch (error) {
-        console.log('=== ERROR in dynamicFindManyWithFilters ===');
-        console.log('error:', error);
-        console.log('error.message:', error.message);
         logger.error({
             error: error.message,
             modelName,
             filters,
             options
-        }, 'Error in dynamic findMany with filters operation');
-        throw error;
+        }, 'Error in dynamic filtered findMany');
+        return { data: [], total: 0 };
     }
 }
 /**
@@ -592,8 +430,9 @@ export async function dynamicFindMany(modelName, options = {}) {
                 });
             }
             else if (modelName === 'picklist') {
-                const { include, ...picklistOptions } = options;
-                result = await prisma.picklist.findMany(picklistOptions);
+                result = await prisma.picklist.findMany({
+                    ...options,
+                });
             }
             logger.debug({
                 modelName,
@@ -685,53 +524,28 @@ export async function dynamicFindUnique(modelName, where, include) {
             logger.warn({ modelName, tableName }, 'No columns available for findUnique');
             return null;
         }
-        // Try Prisma first for models that have proper schema definitions
+        // Try Prisma first
         try {
             let result = null;
             if (modelName === 'product') {
                 result = await prisma.product.findUnique({
                     where,
-                    ...(include ? { include } : {}),
+                    include,
                 });
             }
             else if (modelName === 'stock') {
                 result = await prisma.stock.findUnique({
                     where,
-                    ...(include ? { include } : {}),
+                    include,
                 });
             }
             else if (modelName === 'picklist') {
                 result = await prisma.picklist.findUnique({
                     where,
+                    include,
                 });
             }
-            if (result) {
-                logger.debug({
-                    modelName,
-                    foundId: result.id,
-                    availableFields: Object.keys(result)
-                }, 'Prisma findUnique completed successfully');
-                return convertBigIntToNumber(result);
-            }
-            // For models without proper Prisma schema or when Prisma fails, use raw SQL
-            if (where.id) {
-                // Convert ID to integer if it's a numeric string (for tables with integer IDs)
-                let idValue = where.id;
-                if (typeof idValue === 'string' && /^\d+$/.test(idValue)) {
-                    idValue = parseInt(idValue, 10);
-                }
-                const sqlResult = await prisma.$queryRawUnsafe(`SELECT * FROM ${tableName} WHERE id = $1 LIMIT 1`, idValue);
-                const records = Array.isArray(sqlResult) ? sqlResult : [];
-                if (records.length > 0) {
-                    logger.debug({
-                        modelName,
-                        foundId: records[0].id,
-                        method: 'raw_sql'
-                    }, 'Raw SQL findUnique completed successfully');
-                    return convertBigIntToNumber(records[0]);
-                }
-            }
-            return null;
+            return result;
         }
         catch (prismaError) {
             logger.warn({
@@ -741,21 +555,9 @@ export async function dynamicFindUnique(modelName, where, include) {
             }, 'Prisma findUnique failed, falling back to raw SQL');
             // Fallback to raw SQL
             if (where.id) {
-                // Convert ID to integer if it's a numeric string (for tables with integer IDs)
-                let idValue = where.id;
-                if (typeof idValue === 'string' && /^\d+$/.test(idValue)) {
-                    idValue = parseInt(idValue, 10);
-                }
-                const result = await prisma.$queryRawUnsafe(`SELECT * FROM ${tableName} WHERE id = $1 LIMIT 1`, idValue);
+                const result = await prisma.$queryRawUnsafe(`SELECT * FROM ${tableName} WHERE id = $1 LIMIT 1`, where.id);
                 const records = Array.isArray(result) ? result : [];
-                if (records.length > 0) {
-                    logger.debug({
-                        modelName,
-                        foundId: records[0].id,
-                        method: 'raw_sql_fallback'
-                    }, 'Raw SQL fallback findUnique completed successfully');
-                    return convertBigIntToNumber(records[0]);
-                }
+                return records.length > 0 ? convertBigIntToNumber(records[0]) : null;
             }
             return null;
         }
@@ -768,7 +570,7 @@ export async function dynamicFindUnique(modelName, where, include) {
 /**
  * Performs a dynamic create operation
  */
-export async function dynamicCreate(modelName, data) {
+export async function dynamicCreate(modelName, data, include) {
     try {
         const filteredData = await filterInputDataBySchema(data, modelName, 'create');
         if (Object.keys(filteredData).length === 0) {
@@ -847,91 +649,36 @@ export async function dynamicUpdate(modelName, where, data, include) {
             logger.warn({ modelName, where, originalData: data }, 'No valid fields for update operation');
             return null;
         }
-        // Try Prisma first for models that have proper schema definitions
+        // Try Prisma first
         try {
             let result = null;
             if (modelName === 'product') {
                 result = await prisma.product.update({
                     where,
                     data: filteredData,
-                    ...(include ? { include } : {}),
+                    include,
                 });
             }
             else if (modelName === 'stock') {
                 result = await prisma.stock.update({
                     where,
                     data: filteredData,
-                    ...(include ? { include } : {}),
+                    include,
                 });
             }
             else if (modelName === 'picklist') {
                 result = await prisma.picklist.update({
                     where,
                     data: filteredData,
+                    include,
                 });
             }
-            if (result) {
-                logger.info({
-                    modelName,
-                    updatedId: result?.id,
-                    fieldsUsed: Object.keys(filteredData)
-                }, 'Prisma update completed successfully');
-                return result;
-            }
-            // For models without proper Prisma schema (like supplier), use raw SQL
-            const tableName = getTableName(modelName);
-            const availableColumns = await discoverTableColumns(tableName);
-            // Filter data to only include existing columns
-            const rawData = {};
-            for (const [key, value] of Object.entries(filteredData)) {
-                if (availableColumns.includes(key)) {
-                    rawData[key] = value;
-                }
-            }
-            if (Object.keys(rawData).length === 0) {
-                logger.warn({ modelName, tableName }, 'No valid columns for raw SQL update');
-                return null;
-            }
-            // Add modifieddate timestamp
-            const now = Math.floor(Date.now() / 1000);
-            if (availableColumns.includes('modifieddate')) {
-                rawData.modifieddate = now;
-            }
-            // Convert ID to integer if it's a numeric string (for tables with integer IDs)
-            let idValue = where.id;
-            if (typeof idValue === 'string' && /^\d+$/.test(idValue)) {
-                idValue = parseInt(idValue, 10);
-            }
-            // Build dynamic UPDATE query
-            const setClause = Object.keys(rawData)
-                .map((key, index) => `"${key}" = $${index + 2}`) // Start from $2 since $1 is for WHERE
-                .join(', ');
-            const updateQuery = `
-        UPDATE "${tableName}" 
-        SET ${setClause} 
-        WHERE "id" = $1 
-        RETURNING *
-      `;
-            const values = [idValue, ...Object.values(rawData)];
-            logger.debug({
+            logger.info({
                 modelName,
-                tableName,
-                updateQuery,
-                values: values.length,
-                fields: Object.keys(rawData)
-            }, 'Executing dynamic update query');
-            const updateResult = await prisma.$queryRawUnsafe(updateQuery, ...values);
-            const records = Array.isArray(updateResult) ? updateResult : [];
-            const updatedRecord = records.length > 0 ? records[0] : null;
-            if (updatedRecord) {
-                logger.info({
-                    modelName,
-                    updatedId: updatedRecord.id,
-                    fieldsUsed: Object.keys(rawData)
-                }, 'Raw SQL update completed successfully');
-                return convertBigIntToNumber(updatedRecord);
-            }
-            return null;
+                updatedId: result?.id,
+                fieldsUsed: Object.keys(filteredData)
+            }, 'Prisma update completed successfully');
+            return result;
         }
         catch (prismaError) {
             logger.warn({
@@ -951,18 +698,8 @@ export async function dynamicUpdate(modelName, where, data, include) {
                 }
             }
             if (Object.keys(rawData).length === 0) {
-                logger.warn({ modelName, tableName }, 'No valid columns for raw SQL fallback update');
+                logger.warn({ modelName, tableName }, 'No valid columns for raw SQL update');
                 return null;
-            }
-            // Add modifieddate timestamp
-            const now = Math.floor(Date.now() / 1000);
-            if (availableColumns.includes('modifieddate')) {
-                rawData.modifieddate = now;
-            }
-            // Convert ID to integer if it's a numeric string (for tables with integer IDs)
-            let idValue = where.id;
-            if (typeof idValue === 'string' && /^\d+$/.test(idValue)) {
-                idValue = parseInt(idValue, 10);
             }
             // Build dynamic UPDATE query
             const setClause = Object.keys(rawData)
@@ -974,7 +711,7 @@ export async function dynamicUpdate(modelName, where, data, include) {
         WHERE "id" = $1 
         RETURNING *
       `;
-            const values = [idValue, ...Object.values(rawData)];
+            const values = [where.id, ...Object.values(rawData)];
             const result = await prisma.$queryRawUnsafe(updateQuery, ...values);
             const records = Array.isArray(result) ? result : [];
             const updatedRecord = records.length > 0 ? records[0] : null;
@@ -983,7 +720,7 @@ export async function dynamicUpdate(modelName, where, data, include) {
                     modelName,
                     updatedId: updatedRecord.id,
                     fieldsUsed: Object.keys(rawData)
-                }, 'Raw SQL fallback update completed successfully');
+                }, 'Raw SQL update completed successfully');
             }
             return updatedRecord ? convertBigIntToNumber(updatedRecord) : null;
         }
@@ -1006,19 +743,14 @@ export async function dynamicDelete(modelName, where) {
         // Try Prisma first
         try {
             let result = null;
-            // Convert string ID to integer for Prisma operations
-            const whereClause = { ...where };
-            if (whereClause.id && typeof whereClause.id === 'string' && /^\d+$/.test(whereClause.id)) {
-                whereClause.id = parseInt(whereClause.id, 10);
-            }
             if (modelName === 'product') {
-                result = await prisma.product.delete({ where: whereClause });
+                result = await prisma.product.delete({ where });
             }
             else if (modelName === 'stock') {
-                result = await prisma.stock.delete({ where: whereClause });
+                result = await prisma.stock.delete({ where });
             }
             else if (modelName === 'picklist') {
-                result = await prisma.picklist.delete({ where: whereClause });
+                result = await prisma.picklist.delete({ where });
             }
             logger.info({
                 modelName,
@@ -1034,23 +766,18 @@ export async function dynamicDelete(modelName, where) {
             }, 'Prisma delete failed, falling back to raw SQL');
             // Fallback to raw SQL DELETE
             const tableName = getTableName(modelName);
-            // Convert ID to integer if it's a numeric string (for tables with integer IDs)
-            let idValue = where.id;
-            if (typeof idValue === 'string' && /^\d+$/.test(idValue)) {
-                idValue = parseInt(idValue, 10);
-            }
             const deleteQuery = `
         DELETE FROM "${tableName}" 
         WHERE "id" = $1 
         RETURNING id
       `;
-            const result = await prisma.$queryRawUnsafe(deleteQuery, idValue);
+            const result = await prisma.$queryRawUnsafe(deleteQuery, where.id);
             const records = Array.isArray(result) ? result : [];
             const success = records.length > 0;
             if (success) {
                 logger.info({
                     modelName,
-                    deletedId: idValue
+                    deletedId: where.id
                 }, 'Raw SQL delete completed successfully');
             }
             return success;
