@@ -204,6 +204,47 @@ export async function purchaseRequestRoutes(fastify: FastifyInstance) {
     schema: {
       description: 'Create a new purchase request',
       tags: ['Purchase Requests'],
+      body: {
+        type: 'object',
+        required: [
+          'companyname', 'companyaddress', 'contactname', 'phonenumber',
+          'gstnumber', 'companymail', 'supplierid', 'supplieremail'
+        ],
+        properties: {
+          companyname: { type: 'string', description: 'Company name' },
+          companyaddress: { type: 'string', description: 'Company address' },
+          contactname: { type: 'string', description: 'Contact person name' },
+          phonenumber: { type: 'number', description: 'Contact phone number' },
+          gstnumber: { type: 'string', description: 'GST number' },
+          companymail: { type: 'string', format: 'email', description: 'Company email' },
+          supplierid: { type: 'number', description: 'Supplier ID' },
+          prurl: { type: 'string', format: 'uri', description: 'PR document URL', nullable: true },
+          prdata: { 
+            type: 'object',
+            description: 'Purchase request items data',
+            properties: {
+              items: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'number', description: 'Item ID' },
+                    name: { type: 'string', description: 'Item name' },
+                    quantity: { type: 'number', description: 'Item quantity' }
+                  }
+                }
+              }
+            }
+          },
+          prnumber: { type: 'string', description: 'Purchase request number', nullable: true },
+          supplieremail: { type: 'string', format: 'email', description: 'Supplier email' },
+          prstatus: { type: 'string', description: 'Purchase request status', default: 'In Progress' },
+          notes: { type: 'string', description: 'Additional notes', nullable: true },
+          customField1: { type: 'string', description: 'Custom field 1', nullable: true },
+          customField2: { type: 'string', description: 'Custom field 2', nullable: true },
+          customField3: { type: 'string', description: 'Custom field 3', nullable: true }
+        }
+      },
       response: {
         201: {
           type: 'object',

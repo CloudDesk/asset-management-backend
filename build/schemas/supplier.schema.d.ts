@@ -150,6 +150,7 @@ export declare const supplierParamsSchema: z.ZodObject<{
 export declare const supplierQuerySchema: z.ZodObject<{
     page: z.ZodOptional<z.ZodString>;
     limit: z.ZodOptional<z.ZodString>;
+    id: z.ZodOptional<z.ZodString>;
     suppliername: z.ZodOptional<z.ZodString>;
     suppliercode: z.ZodOptional<z.ZodString>;
     suppliertype: z.ZodOptional<z.ZodString>;
@@ -169,6 +170,7 @@ export declare const supplierQuerySchema: z.ZodObject<{
 }, "passthrough", z.ZodTypeAny, z.objectOutputType<{
     page: z.ZodOptional<z.ZodString>;
     limit: z.ZodOptional<z.ZodString>;
+    id: z.ZodOptional<z.ZodString>;
     suppliername: z.ZodOptional<z.ZodString>;
     suppliercode: z.ZodOptional<z.ZodString>;
     suppliertype: z.ZodOptional<z.ZodString>;
@@ -188,6 +190,7 @@ export declare const supplierQuerySchema: z.ZodObject<{
 }, z.ZodTypeAny, "passthrough">, z.objectInputType<{
     page: z.ZodOptional<z.ZodString>;
     limit: z.ZodOptional<z.ZodString>;
+    id: z.ZodOptional<z.ZodString>;
     suppliername: z.ZodOptional<z.ZodString>;
     suppliercode: z.ZodOptional<z.ZodString>;
     suppliertype: z.ZodOptional<z.ZodString>;

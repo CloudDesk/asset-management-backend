@@ -1,4 +1,5 @@
 import { PurchaseOrderController } from '../controllers/purchaseorder.controller.js';
+import { formatPurchaseOrderForAPI } from '../utils/dynamicDbOperations.js';
 export async function purchaseOrderRoutes(fastify) {
     const purchaseOrderController = new PurchaseOrderController();
     fastify.get('/', {
@@ -46,32 +47,32 @@ export async function purchaseOrderRoutes(fastify) {
                                     companyname: { type: 'string', description: 'Company name' },
                                     companyaddress: { type: 'string', description: 'Company address' },
                                     contactname: { type: 'string', description: 'Contact name' },
-                                    phonenumber: { type: 'object', description: 'Phone number (complex object)' },
+                                    phonenumber: { type: 'number', nullable: true, description: 'Phone number' },
                                     gstnumber: { type: 'string', description: 'GST number' },
                                     io_companyname: { type: 'string', description: 'Invoice company name' },
                                     io_companyaddress: { type: 'string', description: 'Invoice company address' },
                                     io_contactname: { type: 'string', description: 'Invoice contact name' },
-                                    io_phonenumber: { type: 'object', description: 'Invoice phone number (complex object)' },
+                                    io_phonenumber: { type: 'number', nullable: true, description: 'Invoice phone number' },
                                     io_gstnumber: { type: 'string', description: 'Invoice GST number' },
                                     dt_companyname: { type: 'string', description: 'Delivery company name' },
                                     dt_companyaddress: { type: 'string', description: 'Delivery company address' },
                                     dt_contactname: { type: 'string', description: 'Delivery contact name' },
-                                    dt_phonenumber: { type: 'object', description: 'Delivery phone number (complex object)' },
+                                    dt_phonenumber: { type: 'number', nullable: true, description: 'Delivery phone number' },
                                     dt_gstnumber: { type: 'string', description: 'Delivery GST number' },
                                     supplierid: { type: 'number', description: 'Supplier ID' },
-                                    subtotal: { type: 'object', description: 'Subtotal (complex object)' },
-                                    discount: { type: 'object', description: 'Discount (complex object)' },
-                                    sgst: { type: 'object', description: 'SGST (complex object)' },
-                                    cgst: { type: 'object', description: 'CGST (complex object)' },
-                                    payabletaxamount: { type: 'object', description: 'Payable tax amount (complex object)' },
-                                    total: { type: 'object', description: 'Total amount (complex object)' },
+                                    subtotal: { type: 'number', nullable: true, description: 'Subtotal amount' },
+                                    discount: { type: 'number', nullable: true, description: 'Discount amount' },
+                                    sgst: { type: 'number', nullable: true, description: 'SGST amount' },
+                                    cgst: { type: 'number', nullable: true, description: 'CGST amount' },
+                                    payabletaxamount: { type: 'number', nullable: true, description: 'Payable tax amount' },
+                                    total: { type: 'number', nullable: true, description: 'Total amount' },
                                     createddate: { type: 'number', description: 'Creation timestamp' },
                                     modifieddate: { type: 'number', description: 'Modification timestamp' },
                                     product: { type: 'array', description: 'Product details array' },
                                     po_status: { type: 'string', description: 'PO status' },
                                     supplieraddress: { type: 'string', description: 'Supplier address' },
                                     suppliercompanyname: { type: 'string', description: 'Supplier company name' },
-                                    supplierphonenumber: { type: 'object', description: 'Supplier phone number (complex object)' },
+                                    supplierphonenumber: { type: 'number', nullable: true, description: 'Supplier phone number' },
                                     suppliergstnumber: { type: 'string', nullable: true, description: 'Supplier GST number' },
                                     instructions: { type: 'string', nullable: true, description: 'Instructions' },
                                     fileurl: { type: 'string', nullable: true, description: 'File URL' },
@@ -194,7 +195,7 @@ export async function purchaseOrderRoutes(fastify) {
             const response = {
                 success: true,
                 message: 'Purchase order retrieved successfully',
-                data: purchaseOrder
+                data: formatPurchaseOrderForAPI(purchaseOrder)
             };
             return reply.code(200).send(response);
         }

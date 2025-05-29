@@ -64,6 +64,19 @@ export const SAFE_FIELD_CONFIGS = {
     ] as readonly string[],
     optionalFields: [] as readonly string[],
     dynamicFields: [] as readonly string[]
+  },
+  purchaserequest: {
+    coreFields: [
+      'id', 'companyname', 'companyaddress', 'contactname', 'phonenumber',
+      'gstnumber', 'companymail', 'supplierid', 'prurl', 'prdata',
+      'prnumber', 'supplieremail', 'prstatus', 'createddate', 'modifieddate'
+    ] as readonly string[],
+    optionalFields: [
+      'dynamicFields'
+    ] as readonly string[],
+    dynamicFields: [
+      'notes', 'customField1', 'customField2', 'customField3'
+    ] as readonly string[]
   }
 };
 

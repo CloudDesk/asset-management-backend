@@ -129,7 +129,8 @@ function getTableName(modelName: string): string {
     'picklist': 'picklist',
     'supplier': 'supplier',
     'purchaseorder': 'purchaseorder',
-    'purchaserequest': 'purchaserequest'
+    'purchaserequest': 'purchaserequest',
+    'quotes': 'quotes'
   };
   
   return tableMapping[modelName] || modelName;
@@ -1173,58 +1174,129 @@ export async function dynamicDelete(
   where: any
 ): Promise<boolean> {
   try {
-    // Try Prisma first
+    // Input validation
+    if (!modelName || !where || !where.id) {
+      logger.warn({ modelName, where }, 'Invalid input for delete operation');
+      return false;
+    }
+
+    // Convert ID to integer if it's a numeric string
+    let idValue = where.id;
+    if (typeof idValue === 'string' && /^\d+$/.test(idValue)) {
+      idValue = parseInt(idValue, 10);
+    }
+
+    // Get table name and validate it exists
+    const tableName = getTableName(modelName);
+    const availableColumns = await discoverTableColumns(tableName);
+    
+    if (availableColumns.length === 0) {
+      logger.warn({ modelName, tableName }, 'Table not found or has no columns');
+      return false;
+    }
+
+    // Verify ID column exists
+    if (!availableColumns.includes('id')) {
+      logger.warn({ modelName, tableName, columns: availableColumns }, 'Table does not have an id column');
+      return false;
+    }
+
+    // Try Prisma first for models with schema
     try {
       let result: any = null;
       
       if (modelName === 'product') {
-        result = await prisma.product.delete({ where });
+        result = await prisma.product.delete({ where: { id: idValue } });
       } else if (modelName === 'stock') {
-        result = await prisma.stock.delete({ where });
+        result = await prisma.stock.delete({ where: { id: idValue } });
       } else if (modelName === 'picklist') {
-        result = await prisma.picklist.delete({ where });
+        result = await prisma.picklist.delete({ where: { id: idValue } });
       }
 
-      logger.info({ 
-        modelName, 
-        deletedId: result?.id 
-      }, 'Prisma delete completed successfully');
+      if (result) {
+        logger.info({ 
+          modelName, 
+          deletedId: result?.id 
+        }, 'Prisma delete completed successfully');
+        return true;
+      }
 
-      return true;
+      logger.debug({ 
+        modelName,
+        where 
+      }, 'No Prisma model found or delete failed, falling back to raw SQL');
+      
     } catch (prismaError: any) {
       logger.warn({ 
         error: prismaError.message, 
         modelName,
         where 
       }, 'Prisma delete failed, falling back to raw SQL');
-      
-      // Fallback to raw SQL DELETE
-      const tableName = getTableName(modelName);
-      
+    }
+    
+    // Fallback to raw SQL DELETE with better error handling
+    try {
       const deleteQuery = `
         DELETE FROM "${tableName}" 
         WHERE "id" = $1 
         RETURNING id
       `;
       
-      const result = await prisma.$queryRawUnsafe(deleteQuery, where.id);
+      logger.debug({ 
+        modelName,
+        tableName,
+        query: deleteQuery,
+        id: idValue
+      }, 'Executing raw SQL delete');
+
+      const result = await prisma.$queryRawUnsafe(deleteQuery, idValue);
+      
+      // Ensure result is properly handled
       const records = Array.isArray(result) ? result : [];
       const success = records.length > 0;
       
       if (success) {
         logger.info({ 
           modelName, 
-          deletedId: where.id 
+          deletedId: idValue,
+          method: 'raw_sql'
         }, 'Raw SQL delete completed successfully');
+      } else {
+        logger.warn({ 
+          modelName, 
+          id: idValue,
+          method: 'raw_sql'
+        }, 'Record not found for deletion');
       }
       
       return success;
+    } catch (sqlError: any) {
+      // Handle specific SQL errors
+      logger.error({ 
+        error: sqlError.message, 
+        code: sqlError.code,
+        modelName,
+        tableName,
+        id: idValue
+      }, 'Raw SQL delete failed');
+      
+      // Check for foreign key constraint violations
+      if (sqlError.code === '23503') {
+        logger.warn({
+          modelName,
+          id: idValue,
+          constraint: sqlError.constraint
+        }, 'Cannot delete record due to foreign key constraint');
+      }
+      
+      throw sqlError;
     }
   } catch (error: any) {
     logger.error({ 
       error: error.message, 
       modelName, 
-      where 
+      where,
+      stack: error.stack
     }, 'Error in dynamic delete operation');
     return false;
   }
@@ -1503,6 +1575,28 @@ export function formatPicklistForAPI(picklist: any): any {
 }
 
 /**
+ * Formats a single quotes object for API response
+ */
+export function formatQuotesForAPI(quote: any): any {
+  if (!quote) return quote;
+  
+  const formatted = serializeForAPI(quote);
+  
+  // Format numeric fields
+  if (formatted.id !== undefined) {
+    formatted.id = formatIntegerField(formatted.id) || formatted.id;
+  }
+  if (formatted.createddate !== undefined) {
+    formatted.createddate = formatIntegerField(formatted.createddate) || formatted.createddate;
+  }
+  if (formatted.modifieddate !== undefined) {
+    formatted.modifieddate = formatIntegerField(formatted.modifieddate) || formatted.modifieddate;
+  }
+  
+  return formatted;
+}
+
+/**
  * Universal formatter that detects entity type and applies appropriate formatting
  */
 export function formatEntityForAPI(entity: any, entityType?: string): any {
@@ -1523,6 +1617,8 @@ export function formatEntityForAPI(entity: any, entityType?: string): any {
         return formatPurchaseRequestForAPI(entity);
       case 'picklist':
         return formatPicklistForAPI(entity);
+      case 'quotes':
+        return formatQuotesForAPI(entity);
       default:
         return serializeForAPI(entity);
     }
@@ -1546,6 +1642,9 @@ export function formatEntityForAPI(entity: any, entityType?: string): any {
   }
   if (entity.type && entity.table && entity.field) {
     return formatPicklistForAPI(entity);
+  }
+  if (entity.quotenumber || entity.quoteurl) {
+    return formatQuotesForAPI(entity);
   }
   
   // Fallback to generic serialization

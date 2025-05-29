@@ -2,6 +2,7 @@ import { SupplierService } from '../services/supplier.service.js';
 import { createSupplierSchema, updateSupplierSchema, upsertSupplierSchema } from '../schemas/supplier.schema.js';
 import { createSuccessResponse, asyncHandler, ValidationError, NotFoundError, validateIntegerId } from '../utils/errorHandler.js';
 import { logger } from '../config/logger.js';
+import { formatSupplierForAPI, formatEntitiesForAPI } from '../utils/dynamicDbOperations.js';
 export class SupplierController {
     supplierService = new SupplierService();
     /**
@@ -43,7 +44,9 @@ export class SupplierController {
             throw new ValidationError('Invalid limit', 'Limit must be between 1 and 100');
         }
         const result = await this.supplierService.findMany(filters, pageNum, limitNum);
-        const response = createSuccessResponse('Suppliers retrieved successfully', result.data);
+        // Format all suppliers in the result
+        const formattedData = formatEntitiesForAPI(result.data, 'supplier');
+        const response = createSuccessResponse('Suppliers retrieved successfully', formattedData);
         return reply.code(200).send({
             ...response,
             pagination: result.pagination,
@@ -64,7 +67,7 @@ export class SupplierController {
         validateIntegerId(id, 'Supplier');
         try {
             const supplier = await this.supplierService.findById(id);
-            const response = createSuccessResponse('Supplier retrieved successfully', supplier);
+            const response = createSuccessResponse('Supplier retrieved successfully', formatSupplierForAPI(supplier));
             return reply.code(200).send(response);
         }
         catch (error) {

@@ -1,4 +1,5 @@
 import { SupplierController } from '../controllers/supplier.controller.js';
+import { formatSupplierForAPI } from '../utils/dynamicDbOperations.js';
 export async function supplierRoutes(fastify) {
     const supplierController = new SupplierController();
     // GET /v1/suppliers - Get all suppliers with pagination and filtering
@@ -11,6 +12,7 @@ export async function supplierRoutes(fastify) {
                 properties: {
                     page: { type: 'string', description: 'Page number' },
                     limit: { type: 'string', description: 'Items per page' },
+                    id: { type: 'string', description: 'Filter by supplier ID' },
                     suppliername: { type: 'string', description: 'Filter by supplier name' },
                     suppliercode: { type: 'string', description: 'Filter by supplier code' },
                     suppliertype: { type: 'string', description: 'Filter by supplier type (local/International)' },
@@ -53,7 +55,7 @@ export async function supplierRoutes(fastify) {
                                     gstnumber: { type: 'string', nullable: true, description: 'GST number' },
                                     doornumber: { type: 'string', nullable: true, description: 'Door number' },
                                     streetname: { type: 'string', nullable: true, description: 'Street name' },
-                                    pincode: { type: 'string', nullable: true, description: 'Pincode' },
+                                    pincode: { type: 'number', nullable: true, description: 'Pincode' },
                                     isdeleted: { type: 'boolean', nullable: true, description: 'Deletion status' },
                                     createddate: { type: 'number', description: 'Creation timestamp' },
                                     modifieddate: { type: 'number', description: 'Modification timestamp' },
@@ -132,7 +134,7 @@ export async function supplierRoutes(fastify) {
                                 gstnumber: { type: 'string', nullable: true, description: 'GST number' },
                                 doornumber: { type: 'string', nullable: true, description: 'Door number' },
                                 streetname: { type: 'string', nullable: true, description: 'Street name' },
-                                pincode: { type: 'string', nullable: true, description: 'Pincode' },
+                                pincode: { type: 'number', nullable: true, description: 'Pincode' },
                                 isdeleted: { type: 'boolean', nullable: true, description: 'Deletion status' },
                                 createddate: { type: 'number', description: 'Creation timestamp' },
                                 modifieddate: { type: 'number', description: 'Modification timestamp' },
@@ -180,7 +182,7 @@ export async function supplierRoutes(fastify) {
             const response = {
                 success: true,
                 message: 'Supplier retrieved successfully',
-                data: supplier
+                data: formatSupplierForAPI(supplier)
             };
             return reply.code(200).send(response);
         }

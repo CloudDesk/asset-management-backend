@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,136 +8,778 @@ datasource db {
 }
 
 model Product {
-  id                     String   @id @default(uuid())
-  name                   String
-  description            String?
-  category               String
-  price                  Decimal  @db.Decimal(10, 2)
-  status                 String   // FK to Picklist
-  totalStockQuantity     Int      @default(0) @map("total_stock_quantity")
-  totalStockAvailable    Int      @default(0) @map("total_stock_available")
-  totalStockSold         Int      @default(0) @map("total_stock_sold")
-  
-  // Dynamic fields stored as JSON
-  dynamicFields          Json?    @map("dynamic_fields")
-  
-  createdAt              DateTime @default(now()) @map("created_at")
-  updatedAt              DateTime @updatedAt @map("updated_at")
-  
-  // Relations
-  stocks                 Stock[]
-  
+  id                BigInt    @id @default(autoincrement())
+  name              String    @db.VarChar(500)
+  shortdescription  String?
+  fulldescription   String?
+  fragnancetype     String?   @db.VarChar(255)
+  volume            String?   @db.VarChar(50)
+  origincountry     String?   @db.VarChar(255)
+  organiccertified  Boolean?
+  supplierid        Int?
+  soldquantity      Int?
+  availablequantity Int?
+  productstatus     String?   @db.VarChar(255)
+  ponumber          String?   @db.VarChar(255)
+  puc               String?   @db.VarChar(255)
+  suppliername      String?   @db.VarChar(255)
+  serialnumber      String?   @db.VarChar(255)
+  averagerating     Decimal?  @db.Decimal(2, 1)
+  discount          Int?
+  orderedquantity   Int?
+  createddate       BigInt?
+  modifieddate      BigInt?
+  supplier          Supplier? @relation(fields: [supplierid], references: [id], map: "fk_supplier")
+
   @@map("product")
 }
 
 model Stock {
-  id                     String   @id @default(uuid())
-  productId              String   @map("product_id")
-  batchNumber            String   @map("batch_number")
-  warehouseLocation      String   @map("warehouse_location")
-  quantity               Int
-  availableQuantity      Int      @map("available_quantity")
-  soldQuantity           Int      @default(0) @map("sold_quantity")
-  
-  // Dynamic fields stored as JSON
-  dynamicFields          Json?    @map("dynamic_fields")
-  
-  createdAt              DateTime @default(now()) @map("created_at")
-  updatedAt              DateTime @updatedAt @map("updated_at")
-  
-  // Relations
-  product                Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  
-  @@unique([productId, batchNumber])
+  id                     Int                      @id(map: "stock_revo_pkey") @default(autoincrement())
+  puc                    String?                  @db.VarChar(500)
+  category               String?                  @db.VarChar(500)
+  subcategory            String?                  @db.VarChar(500)
+  brand                  String?                  @db.VarChar(500)
+  model                  String?                  @db.VarChar(500)
+  operatingsystem        String?                  @db.VarChar(500)
+  operatingsystemversion String?                  @db.VarChar(500)
+  ram                    String?                  @db.VarChar(500)
+  storagetype            String?                  @db.VarChar(500)
+  storagecapacity        String?                  @db.VarChar(500)
+  colour                 String?                  @db.VarChar(500)
+  graphicscard           String?                  @db.VarChar(500)
+  processor              String?                  @db.VarChar(500)
+  createddate            BigInt?
+  modifieddate           BigInt?
+  createdby              Int?
+  modifiedby             Int?
+  serialnumber           String?                  @unique(map: "unique_serialnumber") @db.VarChar(500)
+  stockstatus            String                   @default("Available") @db.VarChar(500)
+  manufacturedyear       BigInt?
+  releaseyear            BigInt?
+  isdeleted              Boolean?                 @default(false)
+  isarchive              Boolean?                 @default(false)
+  removefromrecyclebin   Boolean?                 @default(false)
+  ecompublish            Boolean?                 @default(false)
+  productname            String?                  @db.VarChar(500)
+  rfid                   String?                  @db.VarChar(500)
+  nfc                    String?                  @unique(map: "nfc_id") @db.VarChar(500)
+  orderid                String?                  @db.VarChar(500)
+  invoiceurl             String?                  @db.VarChar(500)
+  location               String?                  @db.VarChar(500)
+  solddate               BigInt?
+  assetlocation          String?                  @db.VarChar(200)
+  rfidscannedtime        BigInt?
+  orderlinenumber        String?                  @db.VarChar(500)
+  searchtext             Unsupported("tsvector")?
+  qrcode                 String?                  @unique(map: "unique_qrcode_stock") @db.VarChar(500)
+  barcode                String?                  @unique(map: "unique_barcode_stock") @db.VarChar(500)
+  ewaste                 Boolean?                 @default(false)
+  orderline              orderline?               @relation(fields: [orderlinenumber], references: [orderlinenumber], onDelete: NoAction, onUpdate: NoAction, map: "fk_orderlinenumber")
+  product_revo           product_revo?            @relation(fields: [puc], references: [puc], onDelete: Cascade, onUpdate: NoAction, map: "fk_puc")
+  orders                 orders?                  @relation(fields: [orderid], references: [orderid], onDelete: NoAction, onUpdate: NoAction, map: "stock_revo_orderid_fkey")
+
+  @@index([category], map: "idx_stock_category")
+  @@index([createddate], map: "idx_stock_createddate")
+  @@index([id], map: "idx_stock_id")
+  @@index([puc], map: "idx_stock_puc")
+  @@index([stockstatus], map: "idx_stock_stockstatus")
   @@map("stock")
 }
 
 model Picklist {
-  id                     String   @id @default(uuid())
-  type                   String   // e.g., 'PRODUCT_STATUS'
-  table                  String   // e.g., 'product'
-  field                  String   // e.g., 'status'
-  label                  String
-  value                  String
-  isActive               Boolean  @default(true) @map("is_active")
-  ordering               Int      @default(0)
-  
-  createdAt              DateTime @default(now()) @map("created_at")
-  updatedAt              DateTime @updatedAt @map("updated_at")
-  
-  @@unique([type, value])
+  id                  Int     @id(map: "pk") @default(autoincrement())
+  label               String? @db.VarChar(255)
+  value               String? @db.VarChar(255)
+  object              String? @db.VarChar(255)
+  controlledvalue     String? @db.VarChar(255)
+  fieldname           String? @db.VarChar(255)
+  controlledlabel     String? @db.VarChar(255)
+  controlledfieldname String? @db.VarChar(255)
+  parent              String? @db.VarChar(20)
+
+  @@index([id], map: "idx_picklist_id")
   @@map("picklist")
 }
 
 model Supplier {
-  id                     String   @id @default(uuid())
-  name                   String
-  contactPerson          String?  @map("contact_person")
-  email                  String?
-  phone                  String?
-  address                String?
-  city                   String?
-  country                String?
-  status                 String   @default("active") // FK to Picklist
-  
-  // Dynamic fields stored as JSON
-  dynamicFields          Json?    @map("dynamic_fields")
-  
-  createdAt              DateTime @default(now()) @map("created_at")
-  updatedAt              DateTime @updatedAt @map("updated_at")
-  
-  // Relations
-  purchaseOrders         PurchaseOrder[]
-  purchaseRequests       PurchaseRequest[]
-  
+  id                  Int               @id @default(autoincrement())
+  suppliername        String?           @db.VarChar(300)
+  supplierphonenumber BigInt?
+  supplierlandline    BigInt?
+  doornumber          String?           @db.VarChar(100)
+  streetname          String?
+  city                String?           @db.VarChar(100)
+  state               String?           @db.VarChar(100)
+  pincode             Decimal?          @db.Decimal
+  isdeleted           Boolean?
+  modifieddate        BigInt?
+  createddate         BigInt?
+  gstnumber           String?           @db.VarChar(500)
+  supplieremail       String?           @db.VarChar(500)
+  suppliercode        String?           @unique(map: "unique_supplier_code") @db.VarChar(5)
+  suppliertype        String            @default("local") @db.VarChar(255)
+  country             String?           @db.VarChar(255)
+  product             Product[]
+  // product_revo        product_revo[]
+  purchaseorder       PurchaseOrder[]
+  purchaserequest     PurchaseRequest[]
+
   @@map("supplier")
 }
 
 model PurchaseOrder {
-  id                     String   @id @default(uuid())
-  orderNumber            String   @unique @map("order_number")
-  supplierId             String   @map("supplier_id")
-  orderDate              DateTime @map("order_date")
-  expectedDeliveryDate   DateTime? @map("expected_delivery_date")
-  actualDeliveryDate     DateTime? @map("actual_delivery_date")
-  status                 String   @default("pending") // FK to Picklist
-  totalAmount            Decimal? @db.Decimal(10, 2) @map("total_amount")
-  notes                  String?
-  
-  // Dynamic fields stored as JSON
-  dynamicFields          Json?    @map("dynamic_fields")
-  
-  createdAt              DateTime @default(now()) @map("created_at")
-  updatedAt              DateTime @updatedAt @map("updated_at")
-  
-  // Relations
-  supplier               Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
-  
+  id                  Int              @default(autoincrement())
+  ponumber            String           @id @db.VarChar(500)
+  companyname         String?          @db.VarChar(500)
+  companyaddress      String?          @db.VarChar(500)
+  contactname         String?          @db.VarChar(500)
+  phonenumber         Decimal?         @db.Decimal
+  gstnumber           String?          @db.VarChar(500)
+  io_companyname      String?          @db.VarChar(500)
+  io_companyaddress   String?          @db.VarChar(500)
+  io_contactname      String?          @db.VarChar(500)
+  io_phonenumber      Decimal?         @db.Decimal
+  io_gstnumber        String?          @db.VarChar(500)
+  dt_companyname      String?          @db.VarChar(500)
+  dt_companyaddress   String?          @db.VarChar(500)
+  dt_contactname      String?          @db.VarChar(500)
+  dt_phonenumber      Decimal?         @db.Decimal
+  dt_gstnumber        String?          @db.VarChar(500)
+  supplierid          Int?
+  subtotal            Decimal?         @db.Decimal
+  discount            Decimal?         @db.Decimal
+  sgst                Decimal?         @db.Decimal
+  cgst                Decimal?         @db.Decimal
+  payabletaxamount    Decimal?         @db.Decimal
+  total               Decimal?         @db.Decimal
+  createddate         BigInt?
+  modifieddate        BigInt?
+  product             Json?
+  po_status           String?          @db.VarChar(500)
+  supplieraddress     String?          @db.VarChar(500)
+  suppliercompanyname String?          @db.VarChar(500)
+  supplierphonenumber Decimal?         @db.Decimal
+  suppliergstnumber   String?          @db.VarChar(500)
+  instructions        String?
+  fileurl             String?          @db.VarChar(500)
+  invoiceurl          String[]         @db.VarChar(500)
+  sameasinvoice       Boolean?
+  prnumber            String?          @db.VarChar(500)
+  paymentterms        String?          @db.VarChar(500)
+  overduedate         BigInt?
+  comments            String?
+  suppliertype        String           @default("local") @db.VarChar(255)
+  poinvoice           poinvoice[]      @ignore
+  product_revo        product_revo[]
+  purchaserequest     PurchaseRequest? @relation(fields: [prnumber], references: [prnumber], onDelete: Cascade, onUpdate: NoAction, map: "fk_prnumber_purchaseorder")
+  supplier            Supplier?        @relation(fields: [supplierid], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_supplierid_purchaseorder_supplier")
+
   @@map("purchaseorder")
 }
 
 model PurchaseRequest {
-  id                     String   @id @default(uuid())
-  requestNumber          String   @unique @map("request_number")
-  supplierId             String?  @map("supplier_id")
-  requestDate            DateTime @map("request_date")
-  requiredDate           DateTime? @map("required_date")
-  status                 String   @default("draft") // FK to Picklist
-  priority               String   @default("medium") // FK to Picklist
-  requestedBy            String   @map("requested_by")
-  approvedBy             String?  @map("approved_by")
-  approvedDate           DateTime? @map("approved_date")
-  totalEstimatedAmount   Decimal? @db.Decimal(10, 2) @map("total_estimated_amount")
-  notes                  String?
-  
-  // Dynamic fields stored as JSON
-  dynamicFields          Json?    @map("dynamic_fields")
-  
-  createdAt              DateTime @default(now()) @map("created_at")
-  updatedAt              DateTime @updatedAt @map("updated_at")
-  
-  // Relations
-  supplier               Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
-  
+  id             Int             @default(autoincrement())
+  createddate    BigInt?
+  modifieddate   BigInt?
+  prstatus       String?         @default("In Progress") @db.VarChar(500)
+  companyname    String?         @db.VarChar(500)
+  companyaddress String?         @db.VarChar(500)
+  contactname    String?         @db.VarChar(500)
+  phonenumber    BigInt?
+  gstnumber      String?         @db.VarChar(500)
+  companymail    String?         @db.VarChar(500)
+  supplierid     Int?
+  prurl          String?         @db.VarChar(500)
+  prdata         Json?
+  prnumber       String          @id @db.VarChar(500)
+  supplieremail  String?         @db.VarChar(200)
+  purchaseorder  PurchaseOrder[]
+  supplier       Supplier?       @relation(fields: [supplierid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_supplierid_purchaserequest")
+  quotes         quotes[]        @ignore
+
   @@map("purchaserequest")
-} 
+}
+
+model address {
+  id           Int         @id(map: "pk_address") @default(autoincrement())
+  userid       Int?
+  name         String?     @db.VarChar(100)
+  mobilenumber Decimal?    @db.Decimal
+  pincode      Decimal?    @db.Decimal
+  doornumber   String?     @db.VarChar(100)
+  address      String?
+  landmark     String?     @db.VarChar(100)
+  state        String?     @db.VarChar(100)
+  city         String?     @db.VarChar(100)
+  modifieddate BigInt?
+  createddate  BigInt?
+  users        users?      @relation(fields: [userid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_userid_address_user")
+  orderline    orderline[]
+  orders       orders[]
+}
+
+model cart {
+  id           Int           @id @default(autoincrement())
+  productid    BigInt?
+  userid       Int?
+  createddate  BigInt?
+  quantity     Decimal?      @db.Decimal
+  iscart       Boolean?      @default(false)
+  iswishlist   Boolean?      @default(false)
+  modifieddate BigInt?
+  // product_revo product_revo? @relation(fields: [productid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_productid_revo")
+}
+
+model exchange_rates {
+  currency      String    @id @db.VarChar(5)
+  exchange_rate Decimal?  @db.Decimal(10, 4)
+  last_updated  DateTime? @db.Timestamp(6)
+}
+
+model inventoryusers {
+  id               Int     @id @default(autoincrement())
+  useremail        String? @unique(map: "unique_email_inventory_users") @db.VarChar(255)
+  userpassword     String? @db.VarChar(255)
+  createddate      BigInt?
+  modifieddate     BigInt?
+  role             String? @db.VarChar(500)
+  usersphonenumber BigInt?
+  firstname        String? @db.VarChar(255)
+  lastname         String? @db.VarChar(255)
+  location         String? @db.VarChar(500)
+  fcmid            String? @db.VarChar(400)
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model locationhistory {
+  id              Int     @default(autoincrement())
+  location        String? @db.VarChar(500)
+  lastlocation    String? @db.VarChar(500)
+  scannedlocation String? @db.VarChar(500)
+  modifieddate    BigInt?
+  createddate     BigInt?
+  stockid         Int?
+  scannedtime     BigInt?
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model logistics_costs {
+  region             String?
+  logistics_cost_qar Float?
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model notes {
+  id           Int      @default(autoincrement())
+  createddate  BigInt?
+  modifieddate BigInt?
+  quotenumber  String?  @db.VarChar(500)
+  comment      String?
+  title        String?  @db.VarChar(500)
+  ispinned     Boolean? @default(false)
+  quotes       quotes?  @relation(fields: [quotenumber], references: [quotenumber], onDelete: Cascade, onUpdate: NoAction, map: "fk_quotenumber_notes")
+
+  @@ignore
+}
+
+model orderline {
+  id                    Int           @id @default(autoincrement())
+  orderid               Int?
+  productid             Int?
+  userid                Int?
+  addressid             Int?
+  productamount         Decimal?      @db.Decimal
+  discountamount        Decimal?      @db.Decimal
+  orderamount           Decimal?      @db.Decimal
+  quantity              Int?
+  createddate           BigInt?
+  modifieddate          BigInt?
+  merchanttransactionid String?       @db.VarChar(250)
+  productname           String?       @db.VarChar(500)
+  productcategory       String?       @db.VarChar(500)
+  productcolour         String?       @db.VarChar(500)
+  readytodispatchdate   BigInt?
+  delivereddate         BigInt?
+  cancelleddate         BigInt?
+  returneddate          BigInt?
+  orderstatus           String?       @db.VarChar(500)
+  uniqueordderid        String?       @db.VarChar(500)
+  orderlinenumber       String?       @unique(map: "unique_orderlinenumber") @db.VarChar(500)
+  deliveryfrom          String?       @db.VarChar(500)
+  location              String?       @db.VarChar(500)
+  dispatcheddate        BigInt?
+  ordereddate           BigInt?
+  paymentfaileddate     BigInt?
+  address               address?      @relation(fields: [addressid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  orders                orders?       @relation(fields: [orderid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  product_revo          product_revo? @relation(fields: [productid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users                 users?        @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  rating                rating[]      @ignore
+  stock                 Stock[]
+  tickets               tickets[]     @ignore
+}
+
+model orders {
+  id                    Int                      @id @default(autoincrement())
+  userid                Int?
+  addressid             Int?
+  createddate           BigInt?
+  modifieddate          BigInt?
+  orderamount           Decimal?                 @db.Decimal
+  orderid               String?                  @unique(map: "uniq_orderid") @db.VarChar(500)
+  orderstatus           String?                  @db.VarChar(500)
+  delivereddate         BigInt?
+  cancelleddate         BigInt?
+  returneddate          BigInt?
+  quantity              Int?
+  transactionid         String?                  @db.VarChar(500)
+  readytodispatchdate   BigInt?
+  dispatcheddate        BigInt?
+  productamount         Decimal?                 @db.Decimal
+  discountamount        Decimal?                 @db.Decimal
+  deliveryfrom          String?                  @db.VarChar(200)
+  orderprocessingtime   BigInt?
+  ispaymentsucceed      Boolean?                 @default(false)
+  merchanttransactionid String?                  @db.VarChar(250)
+  productid             Int[]
+  paymentfaileddate     BigInt?
+  searchtext            Unsupported("tsvector")?
+  orderline             orderline[]
+  address               address?                 @relation(fields: [addressid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_addressid_orders")
+  transaction           transaction?             @relation(fields: [transactionid], references: [transactionid], onDelete: Cascade, onUpdate: NoAction, map: "fk_transactionid")
+  users                 users?                   @relation(fields: [userid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_userid_orders")
+  revoinvoice           revoinvoice[]
+  stock                 Stock[]
+}
+
+model permissions {
+  id             Int     @id @default(autoincrement())
+  permissionname String  @db.VarChar(255)
+  permissionset  Json
+  role           String  @db.VarChar(255)
+  createddate    BigInt?
+  modifieddate   BigInt?
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model poinvoice {
+  id                    Int            @default(autoincrement())
+  invoiceamount         Decimal?       @db.Decimal
+  ponumber              String?        @db.VarChar(500)
+  invoicedate           BigInt?
+  invoicenumber         String?        @db.VarChar(500)
+  invoiceurl            String?        @db.VarChar(500)
+  paymentdata           Json?
+  createddate           BigInt?
+  modifieddate          BigInt?
+  balanceamount         Decimal?       @db.Decimal
+  iscreditpayment       Boolean?       @default(false)
+  paymentduedate        BigInt?
+  invoicestatus         String?        @db.VarChar(100)
+  pototal               Decimal?       @db.Decimal
+  purchaseorderstatus   String?        @db.VarChar(500)
+  transportationcharges Decimal?       @db.Decimal(15, 2)
+  exchangeamount        Decimal?       @db.Decimal(15, 2)
+  customdutytaxamount   Decimal?       @db.Decimal(15, 2)
+  suppliertype          String?        @db.VarChar(255)
+  customdutychallanurl  String?        @db.VarChar(255)
+  billofentryurl        String?        @db.VarChar(255)
+  purchaseorder         PurchaseOrder? @relation(fields: [ponumber], references: [ponumber], onDelete: Cascade, onUpdate: NoAction, map: "fk_ponumber_invoice")
+
+  @@ignore
+}
+
+model pricing_markup {
+  region            String   @id @db.VarChar(10)
+  markup_percentage Decimal? @db.Decimal(5, 2)
+}
+
+model product_revo {
+  productname                  String?                  @db.VarChar(500)
+  id                           Int                      @id @default(autoincrement())
+  storage                      String?                  @db.VarChar(500)
+  display                      String?                  @db.VarChar(500)
+  graphicsprocessingunit       String?                  @db.VarChar(500)
+  operatingsystem              String?                  @db.VarChar(500)
+  ports                        String?                  @db.VarChar(500)
+  connectivity                 String?                  @db.VarChar(500)
+  weight                       Decimal?                 @db.Decimal
+  category                     String?                  @db.VarChar(500)
+  unitofmeasurement            String?                  @db.VarChar(500)
+  costperproduct               Decimal?                 @db.Decimal(10, 2)
+  createddate                  BigInt?
+  modifieddate                 BigInt?
+  large                        String[]                 @db.VarChar
+  medium                       String[]                 @db.VarChar
+  small                        String[]                 @db.VarChar
+  price                        Decimal?                 @db.Decimal
+  processor                    String?                  @db.VarChar(500)
+  brand                        String?                  @db.VarChar(500)
+  model                        String?                  @db.VarChar(500)
+  operatingsystemversion       String?                  @db.VarChar(500)
+  ram                          String?                  @db.VarChar(500)
+  storagetype                  String?                  @db.VarChar(500)
+  storagecapacity              String?                  @db.VarChar(500)
+  displaytype                  String?                  @db.VarChar(500)
+  displaysize                  Decimal?                 @db.Decimal
+  displayresolution            String?                  @db.VarChar(500)
+  batterylife                  Decimal?                 @db.Decimal
+  colour                       String?                  @db.VarChar(500)
+  fingerprintreader            Boolean?                 @default(false)
+  chargerports                 String[]                 @db.VarChar
+  adaptertypes                 String?                  @db.VarChar(500)
+  dimensions                   String?                  @db.VarChar(500)
+  imageupload                  String?                  @db.VarChar(500)
+  manufacturedate              BigInt?
+  releaseyear                  BigInt?
+  additionalfeatures           String?
+  suppliername                 String?                  @db.VarChar(500)
+  doornumber                   String?                  @db.VarChar(500)
+  streetname                   String?
+  city                         String?                  @db.VarChar(500)
+  state                        String?                  @db.VarChar(500)
+  pincode                      Decimal?                 @db.Decimal
+  graphicscard                 String?                  @db.VarChar(500)
+  recordtype                   String?                  @db.VarChar(500)
+  subcategory                  String?                  @db.VarChar(500)
+  location                     String?                  @db.VarChar(500)
+  productadditiondate          BigInt?
+  supplierphonenumber          BigInt?
+  supplierlandline             BigInt?
+  condition                    String?                  @db.VarChar(500)
+  ageoflaptop                  String?                  @db.VarChar(500)
+  usagehours                   Int?
+  servicehistory               String?
+  laptopconditiondescription   String?
+  accessoriesincluded          String[]                 @db.VarChar
+  originalbox                  Boolean?                 @default(false)
+  previoususage                String?
+  alterations                  String?
+  warrantyvalid                Boolean?                 @default(false)
+  accessories                  String?                  @db.VarChar(500)
+  imeinumber                   Decimal?                 @db.Decimal
+  batteryhealth                String?                  @db.VarChar(500)
+  screencondition              String?                  @db.VarChar(500)
+  bodycondition                String?                  @db.VarChar(500)
+  cameracondition              String?                  @db.VarChar(500)
+  additionalnotes              String?
+  frontcameraspecifications    String?                  @db.VarChar(500)
+  backcameraspecifications     String?                  @db.VarChar(500)
+  chargingtype                 String?                  @db.VarChar(500)
+  batterytype                  String?                  @db.VarChar(500)
+  batterycapacity              String?                  @db.VarChar(500)
+  isarchive                    Boolean?                 @default(false)
+  refurbishmentstatus          String?                  @db.VarChar(500)
+  refurbishmentdate            BigInt?
+  warranty                     String?                  @db.VarChar(500)
+  refurbisherinformation       String?                  @db.VarChar(500)
+  certifications               String?                  @db.VarChar(500)
+  refurbishmentprocessdetails  String?
+  additionalrefurbishmentnotes String?
+  refurbishedwarrantyterms     String?
+  material                     String?                  @db.VarChar(500)
+  cablelength                  String?                  @db.VarChar(500)
+  outputpowerwattage           String?                  @db.VarChar(500)
+  plugtype                     String?                  @db.VarChar(500)
+  inputvoltage                 String?                  @db.VarChar(500)
+  inputcurrent                 String?                  @db.VarChar(500)
+  outputvoltage                String?                  @db.VarChar(500)
+  outputcurrent                String?                  @db.VarChar(500)
+  poweroutput                  String?                  @db.VarChar(500)
+  physicalcondition            String?                  @db.VarChar(500)
+  workingcondition             String?                  @db.VarChar(500)
+  missingparts                 String?                  @db.VarChar(500)
+  ageoflaptopyear              String?                  @db.VarChar(500)
+  ageoflaptopmonth             String?                  @db.VarChar(500)
+  ageoftheproduct              Decimal?                 @db.Decimal
+  refurbishedpart              String?                  @db.VarChar(500)
+  refurbisheddate              BigInt?
+  warrantyenddate              BigInt?
+  isdeleted                    Boolean?                 @default(false)
+  laptopaccessories            String?                  @db.VarChar(500)
+  mobileaccessories            String?                  @db.VarChar(500)
+  connectivitytype             String?                  @db.VarChar(500)
+  dpi                          Boolean?                 @default(false)
+  sensortype                   String?                  @db.VarChar(500)
+  pollingrate                  String?                  @db.VarChar(500)
+  numberofbuttons              String?                  @db.VarChar(500)
+  keylayout                    String?                  @db.VarChar(500)
+  backlight                    String?                  @db.VarChar(500)
+  accessoriesfor               String?                  @db.VarChar(500)
+  interface                    String?                  @db.VarChar(500)
+  datatransferspeed            String?                  @db.VarChar(500)
+  formfactor                   String?                  @db.VarChar(500)
+  systemrequirements           String?                  @db.VarChar(500)
+  numberofports                Int?
+  accessoriestype              String?                  @db.VarChar(500)
+  portsandconnectivity         String?                  @db.VarChar(500)
+  coolingpadmaterial           String?                  @db.VarChar(500)
+  fanspeed                     String?                  @db.VarChar(500)
+  numberoffans                 Int?
+  noiselevel                   String?                  @db.VarChar(500)
+  powersource                  String?                  @db.VarChar(500)
+  paneltype                    String?                  @db.VarChar(500)
+  refreshrate                  String?                  @db.VarChar(500)
+  responsetime                 String?                  @db.VarChar(500)
+  aspectratio                  String?                  @db.VarChar(500)
+  contrastratio                String?                  @db.VarChar(500)
+  touchscreensupport           Boolean?                 @default(false)
+  frequency                    String?                  @db.VarChar(500)
+  noisecancellation            String?                  @db.VarChar(500)
+  headsettype                  String?                  @db.VarChar(500)
+  deepbass                     Boolean?                 @default(false)
+  headphonedriversize          String?                  @db.VarChar(500)
+  inlineremote                 Boolean?                 @default(false)
+  connectortype                String?                  @db.VarChar(500)
+  voltageandcurrentrating      String?                  @db.VarChar(500)
+  compatiblelaptopsize         String?                  @db.VarChar(500)
+  bagcapacity                  String?                  @db.VarChar(500)
+  accessoriesbrand             String?                  @db.VarChar(500)
+  thickness                    String?                  @db.VarChar(500)
+  packagecontents              String?                  @db.VarChar(500)
+  designedfor                  String?                  @db.VarChar(500)
+  lightindicator               String?                  @db.VarChar(500)
+  includeschargingcable        String?                  @db.VarChar(500)
+  powerinput                   String?                  @db.VarChar(500)
+  powersupply                  String?                  @db.VarChar(500)
+  foldable                     String?                  @db.VarChar(500)
+  compatibility                String?
+  accessoriesmaterial          String?                  @db.VarChar(500)
+  sticklength                  String?                  @db.VarChar(500)
+  connector1                   String?                  @db.VarChar(500)
+  connector2                   String?                  @db.VarChar(500)
+  connector3                   String?                  @db.VarChar(500)
+  connector4                   String?                  @db.VarChar(500)
+  adapterporttype              String?                  @db.VarChar(500)
+  supports                     String[]                 @db.VarChar
+  supplierid                   BigInt?
+  puc                          String?                  @unique(map: "unique_puc") @db.VarChar(500)
+  quantity                     Int?                     @default(0)
+  ecompublishedquantity        Int?                     @default(0)
+  soldquantity                 Int?                     @default(0)
+  availablequantity            Int?                     @default(0)
+  removefromrecyclebin         Boolean?                 @default(false)
+  productstatus                String?                  @default("Out Of Stock") @db.VarChar(500)
+  ponumber                     String?                  @db.VarChar(500)
+  serialnumber                 String?                  @db.VarChar(500)
+  searchtext                   Unsupported("tsvector")?
+  averagerating                Decimal?                 @default(0) @db.Decimal
+  orderedquantity              BigInt?                  @default(0)
+  discount                     Decimal?                 @default(0) @db.Decimal
+  quantityforlocation          Json?
+  lock_qty                     Int?                     @default(0)
+  qrcode                       String?                  @unique(map: "unique_qrcode") @db.VarChar(500)
+  barcode                      String?                  @unique(map: "unique_barcode") @db.VarChar(500)
+  // cart                         cart[]
+  orderline                    orderline[]
+  purchaseorder                PurchaseOrder?           @relation(fields: [ponumber], references: [ponumber], onDelete: Cascade, onUpdate: NoAction, map: "fk_ponumber_product_revo")
+  // supplier                     Supplier?                @relation(fields: [supplierid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_supplierid")
+  stock                        Stock[]
+
+  @@index([category], map: "idx_product_category")
+  @@index([createddate], map: "idx_product_createddate")
+  @@index([id], map: "idx_product_id")
+  @@index([productstatus], map: "idx_product_productstatus")
+  @@index([puc], map: "idx_product_puc")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model quotes {
+  id              Int              @id @default(autoincrement())
+  createddate     BigInt?
+  modifieddate    BigInt?
+  status          String?          @db.VarChar(500)
+  prnumber        String?          @db.VarChar(500)
+  quoteurl        String?          @db.VarChar(500)
+  quotenumber     String?          @unique(map: "unique_quotenumber") @db.VarChar(500)
+  notes           notes[]          @ignore
+  purchaserequest PurchaseRequest? @relation(fields: [prnumber], references: [prnumber], onDelete: Cascade, onUpdate: NoAction, map: "fk_prnumber_purchaserequest_quotes")
+
+  @@map("quotes")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model rating {
+  id           Int        @default(autoincrement())
+  userid       Int?
+  productid    Int?
+  orderid      Int?
+  starrating   Int?
+  comments     String?
+  createddate  BigInt?
+  modifieddate BigInt?
+  url          String[]   @db.VarChar
+  usermail     String?    @db.VarChar(500)
+  orderlineid  Int?
+  orderline    orderline? @relation(fields: [orderlineid], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_orderline_rating_id")
+
+  @@ignore
+}
+
+model revoinvoice {
+  id                  Int      @default(autoincrement())
+  companyname         String?  @db.VarChar(500)
+  companyaddress      String?  @db.VarChar(500)
+  contactname         String?  @db.VarChar(500)
+  phonenumber         Decimal? @db.Decimal
+  gstnumber           String?  @db.VarChar(500)
+  customername        String?  @db.VarChar(500)
+  customeraddress     String?  @db.VarChar(500)
+  customerphonenumber Decimal? @db.Decimal
+  invoicedate         BigInt?
+  invoicenumber       String   @id(map: "revo_invoice") @db.VarChar(500)
+  invoiceurl          String?  @db.VarChar(100)
+  invoicedata         Json?
+  createddate         BigInt?
+  modifieddate        BigInt?
+  invoicefor          String?  @db.VarChar(100)
+  orderid             String?  @db.VarChar(500)
+  servicedata         Json?
+  gst                 String?  @db.VarChar(255)
+  taxamount           Decimal? @db.Decimal
+  discount            Decimal? @db.Decimal
+  totalorderamount    Decimal? @db.Decimal
+  ticketnumber        String?  @db.VarChar
+  iscreditpayment     Boolean? @default(false)
+  paymentduedate      BigInt?
+  servicetype         Decimal? @default(0) @db.Decimal
+  customergstnumber   String?  @db.VarChar(20)
+  tickets             tickets? @relation(fields: [ticketnumber], references: [ticketnumber], onDelete: NoAction, onUpdate: NoAction, map: "fk_ticketnumber") @ignore
+  orders              orders?  @relation(fields: [orderid], references: [orderid], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model servicecostestimation {
+  id                 Int      @id @default(autoincrement())
+  createddate        BigInt?
+  modifieddate       BigInt?
+  ticketnumber       String?  @db.VarChar(500)
+  estimationurl      String?  @db.VarChar(500)
+  estimationstatus   String?  @db.VarChar(500)
+  productdata        Json?
+  servicedata        Json?
+  productcgst        Decimal? @db.Decimal
+  productsgst        Decimal? @db.Decimal
+  producttaxamount   Decimal? @db.Decimal
+  producttotal       Decimal? @db.Decimal(10, 2)
+  servicecgst        Decimal? @db.Decimal
+  servicesgst        Decimal? @db.Decimal
+  servicetds         Decimal? @db.Decimal
+  servicetaxamount   Decimal? @db.Decimal
+  servicetotal       Decimal? @db.Decimal
+  totalpayableamount Decimal? @db.Decimal
+  approvalcomments   String?
+  servicetype        Decimal? @default(0) @db.Decimal
+  tickets            tickets? @relation(fields: [ticketnumber], references: [ticketnumber], onDelete: NoAction, onUpdate: NoAction) @ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model test_orders {
+  order_id        String?
+  order_date      String?
+  customer_id     String?
+  region          String?
+  product_id      String?
+  product_name    String?
+  quantity        BigInt?
+  order_value     Float?
+  currency        String?
+  payment_status  String?
+  delivery_status String?
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model tickets {
+  id                        Int                      @default(autoincrement())
+  ticketnumber              String?                  @unique(map: "uniqueticketnumber") @db.VarChar(500)
+  createddate               BigInt?
+  modifieddate              BigInt?
+  ticketstatus              String?                  @db.VarChar(500)
+  tikcetcomments            String?
+  assignedto                Int?
+  tickettype                String                   @db.VarChar(255)
+  ticketpriority            String?                  @db.VarChar(500)
+  transactionid             String?                  @db.VarChar(255)
+  amount                    Decimal?                 @db.Decimal
+  paymentmethod             String?                  @db.VarChar(255)
+  transactiondate           BigInt?
+  payeremail                String?                  @db.VarChar(255)
+  issuedescription          String?
+  recipturl                 String?                  @db.VarChar(200)
+  trackingnumber            String?                  @db.VarChar(255)
+  productname               String?                  @db.VarChar(255)
+  purchasedate              BigInt?
+  userid                    Int?
+  location                  String?                  @db.VarChar(255)
+  issuetype                 String?                  @db.VarChar(255)
+  servicetype               String?                  @db.VarChar(255)
+  proceedwithvalueservice   Boolean?                 @default(false)
+  productcategory           String?                  @db.VarChar(255)
+  productbrand              String?                  @db.VarChar(255)
+  productmodel              String?                  @db.VarChar(255)
+  receiversemail            String?                  @db.VarChar(250)
+  assignedid                Int?
+  approvedcostestimationid  Int?
+  addressid                 Int?
+  queuenumber               Int?
+  closeddate                BigInt?
+  reopenedticketdescription String?
+  underwarranty             Boolean?                 @default(false)
+  assignedfrom              String?                  @db.VarChar(200)
+  assigneddate              BigInt?
+  istransferred             Boolean?                 @default(false)
+  transferredby             String?                  @db.VarChar(200)
+  isreopend                 Boolean?                 @default(false)
+  createdbyid               Int?
+  productid                 Int?
+  productdelivereddate      BigInt?
+  orderlinenumber           String?                  @db.VarChar(500)
+  searchtext                Unsupported("tsvector")?
+  revoinvoice               revoinvoice[]
+  servicecostestimation     servicecostestimation[]
+  orderline                 orderline?               @relation(fields: [orderlinenumber], references: [orderlinenumber], onDelete: NoAction, onUpdate: NoAction, map: "fk_orderlinenumber")
+  users                     users?                   @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@ignore
+}
+
+model transaction {
+  id                    Int      @default(autoincrement())
+  transactionid         String   @id @db.VarChar(500)
+  createddate           BigInt?
+  modifieddate          BigInt?
+  transactiondata       Json?
+  userid                Int?
+  productid             Int[]
+  merchanttransactionid String?  @db.VarChar(500)
+  name                  String?  @db.VarChar(500)
+  amount                Decimal? @db.Decimal
+  mobilenumber          BigInt?
+  transactionfor        String?  @db.VarChar(255)
+  orders                orders[]
+}
+
+model users {
+  id               Int         @id @default(autoincrement())
+  useremail        String?     @unique(map: "unique_email_users") @db.VarChar(255)
+  userpassword     String?     @db.VarChar(255)
+  createddate      BigInt?
+  modifieddate     BigInt?
+  usermobilenumber BigInt?
+  fcmid            String?     @db.VarChar(500)
+  firstname        String?     @db.VarChar(500)
+  lastname         String?     @db.VarChar(500)
+  gender           String?     @db.VarChar(50)
+  gstnumber        String?     @db.VarChar(20)
+  isbusinessuser   Boolean?
+  address          address[]
+  orderline        orderline[]
+  orders           orders[]
+  tickets          tickets[]   @ignore
+}

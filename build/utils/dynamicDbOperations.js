@@ -92,29 +92,107 @@ function getTableName(modelName) {
         'picklist': 'picklist',
         'supplier': 'supplier',
         'purchaseorder': 'purchaseorder',
-        'purchaserequest': 'purchaserequest'
+        'purchaserequest': 'purchaserequest',
+        'quotes': 'quotes'
     };
     return tableMapping[modelName] || modelName;
 }
 /**
- * Converts BigInt values to numbers for JSON serialization
+ * Converts BigInt values and other database objects to JSON-serializable values
  */
 function convertBigIntToNumber(obj) {
     if (obj === null || obj === undefined) {
         return obj;
     }
+    // Handle BigInt
     if (typeof obj === 'bigint') {
         return Number(obj);
     }
+    // Handle arrays
     if (Array.isArray(obj)) {
         return obj.map(convertBigIntToNumber);
     }
+    // Handle specific object types that need special conversion
     if (typeof obj === 'object') {
-        const converted = {};
-        for (const [key, value] of Object.entries(obj)) {
-            converted[key] = convertBigIntToNumber(value);
+        // Handle Prisma Decimal objects
+        if (obj.constructor && obj.constructor.name === 'Decimal') {
+            return Number(obj.toString());
         }
-        return converted;
+        // Handle Buffer objects (convert to string or number if numeric)
+        if (Buffer.isBuffer(obj)) {
+            const str = obj.toString();
+            // If it's a numeric string, convert to number
+            if (/^\d+$/.test(str)) {
+                return Number(str);
+            }
+            return str;
+        }
+        // Handle Date objects
+        if (obj instanceof Date) {
+            return obj.toISOString();
+        }
+        // Handle objects with valueOf method (like some database types)
+        if (typeof obj.valueOf === 'function' && obj.valueOf() !== obj) {
+            const value = obj.valueOf();
+            if (typeof value === 'bigint') {
+                return Number(value);
+            }
+            if (typeof value !== 'object') {
+                return value;
+            }
+        }
+        // Handle objects with toString method that returns a numeric value
+        if (typeof obj.toString === 'function') {
+            const str = obj.toString();
+            // Check if toString returns something other than "[object Object]"
+            if (str !== '[object Object]' && str !== obj) {
+                // If it's a numeric string, convert to number
+                if (/^\d+(\.\d+)?$/.test(str)) {
+                    return Number(str);
+                }
+                // If it's not the default object string, use it
+                if (!str.startsWith('[object ')) {
+                    return str;
+                }
+            }
+        }
+        // Handle objects with toNumber method
+        if (typeof obj.toNumber === 'function') {
+            return obj.toNumber();
+        }
+        // Handle objects with toJSON method
+        if (typeof obj.toJSON === 'function') {
+            return convertBigIntToNumber(obj.toJSON());
+        }
+        // For plain objects, recursively convert properties
+        if (obj.constructor === Object || obj.constructor === undefined) {
+            const converted = {};
+            for (const [key, value] of Object.entries(obj)) {
+                converted[key] = convertBigIntToNumber(value);
+            }
+            return converted;
+        }
+        // For other objects, try to extract a meaningful value
+        // This is a fallback for unknown object types
+        if (obj.constructor && obj.constructor.name) {
+            logger.warn({
+                objectType: obj.constructor.name,
+                objectString: obj.toString(),
+                hasValueOf: typeof obj.valueOf === 'function',
+                hasToString: typeof obj.toString === 'function'
+            }, 'Unknown object type encountered in convertBigIntToNumber');
+        }
+        // Last resort: try to convert to string if it's not the default object representation
+        const str = String(obj);
+        if (str !== '[object Object]') {
+            // If it's a numeric string, convert to number
+            if (/^\d+(\.\d+)?$/.test(str)) {
+                return Number(str);
+            }
+            return str;
+        }
+        // If all else fails, return null to avoid "[object Object]"
+        return null;
     }
     return obj;
 }
@@ -580,19 +658,18 @@ export async function dynamicFindUnique(modelName, where, include) {
             if (modelName === 'product') {
                 result = await prisma.product.findUnique({
                     where,
-                    include,
+                    ...(include && { include }),
                 });
             }
             else if (modelName === 'stock') {
                 result = await prisma.stock.findUnique({
                     where,
-                    include,
+                    ...(include && { include }),
                 });
             }
             else if (modelName === 'picklist') {
                 result = await prisma.picklist.findUnique({
                     where,
-                    include,
                 });
             }
             if (result) {
@@ -758,7 +835,6 @@ export async function dynamicUpdate(modelName, where, data, include) {
                 result = await prisma.picklist.update({
                     where,
                     data: filteredData,
-                    include,
                 });
             }
             if (result) {
@@ -894,23 +970,56 @@ export async function dynamicUpdate(modelName, where, data, include) {
  */
 export async function dynamicDelete(modelName, where) {
     try {
-        // Try Prisma first
+        // Input validation
+        if (!modelName || !where || !where.id) {
+            logger.warn({ modelName, where }, 'Invalid input for delete operation');
+            return false;
+        }
+
+        // Convert ID to integer if it's a numeric string
+        let idValue = where.id;
+        if (typeof idValue === 'string' && /^\d+$/.test(idValue)) {
+            idValue = parseInt(idValue, 10);
+        }
+
+        // Get table name and validate it exists
+        const tableName = getTableName(modelName);
+        const availableColumns = await discoverTableColumns(tableName);
+        
+        if (availableColumns.length === 0) {
+            logger.warn({ modelName, tableName }, 'Table not found or has no columns');
+            return false;
+        }
+
+        // Verify ID column exists
+        if (!availableColumns.includes('id')) {
+            logger.warn({ modelName, tableName, columns: availableColumns }, 'Table does not have an id column');
+            return false;
+        }
+
+        // Try Prisma first for models with schema
         try {
             let result = null;
             if (modelName === 'product') {
-                result = await prisma.product.delete({ where });
+                result = await prisma.product.delete({ where: { id: idValue } });
             }
             else if (modelName === 'stock') {
-                result = await prisma.stock.delete({ where });
+                result = await prisma.stock.delete({ where: { id: idValue } });
             }
             else if (modelName === 'picklist') {
-                result = await prisma.picklist.delete({ where });
+                result = await prisma.picklist.delete({ where: { id: idValue } });
             }
-            logger.info({
+            if (result) {
+                logger.info({
+                    modelName,
+                    deletedId: result?.id
+                }, 'Prisma delete completed successfully');
+                return true;
+            }
+            logger.debug({
                 modelName,
-                deletedId: result?.id
-            }, 'Prisma delete completed successfully');
-            return true;
+                where
+            }, 'No Prisma model found or delete failed, falling back to raw SQL');
         }
         catch (prismaError) {
             logger.warn({
@@ -918,30 +1027,74 @@ export async function dynamicDelete(modelName, where) {
                 modelName,
                 where
             }, 'Prisma delete failed, falling back to raw SQL');
-            // Fallback to raw SQL DELETE
-            const tableName = getTableName(modelName);
+        }
+        
+        // Fallback to raw SQL DELETE with better error handling
+        try {
             const deleteQuery = `
         DELETE FROM "${tableName}" 
         WHERE "id" = $1 
         RETURNING id
       `;
-            const result = await prisma.$queryRawUnsafe(deleteQuery, where.id);
+            
+            logger.debug({
+                modelName,
+                tableName,
+                query: deleteQuery,
+                id: idValue
+            }, 'Executing raw SQL delete');
+
+            const result = await prisma.$queryRawUnsafe(deleteQuery, idValue);
+            
+            // Ensure result is properly handled
             const records = Array.isArray(result) ? result : [];
             const success = records.length > 0;
+            
             if (success) {
                 logger.info({
                     modelName,
-                    deletedId: where.id
+                    deletedId: idValue,
+                    method: 'raw_sql'
                 }, 'Raw SQL delete completed successfully');
             }
+            else {
+                logger.warn({
+                    modelName,
+                    id: idValue,
+                    method: 'raw_sql'
+                }, 'Record not found for deletion');
+            }
+            
             return success;
+        }
+        catch (sqlError) {
+            // Handle specific SQL errors
+            logger.error({
+                error: sqlError.message,
+                code: sqlError.code,
+                modelName,
+                tableName,
+                id: idValue
+            }, 'Raw SQL delete failed');
+            
+            // Check for foreign key constraint violations
+            if (sqlError.code === '23503') {
+                logger.warn({
+                    modelName,
+                    id: idValue,
+                    constraint: sqlError.constraint
+                }, 'Cannot delete record due to foreign key constraint');
+            }
+            
+            throw sqlError;
         }
     }
     catch (error) {
         logger.error({
             error: error.message,
             modelName,
-            where
+            where,
+            stack: error.stack
         }, 'Error in dynamic delete operation');
         return false;
     }
@@ -963,5 +1116,304 @@ export function getSchemaCacheStatus() {
         columns: schema.columns,
         age: now - schema.lastChecked
     }));
+}
+/**
+ * Safely serializes database objects for API responses
+ * This function ensures that all database objects are properly converted to JSON-serializable values
+ */
+export function serializeForAPI(data) {
+    return convertBigIntToNumber(data);
+}
+/**
+ * Generic function to format numeric fields consistently
+ */
+function formatNumericField(value) {
+    if (value === undefined || value === null || value === '') {
+        return null;
+    }
+    const stringValue = String(value).trim();
+    if (/^\d+(\.\d+)?$/.test(stringValue)) {
+        return Number(stringValue);
+    }
+    return null;
+}
+/**
+ * Generic function to format integer fields consistently
+ */
+function formatIntegerField(value) {
+    if (value === undefined || value === null || value === '') {
+        return null;
+    }
+    const stringValue = String(value).trim();
+    if (/^\d+$/.test(stringValue)) {
+        return parseInt(stringValue, 10);
+    }
+    return null;
+}
+/**
+ * Formats a single supplier object for API response
+ * Ensures all numeric fields are properly converted and handles any special cases
+ */
+export function formatSupplierForAPI(supplier) {
+    if (!supplier)
+        return supplier;
+    const formatted = serializeForAPI(supplier);
+    // Ensure specific fields are properly typed as numbers
+    if (formatted.id !== undefined) {
+        formatted.id = formatIntegerField(formatted.id) || formatted.id;
+    }
+    // Handle pincode - ensure it's a number if it contains numeric data
+    if (formatted.pincode !== undefined) {
+        formatted.pincode = formatIntegerField(formatted.pincode);
+    }
+    // Handle phone numbers
+    if (formatted.supplierphonenumber !== undefined) {
+        formatted.supplierphonenumber = formatIntegerField(formatted.supplierphonenumber);
+    }
+    if (formatted.supplierlandline !== undefined) {
+        formatted.supplierlandline = formatIntegerField(formatted.supplierlandline);
+    }
+    // Handle timestamps
+    if (formatted.createddate !== undefined) {
+        formatted.createddate = formatIntegerField(formatted.createddate) || formatted.createddate;
+    }
+    if (formatted.modifieddate !== undefined) {
+        formatted.modifieddate = formatIntegerField(formatted.modifieddate) || formatted.modifieddate;
+    }
+    return formatted;
+}
+/**
+ * Formats a single product object for API response
+ */
+export function formatProductForAPI(product) {
+    if (!product)
+        return product;
+    const formatted = serializeForAPI(product);
+    // Format numeric fields
+    if (formatted.id !== undefined) {
+        formatted.id = formatIntegerField(formatted.id) || formatted.id;
+    }
+    if (formatted.price !== undefined) {
+        formatted.price = formatNumericField(formatted.price);
+    }
+    if (formatted.createddate !== undefined) {
+        formatted.createddate = formatIntegerField(formatted.createddate) || formatted.createddate;
+    }
+    if (formatted.modifieddate !== undefined) {
+        formatted.modifieddate = formatIntegerField(formatted.modifieddate) || formatted.modifieddate;
+    }
+    return formatted;
+}
+/**
+ * Formats a single stock object for API response
+ */
+export function formatStockForAPI(stock) {
+    if (!stock)
+        return stock;
+    const formatted = serializeForAPI(stock);
+    // Format numeric fields
+    if (formatted.id !== undefined) {
+        formatted.id = formatIntegerField(formatted.id) || formatted.id;
+    }
+    if (formatted.quantity !== undefined) {
+        formatted.quantity = formatIntegerField(formatted.quantity);
+    }
+    if (formatted.minstock !== undefined) {
+        formatted.minstock = formatIntegerField(formatted.minstock);
+    }
+    if (formatted.maxstock !== undefined) {
+        formatted.maxstock = formatIntegerField(formatted.maxstock);
+    }
+    if (formatted.createddate !== undefined) {
+        formatted.createddate = formatIntegerField(formatted.createddate) || formatted.createddate;
+    }
+    if (formatted.modifieddate !== undefined) {
+        formatted.modifieddate = formatIntegerField(formatted.modifieddate) || formatted.modifieddate;
+    }
+    return formatted;
+}
+/**
+ * Formats a single purchase order object for API response
+ */
+export function formatPurchaseOrderForAPI(purchaseOrder) {
+    if (!purchaseOrder)
+        return purchaseOrder;
+    const formatted = serializeForAPI(purchaseOrder);
+    // Format numeric fields
+    if (formatted.id !== undefined) {
+        formatted.id = formatIntegerField(formatted.id) || formatted.id;
+    }
+    if (formatted.supplierid !== undefined) {
+        formatted.supplierid = formatIntegerField(formatted.supplierid);
+    }
+    if (formatted.quantity !== undefined) {
+        formatted.quantity = formatIntegerField(formatted.quantity);
+    }
+    if (formatted.unitprice !== undefined) {
+        formatted.unitprice = formatNumericField(formatted.unitprice);
+    }
+    if (formatted.totalprice !== undefined) {
+        formatted.totalprice = formatNumericField(formatted.totalprice);
+    }
+    // Handle phone number fields
+    if (formatted.phonenumber !== undefined) {
+        formatted.phonenumber = formatIntegerField(formatted.phonenumber);
+    }
+    if (formatted.io_phonenumber !== undefined) {
+        formatted.io_phonenumber = formatIntegerField(formatted.io_phonenumber);
+    }
+    if (formatted.dt_phonenumber !== undefined) {
+        formatted.dt_phonenumber = formatIntegerField(formatted.dt_phonenumber);
+    }
+    if (formatted.supplierphonenumber !== undefined) {
+        formatted.supplierphonenumber = formatIntegerField(formatted.supplierphonenumber);
+    }
+    // Handle financial fields
+    if (formatted.subtotal !== undefined) {
+        formatted.subtotal = formatNumericField(formatted.subtotal);
+    }
+    if (formatted.discount !== undefined) {
+        formatted.discount = formatNumericField(formatted.discount);
+    }
+    if (formatted.sgst !== undefined) {
+        formatted.sgst = formatNumericField(formatted.sgst);
+    }
+    if (formatted.cgst !== undefined) {
+        formatted.cgst = formatNumericField(formatted.cgst);
+    }
+    if (formatted.payabletaxamount !== undefined) {
+        formatted.payabletaxamount = formatNumericField(formatted.payabletaxamount);
+    }
+    if (formatted.total !== undefined) {
+        formatted.total = formatNumericField(formatted.total);
+    }
+    // Handle timestamps
+    if (formatted.createddate !== undefined) {
+        formatted.createddate = formatIntegerField(formatted.createddate) || formatted.createddate;
+    }
+    if (formatted.modifieddate !== undefined) {
+        formatted.modifieddate = formatIntegerField(formatted.modifieddate) || formatted.modifieddate;
+    }
+    return formatted;
+}
+/**
+ * Formats a single purchase request object for API response
+ */
+export function formatPurchaseRequestForAPI(purchaseRequest) {
+    if (!purchaseRequest)
+        return purchaseRequest;
+    const formatted = serializeForAPI(purchaseRequest);
+    // Format numeric fields
+    if (formatted.id !== undefined) {
+        formatted.id = formatIntegerField(formatted.id) || formatted.id;
+    }
+    if (formatted.quantity !== undefined) {
+        formatted.quantity = formatIntegerField(formatted.quantity);
+    }
+    if (formatted.estimatedprice !== undefined) {
+        formatted.estimatedprice = formatNumericField(formatted.estimatedprice);
+    }
+    if (formatted.createddate !== undefined) {
+        formatted.createddate = formatIntegerField(formatted.createddate) || formatted.createddate;
+    }
+    if (formatted.modifieddate !== undefined) {
+        formatted.modifieddate = formatIntegerField(formatted.modifieddate) || formatted.modifieddate;
+    }
+    return formatted;
+}
+/**
+ * Formats a single picklist object for API response
+ */
+export function formatPicklistForAPI(picklist) {
+    if (!picklist)
+        return picklist;
+    const formatted = serializeForAPI(picklist);
+    // Format numeric fields
+    if (formatted.id !== undefined) {
+        formatted.id = formatIntegerField(formatted.id) || formatted.id;
+    }
+    if (formatted.ordering !== undefined) {
+        formatted.ordering = formatIntegerField(formatted.ordering);
+    }
+    return formatted;
+}
+/**
+ * Formats a single quotes object for API response
+ */
+export function formatQuotesForAPI(quote) {
+    if (!quote)
+        return quote;
+    const formatted = serializeForAPI(quote);
+    // Format numeric fields
+    if (formatted.id !== undefined) {
+        formatted.id = formatIntegerField(formatted.id) || formatted.id;
+    }
+    if (formatted.createddate !== undefined) {
+        formatted.createddate = formatIntegerField(formatted.createddate) || formatted.createddate;
+    }
+    if (formatted.modifieddate !== undefined) {
+        formatted.modifieddate = formatIntegerField(formatted.modifieddate) || formatted.modifieddate;
+    }
+    return formatted;
+}
+/**
+ * Universal formatter that detects entity type and applies appropriate formatting
+ */
+export function formatEntityForAPI(entity, entityType) {
+    if (!entity)
+        return entity;
+    // If entityType is provided, use specific formatter
+    if (entityType) {
+        switch (entityType.toLowerCase()) {
+            case 'supplier':
+                return formatSupplierForAPI(entity);
+            case 'product':
+                return formatProductForAPI(entity);
+            case 'stock':
+                return formatStockForAPI(entity);
+            case 'purchaseorder':
+                return formatPurchaseOrderForAPI(entity);
+            case 'purchaserequest':
+                return formatPurchaseRequestForAPI(entity);
+            case 'picklist':
+                return formatPicklistForAPI(entity);
+            case 'quotes':
+                return formatQuotesForAPI(entity);
+            default:
+                return serializeForAPI(entity);
+        }
+    }
+    // Auto-detect entity type based on fields
+    if (entity.suppliername || entity.suppliercode) {
+        return formatSupplierForAPI(entity);
+    }
+    if (entity.productname || entity.puc) {
+        return formatProductForAPI(entity);
+    }
+    if (entity.stockstatus || entity.serialnumber) {
+        return formatStockForAPI(entity);
+    }
+    if (entity.ponumber || entity.unitprice) {
+        return formatPurchaseOrderForAPI(entity);
+    }
+    if (entity.requestnumber || entity.estimatedprice) {
+        return formatPurchaseRequestForAPI(entity);
+    }
+    if (entity.type && entity.table && entity.field) {
+        return formatPicklistForAPI(entity);
+    }
+    if (entity.quotenumber || entity.quoteurl) {
+        return formatQuotesForAPI(entity);
+    }
+    // Fallback to generic serialization
+    return serializeForAPI(entity);
+}
+/**
+ * Formats an array of entities for API response
+ */
+export function formatEntitiesForAPI(entities, entityType) {
+    if (!Array.isArray(entities))
+        return entities;
+    return entities.map(entity => formatEntityForAPI(entity, entityType));
 }
 //# sourceMappingURL=dynamicDbOperations.js.map

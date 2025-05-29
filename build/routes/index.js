@@ -4,6 +4,7 @@ import { picklistRoutes } from './picklist.route.js';
 import { supplierRoutes } from './supplier.route.js';
 import { purchaseOrderRoutes } from './purchaseorder.route.js';
 import { purchaseRequestRoutes } from './purchaserequest.route.js';
+import { quotesRoutes } from './quotes.route.js';
 import { createSuccessResponse } from '../utils/errorHandler.js';
 export async function routes(fastify) {
     // Health check endpoint
@@ -49,6 +50,7 @@ export async function routes(fastify) {
         await fastify.register(supplierRoutes, { prefix: '/suppliers' });
         await fastify.register(purchaseOrderRoutes, { prefix: '/purchaseorders' });
         await fastify.register(purchaseRequestRoutes, { prefix: '/purchaserequests' });
+        await fastify.register(quotesRoutes, { prefix: '/quotes' });
     }, { prefix: '/v1' });
 }
 //# sourceMappingURL=index.js.map

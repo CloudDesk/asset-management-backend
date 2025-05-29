@@ -43,6 +43,51 @@ export const dynamicFieldConfigs = {
             customField2: 'string',
             customField3: 'string'
         }
+    },
+    picklist: {
+        table: 'picklist',
+        allowedFields: [
+            'type', 'table', 'field', 'label', 'value',
+            'isActive', 'ordering'
+        ],
+        requiredFields: ['type', 'table', 'field', 'label', 'value'],
+        fieldTypes: {
+            type: 'string',
+            table: 'string',
+            field: 'string',
+            label: 'string',
+            value: 'string',
+            isActive: 'boolean',
+            ordering: 'number'
+        }
+    },
+    purchaserequest: {
+        table: 'purchaserequest',
+        allowedFields: [
+            'companyname', 'companyaddress', 'contactname', 'phonenumber',
+            'gstnumber', 'companymail', 'supplierid', 'prurl', 'prdata',
+            'prnumber', 'supplieremail', 'prstatus', 'createddate', 'modifieddate'
+        ],
+        requiredFields: [
+            'companyname', 'companyaddress', 'contactname', 'phonenumber',
+            'gstnumber', 'companymail', 'supplierid', 'supplieremail'
+        ],
+        fieldTypes: {
+            companyname: 'string',
+            companyaddress: 'string',
+            contactname: 'string',
+            phonenumber: 'number',
+            gstnumber: 'string',
+            companymail: 'string',
+            supplierid: 'number',
+            prurl: 'string',
+            prdata: 'string',
+            prnumber: 'string',
+            supplieremail: 'string',
+            prstatus: 'string',
+            createddate: 'number',
+            modifieddate: 'number'
+        }
     }
 };
 export const picklistTypes = {

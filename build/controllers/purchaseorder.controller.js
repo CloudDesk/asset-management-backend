@@ -2,6 +2,7 @@ import { PurchaseOrderService } from '../services/purchaseorder.service.js';
 import { createPurchaseOrderSchema, updatePurchaseOrderSchema, upsertPurchaseOrderSchema, purchaseOrderParamsSchema } from '../schemas/purchaseorder.schema.js';
 import { getPaginationParams } from '../utils/pagination.js';
 import { createSuccessResponse, asyncHandler, ValidationError } from '../utils/errorHandler.js';
+import { formatPurchaseOrderForAPI, formatEntitiesForAPI } from '../utils/dynamicDbOperations.js';
 export class PurchaseOrderController {
     purchaseOrderService = new PurchaseOrderService();
     /**
@@ -15,7 +16,9 @@ export class PurchaseOrderController {
         // Remove pagination params from filters
         const { page: _, limit: __, ...filters } = allFilters;
         const result = await this.purchaseOrderService.findMany(filters, page, limit);
-        const response = createSuccessResponse('Purchase orders retrieved successfully', result.data);
+        // Format all purchase orders in the result
+        const formattedData = formatEntitiesForAPI(result.data, 'purchaseorder');
+        const response = createSuccessResponse('Purchase orders retrieved successfully', formattedData);
         return reply.code(200).send({
             ...response,
             pagination: result.pagination,
@@ -32,7 +35,7 @@ export class PurchaseOrderController {
     getPurchaseOrder = asyncHandler(async (request, reply) => {
         const { id } = purchaseOrderParamsSchema.parse(request.params);
         const purchaseOrder = await this.purchaseOrderService.findById(id);
-        const response = createSuccessResponse('Purchase order retrieved successfully', purchaseOrder);
+        const response = createSuccessResponse('Purchase order retrieved successfully', formatPurchaseOrderForAPI(purchaseOrder));
         return reply.code(200).send(response);
     });
     /**
@@ -41,7 +44,7 @@ export class PurchaseOrderController {
     createPurchaseOrder = asyncHandler(async (request, reply) => {
         const data = createPurchaseOrderSchema.parse(request.body);
         const purchaseOrder = await this.purchaseOrderService.create(data);
-        const response = createSuccessResponse('Purchase order created successfully', purchaseOrder);
+        const response = createSuccessResponse('Purchase order created successfully', formatPurchaseOrderForAPI(purchaseOrder));
         return reply.code(201).send(response);
     });
     /**
@@ -51,7 +54,7 @@ export class PurchaseOrderController {
         const { id } = purchaseOrderParamsSchema.parse(request.params);
         const data = updatePurchaseOrderSchema.parse(request.body);
         const purchaseOrder = await this.purchaseOrderService.update(id, data);
-        const response = createSuccessResponse('Purchase order updated successfully', purchaseOrder);
+        const response = createSuccessResponse('Purchase order updated successfully', formatPurchaseOrderForAPI(purchaseOrder));
         return reply.code(200).send(response);
     });
     /**
@@ -70,7 +73,7 @@ export class PurchaseOrderController {
         const data = upsertPurchaseOrderSchema.parse(request.body);
         const purchaseOrder = await this.purchaseOrderService.upsert(data);
         const message = data.id ? 'Purchase order updated successfully' : 'Purchase order created successfully';
-        const response = createSuccessResponse(message, purchaseOrder);
+        const response = createSuccessResponse(message, formatPurchaseOrderForAPI(purchaseOrder));
         return reply.code(200).send(response);
     });
     /**
@@ -81,9 +84,14 @@ export class PurchaseOrderController {
         const allFilters = request.query || {};
         const { page, limit } = getPaginationParams(allFilters);
         const result = await this.purchaseOrderService.findBySupplier(supplierId, page, limit);
+        // Format the purchase orders data
+        const formattedResult = {
+            ...result,
+            data: formatEntitiesForAPI(result.data, 'purchaseorder')
+        };
         const response = createSuccessResponse('Purchase orders by supplier retrieved successfully', {
             supplierId,
-            ...result
+            ...formattedResult
         });
         return reply.code(200).send(response);
     });
@@ -97,7 +105,7 @@ export class PurchaseOrderController {
             throw new ValidationError('Status is required');
         }
         const purchaseOrder = await this.purchaseOrderService.updateStatus(id, status, notes);
-        const response = createSuccessResponse('Purchase order status updated successfully', purchaseOrder);
+        const response = createSuccessResponse('Purchase order status updated successfully', formatPurchaseOrderForAPI(purchaseOrder));
         return reply.code(200).send(response);
     });
 }

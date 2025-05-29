@@ -38,6 +38,19 @@ export const SAFE_FIELD_CONFIGS = {
         ],
         optionalFields: [],
         dynamicFields: []
+    },
+    purchaserequest: {
+        coreFields: [
+            'id', 'companyname', 'companyaddress', 'contactname', 'phonenumber',
+            'gstnumber', 'companymail', 'supplierid', 'prurl', 'prdata',
+            'prnumber', 'supplieremail', 'prstatus', 'createddate', 'modifieddate'
+        ],
+        optionalFields: [
+            'dynamicFields'
+        ],
+        dynamicFields: [
+            'notes', 'customField1', 'customField2', 'customField3'
+        ]
     }
 };
 /**
