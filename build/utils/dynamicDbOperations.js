@@ -362,7 +362,9 @@ async function buildDynamicWhereClause(tableName, filters) {
                     values.push(processedValue);
                     paramIndex++;
                 }
-                else if (key === 'id' || key.toLowerCase() === 'id') {
+                else if (key === 'id' || key.toLowerCase() === 'id' || 
+                         key === 'supplierid' || key === 'supplier_id' ||
+                         key.endsWith('_id') || key.endsWith('Id')) {
                     // Special handling for ID fields - treat as numeric
                     const numValue = Number(processedValue);
                     if (!isNaN(numValue)) {

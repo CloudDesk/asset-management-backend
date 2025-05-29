@@ -52,7 +52,23 @@ export async function purchaseRequestRoutes(fastify: FastifyInstance) {
                   supplierid: { type: 'number', description: 'Supplier ID' },
                   supplieremail: { type: 'string', nullable: true, description: 'Supplier email' },
                   prurl: { type: 'string', nullable: true, description: 'PR document URL' },
-                  prdata: { type: 'array', description: 'PR data array with product details' },
+                  prdata: { 
+                    type: 'object',
+                    description: 'Purchase request items data',
+                    properties: {
+                      items: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'number', description: 'Item ID' },
+                            name: { type: 'string', description: 'Item name' },
+                            quantity: { type: 'number', description: 'Item quantity' }
+                          }
+                        }
+                      }
+                    }
+                  },
                   createddate: { type: 'number', description: 'Creation timestamp' },
                   modifieddate: { type: 'number', description: 'Modification timestamp' },
                 },
