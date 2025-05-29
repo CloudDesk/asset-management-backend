@@ -137,8 +137,8 @@ export declare const productQuerySchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     status?: string | undefined;
     name?: string | undefined;
-    description?: string | undefined;
     category?: string | undefined;
+    description?: string | undefined;
     product_name?: string | undefined;
     product_description?: string | undefined;
     product_category?: string | undefined;
@@ -160,8 +160,8 @@ export declare const productQuerySchema: z.ZodObject<{
 }, {
     status?: string | undefined;
     name?: string | undefined;
-    description?: string | undefined;
     category?: string | undefined;
+    description?: string | undefined;
     product_name?: string | undefined;
     product_description?: string | undefined;
     product_category?: string | undefined;

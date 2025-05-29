@@ -94,6 +94,14 @@ export declare function formatPicklistForAPI(picklist: any): any;
  */
 export declare function formatQuotesForAPI(quote: any): any;
 /**
+ * Formats a single user object for API response
+ */
+export declare function formatUsersForAPI(user: any): any;
+/**
+ * Formats a single inventory user object for API response
+ */
+export declare function formatInventoryUsersForAPI(inventoryUser: any): any;
+/**
  * Universal formatter that detects entity type and applies appropriate formatting
  */
 export declare function formatEntityForAPI(entity: any, entityType?: string): any;

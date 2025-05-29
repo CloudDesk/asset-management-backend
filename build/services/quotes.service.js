@@ -1,5 +1,5 @@
 import { createPaginationResult, getPrismaSkipTake } from '../utils/pagination.js';
-import { dynamicCount, dynamicFindUnique, dynamicCreate, dynamicUpdate, dynamicDelete, dynamicFindManyWithFilters } from '../utils/dynamicDbOperations.js';
+import { dynamicFindUnique, dynamicCreate, dynamicUpdate, dynamicDelete, dynamicFindManyWithFilters, dynamicCount } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
 export class QuotesService {
     async findMany(filters, page, limit) {

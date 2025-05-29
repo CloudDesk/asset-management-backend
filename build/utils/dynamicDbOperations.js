@@ -977,28 +977,23 @@ export async function dynamicDelete(modelName, where) {
             logger.warn({ modelName, where }, 'Invalid input for delete operation');
             return false;
         }
-
         // Convert ID to integer if it's a numeric string
         let idValue = where.id;
         if (typeof idValue === 'string' && /^\d+$/.test(idValue)) {
             idValue = parseInt(idValue, 10);
         }
-
         // Get table name and validate it exists
         const tableName = getTableName(modelName);
         const availableColumns = await discoverTableColumns(tableName);
-        
         if (availableColumns.length === 0) {
             logger.warn({ modelName, tableName }, 'Table not found or has no columns');
             return false;
         }
-
         // Verify ID column exists
         if (!availableColumns.includes('id')) {
             logger.warn({ modelName, tableName, columns: availableColumns }, 'Table does not have an id column');
             return false;
         }
-
         // Try Prisma first for models with schema
         try {
             let result = null;
@@ -1030,7 +1025,6 @@ export async function dynamicDelete(modelName, where) {
                 where
             }, 'Prisma delete failed, falling back to raw SQL');
         }
-        
         // Fallback to raw SQL DELETE with better error handling
         try {
             const deleteQuery = `
@@ -1038,20 +1032,16 @@ export async function dynamicDelete(modelName, where) {
         WHERE "id" = $1 
         RETURNING id
       `;
-            
             logger.debug({
                 modelName,
                 tableName,
                 query: deleteQuery,
                 id: idValue
             }, 'Executing raw SQL delete');
-
             const result = await prisma.$queryRawUnsafe(deleteQuery, idValue);
-            
             // Ensure result is properly handled
             const records = Array.isArray(result) ? result : [];
             const success = records.length > 0;
-            
             if (success) {
                 logger.info({
                     modelName,
@@ -1066,7 +1056,6 @@ export async function dynamicDelete(modelName, where) {
                     method: 'raw_sql'
                 }, 'Record not found for deletion');
             }
-            
             return success;
         }
         catch (sqlError) {
@@ -1078,7 +1067,6 @@ export async function dynamicDelete(modelName, where) {
                 tableName,
                 id: idValue
             }, 'Raw SQL delete failed');
-            
             // Check for foreign key constraint violations
             if (sqlError.code === '23503') {
                 logger.warn({
@@ -1087,7 +1075,6 @@ export async function dynamicDelete(modelName, where) {
                     constraint: sqlError.constraint
                 }, 'Cannot delete record due to foreign key constraint');
             }
-            
             throw sqlError;
         }
     }
@@ -1359,6 +1346,50 @@ export function formatQuotesForAPI(quote) {
     return formatted;
 }
 /**
+ * Formats a single user object for API response
+ */
+export function formatUsersForAPI(user) {
+    if (!user)
+        return user;
+    const formatted = serializeForAPI(user);
+    // Format numeric fields
+    if (formatted.id !== undefined) {
+        formatted.id = formatIntegerField(formatted.id) || formatted.id;
+    }
+    if (formatted.usermobilenumber !== undefined) {
+        formatted.usermobilenumber = formatIntegerField(formatted.usermobilenumber);
+    }
+    if (formatted.createddate !== undefined) {
+        formatted.createddate = formatIntegerField(formatted.createddate) || formatted.createddate;
+    }
+    if (formatted.modifieddate !== undefined) {
+        formatted.modifieddate = formatIntegerField(formatted.modifieddate) || formatted.modifieddate;
+    }
+    return formatted;
+}
+/**
+ * Formats a single inventory user object for API response
+ */
+export function formatInventoryUsersForAPI(inventoryUser) {
+    if (!inventoryUser)
+        return inventoryUser;
+    const formatted = serializeForAPI(inventoryUser);
+    // Format numeric fields
+    if (formatted.id !== undefined) {
+        formatted.id = formatIntegerField(formatted.id) || formatted.id;
+    }
+    if (formatted.usersphonenumber !== undefined) {
+        formatted.usersphonenumber = formatIntegerField(formatted.usersphonenumber);
+    }
+    if (formatted.createddate !== undefined) {
+        formatted.createddate = formatIntegerField(formatted.createddate) || formatted.createddate;
+    }
+    if (formatted.modifieddate !== undefined) {
+        formatted.modifieddate = formatIntegerField(formatted.modifieddate) || formatted.modifieddate;
+    }
+    return formatted;
+}
+/**
  * Universal formatter that detects entity type and applies appropriate formatting
  */
 export function formatEntityForAPI(entity, entityType) {
@@ -1381,6 +1412,10 @@ export function formatEntityForAPI(entity, entityType) {
                 return formatPicklistForAPI(entity);
             case 'quotes':
                 return formatQuotesForAPI(entity);
+            case 'users':
+                return formatUsersForAPI(entity);
+            case 'inventoryusers':
+                return formatInventoryUsersForAPI(entity);
             default:
                 return serializeForAPI(entity);
         }
@@ -1406,6 +1441,12 @@ export function formatEntityForAPI(entity, entityType) {
     }
     if (entity.quotenumber || entity.quoteurl) {
         return formatQuotesForAPI(entity);
+    }
+    if (entity.useremail && entity.usermobilenumber !== undefined) {
+        return formatUsersForAPI(entity);
+    }
+    if (entity.useremail && entity.role !== undefined && entity.usersphonenumber !== undefined) {
+        return formatInventoryUsersForAPI(entity);
     }
     // Fallback to generic serialization
     return serializeForAPI(entity);
