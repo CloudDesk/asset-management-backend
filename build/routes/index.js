@@ -49,15 +49,22 @@ export async function routes(fastify) {
     });
     // API v1 routes
     await fastify.register(async function (fastify) {
-        // Authentication routes (public - no authentication required)
+        // =====================================================
+        // PUBLIC ROUTES (No Authentication Required)
+        // =====================================================
+        // Authentication routes
         await fastify.register(authRoutes, { prefix: '/auth' });
-        // Protected routes - All require authentication
+        // Make products public (example)
+        await fastify.register(productRoutes, { prefix: '/products' });
+        // Make stocks public (example)  
+        await fastify.register(stockRoutes, { prefix: '/stocks' });
+        // =====================================================
+        // PROTECTED ROUTES (Authentication Required)
+        // =====================================================
         await fastify.register(async function (fastify) {
             // Apply authentication middleware to all routes in this scope
             fastify.addHook('preHandler', requireAuthentication);
-            // Register all protected routes
-            await fastify.register(productRoutes, { prefix: '/products' });
-            await fastify.register(stockRoutes, { prefix: '/stocks' });
+            // Register protected routes
             await fastify.register(picklistRoutes, { prefix: '/picklists' });
             await fastify.register(supplierRoutes, { prefix: '/suppliers' });
             await fastify.register(purchaseOrderRoutes, { prefix: '/purchaseorders' });
