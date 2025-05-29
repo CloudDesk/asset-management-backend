@@ -9,13 +9,15 @@ import { quotesRoutes } from './quotes.route.js';
 import { notesRoutes } from './notes.route.js';
 import { usersRoutes } from './users.route.js';
 import { inventoryUsersRoutes } from './inventoryusers.route.js';
+import { authRoutes } from './auth.route.js';
+import { requireAuthentication } from '../middleware/auth.middleware.js';
 import { createSuccessResponse } from '../utils/errorHandler.js';
 
 export async function routes(fastify: FastifyInstance) {
-  // Health check endpoint
+  // Health check endpoint (public)
   fastify.get('/health', {
     schema: {
-      description: 'Health check endpoint',
+      description: 'Health check endpoint - No authentication required',
       tags: ['Health'],
       response: {
         200: {
@@ -37,7 +39,7 @@ export async function routes(fastify: FastifyInstance) {
         },
       },
     },
-  }, async (request, reply) => {
+  }, async (_request, reply) => {
     const healthData = {
       status: 'ok',
       timestamp: new Date().toISOString(),
@@ -51,15 +53,26 @@ export async function routes(fastify: FastifyInstance) {
 
   // API v1 routes
   await fastify.register(async function (fastify) {
-    await fastify.register(productRoutes, { prefix: '/products' });
-    await fastify.register(stockRoutes, { prefix: '/stocks' });
-    await fastify.register(picklistRoutes, { prefix: '/picklists' });
-    await fastify.register(supplierRoutes, { prefix: '/suppliers' });
-    await fastify.register(purchaseOrderRoutes, { prefix: '/purchaseorders' });
-    await fastify.register(purchaseRequestRoutes, { prefix: '/purchaserequests' });
-    await fastify.register(quotesRoutes, { prefix: '/quotes' });
-    await fastify.register(notesRoutes, { prefix: '/notes' });
-    await fastify.register(usersRoutes, { prefix: '/users' });
-    await fastify.register(inventoryUsersRoutes, { prefix: '/inventoryusers' });
+    // Authentication routes (public - no authentication required)
+    await fastify.register(authRoutes, { prefix: '/auth' });
+
+    // Protected routes - All require authentication
+    await fastify.register(async function (fastify) {
+      // Apply authentication middleware to all routes in this scope
+      fastify.addHook('preHandler', requireAuthentication);
+
+      // Register all protected routes
+      await fastify.register(productRoutes, { prefix: '/products' });
+      await fastify.register(stockRoutes, { prefix: '/stocks' });
+      await fastify.register(picklistRoutes, { prefix: '/picklists' });
+      await fastify.register(supplierRoutes, { prefix: '/suppliers' });
+      await fastify.register(purchaseOrderRoutes, { prefix: '/purchaseorders' });
+      await fastify.register(purchaseRequestRoutes, { prefix: '/purchaserequests' });
+      await fastify.register(quotesRoutes, { prefix: '/quotes' });
+      await fastify.register(notesRoutes, { prefix: '/notes' });
+      await fastify.register(usersRoutes, { prefix: '/users' });
+      await fastify.register(inventoryUsersRoutes, { prefix: '/inventoryusers' });
+    });
+
   }, { prefix: '/v1' });
 } 

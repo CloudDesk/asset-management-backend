@@ -238,17 +238,20 @@ model exchange_rates {
 }
 
 model inventoryusers {
-  id               Int     @id @default(autoincrement())
-  useremail        String? @unique(map: "unique_email_inventory_users") @db.VarChar(255)
-  userpassword     String? @db.VarChar(255)
-  createddate      BigInt?
-  modifieddate     BigInt?
-  role             String? @db.VarChar(500)
-  usersphonenumber BigInt?
-  firstname        String? @db.VarChar(255)
-  lastname         String? @db.VarChar(255)
-  location         String? @db.VarChar(500)
-  fcmid            String? @db.VarChar(400)
+  id                 Int     @id @default(autoincrement())
+  useremail          String? @unique(map: "unique_email_inventory_users") @db.VarChar(255)
+  userpassword       String? @db.VarChar(255)
+  createddate        BigInt?
+  modifieddate       BigInt?
+  role               String? @db.VarChar(500)
+  usersphonenumber   BigInt?
+  firstname          String? @db.VarChar(255)
+  lastname           String? @db.VarChar(255)
+  location           String? @db.VarChar(500)
+  fcmid              String? @db.VarChar(400)
+  sessiontoken       String? @db.VarChar(255)
+  resettoken         String? @db.VarChar(255)
+  resettokenexpires  BigInt?
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.

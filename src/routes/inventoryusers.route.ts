@@ -9,6 +9,7 @@ export async function inventoryUsersRoutes(fastify: FastifyInstance) {
     schema: {
       description: 'Get all inventory users with pagination and filtering',
       tags: ['Inventory Users'],
+      security: [{ bearerAuth: [] }],
       querystring: {
         type: 'object',
         properties: {
@@ -92,6 +93,7 @@ export async function inventoryUsersRoutes(fastify: FastifyInstance) {
     schema: {
       description: 'Get inventory user by ID',
       tags: ['Inventory Users'],
+      security: [{ bearerAuth: [] }],
       params: {
         type: 'object',
         properties: {
@@ -159,6 +161,7 @@ export async function inventoryUsersRoutes(fastify: FastifyInstance) {
     schema: {
       description: 'Create a new inventory user',
       tags: ['Inventory Users'],
+      security: [{ bearerAuth: [] }],
       body: {
         type: 'object',
         properties: {

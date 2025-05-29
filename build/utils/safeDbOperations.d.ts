@@ -39,6 +39,11 @@ export declare const SAFE_FIELD_CONFIGS: {
         optionalFields: readonly string[];
         dynamicFields: readonly string[];
     };
+    inventoryusers: {
+        coreFields: readonly string[];
+        optionalFields: readonly string[];
+        dynamicFields: readonly string[];
+    };
 };
 /**
  * Safely filters input data to only include fields that exist in the schema

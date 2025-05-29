@@ -1,13 +1,14 @@
 import { PicklistType } from '../config/dynamicFieldConfig.js';
 export interface PicklistItem {
-    id: string;
-    type: string;
-    table: string;
-    field: string;
-    label: string;
-    value: string;
-    isActive: boolean;
-    ordering: number;
+    id: number;
+    label: string | null;
+    value: string | null;
+    object: string | null;
+    controlledvalue: string | null;
+    fieldname: string | null;
+    controlledlabel: string | null;
+    controlledfieldname: string | null;
+    parent: string | null;
 }
 export declare function getPicklistItems(type: PicklistType, table?: string, field?: string): Promise<PicklistItem[]>;
 export declare function validatePicklistValue(type: PicklistType, value: string, table?: string, field?: string): Promise<boolean>;
@@ -17,20 +18,19 @@ export declare function createPicklistItem(data: {
     field: string;
     label: string;
     value: string;
-    ordering?: number;
 }): Promise<PicklistItem>;
-export declare function updatePicklistItem(id: string, data: Partial<{
+export declare function updatePicklistItem(id: number, data: Partial<{
     label: string;
     value: string;
-    isActive: boolean;
-    ordering: number;
+    object: string;
+    fieldname: string;
 }>): Promise<PicklistItem>;
-export declare function deletePicklistItem(id: string): Promise<void>;
+export declare function deletePicklistItem(id: number): Promise<void>;
 export declare function formatPicklistResponse(items: PicklistItem[]): {
-    id: string;
-    label: string;
-    value: string;
-    isActive: boolean;
-    ordering: number;
+    id: number;
+    label: string | null;
+    value: string | null;
+    object: string | null;
+    fieldname: string | null;
 }[];
 //# sourceMappingURL=picklistUtils.d.ts.map

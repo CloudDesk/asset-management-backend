@@ -6,6 +6,7 @@ export async function inventoryUsersRoutes(fastify) {
         schema: {
             description: 'Get all inventory users with pagination and filtering',
             tags: ['Inventory Users'],
+            security: [{ bearerAuth: [] }],
             querystring: {
                 type: 'object',
                 properties: {
@@ -88,6 +89,7 @@ export async function inventoryUsersRoutes(fastify) {
         schema: {
             description: 'Get inventory user by ID',
             tags: ['Inventory Users'],
+            security: [{ bearerAuth: [] }],
             params: {
                 type: 'object',
                 properties: {
@@ -154,6 +156,7 @@ export async function inventoryUsersRoutes(fastify) {
         schema: {
             description: 'Create a new inventory user',
             tags: ['Inventory Users'],
+            security: [{ bearerAuth: [] }],
             body: {
                 type: 'object',
                 properties: {
@@ -163,7 +166,7 @@ export async function inventoryUsersRoutes(fastify) {
                     firstname: { type: 'string', description: 'First name' },
                     lastname: { type: 'string', description: 'Last name' },
                     location: { type: 'string', description: 'Location' },
-                    usersphonenumber: { type: 'string', description: 'Phone number' },
+                    usersphonenumber: { type: 'number', description: 'Phone number' },
                     fcmid: { type: 'string', description: 'FCM ID' },
                 },
                 additionalProperties: true,

@@ -2,14 +2,15 @@ import { prisma } from '../models/prisma.js';
 import { PicklistType } from '../config/dynamicFieldConfig.js';
 
 export interface PicklistItem {
-  id: string;
-  type: string;
-  table: string;
-  field: string;
-  label: string;
-  value: string;
-  isActive: boolean;
-  ordering: number;
+  id: number;
+  label: string | null;
+  value: string | null;
+  object: string | null;
+  controlledvalue: string | null;
+  fieldname: string | null;
+  controlledlabel: string | null;
+  controlledfieldname: string | null;
+  parent: string | null;
 }
 
 export async function getPicklistItems(
@@ -17,14 +18,14 @@ export async function getPicklistItems(
   table?: string,
   field?: string
 ): Promise<PicklistItem[]> {
-  const where: any = { type, isActive: true };
+  const where: any = {};
   
-  if (table) where.table = table;
-  if (field) where.field = field;
+  if (table) where.object = table;
+  if (field) where.fieldname = field;
 
   return await prisma.picklist.findMany({
     where,
-    orderBy: [{ ordering: 'asc' }, { label: 'asc' }],
+    orderBy: [{ label: 'asc' }],
   });
 }
 
@@ -34,10 +35,10 @@ export async function validatePicklistValue(
   table?: string,
   field?: string
 ): Promise<boolean> {
-  const where: any = { type, value, isActive: true };
+  const where: any = { value };
   
-  if (table) where.table = table;
-  if (field) where.field = field;
+  if (table) where.object = table;
+  if (field) where.fieldname = field;
 
   const item = await prisma.picklist.findFirst({ where });
   return !!item;
@@ -49,36 +50,24 @@ export async function createPicklistItem(data: {
   field: string;
   label: string;
   value: string;
-  ordering?: number;
 }): Promise<PicklistItem> {
-  // Get the next ordering value if not provided
-  if (data.ordering === undefined) {
-    const lastItem = await prisma.picklist.findFirst({
-      where: { type: data.type, table: data.table, field: data.field },
-      orderBy: { ordering: 'desc' },
-    });
-    data.ordering = (lastItem?.ordering || 0) + 1;
-  }
-
   return await prisma.picklist.create({
     data: {
-      type: data.type,
-      table: data.table,
-      field: data.field,
+      object: data.table,
+      fieldname: data.field,
       label: data.label,
       value: data.value,
-      ordering: data.ordering,
     },
   });
 }
 
 export async function updatePicklistItem(
-  id: string,
+  id: number,
   data: Partial<{
     label: string;
     value: string;
-    isActive: boolean;
-    ordering: number;
+    object: string;
+    fieldname: string;
   }>
 ): Promise<PicklistItem> {
   return await prisma.picklist.update({
@@ -87,7 +76,7 @@ export async function updatePicklistItem(
   });
 }
 
-export async function deletePicklistItem(id: string): Promise<void> {
+export async function deletePicklistItem(id: number): Promise<void> {
   await prisma.picklist.delete({
     where: { id },
   });
@@ -98,7 +87,7 @@ export function formatPicklistResponse(items: PicklistItem[]) {
     id: item.id,
     label: item.label,
     value: item.value,
-    isActive: item.isActive,
-    ordering: item.ordering,
+    object: item.object,
+    fieldname: item.fieldname,
   }));
 } 

@@ -51,6 +51,15 @@ export const SAFE_FIELD_CONFIGS = {
         dynamicFields: [
             'notes', 'customField1', 'customField2', 'customField3'
         ]
+    },
+    inventoryusers: {
+        coreFields: [
+            'id', 'useremail', 'userpassword', 'createddate', 'modifieddate',
+            'role', 'usersphonenumber', 'firstname', 'lastname', 'location',
+            'fcmid', 'sessiontoken', 'resettoken', 'resettokenexpires'
+        ],
+        optionalFields: [],
+        dynamicFields: []
     }
 };
 /**
