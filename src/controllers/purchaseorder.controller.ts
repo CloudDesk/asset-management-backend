@@ -17,6 +17,7 @@ import {
   ValidationError,
   NotFoundError
 } from '../utils/errorHandler.js';
+import { formatPurchaseOrderForAPI, formatEntitiesForAPI } from '../utils/dynamicDbOperations.js';
 
 export class PurchaseOrderController {
   public purchaseOrderService = new PurchaseOrderService();
@@ -35,7 +36,10 @@ export class PurchaseOrderController {
     
     const result = await this.purchaseOrderService.findMany(filters, page, limit);
     
-    const response = createSuccessResponse('Purchase orders retrieved successfully', result.data);
+    // Format all purchase orders in the result
+    const formattedData = formatEntitiesForAPI(result.data, 'purchaseorder');
+    
+    const response = createSuccessResponse('Purchase orders retrieved successfully', formattedData);
     return reply.code(200).send({
       ...response,
       pagination: result.pagination,
@@ -55,7 +59,7 @@ export class PurchaseOrderController {
     
     const purchaseOrder = await this.purchaseOrderService.findById(id);
     
-    const response = createSuccessResponse('Purchase order retrieved successfully', purchaseOrder);
+    const response = createSuccessResponse('Purchase order retrieved successfully', formatPurchaseOrderForAPI(purchaseOrder));
     return reply.code(200).send(response);
   });
 
@@ -67,7 +71,7 @@ export class PurchaseOrderController {
     
     const purchaseOrder = await this.purchaseOrderService.create(data);
     
-    const response = createSuccessResponse('Purchase order created successfully', purchaseOrder);
+    const response = createSuccessResponse('Purchase order created successfully', formatPurchaseOrderForAPI(purchaseOrder));
     return reply.code(201).send(response);
   });
 
@@ -80,7 +84,7 @@ export class PurchaseOrderController {
     
     const purchaseOrder = await this.purchaseOrderService.update(id, data);
     
-    const response = createSuccessResponse('Purchase order updated successfully', purchaseOrder);
+    const response = createSuccessResponse('Purchase order updated successfully', formatPurchaseOrderForAPI(purchaseOrder));
     return reply.code(200).send(response);
   });
 
@@ -105,7 +109,7 @@ export class PurchaseOrderController {
     const purchaseOrder = await this.purchaseOrderService.upsert(data);
     
     const message = data.id ? 'Purchase order updated successfully' : 'Purchase order created successfully';
-    const response = createSuccessResponse(message, purchaseOrder);
+    const response = createSuccessResponse(message, formatPurchaseOrderForAPI(purchaseOrder));
     return reply.code(200).send(response);
   });
 
@@ -122,9 +126,15 @@ export class PurchaseOrderController {
     
     const result = await this.purchaseOrderService.findBySupplier(supplierId, page, limit);
     
+    // Format the purchase orders data
+    const formattedResult = {
+      ...result,
+      data: formatEntitiesForAPI(result.data, 'purchaseorder')
+    };
+    
     const response = createSuccessResponse('Purchase orders by supplier retrieved successfully', {
       supplierId,
-      ...result
+      ...formattedResult
     });
     return reply.code(200).send(response);
   });
@@ -145,7 +155,7 @@ export class PurchaseOrderController {
     
     const purchaseOrder = await this.purchaseOrderService.updateStatus(id, status, notes);
     
-    const response = createSuccessResponse('Purchase order status updated successfully', purchaseOrder);
+    const response = createSuccessResponse('Purchase order status updated successfully', formatPurchaseOrderForAPI(purchaseOrder));
     return reply.code(200).send(response);
   });
 } 

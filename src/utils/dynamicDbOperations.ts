@@ -1259,6 +1259,38 @@ export function serializeForAPI(data: any): any {
 }
 
 /**
+ * Generic function to format numeric fields consistently
+ */
+function formatNumericField(value: any): number | null {
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
+  
+  const stringValue = String(value).trim();
+  if (/^\d+(\.\d+)?$/.test(stringValue)) {
+    return Number(stringValue);
+  }
+  
+  return null;
+}
+
+/**
+ * Generic function to format integer fields consistently
+ */
+function formatIntegerField(value: any): number | null {
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
+  
+  const stringValue = String(value).trim();
+  if (/^\d+$/.test(stringValue)) {
+    return parseInt(stringValue, 10);
+  }
+  
+  return null;
+}
+
+/**
  * Formats a single supplier object for API response
  * Ensures all numeric fields are properly converted and handles any special cases
  */
@@ -1269,39 +1301,262 @@ export function formatSupplierForAPI(supplier: any): any {
   
   // Ensure specific fields are properly typed as numbers
   if (formatted.id !== undefined) {
-    formatted.id = Number(formatted.id);
+    formatted.id = formatIntegerField(formatted.id) || formatted.id;
   }
   
   // Handle pincode - ensure it's a number if it contains numeric data
-  if (formatted.pincode !== undefined && formatted.pincode !== null && formatted.pincode !== '') {
-    const pincodeValue = String(formatted.pincode).trim();
-    if (/^\d+$/.test(pincodeValue)) {
-      formatted.pincode = parseInt(pincodeValue, 10);
-    }
+  if (formatted.pincode !== undefined) {
+    formatted.pincode = formatIntegerField(formatted.pincode);
   }
   
   // Handle phone numbers
-  if (formatted.supplierphonenumber !== undefined && formatted.supplierphonenumber !== null) {
-    const phoneValue = String(formatted.supplierphonenumber).trim();
-    if (/^\d+$/.test(phoneValue)) {
-      formatted.supplierphonenumber = parseInt(phoneValue, 10);
-    }
+  if (formatted.supplierphonenumber !== undefined) {
+    formatted.supplierphonenumber = formatIntegerField(formatted.supplierphonenumber);
   }
   
-  if (formatted.supplierlandline !== undefined && formatted.supplierlandline !== null) {
-    const landlineValue = String(formatted.supplierlandline).trim();
-    if (/^\d+$/.test(landlineValue)) {
-      formatted.supplierlandline = parseInt(landlineValue, 10);
-    }
+  if (formatted.supplierlandline !== undefined) {
+    formatted.supplierlandline = formatIntegerField(formatted.supplierlandline);
   }
   
   // Handle timestamps
   if (formatted.createddate !== undefined) {
-    formatted.createddate = Number(formatted.createddate);
+    formatted.createddate = formatIntegerField(formatted.createddate) || formatted.createddate;
   }
   if (formatted.modifieddate !== undefined) {
-    formatted.modifieddate = Number(formatted.modifieddate);
+    formatted.modifieddate = formatIntegerField(formatted.modifieddate) || formatted.modifieddate;
   }
   
   return formatted;
+}
+
+/**
+ * Formats a single product object for API response
+ */
+export function formatProductForAPI(product: any): any {
+  if (!product) return product;
+  
+  const formatted = serializeForAPI(product);
+  
+  // Format numeric fields
+  if (formatted.id !== undefined) {
+    formatted.id = formatIntegerField(formatted.id) || formatted.id;
+  }
+  if (formatted.price !== undefined) {
+    formatted.price = formatNumericField(formatted.price);
+  }
+  if (formatted.createddate !== undefined) {
+    formatted.createddate = formatIntegerField(formatted.createddate) || formatted.createddate;
+  }
+  if (formatted.modifieddate !== undefined) {
+    formatted.modifieddate = formatIntegerField(formatted.modifieddate) || formatted.modifieddate;
+  }
+  
+  return formatted;
+}
+
+/**
+ * Formats a single stock object for API response
+ */
+export function formatStockForAPI(stock: any): any {
+  if (!stock) return stock;
+  
+  const formatted = serializeForAPI(stock);
+  
+  // Format numeric fields
+  if (formatted.id !== undefined) {
+    formatted.id = formatIntegerField(formatted.id) || formatted.id;
+  }
+  if (formatted.quantity !== undefined) {
+    formatted.quantity = formatIntegerField(formatted.quantity);
+  }
+  if (formatted.minstock !== undefined) {
+    formatted.minstock = formatIntegerField(formatted.minstock);
+  }
+  if (formatted.maxstock !== undefined) {
+    formatted.maxstock = formatIntegerField(formatted.maxstock);
+  }
+  if (formatted.createddate !== undefined) {
+    formatted.createddate = formatIntegerField(formatted.createddate) || formatted.createddate;
+  }
+  if (formatted.modifieddate !== undefined) {
+    formatted.modifieddate = formatIntegerField(formatted.modifieddate) || formatted.modifieddate;
+  }
+  
+  return formatted;
+}
+
+/**
+ * Formats a single purchase order object for API response
+ */
+export function formatPurchaseOrderForAPI(purchaseOrder: any): any {
+  if (!purchaseOrder) return purchaseOrder;
+  
+  const formatted = serializeForAPI(purchaseOrder);
+  
+  // Format numeric fields
+  if (formatted.id !== undefined) {
+    formatted.id = formatIntegerField(formatted.id) || formatted.id;
+  }
+  if (formatted.supplierid !== undefined) {
+    formatted.supplierid = formatIntegerField(formatted.supplierid);
+  }
+  if (formatted.quantity !== undefined) {
+    formatted.quantity = formatIntegerField(formatted.quantity);
+  }
+  if (formatted.unitprice !== undefined) {
+    formatted.unitprice = formatNumericField(formatted.unitprice);
+  }
+  if (formatted.totalprice !== undefined) {
+    formatted.totalprice = formatNumericField(formatted.totalprice);
+  }
+  
+  // Handle phone number fields
+  if (formatted.phonenumber !== undefined) {
+    formatted.phonenumber = formatIntegerField(formatted.phonenumber);
+  }
+  if (formatted.io_phonenumber !== undefined) {
+    formatted.io_phonenumber = formatIntegerField(formatted.io_phonenumber);
+  }
+  if (formatted.dt_phonenumber !== undefined) {
+    formatted.dt_phonenumber = formatIntegerField(formatted.dt_phonenumber);
+  }
+  if (formatted.supplierphonenumber !== undefined) {
+    formatted.supplierphonenumber = formatIntegerField(formatted.supplierphonenumber);
+  }
+  
+  // Handle financial fields
+  if (formatted.subtotal !== undefined) {
+    formatted.subtotal = formatNumericField(formatted.subtotal);
+  }
+  if (formatted.discount !== undefined) {
+    formatted.discount = formatNumericField(formatted.discount);
+  }
+  if (formatted.sgst !== undefined) {
+    formatted.sgst = formatNumericField(formatted.sgst);
+  }
+  if (formatted.cgst !== undefined) {
+    formatted.cgst = formatNumericField(formatted.cgst);
+  }
+  if (formatted.payabletaxamount !== undefined) {
+    formatted.payabletaxamount = formatNumericField(formatted.payabletaxamount);
+  }
+  if (formatted.total !== undefined) {
+    formatted.total = formatNumericField(formatted.total);
+  }
+  
+  // Handle timestamps
+  if (formatted.createddate !== undefined) {
+    formatted.createddate = formatIntegerField(formatted.createddate) || formatted.createddate;
+  }
+  if (formatted.modifieddate !== undefined) {
+    formatted.modifieddate = formatIntegerField(formatted.modifieddate) || formatted.modifieddate;
+  }
+  
+  return formatted;
+}
+
+/**
+ * Formats a single purchase request object for API response
+ */
+export function formatPurchaseRequestForAPI(purchaseRequest: any): any {
+  if (!purchaseRequest) return purchaseRequest;
+  
+  const formatted = serializeForAPI(purchaseRequest);
+  
+  // Format numeric fields
+  if (formatted.id !== undefined) {
+    formatted.id = formatIntegerField(formatted.id) || formatted.id;
+  }
+  if (formatted.quantity !== undefined) {
+    formatted.quantity = formatIntegerField(formatted.quantity);
+  }
+  if (formatted.estimatedprice !== undefined) {
+    formatted.estimatedprice = formatNumericField(formatted.estimatedprice);
+  }
+  if (formatted.createddate !== undefined) {
+    formatted.createddate = formatIntegerField(formatted.createddate) || formatted.createddate;
+  }
+  if (formatted.modifieddate !== undefined) {
+    formatted.modifieddate = formatIntegerField(formatted.modifieddate) || formatted.modifieddate;
+  }
+  
+  return formatted;
+}
+
+/**
+ * Formats a single picklist object for API response
+ */
+export function formatPicklistForAPI(picklist: any): any {
+  if (!picklist) return picklist;
+  
+  const formatted = serializeForAPI(picklist);
+  
+  // Format numeric fields
+  if (formatted.id !== undefined) {
+    formatted.id = formatIntegerField(formatted.id) || formatted.id;
+  }
+  if (formatted.ordering !== undefined) {
+    formatted.ordering = formatIntegerField(formatted.ordering);
+  }
+  
+  return formatted;
+}
+
+/**
+ * Universal formatter that detects entity type and applies appropriate formatting
+ */
+export function formatEntityForAPI(entity: any, entityType?: string): any {
+  if (!entity) return entity;
+  
+  // If entityType is provided, use specific formatter
+  if (entityType) {
+    switch (entityType.toLowerCase()) {
+      case 'supplier':
+        return formatSupplierForAPI(entity);
+      case 'product':
+        return formatProductForAPI(entity);
+      case 'stock':
+        return formatStockForAPI(entity);
+      case 'purchaseorder':
+        return formatPurchaseOrderForAPI(entity);
+      case 'purchaserequest':
+        return formatPurchaseRequestForAPI(entity);
+      case 'picklist':
+        return formatPicklistForAPI(entity);
+      default:
+        return serializeForAPI(entity);
+    }
+  }
+  
+  // Auto-detect entity type based on fields
+  if (entity.suppliername || entity.suppliercode) {
+    return formatSupplierForAPI(entity);
+  }
+  if (entity.productname || entity.puc) {
+    return formatProductForAPI(entity);
+  }
+  if (entity.stockstatus || entity.serialnumber) {
+    return formatStockForAPI(entity);
+  }
+  if (entity.ponumber || entity.unitprice) {
+    return formatPurchaseOrderForAPI(entity);
+  }
+  if (entity.requestnumber || entity.estimatedprice) {
+    return formatPurchaseRequestForAPI(entity);
+  }
+  if (entity.type && entity.table && entity.field) {
+    return formatPicklistForAPI(entity);
+  }
+  
+  // Fallback to generic serialization
+  return serializeForAPI(entity);
+}
+
+/**
+ * Formats an array of entities for API response
+ */
+export function formatEntitiesForAPI(entities: any[], entityType?: string): any[] {
+  if (!Array.isArray(entities)) return entities;
+  
+  return entities.map(entity => formatEntityForAPI(entity, entityType));
 } 

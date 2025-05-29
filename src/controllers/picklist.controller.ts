@@ -13,6 +13,7 @@ import {
   asyncHandler,
   ValidationError
 } from '../utils/errorHandler.js';
+import { formatPicklistForAPI, formatEntitiesForAPI } from '../utils/dynamicDbOperations.js';
 
 export class PicklistController {
   public picklistService = new PicklistService();
@@ -27,7 +28,10 @@ export class PicklistController {
     
     const result = await this.picklistService.findMany(filters, page, limit);
     
-    const response = createSuccessResponse('Picklists retrieved successfully', result.data);
+    // Format all picklists in the result
+    const formattedData = formatEntitiesForAPI(result.data, 'picklist');
+    
+    const response = createSuccessResponse('Picklists retrieved successfully', formattedData);
     return reply.code(200).send({
       ...response,
       pagination: result.pagination,
@@ -44,7 +48,7 @@ export class PicklistController {
     
     const picklist = await this.picklistService.findById(id);
     
-    const response = createSuccessResponse('Picklist retrieved successfully', picklist);
+    const response = createSuccessResponse('Picklist retrieved successfully', formatPicklistForAPI(picklist));
     return reply.code(200).send(response);
   });
 
@@ -59,7 +63,7 @@ export class PicklistController {
     
     const picklists = await this.picklistService.findByType(type, table, field);
     
-    const response = createSuccessResponse('Picklist items retrieved successfully', picklists);
+    const response = createSuccessResponse('Picklist items retrieved successfully', formatEntitiesForAPI(picklists, 'picklist'));
     return reply.code(200).send(response);
   });
 
@@ -68,7 +72,7 @@ export class PicklistController {
     
     const picklist = await this.picklistService.create(data);
     
-    const response = createSuccessResponse('Picklist item created successfully', picklist);
+    const response = createSuccessResponse('Picklist item created successfully', formatPicklistForAPI(picklist));
     return reply.code(201).send(response);
   });
 
@@ -78,7 +82,7 @@ export class PicklistController {
     
     const picklist = await this.picklistService.update(id, data);
     
-    const response = createSuccessResponse('Picklist item updated successfully', picklist);
+    const response = createSuccessResponse('Picklist item updated successfully', formatPicklistForAPI(picklist));
     return reply.code(200).send(response);
   });
 
@@ -97,7 +101,7 @@ export class PicklistController {
     const picklist = await this.picklistService.toggleActive(id);
     
     const message = `Picklist item ${picklist.isActive ? 'activated' : 'deactivated'} successfully`;
-    const response = createSuccessResponse(message, picklist);
+    const response = createSuccessResponse(message, formatPicklistForAPI(picklist));
     return reply.code(200).send(response);
   });
 
@@ -113,7 +117,7 @@ export class PicklistController {
     
     const picklists = await this.picklistService.reorder(type, table, field, items);
     
-    const response = createSuccessResponse('Picklist items reordered successfully', picklists);
+    const response = createSuccessResponse('Picklist items reordered successfully', formatEntitiesForAPI(picklists, 'picklist'));
     return reply.code(200).send(response);
   });
 } 

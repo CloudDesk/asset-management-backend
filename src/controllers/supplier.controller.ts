@@ -19,7 +19,7 @@ import {
   validateIntegerId
 } from '../utils/errorHandler.js';
 import { logger } from '../config/logger.js';
-import { formatSupplierForAPI, serializeForAPI } from '../utils/dynamicDbOperations.js';
+import { formatSupplierForAPI, formatEntitiesForAPI } from '../utils/dynamicDbOperations.js';
 
 interface SupplierParams {
   id: string;
@@ -72,7 +72,7 @@ export class SupplierController {
     const result = await this.supplierService.findMany(filters, pageNum, limitNum);
     
     // Format all suppliers in the result
-    const formattedData = result.data.map(supplier => formatSupplierForAPI(supplier));
+    const formattedData = formatEntitiesForAPI(result.data, 'supplier');
     
     const response = createSuccessResponse('Suppliers retrieved successfully', formattedData);
     return reply.code(200).send({

@@ -12,6 +12,7 @@ import {
   createSuccessResponse,
   asyncHandler
 } from '../utils/errorHandler.js';
+import { formatProductForAPI, formatEntitiesForAPI } from '../utils/dynamicDbOperations.js';
 
 export class ProductController {
   public productService = new ProductService();
@@ -26,7 +27,10 @@ export class ProductController {
     
     const result = await this.productService.findMany(filters, page, limit);
     
-    const response = createSuccessResponse('Products retrieved successfully', result.data);
+    // Format all products in the result
+    const formattedData = formatEntitiesForAPI(result.data, 'product');
+    
+    const response = createSuccessResponse('Products retrieved successfully', formattedData);
     return reply.code(200).send({
       ...response,
       pagination: result.pagination,
@@ -43,7 +47,7 @@ export class ProductController {
     
     const product = await this.productService.findById(id);
     
-    const response = createSuccessResponse('Product retrieved successfully', product);
+    const response = createSuccessResponse('Product retrieved successfully', formatProductForAPI(product));
     return reply.code(200).send(response);
   });
 
@@ -52,7 +56,7 @@ export class ProductController {
     
     const product = await this.productService.create(data);
     
-    const response = createSuccessResponse('Product created successfully', product);
+    const response = createSuccessResponse('Product created successfully', formatProductForAPI(product));
     return reply.code(201).send(response);
   });
 
@@ -62,7 +66,7 @@ export class ProductController {
     
     const product = await this.productService.update(id, data);
     
-    const response = createSuccessResponse('Product updated successfully', product);
+    const response = createSuccessResponse('Product updated successfully', formatProductForAPI(product));
     return reply.code(200).send(response);
   });
 
@@ -81,7 +85,7 @@ export class ProductController {
     const product = await this.productService.upsert(data);
     
     const message = data.id ? 'Product updated successfully' : 'Product created successfully';
-    const response = createSuccessResponse(message, product);
+    const response = createSuccessResponse(message, formatProductForAPI(product));
     return reply.code(200).send(response);
   });
 } 
