@@ -9,16 +9,16 @@ export declare const createPicklistSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     value: string;
     type: string;
+    label: string;
     table: string;
     field: string;
-    label: string;
     ordering: number;
 }, {
     value: string;
     type: string;
+    label: string;
     table: string;
     field: string;
-    label: string;
     ordering?: number | undefined;
 }>;
 export declare const updatePicklistSchema: z.ZodObject<Omit<{
@@ -30,15 +30,15 @@ export declare const updatePicklistSchema: z.ZodObject<Omit<{
     ordering: z.ZodOptional<z.ZodDefault<z.ZodNumber>>;
 }, "type">, "strip", z.ZodTypeAny, {
     value?: string | undefined;
+    label?: string | undefined;
     table?: string | undefined;
     field?: string | undefined;
-    label?: string | undefined;
     ordering?: number | undefined;
 }, {
     value?: string | undefined;
+    label?: string | undefined;
     table?: string | undefined;
     field?: string | undefined;
-    label?: string | undefined;
     ordering?: number | undefined;
 }>;
 export declare const picklistParamsSchema: z.ZodObject<{
@@ -60,18 +60,18 @@ export declare const picklistQuerySchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     value?: string | undefined;
     type?: string | undefined;
+    label?: string | undefined;
     table?: string | undefined;
     field?: string | undefined;
-    label?: string | undefined;
     isActive?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
 }, {
     value?: string | undefined;
     type?: string | undefined;
+    label?: string | undefined;
     table?: string | undefined;
     field?: string | undefined;
-    label?: string | undefined;
     isActive?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;

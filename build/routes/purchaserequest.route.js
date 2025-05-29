@@ -210,7 +210,7 @@ export async function purchaseRequestRoutes(fastify) {
                     companymail: { type: 'string', format: 'email', description: 'Company email' },
                     supplierid: { type: 'number', description: 'Supplier ID' },
                     prurl: { type: 'string', format: 'uri', description: 'PR document URL', nullable: true },
-                    prdata: { 
+                    prdata: {
                         type: 'object',
                         description: 'Purchase request items data',
                         properties: {

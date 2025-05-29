@@ -136,7 +136,6 @@ export declare const stockQuerySchema: z.ZodObject<{
     created_after: z.ZodOptional<z.ZodString>;
     created_before: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    productId?: string | undefined;
     batchNumber?: string | undefined;
     warehouseLocation?: string | undefined;
     page?: string | undefined;
@@ -145,6 +144,7 @@ export declare const stockQuerySchema: z.ZodObject<{
     createdBefore?: string | undefined;
     created_after?: string | undefined;
     created_before?: string | undefined;
+    productId?: string | undefined;
     product_id?: string | undefined;
     batch_number?: string | undefined;
     warehouse_location?: string | undefined;
@@ -157,7 +157,6 @@ export declare const stockQuerySchema: z.ZodObject<{
     min_available?: string | undefined;
     max_available?: string | undefined;
 }, {
-    productId?: string | undefined;
     batchNumber?: string | undefined;
     warehouseLocation?: string | undefined;
     page?: string | undefined;
@@ -166,6 +165,7 @@ export declare const stockQuerySchema: z.ZodObject<{
     createdBefore?: string | undefined;
     created_after?: string | undefined;
     created_before?: string | undefined;
+    productId?: string | undefined;
     product_id?: string | undefined;
     batch_number?: string | undefined;
     warehouse_location?: string | undefined;

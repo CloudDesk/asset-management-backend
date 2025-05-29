@@ -91,7 +91,7 @@ export class QuotesController {
             }
         });
     });
-    getQuotesStats = asyncHandler(async (request, reply) => {
+    getQuotesStats = asyncHandler(async (_request, reply) => {
         const stats = await this.quotesService.getQuotesStats();
         const response = createSuccessResponse('Quotes statistics retrieved successfully', stats);
         return reply.code(200).send(response);

@@ -87,22 +87,22 @@ export declare const quotesQuerySchema: z.ZodObject<{
     modifiedBefore: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     status?: string | undefined;
+    prnumber?: string | undefined;
+    quotenumber?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
     createdAfter?: string | undefined;
     createdBefore?: string | undefined;
-    prnumber?: string | undefined;
-    quotenumber?: string | undefined;
     modifiedAfter?: string | undefined;
     modifiedBefore?: string | undefined;
 }, {
     status?: string | undefined;
+    prnumber?: string | undefined;
+    quotenumber?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
     createdAfter?: string | undefined;
     createdBefore?: string | undefined;
-    prnumber?: string | undefined;
-    quotenumber?: string | undefined;
     modifiedAfter?: string | undefined;
     modifiedBefore?: string | undefined;
 }>;

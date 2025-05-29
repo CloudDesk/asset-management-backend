@@ -1597,6 +1597,56 @@ export function formatQuotesForAPI(quote: any): any {
 }
 
 /**
+ * Formats a single user object for API response
+ */
+export function formatUsersForAPI(user: any): any {
+  if (!user) return user;
+  
+  const formatted = serializeForAPI(user);
+  
+  // Format numeric fields
+  if (formatted.id !== undefined) {
+    formatted.id = formatIntegerField(formatted.id) || formatted.id;
+  }
+  if (formatted.usermobilenumber !== undefined) {
+    formatted.usermobilenumber = formatIntegerField(formatted.usermobilenumber);
+  }
+  if (formatted.createddate !== undefined) {
+    formatted.createddate = formatIntegerField(formatted.createddate) || formatted.createddate;
+  }
+  if (formatted.modifieddate !== undefined) {
+    formatted.modifieddate = formatIntegerField(formatted.modifieddate) || formatted.modifieddate;
+  }
+  
+  return formatted;
+}
+
+/**
+ * Formats a single inventory user object for API response
+ */
+export function formatInventoryUsersForAPI(inventoryUser: any): any {
+  if (!inventoryUser) return inventoryUser;
+  
+  const formatted = serializeForAPI(inventoryUser);
+  
+  // Format numeric fields
+  if (formatted.id !== undefined) {
+    formatted.id = formatIntegerField(formatted.id) || formatted.id;
+  }
+  if (formatted.usersphonenumber !== undefined) {
+    formatted.usersphonenumber = formatIntegerField(formatted.usersphonenumber);
+  }
+  if (formatted.createddate !== undefined) {
+    formatted.createddate = formatIntegerField(formatted.createddate) || formatted.createddate;
+  }
+  if (formatted.modifieddate !== undefined) {
+    formatted.modifieddate = formatIntegerField(formatted.modifieddate) || formatted.modifieddate;
+  }
+  
+  return formatted;
+}
+
+/**
  * Universal formatter that detects entity type and applies appropriate formatting
  */
 export function formatEntityForAPI(entity: any, entityType?: string): any {
@@ -1619,6 +1669,10 @@ export function formatEntityForAPI(entity: any, entityType?: string): any {
         return formatPicklistForAPI(entity);
       case 'quotes':
         return formatQuotesForAPI(entity);
+      case 'users':
+        return formatUsersForAPI(entity);
+      case 'inventoryusers':
+        return formatInventoryUsersForAPI(entity);
       default:
         return serializeForAPI(entity);
     }
@@ -1645,6 +1699,12 @@ export function formatEntityForAPI(entity: any, entityType?: string): any {
   }
   if (entity.quotenumber || entity.quoteurl) {
     return formatQuotesForAPI(entity);
+  }
+  if (entity.useremail && entity.usermobilenumber !== undefined) {
+    return formatUsersForAPI(entity);
+  }
+  if (entity.useremail && entity.role !== undefined && entity.usersphonenumber !== undefined) {
+    return formatInventoryUsersForAPI(entity);
   }
   
   // Fallback to generic serialization
