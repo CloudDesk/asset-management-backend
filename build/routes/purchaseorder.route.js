@@ -1,7 +1,6 @@
 import { PurchaseOrderController } from '../controllers/purchaseorder.controller.js';
 export async function purchaseOrderRoutes(fastify) {
     const purchaseOrderController = new PurchaseOrderController();
-    // GET /v1/purchaseorders - Get all purchase orders with pagination and filtering
     fastify.get('/', {
         schema: {
             description: 'Get all purchase orders with pagination and filtering',
@@ -28,13 +27,8 @@ export async function purchaseOrderRoutes(fastify) {
                     sameasinvoice: { type: 'string', description: 'Filter by same as invoice flag' },
                     createddate: { type: 'string', description: 'Filter by creation date (timestamp)' },
                     modifieddate: { type: 'string', description: 'Filter by modification date (timestamp)' },
-                    // Range filters for numeric fields
-                    minSubtotal: { type: 'string', description: 'Minimum subtotal filter' },
-                    maxSubtotal: { type: 'string', description: 'Maximum subtotal filter' },
-                    minTotal: { type: 'string', description: 'Minimum total filter' },
-                    maxTotal: { type: 'string', description: 'Maximum total filter' },
                 },
-                additionalProperties: true, // Allow any query parameters for dynamic filtering
+                additionalProperties: true,
             },
             response: {
                 200: {

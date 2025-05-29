@@ -284,6 +284,15 @@ async function buildDynamicWhereClause(tableName, filters) {
                     values.push(processedValue);
                     paramIndex++;
                 }
+                else if (key === 'id' || key.toLowerCase() === 'id') {
+                    // Special handling for ID fields - treat as numeric
+                    const numValue = Number(processedValue);
+                    if (!isNaN(numValue)) {
+                        conditions.push(`"${matchingColumn}" = $${paramIndex}`);
+                        values.push(numValue);
+                        paramIndex++;
+                    }
+                }
                 else if (typeof processedValue === 'string') {
                     // String filters - support both exact match and ILIKE
                     if (processedValue.includes('%') || processedValue.includes('*')) {

@@ -19,6 +19,7 @@ import {
   validateIntegerId
 } from '../utils/errorHandler.js';
 import { logger } from '../config/logger.js';
+import { formatSupplierForAPI, serializeForAPI } from '../utils/dynamicDbOperations.js';
 
 interface SupplierParams {
   id: string;
@@ -70,7 +71,10 @@ export class SupplierController {
 
     const result = await this.supplierService.findMany(filters, pageNum, limitNum);
     
-    const response = createSuccessResponse('Suppliers retrieved successfully', result.data);
+    // Format all suppliers in the result
+    const formattedData = result.data.map(supplier => formatSupplierForAPI(supplier));
+    
+    const response = createSuccessResponse('Suppliers retrieved successfully', formattedData);
     return reply.code(200).send({
       ...response,
       pagination: result.pagination,
@@ -96,7 +100,7 @@ export class SupplierController {
     try {
       const supplier = await this.supplierService.findById(id);
       
-      const response = createSuccessResponse('Supplier retrieved successfully', supplier);
+      const response = createSuccessResponse('Supplier retrieved successfully', formatSupplierForAPI(supplier));
       return reply.code(200).send(response);
     } catch (error: any) {
       console.log('=== DEBUG: Error caught in getSupplier:', error.message);

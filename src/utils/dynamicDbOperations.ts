@@ -136,27 +136,114 @@ function getTableName(modelName: string): string {
 }
 
 /**
- * Converts BigInt values to numbers for JSON serialization
+ * Converts BigInt values and other database objects to JSON-serializable values
  */
 function convertBigIntToNumber(obj: any): any {
   if (obj === null || obj === undefined) {
     return obj;
   }
   
+  // Handle BigInt
   if (typeof obj === 'bigint') {
     return Number(obj);
   }
   
+  // Handle arrays
   if (Array.isArray(obj)) {
     return obj.map(convertBigIntToNumber);
   }
   
+  // Handle specific object types that need special conversion
   if (typeof obj === 'object') {
-    const converted: any = {};
-    for (const [key, value] of Object.entries(obj)) {
-      converted[key] = convertBigIntToNumber(value);
+    // Handle Prisma Decimal objects
+    if (obj.constructor && obj.constructor.name === 'Decimal') {
+      return Number(obj.toString());
     }
-    return converted;
+    
+    // Handle Buffer objects (convert to string or number if numeric)
+    if (Buffer.isBuffer(obj)) {
+      const str = obj.toString();
+      // If it's a numeric string, convert to number
+      if (/^\d+$/.test(str)) {
+        return Number(str);
+      }
+      return str;
+    }
+    
+    // Handle Date objects
+    if (obj instanceof Date) {
+      return obj.toISOString();
+    }
+    
+    // Handle objects with valueOf method (like some database types)
+    if (typeof obj.valueOf === 'function' && obj.valueOf() !== obj) {
+      const value = obj.valueOf();
+      if (typeof value === 'bigint') {
+        return Number(value);
+      }
+      if (typeof value !== 'object') {
+        return value;
+      }
+    }
+    
+    // Handle objects with toString method that returns a numeric value
+    if (typeof obj.toString === 'function') {
+      const str = obj.toString();
+      // Check if toString returns something other than "[object Object]"
+      if (str !== '[object Object]' && str !== obj) {
+        // If it's a numeric string, convert to number
+        if (/^\d+(\.\d+)?$/.test(str)) {
+          return Number(str);
+        }
+        // If it's not the default object string, use it
+        if (!str.startsWith('[object ')) {
+          return str;
+        }
+      }
+    }
+    
+    // Handle objects with toNumber method
+    if (typeof obj.toNumber === 'function') {
+      return obj.toNumber();
+    }
+    
+    // Handle objects with toJSON method
+    if (typeof obj.toJSON === 'function') {
+      return convertBigIntToNumber(obj.toJSON());
+    }
+    
+    // For plain objects, recursively convert properties
+    if (obj.constructor === Object || obj.constructor === undefined) {
+      const converted: any = {};
+      for (const [key, value] of Object.entries(obj)) {
+        converted[key] = convertBigIntToNumber(value);
+      }
+      return converted;
+    }
+    
+    // For other objects, try to extract a meaningful value
+    // This is a fallback for unknown object types
+    if (obj.constructor && obj.constructor.name) {
+      logger.warn({ 
+        objectType: obj.constructor.name,
+        objectString: obj.toString(),
+        hasValueOf: typeof obj.valueOf === 'function',
+        hasToString: typeof obj.toString === 'function'
+      }, 'Unknown object type encountered in convertBigIntToNumber');
+    }
+    
+    // Last resort: try to convert to string if it's not the default object representation
+    const str = String(obj);
+    if (str !== '[object Object]') {
+      // If it's a numeric string, convert to number
+      if (/^\d+(\.\d+)?$/.test(str)) {
+        return Number(str);
+      }
+      return str;
+    }
+    
+    // If all else fails, return null to avoid "[object Object]"
+    return null;
   }
   
   return obj;
@@ -370,6 +457,14 @@ async function buildDynamicWhereClause(
           conditions.push(`"${matchingColumn}" = $${paramIndex}`);
           values.push(processedValue);
           paramIndex++;
+        } else if (key === 'id' || key.toLowerCase() === 'id') {
+          // Special handling for ID fields - treat as numeric
+          const numValue = Number(processedValue);
+          if (!isNaN(numValue)) {
+            conditions.push(`"${matchingColumn}" = $${paramIndex}`);
+            values.push(numValue);
+            paramIndex++;
+          }
         } else if (typeof processedValue === 'string') {
           // String filters - support both exact match and ILIKE
           if (processedValue.includes('%') || processedValue.includes('*')) {
@@ -710,17 +805,16 @@ export async function dynamicFindUnique(
       if (modelName === 'product') {
         result = await prisma.product.findUnique({
           where,
-          include,
+          ...(include && { include }),
         });
       } else if (modelName === 'stock') {
         result = await prisma.stock.findUnique({
           where,
-          include,
+          ...(include && { include }),
         });
       } else if (modelName === 'picklist') {
         result = await prisma.picklist.findUnique({
           where,
-          include,
         });
       }
 
@@ -919,7 +1013,6 @@ export async function dynamicUpdate(
         result = await prisma.picklist.update({
           where,
           data: filteredData,
-          include,
         });
       }
 
@@ -1155,4 +1248,60 @@ export function getSchemaCacheStatus(): Array<{ tableName: string; columns: stri
     columns: schema.columns,
     age: now - schema.lastChecked
   }));
+}
+
+/**
+ * Safely serializes database objects for API responses
+ * This function ensures that all database objects are properly converted to JSON-serializable values
+ */
+export function serializeForAPI(data: any): any {
+  return convertBigIntToNumber(data);
+}
+
+/**
+ * Formats a single supplier object for API response
+ * Ensures all numeric fields are properly converted and handles any special cases
+ */
+export function formatSupplierForAPI(supplier: any): any {
+  if (!supplier) return supplier;
+  
+  const formatted = serializeForAPI(supplier);
+  
+  // Ensure specific fields are properly typed as numbers
+  if (formatted.id !== undefined) {
+    formatted.id = Number(formatted.id);
+  }
+  
+  // Handle pincode - ensure it's a number if it contains numeric data
+  if (formatted.pincode !== undefined && formatted.pincode !== null && formatted.pincode !== '') {
+    const pincodeValue = String(formatted.pincode).trim();
+    if (/^\d+$/.test(pincodeValue)) {
+      formatted.pincode = parseInt(pincodeValue, 10);
+    }
+  }
+  
+  // Handle phone numbers
+  if (formatted.supplierphonenumber !== undefined && formatted.supplierphonenumber !== null) {
+    const phoneValue = String(formatted.supplierphonenumber).trim();
+    if (/^\d+$/.test(phoneValue)) {
+      formatted.supplierphonenumber = parseInt(phoneValue, 10);
+    }
+  }
+  
+  if (formatted.supplierlandline !== undefined && formatted.supplierlandline !== null) {
+    const landlineValue = String(formatted.supplierlandline).trim();
+    if (/^\d+$/.test(landlineValue)) {
+      formatted.supplierlandline = parseInt(landlineValue, 10);
+    }
+  }
+  
+  // Handle timestamps
+  if (formatted.createddate !== undefined) {
+    formatted.createddate = Number(formatted.createddate);
+  }
+  if (formatted.modifieddate !== undefined) {
+    formatted.modifieddate = Number(formatted.modifieddate);
+  }
+  
+  return formatted;
 } 

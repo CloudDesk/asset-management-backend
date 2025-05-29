@@ -66,6 +66,9 @@ export const supplierQuerySchema = z.object({
   page: z.string().optional(),
   limit: z.string().optional(),
   
+  // ID filter
+  id: z.string().optional(),
+  
   // Filter fields based on actual database columns
   suppliername: z.string().optional(),
   suppliercode: z.string().optional(),
