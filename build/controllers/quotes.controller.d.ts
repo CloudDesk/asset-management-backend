@@ -11,5 +11,10 @@ export declare class QuotesController {
     getQuotesByPrNumber: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     getQuotesByStatus: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     getQuotesStats: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    /**
+     * Attach quote with automatic purchase request status update
+     * Creates/updates quote and updates PR status to "Completed" if quote status is "closed_won"
+     */
+    attachQuoteWithPrStatusUpdate: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
 }
 //# sourceMappingURL=quotes.controller.d.ts.map

@@ -589,4 +589,92 @@ export async function quotesRoutes(fastify: FastifyInstance) {
       },
     },
   }, quotesController.getQuotesStats.bind(quotesController));
+
+  // POST /v1/quotes/attach-with-pr-update - Attach quote with automatic PR status update
+  fastify.post('/attach-with-pr-update', {
+    schema: {
+      description: 'Create or update quote with automatic purchase request status update when closed_won',
+      tags: ['Quotes'],
+      body: {
+        type: 'object',
+        properties: {
+          id: { type: 'number', description: 'Quote ID (optional for create, required for update)' },
+          createddate: { type: 'number', description: 'Creation timestamp (optional, auto-generated if not provided)' },
+          modifieddate: { type: 'number', description: 'Modification timestamp (auto-updated)' },
+          status: { 
+            type: 'string', 
+            maxLength: 500, 
+            description: 'Quote status (when set to "closed_won", PR status will be updated to "Completed")',
+            enum: ['draft', 'sent', 'accepted', 'rejected', 'closed_won', 'closed_lost']
+          },
+          prnumber: { 
+            type: 'string', 
+            maxLength: 500, 
+            description: 'Purchase request number (required for PR status update)' 
+          },
+          quoteurl: { type: 'string', maxLength: 500, description: 'Quote document URL' },
+          quotenumber: { type: 'string', maxLength: 500, description: 'Quote number' },
+        },
+        required: ['prnumber'], // prnumber is required for this endpoint
+        additionalProperties: true, // Allow any additional fields
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            data: { 
+              type: 'object',
+              properties: {
+                quote: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'number', description: 'Quote ID' },
+                    createddate: { type: 'number', description: 'Creation timestamp' },
+                    modifieddate: { type: 'number', description: 'Modification timestamp' },
+                    status: { type: 'string', description: 'Quote status' },
+                    prnumber: { type: 'string', description: 'Purchase request number' },
+                    quoteurl: { type: 'string', description: 'Quote document URL' },
+                    quotenumber: { type: 'string', description: 'Quote number' },
+                  },
+                  additionalProperties: true // Allow any additional fields
+                },
+                purchaseRequestUpdate: { 
+                  type: ['object', 'null'], 
+                  description: 'Purchase request update result (null if no update was performed)',
+                  additionalProperties: true
+                },
+                message: { 
+                  type: 'object',
+                  properties: {
+                    quote: { type: 'string', description: 'Quote operation result message' },
+                    purchaseRequest: { type: 'string', description: 'Purchase request operation result message' }
+                  }
+                }
+              }
+            },
+            message: { type: 'string' },
+          },
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+      },
+    },
+  }, quotesController.attachQuoteWithPrStatusUpdate.bind(quotesController));
 } 

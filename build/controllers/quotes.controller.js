@@ -96,5 +96,19 @@ export class QuotesController {
         const response = createSuccessResponse('Quotes statistics retrieved successfully', stats);
         return reply.code(200).send(response);
     });
+    /**
+     * Attach quote with automatic purchase request status update
+     * Creates/updates quote and updates PR status to "Completed" if quote status is "closed_won"
+     */
+    attachQuoteWithPrStatusUpdate = asyncHandler(async (request, reply) => {
+        const data = upsertQuotesSchema.parse(request.body);
+        const result = await this.quotesService.attachQuoteWithPrStatusUpdate(data);
+        const response = createSuccessResponse('Quote attachment processed successfully', {
+            quote: formatEntityForAPI(result.quote, 'quotes'),
+            purchaseRequestUpdate: result.purchaseRequestUpdate,
+            message: result.message
+        });
+        return reply.code(200).send(response);
+    });
 }
 //# sourceMappingURL=quotes.controller.js.map

@@ -14,5 +14,17 @@ export declare class QuotesService {
         total: number;
         byStatus: Record<string, number>;
     }>;
+    /**
+     * Upsert quote with automatic purchase request status update
+     * If quote status is "closed_won", updates corresponding PR status to "Completed"
+     */
+    attachQuoteWithPrStatusUpdate(data: UpsertQuotesInput & Record<string, any>): Promise<{
+        quote: any;
+        purchaseRequestUpdate: any;
+        message: {
+            quote: string;
+            purchaseRequest: string;
+        };
+    }>;
 }
 //# sourceMappingURL=quotes.service.d.ts.map

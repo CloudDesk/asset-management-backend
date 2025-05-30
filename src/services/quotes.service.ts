@@ -199,26 +199,114 @@ export class QuotesService {
       logger.debug('Getting quotes statistics');
 
       // Get total count
-      const total = await dynamicCount('quotes');
+      const total = await dynamicCount('quotes', {});
 
-      // Get counts by status
-      const statusCounts = await dynamicFindManyWithFilters('quotes', {}, {
-        useAllColumns: false
+      // Get count by status - use dynamic approach
+      const quotes = await dynamicFindManyWithFilters('quotes', {}, { useAllColumns: true });
+      const statusCounts: Record<string, number> = {};
+      
+      quotes.data.forEach((quote: any) => {
+        const status = quote.status || 'unknown';
+        statusCounts[status] = (statusCounts[status] || 0) + 1;
       });
 
-      const stats = {
-        total,
-        byStatus: statusCounts.data.reduce((acc: Record<string, number>, quote: any) => {
-          const status = quote.status || 'unknown';
-          acc[status] = (acc[status] || 0) + 1;
-          return acc;
-        }, {})
-      };
+      logger.info({ total, statusCounts }, 'Quotes statistics retrieved');
 
-      logger.debug({ stats }, 'Quotes statistics retrieved');
-      return stats;
+      return {
+        total,
+        byStatus: statusCounts
+      };
     } catch (error) {
       logger.error({ error }, 'Error getting quotes statistics');
+      throw error;
+    }
+  }
+
+  /**
+   * Upsert quote with automatic purchase request status update
+   * If quote status is "closed_won", updates corresponding PR status to "Completed"
+   */
+  async attachQuoteWithPrStatusUpdate(data: UpsertQuotesInput & Record<string, any>) {
+    try {
+      logger.debug({ data }, 'Starting quote upsert with PR status update');
+
+      // Validate required fields
+      if (!data.prnumber) {
+        const error = new Error('prnumber is required for quote attachment');
+        (error as any).statusCode = 400;
+        throw error;
+      }
+
+      // Import the purchase request service dynamically to avoid circular dependency
+      const { PurchaseRequestService } = await import('./purchaserequest.service.js');
+      const purchaseRequestService = new PurchaseRequestService();
+
+      // Upsert the quote
+      const quote = await this.upsert(data);
+
+      let purchaseRequestUpdateResult = null;
+      let message = {
+        quote: data.id ? 'Quote updated successfully' : 'Quote created successfully',
+        purchaseRequest: 'No PR status update required'
+      };
+
+      // Check if quote status is closed_won and update PR accordingly
+      if (quote.status === 'closed_won') {
+        try {
+          logger.debug({ prnumber: quote.prnumber, quote_id: quote.id }, 'Quote is closed_won, updating PR status to Completed');
+
+          // Find the purchase request by prnumber
+          const purchaseRequests = await purchaseRequestService.findMany({ prnumber: quote.prnumber }, 1, 1);
+          
+          if (purchaseRequests.data.length > 0) {
+            const purchaseRequest = purchaseRequests.data[0];
+            
+            // Update the purchase request status
+            const updateData = {
+              prstatus: 'Completed',
+              status: 'Completed', // Also try alternative field name
+              modifieddate: Date.now(),
+              modified_date: Date.now(), // Also try snake_case
+            };
+
+            purchaseRequestUpdateResult = await purchaseRequestService.update(purchaseRequest.id, updateData);
+            
+            logger.info({ 
+              quote_id: quote.id, 
+              pr_id: purchaseRequest.id, 
+              prnumber: quote.prnumber 
+            }, 'Purchase request status updated to Completed');
+
+            message.purchaseRequest = 'Purchase request status updated to Completed successfully';
+          } else {
+            logger.warn({ prnumber: quote.prnumber }, 'Purchase request not found for quote');
+            message.purchaseRequest = 'Purchase request not found for the provided prnumber';
+          }
+        } catch (prUpdateError) {
+          logger.error({ 
+            error: prUpdateError, 
+            prnumber: quote.prnumber, 
+            quote_id: quote.id 
+          }, 'Failed to update purchase request status');
+          
+          message.purchaseRequest = 'Purchase request status update failed';
+        }
+      }
+
+      logger.info({ 
+        quote_id: quote.id, 
+        quote_status: quote.status,
+        prnumber: quote.prnumber,
+        pr_update_success: purchaseRequestUpdateResult !== null
+      }, 'Quote upsert with PR status update completed');
+
+      return {
+        quote,
+        purchaseRequestUpdate: purchaseRequestUpdateResult,
+        message
+      };
+    } catch (error) {
+      logger.error({ error, data }, 'Error in quote upsert with PR status update');
       throw error;
     }
   }

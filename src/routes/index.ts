@@ -55,7 +55,16 @@ export async function routes(fastify: FastifyInstance) {
   await fastify.register(async function (fastify) {
  
     await fastify.register(authRoutes, { prefix: '/auth' });
-   
+    await fastify.register(productRoutes, { prefix: '/products' });
+    await fastify.register(stockRoutes, { prefix: '/stocks' });
+    await fastify.register(picklistRoutes, { prefix: '/picklists' });
+    await fastify.register(supplierRoutes, { prefix: '/suppliers' });
+    await fastify.register(purchaseOrderRoutes, { prefix: '/purchaseorders' });
+    await fastify.register(purchaseRequestRoutes, { prefix: '/purchaserequests' });
+    await fastify.register(quotesRoutes, { prefix: '/quotes' });
+    await fastify.register(notesRoutes, { prefix: '/notes' });
+    await fastify.register(usersRoutes, { prefix: '/users' });
+    await fastify.register(inventoryUsersRoutes, { prefix: '/inventoryusers' });
 
     await fastify.register(async function (fastify) {
       // Apply authentication middleware to all routes in this scope
@@ -63,16 +72,7 @@ export async function routes(fastify: FastifyInstance) {
 
       // Register protected routes
 
-      await fastify.register(productRoutes, { prefix: '/products' });
-      await fastify.register(stockRoutes, { prefix: '/stocks' });
-      await fastify.register(picklistRoutes, { prefix: '/picklists' });
-      await fastify.register(supplierRoutes, { prefix: '/suppliers' });
-      await fastify.register(purchaseOrderRoutes, { prefix: '/purchaseorders' });
-      await fastify.register(purchaseRequestRoutes, { prefix: '/purchaserequests' });
-      await fastify.register(quotesRoutes, { prefix: '/quotes' });
-      await fastify.register(notesRoutes, { prefix: '/notes' });
-      await fastify.register(usersRoutes, { prefix: '/users' });
-      await fastify.register(inventoryUsersRoutes, { prefix: '/inventoryusers' });
+
     });
 
   }, { prefix: '/v1' });
