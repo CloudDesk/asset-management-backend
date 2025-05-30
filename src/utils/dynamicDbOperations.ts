@@ -399,6 +399,50 @@ async function buildDynamicWhereClause(
     return null;
   }
 
+  // Helper function to determine if a field is numeric
+  function isNumericField(fieldName: string): boolean {
+    const numericFieldPatterns = [
+      /^.*id$/i, // ends with 'id'
+      /^id$/i, // exactly 'id'
+      /^.*userid$/i, // ends with 'userid'
+      /^.*amount$/i, // ends with 'amount'
+      /^.*price$/i, // ends with 'price'
+      /^.*total$/i, // ends with 'total'
+      /^.*quantity$/i, // ends with 'quantity'
+      /^.*number$/i, // ends with 'number' 
+      /^.*count$/i, // ends with 'count'
+      /^.*date$/i, // ends with 'date' (timestamps)
+      /^.*time$/i, // ends with 'time' (timestamps)
+      /^.*code$/i, // ends with 'code' like pincode
+      /^mobilenumber$/i, // specific mobile fields
+      /^phonenumber$/i, // specific phone fields
+      /^usersphonenumber$/i, // specific user phone fields
+      /^usermobilenumber$/i, // specific user mobile fields
+      /^createddate$/i, // timestamp fields
+      /^modifieddate$/i, // timestamp fields
+      /^invoicedate$/i, // timestamp fields
+      /^paymentduedate$/i, // timestamp fields
+    ];
+    
+    return numericFieldPatterns.some(pattern => pattern.test(fieldName));
+  }
+
+  // Helper function to determine if a field is boolean
+  function isBooleanField(fieldName: string): boolean {
+    const booleanFieldPatterns = [
+      /^is[A-Z]/i, // starts with 'is'
+      /^has[A-Z]/i, // starts with 'has'
+      /^.*flag$/i, // ends with 'flag'
+      /^.*enabled$/i, // ends with 'enabled'
+      /^.*active$/i, // ends with 'active'
+      /^iscreditpayment$/i, // specific boolean fields
+      /^isbusinessuser$/i, // specific boolean fields
+      /^ispinned$/i, // specific boolean fields
+    ];
+    
+    return booleanFieldPatterns.some(pattern => pattern.test(fieldName));
+  }
+
   for (const [key, value] of Object.entries(filters)) {
     // Skip pagination parameters
     if (['page', 'limit', 'skip', 'take'].includes(key)) {
@@ -453,36 +497,49 @@ async function buildDynamicWhereClause(
               paramIndex++;
             }
           }
-        } else if (key.includes('date') || key.includes('Date')) {
-          // Date filters
-          conditions.push(`"${matchingColumn}" = $${paramIndex}`);
-          values.push(processedValue);
-          paramIndex++;
-        } else if (key === 'id' || key.toLowerCase() === 'id' || 
-                   key === 'supplierid' || key === 'supplier_id' ||
-                   key.endsWith('_id') || key.endsWith('Id')) {
-          // Special handling for ID fields - treat as numeric
+        } else if (isNumericField(matchingColumn)) {
+          // Numeric fields - treat as exact numeric match
           const numValue = Number(processedValue);
           if (!isNaN(numValue)) {
             conditions.push(`"${matchingColumn}" = $${paramIndex}`);
             values.push(numValue);
             paramIndex++;
+          } else {
+            // If conversion fails, skip this filter
+            logger.warn({
+              tableName,
+              fieldName: matchingColumn,
+              value: processedValue
+            }, `Failed to convert value to number for numeric field`);
           }
+        } else if (isBooleanField(matchingColumn)) {
+          // Boolean fields - convert string to boolean
+          let boolValue: boolean;
+          if (typeof processedValue === 'boolean') {
+            boolValue = processedValue;
+          } else if (typeof processedValue === 'string') {
+            boolValue = processedValue.toLowerCase() === 'true' || processedValue === '1';
+          } else {
+            boolValue = Boolean(processedValue);
+          }
+          conditions.push(`"${matchingColumn}" = $${paramIndex}`);
+          values.push(boolValue);
+          paramIndex++;
         } else if (typeof processedValue === 'string') {
-          // String filters - support both exact match and ILIKE
+          // String fields - support both exact match and ILIKE
           if (processedValue.includes('%') || processedValue.includes('*')) {
             // Wildcard search
             const searchValue = processedValue.replace(/\*/g, '%');
             conditions.push(`"${matchingColumn}" ILIKE $${paramIndex}`);
             values.push(searchValue);
           } else {
-            // Exact match (case-insensitive for strings)
+            // Case-insensitive exact match for string fields only
             conditions.push(`LOWER("${matchingColumn}") = LOWER($${paramIndex})`);
             values.push(processedValue);
           }
           paramIndex++;
         } else {
-          // Exact match for numbers, booleans, etc.
+          // Exact match for other types
           conditions.push(`"${matchingColumn}" = $${paramIndex}`);
           values.push(processedValue);
           paramIndex++;
