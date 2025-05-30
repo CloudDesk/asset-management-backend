@@ -1390,6 +1390,77 @@ export function formatInventoryUsersForAPI(inventoryUser) {
     return formatted;
 }
 /**
+ * Formats a single poinvoice object for API response
+ */
+export function formatPoinvoiceForAPI(poinvoice) {
+    if (!poinvoice)
+        return poinvoice;
+    const formatted = serializeForAPI(poinvoice);
+    // Format numeric fields
+    if (formatted.id !== undefined) {
+        formatted.id = formatIntegerField(formatted.id) || formatted.id;
+    }
+    if (formatted.invoiceamount !== undefined) {
+        formatted.invoiceamount = formatNumericField(formatted.invoiceamount);
+    }
+    if (formatted.balanceamount !== undefined) {
+        formatted.balanceamount = formatNumericField(formatted.balanceamount);
+    }
+    if (formatted.pototal !== undefined) {
+        formatted.pototal = formatNumericField(formatted.pototal);
+    }
+    if (formatted.transportationcharges !== undefined) {
+        formatted.transportationcharges = formatNumericField(formatted.transportationcharges);
+    }
+    if (formatted.exchangeamount !== undefined) {
+        formatted.exchangeamount = formatNumericField(formatted.exchangeamount);
+    }
+    if (formatted.customdutytaxamount !== undefined) {
+        formatted.customdutytaxamount = formatNumericField(formatted.customdutytaxamount);
+    }
+    if (formatted.invoicedate !== undefined) {
+        formatted.invoicedate = formatIntegerField(formatted.invoicedate) || formatted.invoicedate;
+    }
+    if (formatted.paymentduedate !== undefined) {
+        formatted.paymentduedate = formatIntegerField(formatted.paymentduedate) || formatted.paymentduedate;
+    }
+    if (formatted.createddate !== undefined) {
+        formatted.createddate = formatIntegerField(formatted.createddate) || formatted.createddate;
+    }
+    if (formatted.modifieddate !== undefined) {
+        formatted.modifieddate = formatIntegerField(formatted.modifieddate) || formatted.modifieddate;
+    }
+    return formatted;
+}
+/**
+ * Formats a single address object for API response
+ */
+export function formatAddressForAPI(address) {
+    if (!address)
+        return address;
+    const formatted = serializeForAPI(address);
+    // Format numeric fields
+    if (formatted.id !== undefined) {
+        formatted.id = formatIntegerField(formatted.id) || formatted.id;
+    }
+    if (formatted.userid !== undefined) {
+        formatted.userid = formatIntegerField(formatted.userid);
+    }
+    if (formatted.mobilenumber !== undefined) {
+        formatted.mobilenumber = formatIntegerField(formatted.mobilenumber);
+    }
+    if (formatted.pincode !== undefined) {
+        formatted.pincode = formatIntegerField(formatted.pincode);
+    }
+    if (formatted.createddate !== undefined) {
+        formatted.createddate = formatIntegerField(formatted.createddate) || formatted.createddate;
+    }
+    if (formatted.modifieddate !== undefined) {
+        formatted.modifieddate = formatIntegerField(formatted.modifieddate) || formatted.modifieddate;
+    }
+    return formatted;
+}
+/**
  * Universal formatter that detects entity type and applies appropriate formatting
  */
 export function formatEntityForAPI(entity, entityType) {
@@ -1416,6 +1487,10 @@ export function formatEntityForAPI(entity, entityType) {
                 return formatUsersForAPI(entity);
             case 'inventoryusers':
                 return formatInventoryUsersForAPI(entity);
+            case 'poinvoice':
+                return formatPoinvoiceForAPI(entity);
+            case 'address':
+                return formatAddressForAPI(entity);
             default:
                 return serializeForAPI(entity);
         }
@@ -1447,6 +1522,12 @@ export function formatEntityForAPI(entity, entityType) {
     }
     if (entity.useremail && entity.role !== undefined && entity.usersphonenumber !== undefined) {
         return formatInventoryUsersForAPI(entity);
+    }
+    if (entity.invoiceamount !== undefined || entity.invoicenumber !== undefined) {
+        return formatPoinvoiceForAPI(entity);
+    }
+    if (entity.address !== undefined || entity.doornumber !== undefined) {
+        return formatAddressForAPI(entity);
     }
     // Fallback to generic serialization
     return serializeForAPI(entity);

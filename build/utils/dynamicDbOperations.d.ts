@@ -102,6 +102,14 @@ export declare function formatUsersForAPI(user: any): any;
  */
 export declare function formatInventoryUsersForAPI(inventoryUser: any): any;
 /**
+ * Formats a single poinvoice object for API response
+ */
+export declare function formatPoinvoiceForAPI(poinvoice: any): any;
+/**
+ * Formats a single address object for API response
+ */
+export declare function formatAddressForAPI(address: any): any;
+/**
  * Universal formatter that detects entity type and applies appropriate formatting
  */
 export declare function formatEntityForAPI(entity: any, entityType?: string): any;

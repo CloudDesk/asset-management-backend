@@ -10,6 +10,8 @@ import { notesRoutes } from './notes.route.js';
 import { usersRoutes } from './users.route.js';
 import { inventoryUsersRoutes } from './inventoryusers.route.js';
 import { authRoutes } from './auth.route.js';
+import { poinvoiceRoutes } from './poinvoice.route.js';
+import { addressRoutes } from './address.route.js';
 import { requireAuthentication } from '../middleware/auth.middleware.js';
 import { createSuccessResponse } from '../utils/errorHandler.js';
 
@@ -65,6 +67,8 @@ export async function routes(fastify: FastifyInstance) {
     await fastify.register(notesRoutes, { prefix: '/notes' });
     await fastify.register(usersRoutes, { prefix: '/users' });
     await fastify.register(inventoryUsersRoutes, { prefix: '/inventoryusers' });
+    await fastify.register(poinvoiceRoutes, { prefix: '/poinvoices' });
+    await fastify.register(addressRoutes, { prefix: '/addresses' });
 
     await fastify.register(async function (fastify) {
       // Apply authentication middleware to all routes in this scope

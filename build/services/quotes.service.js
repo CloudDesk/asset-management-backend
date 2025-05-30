@@ -157,7 +157,7 @@ export class QuotesService {
             // Get total count
             const total = await dynamicCount('quotes', {});
             // Get count by status - use dynamic approach
-            const quotes = await dynamicFindManyWithFilters('quotes', {}, { useAllColumns: false });
+            const quotes = await dynamicFindManyWithFilters('quotes', {}, { useAllColumns: true });
             const statusCounts = {};
             quotes.data.forEach((quote) => {
                 const status = quote.status || 'unknown';
@@ -181,13 +181,15 @@ export class QuotesService {
     async attachQuoteWithPrStatusUpdate(data) {
         try {
             logger.debug({ data }, 'Starting quote upsert with PR status update');
+            // Validate required fields
+            if (!data.prnumber) {
+                const error = new Error('prnumber is required for quote attachment');
+                error.statusCode = 400;
+                throw error;
+            }
             // Import the purchase request service dynamically to avoid circular dependency
             const { PurchaseRequestService } = await import('./purchaserequest.service.js');
             const purchaseRequestService = new PurchaseRequestService();
-            // Validate required fields
-            if (!data.prnumber) {
-                throw new Error('prnumber is required for quote attachment');
-            }
             // Upsert the quote
             const quote = await this.upsert(data);
             let purchaseRequestUpdateResult = null;

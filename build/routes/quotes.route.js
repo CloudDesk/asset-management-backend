@@ -593,7 +593,7 @@ export async function quotesRoutes(fastify) {
                         type: 'string',
                         maxLength: 500,
                         description: 'Quote status (when set to "closed_won", PR status will be updated to "Completed")',
-                        enum: ['draft', 'sent', 'accepted', 'rejected', 'closed_won', 'closed_lost']
+                        enum: ['in_progress', 'negotiation', 'closed_won', 'closed_lost']
                     },
                     prnumber: {
                         type: 'string',
