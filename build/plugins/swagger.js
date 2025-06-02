@@ -131,14 +131,14 @@ const usersResponse = await fetch('/v1/inventoryusers', {
 ---
 `,
                 version: '1.0.0',
-                contact: {
-                    name: 'API Support',
-                    email: 'support@example.com'
-                },
-                license: {
-                    name: 'MIT',
-                    url: 'https://opensource.org/licenses/MIT'
-                }
+                // contact: {
+                //   name: 'API Support',
+                //   email: 'support@example.com'
+                // },
+                // license: {
+                //   name: 'MIT',
+                //   url: 'https://opensource.org/licenses/MIT'
+                // }
             },
             servers: [
                 {
@@ -146,7 +146,11 @@ const usersResponse = await fetch('/v1/inventoryusers', {
                     description: 'Development server',
                 },
                 {
-                    url: `https://your-api-domain.com`,
+                    url: `https://api.your-api-domain.com`,
+                    description: 'User Acceptance Testing server',
+                },
+                {
+                    url: `https://prod.your-api-domain.com`,
                     description: 'Production server',
                 },
             ],
@@ -219,6 +223,64 @@ Manage inventory users who have access to the system:
                     description: '📝 Note management endpoints - **🔒 Authentication Required**'
                 },
                 {
+                    name: 'PO Invoices',
+                    description: `
+## 🧾 Purchase Order Invoices Management
+
+**🔒 Authentication Required** - All endpoints require a valid Bearer token.
+
+Manage purchase order invoices with comprehensive payment tracking:
+
+### 📊 Key Features:
+- **Invoice Management**: Create, update, and track invoice details
+- **Payment Tracking**: Advanced payment data with arrays of payment objects
+- **Status Management**: Track invoice and purchase order statuses
+- **Financial Calculations**: Balance amounts, totals, and payment tracking
+
+### 💳 Payment Data Structure:
+The \`paymentdata\` field supports complex payment arrays with objects containing:
+- **Payment Details**: ID, date, type, amount, method
+- **Transaction Info**: Transaction ID, comments, receipt comments
+- **Payment Types**: "Full Payment", "Part Payment", etc.
+- **Payment Methods**: "banktransfer", "cash", "cheque", etc.
+
+### 📝 Example Payment Data:
+\`\`\`json
+{
+  "paymentdata": [
+    {
+      "id": 1,
+      "comments": "Initial payment",
+      "paymentdate": "2025-01-27",
+      "paymenttype": "Part Payment",
+      "paymentamount": 75000,
+      "paymentmethod": "banktransfer", 
+      "transactionid": "TXN-001",
+      "receiptcomments": "50% advance payment"
+    },
+    {
+      "id": 2,
+      "comments": null,
+      "paymentdate": null,
+      "paymenttype": "Part Payment",
+      "paymentamount": 75000,
+      "paymentmethod": "cash",
+      "transactionid": null,
+      "receiptcomments": "Remaining 50% - pending"
+    }
+  ]
+}
+\`\`\`
+
+**Payment Data Types:**
+- **Array**: Multiple payment objects for complex payment scenarios
+- **Object**: Single payment object for simple cases  
+- **Null**: No payment data
+
+**Required Role:** Admin or authorized user for invoice management.
+          `
+                },
+                {
                     name: 'Users',
                     description: '👤 User management endpoints - **🔒 Authentication Required**'
                 },
@@ -240,7 +302,7 @@ Manage inventory users who have access to the system:
 
 **Example:**
 \`\`\`
-Authorization: Bearer abc123def456ghi789
+Authorization: Bearer abc123def456ghi789895652
 \`\`\`
 
 **Alternative:** You can also pass the token as a query parameter:
@@ -299,6 +361,145 @@ Authorization: Bearer abc123def456ghi789
                                 'Bearer token in Authorization header',
                                 'Token query parameter (?token=YOUR_TOKEN)'
                             ]
+                        }
+                    },
+                    // PO Invoice Payment Data Examples
+                    SimplePaymentData: {
+                        summary: 'Simple payment data - single payment',
+                        value: [
+                            {
+                                id: 1,
+                                comments: "Full payment received",
+                                paymentdate: "2025-01-27",
+                                paymenttype: "Full Payment",
+                                paymentamount: 150000,
+                                paymentmethod: "banktransfer",
+                                transactionid: "TXN-FULL-001",
+                                receiptcomments: "Payment completed successfully"
+                            }
+                        ]
+                    },
+                    ComplexPaymentData: {
+                        summary: 'Complex payment data - multiple payments',
+                        value: [
+                            {
+                                id: 1,
+                                comments: "Initial advance payment",
+                                paymentdate: "2025-01-15",
+                                paymenttype: "Part Payment",
+                                paymentamount: 50000,
+                                paymentmethod: "banktransfer",
+                                transactionid: "TXN-ADV-001",
+                                receiptcomments: "25% advance payment received"
+                            },
+                            {
+                                id: 2,
+                                comments: "Second installment",
+                                paymentdate: "2025-01-25",
+                                paymenttype: "Part Payment",
+                                paymentamount: 75000,
+                                paymentmethod: "cash",
+                                transactionid: "TXN-INST-002",
+                                receiptcomments: "50% payment in cash"
+                            },
+                            {
+                                id: 3,
+                                comments: null,
+                                paymentdate: null,
+                                paymenttype: "Part Payment",
+                                paymentamount: 75000,
+                                paymentmethod: "cheque",
+                                transactionid: null,
+                                receiptcomments: "Final 25% payment - pending"
+                            }
+                        ]
+                    },
+                    CreatePoinvoiceRequest: {
+                        summary: 'Create new PO invoice with payment data',
+                        value: {
+                            invoiceamount: 200000,
+                            ponumber: "REVO-PO-2025-001",
+                            invoicedate: 1737849600,
+                            invoicenumber: "INV-2025-001",
+                            invoiceurl: "https://example.com/invoices/INV-2025-001.pdf",
+                            paymentdata: [
+                                {
+                                    id: 1,
+                                    comments: "Advance payment",
+                                    paymentdate: "2025-01-27",
+                                    paymenttype: "Part Payment",
+                                    paymentamount: 100000,
+                                    paymentmethod: "banktransfer",
+                                    transactionid: "TXN-2025-001",
+                                    receiptcomments: "50% advance payment"
+                                },
+                                {
+                                    id: 2,
+                                    comments: null,
+                                    paymentdate: null,
+                                    paymenttype: "Part Payment",
+                                    paymentamount: 100000,
+                                    paymentmethod: "cash",
+                                    transactionid: null,
+                                    receiptcomments: "Remaining 50% - pending delivery"
+                                }
+                            ],
+                            balanceamount: 100000,
+                            iscreditpayment: false,
+                            invoicestatus: "partial",
+                            pototal: 200000,
+                            purchaseorderstatus: "in_progress"
+                        }
+                    },
+                    PoinvoiceResponse: {
+                        summary: 'PO invoice response with payment data',
+                        value: {
+                            success: true,
+                            data: {
+                                id: 23,
+                                invoiceamount: 200000,
+                                ponumber: "REVO-PO-2025-001",
+                                invoicedate: 1737849600,
+                                invoicenumber: "INV-2025-001",
+                                invoiceurl: "https://example.com/invoices/INV-2025-001.pdf",
+                                paymentdata: [
+                                    {
+                                        id: 1,
+                                        comments: "Advance payment",
+                                        paymentdate: "2025-01-27",
+                                        paymenttype: "Part Payment",
+                                        paymentamount: 100000,
+                                        paymentmethod: "banktransfer",
+                                        transactionid: "TXN-2025-001",
+                                        receiptcomments: "50% advance payment"
+                                    },
+                                    {
+                                        id: 2,
+                                        comments: null,
+                                        paymentdate: null,
+                                        paymenttype: "Part Payment",
+                                        paymentamount: 100000,
+                                        paymentmethod: "cash",
+                                        transactionid: null,
+                                        receiptcomments: "Remaining 50% - pending delivery"
+                                    }
+                                ],
+                                createddate: 1748886943,
+                                modifieddate: 1748886943,
+                                balanceamount: 100000,
+                                iscreditpayment: false,
+                                paymentduedate: null,
+                                invoicestatus: "partial",
+                                pototal: 200000,
+                                purchaseorderstatus: "in_progress",
+                                transportationcharges: null,
+                                exchangeamount: null,
+                                customdutytaxamount: null,
+                                suppliertype: null,
+                                customdutychallanurl: null,
+                                billofentryurl: null
+                            },
+                            message: "Poinvoice created successfully"
                         }
                     }
                 },

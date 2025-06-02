@@ -1,4 +1,8 @@
 /**
+ * Converts BigInt values and other database objects to JSON-serializable values
+ */
+export declare function convertBigIntToNumber(obj: any): any;
+/**
  * Performs a fast findMany operation optimized for performance
  */
 export declare function fastFindMany(modelName: string, options?: {

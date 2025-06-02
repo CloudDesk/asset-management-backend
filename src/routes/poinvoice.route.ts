@@ -47,7 +47,30 @@ export async function poinvoiceRoutes(fastify: FastifyInstance) {
                   invoicedate: { type: 'number', nullable: true, description: 'Invoice date timestamp' },
                   invoicenumber: { type: 'string', nullable: true, description: 'Invoice number' },
                   invoiceurl: { type: 'string', nullable: true, description: 'Invoice URL' },
-                  paymentdata: { type: 'object', nullable: true, description: 'Payment data JSON' },
+                  paymentdata: { 
+                    oneOf: [
+                      { 
+                        type: 'array', 
+                        items: { 
+                          type: 'object',
+                          properties: {
+                            id: { type: 'number', description: 'Payment ID' },
+                            comments: { type: 'string', nullable: true, description: 'Payment comments' },
+                            paymentdate: { type: 'string', nullable: true, description: 'Payment date' },
+                            paymenttype: { type: 'string', nullable: true, description: 'Payment type (e.g., "Part Payment", "Full Payment")' },
+                            paymentamount: { type: 'number', nullable: true, description: 'Payment amount' },
+                            paymentmethod: { type: 'string', nullable: true, description: 'Payment method (e.g., "banktransfer", "cash", "cheque")' },
+                            transactionid: { type: 'string', nullable: true, description: 'Transaction ID' },
+                            receiptcomments: { type: 'string', nullable: true, description: 'Receipt comments' }
+                          },
+                          additionalProperties: true
+                        }
+                      },
+                      { type: 'object', additionalProperties: true },
+                      { type: 'null' }
+                    ], 
+                    description: 'Payment data JSON - can be array of payment objects or single object' 
+                  },
                   createddate: { type: 'number', nullable: true, description: 'Creation timestamp' },
                   modifieddate: { type: 'number', nullable: true, description: 'Modification timestamp' },
                   balanceamount: { type: 'number', nullable: true, description: 'Balance amount' },
@@ -131,7 +154,30 @@ export async function poinvoiceRoutes(fastify: FastifyInstance) {
                 invoicedate: { type: 'number', nullable: true, description: 'Invoice date timestamp' },
                 invoicenumber: { type: 'string', nullable: true, description: 'Invoice number' },
                 invoiceurl: { type: 'string', nullable: true, description: 'Invoice URL' },
-                paymentdata: { type: 'object', nullable: true, description: 'Payment data JSON' },
+                paymentdata: { 
+                  oneOf: [
+                    { 
+                      type: 'array', 
+                      items: { 
+                        type: 'object',
+                        properties: {
+                          id: { type: 'number', description: 'Payment ID' },
+                          comments: { type: 'string', nullable: true, description: 'Payment comments' },
+                          paymentdate: { type: 'string', nullable: true, description: 'Payment date' },
+                          paymenttype: { type: 'string', nullable: true, description: 'Payment type (e.g., "Part Payment", "Full Payment")' },
+                          paymentamount: { type: 'number', nullable: true, description: 'Payment amount' },
+                          paymentmethod: { type: 'string', nullable: true, description: 'Payment method (e.g., "banktransfer", "cash", "cheque")' },
+                          transactionid: { type: 'string', nullable: true, description: 'Transaction ID' },
+                          receiptcomments: { type: 'string', nullable: true, description: 'Receipt comments' }
+                        },
+                        additionalProperties: true
+                      }
+                    },
+                    { type: 'object', additionalProperties: true },
+                    { type: 'null' }
+                  ], 
+                  description: 'Payment data JSON - can be array of payment objects or single object' 
+                },
                 createddate: { type: 'number', nullable: true, description: 'Creation timestamp' },
                 modifieddate: { type: 'number', nullable: true, description: 'Modification timestamp' },
                 balanceamount: { type: 'number', nullable: true, description: 'Balance amount' },
@@ -196,7 +242,30 @@ export async function poinvoiceRoutes(fastify: FastifyInstance) {
           invoicedate: { type: 'number', description: 'Invoice date timestamp' },
           invoicenumber: { type: 'string', maxLength: 500, description: 'Invoice number' },
           invoiceurl: { type: 'string', maxLength: 500, description: 'Invoice URL' },
-          paymentdata: { type: 'object', description: 'Payment data JSON' },
+          paymentdata: { 
+            oneOf: [
+              { 
+                type: 'array', 
+                items: { 
+                  type: 'object',
+                  properties: {
+                    id: { type: 'number', description: 'Payment ID' },
+                    comments: { type: 'string', nullable: true, description: 'Payment comments' },
+                    paymentdate: { type: 'string', nullable: true, description: 'Payment date' },
+                    paymenttype: { type: 'string', nullable: true, description: 'Payment type (e.g., "Part Payment", "Full Payment")' },
+                    paymentamount: { type: 'number', nullable: true, description: 'Payment amount' },
+                    paymentmethod: { type: 'string', nullable: true, description: 'Payment method (e.g., "banktransfer", "cash", "cheque")' },
+                    transactionid: { type: 'string', nullable: true, description: 'Transaction ID' },
+                    receiptcomments: { type: 'string', nullable: true, description: 'Receipt comments' }
+                  },
+                  additionalProperties: true
+                }
+              },
+              { type: 'object', additionalProperties: true },
+              { type: 'null' }
+            ], 
+            description: 'Payment data JSON - can be array of payment objects or single object' 
+          },
           createddate: { type: 'number', description: 'Creation timestamp (optional, auto-generated if not provided)' },
           modifieddate: { type: 'number', description: 'Modification timestamp (optional, auto-generated if not provided)' },
           balanceamount: { type: 'number', description: 'Balance amount' },
@@ -228,7 +297,30 @@ export async function poinvoiceRoutes(fastify: FastifyInstance) {
                 invoicedate: { type: 'number', nullable: true, description: 'Invoice date timestamp' },
                 invoicenumber: { type: 'string', nullable: true, description: 'Invoice number' },
                 invoiceurl: { type: 'string', nullable: true, description: 'Invoice URL' },
-                paymentdata: { type: 'object', nullable: true, description: 'Payment data JSON' },
+                paymentdata: { 
+                  oneOf: [
+                    { 
+                      type: 'array', 
+                      items: { 
+                        type: 'object',
+                        properties: {
+                          id: { type: 'number', description: 'Payment ID' },
+                          comments: { type: 'string', nullable: true, description: 'Payment comments' },
+                          paymentdate: { type: 'string', nullable: true, description: 'Payment date' },
+                          paymenttype: { type: 'string', nullable: true, description: 'Payment type (e.g., "Part Payment", "Full Payment")' },
+                          paymentamount: { type: 'number', nullable: true, description: 'Payment amount' },
+                          paymentmethod: { type: 'string', nullable: true, description: 'Payment method (e.g., "banktransfer", "cash", "cheque")' },
+                          transactionid: { type: 'string', nullable: true, description: 'Transaction ID' },
+                          receiptcomments: { type: 'string', nullable: true, description: 'Receipt comments' }
+                        },
+                        additionalProperties: true
+                      }
+                    },
+                    { type: 'object', additionalProperties: true },
+                    { type: 'null' }
+                  ], 
+                  description: 'Payment data JSON - can be array of payment objects or single object' 
+                },
                 createddate: { type: 'number', nullable: true, description: 'Creation timestamp' },
                 modifieddate: { type: 'number', nullable: true, description: 'Modification timestamp' },
                 balanceamount: { type: 'number', nullable: true, description: 'Balance amount' },
@@ -291,7 +383,30 @@ export async function poinvoiceRoutes(fastify: FastifyInstance) {
           invoicedate: { type: 'number', description: 'Invoice date timestamp' },
           invoicenumber: { type: 'string', maxLength: 500, description: 'Invoice number' },
           invoiceurl: { type: 'string', maxLength: 500, description: 'Invoice URL' },
-          paymentdata: { type: 'object', description: 'Payment data JSON' },
+          paymentdata: { 
+            oneOf: [
+              { 
+                type: 'array', 
+                items: { 
+                  type: 'object',
+                  properties: {
+                    id: { type: 'number', description: 'Payment ID' },
+                    comments: { type: 'string', nullable: true, description: 'Payment comments' },
+                    paymentdate: { type: 'string', nullable: true, description: 'Payment date' },
+                    paymenttype: { type: 'string', nullable: true, description: 'Payment type (e.g., "Part Payment", "Full Payment")' },
+                    paymentamount: { type: 'number', nullable: true, description: 'Payment amount' },
+                    paymentmethod: { type: 'string', nullable: true, description: 'Payment method (e.g., "banktransfer", "cash", "cheque")' },
+                    transactionid: { type: 'string', nullable: true, description: 'Transaction ID' },
+                    receiptcomments: { type: 'string', nullable: true, description: 'Receipt comments' }
+                  },
+                  additionalProperties: true
+                }
+              },
+              { type: 'object', additionalProperties: true },
+              { type: 'null' }
+            ], 
+            description: 'Payment data JSON - can be array of payment objects or single object' 
+          },
           modifieddate: { type: 'number', description: 'Modification timestamp (optional, auto-generated if not provided)' },
           balanceamount: { type: 'number', description: 'Balance amount' },
           iscreditpayment: { type: 'boolean', description: 'Is credit payment' },
@@ -322,7 +437,30 @@ export async function poinvoiceRoutes(fastify: FastifyInstance) {
                 invoicedate: { type: 'number', nullable: true, description: 'Invoice date timestamp' },
                 invoicenumber: { type: 'string', nullable: true, description: 'Invoice number' },
                 invoiceurl: { type: 'string', nullable: true, description: 'Invoice URL' },
-                paymentdata: { type: 'object', nullable: true, description: 'Payment data JSON' },
+                paymentdata: { 
+                  oneOf: [
+                    { 
+                      type: 'array', 
+                      items: { 
+                        type: 'object',
+                        properties: {
+                          id: { type: 'number', description: 'Payment ID' },
+                          comments: { type: 'string', nullable: true, description: 'Payment comments' },
+                          paymentdate: { type: 'string', nullable: true, description: 'Payment date' },
+                          paymenttype: { type: 'string', nullable: true, description: 'Payment type (e.g., "Part Payment", "Full Payment")' },
+                          paymentamount: { type: 'number', nullable: true, description: 'Payment amount' },
+                          paymentmethod: { type: 'string', nullable: true, description: 'Payment method (e.g., "banktransfer", "cash", "cheque")' },
+                          transactionid: { type: 'string', nullable: true, description: 'Transaction ID' },
+                          receiptcomments: { type: 'string', nullable: true, description: 'Receipt comments' }
+                        },
+                        additionalProperties: true
+                      }
+                    },
+                    { type: 'object', additionalProperties: true },
+                    { type: 'null' }
+                  ], 
+                  description: 'Payment data JSON - can be array of payment objects or single object' 
+                },
                 createddate: { type: 'number', nullable: true, description: 'Creation timestamp' },
                 modifieddate: { type: 'number', nullable: true, description: 'Modification timestamp' },
                 balanceamount: { type: 'number', nullable: true, description: 'Balance amount' },
@@ -440,7 +578,30 @@ export async function poinvoiceRoutes(fastify: FastifyInstance) {
           invoicedate: { type: 'number', description: 'Invoice date timestamp' },
           invoicenumber: { type: 'string', maxLength: 500, description: 'Invoice number' },
           invoiceurl: { type: 'string', maxLength: 500, description: 'Invoice URL' },
-          paymentdata: { type: 'object', description: 'Payment data JSON' },
+          paymentdata: { 
+            oneOf: [
+              { 
+                type: 'array', 
+                items: { 
+                  type: 'object',
+                  properties: {
+                    id: { type: 'number', description: 'Payment ID' },
+                    comments: { type: 'string', nullable: true, description: 'Payment comments' },
+                    paymentdate: { type: 'string', nullable: true, description: 'Payment date' },
+                    paymenttype: { type: 'string', nullable: true, description: 'Payment type (e.g., "Part Payment", "Full Payment")' },
+                    paymentamount: { type: 'number', nullable: true, description: 'Payment amount' },
+                    paymentmethod: { type: 'string', nullable: true, description: 'Payment method (e.g., "banktransfer", "cash", "cheque")' },
+                    transactionid: { type: 'string', nullable: true, description: 'Transaction ID' },
+                    receiptcomments: { type: 'string', nullable: true, description: 'Receipt comments' }
+                  },
+                  additionalProperties: true
+                }
+              },
+              { type: 'object', additionalProperties: true },
+              { type: 'null' }
+            ], 
+            description: 'Payment data JSON - can be array of payment objects or single object' 
+          },
           createddate: { type: 'number', description: 'Creation timestamp (optional, auto-generated if not provided)' },
           modifieddate: { type: 'number', description: 'Modification timestamp (optional, auto-generated if not provided)' },
           balanceamount: { type: 'number', description: 'Balance amount' },
@@ -472,7 +633,30 @@ export async function poinvoiceRoutes(fastify: FastifyInstance) {
                 invoicedate: { type: 'number', nullable: true, description: 'Invoice date timestamp' },
                 invoicenumber: { type: 'string', nullable: true, description: 'Invoice number' },
                 invoiceurl: { type: 'string', nullable: true, description: 'Invoice URL' },
-                paymentdata: { type: 'object', nullable: true, description: 'Payment data JSON' },
+                paymentdata: { 
+                  oneOf: [
+                    { 
+                      type: 'array', 
+                      items: { 
+                        type: 'object',
+                        properties: {
+                          id: { type: 'number', description: 'Payment ID' },
+                          comments: { type: 'string', nullable: true, description: 'Payment comments' },
+                          paymentdate: { type: 'string', nullable: true, description: 'Payment date' },
+                          paymenttype: { type: 'string', nullable: true, description: 'Payment type (e.g., "Part Payment", "Full Payment")' },
+                          paymentamount: { type: 'number', nullable: true, description: 'Payment amount' },
+                          paymentmethod: { type: 'string', nullable: true, description: 'Payment method (e.g., "banktransfer", "cash", "cheque")' },
+                          transactionid: { type: 'string', nullable: true, description: 'Transaction ID' },
+                          receiptcomments: { type: 'string', nullable: true, description: 'Receipt comments' }
+                        },
+                        additionalProperties: true
+                      }
+                    },
+                    { type: 'object', additionalProperties: true },
+                    { type: 'null' }
+                  ], 
+                  description: 'Payment data JSON - can be array of payment objects or single object' 
+                },
                 createddate: { type: 'number', nullable: true, description: 'Creation timestamp' },
                 modifieddate: { type: 'number', nullable: true, description: 'Modification timestamp' },
                 balanceamount: { type: 'number', nullable: true, description: 'Balance amount' },

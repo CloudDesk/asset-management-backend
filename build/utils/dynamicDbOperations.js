@@ -100,7 +100,7 @@ function getTableName(modelName) {
 /**
  * Converts BigInt values and other database objects to JSON-serializable values
  */
-function convertBigIntToNumber(obj) {
+export function convertBigIntToNumber(obj) {
     if (obj === null || obj === undefined) {
         return obj;
     }
@@ -172,15 +172,39 @@ function convertBigIntToNumber(obj) {
             }
             return converted;
         }
+        // IMPORTANT FIX: For other objects that look like plain JSON objects,
+        // try to preserve them instead of converting to null
+        try {
+            // Check if the object can be JSON stringified and parsed
+            const jsonString = JSON.stringify(obj);
+            const parsed = JSON.parse(jsonString);
+            // If successful, recursively convert the parsed object
+            if (typeof parsed === 'object' && parsed !== null) {
+                return convertBigIntToNumber(parsed);
+            }
+        }
+        catch (e) {
+            // JSON stringify/parse failed, continue with other methods
+        }
         // For other objects, try to extract a meaningful value
         // This is a fallback for unknown object types
         if (obj.constructor && obj.constructor.name) {
-            logger.warn({
+            logger.debug({
                 objectType: obj.constructor.name,
                 objectString: obj.toString(),
                 hasValueOf: typeof obj.valueOf === 'function',
-                hasToString: typeof obj.toString === 'function'
+                hasToString: typeof obj.toString === 'function',
+                keys: Object.keys(obj)
             }, 'Unknown object type encountered in convertBigIntToNumber');
+            // If it has enumerable properties, try to preserve them
+            const keys = Object.keys(obj);
+            if (keys.length > 0) {
+                const converted = {};
+                for (const key of keys) {
+                    converted[key] = convertBigIntToNumber(obj[key]);
+                }
+                return converted;
+            }
         }
         // Last resort: try to convert to string if it's not the default object representation
         const str = String(obj);
@@ -191,8 +215,9 @@ function convertBigIntToNumber(obj) {
             }
             return str;
         }
-        // If all else fails, return null to avoid "[object Object]"
-        return null;
+        // If all else fails, return the original object instead of null
+        // This preserves JSON data that might be in an unknown format
+        return obj;
     }
     return obj;
 }
@@ -826,7 +851,14 @@ export async function dynamicCreate(modelName, data, include) {
         const rawData = {};
         for (const [key, value] of Object.entries(filteredData)) {
             if (availableColumns.includes(key)) {
-                rawData[key] = value;
+                // Handle JSON fields properly for PostgreSQL
+                if (key === 'paymentdata' && value !== null && value !== undefined) {
+                    // For JSONB fields with explicit casting, stringify the JSON
+                    rawData[key] = typeof value === 'string' ? value : JSON.stringify(value);
+                }
+                else {
+                    rawData[key] = value;
+                }
             }
         }
         if (Object.keys(rawData).length === 0) {
@@ -844,7 +876,13 @@ export async function dynamicCreate(modelName, data, include) {
         // Build dynamic INSERT query
         const columns = Object.keys(rawData);
         const values = Object.values(rawData);
-        const placeholders = values.map((_, index) => `$${index + 1}`).join(', ');
+        // Build placeholders with special handling for JSON fields
+        const placeholders = columns.map((col, index) => {
+            if (col === 'paymentdata') {
+                return `$${index + 1}::jsonb`;
+            }
+            return `$${index + 1}`;
+        }).join(', ');
         const columnsList = columns.map(col => `"${col}"`).join(', ');
         const insertQuery = `
       INSERT INTO "${tableName}" (${columnsList}) 
@@ -855,7 +893,9 @@ export async function dynamicCreate(modelName, data, include) {
             modelName,
             tableName,
             columns,
-            query: insertQuery
+            query: insertQuery,
+            hasPaymentData: !!rawData.paymentdata,
+            paymentDataType: rawData.paymentdata ? typeof rawData.paymentdata : 'undefined'
         }, 'Executing dynamic create query');
         const result = await prisma.$queryRawUnsafe(insertQuery, ...values);
         const records = Array.isArray(result) ? result : [];
@@ -929,7 +969,14 @@ export async function dynamicUpdate(modelName, where, data, include) {
             const rawData = {};
             for (const [key, value] of Object.entries(filteredData)) {
                 if (availableColumns.includes(key)) {
-                    rawData[key] = value;
+                    // Handle JSON fields properly for PostgreSQL
+                    if (key === 'paymentdata' && value !== null && value !== undefined) {
+                        // For JSONB fields with explicit casting, stringify the JSON
+                        rawData[key] = typeof value === 'string' ? value : JSON.stringify(value);
+                    }
+                    else {
+                        rawData[key] = value;
+                    }
                 }
             }
             if (Object.keys(rawData).length === 0) {
@@ -991,7 +1038,14 @@ export async function dynamicUpdate(modelName, where, data, include) {
             const rawData = {};
             for (const [key, value] of Object.entries(filteredData)) {
                 if (availableColumns.includes(key)) {
-                    rawData[key] = value;
+                    // Handle JSON fields properly for PostgreSQL
+                    if (key === 'paymentdata' && value !== null && value !== undefined) {
+                        // For JSONB fields with explicit casting, stringify the JSON
+                        rawData[key] = typeof value === 'string' ? value : JSON.stringify(value);
+                    }
+                    else {
+                        rawData[key] = value;
+                    }
                 }
             }
             if (Object.keys(rawData).length === 0) {
@@ -1470,7 +1524,19 @@ export function formatInventoryUsersForAPI(inventoryUser) {
 export function formatPoinvoiceForAPI(poinvoice) {
     if (!poinvoice)
         return poinvoice;
+    // Debug logging for paymentdata
+    logger.debug({
+        originalPaymentData: poinvoice.paymentdata,
+        paymentDataType: typeof poinvoice.paymentdata,
+        paymentDataConstructor: poinvoice.paymentdata?.constructor?.name
+    }, 'formatPoinvoiceForAPI: Original paymentdata');
     const formatted = serializeForAPI(poinvoice);
+    // Debug logging after serialization
+    logger.debug({
+        serializedPaymentData: formatted.paymentdata,
+        serializedPaymentDataType: typeof formatted.paymentdata,
+        serializedPaymentDataConstructor: formatted.paymentdata?.constructor?.name
+    }, 'formatPoinvoiceForAPI: After serializeForAPI');
     // Format numeric fields
     if (formatted.id !== undefined) {
         formatted.id = formatIntegerField(formatted.id) || formatted.id;
@@ -1504,6 +1570,120 @@ export function formatPoinvoiceForAPI(poinvoice) {
     }
     if (formatted.modifieddate !== undefined) {
         formatted.modifieddate = formatIntegerField(formatted.modifieddate) || formatted.modifieddate;
+    }
+    // ENHANCED PAYMENTDATA HANDLING - Handle JSONB properly
+    if (formatted.paymentdata !== undefined) {
+        logger.debug({
+            beforeProcessing: formatted.paymentdata,
+            beforeProcessingType: typeof formatted.paymentdata,
+            isArray: Array.isArray(formatted.paymentdata),
+            stringRepresentation: String(formatted.paymentdata)
+        }, 'formatPoinvoiceForAPI: Before paymentdata processing');
+        // Handle null/undefined cases
+        if (formatted.paymentdata === null || formatted.paymentdata === undefined) {
+            formatted.paymentdata = null;
+            logger.debug('formatPoinvoiceForAPI: Set paymentdata to null (was null/undefined)');
+        }
+        // Handle string that needs parsing
+        else if (typeof formatted.paymentdata === 'string') {
+            try {
+                if (formatted.paymentdata.trim() === '') {
+                    formatted.paymentdata = null;
+                    logger.debug('formatPoinvoiceForAPI: Set paymentdata to null (empty string)');
+                }
+                else {
+                    formatted.paymentdata = JSON.parse(formatted.paymentdata);
+                    logger.debug({
+                        afterParsing: formatted.paymentdata
+                    }, 'formatPoinvoiceForAPI: After JSON.parse from string');
+                }
+            }
+            catch (error) {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                formatted.paymentdata = null;
+                logger.debug({
+                    parseError: errorMessage,
+                    originalString: formatted.paymentdata
+                }, 'formatPoinvoiceForAPI: JSON parse failed, set to null');
+            }
+        }
+        // Handle arrays (common for JSONB)
+        else if (Array.isArray(formatted.paymentdata)) {
+            // Already an array, keep as is
+            logger.debug({
+                arrayLength: formatted.paymentdata.length,
+                arrayContents: formatted.paymentdata
+            }, 'formatPoinvoiceForAPI: paymentdata is array, keeping as-is');
+        }
+        // Handle objects that might be JSONB representations
+        else if (typeof formatted.paymentdata === 'object') {
+            // Check if it's an empty object {}
+            if (Object.keys(formatted.paymentdata).length === 0) {
+                // Try to get original paymentdata from the unformatted object
+                const originalPaymentData = poinvoice.paymentdata;
+                logger.debug({
+                    emptyObject: true,
+                    originalValue: originalPaymentData,
+                    originalType: typeof originalPaymentData
+                }, 'formatPoinvoiceForAPI: paymentdata is empty object, checking original');
+                if (originalPaymentData !== null && originalPaymentData !== undefined) {
+                    // Try to handle the original value directly
+                    if (typeof originalPaymentData === 'string') {
+                        try {
+                            formatted.paymentdata = JSON.parse(originalPaymentData);
+                            logger.debug('formatPoinvoiceForAPI: Parsed original string paymentdata');
+                        }
+                        catch {
+                            formatted.paymentdata = null;
+                            logger.debug('formatPoinvoiceForAPI: Failed to parse original string, set to null');
+                        }
+                    }
+                    else if (Array.isArray(originalPaymentData)) {
+                        formatted.paymentdata = originalPaymentData;
+                        logger.debug('formatPoinvoiceForAPI: Using original array paymentdata');
+                    }
+                    else if (typeof originalPaymentData === 'object') {
+                        // For JSONB objects, try to convert to plain object
+                        try {
+                            const jsonString = JSON.stringify(originalPaymentData);
+                            formatted.paymentdata = JSON.parse(jsonString);
+                            logger.debug('formatPoinvoiceForAPI: Converted JSONB object via stringify/parse');
+                        }
+                        catch {
+                            formatted.paymentdata = originalPaymentData;
+                            logger.debug('formatPoinvoiceForAPI: Using original object as-is');
+                        }
+                    }
+                    else {
+                        formatted.paymentdata = originalPaymentData;
+                        logger.debug('formatPoinvoiceForAPI: Using original value as-is');
+                    }
+                }
+                else {
+                    formatted.paymentdata = null;
+                    logger.debug('formatPoinvoiceForAPI: Original was null/undefined, set to null');
+                }
+            }
+            else {
+                // Non-empty object, keep as is
+                logger.debug({
+                    objectKeys: Object.keys(formatted.paymentdata),
+                    objectValues: formatted.paymentdata
+                }, 'formatPoinvoiceForAPI: paymentdata is non-empty object, keeping as-is');
+            }
+        }
+        // Handle other types
+        else {
+            logger.debug({
+                unexpectedType: typeof formatted.paymentdata,
+                value: formatted.paymentdata
+            }, 'formatPoinvoiceForAPI: Unexpected paymentdata type, keeping as-is');
+        }
+        logger.debug({
+            finalPaymentData: formatted.paymentdata,
+            finalPaymentDataType: typeof formatted.paymentdata,
+            isArray: Array.isArray(formatted.paymentdata)
+        }, 'formatPoinvoiceForAPI: Final paymentdata');
     }
     return formatted;
 }

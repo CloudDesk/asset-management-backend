@@ -45,8 +45,9 @@ export class PoinvoiceService {
       }, 'Dynamic poinvoice findMany with filters completed');
 
       return createPaginationResult(poinvoices, total, page, limit);
-    } catch (error) {
-      logger.error({ error, filters, page, limit }, 'Error in dynamic poinvoice findMany operation');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error({ error: errorMessage, filters, page, limit }, 'Error in dynamic poinvoice findMany operation');
       throw error;
     }
   }
@@ -67,8 +68,9 @@ export class PoinvoiceService {
       }, 'Dynamic poinvoice findById completed');
 
       return poinvoice;
-    } catch (error) {
-      logger.error({ error, poinvoiceId: id }, 'Error in poinvoice findById operation');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error({ error: errorMessage, poinvoiceId: id }, 'Error in poinvoice findById operation');
       throw error;
     }
   }
@@ -97,8 +99,9 @@ export class PoinvoiceService {
       }, 'Dynamic poinvoice create completed');
 
       return poinvoice;
-    } catch (error) {
-      logger.error({ error, data }, 'Error in poinvoice create operation');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error({ error: errorMessage, data }, 'Error in poinvoice create operation');
       throw error;
     }
   }
@@ -128,8 +131,9 @@ export class PoinvoiceService {
       }, 'Dynamic poinvoice update completed');
 
       return poinvoice;
-    } catch (error) {
-      logger.error({ error, data, poinvoiceId: id }, 'Error in poinvoice update operation');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error({ error: errorMessage, data, poinvoiceId: id }, 'Error in poinvoice update operation');
       throw error;
     }
   }
@@ -148,8 +152,9 @@ export class PoinvoiceService {
       }
 
       logger.info({ poinvoiceId: id }, 'Dynamic poinvoice delete completed successfully');
-    } catch (error) {
-      logger.error({ error, poinvoiceId: id }, 'Error in poinvoice delete operation');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error({ error: errorMessage, poinvoiceId: id }, 'Error in poinvoice delete operation');
       throw error;
     }
   }
@@ -167,8 +172,9 @@ export class PoinvoiceService {
         logger.debug({ data: updateData }, 'Upserting new poinvoice');
         return this.create(updateData);
       }
-    } catch (error) {
-      logger.error({ error, data }, 'Error in poinvoice upsert operation');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error({ error: errorMessage, data }, 'Error in poinvoice upsert operation');
       throw error;
     }
   }
