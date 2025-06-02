@@ -1,6 +1,7 @@
 import { createPaginationResult, getPrismaSkipTake } from '../utils/pagination.js';
 import { dynamicFindUnique, dynamicCreate, dynamicUpdate, dynamicDelete, dynamicFindManyWithFilters, dynamicCount } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
+import { NotFoundError } from '../utils/errorHandler.js';
 export class QuotesService {
     async findMany(filters, page, limit) {
         try {
@@ -31,7 +32,7 @@ export class QuotesService {
             logger.debug({ quotesId: id }, 'Starting dynamic quotes findById operation');
             const quote = await dynamicFindUnique('quotes', { id: parseInt(id) });
             if (!quote) {
-                throw new Error('Quote not found');
+                throw new NotFoundError('Quote not found');
             }
             logger.debug({
                 quotesId: id,
@@ -40,6 +41,10 @@ export class QuotesService {
             return quote;
         }
         catch (error) {
+            // If it's a NotFoundError, re-throw it as-is
+            if (error instanceof NotFoundError) {
+                throw error;
+            }
             logger.error({ error, quotesId: id }, 'Error in quotes findById operation');
             throw error;
         }

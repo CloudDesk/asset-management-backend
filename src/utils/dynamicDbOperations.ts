@@ -358,7 +358,7 @@ async function buildDynamicWhereClause(
 
   // Get available columns for the table
   const availableColumns = await discoverTableColumns(tableName);
-  
+
   const conditions: string[] = [];
   const values: any[] = [];
   let paramIndex = 1;
@@ -401,6 +401,28 @@ async function buildDynamicWhereClause(
 
   // Helper function to determine if a field is numeric
   function isNumericField(fieldName: string): boolean {
+    // First, exclude fields that contain "number" but are actually string identifiers
+    const stringNumberFields = [
+      /^.*prnumber$/i, // PR numbers like "REVO-PR-00005"
+      /^.*quotenumber$/i, // Quote numbers like "TEST4-QUOTE-00017"
+      /^.*ponumber$/i, // PO numbers
+      /^.*invoicenumber$/i, // Invoice numbers
+      /^.*ordernumber$/i, // Order numbers
+      /^.*referencenumber$/i, // Reference numbers
+      /^.*serialnumber$/i, // Serial numbers
+      /^.*partnumber$/i, // Part numbers
+      /^.*modelnumber$/i, // Model numbers
+      /^.*trackingnumber$/i, // Tracking numbers
+      /^.*accountnumber$/i, // Account numbers
+      /^.*customernumber$/i, // Customer numbers
+      /^.*suppliernumber$/i, // Supplier numbers
+    ];
+    
+    // If it matches any string number pattern, it's NOT numeric
+    if (stringNumberFields.some(pattern => pattern.test(fieldName))) {
+      return false;
+    }
+    
     const numericFieldPatterns = [
       /^.*id$/i, // ends with 'id'
       /^id$/i, // exactly 'id'
@@ -409,13 +431,12 @@ async function buildDynamicWhereClause(
       /^.*price$/i, // ends with 'price'
       /^.*total$/i, // ends with 'total'
       /^.*quantity$/i, // ends with 'quantity'
-      /^.*number$/i, // ends with 'number' 
       /^.*count$/i, // ends with 'count'
       /^.*date$/i, // ends with 'date' (timestamps)
       /^.*time$/i, // ends with 'time' (timestamps)
       /^.*code$/i, // ends with 'code' like pincode
-      /^mobilenumber$/i, // specific mobile fields
-      /^phonenumber$/i, // specific phone fields
+      /^mobilenumber$/i, // specific mobile fields (actual phone numbers)
+      /^phonenumber$/i, // specific phone fields (actual phone numbers)
       /^usersphonenumber$/i, // specific user phone fields
       /^usermobilenumber$/i, // specific user mobile fields
       /^createddate$/i, // timestamp fields
@@ -557,7 +578,7 @@ async function buildDynamicWhereClause(
   }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-  
+
   logger.debug({
     tableName,
     filters: Object.keys(filters),

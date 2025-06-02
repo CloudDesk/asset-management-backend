@@ -294,8 +294,16 @@ export function processError(error, request) {
     let statusCode = 500;
     let message = 'Internal server error';
     let details;
+    // DEBUG: Add logging to see which condition is matched
+    console.log('=== ERROR DEBUG ===');
+    console.log('Error name:', error.name);
+    console.log('Error constructor:', error.constructor.name);
+    console.log('Is NotFoundError?', error instanceof NotFoundError);
+    console.log('Error statusCode:', error.statusCode);
+    console.log('Error message:', error.message);
     // Handle Prisma errors first (most specific)
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        console.log('=== MATCHED: PrismaClientKnownRequestError');
         const prismaError = parsePrismaError(error, request.body);
         statusCode = prismaError.statusCode;
         message = prismaError.message;
@@ -303,6 +311,7 @@ export function processError(error, request) {
     }
     // Handle Prisma validation errors
     else if (error instanceof Prisma.PrismaClientValidationError) {
+        console.log('=== MATCHED: PrismaClientValidationError');
         statusCode = 400;
         message = 'Invalid data provided';
         details = 'The provided data does not match the expected format';
@@ -318,33 +327,39 @@ export function processError(error, request) {
     }
     // Handle Zod validation errors
     else if (error instanceof ZodError) {
+        console.log('=== MATCHED: ZodError');
         statusCode = 400;
         message = 'Validation failed';
         details = error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
     }
     // Handle custom error classes
     else if (error instanceof ValidationError) {
+        console.log('=== MATCHED: ValidationError');
         statusCode = error.statusCode;
         message = error.message;
         details = error.details;
     }
     else if (error instanceof DatabaseError) {
+        console.log('=== MATCHED: DatabaseError');
         statusCode = error.statusCode;
         message = error.message;
         details = error.details;
     }
     else if (error instanceof NotFoundError) {
+        console.log('=== MATCHED: NotFoundError');
         statusCode = error.statusCode;
         message = error.message;
         details = 'The requested resource could not be found';
     }
     else if (error instanceof InvalidFieldError) {
+        console.log('=== MATCHED: InvalidFieldError');
         statusCode = error.statusCode;
         message = error.message;
         details = `The following fields are not valid: ${error.invalidFields.join(', ')}`;
     }
     // Handle legacy Prisma/Database errors (for backward compatibility)
     else if (error.code && error.code.startsWith('P')) {
+        console.log('=== MATCHED: Legacy Prisma error');
         const prismaError = parsePrismaError(error, request.body);
         statusCode = prismaError.statusCode;
         message = prismaError.message;
@@ -352,12 +367,21 @@ export function processError(error, request) {
     }
     // Handle specific error messages
     else if (error.message === 'Not Found') {
+        console.log('=== MATCHED: Not Found message');
         statusCode = 404;
         message = 'Resource not found';
         details = 'The requested resource could not be found';
     }
+    // Handle errors with custom statusCode property
+    else if (error.statusCode && typeof error.statusCode === 'number') {
+        console.log('=== MATCHED: Custom statusCode property');
+        statusCode = error.statusCode;
+        message = error.message || 'An error occurred';
+        details = error.message;
+    }
     // Handle generic errors
     else {
+        console.log('=== MATCHED: Generic error');
         // Don't expose internal error details in production
         if (process.env.NODE_ENV === 'production') {
             message = 'An unexpected error occurred';
@@ -368,6 +392,10 @@ export function processError(error, request) {
             details = error.message;
         }
     }
+    console.log('=== FINAL RESULT ===');
+    console.log('Final statusCode:', statusCode);
+    console.log('Final message:', message);
+    console.log('Final details:', details);
     return createErrorResponse(message, details, statusCode);
 }
 // Custom async handler that catches all errors and processes them consistently

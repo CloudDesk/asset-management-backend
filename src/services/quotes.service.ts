@@ -14,6 +14,7 @@ import {
   dynamicCount
 } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
+import { NotFoundError } from '../utils/errorHandler.js';
 
 export class QuotesService {
   async findMany(
@@ -55,7 +56,7 @@ export class QuotesService {
       const quote = await dynamicFindUnique('quotes', { id: parseInt(id) });
 
       if (!quote) {
-        throw new Error('Quote not found');
+        throw new NotFoundError('Quote not found');
       }
 
       logger.debug({ 
@@ -64,7 +65,12 @@ export class QuotesService {
       }, 'Dynamic quotes findById completed');
 
       return quote;
-    } catch (error) {
+    } catch (error: any) {
+      // If it's a NotFoundError, re-throw it as-is
+      if (error instanceof NotFoundError) {
+        throw error;
+      }
+      
       logger.error({ error, quotesId: id }, 'Error in quotes findById operation');
       throw error;
     }

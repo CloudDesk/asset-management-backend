@@ -68,7 +68,23 @@ export async function purchaseOrderRoutes(fastify) {
                                     total: { type: 'number', nullable: true, description: 'Total amount' },
                                     createddate: { type: 'number', description: 'Creation timestamp' },
                                     modifieddate: { type: 'number', description: 'Modification timestamp' },
-                                    product: { type: 'array', description: 'Product details array' },
+                                    product: {
+                                        type: 'object',
+                                        description: 'Purchase order items data',
+                                        properties: {
+                                            items: {
+                                                type: 'array',
+                                                items: {
+                                                    type: 'object',
+                                                    properties: {
+                                                        id: { type: 'number', description: 'Item ID' },
+                                                        name: { type: 'string', description: 'Item name' },
+                                                        quantity: { type: 'number', description: 'Item quantity' }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
                                     po_status: { type: 'string', description: 'PO status' },
                                     supplieraddress: { type: 'string', description: 'Supplier address' },
                                     suppliercompanyname: { type: 'string', description: 'Supplier company name' },
