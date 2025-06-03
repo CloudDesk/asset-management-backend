@@ -249,6 +249,193 @@ export async function purchaseOrderRoutes(fastify: FastifyInstance) {
     schema: {
       description: 'Create a new purchase order',
       tags: ['Purchase Orders'],
+      body: {
+        type: 'object',
+        properties: {
+          ponumber: { 
+            type: 'string', 
+            description: 'Purchase order number (e.g., FREAU-TEQIT-PO-0000000016)'
+          },
+          prnumber: { 
+            type: 'string', 
+            description: 'Purchase requisition number'
+          },
+          companyname: { 
+            type: 'string', 
+            description: 'Company name'
+          },
+          companyaddress: { 
+            type: 'string', 
+            description: 'Company address'
+          },
+          contactname: { 
+            type: 'string', 
+            description: 'Contact person name'
+          },
+          phonenumber: { 
+            type: 'number', 
+            description: 'Phone number'
+          },
+          gstnumber: { 
+            type: 'string', 
+            description: 'GST number'
+          },
+          io_companyname: { 
+            type: 'string', 
+            description: 'Invoice company name'
+          },
+          io_companyaddress: { 
+            type: 'string', 
+            description: 'Invoice company address'
+          },
+          io_contactname: { 
+            type: 'string', 
+            description: 'Invoice contact name'
+          },
+          io_phonenumber: { 
+            type: 'number', 
+            nullable: true,
+            description: 'Invoice phone number'
+          },
+          io_gstnumber: { 
+            type: 'string', 
+            description: 'Invoice GST number'
+          },
+          dt_companyname: { 
+            type: 'string', 
+            description: 'Delivery company name (optional)'
+          },
+          dt_companyaddress: { 
+            type: 'string', 
+            description: 'Delivery company address (optional)'
+          },
+          dt_contactname: { 
+            type: 'string', 
+            description: 'Delivery contact name (optional)'
+          },
+          dt_phonenumber: { 
+            type: 'number', 
+            nullable: true,
+            description: 'Delivery phone number (optional)'
+          },
+          dt_gstnumber: { 
+            type: 'string', 
+            description: 'Delivery GST number (optional)'
+          },
+          supplierid: { 
+            type: 'number', 
+            description: 'Supplier ID (must exist in supplier table)'
+          },
+          subtotal: { 
+            type: 'number', 
+            description: 'Subtotal amount before taxes'
+          },
+          discount: { 
+            type: 'number', 
+            description: 'Discount amount'
+          },
+          sgst: { 
+            type: 'number', 
+            description: 'State GST amount'
+          },
+          cgst: { 
+            type: 'number', 
+            description: 'Central GST amount'
+          },
+          payabletaxamount: { 
+            type: 'number', 
+            description: 'Total payable tax amount'
+          },
+          total: { 
+            type: 'number', 
+            description: 'Total purchase order amount'
+          },
+          product: {
+            type: 'object',
+            description: 'Product items in the purchase order',
+            properties: {
+              items: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'number', description: 'Product item ID' },
+                    name: { type: 'string', description: 'Product name' },
+                    quantity: { type: 'number', description: 'Quantity ordered' }
+                  },
+                  required: ['id', 'name', 'quantity']
+                }
+              }
+            },
+            required: ['items']
+          },
+          po_status: { 
+            type: 'string', 
+           enum: ['in_progress', 'partially_fulfilled', 'fulfilled','cancelled','void',''],
+            description: 'Purchase order status'
+          },
+          supplieraddress: { 
+            type: 'string', 
+            description: 'Supplier address'
+          },
+          suppliercompanyname: { 
+            type: 'string', 
+            description: 'Supplier company name'
+          },
+          supplierphonenumber: { 
+            type: 'number', 
+            nullable: true,
+            description: 'Supplier phone number'
+          },
+          suppliergstnumber: { 
+            type: 'string', 
+            nullable: true,
+            description: 'Supplier GST number'
+          },
+          instructions: { 
+            type: 'string', 
+            nullable: true,
+            description: 'Special delivery instructions'
+          },
+          fileurl: { 
+            type: 'string', 
+            nullable: true,
+            description: 'Attached file URL'
+          },
+          invoiceurl: { 
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Invoice file URLs'
+          },
+          sameasinvoice: { 
+            type: 'boolean', 
+            description: 'Whether delivery address is same as invoice address'
+          },
+          paymentterms: { 
+            type: 'string', 
+            nullable: true,
+            description: 'Payment terms in days'
+          },
+          overduedate: { 
+            type: 'string', 
+            nullable: true,
+            description: 'Overdue date'
+          },
+          comments: { 
+            type: 'string', 
+            nullable: true,
+            description: 'Additional comments'
+          },
+          suppliertype: { 
+            type: 'string', 
+            enum: ['local', 'international'],
+            description: 'Type of supplier'
+          }
+        },
+        required: [
+        ],
+        additionalProperties: true
+      },
       response: {
         201: {
           type: 'object',

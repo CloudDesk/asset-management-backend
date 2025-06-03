@@ -170,7 +170,7 @@ model PurchaseOrder {
   overduedate         BigInt?
   comments            String?
   suppliertype        String           @default("local") @db.VarChar(255)
-  poinvoice           poinvoice[]      @ignore
+  poinvoice           poinvoice[]
   product_revo        product_revo[]
   purchaserequest     PurchaseRequest? @relation(fields: [prnumber], references: [prnumber], onDelete: Cascade, onUpdate: NoAction, map: "fk_prnumber_purchaseorder")
   supplier            Supplier?        @relation(fields: [supplierid], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_supplierid_purchaseorder_supplier")
@@ -371,7 +371,7 @@ model permissions {
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model poinvoice {
-  id                    Int            @default(autoincrement())
+  id                    Int            @id @default(autoincrement())
   invoiceamount         Decimal?       @db.Decimal
   ponumber              String?        @db.VarChar(500)
   invoicedate           BigInt?
@@ -394,7 +394,7 @@ model poinvoice {
   billofentryurl        String?        @db.VarChar(255)
   purchaseorder         PurchaseOrder? @relation(fields: [ponumber], references: [ponumber], onDelete: Cascade, onUpdate: NoAction, map: "fk_ponumber_invoice")
 
-  @@ignore
+  @@map("poinvoice")
 }
 
 model pricing_markup {

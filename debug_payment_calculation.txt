@@ -1,0 +1,3 @@
+Total payments: 1000, PO total: 500
+Total payments: 300, PO total: 1000
+Total payments: 1000, PO total: 1000

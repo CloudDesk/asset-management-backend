@@ -1,0 +1,3 @@
+Triggering status update for PO-0000000042 with payment 100
+Triggering status update for PO-0000000043 with payment 300
+Triggering status update for PO-0000000043 with payment 700

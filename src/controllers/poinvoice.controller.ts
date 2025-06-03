@@ -52,9 +52,15 @@ export class PoinvoiceController {
   });
 
   createPoinvoice = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    console.log('🎯 DEBUG: Controller createPoinvoice called with data:', JSON.stringify(request.body, null, 2));
+    
     const data = createPoinvoiceSchema.parse(request.body);
     
+    console.log('🎯 DEBUG: Data after schema validation:', JSON.stringify(data, null, 2));
+    
     const poinvoice = await this.poinvoiceService.create(data);
+    
+    console.log('🎯 DEBUG: Service returned poinvoice:', JSON.stringify(poinvoice, null, 2));
     
     const response = createSuccessResponse('Poinvoice created successfully', formatPoinvoiceForAPI(poinvoice));
     return reply.code(201).send(response);

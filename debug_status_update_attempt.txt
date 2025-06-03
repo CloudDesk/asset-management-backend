@@ -1,0 +1,3 @@
+Attempting to update status from in_progress to fulfilled
+Attempting to update status from in_progress to partially_fulfilled
+Attempting to update status from partially_fulfilled to fulfilled

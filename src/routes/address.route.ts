@@ -23,9 +23,7 @@ export async function addressRoutes(fastify: FastifyInstance) {
           address: { type: 'string', description: 'Filter by address' },
           landmark: { type: 'string', description: 'Filter by landmark' },
           state: { type: 'string', description: 'Filter by state' },
-          city: { type: 'string', description: 'Filter by city' },
-          createddate: { type: 'string', description: 'Filter by creation date (timestamp)' },
-          modifieddate: { type: 'string', description: 'Filter by modification date (timestamp)' },
+          city: { type: 'string', description: 'Filter by city' }
         },
         additionalProperties: true, // Allow any query parameters for dynamic filtering
       },
@@ -49,8 +47,6 @@ export async function addressRoutes(fastify: FastifyInstance) {
                   landmark: { type: 'string', nullable: true, description: 'Landmark' },
                   state: { type: 'string', nullable: true, description: 'State' },
                   city: { type: 'string', nullable: true, description: 'City' },
-                  modifieddate: { type: 'number', nullable: true, description: 'Modification timestamp' },
-                  createddate: { type: 'number', nullable: true, description: 'Creation timestamp' },
                 },
                 additionalProperties: true // Allow any additional fields
               }
@@ -124,8 +120,6 @@ export async function addressRoutes(fastify: FastifyInstance) {
                 landmark: { type: 'string', nullable: true, description: 'Landmark' },
                 state: { type: 'string', nullable: true, description: 'State' },
                 city: { type: 'string', nullable: true, description: 'City' },
-                modifieddate: { type: 'number', nullable: true, description: 'Modification timestamp' },
-                createddate: { type: 'number', nullable: true, description: 'Creation timestamp' },
               },
               additionalProperties: true // Allow any additional fields
             },
@@ -179,9 +173,7 @@ export async function addressRoutes(fastify: FastifyInstance) {
           address: { type: 'string', description: 'Address' },
           landmark: { type: 'string', maxLength: 100, description: 'Landmark' },
           state: { type: 'string', maxLength: 100, description: 'State' },
-          city: { type: 'string', maxLength: 100, description: 'City' },
-          modifieddate: { type: 'number', description: 'Modification timestamp (optional, auto-generated if not provided)' },
-          createddate: { type: 'number', description: 'Creation timestamp (optional, auto-generated if not provided)' },
+          city: { type: 'string', maxLength: 100, description: 'City' }
         },
         additionalProperties: true, // Allow any additional fields
       },
@@ -203,8 +195,6 @@ export async function addressRoutes(fastify: FastifyInstance) {
                 landmark: { type: 'string', nullable: true, description: 'Landmark' },
                 state: { type: 'string', nullable: true, description: 'State' },
                 city: { type: 'string', nullable: true, description: 'City' },
-                modifieddate: { type: 'number', nullable: true, description: 'Modification timestamp' },
-                createddate: { type: 'number', nullable: true, description: 'Creation timestamp' },
               },
               additionalProperties: true // Allow any additional fields
             },
@@ -278,10 +268,8 @@ export async function addressRoutes(fastify: FastifyInstance) {
                 address: { type: 'string', nullable: true, description: 'Address' },
                 landmark: { type: 'string', nullable: true, description: 'Landmark' },
                 state: { type: 'string', nullable: true, description: 'State' },
-                city: { type: 'string', nullable: true, description: 'City' },
-                modifieddate: { type: 'number', nullable: true, description: 'Modification timestamp' },
-                createddate: { type: 'number', nullable: true, description: 'Creation timestamp' },
-              },
+                city: { type: 'string', nullable: true, description: 'City' }
+                },
               additionalProperties: true // Allow any additional fields
             },
             message: { type: 'string' },
@@ -387,9 +375,7 @@ export async function addressRoutes(fastify: FastifyInstance) {
           address: { type: 'string', description: 'Address' },
           landmark: { type: 'string', maxLength: 100, description: 'Landmark' },
           state: { type: 'string', maxLength: 100, description: 'State' },
-          city: { type: 'string', maxLength: 100, description: 'City' },
-          modifieddate: { type: 'number', description: 'Modification timestamp (optional, auto-generated if not provided)' },
-          createddate: { type: 'number', description: 'Creation timestamp (optional, auto-generated if not provided)' },
+          city: { type: 'string', maxLength: 100, description: 'City' }
         },
         additionalProperties: true, // Allow any additional fields
       },
@@ -411,8 +397,6 @@ export async function addressRoutes(fastify: FastifyInstance) {
                 landmark: { type: 'string', nullable: true, description: 'Landmark' },
                 state: { type: 'string', nullable: true, description: 'State' },
                 city: { type: 'string', nullable: true, description: 'City' },
-                modifieddate: { type: 'number', nullable: true, description: 'Modification timestamp' },
-                createddate: { type: 'number', nullable: true, description: 'Creation timestamp' },
               },
               additionalProperties: true // Allow any additional fields
             },

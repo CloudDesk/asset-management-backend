@@ -1,0 +1,3 @@
+Successfully updated PO PO-0000000042 to status fulfilled
+Successfully updated PO PO-0000000043 to status partially_fulfilled
+Successfully updated PO PO-0000000043 to status fulfilled

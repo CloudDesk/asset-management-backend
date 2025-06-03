@@ -2,6 +2,29 @@ import { CreatePoinvoiceInput, UpdatePoinvoiceInput, UpsertPoinvoiceInput } from
 import { PaginationResult } from '../utils/pagination.js';
 import { FilterOptions } from '../utils/filterBuilder.js';
 export declare class PoinvoiceService {
+    /**
+     * Helper method to extract payment amount from payment data
+     */
+    private extractPaymentAmount;
+    /**
+     * Validate purchase order exists and get its current state
+     * Production-ready validation following existing project structure
+     */
+    private validateAndGetPurchaseOrder;
+    /**
+     * Helper method to calculate total payments for a ponumber
+     */
+    private calculateTotalPaymentsForPO;
+    /**
+     * Specialized function to update purchase order status by ponumber
+     * Uses existing dynamicDbOperations following the project structure
+     */
+    private updatePurchaseOrderStatusByPonumber;
+    /**
+     * Helper method to update purchase order status based on payment amounts
+     * Production-ready with comprehensive validation and error handling
+     */
+    private updatePurchaseOrderStatus;
     findMany(filters: FilterOptions, page: number, limit: number): Promise<PaginationResult<any>>;
     findById(id: string): Promise<any>;
     create(data: CreatePoinvoiceInput & Record<string, any>): Promise<any>;

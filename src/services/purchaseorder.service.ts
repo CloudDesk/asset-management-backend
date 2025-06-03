@@ -88,14 +88,24 @@ export class PurchaseOrderService {
     try {
       logger.debug({ originalData: data }, 'Starting dynamic purchase order create operation');
 
+      // Auto-set timestamps if not provided
+      const currentTimestamp = Date.now();
+      const createData = {
+        ...data,
+        createddate: data.createddate || currentTimestamp,
+        modifieddate: data.modifieddate || currentTimestamp,
+        // Ensure po_status is set to 'in_progress' by default
+        po_status: data.po_status || 'in_progress'
+      };
+
       // Generate order number if not provided
-      if (!data.orderNumber && !data.order_number) {
+      if (!createData.orderNumber && !createData.order_number) {
         const orderNumber = `PO-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
-        data.orderNumber = orderNumber;
-        data.order_number = orderNumber; // Also set snake_case version
+        createData.orderNumber = orderNumber;
+        createData.order_number = orderNumber; // Also set snake_case version
       }
 
-      const purchaseOrder = await dynamicCreate('purchaseorder', data);
+      const purchaseOrder = await dynamicCreate('purchaseorder', createData);
 
       if (!purchaseOrder) {
         throw new Error('Failed to create purchase order - no valid fields provided');
@@ -104,6 +114,7 @@ export class PurchaseOrderService {
       logger.info({ 
         purchaseOrderId: purchaseOrder.id, 
         orderNumber: purchaseOrder.orderNumber || purchaseOrder.order_number,
+        po_status: purchaseOrder.po_status,
         availableFields: Object.keys(purchaseOrder) 
       }, 'Dynamic purchase order create completed');
 

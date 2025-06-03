@@ -1,0 +1,39 @@
+Create method called at 2025-06-03T06:52:09.415Z with data: {
+  "invoiceamount": 100,
+  "ponumber": "PO-0000000042",
+  "invoicenumber": "SIMPLE-DEBUG-1748933529380",
+  "paymentdata": [
+    {
+      "paymentamount": 100,
+      "paymentdate": "2024-06-03",
+      "paymentmethod": "check",
+      "comments": "Simple debug test"
+    }
+  ]
+}
+Create method called at 2025-06-03T06:52:27.268Z with data: {
+  "invoiceamount": 300,
+  "ponumber": "PO-0000000043",
+  "invoicenumber": "INV-1748933547264-1",
+  "paymentdata": [
+    {
+      "paymentamount": 300,
+      "paymentdate": "2025-06-03",
+      "paymentmethod": "check",
+      "comments": "Partial payment test"
+    }
+  ]
+}
+Create method called at 2025-06-03T06:52:29.475Z with data: {
+  "invoiceamount": 700,
+  "ponumber": "PO-0000000043",
+  "invoicenumber": "INV-1748933549473-2",
+  "paymentdata": [
+    {
+      "paymentamount": 700,
+      "paymentdate": "2025-06-03",
+      "paymentmethod": "ach",
+      "comments": "Final payment test"
+    }
+  ]
+}

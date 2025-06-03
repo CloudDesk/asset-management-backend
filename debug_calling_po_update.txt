@@ -1,0 +1,3 @@
+About to call updatePurchaseOrderStatusByPonumber with PO-0000000042, fulfilled
+About to call updatePurchaseOrderStatusByPonumber with PO-0000000043, partially_fulfilled
+About to call updatePurchaseOrderStatusByPonumber with PO-0000000043, fulfilled
