@@ -1,3 +1,0 @@
-Old status: in_progress, New status: fulfilled, Changed: true
-Old status: in_progress, New status: partially_fulfilled, Changed: true
-Old status: partially_fulfilled, New status: fulfilled, Changed: true

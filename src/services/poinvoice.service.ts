@@ -31,6 +31,10 @@ try {
 export class PoinvoiceService {
   /**
    * Helper method to extract payment amount from payment data
+   * For PUT operations, supports primarily direct array format:
+   * Direct array: [{paymentamount: 100}, {paymentamount: 200}]
+   * Also supports: Single payment object: {paymentamount: 300}
+   * Legacy support: Object with items array: {items: [{paymentamount: 100}, {paymentamount: 200}]}
    */
   private extractPaymentAmount(paymentdata: any): number {
     console.log('💳 DEBUG: Extracting payment amount from:', JSON.stringify(paymentdata));
@@ -43,21 +47,32 @@ export class PoinvoiceService {
     
     let totalPaymentAmount = 0;
     
+    // Format 1: Direct array of payment objects (PRIMARY FORMAT FOR PUT)
     if (Array.isArray(paymentdata)) {
-      // If paymentdata is an array, sum all payment amounts
       totalPaymentAmount = paymentdata.reduce((sum, payment) => {
         const amount = parseFloat(payment.paymentamount || 0);
         const validAmount = isNaN(amount) ? 0 : amount;
-        console.log('💳 DEBUG: Processing payment from array:', { payment, amount, validAmount });
-        logger.debug({ payment, amount, validAmount }, 'Processing payment from array');
+        console.log('💳 DEBUG: Processing payment from direct array:', { payment, amount, validAmount });
+        logger.debug({ payment, amount, validAmount }, 'Processing payment from direct array');
         return sum + validAmount;
       }, 0);
-    } else if (typeof paymentdata === 'object' && paymentdata.paymentamount) {
-      // If paymentdata is a single object with paymentamount
+    } 
+    // Format 2: Single payment object with direct paymentamount
+    else if (typeof paymentdata === 'object' && paymentdata.paymentamount) {
       const amount = parseFloat(paymentdata.paymentamount || 0);
       totalPaymentAmount = isNaN(amount) ? 0 : amount;
       console.log('💳 DEBUG: Processing single payment object:', { paymentdata, amount, totalPaymentAmount });
       logger.debug({ paymentdata, amount, totalPaymentAmount }, 'Processing single payment object');
+    }
+    // Format 3: Legacy support - Object with items array (for backward compatibility)
+    else if (typeof paymentdata === 'object' && paymentdata.items && Array.isArray(paymentdata.items)) {
+      totalPaymentAmount = paymentdata.items.reduce((sum: number, payment: any) => {
+        const amount = parseFloat(payment.paymentamount || 0);
+        const validAmount = isNaN(amount) ? 0 : amount;
+        console.log('💳 DEBUG: Processing payment from legacy items array:', { payment, amount, validAmount });
+        logger.debug({ payment, amount, validAmount }, 'Processing payment from legacy items array');
+        return sum + validAmount;
+      }, 0);
     }
     
     console.log('💳 DEBUG: Final payment amount extracted:', totalPaymentAmount);
@@ -66,7 +81,11 @@ export class PoinvoiceService {
       paymentdata, 
       totalPaymentAmount,
       isArray: Array.isArray(paymentdata),
-      isObject: typeof paymentdata === 'object'
+      isObject: typeof paymentdata === 'object',
+      hasItems: paymentdata?.items ? true : false,
+      format: Array.isArray(paymentdata) ? 'direct_array' : 
+              (paymentdata?.paymentamount ? 'single_object' : 
+               (paymentdata?.items ? 'legacy_items' : 'unknown'))
     }, 'Payment amount extraction result');
     
     return totalPaymentAmount;
@@ -529,6 +548,9 @@ export class PoinvoiceService {
       // Check if poinvoice exists
       await this.findById(id);
 
+      // Write debug info to file
+      writeFileSync('debug_update_start.txt', `Update method called for ID ${id} with data: ${JSON.stringify(data, null, 2)}\n`, { flag: 'a' });
+      
       logger.debug({ originalData: data, poinvoiceId: id }, 'Starting dynamic poinvoice update operation');
 
       // Auto-set modified date
@@ -537,11 +559,16 @@ export class PoinvoiceService {
         modifieddate: data.modifieddate || Date.now(),
       };
 
+      writeFileSync('debug_update_data.txt', `Update data after modifieddate: ${JSON.stringify(updateData, null, 2)}\n`, { flag: 'a' });
+
       const poinvoice = await dynamicUpdate('poinvoice', { id }, updateData);
 
       if (!poinvoice) {
+        writeFileSync('debug_update_failed.txt', `dynamicUpdate returned null for ID ${id}\n`, { flag: 'a' });
         throw new Error('Failed to update poinvoice - no valid fields provided');
       }
+
+      writeFileSync('debug_update_success.txt', `Update successful for ID ${id}: ${JSON.stringify(poinvoice, null, 2)}\n`, { flag: 'a' });
 
       logger.info({ 
         poinvoiceId: id, 
@@ -551,6 +578,7 @@ export class PoinvoiceService {
       return poinvoice;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      writeFileSync('debug_update_error.txt', `Update error for ID ${id}: ${errorMessage}\n`, { flag: 'a' });
       logger.error({ error: errorMessage, data, poinvoiceId: id }, 'Error in poinvoice update operation');
       throw error;
     }

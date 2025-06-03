@@ -1,3 +1,0 @@
-PO validation result for PO-0000000042: found 1 records
-PO validation result for PO-0000000043: found 1 records
-PO validation result for PO-0000000043: found 1 records

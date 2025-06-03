@@ -1,0 +1,342 @@
+Update method called for ID 91 with data: {
+  "invoiceamount": 1823.2,
+  "invoicedate": 1748908800,
+  "invoicenumber": "INV_COMPLEX_TEST",
+  "paymentdata": {
+    "items": [
+      {
+        "id": 1,
+        "comments": "Complex test payment 1",
+        "paymentdate": "2025-06-03",
+        "paymenttype": "Part Payment",
+        "paymentamount": 823.2,
+        "paymentmethod": "upi",
+        "transactionid": "561651",
+        "receiptcomments": "Receipt for complex test 1"
+      },
+      {
+        "id": 2,
+        "comments": "Complex test payment 2",
+        "paymentdate": "2025-06-03",
+        "paymenttype": "Part Payment",
+        "paymentamount": 1000,
+        "paymentmethod": "banktransfer",
+        "transactionid": "456456",
+        "receiptcomments": "Receipt for complex test 2"
+      }
+    ]
+  },
+  "balanceamount": 0,
+  "iscreditpayment": true,
+  "paymentduedate": 1751500800,
+  "transportationcharges": 500,
+  "exchangeamount": 250,
+  "customdutytaxamount": 100
+}
+Update method called for ID 89 with data: {
+  "invoiceamount": 1500,
+  "invoicedate": 1748908800,
+  "invoicenumber": "INV_SIMPLE_ARRAY",
+  "paymentdata": [
+    {
+      "id": 1,
+      "comments": "Simple array payment",
+      "paymentdate": "2025-06-03",
+      "paymenttype": "Full Payment",
+      "paymentamount": 1500,
+      "paymentmethod": "cash",
+      "transactionid": "CASH001",
+      "receiptcomments": "Cash payment receipt"
+    }
+  ],
+  "balanceamount": 0,
+  "iscreditpayment": true,
+  "paymentduedate": 1751500800,
+  "transportationcharges": 0,
+  "exchangeamount": 0,
+  "customdutytaxamount": 0
+}
+Update method called for ID 91 with data: {
+  "invoiceamount": 750,
+  "invoicedate": 1748908800,
+  "invoicenumber": "INV_SINGLE_OBJECT",
+  "paymentdata": {
+    "paymentamount": 750,
+    "paymentdate": "2025-06-03",
+    "paymentmethod": "cheque",
+    "comments": "Single object payment test"
+  },
+  "balanceamount": 0,
+  "iscreditpayment": true,
+  "paymentduedate": 1751500800,
+  "transportationcharges": 0,
+  "exchangeamount": 0,
+  "customdutytaxamount": 0
+}
+Update method called for ID 90 with data: {
+  "invoiceamount": 3000,
+  "invoicedate": 1748908800,
+  "invoicenumber": "INV_PO_STATUS_TEST",
+  "paymentdata": {
+    "items": [
+      {
+        "id": 1,
+        "comments": "PO status test payment",
+        "paymentdate": "2025-06-03",
+        "paymenttype": "Full Payment",
+        "paymentamount": 3000,
+        "paymentmethod": "banktransfer",
+        "transactionid": "PO_TEST_001",
+        "receiptcomments": "Full payment for PO status test"
+      }
+    ]
+  },
+  "balanceamount": 0,
+  "iscreditpayment": true,
+  "paymentduedate": 1751500800,
+  "transportationcharges": 0,
+  "exchangeamount": 0,
+  "customdutytaxamount": 0
+}
+Update method called for ID 91 with data: {
+  "invoiceamount": 1823.2,
+  "invoicedate": 1748908800,
+  "invoicenumber": "INV_COMPLEX_TEST",
+  "paymentdata": {
+    "items": [
+      {
+        "id": 1,
+        "comments": "Complex test payment 1",
+        "paymentdate": "2025-06-03",
+        "paymenttype": "Part Payment",
+        "paymentamount": 823.2,
+        "paymentmethod": "upi",
+        "transactionid": "561651",
+        "receiptcomments": "Receipt for complex test 1"
+      },
+      {
+        "id": 2,
+        "comments": "Complex test payment 2",
+        "paymentdate": "2025-06-03",
+        "paymenttype": "Part Payment",
+        "paymentamount": 1000,
+        "paymentmethod": "banktransfer",
+        "transactionid": "456456",
+        "receiptcomments": "Receipt for complex test 2"
+      }
+    ]
+  },
+  "balanceamount": 0,
+  "iscreditpayment": true,
+  "paymentduedate": 1751500800,
+  "transportationcharges": 500,
+  "exchangeamount": 250,
+  "customdutytaxamount": 100
+}
+Update method called for ID 89 with data: {
+  "invoiceamount": 1500,
+  "invoicedate": 1748908800,
+  "invoicenumber": "INV_SIMPLE_ARRAY",
+  "paymentdata": [
+    {
+      "id": 1,
+      "comments": "Simple array payment",
+      "paymentdate": "2025-06-03",
+      "paymenttype": "Full Payment",
+      "paymentamount": 1500,
+      "paymentmethod": "cash",
+      "transactionid": "CASH001",
+      "receiptcomments": "Cash payment receipt"
+    }
+  ],
+  "balanceamount": 0,
+  "iscreditpayment": true,
+  "paymentduedate": 1751500800,
+  "transportationcharges": 0,
+  "exchangeamount": 0,
+  "customdutytaxamount": 0
+}
+Update method called for ID 91 with data: {
+  "invoiceamount": 150000,
+  "invoicedate": 1748908800,
+  "invoicenumber": "INV_DIRECT_ARRAY_TEST",
+  "paymentdata": [
+    {
+      "id": 1,
+      "comments": "Initial payment",
+      "paymentdate": "2025-01-27",
+      "paymenttype": "Part Payment",
+      "paymentamount": 75000,
+      "paymentmethod": "banktransfer",
+      "transactionid": "TXN-001",
+      "receiptcomments": "50% advance payment"
+    },
+    {
+      "id": 2,
+      "comments": null,
+      "paymentdate": null,
+      "paymenttype": "Part Payment",
+      "paymentamount": 75000,
+      "paymentmethod": "cash",
+      "transactionid": null,
+      "receiptcomments": "Remaining 50% - pending"
+    }
+  ],
+  "balanceamount": 0,
+  "iscreditpayment": true,
+  "paymentduedate": 1751500800,
+  "transportationcharges": 1000,
+  "exchangeamount": 500,
+  "customdutytaxamount": 200
+}
+Update method called for ID 91 with data: {
+  "invoiceamount": 750,
+  "invoicedate": 1748908800,
+  "invoicenumber": "INV_SINGLE_OBJECT",
+  "paymentdata": {
+    "paymentamount": 750,
+    "paymentdate": "2025-06-03",
+    "paymentmethod": "cheque",
+    "comments": "Single object payment test"
+  },
+  "balanceamount": 0,
+  "iscreditpayment": true,
+  "paymentduedate": 1751500800,
+  "transportationcharges": 0,
+  "exchangeamount": 0,
+  "customdutytaxamount": 0
+}
+Update method called for ID 89 with data: {
+  "invoiceamount": 200000,
+  "invoicedate": 1748908800,
+  "invoicenumber": "INV_MULTI_PAYMENT_TEST",
+  "paymentdata": [
+    {
+      "id": 1,
+      "comments": "First installment",
+      "paymentdate": "2025-01-15",
+      "paymenttype": "Part Payment",
+      "paymentamount": 50000,
+      "paymentmethod": "upi",
+      "transactionid": "UPI-12345",
+      "receiptcomments": "25% down payment"
+    },
+    {
+      "id": 2,
+      "comments": "Second installment",
+      "paymentdate": "2025-01-22",
+      "paymenttype": "Part Payment",
+      "paymentamount": 75000,
+      "paymentmethod": "cheque",
+      "transactionid": "CHQ-98765",
+      "receiptcomments": "37.5% second payment"
+    },
+    {
+      "id": 3,
+      "comments": "Final payment",
+      "paymentdate": "2025-01-30",
+      "paymenttype": "Full Payment",
+      "paymentamount": 75000,
+      "paymentmethod": "banktransfer",
+      "transactionid": "BANK-5555",
+      "receiptcomments": "Final 37.5% payment"
+    }
+  ],
+  "balanceamount": 0,
+  "iscreditpayment": true,
+  "paymentduedate": 1751500800,
+  "transportationcharges": 2000,
+  "exchangeamount": 0,
+  "customdutytaxamount": 5000
+}
+Update method called for ID 90 with data: {
+  "invoiceamount": 3000,
+  "invoicedate": 1748908800,
+  "invoicenumber": "INV_PO_STATUS_TEST",
+  "paymentdata": {
+    "items": [
+      {
+        "id": 1,
+        "comments": "PO status test payment",
+        "paymentdate": "2025-06-03",
+        "paymenttype": "Full Payment",
+        "paymentamount": 3000,
+        "paymentmethod": "banktransfer",
+        "transactionid": "PO_TEST_001",
+        "receiptcomments": "Full payment for PO status test"
+      }
+    ]
+  },
+  "balanceamount": 0,
+  "iscreditpayment": true,
+  "paymentduedate": 1751500800,
+  "transportationcharges": 0,
+  "exchangeamount": 0,
+  "customdutytaxamount": 0
+}
+Update method called for ID 90 with data: {
+  "invoiceamount": 180000,
+  "invoicedate": 1748908800,
+  "invoicenumber": "INV_PO_DIRECT_ARRAY",
+  "paymentdata": [
+    {
+      "id": 1,
+      "comments": "PO payment - first part",
+      "paymentdate": "2025-01-27",
+      "paymenttype": "Part Payment",
+      "paymentamount": 90000,
+      "paymentmethod": "banktransfer",
+      "transactionid": "PO-BANK-001",
+      "receiptcomments": "50% of PO payment"
+    },
+    {
+      "id": 2,
+      "comments": "PO payment - second part",
+      "paymentdate": "2025-01-27",
+      "paymenttype": "Part Payment",
+      "paymentamount": 90000,
+      "paymentmethod": "cheque",
+      "transactionid": "PO-CHQ-002",
+      "receiptcomments": "Remaining 50% of PO payment"
+    }
+  ],
+  "balanceamount": 0,
+  "iscreditpayment": true,
+  "paymentduedate": 1751500800,
+  "transportationcharges": 3000,
+  "exchangeamount": 1000,
+  "customdutytaxamount": 2000
+}
+Update method called for ID 91 with data: {
+  "invoiceamount": 150000,
+  "invoicedate": 1748908800,
+  "invoicenumber": "INV_USER_EXACT_FORMAT",
+  "paymentdata": [
+    {
+      "id": 1,
+      "comments": "Initial payment",
+      "paymentdate": "2025-01-27",
+      "paymenttype": "Part Payment",
+      "paymentamount": 75000,
+      "paymentmethod": "banktransfer",
+      "transactionid": "TXN-001",
+      "receiptcomments": "50% advance payment"
+    },
+    {
+      "id": 2,
+      "comments": null,
+      "paymentdate": null,
+      "paymenttype": "Part Payment",
+      "paymentamount": 75000,
+      "paymentmethod": "cash",
+      "transactionid": null,
+      "receiptcomments": "Remaining 50% - pending"
+    }
+  ],
+  "balanceamount": 0,
+  "iscreditpayment": true,
+  "paymentduedate": 1751500800,
+  "transportationcharges": 500,
+  "exchangeamount": 250,
+  "customdutytaxamount": 100
+}

@@ -64,12 +64,41 @@ export async function poinvoiceRoutes(fastify: FastifyInstance) {
                             receiptcomments: { type: 'string', nullable: true, description: 'Receipt comments' }
                           },
                           additionalProperties: true
-                        }
+                        },
+                        description: 'Direct array of payment objects'
                       },
-                      { type: 'object', additionalProperties: true },
+                      {
+                        type: 'object',
+                        properties: {
+                          items: {
+                            type: 'array',
+                            items: {
+                              type: 'object',
+                              properties: {
+                                id: { type: 'number', description: 'Payment ID' },
+                                comments: { type: 'string', nullable: true, description: 'Payment comments' },
+                                paymentdate: { type: 'string', nullable: true, description: 'Payment date' },
+                                paymenttype: { type: 'string', nullable: true, description: 'Payment type (e.g., "Part Payment", "Full Payment")' },
+                                paymentamount: { type: 'number', nullable: true, description: 'Payment amount' },
+                                paymentmethod: { type: 'string', nullable: true, description: 'Payment method (e.g., "banktransfer", "cash", "cheque")' },
+                                transactionid: { type: 'string', nullable: true, description: 'Transaction ID' },
+                                receiptcomments: { type: 'string', nullable: true, description: 'Receipt comments' }
+                              },
+                              additionalProperties: true
+                            }
+                          }
+                        },
+                        additionalProperties: true,
+                        description: 'Object with items array containing payment objects'
+                      },
+                      { 
+                        type: 'object', 
+                        additionalProperties: true,
+                        description: 'Single payment object'
+                      },
                       { type: 'null' }
                     ], 
-                    description: 'Payment data JSON - can be array of payment objects or single object' 
+                    description: 'Payment data JSON - supports multiple formats: 1) Direct array of payments, 2) Object with items array, 3) Single payment object, or null' 
                   },
                   createddate: { type: 'number', nullable: true, description: 'Creation timestamp' },
                   modifieddate: { type: 'number', nullable: true, description: 'Modification timestamp' },
@@ -400,12 +429,23 @@ export async function poinvoiceRoutes(fastify: FastifyInstance) {
                     receiptcomments: { type: 'string', nullable: true, description: 'Receipt comments' }
                   },
                   additionalProperties: true
-                }
+                },
+                description: 'Array of payment objects (PRIMARY FORMAT for PUT operations)'
               },
-              { type: 'object', additionalProperties: true },
+              { 
+                type: 'object', 
+                properties: {
+                  paymentamount: { type: 'number', description: 'Payment amount for single payment' },
+                  paymentdate: { type: 'string', nullable: true, description: 'Payment date' },
+                  paymentmethod: { type: 'string', nullable: true, description: 'Payment method' },
+                  comments: { type: 'string', nullable: true, description: 'Payment comments' }
+                },
+                additionalProperties: true,
+                description: 'Single payment object'
+              },
               { type: 'null' }
             ], 
-            description: 'Payment data JSON - can be array of payment objects or single object' 
+            description: 'Payment data - Use direct array format: [{"id":1,"paymentamount":75000,"paymentmethod":"banktransfer",...}, {"id":2,"paymentamount":75000,"paymentmethod":"cash",...}]' 
           },
           modifieddate: { type: 'number', description: 'Modification timestamp (optional, auto-generated if not provided)' },
           balanceamount: { type: 'number', description: 'Balance amount' },
@@ -595,12 +635,23 @@ export async function poinvoiceRoutes(fastify: FastifyInstance) {
                     receiptcomments: { type: 'string', nullable: true, description: 'Receipt comments' }
                   },
                   additionalProperties: true
-                }
+                },
+                description: 'Array of payment objects (PRIMARY FORMAT for PUT operations)'
               },
-              { type: 'object', additionalProperties: true },
+              { 
+                type: 'object', 
+                properties: {
+                  paymentamount: { type: 'number', description: 'Payment amount for single payment' },
+                  paymentdate: { type: 'string', nullable: true, description: 'Payment date' },
+                  paymentmethod: { type: 'string', nullable: true, description: 'Payment method' },
+                  comments: { type: 'string', nullable: true, description: 'Payment comments' }
+                },
+                additionalProperties: true,
+                description: 'Single payment object'
+              },
               { type: 'null' }
             ], 
-            description: 'Payment data JSON - can be array of payment objects or single object' 
+            description: 'Payment data - Use direct array format: [{"id":1,"paymentamount":75000,"paymentmethod":"banktransfer",...}, {"id":2,"paymentamount":75000,"paymentmethod":"cash",...}]' 
           },
           createddate: { type: 'number', description: 'Creation timestamp (optional, auto-generated if not provided)' },
           modifieddate: { type: 'number', description: 'Modification timestamp (optional, auto-generated if not provided)' },

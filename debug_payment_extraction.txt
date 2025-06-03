@@ -1,3 +1,0 @@
-Payment extracted: 100 from data: [{"paymentamount":100,"paymentdate":"2024-06-03","paymentmethod":"check","comments":"Simple debug test"}]
-Payment extracted: 300 from data: [{"paymentamount":300,"paymentdate":"2025-06-03","paymentmethod":"check","comments":"Partial payment test"}]
-Payment extracted: 700 from data: [{"paymentamount":700,"paymentdate":"2025-06-03","paymentmethod":"ach","comments":"Final payment test"}]

@@ -1,3 +1,0 @@
-Starting status update for PO-0000000042 with payment 100
-Starting status update for PO-0000000043 with payment 300
-Starting status update for PO-0000000043 with payment 700

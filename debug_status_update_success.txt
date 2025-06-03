@@ -1,3 +1,0 @@
-Successfully updated status to fulfilled
-Successfully updated status to partially_fulfilled
-Successfully updated status to fulfilled

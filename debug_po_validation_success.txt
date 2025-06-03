@@ -1,3 +1,0 @@
-PO validation success for PO-0000000042: status=in_progress, total=500
-PO validation success for PO-0000000043: status=in_progress, total=1000
-PO validation success for PO-0000000043: status=partially_fulfilled, total=1000

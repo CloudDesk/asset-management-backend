@@ -1,0 +1,72 @@
+Update query: 
+        UPDATE "poinvoice" 
+        SET "invoiceamount" = $2, "invoicedate" = $3, "invoicenumber" = $4, "paymentdata" = $5::jsonb, "balanceamount" = $6, "iscreditpayment" = $7, "paymentduedate" = $8, "transportationcharges" = $9, "exchangeamount" = $10, "customdutytaxamount" = $11, "modifieddate" = $12 
+        WHERE "id" = $1 
+        RETURNING *
+      
+Update query: 
+        UPDATE "poinvoice" 
+        SET "invoiceamount" = $2, "invoicedate" = $3, "invoicenumber" = $4, "paymentdata" = $5::jsonb, "balanceamount" = $6, "iscreditpayment" = $7, "paymentduedate" = $8, "transportationcharges" = $9, "exchangeamount" = $10, "customdutytaxamount" = $11, "modifieddate" = $12 
+        WHERE "id" = $1 
+        RETURNING *
+      
+Update query: 
+        UPDATE "poinvoice" 
+        SET "invoiceamount" = $2, "invoicedate" = $3, "invoicenumber" = $4, "paymentdata" = $5::jsonb, "balanceamount" = $6, "iscreditpayment" = $7, "paymentduedate" = $8, "transportationcharges" = $9, "exchangeamount" = $10, "customdutytaxamount" = $11, "modifieddate" = $12 
+        WHERE "id" = $1 
+        RETURNING *
+      
+Update query: 
+        UPDATE "poinvoice" 
+        SET "invoiceamount" = $2, "invoicedate" = $3, "invoicenumber" = $4, "paymentdata" = $5::jsonb, "balanceamount" = $6, "iscreditpayment" = $7, "paymentduedate" = $8, "transportationcharges" = $9, "exchangeamount" = $10, "customdutytaxamount" = $11, "modifieddate" = $12 
+        WHERE "id" = $1 
+        RETURNING *
+      
+Update query: 
+        UPDATE "poinvoice" 
+        SET "invoiceamount" = $2, "invoicedate" = $3, "invoicenumber" = $4, "paymentdata" = $5::jsonb, "balanceamount" = $6, "iscreditpayment" = $7, "paymentduedate" = $8, "transportationcharges" = $9, "exchangeamount" = $10, "customdutytaxamount" = $11, "modifieddate" = $12 
+        WHERE "id" = $1 
+        RETURNING *
+      
+Update query: 
+        UPDATE "poinvoice" 
+        SET "invoiceamount" = $2, "invoicedate" = $3, "invoicenumber" = $4, "paymentdata" = $5::jsonb, "balanceamount" = $6, "iscreditpayment" = $7, "paymentduedate" = $8, "transportationcharges" = $9, "exchangeamount" = $10, "customdutytaxamount" = $11, "modifieddate" = $12 
+        WHERE "id" = $1 
+        RETURNING *
+      
+Update query: 
+        UPDATE "poinvoice" 
+        SET "invoiceamount" = $2, "invoicedate" = $3, "invoicenumber" = $4, "paymentdata" = $5::jsonb, "balanceamount" = $6, "iscreditpayment" = $7, "paymentduedate" = $8, "transportationcharges" = $9, "exchangeamount" = $10, "customdutytaxamount" = $11, "modifieddate" = $12 
+        WHERE "id" = $1 
+        RETURNING *
+      
+Update query: 
+        UPDATE "poinvoice" 
+        SET "invoiceamount" = $2, "invoicedate" = $3, "invoicenumber" = $4, "paymentdata" = $5::jsonb, "balanceamount" = $6, "iscreditpayment" = $7, "paymentduedate" = $8, "transportationcharges" = $9, "exchangeamount" = $10, "customdutytaxamount" = $11, "modifieddate" = $12 
+        WHERE "id" = $1 
+        RETURNING *
+      
+Update query: 
+        UPDATE "poinvoice" 
+        SET "invoiceamount" = $2, "invoicedate" = $3, "invoicenumber" = $4, "paymentdata" = $5::jsonb, "balanceamount" = $6, "iscreditpayment" = $7, "paymentduedate" = $8, "transportationcharges" = $9, "exchangeamount" = $10, "customdutytaxamount" = $11, "modifieddate" = $12 
+        WHERE "id" = $1 
+        RETURNING *
+      
+Update query: 
+        UPDATE "poinvoice" 
+        SET "invoiceamount" = $2, "invoicedate" = $3, "invoicenumber" = $4, "paymentdata" = $5::jsonb, "balanceamount" = $6, "iscreditpayment" = $7, "paymentduedate" = $8, "transportationcharges" = $9, "exchangeamount" = $10, "customdutytaxamount" = $11, "modifieddate" = $12 
+        WHERE "id" = $1 
+        RETURNING *
+      
+Update query: 
+        UPDATE "poinvoice" 
+        SET "invoiceamount" = $2, "invoicedate" = $3, "invoicenumber" = $4, "paymentdata" = $5::jsonb, "balanceamount" = $6, "iscreditpayment" = $7, "paymentduedate" = $8, "transportationcharges" = $9, "exchangeamount" = $10, "customdutytaxamount" = $11, "modifieddate" = $12 
+        WHERE "id" = $1 
+        RETURNING *
+      
+Update query: 
+        UPDATE "poinvoice" 
+        SET "invoiceamount" = $2, "invoicedate" = $3, "invoicenumber" = $4, "paymentdata" = $5::jsonb, "balanceamount" = $6, "iscreditpayment" = $7, "paymentduedate" = $8, "transportationcharges" = $9, "exchangeamount" = $10, "customdutytaxamount" = $11, "modifieddate" = $12 
+        WHERE "id" = $1 
+        RETURNING *
+      
