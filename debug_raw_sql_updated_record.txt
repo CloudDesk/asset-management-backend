@@ -472,3 +472,41 @@ Updated record: {
   "customdutychallanurl": null,
   "billofentryurl": null
 }
+Updated record: {
+  "id": 3,
+  "companyname": "Minimal Update Corp",
+  "contactname": "No Timestamp User",
+  "phonenumber": "9876543210",
+  "companymail": "user@notimestamp.com",
+  "gstnumber": "GST123456789",
+  "companyaddress": "123 NoTimestamp St, Test City",
+  "supplierid": 99,
+  "items": [
+    {
+      "id": 1,
+      "name": "Timestamp-free Product",
+      "quantity": 10
+    }
+  ],
+  "createdby": "testuser",
+  "modifiedby": "updateuser"
+}
+Updated record: {
+  "id": 3,
+  "companyname": "Minimal Update Corp",
+  "contactname": "No Timestamp User",
+  "phonenumber": "9876543210",
+  "companymail": "user@notimestamp.com",
+  "gstnumber": "GST123456789",
+  "companyaddress": "123 NoTimestamp St, Test City",
+  "supplierid": 99,
+  "items": [
+    {
+      "id": 1,
+      "name": "Timestamp-free Product",
+      "quantity": 10
+    }
+  ],
+  "createdby": "testuser",
+  "modifiedby": "updateuser"
+}

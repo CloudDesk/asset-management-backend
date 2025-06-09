@@ -226,9 +226,14 @@ export function convertBigIntToNumber(obj) {
  */
 async function filterInputDataBySchema(data, modelName, operation = 'create') {
     const tableName = getTableName(modelName);
+    // Write debug info to files
+    const { writeFileSync } = await import('fs');
+    writeFileSync('debug_filter_start.txt', `Filtering data for ${modelName} (${tableName}): ${JSON.stringify(data, null, 2)}\n`, { flag: 'a' });
     const availableColumns = await discoverTableColumns(tableName);
+    writeFileSync('debug_filter_columns.txt', `Available columns for ${tableName}: ${JSON.stringify(availableColumns)}\n`, { flag: 'a' });
     if (availableColumns.length === 0) {
         logger.warn({ modelName, tableName }, 'No columns available, returning empty data');
+        writeFileSync('debug_filter_no_columns.txt', `No columns found for ${tableName}\n`, { flag: 'a' });
         return {};
     }
     const filteredData = {};
@@ -236,11 +241,15 @@ async function filterInputDataBySchema(data, modelName, operation = 'create') {
     for (const [key, value] of Object.entries(data)) {
         if (availableColumns.includes(key)) {
             filteredData[key] = value;
+            writeFileSync('debug_filter_included.txt', `Included field: ${key} = ${JSON.stringify(value)}\n`, { flag: 'a' });
         }
         else {
             ignoredFields.push(key);
+            writeFileSync('debug_filter_ignored.txt', `Ignored field: ${key} (not in available columns)\n`, { flag: 'a' });
         }
     }
+    writeFileSync('debug_filter_result.txt', `Filtered data result: ${JSON.stringify(filteredData, null, 2)}\n`, { flag: 'a' });
+    writeFileSync('debug_filter_ignored_summary.txt', `Ignored fields: ${JSON.stringify(ignoredFields)}\n`, { flag: 'a' });
     if (ignoredFields.length > 0) {
         logger.debug({
             modelName,
@@ -852,7 +861,7 @@ export async function dynamicCreate(modelName, data, include) {
         for (const [key, value] of Object.entries(filteredData)) {
             if (availableColumns.includes(key)) {
                 // Handle JSON fields properly for PostgreSQL
-                if (key === 'paymentdata' && value !== null && value !== undefined) {
+                if ((key === 'paymentdata' || key === 'items') && value !== null && value !== undefined) {
                     // For JSONB fields with explicit casting, stringify the JSON
                     rawData[key] = typeof value === 'string' ? value : JSON.stringify(value);
                 }
@@ -878,7 +887,7 @@ export async function dynamicCreate(modelName, data, include) {
         const values = Object.values(rawData);
         // Build placeholders with special handling for JSON fields
         const placeholders = columns.map((col, index) => {
-            if (col === 'paymentdata') {
+            if (col === 'paymentdata' || col === 'items') {
                 return `$${index + 1}::jsonb`;
             }
             return `$${index + 1}`;
@@ -894,6 +903,8 @@ export async function dynamicCreate(modelName, data, include) {
             tableName,
             columns,
             query: insertQuery,
+            hasItems: !!rawData.items,
+            itemsDataType: rawData.items ? typeof rawData.items : 'undefined',
             hasPaymentData: !!rawData.paymentdata,
             paymentDataType: rawData.paymentdata ? typeof rawData.paymentdata : 'undefined'
         }, 'Executing dynamic create query');
@@ -965,37 +976,61 @@ export async function dynamicUpdate(modelName, where, data, include) {
             // For models without proper Prisma schema (like supplier), use raw SQL
             const tableName = getTableName(modelName);
             const availableColumns = await discoverTableColumns(tableName);
+            // Write debug info to files
+            const { writeFileSync } = await import('fs');
+            writeFileSync('debug_raw_sql_start.txt', `Starting raw SQL update for ${modelName} (${tableName})\n`, { flag: 'a' });
+            writeFileSync('debug_raw_sql_filtered_data.txt', `Filtered data: ${JSON.stringify(filteredData, null, 2)}\n`, { flag: 'a' });
+            writeFileSync('debug_raw_sql_available_columns.txt', `Available columns: ${JSON.stringify(availableColumns)}\n`, { flag: 'a' });
             // Filter data to only include existing columns
             const rawData = {};
             for (const [key, value] of Object.entries(filteredData)) {
                 if (availableColumns.includes(key)) {
                     // Handle JSON fields properly for PostgreSQL
-                    if (key === 'paymentdata' && value !== null && value !== undefined) {
+                    if ((key === 'paymentdata' || key === 'items') && value !== null && value !== undefined) {
                         // For JSONB fields with explicit casting, stringify the JSON
                         rawData[key] = typeof value === 'string' ? value : JSON.stringify(value);
+                        if (key === 'paymentdata') {
+                            writeFileSync('debug_raw_sql_paymentdata.txt', `Converted paymentdata: ${rawData[key]}\n`, { flag: 'a' });
+                        }
+                        else if (key === 'items') {
+                            writeFileSync('debug_raw_sql_items.txt', `Converted items: ${rawData[key]}\n`, { flag: 'a' });
+                        }
                     }
                     else {
                         rawData[key] = value;
                     }
+                    writeFileSync('debug_raw_sql_included.txt', `Included in rawData: ${key} = ${JSON.stringify(value)}\n`, { flag: 'a' });
+                }
+                else {
+                    writeFileSync('debug_raw_sql_excluded.txt', `Excluded from rawData: ${key} (not in available columns)\n`, { flag: 'a' });
                 }
             }
+            writeFileSync('debug_raw_sql_rawdata.txt', `Final rawData: ${JSON.stringify(rawData, null, 2)}\n`, { flag: 'a' });
             if (Object.keys(rawData).length === 0) {
                 logger.warn({ modelName, tableName }, 'No valid columns for raw SQL update');
+                writeFileSync('debug_raw_sql_no_data.txt', `No valid columns for raw SQL update\n`, { flag: 'a' });
                 return null;
             }
             // Add modifieddate timestamp
             const now = Math.floor(Date.now() / 1000);
             if (availableColumns.includes('modifieddate')) {
                 rawData.modifieddate = now;
+                writeFileSync('debug_raw_sql_modifieddate.txt', `Added modifieddate: ${now}\n`, { flag: 'a' });
             }
             // Convert ID to integer if it's a numeric string (for tables with integer IDs)
             let idValue = where.id;
             if (typeof idValue === 'string' && /^\d+$/.test(idValue)) {
                 idValue = parseInt(idValue, 10);
             }
+            writeFileSync('debug_raw_sql_id.txt', `ID value: ${idValue} (type: ${typeof idValue})\n`, { flag: 'a' });
             // Build dynamic UPDATE query
             const setClause = Object.keys(rawData)
-                .map((key, index) => `"${key}" = $${index + 2}`) // Start from $2 since $1 is for WHERE
+                .map((key, index) => {
+                if (key === 'paymentdata' || key === 'items') {
+                    return `"${key}" = $${index + 2}::jsonb`; // Cast to JSONB for JSON fields
+                }
+                return `"${key}" = $${index + 2}`;
+            }) // Start from $2 since $1 is for WHERE
                 .join(', ');
             const updateQuery = `
         UPDATE "${tableName}" 
@@ -1004,6 +1039,8 @@ export async function dynamicUpdate(modelName, where, data, include) {
         RETURNING *
       `;
             const values = [idValue, ...Object.values(rawData)];
+            writeFileSync('debug_raw_sql_query.txt', `Update query: ${updateQuery}\n`, { flag: 'a' });
+            writeFileSync('debug_raw_sql_values.txt', `Values: ${JSON.stringify(values, null, 2)}\n`, { flag: 'a' });
             logger.debug({
                 modelName,
                 tableName,
@@ -1011,18 +1048,35 @@ export async function dynamicUpdate(modelName, where, data, include) {
                 values: values.length,
                 fields: Object.keys(rawData)
             }, 'Executing dynamic update query');
-            const updateResult = await prisma.$queryRawUnsafe(updateQuery, ...values);
-            const records = Array.isArray(updateResult) ? updateResult : [];
-            const updatedRecord = records.length > 0 ? records[0] : null;
-            if (updatedRecord) {
-                logger.info({
-                    modelName,
-                    updatedId: updatedRecord.id,
-                    fieldsUsed: Object.keys(rawData)
-                }, 'Raw SQL update completed successfully');
-                return convertBigIntToNumber(updatedRecord);
+            try {
+                const updateResult = await prisma.$queryRawUnsafe(updateQuery, ...values);
+                writeFileSync('debug_raw_sql_result.txt', `Update result: ${JSON.stringify(updateResult, (key, value) => typeof value === 'bigint' ? value.toString() : value, 2)}\n`, { flag: 'a' });
+                const records = Array.isArray(updateResult) ? updateResult : [];
+                const updatedRecord = records.length > 0 ? records[0] : null;
+                writeFileSync('debug_raw_sql_updated_record.txt', `Updated record: ${JSON.stringify(updatedRecord, (key, value) => typeof value === 'bigint' ? value.toString() : value, 2)}\n`, { flag: 'a' });
+                if (updatedRecord) {
+                    logger.info({
+                        modelName,
+                        updatedId: updatedRecord.id,
+                        fieldsUsed: Object.keys(rawData)
+                    }, 'Raw SQL update completed successfully');
+                    return convertBigIntToNumber(updatedRecord);
+                }
+                writeFileSync('debug_raw_sql_no_record.txt', `No record returned from update\n`, { flag: 'a' });
+                return null;
             }
-            return null;
+            catch (sqlError) {
+                writeFileSync('debug_raw_sql_error.txt', `SQL Error: ${sqlError.message}\nStack: ${sqlError.stack}\n`, { flag: 'a' });
+                logger.error({
+                    error: sqlError.message,
+                    sqlError: sqlError,
+                    modelName,
+                    tableName,
+                    updateQuery,
+                    values: values.length // Don't log the actual values to avoid BigInt issues
+                }, 'SQL execution failed in raw SQL update');
+                throw sqlError; // Re-throw to trigger fallback
+            }
         }
         catch (prismaError) {
             logger.warn({
@@ -1034,6 +1088,9 @@ export async function dynamicUpdate(modelName, where, data, include) {
             // Fallback to raw SQL UPDATE
             const tableName = getTableName(modelName);
             const availableColumns = await discoverTableColumns(tableName);
+            // Write debug info to files
+            const { writeFileSync } = await import('fs');
+            writeFileSync('debug_raw_sql_fallback_start.txt', `Starting raw SQL fallback update for ${modelName} (${tableName})\n`, { flag: 'a' });
             // Filter data to only include existing columns
             const rawData = {};
             for (const [key, value] of Object.entries(filteredData)) {
@@ -1050,6 +1107,7 @@ export async function dynamicUpdate(modelName, where, data, include) {
             }
             if (Object.keys(rawData).length === 0) {
                 logger.warn({ modelName, tableName }, 'No valid columns for raw SQL fallback update');
+                writeFileSync('debug_raw_sql_fallback_no_data.txt', `No valid columns for raw SQL fallback update\n`, { flag: 'a' });
                 return null;
             }
             // Add modifieddate timestamp
@@ -1073,8 +1131,10 @@ export async function dynamicUpdate(modelName, where, data, include) {
         RETURNING *
       `;
             const values = [idValue, ...Object.values(rawData)];
-            const result = await prisma.$queryRawUnsafe(updateQuery, ...values);
-            const records = Array.isArray(result) ? result : [];
+            writeFileSync('debug_raw_sql_fallback_query.txt', `Fallback query: ${updateQuery}\n`, { flag: 'a' });
+            writeFileSync('debug_raw_sql_fallback_values.txt', `Fallback values: ${JSON.stringify(values, null, 2)}\n`, { flag: 'a' });
+            const fallbackResult = await prisma.$queryRawUnsafe(updateQuery, ...values);
+            const records = Array.isArray(fallbackResult) ? fallbackResult : [];
             const updatedRecord = records.length > 0 ? records[0] : null;
             if (updatedRecord) {
                 logger.info({
@@ -1716,6 +1776,47 @@ export function formatAddressForAPI(address) {
     return formatted;
 }
 /**
+ * Formats a single sample purchase order object for API response
+ */
+export function formatSamplePurchaseOrderForAPI(samplePurchaseOrder) {
+    if (!samplePurchaseOrder)
+        return samplePurchaseOrder;
+    const formatted = serializeForAPI(samplePurchaseOrder);
+    // Format numeric fields
+    if (formatted.id !== undefined) {
+        formatted.id = formatIntegerField(formatted.id) || formatted.id;
+    }
+    if (formatted.supplierid !== undefined) {
+        formatted.supplierid = formatIntegerField(formatted.supplierid);
+    }
+    // Handle phone number field
+    if (formatted.phonenumber !== undefined) {
+        formatted.phonenumber = formatIntegerField(formatted.phonenumber);
+    }
+    // Handle timestamps
+    if (formatted.createddate !== undefined) {
+        formatted.createddate = formatIntegerField(formatted.createddate) || formatted.createddate;
+    }
+    if (formatted.modifieddate !== undefined) {
+        formatted.modifieddate = formatIntegerField(formatted.modifieddate) || formatted.modifieddate;
+    }
+    // Ensure items is properly handled as JSON
+    if (formatted.items !== undefined) {
+        if (typeof formatted.items === 'string') {
+            try {
+                formatted.items = JSON.parse(formatted.items);
+            }
+            catch (error) {
+                logger.warn({
+                    error,
+                    originalItems: formatted.items
+                }, 'Error parsing items JSON in formatSamplePurchaseOrderForAPI');
+            }
+        }
+    }
+    return formatted;
+}
+/**
  * Universal formatter that detects entity type and applies appropriate formatting
  */
 export function formatEntityForAPI(entity, entityType) {
@@ -1746,6 +1847,8 @@ export function formatEntityForAPI(entity, entityType) {
                 return formatPoinvoiceForAPI(entity);
             case 'address':
                 return formatAddressForAPI(entity);
+            case 'samplepurchaseorder':
+                return formatSamplePurchaseOrderForAPI(entity);
             default:
                 return serializeForAPI(entity);
         }

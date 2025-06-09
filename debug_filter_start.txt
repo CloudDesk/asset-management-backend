@@ -352,3 +352,484 @@ Filtering data for poinvoice (poinvoice): {
   "customdutytaxamount": 100,
   "modifieddate": 1748937171075
 }
+Filtering data for samplepurchaseorder (samplepurchaseorder): {
+  "companyname": "Test Company",
+  "contactname": "John Doe",
+  "phonenumber": 9876543210,
+  "companymail": "test@example.com",
+  "gstnumber": "GST123456789",
+  "companyaddress": "123 Test Street, Test City",
+  "supplierid": 1,
+  "items": [
+    {
+      "id": 1,
+      "name": "Test Item 1",
+      "quantity": 5
+    },
+    {
+      "id": 2,
+      "name": "Test Item 2",
+      "quantity": 10
+    }
+  ],
+  "createdby": "testuser",
+  "modifiedby": "testuser",
+  "createddate": 1749451894861,
+  "modifieddate": 1749451894861
+}
+Filtering data for samplepurchaseorder (samplepurchaseorder): {
+  "companyname": "Test Company",
+  "contactname": "John Doe",
+  "phonenumber": 9876543210,
+  "companymail": "test@example.com",
+  "gstnumber": "GST123456789",
+  "companyaddress": "123 Test Street, Test City",
+  "supplierid": 1,
+  "items": [
+    {
+      "id": 1,
+      "name": "Test Item 1",
+      "quantity": 5
+    },
+    {
+      "id": 2,
+      "name": "Test Item 2",
+      "quantity": 10
+    }
+  ],
+  "createdby": "testuser",
+  "modifiedby": "testuser",
+  "createddate": 1749451991713,
+  "modifieddate": 1749451991713
+}
+Filtering data for samplepurchaseorder (samplepurchaseorder): {
+  "companyname": "Minimal Company",
+  "contactname": "Jane Smith",
+  "phonenumber": 9876543210,
+  "companymail": "minimal@example.com",
+  "gstnumber": "GST12345",
+  "companyaddress": "Minimal Address",
+  "supplierid": 1,
+  "items": [
+    {
+      "id": 1,
+      "name": "Minimal Item",
+      "quantity": 1
+    }
+  ],
+  "createdby": "testuser",
+  "modifiedby": "testuser",
+  "createddate": 1749451992260,
+  "modifieddate": 1749451992260
+}
+Filtering data for samplepurchaseorder (samplepurchaseorder): {
+  "companyname": "Test Company",
+  "contactname": "John Doe",
+  "phonenumber": 9876543210,
+  "companymail": "test@example.com",
+  "gstnumber": "GST123456789",
+  "companyaddress": "123 Test Street, Test City",
+  "supplierid": 98,
+  "items": [
+    {
+      "id": 1,
+      "name": "Test Item 1",
+      "quantity": 5
+    },
+    {
+      "id": 2,
+      "name": "Test Item 2",
+      "quantity": 10
+    }
+  ],
+  "createdby": "testuser",
+  "modifiedby": "testuser",
+  "createddate": 1749452066188,
+  "modifieddate": 1749452066188
+}
+Filtering data for samplepurchaseorder (samplepurchaseorder): {
+  "companyname": "Minimal Company",
+  "contactname": "Jane Smith",
+  "phonenumber": 9876543210,
+  "companymail": "minimal@example.com",
+  "gstnumber": "GST12345",
+  "companyaddress": "Minimal Address",
+  "supplierid": 98,
+  "items": [
+    {
+      "id": 1,
+      "name": "Minimal Item",
+      "quantity": 1
+    }
+  ],
+  "createdby": "testuser",
+  "modifiedby": "testuser",
+  "createddate": 1749452066720,
+  "modifieddate": 1749452066720
+}
+Filtering data for samplepurchaseorder (samplepurchaseorder): {
+  "companyname": "Acme Corp",
+  "contactname": "John Smith",
+  "phonenumber": 9876543210,
+  "companymail": "john@acmecorp.com",
+  "gstnumber": "GST123456789",
+  "companyaddress": "123 Business St, Tech City",
+  "supplierid": 99,
+  "items": [
+    {
+      "id": 1,
+      "name": "Product A",
+      "quantity": 10
+    },
+    {
+      "id": 2,
+      "name": "Product B",
+      "quantity": 5
+    }
+  ],
+  "createdby": "testuser",
+  "modifiedby": "testuser",
+  "createddate": 1749452325086,
+  "modifieddate": 1749452325086
+}
+Filtering data for samplepurchaseorder (samplepurchaseorder): {
+  "companyname": "One Item Corp",
+  "contactname": "Single Item User",
+  "phonenumber": 9876543210,
+  "companymail": "user@oneitemcorp.com",
+  "gstnumber": "GST111222333",
+  "companyaddress": "111 Single Item St, Array City",
+  "supplierid": 99,
+  "items": [
+    {
+      "id": 1,
+      "name": "Single Product",
+      "quantity": 1
+    }
+  ],
+  "createdby": "testuser",
+  "modifiedby": "testuser",
+  "createddate": 1749452466182,
+  "modifieddate": 1749452466182
+}
+Filtering data for samplepurchaseorder (samplepurchaseorder): {
+  "companyname": "Correct Items Corp",
+  "contactname": "John Doe",
+  "phonenumber": 9876543210,
+  "companymail": "john@correctitems.com",
+  "gstnumber": "GST123456789",
+  "companyaddress": "123 Correct St, JSONB City",
+  "supplierid": 99,
+  "items": [
+    {
+      "id": 1,
+      "name": "Product A",
+      "quantity": 10
+    },
+    {
+      "id": 2,
+      "name": "Product B",
+      "quantity": 5
+    }
+  ],
+  "createdby": "testuser",
+  "modifiedby": "testuser",
+  "createddate": 1749454634052,
+  "modifieddate": 1749454634052
+}
+Filtering data for samplepurchaseorder (samplepurchaseorder): {
+  "companyname": "Correct Items Corp",
+  "contactname": "John Doe",
+  "phonenumber": 9876543210,
+  "companymail": "john@correctitems.com",
+  "gstnumber": "GST123456789",
+  "companyaddress": "123 Correct St, JSONB City",
+  "supplierid": 99,
+  "items": [
+    {
+      "id": 1,
+      "name": "Product A",
+      "quantity": 10
+    },
+    {
+      "id": 2,
+      "name": "Product B",
+      "quantity": 5
+    }
+  ],
+  "createdby": "testuser",
+  "modifiedby": "testuser",
+  "createddate": 1749454656493,
+  "modifieddate": 1749454656493
+}
+Filtering data for samplepurchaseorder (samplepurchaseorder): {
+  "companyname": "Basic Test Corp",
+  "contactname": "Basic Test User",
+  "phonenumber": 9876543210,
+  "companymail": "user@basictestcorp.com",
+  "gstnumber": "GST123456789",
+  "companyaddress": "123 Basic St, Test City",
+  "supplierid": 99,
+  "items": [
+    {
+      "id": 1,
+      "name": "Test Product",
+      "quantity": 10
+    }
+  ],
+  "createdby": "testuser",
+  "modifiedby": "testuser",
+  "createddate": 1749454696514,
+  "modifieddate": 1749454696514
+}
+Filtering data for samplepurchaseorder (samplepurchaseorder): {
+  "companyname": "Timestamp Fix Corp",
+  "contactname": "Test User",
+  "phonenumber": 9876543210,
+  "companymail": "user@timestampfix.com",
+  "gstnumber": "GST123456789",
+  "companyaddress": "123 Timestamp St, Test City",
+  "supplierid": 99,
+  "items": [
+    {
+      "id": 1,
+      "name": "Test Product",
+      "quantity": 10
+    }
+  ],
+  "createdby": "testuser",
+  "modifiedby": "testuser",
+  "createddate": 1749455162509,
+  "modifieddate": 1749455162509
+}
+Filtering data for samplepurchaseorder (samplepurchaseorder): {
+  "companyname": "Timestamp Fix Corp",
+  "contactname": "Test User",
+  "phonenumber": 9876543210,
+  "companymail": "user@timestampfix.com",
+  "gstnumber": "GST123456789",
+  "companyaddress": "123 Timestamp St, Test City",
+  "supplierid": 99,
+  "items": [
+    {
+      "id": 1,
+      "name": "Test Product",
+      "quantity": 10
+    }
+  ],
+  "createdby": "testuser",
+  "modifiedby": "testuser",
+  "createddate": 1749455175504,
+  "modifieddate": 1749455175504
+}
+Filtering data for samplepurchaseorder (samplepurchaseorder): {
+  "companyname": "Curl Test Corp",
+  "contactname": "Curl Test User",
+  "phonenumber": 9876543210,
+  "companymail": "user@curltest.com",
+  "gstnumber": "GST123456789",
+  "companyaddress": "123 Curl St, Test City",
+  "supplierid": 99,
+  "items": [
+    {
+      "id": 1,
+      "name": "Curl Product",
+      "quantity": 10
+    }
+  ],
+  "createdby": "testuser",
+  "modifiedby": "testuser",
+  "createddate": 1749455200209,
+  "modifieddate": 1749455200209
+}
+Filtering data for samplepurchaseorder (samplepurchaseorder): {
+  "companyname": "Curl Test Corp",
+  "contactname": "Curl Test User",
+  "phonenumber": 9876543210,
+  "companymail": "user@curltest.com",
+  "gstnumber": "GST123456789",
+  "companyaddress": "123 Curl St, Test City",
+  "supplierid": 99,
+  "items": [
+    {
+      "id": 1,
+      "name": "Curl Product",
+      "quantity": 10
+    }
+  ],
+  "createdby": "testuser",
+  "modifiedby": "testuser",
+  "createddate": 1749455258,
+  "modifieddate": 1749455258
+}
+Filtering data for samplepurchaseorder (samplepurchaseorder): {
+  "companyname": "Updated Corp Name",
+  "contactname": "Updated Contact Name",
+  "items": [
+    {
+      "id": 1,
+      "name": "Updated Product",
+      "quantity": 20
+    },
+    {
+      "id": 2,
+      "name": "New Product",
+      "quantity": 5
+    }
+  ],
+  "modifiedby": "updateuser",
+  "modifieddate": 1749455325397
+}
+Filtering data for samplepurchaseorder (samplepurchaseorder): {
+  "companyname": "Updated Corp Name",
+  "contactname": "Updated Contact Name",
+  "items": [
+    {
+      "id": 1,
+      "name": "Updated Product",
+      "quantity": 20
+    },
+    {
+      "id": 2,
+      "name": "New Product",
+      "quantity": 5
+    }
+  ],
+  "modifiedby": "updateuser",
+  "modifieddate": 1749455369271
+}
+Filtering data for samplepurchaseorder (samplepurchaseorder): {
+  "companyname": "Updated Corp Name",
+  "contactname": "Updated Contact Name",
+  "items": [
+    {
+      "id": 1,
+      "name": "Updated Product",
+      "quantity": 20
+    },
+    {
+      "id": 2,
+      "name": "New Product",
+      "quantity": 5
+    }
+  ],
+  "modifiedby": "updateuser",
+  "modifieddate": 1749455505
+}
+Filtering data for samplepurchaseorder (samplepurchaseorder): {
+  "companyname": "Curl Test Corp",
+  "contactname": "Curl Test User",
+  "phonenumber": 9876543210,
+  "companymail": "user@curltest.com",
+  "gstnumber": "GST123456789",
+  "companyaddress": "123 Curl St, Test City",
+  "supplierid": 99,
+  "items": [
+    {
+      "id": 1,
+      "name": "Curl Product",
+      "quantity": 10
+    }
+  ],
+  "createdby": "testuser",
+  "modifiedby": "testuser",
+  "createddate": 1749455618,
+  "modifieddate": 1749455618
+}
+Filtering data for samplepurchaseorder (samplepurchaseorder): {
+  "companyname": "Updated Corp Name",
+  "contactname": "Updated Contact Name",
+  "items": [
+    {
+      "id": 1,
+      "name": "Updated Product",
+      "quantity": 20
+    },
+    {
+      "id": 2,
+      "name": "New Product",
+      "quantity": 5
+    }
+  ],
+  "modifiedby": "updateuser",
+  "modifieddate": 1749455657
+}
+Filtering data for samplepurchaseorder (samplepurchaseorder): {
+  "companyname": "No Timestamp Corp",
+  "contactname": "No Timestamp User",
+  "phonenumber": 9876543210,
+  "companymail": "user@notimestamp.com",
+  "gstnumber": "GST123456789",
+  "companyaddress": "123 NoTimestamp St, Test City",
+  "supplierid": 99,
+  "items": [
+    {
+      "id": 1,
+      "name": "Timestamp-free Product",
+      "quantity": 10
+    }
+  ],
+  "createdby": "testuser",
+  "modifiedby": "testuser"
+}
+Filtering data for samplepurchaseorder (samplepurchaseorder): {
+  "companyname": "Updated Corp Name",
+  "contactname": "Updated Contact Name",
+  "items": [
+    {
+      "id": 1,
+      "name": "Updated Product",
+      "quantity": 20
+    },
+    {
+      "id": 2,
+      "name": "New Product",
+      "quantity": 5
+    }
+  ],
+  "modifiedby": "updateuser"
+}
+Filtering data for samplepurchaseorder (samplepurchaseorder): {
+  "companyname": "No Timestamp Corp",
+  "contactname": "No Timestamp User",
+  "phonenumber": 9876543210,
+  "companymail": "user@notimestamp.com",
+  "gstnumber": "GST123456789",
+  "companyaddress": "123 NoTimestamp St, Test City",
+  "supplierid": 99,
+  "items": [
+    {
+      "id": 1,
+      "name": "Timestamp-free Product",
+      "quantity": 10
+    }
+  ],
+  "createdby": "testuser",
+  "modifiedby": "testuser"
+}
+Filtering data for samplepurchaseorder (samplepurchaseorder): {
+  "companyname": "No Timestamp Corp",
+  "contactname": "No Timestamp User",
+  "phonenumber": 9876543210,
+  "companymail": "user@notimestamp.com",
+  "gstnumber": "GST123456789",
+  "companyaddress": "123 NoTimestamp St, Test City",
+  "supplierid": 99,
+  "items": [
+    {
+      "id": 1,
+      "name": "Timestamp-free Product",
+      "quantity": 10
+    }
+  ],
+  "createdby": "testuser",
+  "modifiedby": "testuser"
+}
+Filtering data for samplepurchaseorder (samplepurchaseorder): {
+  "companyname": "Minimal Update Corp",
+  "modifiedby": "updateuser"
+}
+Filtering data for samplepurchaseorder (samplepurchaseorder): {
+  "companyname": "Minimal Update Corp",
+  "modifiedby": "updateuser"
+}

@@ -1037,7 +1037,7 @@ export async function dynamicCreate(
     for (const [key, value] of Object.entries(filteredData)) {
       if (availableColumns.includes(key)) {
         // Handle JSON fields properly for PostgreSQL
-        if (key === 'paymentdata' && value !== null && value !== undefined) {
+        if ((key === 'paymentdata' || key === 'items') && value !== null && value !== undefined) {
           // For JSONB fields with explicit casting, stringify the JSON
           rawData[key] = typeof value === 'string' ? value : JSON.stringify(value);
         } else {
@@ -1066,7 +1066,7 @@ export async function dynamicCreate(
     
     // Build placeholders with special handling for JSON fields
     const placeholders = columns.map((col, index) => {
-      if (col === 'paymentdata') {
+      if (col === 'paymentdata' || col === 'items') {
         return `$${index + 1}::jsonb`;
       }
       return `$${index + 1}`;
@@ -1085,6 +1085,8 @@ export async function dynamicCreate(
       tableName, 
       columns, 
       query: insertQuery,
+      hasItems: !!rawData.items,
+      itemsDataType: rawData.items ? typeof rawData.items : 'undefined',
       hasPaymentData: !!rawData.paymentdata,
       paymentDataType: rawData.paymentdata ? typeof rawData.paymentdata : 'undefined'
     }, 'Executing dynamic create query');
@@ -1177,10 +1179,14 @@ export async function dynamicUpdate(
       for (const [key, value] of Object.entries(filteredData)) {
         if (availableColumns.includes(key)) {
           // Handle JSON fields properly for PostgreSQL
-          if (key === 'paymentdata' && value !== null && value !== undefined) {
+          if ((key === 'paymentdata' || key === 'items') && value !== null && value !== undefined) {
             // For JSONB fields with explicit casting, stringify the JSON
             rawData[key] = typeof value === 'string' ? value : JSON.stringify(value);
-            writeFileSync('debug_raw_sql_paymentdata.txt', `Converted paymentdata: ${rawData[key]}\n`, { flag: 'a' });
+            if (key === 'paymentdata') {
+              writeFileSync('debug_raw_sql_paymentdata.txt', `Converted paymentdata: ${rawData[key]}\n`, { flag: 'a' });
+            } else if (key === 'items') {
+              writeFileSync('debug_raw_sql_items.txt', `Converted items: ${rawData[key]}\n`, { flag: 'a' });
+            }
           } else {
             rawData[key] = value;
           }
@@ -1215,7 +1221,7 @@ export async function dynamicUpdate(
       // Build dynamic UPDATE query
       const setClause = Object.keys(rawData)
         .map((key, index) => {
-          if (key === 'paymentdata') {
+          if (key === 'paymentdata' || key === 'items') {
             return `"${key}" = $${index + 2}::jsonb`; // Cast to JSONB for JSON fields
           }
           return `"${key}" = $${index + 2}`;
@@ -2045,6 +2051,52 @@ export function formatAddressForAPI(address: any): any {
 }
 
 /**
+ * Formats a single sample purchase order object for API response
+ */
+export function formatSamplePurchaseOrderForAPI(samplePurchaseOrder: any): any {
+  if (!samplePurchaseOrder) return samplePurchaseOrder;
+  
+  const formatted = serializeForAPI(samplePurchaseOrder);
+  
+  // Format numeric fields
+  if (formatted.id !== undefined) {
+    formatted.id = formatIntegerField(formatted.id) || formatted.id;
+  }
+  if (formatted.supplierid !== undefined) {
+    formatted.supplierid = formatIntegerField(formatted.supplierid);
+  }
+  
+  // Handle phone number field
+  if (formatted.phonenumber !== undefined) {
+    formatted.phonenumber = formatIntegerField(formatted.phonenumber);
+  }
+  
+  // Handle timestamps
+  if (formatted.createddate !== undefined) {
+    formatted.createddate = formatIntegerField(formatted.createddate) || formatted.createddate;
+  }
+  if (formatted.modifieddate !== undefined) {
+    formatted.modifieddate = formatIntegerField(formatted.modifieddate) || formatted.modifieddate;
+  }
+  
+  // Ensure items is properly handled as JSON
+  if (formatted.items !== undefined) {
+    if (typeof formatted.items === 'string') {
+      try {
+        formatted.items = JSON.parse(formatted.items);
+      } catch (error) {
+        logger.warn({ 
+          error, 
+          originalItems: formatted.items 
+        }, 'Error parsing items JSON in formatSamplePurchaseOrderForAPI');
+      }
+    }
+  }
+  
+  return formatted;
+}
+
+/**
  * Universal formatter that detects entity type and applies appropriate formatting
  */
 export function formatEntityForAPI(entity: any, entityType?: string): any {
@@ -2075,6 +2127,8 @@ export function formatEntityForAPI(entity: any, entityType?: string): any {
         return formatPoinvoiceForAPI(entity);
       case 'address':
         return formatAddressForAPI(entity);
+      case 'samplepurchaseorder':
+        return formatSamplePurchaseOrderForAPI(entity);
       default:
         return serializeForAPI(entity);
     }

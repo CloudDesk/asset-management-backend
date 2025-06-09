@@ -1,0 +1,18 @@
+{
+  "companyname": "One Item Corp",
+  "contactname": "Single Item User",
+  "phonenumber": 9876543210,
+  "companymail": "user@oneitemcorp.com",
+  "gstnumber": "GST111222333",
+  "companyaddress": "111 Single Item St, Array City",
+  "supplierid": 99,
+  "items": [
+    {
+      "id": 1,
+      "name": "Single Product",
+      "quantity": 1
+    }
+  ],
+  "createdby": "testuser",
+  "modifiedby": "testuser"
+} 

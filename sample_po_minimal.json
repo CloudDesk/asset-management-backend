@@ -1,0 +1,11 @@
+{
+  "companyname": "Minimal Corp",
+  "contactname": "Minimal User",
+  "phonenumber": 9876543210,
+  "companymail": "user@minimalcorp.com",
+  "gstnumber": "GST987654321",
+  "companyaddress": "456 Minimal St, Simple City",
+  "supplierid": 99,
+  "createdby": "testuser",
+  "modifiedby": "testuser"
+} 

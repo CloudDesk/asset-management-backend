@@ -352,3 +352,96 @@ Filtered data: {
   "customdutytaxamount": 100,
   "modifieddate": 1748937171075
 }
+Filtered data: {
+  "companyname": "Updated Corp Name",
+  "contactname": "Updated Contact Name",
+  "items": [
+    {
+      "id": 1,
+      "name": "Updated Product",
+      "quantity": 20
+    },
+    {
+      "id": 2,
+      "name": "New Product",
+      "quantity": 5
+    }
+  ],
+  "modifiedby": "updateuser"
+}
+Filtered data: {
+  "companyname": "Updated Corp Name",
+  "contactname": "Updated Contact Name",
+  "items": [
+    {
+      "id": 1,
+      "name": "Updated Product",
+      "quantity": 20
+    },
+    {
+      "id": 2,
+      "name": "New Product",
+      "quantity": 5
+    }
+  ],
+  "modifiedby": "updateuser"
+}
+Filtered data: {
+  "companyname": "Updated Corp Name",
+  "contactname": "Updated Contact Name",
+  "items": [
+    {
+      "id": 1,
+      "name": "Updated Product",
+      "quantity": 20
+    },
+    {
+      "id": 2,
+      "name": "New Product",
+      "quantity": 5
+    }
+  ],
+  "modifiedby": "updateuser"
+}
+Filtered data: {
+  "companyname": "Updated Corp Name",
+  "contactname": "Updated Contact Name",
+  "items": [
+    {
+      "id": 1,
+      "name": "Updated Product",
+      "quantity": 20
+    },
+    {
+      "id": 2,
+      "name": "New Product",
+      "quantity": 5
+    }
+  ],
+  "modifiedby": "updateuser"
+}
+Filtered data: {
+  "companyname": "Updated Corp Name",
+  "contactname": "Updated Contact Name",
+  "items": [
+    {
+      "id": 1,
+      "name": "Updated Product",
+      "quantity": 20
+    },
+    {
+      "id": 2,
+      "name": "New Product",
+      "quantity": 5
+    }
+  ],
+  "modifiedby": "updateuser"
+}
+Filtered data: {
+  "companyname": "Minimal Update Corp",
+  "modifiedby": "updateuser"
+}
+Filtered data: {
+  "companyname": "Minimal Update Corp",
+  "modifiedby": "updateuser"
+}

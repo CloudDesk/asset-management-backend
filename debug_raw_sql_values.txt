@@ -166,3 +166,103 @@ Values: [
   100,
   1748937171
 ]
+Values: [
+  1,
+  "Updated Corp Name",
+  "Updated Contact Name",
+  [
+    {
+      "id": 1,
+      "name": "Updated Product",
+      "quantity": 20
+    },
+    {
+      "id": 2,
+      "name": "New Product",
+      "quantity": 5
+    }
+  ],
+  "updateuser"
+]
+Values: [
+  1,
+  "Updated Corp Name",
+  "Updated Contact Name",
+  [
+    {
+      "id": 1,
+      "name": "Updated Product",
+      "quantity": 20
+    },
+    {
+      "id": 2,
+      "name": "New Product",
+      "quantity": 5
+    }
+  ],
+  "updateuser"
+]
+Values: [
+  1,
+  "Updated Corp Name",
+  "Updated Contact Name",
+  [
+    {
+      "id": 1,
+      "name": "Updated Product",
+      "quantity": 20
+    },
+    {
+      "id": 2,
+      "name": "New Product",
+      "quantity": 5
+    }
+  ],
+  "updateuser"
+]
+Values: [
+  2,
+  "Updated Corp Name",
+  "Updated Contact Name",
+  [
+    {
+      "id": 1,
+      "name": "Updated Product",
+      "quantity": 20
+    },
+    {
+      "id": 2,
+      "name": "New Product",
+      "quantity": 5
+    }
+  ],
+  "updateuser"
+]
+Values: [
+  3,
+  "Updated Corp Name",
+  "Updated Contact Name",
+  [
+    {
+      "id": 1,
+      "name": "Updated Product",
+      "quantity": 20
+    },
+    {
+      "id": 2,
+      "name": "New Product",
+      "quantity": 5
+    }
+  ],
+  "updateuser"
+]
+Values: [
+  3,
+  "Minimal Update Corp",
+  "updateuser"
+]
+Values: [
+  3,
+  "Minimal Update Corp",
+  "updateuser"
+]

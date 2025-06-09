@@ -4,6 +4,10 @@ import { FilterOptions } from '../utils/filterBuilder.js';
 export declare class PoinvoiceService {
     /**
      * Helper method to extract payment amount from payment data
+     * For PUT operations, supports primarily direct array format:
+     * Direct array: [{paymentamount: 100}, {paymentamount: 200}]
+     * Also supports: Single payment object: {paymentamount: 300}
+     * Legacy support: Object with items array: {items: [{paymentamount: 100}, {paymentamount: 200}]}
      */
     private extractPaymentAmount;
     /**
