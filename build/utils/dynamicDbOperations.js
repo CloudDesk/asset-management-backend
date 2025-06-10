@@ -1817,6 +1817,47 @@ export function formatSamplePurchaseOrderForAPI(samplePurchaseOrder) {
     return formatted;
 }
 /**
+ * Formats a single sample purchase request object for API response
+ */
+export function formatSamplePurchaseRequestForAPI(samplePurchaseRequest) {
+    if (!samplePurchaseRequest)
+        return samplePurchaseRequest;
+    const formatted = serializeForAPI(samplePurchaseRequest);
+    // Format numeric fields
+    if (formatted.id !== undefined) {
+        formatted.id = formatIntegerField(formatted.id) || formatted.id;
+    }
+    if (formatted.supplierid !== undefined) {
+        formatted.supplierid = formatIntegerField(formatted.supplierid);
+    }
+    // Handle phone number field
+    if (formatted.phonenumber !== undefined) {
+        formatted.phonenumber = formatIntegerField(formatted.phonenumber);
+    }
+    // Handle timestamps
+    if (formatted.createddate !== undefined) {
+        formatted.createddate = formatIntegerField(formatted.createddate) || formatted.createddate;
+    }
+    if (formatted.modifieddate !== undefined) {
+        formatted.modifieddate = formatIntegerField(formatted.modifieddate) || formatted.modifieddate;
+    }
+    // Ensure items is properly handled as JSON
+    if (formatted.items !== undefined) {
+        if (typeof formatted.items === 'string') {
+            try {
+                formatted.items = JSON.parse(formatted.items);
+            }
+            catch (error) {
+                logger.warn({
+                    error,
+                    originalItems: formatted.items
+                }, 'Error parsing items JSON in formatSamplePurchaseRequestForAPI');
+            }
+        }
+    }
+    return formatted;
+}
+/**
  * Universal formatter that detects entity type and applies appropriate formatting
  */
 export function formatEntityForAPI(entity, entityType) {
@@ -1849,6 +1890,8 @@ export function formatEntityForAPI(entity, entityType) {
                 return formatAddressForAPI(entity);
             case 'samplepurchaseorder':
                 return formatSamplePurchaseOrderForAPI(entity);
+            case 'samplepurchaserequest':
+                return formatSamplePurchaseRequestForAPI(entity);
             default:
                 return serializeForAPI(entity);
         }

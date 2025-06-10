@@ -1,12 +1,12 @@
-# Sample Purchase Order API Documentation
+# Sample Purchase Request API Documentation
 
 ## Overview
 
-The Sample Purchase Order API provides a complete CRUD (Create, Read, Update, Delete) interface for managing sample purchase orders in the asset management system. This API follows the same architectural patterns and conventions as the existing purchase order and supplier routes.
+The Sample Purchase Request API provides a complete CRUD (Create, Read, Update, Delete) interface for managing sample purchase requests in the asset management system. This API follows the same architectural patterns and conventions as the existing purchase order and supplier routes.
 
 ## Table Schema
 
-**Table: samplepurchaseorder**
+**Table: samplepurchaserequest**
 
 | Column         | Type                   | Description                            |
 |----------------|------------------------|----------------------------------------|
@@ -29,16 +29,16 @@ The Sample Purchase Order API provides a complete CRUD (Create, Read, Update, De
 ### Base URL
 
 ```
-/v1/samplepurchaseorders
+/v1/samplepurchaserequests
 ```
 
 ### Authentication
 
 All endpoints require authentication using the existing authentication middleware.
 
-### Get All Sample Purchase Orders
+### Get All Sample Purchase Requests
 
-**Endpoint:** `GET /v1/samplepurchaseorders`
+**Endpoint:** `GET /v1/samplepurchaserequests`
 
 **Query Parameters:**
 - `page`: Page number (optional, default: 1)
@@ -88,18 +88,18 @@ All endpoints require authentication using the existing authentication middlewar
 }
 ```
 
-### Get Sample Purchase Order by ID
+### Get Sample Purchase Request by ID
 
-**Endpoint:** `GET /v1/samplepurchaseorders/:id`
+**Endpoint:** `GET /v1/samplepurchaserequests/:id`
 
 **Parameters:**
-- `id`: Sample purchase order ID (required)
+- `id`: Sample purchase request ID (required)
 
 **Response:**
 ```json
 {
   "success": true,
-  "message": "Sample purchase order retrieved successfully",
+  "message": "Sample purchase request retrieved successfully",
   "data": {
     "id": 1,
     "companyname": "Sample Company",
@@ -124,9 +124,9 @@ All endpoints require authentication using the existing authentication middlewar
 }
 ```
 
-### Create Sample Purchase Order
+### Create Sample Purchase Request
 
-**Endpoint:** `POST /v1/samplepurchaseorders`
+**Endpoint:** `POST /v1/samplepurchaserequests`
 
 **Request Body:**
 ```json
@@ -166,7 +166,7 @@ All endpoints require authentication using the existing authentication middlewar
 ```json
 {
   "success": true,
-  "message": "Sample purchase order created successfully",
+  "message": "Sample purchase request created successfully",
   "data": {
     "id": 2,
     "companyname": "New Sample Company",
@@ -191,18 +191,30 @@ All endpoints require authentication using the existing authentication middlewar
 }
 ```
 
-### Update Sample Purchase Order
+### Update Sample Purchase Request
 
-**Endpoint:** `PUT /v1/samplepurchaseorders/:id`
+**Endpoint:** `PUT /v1/samplepurchaserequests/:id`
 
 **Parameters:**
-- `id`: Sample purchase order ID (required)
+- `id`: Sample purchase request ID (required)
 
 **Request Body:**
 ```json
 {
-  "companyname": "Updated Company",
-  "contactname": "Updated Contact",
+  "companyname": "Updated Sample Company",
+  "contactname": "John Updated",
+  "phonenumber": 9876543211,
+  "companymail": "updated@example.com",
+  "gstnumber": "GST99999",
+  "companyaddress": "789 Updated Street",
+  "supplierid": 3,
+  "items": [
+    {
+      "id": 3,
+      "name": "Updated Item",
+      "quantity": 15
+    }
+  ],
   "modifiedby": "admin"
 }
 ```
@@ -211,49 +223,49 @@ All endpoints require authentication using the existing authentication middlewar
 ```json
 {
   "success": true,
-  "message": "Sample purchase order updated successfully",
+  "message": "Sample purchase request updated successfully",
   "data": {
-    "id": 2,
-    "companyname": "Updated Company",
-    "contactname": "Updated Contact",
-    "phonenumber": 9876543210,
-    "companymail": "new@example.com",
-    "gstnumber": "GST54321",
-    "companyaddress": "456 New Street",
-    "supplierid": 2,
+    "id": 1,
+    "companyname": "Updated Sample Company",
+    "contactname": "John Updated",
+    "phonenumber": 9876543211,
+    "companymail": "updated@example.com",
+    "gstnumber": "GST99999",
+    "companyaddress": "789 Updated Street",
+    "supplierid": 3,
     "items": [
       {
-        "id": 2,
-        "name": "New Item",
-        "quantity": 10
+        "id": 3,
+        "name": "Updated Item",
+        "quantity": 15
       }
     ],
     "createddate": 1623456789,
-    "modifieddate": 1623456790,
+    "modifieddate": 1623456890,
     "createdby": "admin",
     "modifiedby": "admin"
   }
 }
 ```
 
-### Delete Sample Purchase Order
+### Delete Sample Purchase Request
 
-**Endpoint:** `DELETE /v1/samplepurchaseorders/:id`
+**Endpoint:** `DELETE /v1/samplepurchaserequests/:id`
 
 **Parameters:**
-- `id`: Sample purchase order ID (required)
+- `id`: Sample purchase request ID (required)
 
 **Response:**
 ```json
 {
   "success": true,
-  "message": "Sample purchase order deleted successfully"
+  "message": "Sample purchase request deleted successfully"
 }
 ```
 
-### Get Sample Purchase Orders by Supplier
+### Get Sample Purchase Requests by Supplier
 
-**Endpoint:** `GET /v1/samplepurchaseorders/supplier/:supplierId`
+**Endpoint:** `GET /v1/samplepurchaserequests/supplier/:supplierId`
 
 **Parameters:**
 - `supplierId`: Supplier ID (required)
@@ -266,6 +278,7 @@ All endpoints require authentication using the existing authentication middlewar
 ```json
 {
   "success": true,
+  "message": "Sample purchase requests by supplier retrieved successfully",
   "data": {
     "supplierId": "1",
     "data": [
@@ -303,32 +316,14 @@ All endpoints require authentication using the existing authentication middlewar
 }
 ```
 
-## Testing
-
-A test script is provided to validate all CRUD operations. Run the script using Node.js:
-
-```bash
-node test_samplepurchaseorder.js
-```
-
-The test script performs the following operations:
-1. Create a new sample purchase order
-2. Retrieve all sample purchase orders
-3. Retrieve a specific sample purchase order by ID
-4. Update the sample purchase order
-5. Get sample purchase orders filtered by supplier
-6. Delete the sample purchase order
-
 ## Error Responses
-
-The API follows the standard error response format:
 
 ### 400 Bad Request
 ```json
 {
   "success": false,
-  "message": "Invalid ID format. ID must be an integer.",
-  "details": "The provided ID 'abc' is not a valid integer format.",
+  "message": "Validation error",
+  "details": "Invalid input data",
   "statusCode": 400
 }
 ```
@@ -337,7 +332,7 @@ The API follows the standard error response format:
 ```json
 {
   "success": false,
-  "message": "Sample purchase order with ID 999 not found",
+  "message": "Sample purchase request with ID 123 not found",
   "details": "The requested resource could not be found",
   "statusCode": 404
 }
@@ -348,18 +343,49 @@ The API follows the standard error response format:
 {
   "success": false,
   "message": "Internal server error",
-  "details": "Something went wrong on the server",
+  "details": "Error details",
   "statusCode": 500
 }
 ```
 
-## Implementation Notes
+## Testing
 
-The Sample Purchase Order API follows the same architectural patterns as other APIs in the system:
+To test the API endpoints, you can use the provided test script:
 
-1. Uses the MVC pattern with separate controller, service, and route layers
-2. Leverages dynamic database operations for flexible schema handling
-3. Applies proper validation using Zod schemas
-4. Follows consistent error handling patterns
-5. Implements pagination and filtering
-6. Provides appropriate documentation and testing tools 
+```bash
+node test_samplepurchaserequest.js
+```
+
+The test script includes comprehensive tests for:
+- Creating sample purchase requests
+- Retrieving all sample purchase requests with pagination and filtering
+- Getting sample purchase requests by ID
+- Updating sample purchase requests
+- Deleting sample purchase requests
+- Getting sample purchase requests by supplier
+- Error handling for invalid data and non-existent records
+
+## Features
+
+- **Dynamic Filtering**: Filter by any column in the database
+- **Pagination**: Built-in pagination support
+- **Validation**: Comprehensive input validation using Zod schemas
+- **Error Handling**: Consistent error responses
+- **Authentication**: Integrated with existing authentication middleware
+- **Logging**: Comprehensive logging for debugging and monitoring
+- **Type Safety**: Full TypeScript support with proper type definitions
+
+## Database Integration
+
+The API uses dynamic database operations that automatically adapt to the database schema. This means:
+- New columns added to the table are automatically supported
+- Filtering works on any existing column
+- The API is resilient to schema changes
+- All database operations are logged for debugging
+
+## Performance Considerations
+
+- Uses efficient database queries with proper indexing
+- Implements pagination to handle large datasets
+- Includes query optimization for filtering operations
+- Supports bulk operations where appropriate 

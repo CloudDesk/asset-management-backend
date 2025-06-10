@@ -118,6 +118,10 @@ export declare function formatAddressForAPI(address: any): any;
  */
 export declare function formatSamplePurchaseOrderForAPI(samplePurchaseOrder: any): any;
 /**
+ * Formats a single sample purchase request object for API response
+ */
+export declare function formatSamplePurchaseRequestForAPI(samplePurchaseRequest: any): any;
+/**
  * Universal formatter that detects entity type and applies appropriate formatting
  */
 export declare function formatEntityForAPI(entity: any, entityType?: string): any;

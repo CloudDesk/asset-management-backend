@@ -1,15 +1,15 @@
 import { FastifyInstance } from 'fastify';
-import { SamplePurchaseOrderController } from '../controllers/samplepurchaseorder.controller.js';
-import { formatSamplePurchaseOrderForAPI } from '../utils/dynamicDbOperations.js';
+import { SamplePurchaseRequestController } from '../controllers/samplepurchaserequest.controller.js';
+import { formatSamplePurchaseRequestForAPI } from '../utils/dynamicDbOperations.js';
 
-export async function samplePurchaseOrderRoutes(fastify: FastifyInstance) {
-  const samplePurchaseOrderController = new SamplePurchaseOrderController();
+export async function samplePurchaseRequestRoutes(fastify: FastifyInstance) {
+  const samplePurchaseRequestController = new SamplePurchaseRequestController();
   
-  // GET /v1/samplepurchaseorders - Get all sample purchase orders with pagination and filtering
+  // GET /v1/samplepurchaserequests - Get all sample purchase requests with pagination and filtering
   fastify.get('/', {
     schema: {
-      description: 'Get all sample purchase orders with pagination and filtering',
-      tags: ['Sample Purchase Orders'],
+      description: 'Get all sample purchase requests with pagination and filtering',
+      tags: ['Sample Purchase Requests'],
       querystring: {
         type: 'object',
         properties: {
@@ -39,7 +39,7 @@ export async function samplePurchaseOrderRoutes(fastify: FastifyInstance) {
               items: {
                 type: 'object',
                 properties: {
-                  id: { type: 'number', description: 'Sample purchase order ID' },
+                  id: { type: 'number', description: 'Sample purchase request ID' },
                   companyname: { type: 'string', description: 'Company name' },
                   contactname: { type: 'string', description: 'Contact name' },
                   phonenumber: { type: 'number', description: 'Phone number' },
@@ -103,17 +103,17 @@ export async function samplePurchaseOrderRoutes(fastify: FastifyInstance) {
         },
       },
     },
-  }, samplePurchaseOrderController.getSamplePurchaseOrders.bind(samplePurchaseOrderController));
+  }, samplePurchaseRequestController.getSamplePurchaseRequests.bind(samplePurchaseRequestController));
 
-  // GET /v1/samplepurchaseorders/:id - Get sample purchase order by ID
+  // GET /v1/samplepurchaserequests/:id - Get sample purchase request by ID
   fastify.get('/:id', {
     schema: {
-      description: 'Get sample purchase order by ID',
-      tags: ['Sample Purchase Orders'],
+      description: 'Get sample purchase request by ID',
+      tags: ['Sample Purchase Requests'],
       params: {
         type: 'object',
         properties: {
-          id: { type: 'string', description: 'Sample purchase order ID' },
+          id: { type: 'string', description: 'Sample purchase request ID' },
         },
         required: ['id'],
       },
@@ -124,7 +124,7 @@ export async function samplePurchaseOrderRoutes(fastify: FastifyInstance) {
             success: { type: 'boolean' },
             data: { 
               type: 'object',
-              additionalProperties: true // Allow any fields in sample purchase order object
+              additionalProperties: true // Allow any fields in sample purchase request object
             },
             message: { type: 'string' },
           },
@@ -174,21 +174,21 @@ export async function samplePurchaseOrderRoutes(fastify: FastifyInstance) {
       }
       
       // Call the service method directly
-      const samplePurchaseOrder = await samplePurchaseOrderController.samplePurchaseOrderService.findById(id);
+      const samplePurchaseRequest = await samplePurchaseRequestController.samplePurchaseRequestService.findById(id);
       
       const response = {
         success: true,
-        message: 'Sample purchase order retrieved successfully',
-        data: formatSamplePurchaseOrderForAPI(samplePurchaseOrder)
+        message: 'Sample purchase request retrieved successfully',
+        data: formatSamplePurchaseRequestForAPI(samplePurchaseRequest)
       };
       return reply.code(200).send(response);
     } catch (error: any) {
-      console.log('=== SAMPLE PURCHASE ORDER GET ERROR:', error.message);
+      console.log('=== SAMPLE PURCHASE REQUEST GET ERROR:', error.message);
       
       if (error.message.includes('not found')) {
         const errorResponse = {
           success: false,
-          message: `Sample purchase order with ID ${request.params.id} not found`,
+          message: `Sample purchase request with ID ${request.params.id} not found`,
           details: 'The requested resource could not be found',
           statusCode: 404
         };
@@ -199,84 +199,47 @@ export async function samplePurchaseOrderRoutes(fastify: FastifyInstance) {
       const errorResponse = {
         success: false,
         message: 'Internal server error',
-        details: 'Something went wrong on the server',
+        details: error.message,
         statusCode: 500
       };
       return reply.code(500).send(errorResponse);
     }
   });
 
-  // POST /v1/samplepurchaseorders - Create new sample purchase order
+  // POST /v1/samplepurchaserequests - Create new sample purchase request
   fastify.post('/', {
     schema: {
-      description: 'Create a new sample purchase order',
-      tags: ['Sample Purchase Orders'],
+      description: 'Create a new sample purchase request',
+      tags: ['Sample Purchase Requests'],
       body: {
         type: 'object',
         properties: {
-          companyname: { 
-            type: 'string', 
-            description: 'Company name'
-          },
-          contactname: { 
-            type: 'string', 
-            description: 'Contact person name'
-          },
-          phonenumber: { 
-            type: 'number', 
-            description: 'Phone number'
-          },
-          companymail: { 
-            type: 'string', 
-            format: 'email',
-            description: 'Company email'
-          },
-          gstnumber: { 
-            type: 'string', 
-            description: 'GST number'
-          },
-          companyaddress: { 
-            type: 'string', 
-            description: 'Company address'
-          },
-          supplierid: { 
-            type: 'number', 
-            description: 'Supplier ID (must exist in supplier table)'
-          },
-          items: {
+          companyname: { type: 'string', description: 'Company name' },
+          contactname: { type: 'string', description: 'Contact name' },
+          phonenumber: { type: 'number', description: 'Phone number' },
+          companymail: { type: 'string', format: 'email', description: 'Company email' },
+          gstnumber: { type: 'string', description: 'GST number' },
+          companyaddress: { type: 'string', description: 'Company address' },
+          supplierid: { type: 'number', description: 'Supplier ID' },
+          items: { 
             type: 'array',
-            description: 'Items in the sample purchase order',
             items: {
               type: 'object',
               properties: {
                 id: { type: 'number', description: 'Item ID' },
                 name: { type: 'string', description: 'Item name' },
-                quantity: { type: 'number', description: 'Quantity ordered' }
+                quantity: { type: 'number', description: 'Item quantity' }
               },
               required: ['id', 'name', 'quantity']
-            }
+            },
+            minItems: 1
           },
-          createdby: { 
-            type: 'string',
-            description: 'Username of the person who created the purchase order'
-          },
-          modifiedby: { 
-            type: 'string',
-            description: 'Username of the person who last modified the purchase order'
-          }
+          createdby: { type: 'string', description: 'Created by' },
+          modifiedby: { type: 'string', description: 'Modified by' },
+          createddate: { type: 'number', description: 'Creation timestamp' },
+          modifieddate: { type: 'number', description: 'Modification timestamp' }
         },
-        required: [
-          'companyname', 
-          'contactname', 
-          'phonenumber', 
-          'companymail', 
-          'gstnumber', 
-          'companyaddress', 
-          'supplierid', 
-          'items',
-          'createdby',
-          'modifiedby'
-        ],
+        required: ['companyname', 'contactname', 'phonenumber', 'companymail', 'gstnumber', 'companyaddress', 'supplierid', 'items', 'createdby', 'modifiedby'],
         additionalProperties: true
       },
       response: {
@@ -286,7 +249,7 @@ export async function samplePurchaseOrderRoutes(fastify: FastifyInstance) {
             success: { type: 'boolean' },
             data: { 
               type: 'object',
-              additionalProperties: true // Allow any fields in sample purchase order object
+              additionalProperties: true
             },
             message: { type: 'string' },
           },
@@ -311,71 +274,49 @@ export async function samplePurchaseOrderRoutes(fastify: FastifyInstance) {
         },
       },
     },
-  }, samplePurchaseOrderController.createSamplePurchaseOrder.bind(samplePurchaseOrderController));
+  }, samplePurchaseRequestController.createSamplePurchaseRequest.bind(samplePurchaseRequestController));
 
-  // PUT /v1/samplepurchaseorders/:id - Update sample purchase order
+  // PUT /v1/samplepurchaserequests/:id - Update sample purchase request
   fastify.put('/:id', {
     schema: {
-      description: 'Update sample purchase order by ID',
-      tags: ['Sample Purchase Orders'],
+      description: 'Update sample purchase request by ID',
+      tags: ['Sample Purchase Requests'],
       params: {
         type: 'object',
         properties: {
-          id: { type: 'string', description: 'Sample purchase order ID' },
+          id: { type: 'string', description: 'Sample purchase request ID' },
         },
         required: ['id'],
       },
       body: {
         type: 'object',
         properties: {
-          companyname: { 
-            type: 'string', 
-            description: 'Company name'
-          },
-          contactname: { 
-            type: 'string', 
-            description: 'Contact person name'
-          },
-          phonenumber: { 
-            type: 'number', 
-            description: 'Phone number'
-          },
-          companymail: { 
-            type: 'string', 
-            format: 'email',
-            description: 'Company email'
-          },
-          gstnumber: { 
-            type: 'string', 
-            description: 'GST number'
-          },
-          companyaddress: { 
-            type: 'string', 
-            description: 'Company address'
-          },
-          supplierid: { 
-            type: 'number', 
-            description: 'Supplier ID (must exist in supplier table)'
-          },
-          items: {
+          companyname: { type: 'string', description: 'Company name' },
+          contactname: { type: 'string', description: 'Contact name' },
+          phonenumber: { type: 'number', description: 'Phone number' },
+          companymail: { type: 'string', format: 'email', description: 'Company email' },
+          gstnumber: { type: 'string', description: 'GST number' },
+          companyaddress: { type: 'string', description: 'Company address' },
+          supplierid: { type: 'number', description: 'Supplier ID' },
+          items: { 
             type: 'array',
-            description: 'Items in the sample purchase order',
             items: {
               type: 'object',
               properties: {
                 id: { type: 'number', description: 'Item ID' },
                 name: { type: 'string', description: 'Item name' },
-                quantity: { type: 'number', description: 'Quantity ordered' }
+                quantity: { type: 'number', description: 'Item quantity' }
               },
               required: ['id', 'name', 'quantity']
-            }
+            },
+            minItems: 1
           },
-          modifiedby: { 
-            type: 'string',
-            description: 'Username of the person who last modified the purchase order'
-          }
+          createdby: { type: 'string', description: 'Created by' },
+          modifiedby: { type: 'string', description: 'Modified by' },
+          createddate: { type: 'number', description: 'Creation timestamp' },
+          modifieddate: { type: 'number', description: 'Modification timestamp' }
         },
-        additionalProperties: true, // Allow any fields for dynamic updates
+        additionalProperties: true
       },
       response: {
         200: {
@@ -384,7 +325,7 @@ export async function samplePurchaseOrderRoutes(fastify: FastifyInstance) {
             success: { type: 'boolean' },
             data: { 
               type: 'object',
-              additionalProperties: true // Allow any fields in sample purchase order object
+              additionalProperties: true
             },
             message: { type: 'string' },
           },
@@ -418,73 +359,17 @@ export async function samplePurchaseOrderRoutes(fastify: FastifyInstance) {
         },
       },
     },
-  }, async (request: any, reply: any) => {
-    try {
-      const { id } = request.params;
-      
-      // Validate ID format
-      if (!/^\d+$/.test(id)) {
-        const errorResponse = {
-          success: false,
-          message: 'Invalid ID format. ID must be an integer.',
-          details: `The provided ID '${id}' is not a valid integer format.`,
-          statusCode: 400
-        };
-        return reply.code(400).send(errorResponse);
-      }
-      
-      // Update the sample purchase order
-      const samplePurchaseOrder = await samplePurchaseOrderController.samplePurchaseOrderService.update(id, request.body);
-      
-      const response = {
-        success: true,
-        message: 'Sample purchase order updated successfully',
-        data: samplePurchaseOrder
-      };
-      return reply.code(200).send(response);
-    } catch (error: any) {
-      console.log('=== SAMPLE PURCHASE ORDER PUT ERROR:', error.message);
-      
-      if (error.message.includes('not found')) {
-        const errorResponse = {
-          success: false,
-          message: `Sample purchase order with ID ${request.params.id} not found`,
-          details: 'The requested resource could not be found',
-          statusCode: 404
-        };
-        return reply.code(404).send(errorResponse);
-      }
-      
-      if (error.message.includes('already exists')) {
-        const errorResponse = {
-          success: false,
-          message: error.message,
-          details: 'Duplicate entry detected',
-          statusCode: 400
-        };
-        return reply.code(400).send(errorResponse);
-      }
-      
-      // Default error response
-      const errorResponse = {
-        success: false,
-        message: 'Internal server error',
-        details: 'Something went wrong on the server',
-        statusCode: 500
-      };
-      return reply.code(500).send(errorResponse);
-    }
-  });
+  }, samplePurchaseRequestController.updateSamplePurchaseRequest.bind(samplePurchaseRequestController));
 
-  // DELETE /v1/samplepurchaseorders/:id - Delete sample purchase order
+  // DELETE /v1/samplepurchaserequests/:id - Delete sample purchase request
   fastify.delete('/:id', {
     schema: {
-      description: 'Delete sample purchase order by ID',
-      tags: ['Sample Purchase Orders'],
+      description: 'Delete sample purchase request by ID',
+      tags: ['Sample Purchase Requests'],
       params: {
         type: 'object',
         properties: {
-          id: { type: 'string', description: 'Sample purchase order ID' },
+          id: { type: 'string', description: 'Sample purchase request ID' },
         },
         required: ['id'],
       },
@@ -525,58 +410,83 @@ export async function samplePurchaseOrderRoutes(fastify: FastifyInstance) {
         },
       },
     },
-  }, async (request: any, reply: any) => {
-    try {
-      const { id } = request.params;
-      
-      // Validate ID format
-      if (!/^\d+$/.test(id)) {
-        const errorResponse = {
-          success: false,
-          message: 'Invalid ID format. ID must be an integer.',
-          details: `The provided ID '${id}' is not a valid integer format.`,
-          statusCode: 400
-        };
-        return reply.code(400).send(errorResponse);
-      }
-      
-      // Delete the sample purchase order
-      await samplePurchaseOrderController.samplePurchaseOrderService.delete(id);
-      
-      const response = {
-        success: true,
-        message: 'Sample purchase order deleted successfully'
-      };
-      return reply.code(200).send(response);
-    } catch (error: any) {
-      console.log('=== SAMPLE PURCHASE ORDER DELETE ERROR:', error.message);
-      
-      if (error.message.includes('not found')) {
-        const errorResponse = {
-          success: false,
-          message: `Sample purchase order with ID ${request.params.id} not found`,
-          details: 'The requested resource could not be found',
-          statusCode: 404
-        };
-        return reply.code(404).send(errorResponse);
-      }
-      
-      // Default error response
-      const errorResponse = {
-        success: false,
-        message: 'Internal server error',
-        details: 'Something went wrong on the server',
-        statusCode: 500
-      };
-      return reply.code(500).send(errorResponse);
-    }
-  });
+  }, samplePurchaseRequestController.deleteSamplePurchaseRequest.bind(samplePurchaseRequestController));
 
-  // GET /v1/samplepurchaseorders/supplier/:supplierId - Get sample purchase orders by supplier
+  // POST /v1/samplepurchaserequests/upsert - Upsert sample purchase request
+  fastify.post('/upsert', {
+    schema: {
+      description: 'Create or update sample purchase request (upsert)',
+      tags: ['Sample Purchase Requests'],
+      body: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'Sample purchase request ID (optional for create)' },
+          companyname: { type: 'string', description: 'Company name' },
+          contactname: { type: 'string', description: 'Contact name' },
+          phonenumber: { type: 'number', description: 'Phone number' },
+          companymail: { type: 'string', format: 'email', description: 'Company email' },
+          gstnumber: { type: 'string', description: 'GST number' },
+          companyaddress: { type: 'string', description: 'Company address' },
+          supplierid: { type: 'number', description: 'Supplier ID' },
+          items: { 
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'number', description: 'Item ID' },
+                name: { type: 'string', description: 'Item name' },
+                quantity: { type: 'number', description: 'Item quantity' }
+              },
+              required: ['id', 'name', 'quantity']
+            },
+            minItems: 1
+          },
+          createdby: { type: 'string', description: 'Created by' },
+          modifiedby: { type: 'string', description: 'Modified by' },
+          createddate: { type: 'number', description: 'Creation timestamp' },
+          modifieddate: { type: 'number', description: 'Modification timestamp' }
+        },
+        additionalProperties: true
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            data: { 
+              type: 'object',
+              additionalProperties: true
+            },
+            message: { type: 'string' },
+          },
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+      },
+    },
+  }, samplePurchaseRequestController.upsertSamplePurchaseRequest.bind(samplePurchaseRequestController));
+
+  // GET /v1/samplepurchaserequests/supplier/:supplierId - Get sample purchase requests by supplier
   fastify.get('/supplier/:supplierId', {
     schema: {
-      description: 'Get sample purchase orders by supplier ID',
-      tags: ['Sample Purchase Orders'],
+      description: 'Get sample purchase requests by supplier ID',
+      tags: ['Sample Purchase Requests'],
       params: {
         type: 'object',
         properties: {
@@ -598,23 +508,30 @@ export async function samplePurchaseOrderRoutes(fastify: FastifyInstance) {
           properties: {
             success: { type: 'boolean' },
             data: { 
-              type: 'array',
-              items: {
-                type: 'object',
-                additionalProperties: true // Allow any fields in sample purchase order objects
-              }
-            },
-            pagination: {
               type: 'object',
               properties: {
-                page: { type: 'number' },
-                limit: { type: 'number' },
-                total: { type: 'number' },
-                totalPages: { type: 'number' },
-                hasNext: { type: 'boolean' },
-                hasPrev: { type: 'boolean' },
-              },
+                supplierId: { type: 'string' },
+                data: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    additionalProperties: true
+                  }
+                },
+                pagination: {
+                  type: 'object',
+                  properties: {
+                    page: { type: 'number' },
+                    limit: { type: 'number' },
+                    total: { type: 'number' },
+                    totalPages: { type: 'number' },
+                    hasNext: { type: 'boolean' },
+                    hasPrev: { type: 'boolean' },
+                  },
+                },
+              }
             },
+            message: { type: 'string' },
           },
         },
         400: {
@@ -637,5 +554,5 @@ export async function samplePurchaseOrderRoutes(fastify: FastifyInstance) {
         },
       },
     },
-  }, samplePurchaseOrderController.getSamplePurchaseOrdersBySupplier.bind(samplePurchaseOrderController));
+  }, samplePurchaseRequestController.getSamplePurchaseRequestsBySupplier.bind(samplePurchaseRequestController));
 } 

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-// Validation schema for creating a sample purchase order
-export const createSamplePurchaseOrderSchema = z.object({
+// Validation schema for creating a sample purchase request
+export const createSamplePurchaseRequestSchema = z.object({
   companyname: z.string().min(1).max(255),
   contactname: z.string().min(1).max(255),
   phonenumber: z.number().int().positive(),
@@ -22,8 +22,8 @@ export const createSamplePurchaseOrderSchema = z.object({
   modifieddate: z.number().optional()
 }).passthrough();
 
-// Validation schema for updating a sample purchase order
-export const updateSamplePurchaseOrderSchema = z.object({
+// Validation schema for updating a sample purchase request
+export const updateSamplePurchaseRequestSchema = z.object({
   companyname: z.string().min(1).max(255).optional(),
   contactname: z.string().min(1).max(255).optional(),
   phonenumber: z.number().int().positive().optional(),
@@ -45,7 +45,7 @@ export const updateSamplePurchaseOrderSchema = z.object({
 }).passthrough();
 
 // Schema for upserting (create or update)
-export const upsertSamplePurchaseOrderSchema = z.object({
+export const upsertSamplePurchaseRequestSchema = z.object({
   id: z.string().optional(),
   companyname: z.string().min(1).max(255).optional(),
   contactname: z.string().min(1).max(255).optional(),
@@ -68,12 +68,12 @@ export const upsertSamplePurchaseOrderSchema = z.object({
 }).passthrough();
 
 // Schema for URL params with ID
-export const samplePurchaseOrderParamsSchema = z.object({
+export const samplePurchaseRequestParamsSchema = z.object({
   id: z.string()
 });
 
 // Schema for query parameters
-export const samplePurchaseOrderQuerySchema = z.object({
+export const samplePurchaseRequestQuerySchema = z.object({
   // Pagination
   page: z.string().optional(),
   limit: z.string().optional(),
@@ -94,8 +94,8 @@ export const samplePurchaseOrderQuerySchema = z.object({
 });
 
 // Export types for use in controllers and services
-export type CreateSamplePurchaseOrderInput = z.infer<typeof createSamplePurchaseOrderSchema>;
-export type UpdateSamplePurchaseOrderInput = z.infer<typeof updateSamplePurchaseOrderSchema>;
-export type UpsertSamplePurchaseOrderInput = z.infer<typeof upsertSamplePurchaseOrderSchema>;
-export type SamplePurchaseOrderParams = z.infer<typeof samplePurchaseOrderParamsSchema>;
-export type SamplePurchaseOrderQuery = z.infer<typeof samplePurchaseOrderQuerySchema>; 
+export type CreateSamplePurchaseRequestInput = z.infer<typeof createSamplePurchaseRequestSchema>;
+export type UpdateSamplePurchaseRequestInput = z.infer<typeof updateSamplePurchaseRequestSchema>;
+export type UpsertSamplePurchaseRequestInput = z.infer<typeof upsertSamplePurchaseRequestSchema>;
+export type SamplePurchaseRequestParams = z.infer<typeof samplePurchaseRequestParamsSchema>;
+export type SamplePurchaseRequestQuery = z.infer<typeof samplePurchaseRequestQuerySchema>; 
