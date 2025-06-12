@@ -1613,18 +1613,35 @@ export function formatProductForAPI(product: any): any {
   
   const formatted = serializeForAPI(product);
   
-  // Format numeric fields
+  // Format all BigInt and numeric fields from the Product schema
   if (formatted.id !== undefined) {
     formatted.id = formatIntegerField(formatted.id) || formatted.id;
   }
-  if (formatted.price !== undefined) {
-    formatted.price = formatNumericField(formatted.price);
+  if (formatted.supplierid !== undefined) {
+    formatted.supplierid = formatIntegerField(formatted.supplierid);
+  }
+  if (formatted.soldquantity !== undefined) {
+    formatted.soldquantity = formatIntegerField(formatted.soldquantity);
+  }
+  if (formatted.availablequantity !== undefined) {
+    formatted.availablequantity = formatIntegerField(formatted.availablequantity);
+  }
+  if (formatted.discount !== undefined) {
+    formatted.discount = formatIntegerField(formatted.discount);
+  }
+  if (formatted.orderedquantity !== undefined) {
+    formatted.orderedquantity = formatIntegerField(formatted.orderedquantity);
   }
   if (formatted.createddate !== undefined) {
     formatted.createddate = formatIntegerField(formatted.createddate) || formatted.createddate;
   }
   if (formatted.modifieddate !== undefined) {
     formatted.modifieddate = formatIntegerField(formatted.modifieddate) || formatted.modifieddate;
+  }
+  
+  // Handle Decimal fields
+  if (formatted.averagerating !== undefined) {
+    formatted.averagerating = formatNumericField(formatted.averagerating);
   }
   
   return formatted;

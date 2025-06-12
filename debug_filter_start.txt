@@ -833,3 +833,46 @@ Filtering data for samplepurchaseorder (samplepurchaseorder): {
   "companyname": "Minimal Update Corp",
   "modifiedby": "updateuser"
 }
+Filtering data for product (product): {
+  "name": "Test API Product",
+  "shortdescription": "Test product for API validation",
+  "organiccertified": true,
+  "discount": 10
+}
+Filtering data for product (product): {
+  "name": "Updated Test API Product",
+  "shortdescription": "Updated test product for API validation",
+  "discount": 15,
+  "volume": "1000ml"
+}
+Filtering data for product (product): {
+  "name": "Updated Test API Product",
+  "shortdescription": "Updated test product for API validation",
+  "discount": 15,
+  "volume": "1000ml"
+}
+Filtering data for product (product): {
+  "name": "Updated Test API Product",
+  "shortdescription": "Updated test product for API validation",
+  "discount": 15,
+  "volume": "1000ml"
+}
+Filtering data for product (product): {
+  "invalidfield": "test",
+  "anotherbadfield": 123
+}
+Filtering data for product (product): {
+  "name": "Final Test Product",
+  "shortdescription": "Product for final validation",
+  "organiccertified": true,
+  "discount": 20,
+  "volume": "750ml",
+  "origincountry": "France"
+}
+Filtering data for product (product): {
+  "name": "Updated Final Test Product",
+  "shortdescription": "Updated product description",
+  "discount": 25,
+  "averagerating": 4.5,
+  "productstatus": "Active"
+}

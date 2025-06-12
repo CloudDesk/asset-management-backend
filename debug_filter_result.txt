@@ -825,3 +825,43 @@ Filtered data result: {
   "companyname": "Minimal Update Corp",
   "modifiedby": "updateuser"
 }
+Filtered data result: {
+  "name": "Test API Product",
+  "shortdescription": "Test product for API validation",
+  "organiccertified": true,
+  "discount": 10
+}
+Filtered data result: {
+  "name": "Updated Test API Product",
+  "shortdescription": "Updated test product for API validation",
+  "discount": 15,
+  "volume": "1000ml"
+}
+Filtered data result: {
+  "name": "Updated Test API Product",
+  "shortdescription": "Updated test product for API validation",
+  "discount": 15,
+  "volume": "1000ml"
+}
+Filtered data result: {
+  "name": "Updated Test API Product",
+  "shortdescription": "Updated test product for API validation",
+  "discount": 15,
+  "volume": "1000ml"
+}
+Filtered data result: {}
+Filtered data result: {
+  "name": "Final Test Product",
+  "shortdescription": "Product for final validation",
+  "organiccertified": true,
+  "discount": 20,
+  "volume": "750ml",
+  "origincountry": "France"
+}
+Filtered data result: {
+  "name": "Updated Final Test Product",
+  "shortdescription": "Updated product description",
+  "discount": 25,
+  "averagerating": 4.5,
+  "productstatus": "Active"
+}

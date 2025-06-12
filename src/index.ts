@@ -1,6 +1,11 @@
 import { buildServer } from './server.js';
 import { env } from './config/env.js';
 
+// Global BigInt serialization fix
+(BigInt.prototype as any).toJSON = function() {
+  return Number(this);
+};
+
 async function start() {
   try {
     const fastify = await buildServer();
