@@ -55,6 +55,9 @@ model Product {
   artist_name       String?
   // Status field
   isactive          Boolean?
+  // Category fields (2 new fields)
+  category          String?   @db.VarChar(255)
+  subcategory       String?   @db.VarChar(255)
   // Size-related fields (3 new fields)
   large             String[]
   medium            String[]

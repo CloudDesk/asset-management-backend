@@ -2728,3 +2728,265 @@ Filtering data for product (product): {
 Filtering data for product (product): {
   "ingredients": "Updated ingredients list"
 }
+Filtering data for product (product): {
+  "name": "Test Product with Images",
+  "shortdescription": "A test product for file upload",
+  "fragnancetype": "Floral",
+  "volume": "100ml",
+  "origincountry": "France",
+  "organiccertified": true,
+  "large": [
+    "https://example.com/large1.jpg",
+    "https://example.com/large2.jpg"
+  ],
+  "medium": [
+    "https://example.com/medium1.jpg",
+    "https://example.com/medium2.jpg"
+  ],
+  "small": [
+    "https://example.com/small1.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "shortdescription": "Updated description with more images",
+  "large": [
+    "https://example.com/large1.jpg",
+    "https://example.com/large2.jpg",
+    "https://example.com/large3.jpg"
+  ],
+  "medium": [
+    "https://example.com/medium1.jpg",
+    "https://example.com/medium2.jpg",
+    "https://example.com/medium3.jpg",
+    "https://example.com/medium4.jpg"
+  ],
+  "small": [
+    "https://example.com/small1.jpg",
+    "https://example.com/small2.jpg",
+    "https://example.com/small3.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "fragnancetype": "Updated Fragrance Type",
+  "volume": "150ml"
+}
+Filtering data for product (product): {
+  "name": "Product with Partial Images",
+  "shortdescription": "Only has large and small images",
+  "large": [
+    "https://example.com/partial-large1.jpg"
+  ],
+  "small": [
+    "https://example.com/partial-small1.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "name": "Invalid URL format",
+  "large": [
+    "not-an-array"
+  ]
+}
+Filtering data for product (product): {
+  "name": "Image Management Test Product",
+  "shortdescription": "Testing image management features",
+  "large": [
+    "https://example.com/large1.jpg",
+    "https://example.com/large2.jpg",
+    "https://example.com/large3.jpg",
+    "https://example.com/large4.jpg"
+  ],
+  "medium": [
+    "https://example.com/medium1.jpg",
+    "https://example.com/medium2.jpg",
+    "https://example.com/medium3.jpg"
+  ],
+  "small": [
+    "https://example.com/small1.jpg",
+    "https://example.com/small2.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://example.com/large1.jpg",
+    "https://example.com/large2.jpg",
+    "https://example.com/large3.jpg",
+    "https://example.com/large4.jpg",
+    "https://example.com/large5.jpg"
+  ],
+  "medium": [
+    "https://example.com/medium1.jpg",
+    "https://example.com/medium2.jpg",
+    "https://example.com/medium3.jpg",
+    "https://example.com/medium4.jpg",
+    "https://example.com/medium5.jpg"
+  ],
+  "small": [
+    "https://example.com/small1.jpg",
+    "https://example.com/small2.jpg",
+    "https://example.com/small3.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "name": "Image Management Test Product",
+  "shortdescription": "Testing image management features",
+  "large": [
+    "https://example.com/large1.jpg",
+    "https://example.com/large2.jpg",
+    "https://example.com/large3.jpg",
+    "https://example.com/large4.jpg"
+  ],
+  "medium": [
+    "https://example.com/medium1.jpg",
+    "https://example.com/medium2.jpg",
+    "https://example.com/medium3.jpg"
+  ],
+  "small": [
+    "https://example.com/small1.jpg",
+    "https://example.com/small2.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://example.com/large1.jpg",
+    "https://example.com/large2.jpg",
+    "https://example.com/large3.jpg",
+    "https://example.com/large4.jpg",
+    "https://example.com/large5.jpg"
+  ],
+  "medium": [
+    "https://example.com/medium1.jpg",
+    "https://example.com/medium2.jpg",
+    "https://example.com/medium3.jpg",
+    "https://example.com/medium4.jpg",
+    "https://example.com/medium5.jpg"
+  ],
+  "small": [
+    "https://example.com/small1.jpg",
+    "https://example.com/small2.jpg",
+    "https://example.com/small3.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://example.com/large1.jpg",
+    "https://example.com/large4.jpg",
+    "https://example.com/large2.jpg",
+    "https://example.com/large3.jpg",
+    "https://example.com/large5.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://example.com/large1.jpg",
+    "https://example.com/large4.jpg",
+    "https://example.com/large3.jpg"
+  ],
+  "medium": [
+    "https://example.com/medium2.jpg",
+    "https://example.com/medium3.jpg",
+    "https://example.com/medium4.jpg",
+    "https://example.com/medium5.jpg"
+  ],
+  "small": [
+    "https://example.com/small1.jpg",
+    "https://example.com/small2.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "name": "Premium Candle Collection",
+  "shortdescription": "Luxury handcrafted candles with premium wax",
+  "fragnancetype": "Vanilla & Lavender",
+  "volume": "250ml",
+  "large": [
+    "https://cdn.example.com/products/candle-large-1.jpg",
+    "https://cdn.example.com/products/candle-large-2.jpg",
+    "https://cdn.example.com/products/candle-large-3.jpg"
+  ],
+  "medium": [
+    "https://cdn.example.com/products/candle-medium-1.jpg",
+    "https://cdn.example.com/products/candle-medium-2.jpg"
+  ],
+  "small": [
+    "https://cdn.example.com/products/candle-small-1.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "name": "Premium Candle Collection - Updated",
+  "large": [
+    "https://cdn.example.com/products/candle-large-1.jpg",
+    "https://cdn.example.com/products/candle-large-2.jpg",
+    "https://cdn.example.com/products/candle-large-3.jpg",
+    "https://cdn.example.com/products/candle-large-4.jpg",
+    "https://cdn.example.com/products/candle-large-5.jpg"
+  ],
+  "medium": [
+    "https://cdn.example.com/products/candle-medium-1.jpg",
+    "https://cdn.example.com/products/candle-medium-2.jpg",
+    "https://cdn.example.com/products/candle-medium-3.jpg",
+    "https://cdn.example.com/products/candle-medium-4.jpg",
+    "https://cdn.example.com/products/candle-medium-5.jpg"
+  ],
+  "small": [
+    "https://cdn.example.com/products/candle-small-1.jpg",
+    "https://cdn.example.com/products/candle-small-2.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://cdn.example.com/products/candle-large-1.jpg",
+    "https://cdn.example.com/products/candle-large-4.jpg",
+    "https://cdn.example.com/products/candle-large-2.jpg",
+    "https://cdn.example.com/products/candle-large-3.jpg",
+    "https://cdn.example.com/products/candle-large-5.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://cdn.example.com/products/candle-large-1.jpg",
+    "https://cdn.example.com/products/candle-large-4.jpg",
+    "https://cdn.example.com/products/candle-large-3.jpg"
+  ],
+  "medium": [
+    "https://cdn.example.com/products/candle-medium-2.jpg",
+    "https://cdn.example.com/products/candle-medium-3.jpg",
+    "https://cdn.example.com/products/candle-medium-4.jpg",
+    "https://cdn.example.com/products/candle-medium-5.jpg"
+  ],
+  "small": [
+    "https://cdn.example.com/products/candle-small-1.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "name": "Category Test Product",
+  "category": "Home & Garden",
+  "shortdescription": "Testing category and subcategory fields",
+  "subcategory": "Candles & Aromatherapy",
+  "fragnancetype": "Lavender",
+  "volume": "200ml",
+  "large": [
+    "https://example.com/large1.jpg"
+  ],
+  "medium": [
+    "https://example.com/medium1.jpg"
+  ],
+  "small": [
+    "https://example.com/small1.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "category": "Health & Beauty",
+  "subcategory": "Essential Oils",
+  "fragnancetype": "Eucalyptus"
+}
+Filtering data for product (product): {
+  "category": "Arts & Crafts",
+  "subcategory": "Handmade Candles",
+  "large": [
+    "https://example.com/large1.jpg",
+    "https://example.com/new-large.jpg"
+  ],
+  "medium": [
+    "https://example.com/medium1.jpg",
+    "https://example.com/new-medium.jpg"
+  ]
+}
