@@ -876,3 +876,413 @@ Filtering data for product (product): {
   "averagerating": 4.5,
   "productstatus": "Active"
 }
+Filtering data for product (product): {
+  "name": "Test Product",
+  "shortdescription": "Short description",
+  "fulldescription": "Full description of the product",
+  "fragnancetype": "Floral",
+  "volume": "100ml",
+  "origincountry": "France",
+  "organiccertified": true,
+  "supplierid": 1,
+  "soldquantity": 10,
+  "availablequantity": 90,
+  "productstatus": "Active",
+  "ponumber": "PO-2025-001",
+  "puc": "PUC-001",
+  "suppliername": "Test Supplier",
+  "serialnumber": "SN-001",
+  "averagerating": 4.5,
+  "discount": 15,
+  "orderedquantity": 100
+}
+Filtering data for product (product): {
+  "name": "Type Test",
+  "supplierid": 1.5
+}
+Filtering data for product (product): {
+  "name": "'; DROP TABLE product; --",
+  "shortdescription": "1' OR '1'='1",
+  "puc": "'; DELETE FROM product WHERE id > 0; --"
+}
+Filtering data for product (product): {
+  "name": "Updated Name",
+  "discount": 25,
+  "averagerating": 3.8
+}
+Filtering data for product (product): {
+  "name": "Concurrent Product 0",
+  "shortdescription": "Short description",
+  "fulldescription": "Full description of the product",
+  "fragnancetype": "Floral",
+  "volume": "100ml",
+  "origincountry": "France",
+  "organiccertified": true,
+  "supplierid": 1,
+  "soldquantity": 10,
+  "availablequantity": 90,
+  "productstatus": "Active",
+  "ponumber": "PO-2025-001",
+  "puc": "PUC-001",
+  "suppliername": "Test Supplier",
+  "serialnumber": "SN-001",
+  "averagerating": 4.5,
+  "discount": 15,
+  "orderedquantity": 100
+}
+Filtering data for product (product): {
+  "name": "Concurrent Product 1",
+  "shortdescription": "Short description",
+  "fulldescription": "Full description of the product",
+  "fragnancetype": "Floral",
+  "volume": "100ml",
+  "origincountry": "France",
+  "organiccertified": true,
+  "supplierid": 1,
+  "soldquantity": 10,
+  "availablequantity": 90,
+  "productstatus": "Active",
+  "ponumber": "PO-2025-001",
+  "puc": "PUC-001",
+  "suppliername": "Test Supplier",
+  "serialnumber": "SN-001",
+  "averagerating": 4.5,
+  "discount": 15,
+  "orderedquantity": 100
+}
+Filtering data for product (product): {
+  "name": "Concurrent Product 2",
+  "shortdescription": "Short description",
+  "fulldescription": "Full description of the product",
+  "fragnancetype": "Floral",
+  "volume": "100ml",
+  "origincountry": "France",
+  "organiccertified": true,
+  "supplierid": 1,
+  "soldquantity": 10,
+  "availablequantity": 90,
+  "productstatus": "Active",
+  "ponumber": "PO-2025-001",
+  "puc": "PUC-001",
+  "suppliername": "Test Supplier",
+  "serialnumber": "SN-001",
+  "averagerating": 4.5,
+  "discount": 15,
+  "orderedquantity": 100
+}
+Filtering data for product (product): {
+  "name": "Concurrent Product 3",
+  "shortdescription": "Short description",
+  "fulldescription": "Full description of the product",
+  "fragnancetype": "Floral",
+  "volume": "100ml",
+  "origincountry": "France",
+  "organiccertified": true,
+  "supplierid": 1,
+  "soldquantity": 10,
+  "availablequantity": 90,
+  "productstatus": "Active",
+  "ponumber": "PO-2025-001",
+  "puc": "PUC-001",
+  "suppliername": "Test Supplier",
+  "serialnumber": "SN-001",
+  "averagerating": 4.5,
+  "discount": 15,
+  "orderedquantity": 100
+}
+Filtering data for product (product): {
+  "name": "Concurrent Product 4",
+  "shortdescription": "Short description",
+  "fulldescription": "Full description of the product",
+  "fragnancetype": "Floral",
+  "volume": "100ml",
+  "origincountry": "France",
+  "organiccertified": true,
+  "supplierid": 1,
+  "soldquantity": 10,
+  "availablequantity": 90,
+  "productstatus": "Active",
+  "ponumber": "PO-2025-001",
+  "puc": "PUC-001",
+  "suppliername": "Test Supplier",
+  "serialnumber": "SN-001",
+  "averagerating": 4.5,
+  "discount": 15,
+  "orderedquantity": 100
+}
+Filtering data for product (product): {
+  "name": "Test Product",
+  "shortdescription": "Short description",
+  "fulldescription": "Full description of the product",
+  "fragnancetype": "Floral",
+  "volume": "100ml",
+  "origincountry": "France",
+  "organiccertified": true,
+  "supplierid": 99,
+  "soldquantity": 10,
+  "availablequantity": 90,
+  "productstatus": "Active",
+  "ponumber": "PO-2025-001",
+  "puc": "PUC-001",
+  "suppliername": "Test Supplier",
+  "serialnumber": "SN-001",
+  "averagerating": 4.5,
+  "discount": 15,
+  "orderedquantity": 100
+}
+Filtering data for product (product): {
+  "name": "Type Test",
+  "supplierid": 1.5
+}
+Filtering data for product (product): {
+  "name": "'; DROP TABLE product; --",
+  "shortdescription": "1' OR '1'='1",
+  "puc": "'; DELETE FROM product WHERE id > 0; --"
+}
+Filtering data for product (product): {
+  "name": "Updated Name",
+  "discount": 25,
+  "averagerating": 3.8
+}
+Filtering data for product (product): {
+  "name": "Concurrent Product 0",
+  "shortdescription": "Short description",
+  "fulldescription": "Full description of the product",
+  "fragnancetype": "Floral",
+  "volume": "100ml",
+  "origincountry": "France",
+  "organiccertified": true,
+  "supplierid": 99,
+  "soldquantity": 10,
+  "availablequantity": 90,
+  "productstatus": "Active",
+  "ponumber": "PO-2025-001",
+  "puc": "PUC-001",
+  "suppliername": "Test Supplier",
+  "serialnumber": "SN-001",
+  "averagerating": 4.5,
+  "discount": 15,
+  "orderedquantity": 100
+}
+Filtering data for product (product): {
+  "name": "Concurrent Product 1",
+  "shortdescription": "Short description",
+  "fulldescription": "Full description of the product",
+  "fragnancetype": "Floral",
+  "volume": "100ml",
+  "origincountry": "France",
+  "organiccertified": true,
+  "supplierid": 99,
+  "soldquantity": 10,
+  "availablequantity": 90,
+  "productstatus": "Active",
+  "ponumber": "PO-2025-001",
+  "puc": "PUC-001",
+  "suppliername": "Test Supplier",
+  "serialnumber": "SN-001",
+  "averagerating": 4.5,
+  "discount": 15,
+  "orderedquantity": 100
+}
+Filtering data for product (product): {
+  "name": "Concurrent Product 2",
+  "shortdescription": "Short description",
+  "fulldescription": "Full description of the product",
+  "fragnancetype": "Floral",
+  "volume": "100ml",
+  "origincountry": "France",
+  "organiccertified": true,
+  "supplierid": 99,
+  "soldquantity": 10,
+  "availablequantity": 90,
+  "productstatus": "Active",
+  "ponumber": "PO-2025-001",
+  "puc": "PUC-001",
+  "suppliername": "Test Supplier",
+  "serialnumber": "SN-001",
+  "averagerating": 4.5,
+  "discount": 15,
+  "orderedquantity": 100
+}
+Filtering data for product (product): {
+  "name": "Concurrent Product 3",
+  "shortdescription": "Short description",
+  "fulldescription": "Full description of the product",
+  "fragnancetype": "Floral",
+  "volume": "100ml",
+  "origincountry": "France",
+  "organiccertified": true,
+  "supplierid": 99,
+  "soldquantity": 10,
+  "availablequantity": 90,
+  "productstatus": "Active",
+  "ponumber": "PO-2025-001",
+  "puc": "PUC-001",
+  "suppliername": "Test Supplier",
+  "serialnumber": "SN-001",
+  "averagerating": 4.5,
+  "discount": 15,
+  "orderedquantity": 100
+}
+Filtering data for product (product): {
+  "name": "Concurrent Product 4",
+  "shortdescription": "Short description",
+  "fulldescription": "Full description of the product",
+  "fragnancetype": "Floral",
+  "volume": "100ml",
+  "origincountry": "France",
+  "organiccertified": true,
+  "supplierid": 99,
+  "soldquantity": 10,
+  "availablequantity": 90,
+  "productstatus": "Active",
+  "ponumber": "PO-2025-001",
+  "puc": "PUC-001",
+  "suppliername": "Test Supplier",
+  "serialnumber": "SN-001",
+  "averagerating": 4.5,
+  "discount": 15,
+  "orderedquantity": 100
+}
+Filtering data for product (product): {
+  "name": "Test Product",
+  "shortdescription": "Short description",
+  "fulldescription": "Full description of the product",
+  "fragnancetype": "Floral",
+  "volume": "100ml",
+  "origincountry": "France",
+  "organiccertified": true,
+  "supplierid": 99,
+  "soldquantity": 10,
+  "availablequantity": 90,
+  "productstatus": "Active",
+  "ponumber": "PO-2025-001",
+  "puc": "PUC-001",
+  "suppliername": "Test Supplier",
+  "serialnumber": "SN-001",
+  "averagerating": 4.5,
+  "discount": 15,
+  "orderedquantity": 100
+}
+Filtering data for product (product): {
+  "name": "Type Test",
+  "supplierid": 1.5
+}
+Filtering data for product (product): {
+  "name": "'; DROP TABLE product; --",
+  "shortdescription": "1' OR '1'='1",
+  "puc": "'; DELETE FROM product WHERE id > 0; --"
+}
+Filtering data for product (product): {
+  "name": "Updated Name",
+  "discount": 25,
+  "averagerating": 3.8
+}
+Filtering data for product (product): {
+  "name": "Concurrent Product 0",
+  "shortdescription": "Short description",
+  "fulldescription": "Full description of the product",
+  "fragnancetype": "Floral",
+  "volume": "100ml",
+  "origincountry": "France",
+  "organiccertified": true,
+  "supplierid": 99,
+  "soldquantity": 10,
+  "availablequantity": 90,
+  "productstatus": "Active",
+  "ponumber": "PO-2025-001",
+  "puc": "PUC-001",
+  "suppliername": "Test Supplier",
+  "serialnumber": "SN-001",
+  "averagerating": 4.5,
+  "discount": 15,
+  "orderedquantity": 100
+}
+Filtering data for product (product): {
+  "name": "Concurrent Product 1",
+  "shortdescription": "Short description",
+  "fulldescription": "Full description of the product",
+  "fragnancetype": "Floral",
+  "volume": "100ml",
+  "origincountry": "France",
+  "organiccertified": true,
+  "supplierid": 99,
+  "soldquantity": 10,
+  "availablequantity": 90,
+  "productstatus": "Active",
+  "ponumber": "PO-2025-001",
+  "puc": "PUC-001",
+  "suppliername": "Test Supplier",
+  "serialnumber": "SN-001",
+  "averagerating": 4.5,
+  "discount": 15,
+  "orderedquantity": 100
+}
+Filtering data for product (product): {
+  "name": "Concurrent Product 2",
+  "shortdescription": "Short description",
+  "fulldescription": "Full description of the product",
+  "fragnancetype": "Floral",
+  "volume": "100ml",
+  "origincountry": "France",
+  "organiccertified": true,
+  "supplierid": 99,
+  "soldquantity": 10,
+  "availablequantity": 90,
+  "productstatus": "Active",
+  "ponumber": "PO-2025-001",
+  "puc": "PUC-001",
+  "suppliername": "Test Supplier",
+  "serialnumber": "SN-001",
+  "averagerating": 4.5,
+  "discount": 15,
+  "orderedquantity": 100
+}
+Filtering data for product (product): {
+  "name": "Concurrent Product 3",
+  "shortdescription": "Short description",
+  "fulldescription": "Full description of the product",
+  "fragnancetype": "Floral",
+  "volume": "100ml",
+  "origincountry": "France",
+  "organiccertified": true,
+  "supplierid": 99,
+  "soldquantity": 10,
+  "availablequantity": 90,
+  "productstatus": "Active",
+  "ponumber": "PO-2025-001",
+  "puc": "PUC-001",
+  "suppliername": "Test Supplier",
+  "serialnumber": "SN-001",
+  "averagerating": 4.5,
+  "discount": 15,
+  "orderedquantity": 100
+}
+Filtering data for product (product): {
+  "name": "Concurrent Product 4",
+  "shortdescription": "Short description",
+  "fulldescription": "Full description of the product",
+  "fragnancetype": "Floral",
+  "volume": "100ml",
+  "origincountry": "France",
+  "organiccertified": true,
+  "supplierid": 99,
+  "soldquantity": 10,
+  "availablequantity": 90,
+  "productstatus": "Active",
+  "ponumber": "PO-2025-001",
+  "puc": "PUC-001",
+  "suppliername": "Test Supplier",
+  "serialnumber": "SN-001",
+  "averagerating": 4.5,
+  "discount": 15,
+  "orderedquantity": 100
+}
+Filtering data for product (product): {
+  "name": "Final Validation Product",
+  "shortdescription": "Final validation test",
+  "organiccertified": true,
+  "supplierid": 99,
+  "averagerating": 4.8,
+  "discount": 20
+}
