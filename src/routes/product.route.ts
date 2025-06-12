@@ -61,6 +61,10 @@ export async function productRoutes(fastify: FastifyInstance) {
           artist_name: { type: 'string', description: 'Filter by artist name' },
           // Status filter field
           isactive: { type: 'string', description: 'Filter by active status (true/false)' },
+          // Size-related filter fields (3 new fields)
+          large: { type: 'string', description: 'Filter by large size options' },
+          medium: { type: 'string', description: 'Filter by medium size options' },
+          small: { type: 'string', description: 'Filter by small size options' },
         },
         additionalProperties: true, // Allow any query parameters for dynamic filtering
       },
@@ -121,6 +125,10 @@ export async function productRoutes(fastify: FastifyInstance) {
                   artist_name: { type: 'string', nullable: true, description: 'Artist name' },
                   // Status field
                   isactive: { type: 'boolean', nullable: true, description: 'Is product active' },
+                  // Size-related fields (3 new fields)
+                  large: { type: 'array', items: { type: 'string' }, nullable: true, description: 'Large size options' },
+                  medium: { type: 'array', items: { type: 'string' }, nullable: true, description: 'Medium size options' },
+                  small: { type: 'array', items: { type: 'string' }, nullable: true, description: 'Small size options' },
                 },
                 additionalProperties: true // Allow additional dynamic fields
               }
@@ -366,6 +374,10 @@ export async function productRoutes(fastify: FastifyInstance) {
           artist_name: { type: 'string', description: 'Artist name' },
           // Status field
           isactive: { type: 'boolean', description: 'Is product active' },
+          // Size-related fields (3 new fields)
+          large: { type: 'array', items: { type: 'string' }, description: 'Large size options' },
+          medium: { type: 'array', items: { type: 'string' }, description: 'Medium size options' },
+          small: { type: 'array', items: { type: 'string' }, description: 'Small size options' },
         },
         required: ['name'], // Only name is required as per schema
         additionalProperties: true,
@@ -512,6 +524,10 @@ export async function productRoutes(fastify: FastifyInstance) {
           artist_name: { type: 'string', description: 'Artist name' },
           // Status field
           isactive: { type: 'boolean', description: 'Is product active' },
+          // Size array fields
+          large: { type: 'array', items: { type: 'string' }, description: 'Large size options' },
+          medium: { type: 'array', items: { type: 'string' }, description: 'Medium size options' },
+          small: { type: 'array', items: { type: 'string' }, description: 'Small size options' },
         },
         additionalProperties: true, // Allow additional dynamic fields
       },
@@ -570,6 +586,10 @@ export async function productRoutes(fastify: FastifyInstance) {
                 artist_name: { type: 'string', nullable: true, description: 'Artist name' },
                 // Status field
                 isactive: { type: 'boolean', nullable: true, description: 'Is product active' },
+                // Size array fields
+                large: { type: 'array', items: { type: 'string' }, nullable: true, description: 'Large size options' },
+                medium: { type: 'array', items: { type: 'string' }, nullable: true, description: 'Medium size options' },
+                small: { type: 'array', items: { type: 'string' }, nullable: true, description: 'Small size options' },
               },
               additionalProperties: true // Allow additional dynamic fields
             },

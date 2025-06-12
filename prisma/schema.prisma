@@ -55,6 +55,10 @@ model Product {
   artist_name       String?
   // Status field
   isactive          Boolean?
+  // Size-related fields (3 new fields)
+  large             String[]
+  medium            String[]
+  small             String[]
   supplier          Supplier? @relation(fields: [supplierid], references: [id], map: "fk_supplier")
 
   @@map("product")
