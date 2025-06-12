@@ -35,6 +35,32 @@ export async function productRoutes(fastify: FastifyInstance) {
           orderedquantity: { type: 'string', description: 'Filter by ordered quantity' },
           createddate: { type: 'string', description: 'Filter by creation date (timestamp)' },
           modifieddate: { type: 'string', description: 'Filter by modification date (timestamp)' },
+          // Additional product fields for filtering (21 missing fields)
+          ingredients: { type: 'string', description: 'Filter by product ingredients' },
+          usage: { type: 'string', description: 'Filter by usage instructions' },
+          extractionmethod: { type: 'string', description: 'Filter by extraction method' },
+          note: { type: 'string', description: 'Filter by additional notes' },
+          shelflife: { type: 'string', description: 'Filter by shelf life information' },
+          // Candle-specific filter fields
+          wax_type: { type: 'string', description: 'Filter by wax type' },
+          burn_time: { type: 'string', description: 'Filter by burn time' },
+          scent_profile: { type: 'string', description: 'Filter by scent profile' },
+          container_material: { type: 'string', description: 'Filter by container material' },
+          candle_dimensions: { type: 'string', description: 'Filter by candle dimensions' },
+          // Planter-specific filter fields
+          planter_material: { type: 'string', description: 'Filter by planter material' },
+          drainage_hole: { type: 'string', description: 'Filter by drainage hole (true/false)' },
+          suitable_for: { type: 'string', description: 'Filter by suitable for plants' },
+          planter_dimensions: { type: 'string', description: 'Filter by planter dimensions' },
+          plant_included: { type: 'string', description: 'Filter by plant included (true/false)' },
+          // Art-specific filter fields
+          art_type: { type: 'string', description: 'Filter by art type' },
+          frame_included: { type: 'string', description: 'Filter by frame included (true/false)' },
+          art_dimensions: { type: 'string', description: 'Filter by art dimensions' },
+          orientation: { type: 'string', description: 'Filter by art orientation' },
+          artist_name: { type: 'string', description: 'Filter by artist name' },
+          // Status filter field
+          isactive: { type: 'string', description: 'Filter by active status (true/false)' },
         },
         additionalProperties: true, // Allow any query parameters for dynamic filtering
       },
@@ -69,6 +95,32 @@ export async function productRoutes(fastify: FastifyInstance) {
                   orderedquantity: { type: 'number', nullable: true, description: 'Ordered quantity' },
                   createddate: { type: 'number', description: 'Creation timestamp' },
                   modifieddate: { type: 'number', description: 'Modification timestamp' },
+                  // Additional product fields from database (21 missing fields)
+                  ingredients: { type: 'string', nullable: true, description: 'Product ingredients' },
+                  usage: { type: 'string', nullable: true, description: 'Usage instructions' },
+                  extractionmethod: { type: 'string', nullable: true, description: 'Extraction method' },
+                  note: { type: 'string', nullable: true, description: 'Additional notes' },
+                  shelflife: { type: 'string', nullable: true, description: 'Shelf life information' },
+                  // Candle-specific fields
+                  wax_type: { type: 'string', nullable: true, description: 'Type of wax used' },
+                  burn_time: { type: 'string', nullable: true, description: 'Burn time duration' },
+                  scent_profile: { type: 'string', nullable: true, description: 'Scent profile description' },
+                  container_material: { type: 'string', nullable: true, description: 'Container material' },
+                  candle_dimensions: { type: 'string', nullable: true, description: 'Candle dimensions' },
+                  // Planter-specific fields
+                  planter_material: { type: 'string', nullable: true, description: 'Planter material' },
+                  drainage_hole: { type: 'boolean', nullable: true, description: 'Has drainage hole' },
+                  suitable_for: { type: 'string', nullable: true, description: 'Suitable for plants' },
+                  planter_dimensions: { type: 'string', nullable: true, description: 'Planter dimensions' },
+                  plant_included: { type: 'boolean', nullable: true, description: 'Plant included with planter' },
+                  // Art-specific fields
+                  art_type: { type: 'string', nullable: true, description: 'Type of art' },
+                  frame_included: { type: 'boolean', nullable: true, description: 'Frame included' },
+                  art_dimensions: { type: 'string', nullable: true, description: 'Art dimensions' },
+                  orientation: { type: 'string', nullable: true, description: 'Art orientation' },
+                  artist_name: { type: 'string', nullable: true, description: 'Artist name' },
+                  // Status field
+                  isactive: { type: 'boolean', nullable: true, description: 'Is product active' },
                 },
                 additionalProperties: true // Allow additional dynamic fields
               }
