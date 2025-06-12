@@ -1,1 +1,1 @@
-{"version":3,"file":"samplepurchaserequest.route.d.ts","sourceRoot":"","sources":["../../src/routes/samplepurchaserequest.route.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,eAAe,EAAE,MAAM,SAAS,CAAC;AAI1C,wBAAsB,2BAA2B,CAAC,OAAO,EAAE,eAAe,iBAyiBzE"}
+{"version":3,"file":"samplepurchaserequest.route.d.ts","sourceRoot":"","sources":["../../src/routes/samplepurchaserequest.route.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,eAAe,EAAE,MAAM,SAAS,CAAC;AAI1C,wBAAsB,2BAA2B,CAAC,OAAO,EAAE,eAAe,iBA8hBzE"}
