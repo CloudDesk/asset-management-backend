@@ -929,8 +929,13 @@ export async function dynamicFindUnique(
           ...(include && { include }),
         });
       } else if (modelName === 'stock') {
+        // Convert string ID to integer for stock model
+        const stockWhere = { ...where };
+        if (stockWhere.id && typeof stockWhere.id === 'string' && /^\d+$/.test(stockWhere.id)) {
+          stockWhere.id = parseInt(stockWhere.id, 10);
+        }
         result = await prisma.stock.findUnique({
-          where,
+          where: stockWhere,
           ...(include && { include }),
         });
       } else if (modelName === 'picklist') {
@@ -956,8 +961,13 @@ export async function dynamicFindUnique(
           idValue = parseInt(idValue, 10);
         }
         
+        // Get table columns but exclude tsvector columns that can't be deserialized
+        const availableColumns = await discoverTableColumns(tableName);
+        const selectableColumns = availableColumns.filter(col => col !== 'searchtext');
+        const columnsList = selectableColumns.map(col => `"${col}"`).join(', ');
+        
         const sqlResult = await prisma.$queryRawUnsafe(
-          `SELECT * FROM ${tableName} WHERE id = $1 LIMIT 1`,
+          `SELECT ${columnsList} FROM ${tableName} WHERE id = $1 LIMIT 1`,
           idValue
         );
         
@@ -988,8 +998,13 @@ export async function dynamicFindUnique(
           idValue = parseInt(idValue, 10);
         }
         
+        // Get table columns but exclude tsvector columns that can't be deserialized
+        const availableColumns = await discoverTableColumns(tableName);
+        const selectableColumns = availableColumns.filter(col => col !== 'searchtext');
+        const columnsList = selectableColumns.map(col => `"${col}"`).join(', ');
+        
         const result = await prisma.$queryRawUnsafe(
-          `SELECT * FROM ${tableName} WHERE id = $1 LIMIT 1`,
+          `SELECT ${columnsList} FROM ${tableName} WHERE id = $1 LIMIT 1`,
           idValue
         );
         
@@ -1143,8 +1158,13 @@ export async function dynamicUpdate(
           include,
         });
       } else if (modelName === 'stock') {
+        // Convert string ID to integer for stock model
+        const stockWhere = { ...where };
+        if (stockWhere.id && typeof stockWhere.id === 'string' && /^\d+$/.test(stockWhere.id)) {
+          stockWhere.id = parseInt(stockWhere.id, 10);
+        }
         result = await prisma.stock.update({
-          where,
+          where: stockWhere,
           data: filteredData,
           include,
         });
@@ -1655,10 +1675,36 @@ export function formatStockForAPI(stock: any): any {
   
   const formatted = serializeForAPI(stock);
   
-  // Format numeric fields
+  // Format all BigInt and numeric fields from the Stock schema
   if (formatted.id !== undefined) {
     formatted.id = formatIntegerField(formatted.id) || formatted.id;
   }
+  if (formatted.createddate !== undefined) {
+    formatted.createddate = formatIntegerField(formatted.createddate) || formatted.createddate;
+  }
+  if (formatted.modifieddate !== undefined) {
+    formatted.modifieddate = formatIntegerField(formatted.modifieddate) || formatted.modifieddate;
+  }
+  if (formatted.createdby !== undefined) {
+    formatted.createdby = formatIntegerField(formatted.createdby);
+  }
+  if (formatted.modifiedby !== undefined) {
+    formatted.modifiedby = formatIntegerField(formatted.modifiedby);
+  }
+  if (formatted.manufacturedyear !== undefined) {
+    formatted.manufacturedyear = formatIntegerField(formatted.manufacturedyear);
+  }
+  if (formatted.releaseyear !== undefined) {
+    formatted.releaseyear = formatIntegerField(formatted.releaseyear);
+  }
+  if (formatted.solddate !== undefined) {
+    formatted.solddate = formatIntegerField(formatted.solddate);
+  }
+  if (formatted.rfidscannedtime !== undefined) {
+    formatted.rfidscannedtime = formatIntegerField(formatted.rfidscannedtime);
+  }
+  
+  // Handle legacy quantity fields that might exist
   if (formatted.quantity !== undefined) {
     formatted.quantity = formatIntegerField(formatted.quantity);
   }
@@ -1667,12 +1713,6 @@ export function formatStockForAPI(stock: any): any {
   }
   if (formatted.maxstock !== undefined) {
     formatted.maxstock = formatIntegerField(formatted.maxstock);
-  }
-  if (formatted.createddate !== undefined) {
-    formatted.createddate = formatIntegerField(formatted.createddate) || formatted.createddate;
-  }
-  if (formatted.modifieddate !== undefined) {
-    formatted.modifieddate = formatIntegerField(formatted.modifieddate) || formatted.modifieddate;
   }
   
   return formatted;

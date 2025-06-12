@@ -4,7 +4,7 @@ import { dynamicFieldConfigs } from '../config/dynamicFieldConfig.js';
 // Flexible stock schema that works with any database structure
 export const createStockSchema = z.object({
   // Core fields that might exist
-  productId: z.string().uuid().optional(),
+  productId: z.string().optional(),
   batchNumber: z.string().max(100).optional(),
   warehouseLocation: z.string().max(100).optional(),
   quantity: z.number().int().min(0).optional(),
@@ -12,7 +12,7 @@ export const createStockSchema = z.object({
   soldQuantity: z.number().int().min(0).optional(),
   
   // Common alternative field names
-  product_id: z.string().uuid().optional(),
+  product_id: z.string().optional(),
   batch_number: z.string().max(100).optional(),
   warehouse_location: z.string().max(100).optional(),
   available_quantity: z.number().int().min(0).optional(),
@@ -35,10 +35,10 @@ export const updateStockSchema = z.object({
 }).passthrough();
 
 export const upsertStockSchema = z.object({
-  id: z.string().uuid().optional(),
+  id: z.string().regex(/^\d+$/).optional(),
   
   // Core fields
-  productId: z.string().uuid().optional(),
+  productId: z.string().optional(),
   batchNumber: z.string().max(100).optional(),
   warehouseLocation: z.string().max(100).optional(),
   quantity: z.number().int().min(0).optional(),
@@ -46,7 +46,7 @@ export const upsertStockSchema = z.object({
   soldQuantity: z.number().int().min(0).optional(),
   
   // Common alternative field names
-  product_id: z.string().uuid().optional(),
+  product_id: z.string().optional(),
   batch_number: z.string().max(100).optional(),
   warehouse_location: z.string().max(100).optional(),
   available_quantity: z.number().int().min(0).optional(),
@@ -54,7 +54,7 @@ export const upsertStockSchema = z.object({
 }).passthrough();
 
 export const stockParamsSchema = z.object({
-  id: z.string().uuid('Invalid stock ID'),
+  id: z.string().regex(/^\d+$/, 'Invalid stock ID - must be a number'),
 });
 
 export const stockQuerySchema = z.object({
@@ -63,7 +63,7 @@ export const stockQuerySchema = z.object({
   limit: z.string().optional(),
   
   // Filter fields - support both naming conventions
-  productId: z.string().uuid().optional(),
+  productId: z.string().optional(),
   batchNumber: z.string().optional(),
   warehouseLocation: z.string().optional(),
   minQuantity: z.string().optional(),
@@ -74,7 +74,7 @@ export const stockQuerySchema = z.object({
   createdBefore: z.string().optional(),
   
   // Alternative field names
-  product_id: z.string().uuid().optional(),
+  product_id: z.string().optional(),
   batch_number: z.string().optional(),
   warehouse_location: z.string().optional(),
   min_quantity: z.string().optional(),

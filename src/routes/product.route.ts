@@ -142,7 +142,7 @@ export async function productRoutes(fastify: FastifyInstance) {
                 organiccertified: { type: 'boolean', nullable: true, description: 'Organic certified status' },
                 supplierid: { type: 'number', nullable: true, description: 'Supplier ID' },
                 soldquantity: { type: 'number', nullable: true, description: 'Sold quantity' },
-                availablequantity: { type: 'number', nullable: true, description: 'Available quantity' },
+                availablequantity: { type: 'number', nullable: true, description: 'Available quantity' 
                 productstatus: { type: 'string', nullable: true, description: 'Product status' },
                 ponumber: { type: 'string', nullable: true, description: 'PO number' },
                 puc: { type: 'string', nullable: true, description: 'PUC code' },
