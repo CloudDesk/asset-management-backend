@@ -1759,3 +1759,949 @@ Filtered data result: {
   "ecompublish": false,
   "ewaste": false
 }
+Filtered data result: {
+  "name": "Complete Product Test",
+  "productstatus": "Active",
+  "ponumber": "PO-2025-001",
+  "puc": "PUC-COMPLETE-001",
+  "suppliername": "Test Supplier Inc",
+  "serialnumber": "SER-COMPLETE-001",
+  "averagerating": 4.5,
+  "discount": 15.99,
+  "orderedquantity": 100
+}
+Filtered data result: {
+  "name": "Status Rating Product",
+  "productstatus": "In Development",
+  "averagerating": 3.8,
+  "discount": 10
+}
+Filtered data result: {
+  "name": "Supplier PO Product",
+  "ponumber": "PO-2025-002",
+  "suppliername": "Premium Supplier Ltd",
+  "serialnumber": "SER-SUPPLIER-001",
+  "orderedquantity": 50
+}
+Filtered data result: {
+  "name": "Minimal Fields Product",
+  "puc": "PUC-MINIMAL-001",
+  "discount": 5
+}
+Filtered data result: {
+  "productstatus": "Discontinued"
+}
+Filtered data result: {
+  "averagerating": 4.9,
+  "discount": 25
+}
+Filtered data result: {
+  "name": "Updated Test Product - All Fields",
+  "ingredients": "Premium natural ingredients",
+  "usage": "Follow instructions carefully",
+  "wax_type": "Organic soy wax",
+  "burn_time": "45 hours",
+  "isactive": true,
+  "drainage_hole": true,
+  "art_type": "Digital print",
+  "averagerating": 4.7,
+  "discount": 15
+}
+Filtered data result: {
+  "name": "Performance Test Product",
+  "shortdescription": "Testing response time",
+  "ingredients": "Performance testing ingredients",
+  "wax_type": "Performance wax",
+  "averagerating": 4.9,
+  "isactive": true
+}
+Filtered data result: {
+  "name": "Rigorous Test Product - All Fields 2024",
+  "shortdescription": "Comprehensive test product with all database fields",
+  "fulldescription": "This product tests every single field available in the database schema including specialized fields for candles, planters, and art pieces.",
+  "fragnancetype": "Oriental Woody",
+  "volume": "300ml",
+  "origincountry": "Italy",
+  "organiccertified": true,
+  "supplierid": 789,
+  "soldquantity": 15,
+  "availablequantity": 85,
+  "productstatus": "Active",
+  "ponumber": "PO-RIGOROUS-2024-001",
+  "puc": "PUC-RIGOROUS-001",
+  "suppliername": "Rigorous Test Supplier Ltd",
+  "serialnumber": "RIG-SN-2024-001",
+  "averagerating": 4.9,
+  "discount": 25,
+  "orderedquantity": 100,
+  "ingredients": "Premium essential oils: bergamot, sandalwood, vanilla; natural soy wax; organic cotton wick; botanical extracts",
+  "usage": "Light candle in well-ventilated area. Trim wick to 1/4 inch before each use. Burn for maximum 4 hours at a time. Allow wax to cool completely before relighting.",
+  "extractionmethod": "Steam distillation and cold-press extraction",
+  "note": "Handcrafted with sustainable materials. Vegan-friendly. Not tested on animals.",
+  "shelflife": "36 months from production date when stored properly",
+  "wax_type": "Premium organic soy wax blend",
+  "burn_time": "50-60 hours continuous burn time",
+  "scent_profile": "Top notes: Bergamot, lemon; Middle: Jasmine, rose; Base: Sandalwood, vanilla",
+  "container_material": "Recycled glass with sustainable bamboo lid",
+  "candle_dimensions": "12cm H x 10cm W x 10cm D",
+  "planter_material": "Eco-friendly bamboo fiber composite",
+  "drainage_hole": true,
+  "suitable_for": "Succulents, herbs, small flowering plants, air plants",
+  "planter_dimensions": "20cm H x 18cm W x 18cm D",
+  "plant_included": false,
+  "art_type": "Mixed media digital art print",
+  "frame_included": true,
+  "art_dimensions": "50cm H x 40cm W x 3cm D",
+  "orientation": "Portrait",
+  "artist_name": "Elena Rodriguez Martinez",
+  "isactive": true
+}
+Filtered data result: {
+  "name": "Premium Aromatherapy Candle",
+  "wax_type": "Organic soy wax",
+  "burn_time": "45 hours",
+  "scent_profile": "Lavender and eucalyptus",
+  "container_material": "Frosted glass",
+  "candle_dimensions": "10cm x 8cm",
+  "ingredients": "Soy wax, essential oils",
+  "usage": "Light for relaxation"
+}
+Filtered data result: {
+  "name": "Eco-Friendly Plant Pot",
+  "planter_material": "Recycled plastic",
+  "drainage_hole": true,
+  "suitable_for": "Indoor herbs",
+  "planter_dimensions": "15cm x 15cm",
+  "plant_included": false
+}
+Filtered data result: {
+  "name": "Modern Abstract Art",
+  "art_type": "Canvas print",
+  "frame_included": true,
+  "art_dimensions": "40cm x 30cm",
+  "orientation": "Landscape",
+  "artist_name": "Contemporary Artist"
+}
+Filtered data result: {
+  "averagerating": 4.5
+}
+Filtered data result: {
+  "discount": 20
+}
+Filtered data result: {
+  "organiccertified": true
+}
+Filtered data result: {
+  "drainage_hole": false
+}
+Filtered data result: {
+  "plant_included": true
+}
+Filtered data result: {
+  "frame_included": false
+}
+Filtered data result: {
+  "isactive": true
+}
+Filtered data result: {
+  "supplierid": 456
+}
+Filtered data result: {
+  "name": "Performance Test Product 0",
+  "ingredients": "Performance ingredients 0",
+  "wax_type": "Performance wax 0",
+  "isactive": true
+}
+Filtered data result: {
+  "name": "Performance Test Product 1",
+  "ingredients": "Performance ingredients 1",
+  "wax_type": "Performance wax 1",
+  "isactive": false
+}
+Filtered data result: {
+  "name": "Performance Test Product 2",
+  "ingredients": "Performance ingredients 2",
+  "wax_type": "Performance wax 2",
+  "isactive": true
+}
+Filtered data result: {
+  "name": "Performance Test Product 3",
+  "ingredients": "Performance ingredients 3",
+  "wax_type": "Performance wax 3",
+  "isactive": false
+}
+Filtered data result: {
+  "name": "Performance Test Product 4",
+  "ingredients": "Performance ingredients 4",
+  "wax_type": "Performance wax 4",
+  "isactive": true
+}
+Filtered data result: {
+  "averagerating": 0
+}
+Filtered data result: {
+  "averagerating": 5
+}
+Filtered data result: {
+  "discount": 0
+}
+Filtered data result: {
+  "discount": 100
+}
+Filtered data result: {
+  "name": "A"
+}
+Filtered data result: {
+  "extractionmethod": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+}
+Filtered data result: {
+  "note": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+}
+Filtered data result: {
+  "shelflife": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+}
+Filtered data result: {
+  "name": "Simple Validation Test Product"
+}
+Filtered data result: {
+  "ingredients": "Test ingredients"
+}
+Filtered data result: {
+  "usage": "Test usage instructions"
+}
+Filtered data result: {
+  "wax_type": "Test wax type"
+}
+Filtered data result: {
+  "burn_time": "Test burn time"
+}
+Filtered data result: {
+  "isactive": true
+}
+Filtered data result: {
+  "drainage_hole": true
+}
+Filtered data result: {
+  "art_type": "Test art type"
+}
+Filtered data result: {
+  "name": "Debug Test Product"
+}
+Filtered data result: {
+  "ingredients": "Debug ingredients",
+  "wax_type": "Debug wax",
+  "isactive": true,
+  "drainage_hole": false,
+  "art_type": "Debug art"
+}
+Filtered data result: {
+  "name": "New Product with Fields",
+  "ingredients": "Creation ingredients",
+  "wax_type": "Creation wax",
+  "isactive": true
+}
+Filtered data result: {
+  "name": "Simple Validation Test Product"
+}
+Filtered data result: {
+  "ingredients": "Test ingredients"
+}
+Filtered data result: {
+  "usage": "Test usage instructions"
+}
+Filtered data result: {
+  "wax_type": "Test wax type"
+}
+Filtered data result: {
+  "burn_time": "Test burn time"
+}
+Filtered data result: {
+  "isactive": true
+}
+Filtered data result: {
+  "drainage_hole": true
+}
+Filtered data result: {
+  "art_type": "Test art type"
+}
+Filtered data result: {
+  "name": "Rigorous Test Product - All Fields 2024",
+  "shortdescription": "Comprehensive test product with all database fields",
+  "fulldescription": "This product tests every single field available in the database schema including specialized fields for candles, planters, and art pieces.",
+  "fragnancetype": "Oriental Woody",
+  "volume": "300ml",
+  "origincountry": "Italy",
+  "organiccertified": true,
+  "supplierid": 789,
+  "soldquantity": 15,
+  "availablequantity": 85,
+  "productstatus": "Active",
+  "ponumber": "PO-RIGOROUS-2024-001",
+  "puc": "PUC-RIGOROUS-001",
+  "suppliername": "Rigorous Test Supplier Ltd",
+  "serialnumber": "RIG-SN-2024-001",
+  "averagerating": 4.9,
+  "discount": 25,
+  "orderedquantity": 100,
+  "ingredients": "Premium essential oils: bergamot, sandalwood, vanilla; natural soy wax; organic cotton wick; botanical extracts",
+  "usage": "Light candle in well-ventilated area. Trim wick to 1/4 inch before each use. Burn for maximum 4 hours at a time. Allow wax to cool completely before relighting.",
+  "extractionmethod": "Steam distillation and cold-press extraction",
+  "note": "Handcrafted with sustainable materials. Vegan-friendly. Not tested on animals.",
+  "shelflife": "36 months from production date when stored properly",
+  "wax_type": "Premium organic soy wax blend",
+  "burn_time": "50-60 hours continuous burn time",
+  "scent_profile": "Top notes: Bergamot, lemon; Middle: Jasmine, rose; Base: Sandalwood, vanilla",
+  "container_material": "Recycled glass with sustainable bamboo lid",
+  "candle_dimensions": "12cm H x 10cm W x 10cm D",
+  "planter_material": "Eco-friendly bamboo fiber composite",
+  "drainage_hole": true,
+  "suitable_for": "Succulents, herbs, small flowering plants, air plants",
+  "planter_dimensions": "20cm H x 18cm W x 18cm D",
+  "plant_included": false,
+  "art_type": "Mixed media digital art print",
+  "frame_included": true,
+  "art_dimensions": "50cm H x 40cm W x 3cm D",
+  "orientation": "Portrait",
+  "artist_name": "Elena Rodriguez Martinez",
+  "isactive": true
+}
+Filtered data result: {
+  "name": "Premium Aromatherapy Candle",
+  "wax_type": "Organic soy wax",
+  "burn_time": "45 hours",
+  "scent_profile": "Lavender and eucalyptus",
+  "container_material": "Frosted glass",
+  "candle_dimensions": "10cm x 8cm",
+  "ingredients": "Soy wax, essential oils",
+  "usage": "Light for relaxation"
+}
+Filtered data result: {
+  "name": "Eco-Friendly Plant Pot",
+  "planter_material": "Recycled plastic",
+  "drainage_hole": true,
+  "suitable_for": "Indoor herbs",
+  "planter_dimensions": "15cm x 15cm",
+  "plant_included": false
+}
+Filtered data result: {
+  "name": "Modern Abstract Art",
+  "art_type": "Canvas print",
+  "frame_included": true,
+  "art_dimensions": "40cm x 30cm",
+  "orientation": "Landscape",
+  "artist_name": "Contemporary Artist"
+}
+Filtered data result: {
+  "averagerating": 4.5
+}
+Filtered data result: {
+  "discount": 20
+}
+Filtered data result: {
+  "organiccertified": true
+}
+Filtered data result: {
+  "drainage_hole": false
+}
+Filtered data result: {
+  "plant_included": true
+}
+Filtered data result: {
+  "frame_included": false
+}
+Filtered data result: {
+  "isactive": true
+}
+Filtered data result: {
+  "supplierid": 456
+}
+Filtered data result: {
+  "name": "Performance Test Product 0",
+  "ingredients": "Performance ingredients 0",
+  "wax_type": "Performance wax 0",
+  "isactive": true
+}
+Filtered data result: {
+  "name": "Performance Test Product 2",
+  "ingredients": "Performance ingredients 2",
+  "wax_type": "Performance wax 2",
+  "isactive": true
+}
+Filtered data result: {
+  "name": "Performance Test Product 3",
+  "ingredients": "Performance ingredients 3",
+  "wax_type": "Performance wax 3",
+  "isactive": false
+}
+Filtered data result: {
+  "name": "Performance Test Product 1",
+  "ingredients": "Performance ingredients 1",
+  "wax_type": "Performance wax 1",
+  "isactive": false
+}
+Filtered data result: {
+  "name": "Performance Test Product 4",
+  "ingredients": "Performance ingredients 4",
+  "wax_type": "Performance wax 4",
+  "isactive": true
+}
+Filtered data result: {
+  "averagerating": 0
+}
+Filtered data result: {
+  "averagerating": 5
+}
+Filtered data result: {
+  "discount": 0
+}
+Filtered data result: {
+  "discount": 100
+}
+Filtered data result: {
+  "name": "A"
+}
+Filtered data result: {
+  "extractionmethod": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+}
+Filtered data result: {
+  "note": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+}
+Filtered data result: {
+  "shelflife": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+}
+Filtered data result: {
+  "name": "Production Validation Test Product"
+}
+Filtered data result: {
+  "ingredients": "Premium organic ingredients"
+}
+Filtered data result: {
+  "usage": "Use as directed for best results"
+}
+Filtered data result: {
+  "wax_type": "Organic soy wax blend"
+}
+Filtered data result: {
+  "burn_time": "50+ hours"
+}
+Filtered data result: {
+  "isactive": true
+}
+Filtered data result: {
+  "drainage_hole": true
+}
+Filtered data result: {
+  "art_type": "Contemporary digital art"
+}
+Filtered data result: {
+  "frame_included": false
+}
+Filtered data result: {
+  "plant_included": true
+}
+Filtered data result: {
+  "averagerating": 4.7
+}
+Filtered data result: {
+  "discount": 15
+}
+Filtered data result: {
+  "averagerating": 3.5
+}
+Filtered data result: {
+  "discount": 25
+}
+Filtered data result: {
+  "organiccertified": true
+}
+Filtered data result: {
+  "drainage_hole": false
+}
+Filtered data result: {
+  "isactive": true
+}
+Filtered data result: {
+  "soldquantity": 50
+}
+Filtered data result: {
+  "name": "Performance Test 0",
+  "ingredients": "Performance ingredients 0",
+  "isactive": true
+}
+Filtered data result: {
+  "name": "Performance Test 1",
+  "ingredients": "Performance ingredients 1",
+  "isactive": false
+}
+Filtered data result: {
+  "name": "Performance Test 2",
+  "ingredients": "Performance ingredients 2",
+  "isactive": true
+}
+Filtered data result: {
+  "name": "Debug Minimal Product"
+}
+Filtered data result: {
+  "name": "Debug Batch 1 Product",
+  "shortdescription": "Test description",
+  "fulldescription": "Full test description",
+  "fragnancetype": "Floral",
+  "volume": "250ml",
+  "origincountry": "France"
+}
+Filtered data result: {
+  "name": "Debug Batch 2 Product",
+  "organiccertified": true,
+  "supplierid": 123,
+  "soldquantity": 10,
+  "availablequantity": 90,
+  "productstatus": "Active"
+}
+Filtered data result: {
+  "name": "Debug Batch 3 Product",
+  "ingredients": "Natural essential oils",
+  "usage": "Apply as needed",
+  "extractionmethod": "Steam distillation",
+  "note": "Handcrafted",
+  "shelflife": "24 months"
+}
+Filtered data result: {
+  "name": "Debug Batch 4 Product",
+  "wax_type": "Soy wax",
+  "burn_time": "40 hours",
+  "scent_profile": "Light floral",
+  "container_material": "Glass",
+  "candle_dimensions": "10x8cm"
+}
+Filtered data result: {
+  "name": "Debug Batch 5 Product",
+  "planter_material": "Ceramic",
+  "drainage_hole": true,
+  "suitable_for": "Indoor plants",
+  "planter_dimensions": "15x15cm",
+  "plant_included": false
+}
+Filtered data result: {
+  "name": "Debug Batch 6 Product",
+  "art_type": "Print",
+  "frame_included": true,
+  "art_dimensions": "30x40cm",
+  "orientation": "Portrait",
+  "artist_name": "Test Artist",
+  "isactive": true
+}
+Filtered data result: {
+  "name": "Debug Comprehensive Product",
+  "ingredients": "Natural essential oils, organic base",
+  "wax_type": "Soy wax",
+  "isactive": true
+}
+Filtered data result: {
+  "name": "Debug Comprehensive Product",
+  "drainage_hole": true,
+  "art_type": "Print",
+  "frame_included": true
+}
+Filtered data result: {
+  "name": "Debug Comprehensive Product",
+  "supplierid": 123,
+  "soldquantity": 10,
+  "availablequantity": 90
+}
+Filtered data result: {
+  "name": "Debug Minimal Product"
+}
+Filtered data result: {
+  "name": "Debug Batch 1 Product",
+  "shortdescription": "Test description",
+  "fulldescription": "Full test description",
+  "fragnancetype": "Floral",
+  "volume": "250ml",
+  "origincountry": "France"
+}
+Filtered data result: {
+  "name": "Debug Batch 2 Product",
+  "organiccertified": true,
+  "supplierid": 123,
+  "soldquantity": 10,
+  "availablequantity": 90,
+  "productstatus": "Active"
+}
+Filtered data result: {
+  "name": "Debug Batch 3 Product",
+  "ingredients": "Natural essential oils",
+  "usage": "Apply as needed",
+  "extractionmethod": "Steam distillation",
+  "note": "Handcrafted",
+  "shelflife": "24 months"
+}
+Filtered data result: {
+  "name": "Debug Batch 4 Product",
+  "wax_type": "Soy wax",
+  "burn_time": "40 hours",
+  "scent_profile": "Light floral",
+  "container_material": "Glass",
+  "candle_dimensions": "10x8cm"
+}
+Filtered data result: {
+  "name": "Debug Batch 5 Product",
+  "planter_material": "Ceramic",
+  "drainage_hole": true,
+  "suitable_for": "Indoor plants",
+  "planter_dimensions": "15x15cm",
+  "plant_included": false
+}
+Filtered data result: {
+  "name": "Debug Batch 6 Product",
+  "art_type": "Print",
+  "frame_included": true,
+  "art_dimensions": "30x40cm",
+  "orientation": "Portrait",
+  "artist_name": "Test Artist",
+  "isactive": true
+}
+Filtered data result: {
+  "name": "Debug Comprehensive Product",
+  "shortdescription": "Complete product with all field types",
+  "fulldescription": "This product demonstrates all available fields working together",
+  "fragnancetype": "Floral",
+  "volume": "250ml",
+  "origincountry": "France",
+  "organiccertified": true,
+  "supplierid": 123,
+  "soldquantity": 10,
+  "availablequantity": 90,
+  "productstatus": "Active",
+  "ponumber": "PO-COMP-2024",
+  "puc": "PUC-COMP-001",
+  "suppliername": "Comprehensive Supplier",
+  "serialnumber": "COMP-SN-001",
+  "averagerating": 4.8,
+  "discount": 20,
+  "orderedquantity": 100,
+  "ingredients": "Natural essential oils, organic base",
+  "usage": "Apply as needed, store in cool place",
+  "extractionmethod": "Steam distillation",
+  "note": "Handcrafted with care",
+  "shelflife": "24 months",
+  "wax_type": "Soy wax",
+  "burn_time": "40 hours",
+  "scent_profile": "Light floral with woody base",
+  "container_material": "Glass",
+  "candle_dimensions": "10x8cm",
+  "planter_material": "Ceramic",
+  "drainage_hole": true,
+  "suitable_for": "Indoor plants",
+  "planter_dimensions": "15x15cm",
+  "plant_included": false,
+  "art_type": "Print",
+  "frame_included": true,
+  "art_dimensions": "30x40cm",
+  "orientation": "Portrait",
+  "artist_name": "Test Artist",
+  "isactive": true
+}
+Filtered data result: {
+  "name": "Debug Comprehensive Product",
+  "ingredients": "Natural essential oils, organic base",
+  "wax_type": "Soy wax",
+  "isactive": true
+}
+Filtered data result: {
+  "name": "Debug Comprehensive Product",
+  "drainage_hole": true,
+  "art_type": "Print",
+  "frame_included": true
+}
+Filtered data result: {
+  "name": "Debug Comprehensive Product",
+  "averagerating": 4.8,
+  "discount": 20,
+  "organiccertified": true
+}
+Filtered data result: {
+  "name": "Debug Comprehensive Product",
+  "supplierid": 123,
+  "soldquantity": 10,
+  "availablequantity": 90
+}
+Filtered data result: {
+  "name": "Production Validation Test Product"
+}
+Filtered data result: {
+  "ingredients": "Premium organic ingredients"
+}
+Filtered data result: {
+  "usage": "Use as directed for best results"
+}
+Filtered data result: {
+  "wax_type": "Organic soy wax blend"
+}
+Filtered data result: {
+  "burn_time": "50+ hours"
+}
+Filtered data result: {
+  "isactive": true
+}
+Filtered data result: {
+  "drainage_hole": true
+}
+Filtered data result: {
+  "art_type": "Contemporary digital art"
+}
+Filtered data result: {
+  "frame_included": false
+}
+Filtered data result: {
+  "plant_included": true
+}
+Filtered data result: {
+  "averagerating": 4.7
+}
+Filtered data result: {
+  "discount": 15
+}
+Filtered data result: {
+  "name": "Comprehensive Test Product",
+  "shortdescription": "Complete product with all field types",
+  "fulldescription": "This product demonstrates all available fields working together",
+  "fragnancetype": "Floral",
+  "volume": "250ml",
+  "origincountry": "France",
+  "organiccertified": true,
+  "supplierid": 123,
+  "soldquantity": 10,
+  "availablequantity": 90,
+  "productstatus": "Active",
+  "ponumber": "PO-COMP-2024",
+  "puc": "PUC-COMP-001",
+  "suppliername": "Comprehensive Supplier",
+  "serialnumber": "COMP-SN-001",
+  "averagerating": 4.8,
+  "discount": 20,
+  "orderedquantity": 100,
+  "ingredients": "Natural essential oils, organic base",
+  "usage": "Apply as needed, store in cool place",
+  "extractionmethod": "Steam distillation",
+  "note": "Handcrafted with care",
+  "shelflife": "24 months",
+  "wax_type": "Soy wax",
+  "burn_time": "40 hours",
+  "scent_profile": "Light floral with woody base",
+  "container_material": "Glass",
+  "candle_dimensions": "10x8cm",
+  "planter_material": "Ceramic",
+  "drainage_hole": true,
+  "suitable_for": "Indoor plants",
+  "planter_dimensions": "15x15cm",
+  "plant_included": false,
+  "art_type": "Print",
+  "frame_included": true,
+  "art_dimensions": "30x40cm",
+  "orientation": "Portrait",
+  "artist_name": "Test Artist",
+  "isactive": true
+}
+Filtered data result: {
+  "averagerating": 3.5
+}
+Filtered data result: {
+  "discount": 25
+}
+Filtered data result: {
+  "organiccertified": true
+}
+Filtered data result: {
+  "drainage_hole": false
+}
+Filtered data result: {
+  "isactive": true
+}
+Filtered data result: {
+  "soldquantity": 50
+}
+Filtered data result: {
+  "name": "Performance Test 0",
+  "ingredients": "Performance ingredients 0",
+  "isactive": true
+}
+Filtered data result: {
+  "name": "Performance Test 1",
+  "ingredients": "Performance ingredients 1",
+  "isactive": false
+}
+Filtered data result: {
+  "name": "Performance Test 2",
+  "ingredients": "Performance ingredients 2",
+  "isactive": true
+}
+Filtered data result: {
+  "name": "Ultimate Production Test Product",
+  "shortdescription": "Complete product demonstrating all 42 database fields",
+  "fulldescription": "This product showcases the complete implementation of all database fields including specialized fields for candles, planters, and art pieces.",
+  "fragnancetype": "Oriental Woody",
+  "volume": "300ml",
+  "origincountry": "Italy",
+  "organiccertified": true,
+  "soldquantity": 15,
+  "availablequantity": 85,
+  "productstatus": "Active",
+  "ponumber": "PO-ULTIMATE-2024-001",
+  "puc": "PUC-ULTIMATE-001",
+  "suppliername": "Ultimate Test Supplier Ltd",
+  "serialnumber": "ULT-SN-2024-001",
+  "averagerating": 4.9,
+  "discount": 25,
+  "orderedquantity": 100,
+  "ingredients": "Premium essential oils: bergamot, sandalwood, vanilla; natural soy wax; organic cotton wick",
+  "usage": "Light in well-ventilated area. Trim wick to 1/4 inch before each use. Burn for maximum 4 hours.",
+  "extractionmethod": "Steam distillation and cold-press extraction",
+  "note": "Handcrafted with sustainable materials. Vegan-friendly. Not tested on animals.",
+  "shelflife": "36 months from production date when stored properly",
+  "wax_type": "Premium organic soy wax blend",
+  "burn_time": "50-60 hours continuous burn time",
+  "scent_profile": "Top: Bergamot, lemon; Middle: Jasmine, rose; Base: Sandalwood, vanilla",
+  "container_material": "Recycled glass with sustainable bamboo lid",
+  "candle_dimensions": "12cm H x 10cm W x 10cm D",
+  "planter_material": "Eco-friendly bamboo fiber composite",
+  "drainage_hole": true,
+  "suitable_for": "Succulents, herbs, small flowering plants, air plants",
+  "planter_dimensions": "20cm H x 18cm W x 18cm D",
+  "plant_included": false,
+  "art_type": "Mixed media digital art print",
+  "frame_included": true,
+  "art_dimensions": "50cm H x 40cm W x 3cm D",
+  "orientation": "Portrait",
+  "artist_name": "Elena Rodriguez Martinez",
+  "isactive": true
+}
+Filtered data result: {
+  "ingredients": "Updated premium ingredients with new formula"
+}
+Filtered data result: {
+  "usage": "Updated usage instructions with enhanced safety guidelines"
+}
+Filtered data result: {
+  "wax_type": "Updated premium coconut-soy wax blend"
+}
+Filtered data result: {
+  "art_type": "Updated canvas print with UV protection"
+}
+Filtered data result: {
+  "organiccertified": false
+}
+Filtered data result: {
+  "drainage_hole": false
+}
+Filtered data result: {
+  "plant_included": true
+}
+Filtered data result: {
+  "frame_included": false
+}
+Filtered data result: {
+  "isactive": false
+}
+Filtered data result: {
+  "averagerating": 4.7
+}
+Filtered data result: {
+  "discount": 30
+}
+Filtered data result: {
+  "soldquantity": 25
+}
+Filtered data result: {
+  "availablequantity": 75
+}
+Filtered data result: {
+  "orderedquantity": 120
+}
+Filtered data result: {
+  "name": "Premium Aromatherapy Candle Collection",
+  "wax_type": "Organic soy wax with essential oils",
+  "burn_time": "45-50 hours premium burn time",
+  "scent_profile": "Lavender and eucalyptus therapeutic blend",
+  "container_material": "Hand-blown frosted glass",
+  "candle_dimensions": "10cm x 8cm artisan size",
+  "ingredients": "Pure soy wax, therapeutic grade essential oils",
+  "usage": "Light for 2-4 hours for optimal aromatherapy benefits",
+  "isactive": true
+}
+Filtered data result: {
+  "name": "Eco-Friendly Sustainable Plant Pot",
+  "planter_material": "Recycled ocean plastic composite",
+  "drainage_hole": true,
+  "suitable_for": "Indoor herbs, succulents, small flowering plants",
+  "planter_dimensions": "15cm x 15cm eco-friendly design",
+  "plant_included": false,
+  "note": "Made from 100% recycled materials",
+  "isactive": true
+}
+Filtered data result: {
+  "name": "Contemporary Abstract Art Collection",
+  "art_type": "High-quality canvas print with archival inks",
+  "frame_included": true,
+  "art_dimensions": "40cm x 30cm gallery standard",
+  "orientation": "Landscape",
+  "artist_name": "Contemporary Digital Artist Collective",
+  "note": "Limited edition print with certificate of authenticity",
+  "isactive": true
+}
+Filtered data result: {
+  "name": "Performance Test Product 0",
+  "ingredients": "Performance test ingredients 0",
+  "wax_type": "Performance wax type 0",
+  "isactive": true,
+  "drainage_hole": false,
+  "averagerating": 4
+}
+Filtered data result: {
+  "name": "Performance Test Product 1",
+  "ingredients": "Performance test ingredients 1",
+  "wax_type": "Performance wax type 1",
+  "isactive": false,
+  "drainage_hole": true,
+  "averagerating": 4.2
+}
+Filtered data result: {
+  "name": "Performance Test Product 2",
+  "ingredients": "Performance test ingredients 2",
+  "wax_type": "Performance wax type 2",
+  "isactive": true,
+  "drainage_hole": false,
+  "averagerating": 4.4
+}
+Filtered data result: {
+  "averagerating": 0
+}
+Filtered data result: {
+  "averagerating": 5
+}
+Filtered data result: {
+  "discount": 0
+}
+Filtered data result: {
+  "organiccertified": true
+}
+Filtered data result: {
+  "organiccertified": false
+}
+Filtered data result: {
+  "drainage_hole": true
+}
+Filtered data result: {
+  "drainage_hole": false
+}
+Filtered data result: {
+  "isactive": true
+}
+Filtered data result: {
+  "isactive": false
+}
+Filtered data result: {
+  "name": "Updated Test Name"
+}
+Filtered data result: {
+  "ingredients": "Updated ingredients list"
+}

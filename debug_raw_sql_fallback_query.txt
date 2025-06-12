@@ -28,3 +28,117 @@ Fallback query:
         WHERE "id" = $1 
         RETURNING *
       
+Fallback query: 
+        UPDATE "product" 
+        SET "name" = $2, "ingredients" = $3, "usage" = $4, "wax_type" = $5, "burn_time" = $6, "isactive" = $7, "drainage_hole" = $8, "art_type" = $9, "averagerating" = $10, "discount" = $11, "modifieddate" = $12 
+        WHERE "id" = $1 
+        RETURNING *
+      
+Fallback query: 
+        UPDATE "product" 
+        SET "name" = $2, "shortdescription" = $3, "ingredients" = $4, "wax_type" = $5, "averagerating" = $6, "isactive" = $7, "modifieddate" = $8 
+        WHERE "id" = $1 
+        RETURNING *
+      
+Fallback query: 
+        UPDATE "product" 
+        SET "drainage_hole" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING *
+      
+Fallback query: 
+        UPDATE "product" 
+        SET "plant_included" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING *
+      
+Fallback query: 
+        UPDATE "product" 
+        SET "frame_included" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING *
+      
+Fallback query: 
+        UPDATE "product" 
+        SET "isactive" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING *
+      
+Fallback query: 
+        UPDATE "product" 
+        SET "supplierid" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING *
+      
+Fallback query: 
+        UPDATE "product" 
+        SET "extractionmethod" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING *
+      
+Fallback query: 
+        UPDATE "product" 
+        SET "note" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING *
+      
+Fallback query: 
+        UPDATE "product" 
+        SET "shelflife" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING *
+      
+Fallback query: 
+        UPDATE "product" 
+        SET "ingredients" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING *
+      
+Fallback query: 
+        UPDATE "product" 
+        SET "usage" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING *
+      
+Fallback query: 
+        UPDATE "product" 
+        SET "wax_type" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING *
+      
+Fallback query: 
+        UPDATE "product" 
+        SET "burn_time" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING *
+      
+Fallback query: 
+        UPDATE "product" 
+        SET "isactive" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING *
+      
+Fallback query: 
+        UPDATE "product" 
+        SET "drainage_hole" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING *
+      
+Fallback query: 
+        UPDATE "product" 
+        SET "art_type" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING *
+      
+Fallback query: 
+        UPDATE "product" 
+        SET "ingredients" = $2, "wax_type" = $3, "isactive" = $4, "drainage_hole" = $5, "art_type" = $6, "modifieddate" = $7 
+        WHERE "id" = $1 
+        RETURNING *
+      
+Fallback query: 
+        UPDATE "product" 
+        SET "supplierid" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING *
+      

@@ -29,6 +29,32 @@ model Product {
   orderedquantity   Int?
   createddate       BigInt?
   modifieddate      BigInt?
+  // Additional product fields from database (21 missing fields)
+  ingredients       String?
+  usage             String?
+  extractionmethod  String?   @db.VarChar(100)
+  note              String?   @db.VarChar(150)
+  shelflife         String?   @db.VarChar(150)
+  // Candle-specific fields
+  wax_type          String?   @db.VarChar(150)
+  burn_time         String?   @db.VarChar(150)
+  scent_profile     String?   @db.VarChar(100)
+  container_material String?  @db.VarChar(100)
+  candle_dimensions String?
+  // Planter-specific fields
+  planter_material  String?
+  drainage_hole     Boolean?
+  suitable_for      String?
+  planter_dimensions String?
+  plant_included    Boolean?
+  // Art-specific fields
+  art_type          String?
+  frame_included    Boolean?
+  art_dimensions    String?
+  orientation       String?
+  artist_name       String?
+  // Status field
+  isactive          Boolean?
   supplier          Supplier? @relation(fields: [supplierid], references: [id], map: "fk_supplier")
 
   @@map("product")

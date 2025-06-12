@@ -88,3 +88,116 @@ Fallback values: [
   ],
   "updateuser"
 ]
+Fallback values: [
+  67,
+  "Updated Test Product - All Fields",
+  "Premium natural ingredients",
+  "Follow instructions carefully",
+  "Organic soy wax",
+  "45 hours",
+  true,
+  true,
+  "Digital print",
+  4.7,
+  15,
+  1749707429
+]
+Fallback values: [
+  67,
+  "Performance Test Product",
+  "Testing response time",
+  "Performance testing ingredients",
+  "Performance wax",
+  4.9,
+  true,
+  1749707430
+]
+Fallback values: [
+  69,
+  false,
+  1749707765
+]
+Fallback values: [
+  69,
+  true,
+  1749707766
+]
+Fallback values: [
+  69,
+  false,
+  1749707766
+]
+Fallback values: [
+  69,
+  true,
+  1749707767
+]
+Fallback values: [
+  69,
+  456,
+  1749707768
+]
+Fallback values: [
+  69,
+  "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  1749707780
+]
+Fallback values: [
+  69,
+  "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  1749707781
+]
+Fallback values: [
+  69,
+  "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  1749707782
+]
+Fallback values: [
+  77,
+  "Test ingredients",
+  1749707827
+]
+Fallback values: [
+  77,
+  "Test usage instructions",
+  1749707827
+]
+Fallback values: [
+  77,
+  "Test wax type",
+  1749707828
+]
+Fallback values: [
+  77,
+  "Test burn time",
+  1749707829
+]
+Fallback values: [
+  77,
+  true,
+  1749707830
+]
+Fallback values: [
+  77,
+  true,
+  1749707830
+]
+Fallback values: [
+  77,
+  "Test art type",
+  1749707831
+]
+Fallback values: [
+  78,
+  "Debug ingredients",
+  "Debug wax",
+  true,
+  false,
+  "Debug art",
+  1749707873
+]
+Fallback values: [
+  82,
+  456,
+  1749708178
+]
