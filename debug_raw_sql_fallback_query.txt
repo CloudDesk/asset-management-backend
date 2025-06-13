@@ -142,3 +142,9 @@ Fallback query:
         WHERE "id" = $1 
         RETURNING *
       
+Fallback query: 
+        UPDATE "stock" 
+        SET "rfid" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING *
+      

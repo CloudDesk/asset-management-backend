@@ -148,12 +148,14 @@ export class StockService {
         try {
             const { id, ...updateData } = data;
             if (id) {
-                // Update existing stock
-                logger.debug({ stockId: id, data: updateData }, 'Upserting existing stock');
+                // Update existing stock by ID
+                logger.debug({ stockId: id, data: updateData }, 'Upserting existing stock by ID');
                 return this.update(id, updateData);
             }
             else {
-                // Try to find existing stock by productId and batchNumber if both exist
+                // Try to find existing stock by unique fields
+                let existingStock = null;
+                // Strategy 1: Try to find by productId and batchNumber
                 const productId = data.productId || data.product_id;
                 const batchNumber = data.batchNumber || data.batch_number;
                 if (productId && batchNumber) {
@@ -170,18 +172,62 @@ export class StockService {
                             take: 1
                         });
                         if (existingStocks.length > 0) {
-                            // Update existing stock
-                            logger.debug({ stockId: existingStocks[0].id, data: updateData }, 'Upserting found existing stock');
-                            return this.update(existingStocks[0].id, updateData);
+                            existingStock = existingStocks[0];
+                            logger.debug({ stockId: existingStock.id }, 'Found existing stock by productId and batchNumber');
                         }
                     }
                     catch (error) {
-                        logger.debug({ error }, 'Could not search for existing stock, creating new one');
+                        logger.debug({ error }, 'Could not search by productId and batchNumber');
                     }
                 }
-                // Create new stock
-                logger.debug({ data: updateData }, 'Upserting new stock');
-                return this.create(updateData);
+                // Strategy 2: Try to find by RFID if not found yet
+                if (!existingStock && (data.rfid || data.rfid === '')) {
+                    try {
+                        const existingStocks = await dynamicFindMany('stock', {
+                            where: { rfid: data.rfid },
+                            take: 1
+                        });
+                        if (existingStocks.length > 0) {
+                            existingStock = existingStocks[0];
+                            logger.debug({ stockId: existingStock.id }, 'Found existing stock by RFID');
+                        }
+                    }
+                    catch (error) {
+                        logger.debug({ error }, 'Could not search by RFID');
+                    }
+                }
+                // Strategy 3: Try to find by serial number if not found yet
+                if (!existingStock && (data.serialnumber || data.serialNumber)) {
+                    try {
+                        const serialNumber = data.serialnumber || data.serialNumber;
+                        const existingStocks = await dynamicFindMany('stock', {
+                            where: {
+                                OR: [
+                                    { serialnumber: serialNumber },
+                                    { serialNumber: serialNumber }
+                                ]
+                            },
+                            take: 1
+                        });
+                        if (existingStocks.length > 0) {
+                            existingStock = existingStocks[0];
+                            logger.debug({ stockId: existingStock.id }, 'Found existing stock by serial number');
+                        }
+                    }
+                    catch (error) {
+                        logger.debug({ error }, 'Could not search by serial number');
+                    }
+                }
+                if (existingStock) {
+                    // Update existing stock
+                    logger.debug({ stockId: existingStock.id, data: updateData }, 'Upserting found existing stock');
+                    return this.update(existingStock.id.toString(), updateData);
+                }
+                else {
+                    // Create new stock
+                    logger.debug({ data: updateData }, 'Upserting new stock (no existing found)');
+                    return this.create(updateData);
+                }
             }
         }
         catch (error) {

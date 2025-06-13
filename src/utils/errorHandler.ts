@@ -175,16 +175,49 @@ function parsePrismaError(error: any, requestBody?: any): { message: string; det
       
       // Handle unique constraint from raw query
       if (rawMessage.includes('already exists')) {
-        const keyMatch = rawMessage.match(/Key \(([^)]+)\)=\(([^)]+)\)/);
+        const keyMatch = rawMessage.match(/Key \(([^)]+)\)=\(([^)]*)\)/);
         if (keyMatch) {
           const fieldName = keyMatch[1];
-          const fieldValue = keyMatch[2];
+          const fieldValue = keyMatch[2] || '(empty)'; // Handle empty values
+          const displayValue = fieldValue === '' ? 'empty value' : `'${fieldValue}'`;
           return {
-            message: `The ${fieldName} '${fieldValue}' already exists. Please use a unique value.`,
-            details: `Duplicate entry detected for field: ${fieldName}`,
+            message: `Duplicate ${fieldName}: ${displayValue} already exists. Please use a unique value.`,
+            details: `A record with ${fieldName} = ${displayValue} already exists in the database.`,
             statusCode: 400
           };
         }
+        
+        // Fallback parsing for other unique constraint formats
+        return {
+          message: 'Duplicate entry detected',
+          details: rawMessage,
+          statusCode: 400
+        };
+      }
+      
+      // Handle foreign key constraint violations
+      if (rawMessage.includes('violates foreign key constraint')) {
+        const constraintMatch = rawMessage.match(/violates foreign key constraint "([^"]+)"/);
+        const keyMatch = rawMessage.match(/Key \(([^)]+)\)=\(([^)]*)\)/);
+        
+        const constraintName = constraintMatch ? constraintMatch[1] : 'foreign key';
+        const fieldName = keyMatch ? keyMatch[1] : 'field';
+        const fieldValue = keyMatch ? (keyMatch[2] || '(empty)') : 'unknown';
+        
+        return {
+          message: `Invalid ${fieldName} reference: ${fieldValue === '(empty)' ? 'empty value' : fieldValue}`,
+          details: `The ${fieldName} value does not exist in the referenced table. Please provide a valid ${fieldName}.`,
+          statusCode: 400
+        };
+      }
+      
+      // Handle tsvector deserialization errors
+      if (rawMessage.includes('Failed to deserialize column of type') && rawMessage.includes('tsvector')) {
+        return {
+          message: 'Database column type error',
+          details: 'Internal database type error. Please contact support.',
+          statusCode: 500
+        };
       }
       
       // Handle type mismatch errors

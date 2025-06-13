@@ -1089,10 +1089,13 @@ export async function dynamicCreate(
     
     const columnsList = columns.map(col => `"${col}"`).join(', ');
     
+    // Use safe columns for RETURNING to avoid tsvector issues
+    const { columnList: safeColumnsList } = await getSafeColumnsForTable(tableName);
+    
     const insertQuery = `
       INSERT INTO "${tableName}" (${columnsList}) 
       VALUES (${placeholders}) 
-      RETURNING *
+      RETURNING ${safeColumnsList}
     `;
     
     logger.debug({ 

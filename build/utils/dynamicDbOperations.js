@@ -773,8 +773,13 @@ export async function dynamicFindUnique(modelName, where, include) {
                 });
             }
             else if (modelName === 'stock') {
+                // Convert string ID to integer for stock model
+                const stockWhere = { ...where };
+                if (stockWhere.id && typeof stockWhere.id === 'string' && /^\d+$/.test(stockWhere.id)) {
+                    stockWhere.id = parseInt(stockWhere.id, 10);
+                }
                 result = await prisma.stock.findUnique({
-                    where,
+                    where: stockWhere,
                     ...(include && { include }),
                 });
             }
@@ -798,7 +803,11 @@ export async function dynamicFindUnique(modelName, where, include) {
                 if (typeof idValue === 'string' && /^\d+$/.test(idValue)) {
                     idValue = parseInt(idValue, 10);
                 }
-                const sqlResult = await prisma.$queryRawUnsafe(`SELECT * FROM ${tableName} WHERE id = $1 LIMIT 1`, idValue);
+                // Get table columns but exclude tsvector columns that can't be deserialized
+                const availableColumns = await discoverTableColumns(tableName);
+                const selectableColumns = availableColumns.filter(col => col !== 'searchtext');
+                const columnsList = selectableColumns.map(col => `"${col}"`).join(', ');
+                const sqlResult = await prisma.$queryRawUnsafe(`SELECT ${columnsList} FROM ${tableName} WHERE id = $1 LIMIT 1`, idValue);
                 const records = Array.isArray(sqlResult) ? sqlResult : [];
                 if (records.length > 0) {
                     logger.debug({
@@ -824,7 +833,11 @@ export async function dynamicFindUnique(modelName, where, include) {
                 if (typeof idValue === 'string' && /^\d+$/.test(idValue)) {
                     idValue = parseInt(idValue, 10);
                 }
-                const result = await prisma.$queryRawUnsafe(`SELECT * FROM ${tableName} WHERE id = $1 LIMIT 1`, idValue);
+                // Get table columns but exclude tsvector columns that can't be deserialized
+                const availableColumns = await discoverTableColumns(tableName);
+                const selectableColumns = availableColumns.filter(col => col !== 'searchtext');
+                const columnsList = selectableColumns.map(col => `"${col}"`).join(', ');
+                const result = await prisma.$queryRawUnsafe(`SELECT ${columnsList} FROM ${tableName} WHERE id = $1 LIMIT 1`, idValue);
                 const records = Array.isArray(result) ? result : [];
                 if (records.length > 0) {
                     logger.debug({
@@ -893,10 +906,12 @@ export async function dynamicCreate(modelName, data, include) {
             return `$${index + 1}`;
         }).join(', ');
         const columnsList = columns.map(col => `"${col}"`).join(', ');
+        // Use safe columns for RETURNING to avoid tsvector issues
+        const { columnList: safeColumnsList } = await getSafeColumnsForTable(tableName);
         const insertQuery = `
       INSERT INTO "${tableName}" (${columnsList}) 
       VALUES (${placeholders}) 
-      RETURNING *
+      RETURNING ${safeColumnsList}
     `;
         logger.debug({
             modelName,
@@ -953,8 +968,13 @@ export async function dynamicUpdate(modelName, where, data, include) {
                 });
             }
             else if (modelName === 'stock') {
+                // Convert string ID to integer for stock model
+                const stockWhere = { ...where };
+                if (stockWhere.id && typeof stockWhere.id === 'string' && /^\d+$/.test(stockWhere.id)) {
+                    stockWhere.id = parseInt(stockWhere.id, 10);
+                }
                 result = await prisma.stock.update({
-                    where,
+                    where: stockWhere,
                     data: filteredData,
                     include,
                 });
@@ -1367,18 +1387,34 @@ export function formatProductForAPI(product) {
     if (!product)
         return product;
     const formatted = serializeForAPI(product);
-    // Format numeric fields
+    // Format all BigInt and numeric fields from the Product schema
     if (formatted.id !== undefined) {
         formatted.id = formatIntegerField(formatted.id) || formatted.id;
     }
-    if (formatted.price !== undefined) {
-        formatted.price = formatNumericField(formatted.price);
+    if (formatted.supplierid !== undefined) {
+        formatted.supplierid = formatIntegerField(formatted.supplierid);
+    }
+    if (formatted.soldquantity !== undefined) {
+        formatted.soldquantity = formatIntegerField(formatted.soldquantity);
+    }
+    if (formatted.availablequantity !== undefined) {
+        formatted.availablequantity = formatIntegerField(formatted.availablequantity);
+    }
+    if (formatted.discount !== undefined) {
+        formatted.discount = formatIntegerField(formatted.discount);
+    }
+    if (formatted.orderedquantity !== undefined) {
+        formatted.orderedquantity = formatIntegerField(formatted.orderedquantity);
     }
     if (formatted.createddate !== undefined) {
         formatted.createddate = formatIntegerField(formatted.createddate) || formatted.createddate;
     }
     if (formatted.modifieddate !== undefined) {
         formatted.modifieddate = formatIntegerField(formatted.modifieddate) || formatted.modifieddate;
+    }
+    // Handle Decimal fields
+    if (formatted.averagerating !== undefined) {
+        formatted.averagerating = formatNumericField(formatted.averagerating);
     }
     return formatted;
 }
@@ -1389,10 +1425,35 @@ export function formatStockForAPI(stock) {
     if (!stock)
         return stock;
     const formatted = serializeForAPI(stock);
-    // Format numeric fields
+    // Format all BigInt and numeric fields from the Stock schema
     if (formatted.id !== undefined) {
         formatted.id = formatIntegerField(formatted.id) || formatted.id;
     }
+    if (formatted.createddate !== undefined) {
+        formatted.createddate = formatIntegerField(formatted.createddate) || formatted.createddate;
+    }
+    if (formatted.modifieddate !== undefined) {
+        formatted.modifieddate = formatIntegerField(formatted.modifieddate) || formatted.modifieddate;
+    }
+    if (formatted.createdby !== undefined) {
+        formatted.createdby = formatIntegerField(formatted.createdby);
+    }
+    if (formatted.modifiedby !== undefined) {
+        formatted.modifiedby = formatIntegerField(formatted.modifiedby);
+    }
+    if (formatted.manufacturedyear !== undefined) {
+        formatted.manufacturedyear = formatIntegerField(formatted.manufacturedyear);
+    }
+    if (formatted.releaseyear !== undefined) {
+        formatted.releaseyear = formatIntegerField(formatted.releaseyear);
+    }
+    if (formatted.solddate !== undefined) {
+        formatted.solddate = formatIntegerField(formatted.solddate);
+    }
+    if (formatted.rfidscannedtime !== undefined) {
+        formatted.rfidscannedtime = formatIntegerField(formatted.rfidscannedtime);
+    }
+    // Handle legacy quantity fields that might exist
     if (formatted.quantity !== undefined) {
         formatted.quantity = formatIntegerField(formatted.quantity);
     }
@@ -1401,12 +1462,6 @@ export function formatStockForAPI(stock) {
     }
     if (formatted.maxstock !== undefined) {
         formatted.maxstock = formatIntegerField(formatted.maxstock);
-    }
-    if (formatted.createddate !== undefined) {
-        formatted.createddate = formatIntegerField(formatted.createddate) || formatted.createddate;
-    }
-    if (formatted.modifieddate !== undefined) {
-        formatted.modifieddate = formatIntegerField(formatted.modifieddate) || formatted.modifieddate;
     }
     return formatted;
 }

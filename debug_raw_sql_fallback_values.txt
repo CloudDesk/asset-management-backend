@@ -201,3 +201,8 @@ Fallback values: [
   456,
   1749708178
 ]
+Fallback values: [
+  89,
+  "TEST_RFID_001",
+  1749793203
+]

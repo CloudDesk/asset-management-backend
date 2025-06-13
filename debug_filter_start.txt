@@ -2990,3 +2990,297 @@ Filtering data for product (product): {
     "https://example.com/new-medium.jpg"
   ]
 }
+Filtering data for stock (stock): {
+  "puc": "PUC-COMPLETE-001",
+  "rfid": "",
+  "serialnumber": "dad56as7dsa",
+  "manufacturedyear": 2025,
+  "ecompublish": true,
+  "releaseyear": 2025,
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtering data for stock (stock): {
+  "puc": "PUC-COMPLETE-001",
+  "rfid": "RFID-TEST-001",
+  "serialnumber": "dad56as7dsa",
+  "manufacturedyear": 2025,
+  "ecompublish": true,
+  "releaseyear": 2025,
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtering data for stock (stock): {
+  "puc": "PUC-COMPLETE-001",
+  "rfid": "RFID-TEST-002",
+  "serialnumber": "dad56as7dsa",
+  "stockstatus": "Available",
+  "location": "Test Location",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ecompublish": false,
+  "ewaste": false
+}
+Filtering data for stock (stock): {
+  "puc": "PUC-COMPLETE-002",
+  "serialnumber": "UNIQUE_SERIAL_001",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ecompublish": false,
+  "ewaste": false
+}
+Filtering data for stock (stock): {
+  "puc": "PUC-COMPLETE-001",
+  "rfid": "",
+  "serialnumber": "dad56as7dsa",
+  "manufacturedyear": 2025,
+  "ecompublish": true,
+  "releaseyear": 2025,
+  "stockstatus": "Available"
+}
+Filtering data for stock (stock): {
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ecompublish": false,
+  "ewaste": false
+}
+Filtering data for stock (stock): {
+  "location": "Updated Test Location",
+  "productname": "Updated Product Name"
+}
+Filtering data for stock (stock): {
+  "quantity": 100,
+  "availableQuantity": 95,
+  "available_quantity": 95,
+  "soldQuantity": 5,
+  "sold_quantity": 5
+}
+Filtering data for stock (stock): {
+  "puc": "PUC-COMPLETE-1749792544",
+  "serialnumber": "SERIAL_1749792544",
+  "stockstatus": "Available",
+  "productname": "Test Product 1749792544",
+  "location": "Test Location",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ecompublish": false,
+  "ewaste": false
+}
+Filtering data for stock (stock): {
+  "puc": "",
+  "rfid": "",
+  "serialnumber": "dad56as7dsa",
+  "manufacturedyear": 2025,
+  "ecompublish": true,
+  "releaseyear": 2025,
+  "stockstatus": "Available",
+  "productname": "Test Product",
+  "location": "Test Location",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtering data for stock (stock): {
+  "serialnumber": "dad56as7dsa_v2",
+  "manufacturedyear": 2025,
+  "ecompublish": true,
+  "releaseyear": 2025,
+  "stockstatus": "Available",
+  "productname": "Test Product v2",
+  "location": "Test Location",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtering data for stock (stock): {
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ecompublish": false,
+  "ewaste": false
+}
+Filtering data for stock (stock): {
+  "puc": "",
+  "rfid": "",
+  "serialnumber": "dad56as7dsa",
+  "manufacturedyear": 2025,
+  "ecompublish": true,
+  "releaseyear": 2025,
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtering data for stock (stock): {
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ecompublish": false,
+  "ewaste": false
+}
+Filtering data for stock (stock): {
+  "puc": "",
+  "rfid": "",
+  "serialnumber": "dad56as7dsa",
+  "manufacturedyear": 2025,
+  "ecompublish": true,
+  "releaseyear": 2025,
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtering data for stock (stock): {
+  "puc": "",
+  "rfid": "",
+  "serialnumber": "serial_1749792762",
+  "manufacturedyear": 2025,
+  "ecompublish": true,
+  "releaseyear": 2025,
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtering data for stock (stock): {
+  "serialnumber": "test_unique_123",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ecompublish": false,
+  "ewaste": false
+}
+Filtering data for stock (stock): {
+  "puc": "",
+  "rfid": "",
+  "serialnumber": "test_duplicate",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ecompublish": false,
+  "ewaste": false
+}
+Filtering data for stock (stock): {
+  "puc": "",
+  "rfid": "RFID_UNIQUE_001",
+  "serialnumber": "dad56as7dsa_unique",
+  "manufacturedyear": 2025,
+  "ecompublish": true,
+  "releaseyear": 2025,
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtering data for stock (stock): {
+  "rfid": "RFID_UNIQUE_002",
+  "serialnumber": "dad56as7dsa_v3",
+  "manufacturedyear": 2025,
+  "ecompublish": true,
+  "releaseyear": 2025,
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtering data for stock (stock): {
+  "rfid": "TEST_RFID_001",
+  "serialnumber": "SERIAL_TEST_001",
+  "manufacturedyear": 2025,
+  "ecompublish": true,
+  "releaseyear": 2025,
+  "stockstatus": "Available",
+  "productname": "Test Product 1",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtering data for stock (stock): {
+  "rfid": "TEST_RFID_001",
+  "serialnumber": "SERIAL_TEST_002",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ecompublish": false,
+  "ewaste": false
+}
+Filtering data for stock (stock): {
+  "rfid": "",
+  "serialnumber": "SERIAL_TEST_003",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ecompublish": false,
+  "ewaste": false
+}
+Filtering data for stock (stock): {
+  "rfid": "UPSERT_RFID_001",
+  "serialnumber": "UPSERT_SERIAL_001",
+  "stockstatus": "Available",
+  "productname": "Upsert Test Product 1"
+}
+Filtering data for stock (stock): {
+  "rfid": "UPSERT_RFID_001",
+  "serialnumber": "UPSERT_SERIAL_001",
+  "stockstatus": "Sold",
+  "productname": "Updated Upsert Test Product 1",
+  "location": "Updated Location"
+}
+Filtering data for stock (stock): {
+  "rfid": "UPSERT_RFID_001",
+  "serialnumber": "UPSERT_SERIAL_001",
+  "stockstatus": "Sold",
+  "productname": "Updated Upsert Test Product 1",
+  "location": "Updated Location"
+}
+Filtering data for stock (stock): {
+  "rfid": "UPSERT_RFID_002",
+  "serialnumber": "BRAND_NEW_SERIAL",
+  "stockstatus": "Available",
+  "productname": "Brand New Upsert Product"
+}
+Filtering data for stock (stock): {
+  "rfid": "COMPLETELY_NEW_RFID",
+  "serialnumber": "COMPLETELY_NEW_SERIAL",
+  "stockstatus": "Available",
+  "productname": "Completely New Product"
+}
+Filtering data for stock (stock): {
+  "productname": "Updated Test Product 1",
+  "stockstatus": "Sold",
+  "location": "New Updated Location"
+}
+Filtering data for stock (stock): {
+  "rfid": "TEST_RFID_001"
+}
+Filtering data for stock (stock): {
+  "productname": "Final Updated Product",
+  "stockstatus": "Available",
+  "location": "Final Location"
+}

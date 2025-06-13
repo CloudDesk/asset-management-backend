@@ -11,7 +11,7 @@ import { routes } from './routes/index.js';
 import { errorHandler, createErrorResponse } from './utils/errorHandler.js';
 export async function buildServer() {
     const fastify = Fastify({
-        logger: logger,
+        logger: true, // Use default logger instead of passing pino instance
         disableRequestLogging: true, // We'll handle this in our logger plugin
     });
     // Register logger plugin first

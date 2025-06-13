@@ -45,7 +45,7 @@ export const upsertProductSchema = z.object({
     product_status: z.string().optional(),
 }).passthrough();
 export const productParamsSchema = z.object({
-    id: z.string().uuid('Invalid product ID'),
+    id: z.string().regex(/^\d+$/, 'Invalid product ID - must be a numeric string'),
 });
 export const productQuerySchema = z.object({
     // Pagination
