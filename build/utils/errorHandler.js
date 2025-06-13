@@ -201,6 +201,26 @@ function parsePrismaError(error, requestBody) {
                     statusCode: 400
                 };
             }
+            // Handle PostgreSQL custom constraint/trigger errors
+            if (rawMessage.includes('Invalid')) {
+                // Extract specific constraint message
+                const constraintMatch = rawMessage.match(/Invalid ([^:]+): (.+)/);
+                if (constraintMatch) {
+                    const fieldName = constraintMatch[1];
+                    const constraintDetails = constraintMatch[2];
+                    return {
+                        message: `Invalid ${fieldName}: ${constraintDetails}`,
+                        details: `The field '${fieldName}' violates database constraints. ${constraintDetails}`,
+                        statusCode: 400
+                    };
+                }
+                // Fallback for other "Invalid" messages
+                return {
+                    message: rawMessage,
+                    details: 'The provided data violates database validation rules',
+                    statusCode: 400
+                };
+            }
             // Fallback for P2010
             return {
                 message: 'Database operation failed',
@@ -344,7 +364,16 @@ export function processError(error, request) {
         message = 'Invalid data provided';
         details = 'The provided data does not match the expected format';
         // Try to extract more specific information from the validation error
-        if (error.message.includes('Argument')) {
+        if (error.message.includes('Unknown argument')) {
+            // Extract the unknown field name
+            const unknownArgMatch = error.message.match(/Unknown argument `([^`]+)`/);
+            if (unknownArgMatch) {
+                const fieldName = unknownArgMatch[1];
+                message = `Invalid field: '${fieldName}'`;
+                details = `The field '${fieldName}' is not supported. Please check the API documentation for valid fields.`;
+            }
+        }
+        else if (error.message.includes('Argument')) {
             const argMatch = error.message.match(/Argument `(\w+)`/);
             if (argMatch) {
                 const fieldName = argMatch[1];

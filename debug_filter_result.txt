@@ -3255,3 +3255,174 @@ Filtered data result: {
   "stockstatus": "Available",
   "location": "Final Location"
 }
+Filtered data result: {
+  "name": "TEST",
+  "category": "wellness",
+  "subcategory": "essential-oils",
+  "shortdescription": "TEST",
+  "fulldescription": "",
+  "fragnancetype": "",
+  "volume": "",
+  "origincountry": "",
+  "organiccertified": false,
+  "availablequantity": 0,
+  "productstatus": "",
+  "ingredients": "",
+  "usage": "",
+  "extractionmethod": "",
+  "note": "",
+  "shelflife": ""
+}
+Filtered data result: {
+  "name": "TEST",
+  "category": "wellness",
+  "subcategory": "essential-oils",
+  "shortdescription": "TEST",
+  "fulldescription": "",
+  "fragnancetype": "",
+  "volume": "",
+  "origincountry": "",
+  "organiccertified": false,
+  "availablequantity": 0,
+  "productstatus": "",
+  "ingredients": "",
+  "usage": "",
+  "extractionmethod": "",
+  "note": "",
+  "shelflife": ""
+}
+Filtered data result: {
+  "name": "TEST_PRODUCT"
+}
+Filtered data result: {
+  "name": "TEST_PRODUCT"
+}
+Filtered data result: {
+  "name": "TEST_PRODUCT"
+}
+Filtered data result: {
+  "name": "TEST",
+  "category": "wellness",
+  "subcategory": "essential-oils",
+  "shortdescription": "TEST",
+  "fulldescription": "",
+  "fragnancetype": "",
+  "volume": "",
+  "origincountry": "",
+  "organiccertified": false,
+  "availablequantity": 0,
+  "productstatus": "",
+  "ingredients": "",
+  "usage": "",
+  "extractionmethod": "",
+  "note": "",
+  "shelflife": ""
+}
+Filtered data result: {
+  "name": "TEST",
+  "category": "wellness",
+  "subcategory": "essential-oils",
+  "shortdescription": "TEST"
+}
+Filtered data result: {
+  "name": "TEST",
+  "category": "health"
+}
+Filtered data result: {
+  "name": "TEST",
+  "shortdescription": "TEST",
+  "subcategory": "essential-oils",
+  "fulldescription": "",
+  "fragnancetype": "",
+  "volume": "",
+  "origincountry": "",
+  "organiccertified": false,
+  "availablequantity": 0,
+  "productstatus": "",
+  "ingredients": "",
+  "usage": "",
+  "extractionmethod": "",
+  "note": "",
+  "shelflife": ""
+}
+Filtered data result: {
+  "name": "TEST",
+  "category": "cosmetics"
+}
+Filtered data result: {
+  "name": "TEST",
+  "category": "beauty"
+}
+Filtered data result: {
+  "name": "TEST",
+  "category": "skincare"
+}
+Filtered data result: {
+  "name": "TEST",
+  "category": "food"
+}
+Filtered data result: {
+  "name": "TEST",
+  "category": "supplement"
+}
+Filtered data result: {
+  "name": "TEST",
+  "category": "other"
+}
+Filtered data result: {
+  "name": "TEST",
+  "category": "WELLNESS"
+}
+Filtered data result: {
+  "name": "TEST",
+  "category": "Wellness"
+}
+Filtered data result: {
+  "name": "TEST",
+  "category": "wellness"
+}
+Filtered data result: {
+  "name": "TEST",
+  "category": "candle"
+}
+Filtered data result: {
+  "name": "TEST",
+  "category": "art"
+}
+Filtered data result: {
+  "name": "TEST",
+  "category": "planter"
+}
+Filtered data result: {
+  "name": "TEST",
+  "category": "wellness",
+  "subcategory": "essential-oils",
+  "shortdescription": "TEST",
+  "fulldescription": "",
+  "fragnancetype": "",
+  "volume": "",
+  "origincountry": "",
+  "organiccertified": false,
+  "availablequantity": 0,
+  "productstatus": "",
+  "ingredients": "",
+  "usage": "",
+  "extractionmethod": "",
+  "note": "",
+  "shelflife": ""
+}
+Filtered data result: {
+  "name": "Beauty Product",
+  "category": "beauty",
+  "subcategory": "skincare"
+}
+Filtered data result: {
+  "name": "Food Product",
+  "category": "food",
+  "subcategory": "organic"
+}
+Filtered data result: {
+  "name": "Electronics Product",
+  "category": "electronics",
+  "subcategory": "gadgets"
+}

@@ -3284,3 +3284,179 @@ Filtering data for stock (stock): {
   "stockstatus": "Available",
   "location": "Final Location"
 }
+Filtering data for product (product): {
+  "name": "TEST",
+  "category": "wellness",
+  "subcategory": "essential-oils",
+  "shortdescription": "TEST",
+  "fulldescription": "",
+  "fragnancetype": "",
+  "volume": "",
+  "origincountry": "",
+  "organiccertified": false,
+  "supplier": "",
+  "availablequantity": 0,
+  "productstatus": "",
+  "ingredients": "",
+  "usage": "",
+  "extractionmethod": "",
+  "note": "",
+  "shelflife": ""
+}
+Filtering data for product (product): {
+  "name": "TEST",
+  "category": "wellness",
+  "subcategory": "essential-oils",
+  "shortdescription": "TEST",
+  "fulldescription": "",
+  "fragnancetype": "",
+  "volume": "",
+  "origincountry": "",
+  "organiccertified": false,
+  "supplier": "",
+  "availablequantity": 0,
+  "productstatus": "",
+  "ingredients": "",
+  "usage": "",
+  "extractionmethod": "",
+  "note": "",
+  "shelflife": ""
+}
+Filtering data for product (product): {
+  "name": "TEST_PRODUCT"
+}
+Filtering data for product (product): {
+  "name": "TEST_PRODUCT"
+}
+Filtering data for product (product): {
+  "name": "TEST_PRODUCT"
+}
+Filtering data for product (product): {
+  "name": "TEST",
+  "category": "wellness",
+  "subcategory": "essential-oils",
+  "shortdescription": "TEST",
+  "fulldescription": "",
+  "fragnancetype": "",
+  "volume": "",
+  "origincountry": "",
+  "organiccertified": false,
+  "supplier": "",
+  "availablequantity": 0,
+  "productstatus": "",
+  "ingredients": "",
+  "usage": "",
+  "extractionmethod": "",
+  "note": "",
+  "shelflife": ""
+}
+Filtering data for product (product): {
+  "name": "TEST",
+  "category": "wellness",
+  "subcategory": "essential-oils",
+  "shortdescription": "TEST"
+}
+Filtering data for product (product): {
+  "name": "TEST",
+  "category": "health"
+}
+Filtering data for product (product): {
+  "name": "TEST",
+  "shortdescription": "TEST",
+  "subcategory": "essential-oils",
+  "fulldescription": "",
+  "fragnancetype": "",
+  "volume": "",
+  "origincountry": "",
+  "organiccertified": false,
+  "supplier": "",
+  "availablequantity": 0,
+  "productstatus": "",
+  "ingredients": "",
+  "usage": "",
+  "extractionmethod": "",
+  "note": "",
+  "shelflife": ""
+}
+Filtering data for product (product): {
+  "name": "TEST",
+  "category": "cosmetics"
+}
+Filtering data for product (product): {
+  "name": "TEST",
+  "category": "beauty"
+}
+Filtering data for product (product): {
+  "name": "TEST",
+  "category": "skincare"
+}
+Filtering data for product (product): {
+  "name": "TEST",
+  "category": "food"
+}
+Filtering data for product (product): {
+  "name": "TEST",
+  "category": "supplement"
+}
+Filtering data for product (product): {
+  "name": "TEST",
+  "category": "other"
+}
+Filtering data for product (product): {
+  "name": "TEST",
+  "category": "WELLNESS"
+}
+Filtering data for product (product): {
+  "name": "TEST",
+  "category": "Wellness"
+}
+Filtering data for product (product): {
+  "name": "TEST",
+  "category": "wellness"
+}
+Filtering data for product (product): {
+  "name": "TEST",
+  "category": "candle"
+}
+Filtering data for product (product): {
+  "name": "TEST",
+  "category": "art"
+}
+Filtering data for product (product): {
+  "name": "TEST",
+  "category": "planter"
+}
+Filtering data for product (product): {
+  "name": "TEST",
+  "category": "wellness",
+  "subcategory": "essential-oils",
+  "shortdescription": "TEST",
+  "fulldescription": "",
+  "fragnancetype": "",
+  "volume": "",
+  "origincountry": "",
+  "organiccertified": false,
+  "supplier": "",
+  "availablequantity": 0,
+  "productstatus": "",
+  "ingredients": "",
+  "usage": "",
+  "extractionmethod": "",
+  "note": "",
+  "shelflife": ""
+}
+Filtering data for product (product): {
+  "name": "Beauty Product",
+  "category": "beauty",
+  "subcategory": "skincare"
+}
+Filtering data for product (product): {
+  "name": "Food Product",
+  "category": "food",
+  "subcategory": "organic"
+}
+Filtering data for product (product): {
+  "name": "Electronics Product",
+  "category": "electronics",
+  "subcategory": "gadgets"
+}

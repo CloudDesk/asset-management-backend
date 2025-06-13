@@ -58,7 +58,13 @@ export class ProductService {
             return product;
         }
         catch (error) {
-            logger.error({ error, data }, 'Error in product create operation');
+            logger.error({
+                error: error.message,
+                errorCode: error.code,
+                errorMeta: error.meta,
+                originalData: data
+            }, 'Error in product create operation');
+            // Re-throw the original error to preserve specific error details
             throw error;
         }
     }
