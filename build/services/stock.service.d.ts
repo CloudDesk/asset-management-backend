@@ -1,6 +1,6 @@
-import { CreateStockInput, UpdateStockInput, UpsertStockInput } from '../schemas/stock.schema.js';
-import { PaginationResult } from '../utils/pagination.js';
-import { FilterOptions } from '../utils/filterBuilder.js';
+import { CreateStockInput, UpdateStockInput, UpsertStockInput } from "../schemas/stock.schema.js";
+import { PaginationResult } from "../utils/pagination.js";
+import { FilterOptions } from "../utils/filterBuilder.js";
 export declare class StockService {
     private productService;
     findMany(filters: FilterOptions, page: number, limit: number): Promise<PaginationResult<any>>;

@@ -112,3 +112,15 @@ Update query:
         WHERE "id" = $1 
         RETURNING *
       
+Update query: 
+        UPDATE "cart" 
+        SET "quantity" = $2, "iswishlist" = $3, "modifieddate" = $4 
+        WHERE "id" = $1 
+        RETURNING *
+      
+Update query: 
+        UPDATE "cart" 
+        SET "quantity" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING *
+      

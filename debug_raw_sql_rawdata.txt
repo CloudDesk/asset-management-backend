@@ -247,3 +247,12 @@ Final rawData: {
   "companyname": "Minimal Update Corp",
   "modifiedby": "updateuser"
 }
+Final rawData: {
+  "quantity": 5,
+  "iswishlist": true,
+  "modifieddate": 1749817435181
+}
+Final rawData: {
+  "quantity": 10,
+  "modifieddate": 1749817472177
+}

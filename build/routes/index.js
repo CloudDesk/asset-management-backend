@@ -12,6 +12,7 @@ import { authRoutes } from './auth.route.js';
 import { poinvoiceRoutes } from './poinvoice.route.js';
 import { addressRoutes } from './address.route.js';
 import { samplePurchaseRequestRoutes } from './samplepurchaserequest.route.js';
+import { cartRoutes } from './cart.route.js';
 import { requireAuthentication } from '../middleware/auth.middleware.js';
 import { createSuccessResponse } from '../utils/errorHandler.js';
 export async function routes(fastify) {
@@ -66,6 +67,7 @@ export async function routes(fastify) {
         await fastify.register(poinvoiceRoutes, { prefix: '/poinvoices' });
         await fastify.register(addressRoutes, { prefix: '/addresses' });
         await fastify.register(samplePurchaseRequestRoutes, { prefix: '/samplepurchaserequests' });
+        await fastify.register(cartRoutes, { prefix: '/carts' });
         await fastify.register(async function (fastify) {
             // Apply authentication middleware to all routes in this scope
             fastify.addHook('preHandler', requireAuthentication);

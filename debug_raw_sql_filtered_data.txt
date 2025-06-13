@@ -445,3 +445,12 @@ Filtered data: {
   "companyname": "Minimal Update Corp",
   "modifiedby": "updateuser"
 }
+Filtered data: {
+  "quantity": 5,
+  "iswishlist": true,
+  "modifieddate": 1749817435181
+}
+Filtered data: {
+  "quantity": 10,
+  "modifieddate": 1749817472177
+}

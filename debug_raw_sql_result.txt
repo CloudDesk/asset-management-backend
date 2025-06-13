@@ -538,3 +538,27 @@ Update result: [
     "modifiedby": "updateuser"
   }
 ]
+Update result: [
+  {
+    "id": 53,
+    "productid": 1,
+    "userid": 1,
+    "createddate": 1749837229,
+    "quantity": "5",
+    "iscart": true,
+    "iswishlist": true,
+    "modifieddate": 1749837238
+  }
+]
+Update result: [
+  {
+    "id": 54,
+    "productid": 3,
+    "userid": 2,
+    "createddate": 1749837265,
+    "quantity": "10",
+    "iscart": true,
+    "iswishlist": false,
+    "modifieddate": 1749837275
+  }
+]

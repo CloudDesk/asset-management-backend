@@ -3504,3 +3504,30 @@ Filtering data for product (product): {
     "https://storage.cloud.google.com/vyb-product-images-dev/170/small/small_wall_art_1.jpg"
   ]
 }
+Filtering data for cart (cart): {
+  "productid": 1,
+  "userid": 1,
+  "quantity": 2,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1749817426567,
+  "modifieddate": 1749817426567
+}
+Filtering data for cart (cart): {
+  "quantity": 5,
+  "iswishlist": true,
+  "modifieddate": 1749817435181
+}
+Filtering data for cart (cart): {
+  "productid": 3,
+  "userid": 2,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1749817462785,
+  "modifieddate": 1749817462785
+}
+Filtering data for cart (cart): {
+  "quantity": 10,
+  "modifieddate": 1749817472177
+}
