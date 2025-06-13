@@ -3460,3 +3460,47 @@ Filtering data for product (product): {
   "category": "electronics",
   "subcategory": "gadgets"
 }
+Filtering data for product (product): {
+  "large": [
+    "https://storage.cloud.google.com/vyb-product-images-dev/170/large/large_wall art_1.jpg"
+  ],
+  "medium": [
+    "https://storage.cloud.google.com/vyb-product-images-dev/170/medium/medium_wall art_1.jpg"
+  ],
+  "small": [
+    "https://storage.cloud.google.com/vyb-product-images-dev/170/small/small_wall art_1.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "not_an_array"
+  ],
+  "medium": [
+    "valid_array"
+  ],
+  "small": [
+    "valid_array"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.cloud.google.com/vyb-product-images-dev/170/large/large_wall art_1.jpg"
+  ],
+  "medium": [
+    "https://storage.cloud.google.com/vyb-product-images-dev/170/medium/medium_wall art_1.jpg"
+  ],
+  "small": [
+    "https://storage.cloud.google.com/vyb-product-images-dev/170/small/small_wall art_1.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.cloud.google.com/vyb-product-images-dev/170/large/large_wall_art_1.jpg"
+  ],
+  "medium": [
+    "https://storage.cloud.google.com/vyb-product-images-dev/170/medium/medium_wall_art_1.jpg"
+  ],
+  "small": [
+    "https://storage.cloud.google.com/vyb-product-images-dev/170/small/small_wall_art_1.jpg"
+  ]
+}

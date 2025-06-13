@@ -206,3 +206,55 @@ Fallback values: [
   "TEST_RFID_001",
   1749793203
 ]
+Fallback values: [
+  170,
+  [
+    "https://storage.cloud.google.com/vyb-product-images-dev/170/large/large_wall art_1.jpg"
+  ],
+  [
+    "https://storage.cloud.google.com/vyb-product-images-dev/170/medium/medium_wall art_1.jpg"
+  ],
+  [
+    "https://storage.cloud.google.com/vyb-product-images-dev/170/small/small_wall art_1.jpg"
+  ],
+  1749796198
+]
+Fallback values: [
+  170,
+  [
+    "not_an_array"
+  ],
+  [
+    "valid_array"
+  ],
+  [
+    "valid_array"
+  ],
+  1749796233
+]
+Fallback values: [
+  170,
+  [
+    "https://storage.cloud.google.com/vyb-product-images-dev/170/large/large_wall art_1.jpg"
+  ],
+  [
+    "https://storage.cloud.google.com/vyb-product-images-dev/170/medium/medium_wall art_1.jpg"
+  ],
+  [
+    "https://storage.cloud.google.com/vyb-product-images-dev/170/small/small_wall art_1.jpg"
+  ],
+  1749796262
+]
+Fallback values: [
+  170,
+  [
+    "https://storage.cloud.google.com/vyb-product-images-dev/170/large/large_wall_art_1.jpg"
+  ],
+  [
+    "https://storage.cloud.google.com/vyb-product-images-dev/170/medium/medium_wall_art_1.jpg"
+  ],
+  [
+    "https://storage.cloud.google.com/vyb-product-images-dev/170/small/small_wall_art_1.jpg"
+  ],
+  1749796277
+]
