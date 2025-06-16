@@ -77,7 +77,6 @@ export async function routes(fastify: FastifyInstance) {
     await fastify.register(async function (fastify) {
       // Apply authentication middleware to all routes in this scope
       fastify.addHook('preHandler', requireAuthentication);
-
       // Register protected routes
 
 

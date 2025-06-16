@@ -13,6 +13,7 @@ import {
   dynamicDelete
 } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
+import { hashPassword, verifyPassword, generateSessionToken, sanitizeUserData } from '../utils/auth.js';
 
 export class UsersService {
   async findMany(
@@ -69,15 +70,46 @@ export class UsersService {
     }
   }
 
+  async findByEmail(email: string) {
+    try {
+      logger.debug({ email }, 'Starting dynamic users findByEmail operation');
+
+      const users = await dynamicFindManyWithFilters('users', { useremail: email }, {
+        skip: 0,
+        take: 1,
+        useAllColumns: true
+      });
+
+      const user = users.data?.[0] || null;
+
+      logger.debug({ 
+        email, 
+        found: !!user,
+        availableFields: user ? Object.keys(user) : []
+      }, 'Dynamic users findByEmail completed');
+
+      return user;
+    } catch (error) {
+      logger.error({ error, email }, 'Error in users findByEmail operation');
+      throw error;
+    }
+  }
+
   async create(data: CreateUsersInput & Record<string, any>) {
     try {
       logger.debug({ originalData: data }, 'Starting dynamic users create operation');
 
+      // Hash password if provided
+      let userData = { ...data };
+      if (userData.userpassword) {
+        userData.userpassword = await hashPassword(userData.userpassword);
+      }
+
       // Add timestamps
-      const userData = {
-        ...data,
-        createddate: BigInt(Date.now()),
-        modifieddate: BigInt(Date.now())
+      userData = {
+        ...userData,
+        createddate: Date.now(),
+        modifieddate: Date.now()
       };
 
       const user = await dynamicCreate('users', userData);
@@ -105,10 +137,16 @@ export class UsersService {
 
       logger.debug({ originalData: data, userId: id }, 'Starting dynamic users update operation');
 
+      // Hash password if provided
+      let userData = { ...data };
+      if (userData.userpassword) {
+        userData.userpassword = await hashPassword(userData.userpassword);
+      }
+
       // Add modified timestamp
-      const userData = {
-        ...data,
-        modifieddate: BigInt(Date.now())
+      userData = {
+        ...userData,
+        modifieddate: Date.now()
       };
 
       const user = await dynamicUpdate('users', { id: parseInt(id) }, userData);
@@ -145,6 +183,43 @@ export class UsersService {
       logger.info({ userId: id }, 'Dynamic users delete completed successfully');
     } catch (error) {
       logger.error({ error, userId: id }, 'Error in users delete operation');
+      throw error;
+    }
+  }
+
+  /**
+   * Authenticate user with email and password
+   */
+  async authenticate(email: string, password: string): Promise<{ user: any; token: string } | null> {
+    try {
+      logger.debug({ email }, 'Attempting to authenticate user');
+
+      const user = await this.findByEmail(email);
+      if (!user || !user.userpassword) {
+        logger.warn({ email }, 'Authentication failed: User not found or no password set');
+        return null;
+      }
+
+      const isPasswordValid = await verifyPassword(password, user.userpassword);
+      if (!isPasswordValid) {
+        logger.warn({ email, userId: user.id }, 'Authentication failed: Invalid password');
+        return null;
+      }
+
+      // Generate session token (but don't store it in DB since users table doesn't have sessiontoken field)
+      const sessionToken = generateSessionToken();
+
+      logger.info({ 
+        userId: user.id, 
+        email: user.useremail
+      }, 'User authenticated successfully');
+
+      return {
+        user: sanitizeUserData(user),
+        token: sessionToken
+      };
+    } catch (error) {
+      logger.error({ error, email }, 'Error during authentication');
       throw error;
     }
   }

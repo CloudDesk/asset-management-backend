@@ -7,6 +7,7 @@ export declare class UsersController {
     createUser: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     updateUser: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     deleteUser: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    authenticate: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     upsertUser: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
 }
 //# sourceMappingURL=users.controller.d.ts.map

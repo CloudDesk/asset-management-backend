@@ -88,6 +88,24 @@ export class UsersController {
     return reply.code(200).send(response);
   });
 
+  authenticate = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    const { useremail, userpassword } = request.body as { useremail: string; userpassword: string };
+    
+    const result = await this.usersService.authenticate(useremail, userpassword);
+    
+    if (!result) {
+      return reply.code(401).send({
+        success: false,
+        message: 'Invalid credentials',
+        details: 'The email or password you entered is incorrect',
+        statusCode: 401,
+      });
+    }
+    
+    const response = createSuccessResponse('Sign-in successful', result);
+    return reply.code(200).send(response);
+  });
+
   upsertUser = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const data = upsertUsersSchema.parse(request.body);
     

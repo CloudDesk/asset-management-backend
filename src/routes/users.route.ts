@@ -383,4 +383,92 @@ export async function usersRoutes(fastify: FastifyInstance) {
       },
     },
   }, usersController.upsertUser.bind(usersController));
+
+  // POST /v1/users/signin - Sign in user
+  fastify.post('/signin', {
+    schema: {
+      description: 'Sign in user with email and password',
+      tags: ['Users'],
+      body: {
+        type: 'object',
+        required: ['useremail', 'userpassword'],
+        properties: {
+          useremail: { 
+            type: 'string', 
+            format: 'email', 
+            description: 'User email address'
+          },
+          userpassword: { 
+            type: 'string', 
+            minLength: 1,
+            description: 'User password'
+          },
+        },
+        additionalProperties: false,
+        examples: [
+          {
+            useremail: 'user@example.com',
+            userpassword: 'SecurePassword123!'
+          }
+        ]
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            data: {
+              type: 'object',
+              properties: {
+                user: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'number' },
+                    useremail: { type: 'string' },
+                    firstname: { type: 'string' },
+                    lastname: { type: 'string' },
+                    gender: { type: 'string' },
+                    gstnumber: { type: 'string' },
+                    isbusinessuser: { type: 'boolean' },
+                    usermobilenumber: { type: 'number' },
+                    fcmid: { type: 'string' },
+                  },
+                  additionalProperties: true
+                },
+                token: { type: 'string' },
+              },
+            },
+            message: { type: 'string' },
+          },
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+        401: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+      },
+    },
+  }, usersController.authenticate.bind(usersController));
 } 

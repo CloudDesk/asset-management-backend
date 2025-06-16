@@ -19,3 +19,6 @@ Available columns: ["id","companyname","contactname","phonenumber","companymail"
 Available columns: ["id","companyname","contactname","phonenumber","companymail","gstnumber","companyaddress","supplierid","items","createdby","modifiedby"]
 Available columns: ["id","productid","userid","createddate","quantity","iscart","iswishlist","modifieddate"]
 Available columns: ["id","productid","userid","createddate","quantity","iscart","iswishlist","modifieddate"]
+Available columns: ["id","useremail","userpassword","createddate","modifieddate","usermobilenumber","fcmid","firstname","lastname","gender","gstnumber","isbusinessuser"]
+Available columns: ["id","useremail","userpassword","createddate","modifieddate","usermobilenumber","fcmid","firstname","lastname","gender","gstnumber","isbusinessuser"]
+Available columns: ["id","useremail","userpassword","createddate","modifieddate","usermobilenumber","fcmid","firstname","lastname","gender","gstnumber","isbusinessuser"]
