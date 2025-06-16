@@ -73,6 +73,10 @@ export async function productRoutes(fastify: FastifyInstance) {
               type: "string",
               description: "Filter by discount amount",
             },
+            price: {
+              type: "string",
+              description: "Filter by product price",
+            },
             orderedquantity: {
               type: "string",
               description: "Filter by ordered quantity",
@@ -275,6 +279,11 @@ export async function productRoutes(fastify: FastifyInstance) {
                       type: "number",
                       nullable: true,
                       description: "Discount amount",
+                    },
+                    price: {
+                      type: "number",
+                      nullable: true,
+                      description: "Product price",
                     },
                     orderedquantity: {
                       type: "number",
@@ -578,6 +587,11 @@ export async function productRoutes(fastify: FastifyInstance) {
                     nullable: true,
                     description: "Discount amount",
                   },
+                  price: {
+                    type: "number",
+                    nullable: true,
+                    description: "Product price",
+                  },
                   orderedquantity: {
                     type: "number",
                     nullable: true,
@@ -863,6 +877,11 @@ export async function productRoutes(fastify: FastifyInstance) {
               minimum: 0,
               description: "Discount amount (integer)",
             },
+            price: {
+              type: "number",
+              minimum: 0,
+              description: "Product price",
+            },
             orderedquantity: {
               type: "number",
               description: "Ordered quantity",
@@ -1059,6 +1078,11 @@ export async function productRoutes(fastify: FastifyInstance) {
                     type: "number",
                     nullable: true,
                     description: "Discount amount",
+                  },
+                  price: {
+                    type: "number",
+                    nullable: true,
+                    description: "Product price",
                   },
                   orderedquantity: {
                     type: "number",
@@ -1297,6 +1321,11 @@ export async function productRoutes(fastify: FastifyInstance) {
               minimum: 0,
               description: "Discount amount (integer)",
             },
+            price: {
+              type: "number",
+              minimum: 0,
+              description: "Product price",
+            },
             orderedquantity: {
               type: "number",
               description: "Ordered quantity",
@@ -1492,6 +1521,11 @@ export async function productRoutes(fastify: FastifyInstance) {
                     type: "number",
                     nullable: true,
                     description: "Discount amount",
+                  },
+                  price: {
+                    type: "number",
+                    nullable: true,
+                    description: "Product price",
                   },
                   orderedquantity: {
                     type: "number",
@@ -1989,6 +2023,11 @@ export async function productRoutes(fastify: FastifyInstance) {
               minimum: 0,
               description: "Discount amount (integer)",
             },
+            price: {
+              type: "number",
+              minimum: 0,
+              description: "Product price",
+            },
             orderedquantity: {
               type: "number",
               description: "Ordered quantity",
@@ -2161,6 +2200,11 @@ export async function productRoutes(fastify: FastifyInstance) {
                         nullable: true,
                         description: "Discount amount",
                       },
+                      price: {
+                        type: "number",
+                        nullable: true,
+                        description: "Product price",
+                      },
                       orderedquantity: {
                         type: "number",
                         nullable: true,
@@ -2283,25 +2327,6 @@ export async function productRoutes(fastify: FastifyInstance) {
                         type: "boolean",
                         nullable: true,
                         description: "Is product active",
-                      },
-                      // Size array fields (merged with uploaded images)
-                      large: {
-                        type: "array",
-                        items: { type: "string" },
-                        nullable: true,
-                        description: "Large size options/images",
-                      },
-                      medium: {
-                        type: "array",
-                        items: { type: "string" },
-                        nullable: true,
-                        description: "Medium size options/images",
-                      },
-                      small: {
-                        type: "array",
-                        items: { type: "string" },
-                        nullable: true,
-                        description: "Small size options/images",
                       },
                     },
                     additionalProperties: true,
