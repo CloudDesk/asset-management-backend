@@ -1,5 +1,6 @@
 import { FastifyInstance } from "fastify";
 import { ProductController } from "../controllers/product.controller.js";
+import { formatProductForAPI } from "../utils/dynamicDbOperations.js";
 
 export async function productRoutes(fastify: FastifyInstance) {
   const productController = new ProductController();
@@ -772,7 +773,7 @@ export async function productRoutes(fastify: FastifyInstance) {
         const response = {
           success: true,
           message: "Product retrieved successfully",
-          data: product,
+          data: formatProductForAPI(product),
         };
         return reply.code(200).send(response);
       } catch (error: any) {

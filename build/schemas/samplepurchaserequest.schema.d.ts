@@ -257,14 +257,14 @@ export declare const samplePurchaseRequestQuerySchema: z.ZodObject<{
     supplierid?: string | undefined;
     createddate?: string | undefined;
     modifieddate?: string | undefined;
+    createdby?: string | undefined;
+    modifiedby?: string | undefined;
     gstnumber?: string | undefined;
     companyname?: string | undefined;
     companyaddress?: string | undefined;
     contactname?: string | undefined;
     phonenumber?: string | undefined;
     companymail?: string | undefined;
-    createdby?: string | undefined;
-    modifiedby?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
 }, {
@@ -272,14 +272,14 @@ export declare const samplePurchaseRequestQuerySchema: z.ZodObject<{
     supplierid?: string | undefined;
     createddate?: string | undefined;
     modifieddate?: string | undefined;
+    createdby?: string | undefined;
+    modifiedby?: string | undefined;
     gstnumber?: string | undefined;
     companyname?: string | undefined;
     companyaddress?: string | undefined;
     contactname?: string | undefined;
     phonenumber?: string | undefined;
     companymail?: string | undefined;
-    createdby?: string | undefined;
-    modifiedby?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
 }>;

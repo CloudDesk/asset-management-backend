@@ -34,7 +34,9 @@ const SAFE_COLUMNS_TTL = 30 * 60 * 1000; // 30 minutes
 const PREDEFINED_SAFE_COLUMNS: Record<string, string[]> = {
   stock: ['id', 'puc', 'category', 'subcategory', 'brand', 'model', 'stockstatus', 'createddate', 'modifieddate', 'productname', 'serialnumber', 'location'],
   product: ['id', 'productname', 'category', 'subcategory', 'brand', 'model', 'price', 'createddate', 'modifieddate', 'productstatus', 'puc'],
-  picklist: ['id', 'type', 'table', 'field', 'label', 'value', 'isActive', 'ordering']
+  picklist: ['id', 'type', 'table', 'field', 'label', 'value', 'isActive', 'ordering'],
+  orders: ['id', 'userid', 'addressid', 'orderamount', 'orderid', 'orderstatus', 'quantity', 'transactionid', 'readytodispatchdate', 'dispatcheddate', 'productamount', 'discountamount', 'deliveryfrom', 'orderprocessingtime', 'ispaymentsucceed', 'merchanttransactionid', 'productid', 'delivereddate', 'cancelleddate', 'returneddate', 'paymentfaileddate', 'createddate', 'modifieddate'],
+  orderline: ['id', 'orderid', 'productid', 'userid', 'addressid', 'productamount', 'discountamount', 'orderamount', 'quantity', 'merchanttransactionid', 'productname', 'productcategory', 'productcolour', 'readytodispatchdate', 'delivereddate', 'cancelleddate', 'returneddate', 'orderstatus', 'uniqueordderid', 'orderlinenumber', 'deliveryfrom', 'location', 'dispatcheddate', 'ordereddate', 'paymentfaileddate', 'createddate', 'modifieddate']
 };
 
 /**
@@ -130,7 +132,9 @@ function getTableName(modelName: string): string {
     'supplier': 'supplier',
     'purchaseorder': 'purchaseorder',
     'purchaserequest': 'purchaserequest',
-    'quotes': 'quotes'
+    'quotes': 'quotes',
+    'orders': 'orders',
+    'orderline': 'orderline'
   };
   
   return tableMapping[modelName] || modelName;
@@ -1251,11 +1255,14 @@ export async function dynamicUpdate(
         }) // Start from $2 since $1 is for WHERE
         .join(', ');
       
+      // Use safe columns for RETURNING to avoid tsvector issues
+      const { columnList: safeColumnsList } = await getSafeColumnsForTable(tableName);
+      
       const updateQuery = `
         UPDATE "${tableName}" 
         SET ${setClause} 
         WHERE "id" = $1 
-        RETURNING *
+        RETURNING ${safeColumnsList}
       `;
       
       const values = [idValue, ...Object.values(rawData)];
@@ -1356,11 +1363,14 @@ export async function dynamicUpdate(
         .map((key, index) => `"${key}" = $${index + 2}`) // Start from $2 since $1 is for WHERE
         .join(', ');
       
+      // Use safe columns for RETURNING to avoid tsvector issues
+      const { columnList: safeColumnsList } = await getSafeColumnsForTable(tableName);
+      
       const updateQuery = `
         UPDATE "${tableName}" 
         SET ${setClause} 
         WHERE "id" = $1 
-        RETURNING *
+        RETURNING ${safeColumnsList}
       `;
       
       const values = [idValue, ...Object.values(rawData)];
@@ -1651,6 +1661,9 @@ export function formatProductForAPI(product: any): any {
   }
   if (formatted.discount !== undefined) {
     formatted.discount = formatIntegerField(formatted.discount);
+  }
+  if (formatted.price !== undefined) {
+    formatted.price = formatNumericField(formatted.price);
   }
   if (formatted.orderedquantity !== undefined) {
     formatted.orderedquantity = formatIntegerField(formatted.orderedquantity);
@@ -2203,6 +2216,143 @@ export function formatSamplePurchaseRequestForAPI(samplePurchaseRequest: any): a
 }
 
 /**
+ * Formats a single orders object for API response
+ */
+export function formatOrdersForAPI(order: any): any {
+  if (!order) return order;
+  
+  const formatted = serializeForAPI(order);
+  
+  // Format numeric fields
+  if (formatted.id !== undefined) {
+    formatted.id = formatIntegerField(formatted.id) || formatted.id;
+  }
+  if (formatted.userid !== undefined) {
+    formatted.userid = formatIntegerField(formatted.userid);
+  }
+  if (formatted.addressid !== undefined) {
+    formatted.addressid = formatIntegerField(formatted.addressid);
+  }
+  if (formatted.quantity !== undefined) {
+    formatted.quantity = formatIntegerField(formatted.quantity);
+  }
+  if (formatted.orderamount !== undefined) {
+    formatted.orderamount = formatNumericField(formatted.orderamount);
+  }
+  if (formatted.productamount !== undefined) {
+    formatted.productamount = formatNumericField(formatted.productamount);
+  }
+  if (formatted.discountamount !== undefined) {
+    formatted.discountamount = formatNumericField(formatted.discountamount);
+  }
+  if (formatted.orderprocessingtime !== undefined) {
+    formatted.orderprocessingtime = formatIntegerField(formatted.orderprocessingtime);
+  }
+  
+  // Handle timestamp fields
+  if (formatted.createddate !== undefined) {
+    formatted.createddate = formatIntegerField(formatted.createddate) || formatted.createddate;
+  }
+  if (formatted.modifieddate !== undefined) {
+    formatted.modifieddate = formatIntegerField(formatted.modifieddate) || formatted.modifieddate;
+  }
+  if (formatted.delivereddate !== undefined) {
+    formatted.delivereddate = formatIntegerField(formatted.delivereddate);
+  }
+  if (formatted.cancelleddate !== undefined) {
+    formatted.cancelleddate = formatIntegerField(formatted.cancelleddate);
+  }
+  if (formatted.returneddate !== undefined) {
+    formatted.returneddate = formatIntegerField(formatted.returneddate);
+  }
+  if (formatted.readytodispatchdate !== undefined) {
+    formatted.readytodispatchdate = formatIntegerField(formatted.readytodispatchdate);
+  }
+  if (formatted.dispatcheddate !== undefined) {
+    formatted.dispatcheddate = formatIntegerField(formatted.dispatcheddate);
+  }
+  if (formatted.paymentfaileddate !== undefined) {
+    formatted.paymentfaileddate = formatIntegerField(formatted.paymentfaileddate);
+  }
+  
+  // Handle productid array
+  if (formatted.productid && Array.isArray(formatted.productid)) {
+    formatted.productid = formatted.productid.map((id: any) => formatIntegerField(id) || id);
+  }
+  
+  return formatted;
+}
+
+/**
+ * Formats a single orderline object for API response
+ */
+export function formatOrderlineForAPI(orderline: any): any {
+  if (!orderline) return orderline;
+  
+  const formatted = serializeForAPI(orderline);
+  
+  // Format numeric fields
+  if (formatted.id !== undefined) {
+    formatted.id = formatIntegerField(formatted.id) || formatted.id;
+  }
+  if (formatted.orderid !== undefined) {
+    formatted.orderid = formatIntegerField(formatted.orderid);
+  }
+  if (formatted.productid !== undefined) {
+    formatted.productid = formatIntegerField(formatted.productid);
+  }
+  if (formatted.userid !== undefined) {
+    formatted.userid = formatIntegerField(formatted.userid);
+  }
+  if (formatted.addressid !== undefined) {
+    formatted.addressid = formatIntegerField(formatted.addressid);
+  }
+  if (formatted.quantity !== undefined) {
+    formatted.quantity = formatIntegerField(formatted.quantity);
+  }
+  if (formatted.productamount !== undefined) {
+    formatted.productamount = formatNumericField(formatted.productamount);
+  }
+  if (formatted.discountamount !== undefined) {
+    formatted.discountamount = formatNumericField(formatted.discountamount);
+  }
+  if (formatted.orderamount !== undefined) {
+    formatted.orderamount = formatNumericField(formatted.orderamount);
+  }
+  
+  // Handle timestamp fields
+  if (formatted.createddate !== undefined) {
+    formatted.createddate = formatIntegerField(formatted.createddate) || formatted.createddate;
+  }
+  if (formatted.modifieddate !== undefined) {
+    formatted.modifieddate = formatIntegerField(formatted.modifieddate) || formatted.modifieddate;
+  }
+  if (formatted.readytodispatchdate !== undefined) {
+    formatted.readytodispatchdate = formatIntegerField(formatted.readytodispatchdate);
+  }
+  if (formatted.delivereddate !== undefined) {
+    formatted.delivereddate = formatIntegerField(formatted.delivereddate);
+  }
+  if (formatted.cancelleddate !== undefined) {
+    formatted.cancelleddate = formatIntegerField(formatted.cancelleddate);
+  }
+  if (formatted.returneddate !== undefined) {
+    formatted.returneddate = formatIntegerField(formatted.returneddate);
+  }
+  if (formatted.dispatcheddate !== undefined) {
+    formatted.dispatcheddate = formatIntegerField(formatted.dispatcheddate);
+  }
+  if (formatted.ordereddate !== undefined) {
+    formatted.ordereddate = formatIntegerField(formatted.ordereddate);
+  }
+  if (formatted.paymentfaileddate !== undefined) {
+    formatted.paymentfaileddate = formatIntegerField(formatted.paymentfaileddate);
+  }
+  
+  return formatted;
+}
+
+/**
  * Universal formatter that detects entity type and applies appropriate formatting
  */
 export function formatEntityForAPI(entity: any, entityType?: string): any {
@@ -2237,6 +2387,10 @@ export function formatEntityForAPI(entity: any, entityType?: string): any {
         return formatSamplePurchaseOrderForAPI(entity);
       case 'samplepurchaserequest':
         return formatSamplePurchaseRequestForAPI(entity);
+      case 'orders':
+        return formatOrdersForAPI(entity);
+      case 'orderline':
+        return formatOrderlineForAPI(entity);
       default:
         return serializeForAPI(entity);
     }
@@ -2275,6 +2429,12 @@ export function formatEntityForAPI(entity: any, entityType?: string): any {
   }
   if (entity.address !== undefined || entity.doornumber !== undefined) {
     return formatAddressForAPI(entity);
+  }
+  if (entity.orderid !== undefined && entity.orderstatus !== undefined && entity.orderamount !== undefined) {
+    return formatOrdersForAPI(entity);
+  }
+  if (entity.orderlinenumber !== undefined || (entity.orderid !== undefined && entity.productid !== undefined)) {
+    return formatOrderlineForAPI(entity);
   }
   
   // Fallback to generic serialization

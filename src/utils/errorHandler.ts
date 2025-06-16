@@ -501,6 +501,20 @@ export function processError(
     message = 'Resource not found';
     details = 'The requested resource could not be found';
   }
+  // Handle Transaction not found specifically
+  else if (error.message === 'Transaction not found') {
+    console.log('=== MATCHED: Transaction not found message');
+    statusCode = 404;
+    message = 'Transaction not found';
+    details = 'The requested transaction could not be found';
+  }
+  // Handle other not found messages
+  else if (error.message && error.message.toLowerCase().includes('not found')) {
+    console.log('=== MATCHED: Generic not found message');
+    statusCode = 404;
+    message = error.message;
+    details = 'The requested resource could not be found';
+  }
   // Handle errors with custom statusCode property
   else if (error.statusCode && typeof error.statusCode === 'number') {
     console.log('=== MATCHED: Custom statusCode property');

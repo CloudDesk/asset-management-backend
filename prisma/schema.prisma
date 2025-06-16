@@ -26,6 +26,7 @@ model Product {
   serialnumber      String?   @db.VarChar(255)
   averagerating     Decimal?  @db.Decimal(2, 1)
   discount          Int?
+  price             Decimal?  @db.Decimal(10, 2)
   orderedquantity   Int?
   createddate       BigInt?
   modifieddate      BigInt?

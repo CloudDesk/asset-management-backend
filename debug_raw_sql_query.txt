@@ -1,144 +1,36 @@
 Update query: 
-        UPDATE "poinvoice" 
-        SET "invoiceamount" = $2, "invoicedate" = $3, "invoicenumber" = $4, "paymentdata" = $5::jsonb, "balanceamount" = $6, "iscreditpayment" = $7, "paymentduedate" = $8, "transportationcharges" = $9, "exchangeamount" = $10, "customdutytaxamount" = $11, "modifieddate" = $12 
+        UPDATE "transaction" 
+        SET "transactiondata" = $2, "name" = $3, "amount" = $4, "transactionfor" = $5, "modifieddate" = $6 
         WHERE "id" = $1 
-        RETURNING *
+        RETURNING id, transactionid, createddate, modifieddate, transactiondata, userid, productid, merchanttransactionid, name, amount, mobilenumber, transactionfor
       
 Update query: 
-        UPDATE "poinvoice" 
-        SET "invoiceamount" = $2, "invoicedate" = $3, "invoicenumber" = $4, "paymentdata" = $5::jsonb, "balanceamount" = $6, "iscreditpayment" = $7, "paymentduedate" = $8, "transportationcharges" = $9, "exchangeamount" = $10, "customdutytaxamount" = $11, "modifieddate" = $12 
+        UPDATE "transaction" 
+        SET "name" = $2, "amount" = $3, "transactionfor" = $4, "modifieddate" = $5 
         WHERE "id" = $1 
-        RETURNING *
+        RETURNING id, transactionid, createddate, modifieddate, transactiondata, userid, productid, merchanttransactionid, name, amount, mobilenumber, transactionfor
       
 Update query: 
-        UPDATE "poinvoice" 
-        SET "invoiceamount" = $2, "invoicedate" = $3, "invoicenumber" = $4, "paymentdata" = $5::jsonb, "balanceamount" = $6, "iscreditpayment" = $7, "paymentduedate" = $8, "transportationcharges" = $9, "exchangeamount" = $10, "customdutytaxamount" = $11, "modifieddate" = $12 
+        UPDATE "transaction" 
+        SET "transactiondata" = $2, "name" = $3, "amount" = $4, "transactionfor" = $5, "modifieddate" = $6 
         WHERE "id" = $1 
-        RETURNING *
+        RETURNING id, transactionid, createddate, modifieddate, transactiondata, userid, productid, merchanttransactionid, name, amount, mobilenumber, transactionfor
       
 Update query: 
-        UPDATE "poinvoice" 
-        SET "invoiceamount" = $2, "invoicedate" = $3, "invoicenumber" = $4, "paymentdata" = $5::jsonb, "balanceamount" = $6, "iscreditpayment" = $7, "paymentduedate" = $8, "transportationcharges" = $9, "exchangeamount" = $10, "customdutytaxamount" = $11, "modifieddate" = $12 
+        UPDATE "transaction" 
+        SET "transactiondata" = $2, "userid" = $3, "productid" = $4, "merchanttransactionid" = $5, "name" = $6, "amount" = $7, "mobilenumber" = $8, "transactionfor" = $9, "modifieddate" = $10 
         WHERE "id" = $1 
-        RETURNING *
+        RETURNING id, transactionid, createddate, modifieddate, transactiondata, userid, productid, merchanttransactionid, name, amount, mobilenumber, transactionfor
       
 Update query: 
-        UPDATE "poinvoice" 
-        SET "invoiceamount" = $2, "invoicedate" = $3, "invoicenumber" = $4, "paymentdata" = $5::jsonb, "balanceamount" = $6, "iscreditpayment" = $7, "paymentduedate" = $8, "transportationcharges" = $9, "exchangeamount" = $10, "customdutytaxamount" = $11, "modifieddate" = $12 
+        UPDATE "transaction" 
+        SET "transactiondata" = $2, "name" = $3, "amount" = $4, "transactionfor" = $5, "modifieddate" = $6 
         WHERE "id" = $1 
-        RETURNING *
+        RETURNING id, transactionid, createddate, modifieddate, transactiondata, userid, productid, merchanttransactionid, name, amount, mobilenumber, transactionfor
       
 Update query: 
-        UPDATE "poinvoice" 
-        SET "invoiceamount" = $2, "invoicedate" = $3, "invoicenumber" = $4, "paymentdata" = $5::jsonb, "balanceamount" = $6, "iscreditpayment" = $7, "paymentduedate" = $8, "transportationcharges" = $9, "exchangeamount" = $10, "customdutytaxamount" = $11, "modifieddate" = $12 
+        UPDATE "transaction" 
+        SET "transactiondata" = $2, "userid" = $3, "productid" = $4, "merchanttransactionid" = $5, "name" = $6, "amount" = $7, "mobilenumber" = $8, "transactionfor" = $9, "modifieddate" = $10 
         WHERE "id" = $1 
-        RETURNING *
-      
-Update query: 
-        UPDATE "poinvoice" 
-        SET "invoiceamount" = $2, "invoicedate" = $3, "invoicenumber" = $4, "paymentdata" = $5::jsonb, "balanceamount" = $6, "iscreditpayment" = $7, "paymentduedate" = $8, "transportationcharges" = $9, "exchangeamount" = $10, "customdutytaxamount" = $11, "modifieddate" = $12 
-        WHERE "id" = $1 
-        RETURNING *
-      
-Update query: 
-        UPDATE "poinvoice" 
-        SET "invoiceamount" = $2, "invoicedate" = $3, "invoicenumber" = $4, "paymentdata" = $5::jsonb, "balanceamount" = $6, "iscreditpayment" = $7, "paymentduedate" = $8, "transportationcharges" = $9, "exchangeamount" = $10, "customdutytaxamount" = $11, "modifieddate" = $12 
-        WHERE "id" = $1 
-        RETURNING *
-      
-Update query: 
-        UPDATE "poinvoice" 
-        SET "invoiceamount" = $2, "invoicedate" = $3, "invoicenumber" = $4, "paymentdata" = $5::jsonb, "balanceamount" = $6, "iscreditpayment" = $7, "paymentduedate" = $8, "transportationcharges" = $9, "exchangeamount" = $10, "customdutytaxamount" = $11, "modifieddate" = $12 
-        WHERE "id" = $1 
-        RETURNING *
-      
-Update query: 
-        UPDATE "poinvoice" 
-        SET "invoiceamount" = $2, "invoicedate" = $3, "invoicenumber" = $4, "paymentdata" = $5::jsonb, "balanceamount" = $6, "iscreditpayment" = $7, "paymentduedate" = $8, "transportationcharges" = $9, "exchangeamount" = $10, "customdutytaxamount" = $11, "modifieddate" = $12 
-        WHERE "id" = $1 
-        RETURNING *
-      
-Update query: 
-        UPDATE "poinvoice" 
-        SET "invoiceamount" = $2, "invoicedate" = $3, "invoicenumber" = $4, "paymentdata" = $5::jsonb, "balanceamount" = $6, "iscreditpayment" = $7, "paymentduedate" = $8, "transportationcharges" = $9, "exchangeamount" = $10, "customdutytaxamount" = $11, "modifieddate" = $12 
-        WHERE "id" = $1 
-        RETURNING *
-      
-Update query: 
-        UPDATE "poinvoice" 
-        SET "invoiceamount" = $2, "invoicedate" = $3, "invoicenumber" = $4, "paymentdata" = $5::jsonb, "balanceamount" = $6, "iscreditpayment" = $7, "paymentduedate" = $8, "transportationcharges" = $9, "exchangeamount" = $10, "customdutytaxamount" = $11, "modifieddate" = $12 
-        WHERE "id" = $1 
-        RETURNING *
-      
-Update query: 
-        UPDATE "samplepurchaseorder" 
-        SET "companyname" = $2, "contactname" = $3, "items" = $4, "modifiedby" = $5 
-        WHERE "id" = $1 
-        RETURNING *
-      
-Update query: 
-        UPDATE "samplepurchaseorder" 
-        SET "companyname" = $2, "contactname" = $3, "items" = $4, "modifiedby" = $5 
-        WHERE "id" = $1 
-        RETURNING *
-      
-Update query: 
-        UPDATE "samplepurchaseorder" 
-        SET "companyname" = $2, "contactname" = $3, "items" = $4, "modifiedby" = $5 
-        WHERE "id" = $1 
-        RETURNING *
-      
-Update query: 
-        UPDATE "samplepurchaseorder" 
-        SET "companyname" = $2, "contactname" = $3, "items" = $4, "modifiedby" = $5 
-        WHERE "id" = $1 
-        RETURNING *
-      
-Update query: 
-        UPDATE "samplepurchaseorder" 
-        SET "companyname" = $2, "contactname" = $3, "items" = $4, "modifiedby" = $5 
-        WHERE "id" = $1 
-        RETURNING *
-      
-Update query: 
-        UPDATE "samplepurchaseorder" 
-        SET "companyname" = $2, "modifiedby" = $3 
-        WHERE "id" = $1 
-        RETURNING *
-      
-Update query: 
-        UPDATE "samplepurchaseorder" 
-        SET "companyname" = $2, "modifiedby" = $3 
-        WHERE "id" = $1 
-        RETURNING *
-      
-Update query: 
-        UPDATE "cart" 
-        SET "quantity" = $2, "iswishlist" = $3, "modifieddate" = $4 
-        WHERE "id" = $1 
-        RETURNING *
-      
-Update query: 
-        UPDATE "cart" 
-        SET "quantity" = $2, "modifieddate" = $3 
-        WHERE "id" = $1 
-        RETURNING *
-      
-Update query: 
-        UPDATE "users" 
-        SET "userpassword" = $2, "modifieddate" = $3 
-        WHERE "id" = $1 
-        RETURNING *
-      
-Update query: 
-        UPDATE "users" 
-        SET "userpassword" = $2, "modifieddate" = $3 
-        WHERE "id" = $1 
-        RETURNING *
-      
-Update query: 
-        UPDATE "users" 
-        SET "userpassword" = $2, "modifieddate" = $3 
-        WHERE "id" = $1 
-        RETURNING *
+        RETURNING id, transactionid, createddate, modifieddate, transactiondata, userid, productid, merchanttransactionid, name, amount, mobilenumber, transactionfor
       
