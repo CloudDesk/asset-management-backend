@@ -75,3 +75,268 @@ Filtered data: {
   "transactionfor": "upsert_test",
   "modifieddate": 1750066597167
 }
+Filtered data: {
+  "transactiondata": {
+    "status": "SUCCESS",
+    "paymentCompleteAt": "2025-06-17T04:29:54.407Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Your payment is successful.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1750133575431_LCQUTG",
+        "transactionId": "T2506170942567600124008",
+        "amount": 10000000,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "CARD",
+          "cardType": "CREDIT_CARD",
+          "bankTransactionId": null,
+          "arn": "12121214455",
+          "authRefId": "Dummy-auth12345",
+          "bankId": null,
+          "brn": "B12345"
+        }
+      }
+    },
+    "updatedAt": "2025-06-17T04:29:54.407Z"
+  },
+  "modifieddate": 1750134597505
+}
+Filtered data: {
+  "transactiondata": {
+    "status": "ERROR",
+    "paymentCompleteAt": "2025-06-17T04:29:58.138Z",
+    "phonePeResponse": {
+      "error": "Failed to update transaction - no valid fields provided"
+    },
+    "updatedAt": "2025-06-17T04:29:58.138Z"
+  },
+  "modifieddate": 1750134598584
+}
+Filtered data: {
+  "transactiondata": {
+    "status": "FAILED",
+    "paymentCompleteAt": "2025-06-17T04:33:16.354Z",
+    "phonePeResponse": {
+      "success": false,
+      "code": "PAYMENT_ERROR",
+      "message": "Payment failed.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1750133575431_LCQUTG",
+        "transactionId": "T2506170942567600124008",
+        "amount": 10000000,
+        "state": "FAILED",
+        "responseCode": "TXN_AUTO_FAILED",
+        "paymentInstrument": {
+          "type": "CARD",
+          "cardType": "CREDIT_CARD",
+          "bankTransactionId": null,
+          "arn": null,
+          "bankId": null,
+          "brn": "B12345"
+        }
+      }
+    },
+    "updatedAt": "2025-06-17T04:33:16.354Z"
+  },
+  "modifieddate": 1750134796787
+}
+Filtered data: {
+  "transactiondata": {
+    "status": "FAILED",
+    "paymentCompleteAt": "2025-06-17T04:34:27.040Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_PENDING",
+      "message": "Your payment is in pending state.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1750134852598_FO0VS3",
+        "transactionId": "T2506171004129050124849",
+        "amount": 5000000,
+        "state": "PENDING",
+        "responseCode": null
+      }
+    },
+    "updatedAt": "2025-06-17T04:34:27.040Z"
+  },
+  "modifieddate": 1750134867257
+}
+Filtered data: {
+  "transactiondata": {
+    "status": "SUCCESS",
+    "paymentCompleteAt": "2025-06-17T04:36:55.328Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Your payment is successful.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1750134923761_1U3T7W",
+        "transactionId": "T2506171005239500124669",
+        "amount": 1050000,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "CARD",
+          "cardType": "CREDIT_CARD",
+          "bankTransactionId": null,
+          "arn": "12121214455",
+          "authRefId": "Dummy-auth12345",
+          "bankId": null,
+          "brn": "B12345"
+        }
+      }
+    },
+    "updatedAt": "2025-06-17T04:36:55.328Z"
+  },
+  "modifieddate": 1750135015765
+}
+Filtered data: {
+  "transactiondata": {
+    "status": "ERROR",
+    "paymentCompleteAt": "2025-06-17T04:36:59.378Z",
+    "phonePeResponse": {
+      "error": "\nInvalid `prisma.$queryRawUnsafe()` invocation:\n\n\nRaw query failed. Code: `23503`. Message: `insert or update on table \"orderline\" violates foreign key constraint \"orderline_productid_fkey\"`"
+    },
+    "updatedAt": "2025-06-17T04:36:59.378Z"
+  },
+  "modifieddate": 1750135019594
+}
+Filtered data: {
+  "transactiondata": {
+    "status": "SUCCESS",
+    "paymentCompleteAt": "2025-06-17T04:39:37.026Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Your payment is successful.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1750134852598_FO0VS3",
+        "transactionId": "T2506171004129050124849",
+        "amount": 5000000,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "CARD",
+          "cardType": "CREDIT_CARD",
+          "bankTransactionId": null,
+          "arn": "12121214455",
+          "authRefId": "Dummy-auth12345",
+          "bankId": null,
+          "brn": "B12345"
+        }
+      }
+    },
+    "updatedAt": "2025-06-17T04:39:37.026Z"
+  },
+  "modifieddate": 1750135177447
+}
+Filtered data: {
+  "transactiondata": {
+    "status": "ERROR",
+    "paymentCompleteAt": "2025-06-17T04:39:40.712Z",
+    "phonePeResponse": {
+      "error": "\nInvalid `prisma.$queryRawUnsafe()` invocation:\n\n\nRaw query failed. Code: `23503`. Message: `insert or update on table \"orderline\" violates foreign key constraint \"orderline_productid_fkey\"`"
+    },
+    "updatedAt": "2025-06-17T04:39:40.712Z"
+  },
+  "modifieddate": 1750135181149
+}
+Filtered data: {
+  "transactiondata": {
+    "status": "FAILED",
+    "paymentCompleteAt": "2025-06-17T04:40:17.352Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_PENDING",
+      "message": "Your payment is in pending state.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1750135204294_HSSM8K",
+        "transactionId": "T2506171010045420124495",
+        "amount": 1500000,
+        "state": "PENDING",
+        "responseCode": null
+      }
+    },
+    "updatedAt": "2025-06-17T04:40:17.352Z"
+  },
+  "modifieddate": 1750135217565
+}
+Filtered data: {
+  "transactiondata": {
+    "status": "SUCCESS",
+    "paymentCompleteAt": "2025-06-17T04:49:11.334Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Your payment is successful.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1750135703184_82OJ7N",
+        "transactionId": "T2506171018235930124297",
+        "amount": 1000,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "CARD",
+          "cardType": "CREDIT_CARD",
+          "bankTransactionId": null,
+          "arn": "12121214455",
+          "authRefId": "Dummy-auth12345",
+          "bankId": null,
+          "brn": "B12345"
+        }
+      }
+    },
+    "updatedAt": "2025-06-17T04:49:11.334Z"
+  },
+  "modifieddate": 1750135751787
+}
+Filtered data: {
+  "transactiondata": {
+    "status": "ERROR",
+    "paymentCompleteAt": "2025-06-17T04:49:15.057Z",
+    "phonePeResponse": {
+      "error": "\nInvalid `prisma.$queryRawUnsafe()` invocation:\n\n\nRaw query failed. Code: `23503`. Message: `insert or update on table \"orderline\" violates foreign key constraint \"orderline_productid_fkey\"`"
+    },
+    "updatedAt": "2025-06-17T04:49:15.057Z"
+  },
+  "modifieddate": 1750135755523
+}
+Filtered data: {
+  "transactiondata": {
+    "status": "SUCCESS",
+    "paymentCompleteAt": "2025-06-17T04:57:32.666Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Your payment is successful.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1750136219694_PPV4BJ",
+        "transactionId": "T2506171027000210124635",
+        "amount": 1200,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "CARD",
+          "cardType": "CREDIT_CARD",
+          "bankTransactionId": null,
+          "arn": "12121214455",
+          "authRefId": "Dummy-auth12345",
+          "bankId": null,
+          "brn": "B12345"
+        }
+      }
+    },
+    "updatedAt": "2025-06-17T04:57:32.666Z"
+  },
+  "modifieddate": 1750136253120
+}

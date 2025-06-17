@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhonePe Payment Status</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .success {
+            color: #28a745;
+        }
+        
+        .failure {
+            color: #dc3545;
+        }
+        
+        .pending {
+            color: #ffc107;
+        }
+        
+        .icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            display: block;
+        }
+        
+        h1 {
+            margin-bottom: 20px;
+            font-size: 2rem;
+        }
+        
+        .details {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        
+        .label {
+            font-weight: bold;
+            color: #495057;
+        }
+        
+        .value {
+            color: #6c757d;
+            word-break: break-all;
+        }
+        
+        .button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin: 10px;
+            text-decoration: none;
+            display: inline-block;
+            transition: background 0.3s;
+        }
+        
+        .button:hover {
+            background: #0056b3;
+        }
+        
+        .button.secondary {
+            background: #6c757d;
+        }
+        
+        .button.secondary:hover {
+            background: #545b62;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .test-controls {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #e9ecef;
+        }
+        
+        .input-group {
+            margin: 15px 0;
+            text-align: left;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #495057;
+        }
+        
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        
+        .test-section h3 {
+            margin-top: 0;
+            color: #495057;
+        }
+        
+        .api-response {
+            background: #343a40;
+            color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            text-align: left;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="content">
+            <!-- Dynamic content will be loaded here -->
+        </div>
+        
+        <!-- Test Controls -->
+        <div class="test-controls">
+            <h3>PhonePe Integration Testing</h3>
+            
+            <div class="test-section">
+                <h4>1. Test Payment Initiation</h4>
+                <div class="input-group">
+                    <label for="amount">Amount (₹)</label>
+                    <input type="number" id="amount" value="100.50" step="0.01" min="1">
+                </div>
+                <div class="input-group">
+                    <label for="name">Customer Name</label>
+                    <input type="text" id="name" value="John Doe">
+                </div>
+                <div class="input-group">
+                    <label for="mobile">Mobile Number</label>
+                    <input type="text" id="mobile" value="9876543210" pattern="[0-9]{10}">
+                </div>
+                <div class="input-group">
+                    <label for="userId">User ID</label>
+                    <input type="number" id="userId" value="1" min="1">
+                </div>
+                <button class="button" onclick="initiatePayment()">Initiate Payment</button>
+            </div>
+            
+            <div class="test-section">
+                <h4>2. Check Payment Status</h4>
+                <div class="input-group">
+                    <label for="transactionId">Merchant Transaction ID</label>
+                    <input type="text" id="transactionId" placeholder="Enter transaction ID">
+                </div>
+                <button class="button" onclick="checkPaymentStatus()">Check Status</button>
+            </div>
+            
+            <div class="test-section">
+                <h4>3. Test Endpoints</h4>
+                <button class="button secondary" onclick="testHealthCheck()">Health Check</button>
+                <button class="button secondary" onclick="generateTransactionId()">Generate Transaction ID</button>
+                <button class="button secondary" onclick="getTransactionStats()">Get Statistics</button>
+            </div>
+            
+            <div class="test-section">
+                <h4>API Response</h4>
+                <div id="apiResponse" class="api-response">
+                    Responses will appear here...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:5600/v1/phonepe';
+        
+        function displayResponse(data, title = 'API Response') {
+            const responseDiv = document.getElementById('apiResponse');
+            const timestamp = new Date().toLocaleTimeString();
+            responseDiv.textContent = `[${timestamp}] ${title}:\n${JSON.stringify(data, null, 2)}`;
+        }
+        
+        function displayError(error, title = 'API Error') {
+            const responseDiv = document.getElementById('apiResponse');
+            const timestamp = new Date().toLocaleTimeString();
+            responseDiv.textContent = `[${timestamp}] ${title}:\n${error.message || error}`;
+        }
+        
+        async function makeAPICall(endpoint, method = 'GET', data = null) {
+            try {
+                const options = {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                };
+                
+                if (data) {
+                    options.body = JSON.stringify(data);
+                }
+                
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${result.message || 'Unknown error'}`);
+                }
+                
+                return result;
+            } catch (error) {
+                throw error;
+            }
+        }
+        
+        async function initiatePayment() {
+            const amount = parseFloat(document.getElementById('amount').value);
+            const name = document.getElementById('name').value;
+            const mobile = document.getElementById('mobile').value;
+            const userId = parseInt(document.getElementById('userId').value);
+            
+            if (!amount || !name || !mobile || !userId) {
+                alert('Please fill all required fields');
+                return;
+            }
+            
+            if (mobile.length !== 10 || !/^[0-9]+$/.test(mobile)) {
+                alert('Please enter a valid 10-digit mobile number');
+                return;
+            }
+            
+            const paymentData = {
+                amount,
+                name,
+                mobileNumber: mobile,
+                userId,
+                productIds: [1, 2, 3],
+                transactionFor: 'test_payment'
+            };
+            
+            try {
+                const result = await makeAPICall('/initiate', 'POST', paymentData);
+                displayResponse(result, 'Payment Initiation');
+                
+                if (result.success && result.data.redirectUrl) {
+                    // Set the transaction ID for status checking
+                    document.getElementById('transactionId').value = result.data.merchantTransactionId;
+                    
+                    // Ask user if they want to open the payment URL
+                    if (confirm('Payment initiated successfully! Do you want to open the PhonePe payment page?')) {
+                        window.open(result.data.redirectUrl, '_blank');
+                    }
+                }
+            } catch (error) {
+                displayError(error, 'Payment Initiation Error');
+            }
+        }
+        
+        async function checkPaymentStatus() {
+            const transactionId = document.getElementById('transactionId').value;
+            
+            if (!transactionId) {
+                alert('Please enter a transaction ID');
+                return;
+            }
+            
+            try {
+                const result = await makeAPICall(`/status/${transactionId}`);
+                displayResponse(result, 'Payment Status');
+            } catch (error) {
+                displayError(error, 'Payment Status Error');
+            }
+        }
+        
+        async function testHealthCheck() {
+            try {
+                const result = await makeAPICall('/health');
+                displayResponse(result, 'Health Check');
+            } catch (error) {
+                displayError(error, 'Health Check Error');
+            }
+        }
+        
+        async function generateTransactionId() {
+            try {
+                const result = await makeAPICall('/generate-transaction-id?prefix=TEST');
+                displayResponse(result, 'Generate Transaction ID');
+                
+                if (result.success && result.data.merchantTransactionId) {
+                    document.getElementById('transactionId').value = result.data.merchantTransactionId;
+                }
+            } catch (error) {
+                displayError(error, 'Generate Transaction ID Error');
+            }
+        }
+        
+        async function getTransactionStats() {
+            try {
+                const result = await makeAPICall('/stats');
+                displayResponse(result, 'Transaction Statistics');
+            } catch (error) {
+                displayError(error, 'Transaction Statistics Error');
+            }
+        }
+        
+        // Initialize page based on URL parameters
+        function initializePage() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const status = urlParams.get('status');
+            const transactionId = urlParams.get('transactionId');
+            
+            if (status && transactionId) {
+                // This is a redirect from payment
+                showPaymentResult(status, transactionId);
+            } else {
+                // This is the main testing page
+                showTestingInterface();
+            }
+        }
+        
+        function showPaymentResult(status, transactionId) {
+            const content = document.getElementById('content');
+            const isSuccess = status === 'success';
+            
+            content.innerHTML = `
+                <span class="icon ${isSuccess ? 'success' : 'failure'}">
+                    ${isSuccess ? '✅' : '❌'}
+                </span>
+                <h1 class="${isSuccess ? 'success' : 'failure'}">
+                    Payment ${isSuccess ? 'Successful' : 'Failed'}
+                </h1>
+                <div class="details">
+                    <div class="detail-row">
+                        <span class="label">Transaction ID:</span>
+                        <span class="value">${transactionId}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Status:</span>
+                        <span class="value ${isSuccess ? 'success' : 'failure'}">${status.toUpperCase()}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Timestamp:</span>
+                        <span class="value">${new Date().toLocaleString()}</span>
+                    </div>
+                </div>
+                <button class="button" onclick="checkPaymentStatusDirect('${transactionId}')">
+                    Check Latest Status
+                </button>
+                <a href="?" class="button secondary">Back to Testing</a>
+            `;
+        }
+        
+        function showTestingInterface() {
+            // The testing interface is already in the HTML
+            document.getElementById('content').innerHTML = `
+                <span class="icon">🔧</span>
+                <h1>PhonePe Integration Testing</h1>
+                <p>Use the controls below to test the PhonePe payment integration.</p>
+            `;
+        }
+        
+        async function checkPaymentStatusDirect(transactionId) {
+            try {
+                const result = await makeAPICall(`/status/${transactionId}`);
+                displayResponse(result, `Payment Status for ${transactionId}`);
+            } catch (error) {
+                displayError(error, 'Payment Status Error');
+            }
+        }
+        
+        // Initialize the page when it loads
+        document.addEventListener('DOMContentLoaded', initializePage);
+    </script>
+</body>
+</html> 

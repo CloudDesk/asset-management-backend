@@ -34,3 +34,75 @@ Update query:
         WHERE "id" = $1 
         RETURNING id, transactionid, createddate, modifieddate, transactiondata, userid, productid, merchanttransactionid, name, amount, mobilenumber, transactionfor
       
+Update query: 
+        UPDATE "transaction" 
+        SET "transactiondata" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, transactionid, createddate, modifieddate, transactiondata, userid, productid, merchanttransactionid, name, amount, mobilenumber, transactionfor
+      
+Update query: 
+        UPDATE "transaction" 
+        SET "transactiondata" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, transactionid, createddate, modifieddate, transactiondata, userid, productid, merchanttransactionid, name, amount, mobilenumber, transactionfor
+      
+Update query: 
+        UPDATE "transaction" 
+        SET "transactiondata" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, transactionid, createddate, modifieddate, transactiondata, userid, productid, merchanttransactionid, name, amount, mobilenumber, transactionfor
+      
+Update query: 
+        UPDATE "transaction" 
+        SET "transactiondata" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, transactionid, createddate, modifieddate, transactiondata, userid, productid, merchanttransactionid, name, amount, mobilenumber, transactionfor
+      
+Update query: 
+        UPDATE "transaction" 
+        SET "transactiondata" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, transactionid, createddate, modifieddate, transactiondata, userid, productid, merchanttransactionid, name, amount, mobilenumber, transactionfor
+      
+Update query: 
+        UPDATE "transaction" 
+        SET "transactiondata" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, transactionid, createddate, modifieddate, transactiondata, userid, productid, merchanttransactionid, name, amount, mobilenumber, transactionfor
+      
+Update query: 
+        UPDATE "transaction" 
+        SET "transactiondata" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, transactionid, createddate, modifieddate, transactiondata, userid, productid, merchanttransactionid, name, amount, mobilenumber, transactionfor
+      
+Update query: 
+        UPDATE "transaction" 
+        SET "transactiondata" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, transactionid, createddate, modifieddate, transactiondata, userid, productid, merchanttransactionid, name, amount, mobilenumber, transactionfor
+      
+Update query: 
+        UPDATE "transaction" 
+        SET "transactiondata" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, transactionid, createddate, modifieddate, transactiondata, userid, productid, merchanttransactionid, name, amount, mobilenumber, transactionfor
+      
+Update query: 
+        UPDATE "transaction" 
+        SET "transactiondata" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, transactionid, createddate, modifieddate, transactiondata, userid, productid, merchanttransactionid, name, amount, mobilenumber, transactionfor
+      
+Update query: 
+        UPDATE "transaction" 
+        SET "transactiondata" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, transactionid, createddate, modifieddate, transactiondata, userid, productid, merchanttransactionid, name, amount, mobilenumber, transactionfor
+      
+Update query: 
+        UPDATE "transaction" 
+        SET "transactiondata" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, transactionid, createddate, modifieddate, transactiondata, userid, productid, merchanttransactionid, name, amount, mobilenumber, transactionfor
+      

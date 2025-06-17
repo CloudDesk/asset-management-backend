@@ -73,3 +73,369 @@ Update result: [
   }
 ]
 Update result: []
+Update result: []
+Update result: []
+Update result: [
+  {
+    "id": 13,
+    "transactionid": "REQIT-TRAN-00013",
+    "createddate": 1750153821,
+    "modifieddate": 1750154597,
+    "transactiondata": {
+      "status": "FAILED",
+      "updatedAt": "2025-06-17T04:33:16.354Z",
+      "phonePeResponse": {
+        "code": "PAYMENT_ERROR",
+        "data": {
+          "state": "FAILED",
+          "amount": 10000000,
+          "merchantId": "PGTESTPAYUAT86",
+          "responseCode": "TXN_AUTO_FAILED",
+          "transactionId": "T2506170942567600124008",
+          "paymentInstrument": {
+            "arn": null,
+            "brn": "B12345",
+            "type": "CARD",
+            "bankId": null,
+            "cardType": "CREDIT_CARD",
+            "bankTransactionId": null
+          },
+          "merchantTransactionId": "TXN_1750133575431_LCQUTG"
+        },
+        "message": "Payment failed.",
+        "success": false
+      },
+      "paymentCompleteAt": "2025-06-17T04:33:16.354Z"
+    },
+    "userid": 39,
+    "productid": [
+      173
+    ],
+    "merchanttransactionid": "TXN_1750134020764_T8E8GM",
+    "name": "product test",
+    "amount": "100000",
+    "mobilenumber": 8708893235,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 14,
+    "transactionid": "REQIT-TRAN-00014",
+    "createddate": 1750154654,
+    "modifieddate": 1750154667,
+    "transactiondata": {
+      "status": "FAILED",
+      "updatedAt": "2025-06-17T04:34:27.040Z",
+      "phonePeResponse": {
+        "code": "PAYMENT_PENDING",
+        "data": {
+          "state": "PENDING",
+          "amount": 5000000,
+          "merchantId": "PGTESTPAYUAT86",
+          "responseCode": null,
+          "transactionId": "T2506171004129050124849",
+          "merchantTransactionId": "TXN_1750134852598_FO0VS3"
+        },
+        "message": "Your payment is in pending state.",
+        "success": true
+      },
+      "paymentCompleteAt": "2025-06-17T04:34:27.040Z"
+    },
+    "userid": 39,
+    "productid": [
+      173
+    ],
+    "merchanttransactionid": "TXN_1750134852598_FO0VS3",
+    "name": "Test Payment Flow",
+    "amount": "50000",
+    "mobilenumber": 8708893235,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 15,
+    "transactionid": "REQIT-TRAN-00015",
+    "createddate": 1750154725,
+    "modifieddate": 1750154816,
+    "transactiondata": {
+      "status": "SUCCESS",
+      "updatedAt": "2025-06-17T04:36:55.328Z",
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "data": {
+          "state": "COMPLETED",
+          "amount": 1050000,
+          "merchantId": "PGTESTPAYUAT86",
+          "responseCode": "SUCCESS",
+          "transactionId": "T2506171005239500124669",
+          "paymentInstrument": {
+            "arn": "12121214455",
+            "brn": "B12345",
+            "type": "CARD",
+            "bankId": null,
+            "cardType": "CREDIT_CARD",
+            "authRefId": "Dummy-auth12345",
+            "bankTransactionId": null
+          },
+          "merchantTransactionId": "TXN_1750134923761_1U3T7W"
+        },
+        "message": "Your payment is successful.",
+        "success": true
+      },
+      "paymentCompleteAt": "2025-06-17T04:36:55.328Z"
+    },
+    "userid": 39,
+    "productid": [
+      173
+    ],
+    "merchanttransactionid": "TXN_1750134923761_1U3T7W",
+    "name": "product test",
+    "amount": "10500",
+    "mobilenumber": 8708893235,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 15,
+    "transactionid": "REQIT-TRAN-00015",
+    "createddate": 1750154725,
+    "modifieddate": 1750154820,
+    "transactiondata": {
+      "status": "ERROR",
+      "updatedAt": "2025-06-17T04:36:59.378Z",
+      "phonePeResponse": {
+        "error": "\nInvalid `prisma.$queryRawUnsafe()` invocation:\n\n\nRaw query failed. Code: `23503`. Message: `insert or update on table \"orderline\" violates foreign key constraint \"orderline_productid_fkey\"`"
+      },
+      "paymentCompleteAt": "2025-06-17T04:36:59.378Z"
+    },
+    "userid": 39,
+    "productid": [
+      173
+    ],
+    "merchanttransactionid": "TXN_1750134923761_1U3T7W",
+    "name": "product test",
+    "amount": "10500",
+    "mobilenumber": 8708893235,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 15,
+    "transactionid": "REQIT-TRAN-00015",
+    "createddate": 1750154725,
+    "modifieddate": 1750154978,
+    "transactiondata": {
+      "status": "SUCCESS",
+      "updatedAt": "2025-06-17T04:39:37.026Z",
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "data": {
+          "state": "COMPLETED",
+          "amount": 5000000,
+          "merchantId": "PGTESTPAYUAT86",
+          "responseCode": "SUCCESS",
+          "transactionId": "T2506171004129050124849",
+          "paymentInstrument": {
+            "arn": "12121214455",
+            "brn": "B12345",
+            "type": "CARD",
+            "bankId": null,
+            "cardType": "CREDIT_CARD",
+            "authRefId": "Dummy-auth12345",
+            "bankTransactionId": null
+          },
+          "merchantTransactionId": "TXN_1750134852598_FO0VS3"
+        },
+        "message": "Your payment is successful.",
+        "success": true
+      },
+      "paymentCompleteAt": "2025-06-17T04:39:37.026Z"
+    },
+    "userid": 39,
+    "productid": [
+      173
+    ],
+    "merchanttransactionid": "TXN_1750134923761_1U3T7W",
+    "name": "product test",
+    "amount": "10500",
+    "mobilenumber": 8708893235,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 15,
+    "transactionid": "REQIT-TRAN-00015",
+    "createddate": 1750154725,
+    "modifieddate": 1750154982,
+    "transactiondata": {
+      "status": "ERROR",
+      "updatedAt": "2025-06-17T04:39:40.712Z",
+      "phonePeResponse": {
+        "error": "\nInvalid `prisma.$queryRawUnsafe()` invocation:\n\n\nRaw query failed. Code: `23503`. Message: `insert or update on table \"orderline\" violates foreign key constraint \"orderline_productid_fkey\"`"
+      },
+      "paymentCompleteAt": "2025-06-17T04:39:40.712Z"
+    },
+    "userid": 39,
+    "productid": [
+      173
+    ],
+    "merchanttransactionid": "TXN_1750134923761_1U3T7W",
+    "name": "product test",
+    "amount": "10500",
+    "mobilenumber": 8708893235,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 16,
+    "transactionid": "REQIT-TRAN-00016",
+    "createddate": 1750155005,
+    "modifieddate": 1750155018,
+    "transactiondata": {
+      "status": "FAILED",
+      "updatedAt": "2025-06-17T04:40:17.352Z",
+      "phonePeResponse": {
+        "code": "PAYMENT_PENDING",
+        "data": {
+          "state": "PENDING",
+          "amount": 1500000,
+          "merchantId": "PGTESTPAYUAT86",
+          "responseCode": null,
+          "transactionId": "T2506171010045420124495",
+          "merchantTransactionId": "TXN_1750135204294_HSSM8K"
+        },
+        "message": "Your payment is in pending state.",
+        "success": true
+      },
+      "paymentCompleteAt": "2025-06-17T04:40:17.352Z"
+    },
+    "userid": 39,
+    "productid": [
+      178
+    ],
+    "merchanttransactionid": "TXN_1750135204294_HSSM8K",
+    "name": "Final Test Payment",
+    "amount": "15000",
+    "mobilenumber": 8708893235,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 18,
+    "transactionid": "REQIT-TRAN-00018",
+    "createddate": 1750155505,
+    "modifieddate": 1750155552,
+    "transactiondata": {
+      "status": "SUCCESS",
+      "updatedAt": "2025-06-17T04:49:11.334Z",
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "data": {
+          "state": "COMPLETED",
+          "amount": 1000,
+          "merchantId": "PGTESTPAYUAT86",
+          "responseCode": "SUCCESS",
+          "transactionId": "T2506171018235930124297",
+          "paymentInstrument": {
+            "arn": "12121214455",
+            "brn": "B12345",
+            "type": "CARD",
+            "bankId": null,
+            "cardType": "CREDIT_CARD",
+            "authRefId": "Dummy-auth12345",
+            "bankTransactionId": null
+          },
+          "merchantTransactionId": "TXN_1750135703184_82OJ7N"
+        },
+        "message": "Your payment is successful.",
+        "success": true
+      },
+      "paymentCompleteAt": "2025-06-17T04:49:11.334Z"
+    },
+    "userid": 1,
+    "productid": [
+      173
+    ],
+    "merchanttransactionid": "TXN_1750135703184_82OJ7N",
+    "name": "TEST",
+    "amount": "10",
+    "mobilenumber": 9005006885,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 18,
+    "transactionid": "REQIT-TRAN-00018",
+    "createddate": 1750155505,
+    "modifieddate": 1750155556,
+    "transactiondata": {
+      "status": "ERROR",
+      "updatedAt": "2025-06-17T04:49:15.057Z",
+      "phonePeResponse": {
+        "error": "\nInvalid `prisma.$queryRawUnsafe()` invocation:\n\n\nRaw query failed. Code: `23503`. Message: `insert or update on table \"orderline\" violates foreign key constraint \"orderline_productid_fkey\"`"
+      },
+      "paymentCompleteAt": "2025-06-17T04:49:15.057Z"
+    },
+    "userid": 1,
+    "productid": [
+      173
+    ],
+    "merchanttransactionid": "TXN_1750135703184_82OJ7N",
+    "name": "TEST",
+    "amount": "10",
+    "mobilenumber": 9005006885,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 19,
+    "transactionid": "REQIT-TRAN-00019",
+    "createddate": 1750156022,
+    "modifieddate": 1750156054,
+    "transactiondata": {
+      "status": "SUCCESS",
+      "updatedAt": "2025-06-17T04:57:32.666Z",
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "data": {
+          "state": "COMPLETED",
+          "amount": 1200,
+          "merchantId": "PGTESTPAYUAT86",
+          "responseCode": "SUCCESS",
+          "transactionId": "T2506171027000210124635",
+          "paymentInstrument": {
+            "arn": "12121214455",
+            "brn": "B12345",
+            "type": "CARD",
+            "bankId": null,
+            "cardType": "CREDIT_CARD",
+            "authRefId": "Dummy-auth12345",
+            "bankTransactionId": null
+          },
+          "merchantTransactionId": "TXN_1750136219694_PPV4BJ"
+        },
+        "message": "Your payment is successful.",
+        "success": true
+      },
+      "paymentCompleteAt": "2025-06-17T04:57:32.666Z"
+    },
+    "userid": 1,
+    "productid": [
+      173
+    ],
+    "merchanttransactionid": "TXN_1750136219694_PPV4BJ",
+    "name": "TEST",
+    "amount": "12",
+    "mobilenumber": 9005006885,
+    "transactionfor": "product"
+  }
+]

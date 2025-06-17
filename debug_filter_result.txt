@@ -203,3 +203,789 @@ Filtered data result: {
   "transactionfor": "upsert_test",
   "modifieddate": 1750066597167
 }
+Filtered data result: {
+  "transactionid": "TXN_1750133575431_LCQUTG",
+  "merchanttransactionid": "TXN_1750133575431_LCQUTG",
+  "name": "product test",
+  "amount": 100000,
+  "mobilenumber": 8708893235,
+  "userid": 39,
+  "productid": [
+    173
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "INITIATED",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_INITIATED",
+      "message": "Payment initiated",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1750133575431_LCQUTG",
+        "instrumentResponse": {
+          "type": "PAY_PAGE",
+          "redirectInfo": {
+            "url": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBanRoCir1prxqzzNv2YiPd8",
+            "method": "GET"
+          }
+        }
+      }
+    },
+    "paymentData": {
+      "merchantId": "PGTESTPAYUAT86",
+      "merchantTransactionId": "TXN_1750133575431_LCQUTG",
+      "name": "product test",
+      "amount": 10000000,
+      "redirectUrl": "https://revo365-sit-1004893667696.us-central1.run.app/v1/phonepe/callback/TXN_1750133575431_LCQUTG",
+      "redirectMode": "POST",
+      "mobileNumber": "8708893235",
+      "paymentInstrument": {
+        "type": "PAY_PAGE"
+      }
+    }
+  },
+  "createddate": 1750133576741,
+  "modifieddate": 1750133576741
+}
+Filtered data result: {
+  "transactionid": "TXN_1750133976609_2UKNUU",
+  "merchanttransactionid": "TXN_1750133976609_2UKNUU",
+  "name": "product test",
+  "amount": 100000,
+  "mobilenumber": 8708893235,
+  "userid": 39,
+  "productid": [
+    173
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "INITIATED",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_INITIATED",
+      "message": "Payment initiated",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1750133976609_2UKNUU",
+        "instrumentResponse": {
+          "type": "PAY_PAGE",
+          "redirectInfo": {
+            "url": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBanRoCcCruhY6myAH8wandM",
+            "method": "GET"
+          }
+        }
+      }
+    },
+    "paymentData": {
+      "merchantId": "PGTESTPAYUAT86",
+      "merchantTransactionId": "TXN_1750133976609_2UKNUU",
+      "name": "product test",
+      "amount": 10000000,
+      "redirectUrl": "https://revo365-sit-1004893667696.us-central1.run.app/v1/phonepe/callback/TXN_1750133976609_2UKNUU",
+      "redirectMode": "POST",
+      "mobileNumber": "8708893235",
+      "paymentInstrument": {
+        "type": "PAY_PAGE"
+      }
+    }
+  },
+  "createddate": 1750133976923,
+  "modifieddate": 1750133976923
+}
+Filtered data result: {
+  "transactionid": "TXN_1750134020764_T8E8GM",
+  "merchanttransactionid": "TXN_1750134020764_T8E8GM",
+  "name": "product test",
+  "amount": 100000,
+  "mobilenumber": 8708893235,
+  "userid": 39,
+  "productid": [
+    173
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "INITIATED",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_INITIATED",
+      "message": "Payment initiated",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1750134020764_T8E8GM",
+        "instrumentResponse": {
+          "type": "PAY_PAGE",
+          "redirectInfo": {
+            "url": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBanRolASwi4Av9RUVL4uJsK",
+            "method": "GET"
+          }
+        }
+      }
+    },
+    "paymentData": {
+      "merchantId": "PGTESTPAYUAT86",
+      "merchantTransactionId": "TXN_1750134020764_T8E8GM",
+      "name": "product test",
+      "amount": 10000000,
+      "redirectUrl": "https://revo365-sit-1004893667696.us-central1.run.app/v1/phonepe/callback/TXN_1750134020764_T8E8GM",
+      "redirectMode": "POST",
+      "mobileNumber": "8708893235",
+      "paymentInstrument": {
+        "type": "PAY_PAGE"
+      }
+    }
+  },
+  "createddate": 1750134020967,
+  "modifieddate": 1750134020967
+}
+Filtered data result: {
+  "transactiondata": {
+    "status": "SUCCESS",
+    "paymentCompleteAt": "2025-06-17T04:29:54.407Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Your payment is successful.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1750133575431_LCQUTG",
+        "transactionId": "T2506170942567600124008",
+        "amount": 10000000,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "CARD",
+          "cardType": "CREDIT_CARD",
+          "bankTransactionId": null,
+          "arn": "12121214455",
+          "authRefId": "Dummy-auth12345",
+          "bankId": null,
+          "brn": "B12345"
+        }
+      }
+    },
+    "updatedAt": "2025-06-17T04:29:54.407Z"
+  },
+  "modifieddate": 1750134597505
+}
+Filtered data result: {
+  "transactiondata": {
+    "status": "ERROR",
+    "paymentCompleteAt": "2025-06-17T04:29:58.138Z",
+    "phonePeResponse": {
+      "error": "Failed to update transaction - no valid fields provided"
+    },
+    "updatedAt": "2025-06-17T04:29:58.138Z"
+  },
+  "modifieddate": 1750134598584
+}
+Filtered data result: {
+  "transactiondata": {
+    "status": "FAILED",
+    "paymentCompleteAt": "2025-06-17T04:33:16.354Z",
+    "phonePeResponse": {
+      "success": false,
+      "code": "PAYMENT_ERROR",
+      "message": "Payment failed.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1750133575431_LCQUTG",
+        "transactionId": "T2506170942567600124008",
+        "amount": 10000000,
+        "state": "FAILED",
+        "responseCode": "TXN_AUTO_FAILED",
+        "paymentInstrument": {
+          "type": "CARD",
+          "cardType": "CREDIT_CARD",
+          "bankTransactionId": null,
+          "arn": null,
+          "bankId": null,
+          "brn": "B12345"
+        }
+      }
+    },
+    "updatedAt": "2025-06-17T04:33:16.354Z"
+  },
+  "modifieddate": 1750134796787
+}
+Filtered data result: {
+  "transactionid": "TXN_1750134852598_FO0VS3",
+  "merchanttransactionid": "TXN_1750134852598_FO0VS3",
+  "name": "Test Payment Flow",
+  "amount": 50000,
+  "mobilenumber": 8708893235,
+  "userid": 39,
+  "productid": [
+    173
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "INITIATED",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_INITIATED",
+      "message": "Payment initiated",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1750134852598_FO0VS3",
+        "instrumentResponse": {
+          "type": "PAY_PAGE",
+          "redirectInfo": {
+            "url": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBanRokx7oB9uoL43WKT8U9q",
+            "method": "GET"
+          }
+        }
+      }
+    },
+    "paymentData": {
+      "merchantId": "PGTESTPAYUAT86",
+      "merchantTransactionId": "TXN_1750134852598_FO0VS3",
+      "name": "Test Payment Flow",
+      "amount": 5000000,
+      "redirectUrl": "https://revo365-sit-1004893667696.us-central1.run.app/v1/phonepe/callback/TXN_1750134852598_FO0VS3",
+      "redirectMode": "POST",
+      "mobileNumber": "8708893235",
+      "paymentInstrument": {
+        "type": "PAY_PAGE"
+      }
+    }
+  },
+  "createddate": 1750134852886,
+  "modifieddate": 1750134852886
+}
+Filtered data result: {
+  "transactiondata": {
+    "status": "FAILED",
+    "paymentCompleteAt": "2025-06-17T04:34:27.040Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_PENDING",
+      "message": "Your payment is in pending state.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1750134852598_FO0VS3",
+        "transactionId": "T2506171004129050124849",
+        "amount": 5000000,
+        "state": "PENDING",
+        "responseCode": null
+      }
+    },
+    "updatedAt": "2025-06-17T04:34:27.040Z"
+  },
+  "modifieddate": 1750134867257
+}
+Filtered data result: {
+  "transactionid": "TXN_1750134923761_1U3T7W",
+  "merchanttransactionid": "TXN_1750134923761_1U3T7W",
+  "name": "product test",
+  "amount": 10500,
+  "mobilenumber": 8708893235,
+  "userid": 39,
+  "productid": [
+    173
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "INITIATED",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_INITIATED",
+      "message": "Payment initiated",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1750134923761_1U3T7W",
+        "instrumentResponse": {
+          "type": "PAY_PAGE",
+          "redirectInfo": {
+            "url": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBanRokvVaJIeo7QzUzL2eS6",
+            "method": "GET"
+          }
+        }
+      }
+    },
+    "paymentData": {
+      "merchantId": "PGTESTPAYUAT86",
+      "merchantTransactionId": "TXN_1750134923761_1U3T7W",
+      "name": "product test",
+      "amount": 1050000,
+      "redirectUrl": "https://revo365-sit-1004893667696.us-central1.run.app/v1/phonepe/callback/TXN_1750134923761_1U3T7W",
+      "redirectMode": "POST",
+      "mobileNumber": "8708893235",
+      "paymentInstrument": {
+        "type": "PAY_PAGE"
+      }
+    }
+  },
+  "createddate": 1750134923919,
+  "modifieddate": 1750134923919
+}
+Filtered data result: {
+  "transactiondata": {
+    "status": "SUCCESS",
+    "paymentCompleteAt": "2025-06-17T04:36:55.328Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Your payment is successful.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1750134923761_1U3T7W",
+        "transactionId": "T2506171005239500124669",
+        "amount": 1050000,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "CARD",
+          "cardType": "CREDIT_CARD",
+          "bankTransactionId": null,
+          "arn": "12121214455",
+          "authRefId": "Dummy-auth12345",
+          "bankId": null,
+          "brn": "B12345"
+        }
+      }
+    },
+    "updatedAt": "2025-06-17T04:36:55.328Z"
+  },
+  "modifieddate": 1750135015765
+}
+Filtered data result: {
+  "userid": 39,
+  "orderamount": 10500,
+  "orderid": "ORDER_TXN_1750134923761_1U3T7W_1750135017051",
+  "orderstatus": "payment_completed",
+  "quantity": 1,
+  "transactionid": "REQIT-TRAN-00015",
+  "productamount": 10500,
+  "discountamount": 0,
+  "ispaymentsucceed": true,
+  "merchanttransactionid": "TXN_1750134923761_1U3T7W",
+  "productid": [
+    173
+  ],
+  "createddate": 1750135017051,
+  "modifieddate": 1750135017051
+}
+Filtered data result: {
+  "orderid": 18,
+  "productid": 173,
+  "userid": 39,
+  "productamount": 10500,
+  "discountamount": 0,
+  "orderamount": 10500,
+  "quantity": 1,
+  "merchanttransactionid": "TXN_1750134923761_1U3T7W",
+  "orderstatus": "payment_completed",
+  "orderlinenumber": "ORDER_TXN_1750134923761_1U3T7W_1750135017051_LINE_1",
+  "ordereddate": 1750135017051,
+  "createddate": 1750135017051,
+  "modifieddate": 1750135017051,
+  "uniqueordderid": "UOD-1750135018252-tpt6ie6oq"
+}
+Filtered data result: {
+  "transactiondata": {
+    "status": "ERROR",
+    "paymentCompleteAt": "2025-06-17T04:36:59.378Z",
+    "phonePeResponse": {
+      "error": "\nInvalid `prisma.$queryRawUnsafe()` invocation:\n\n\nRaw query failed. Code: `23503`. Message: `insert or update on table \"orderline\" violates foreign key constraint \"orderline_productid_fkey\"`"
+    },
+    "updatedAt": "2025-06-17T04:36:59.378Z"
+  },
+  "modifieddate": 1750135019594
+}
+Filtered data result: {
+  "transactiondata": {
+    "status": "SUCCESS",
+    "paymentCompleteAt": "2025-06-17T04:39:37.026Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Your payment is successful.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1750134852598_FO0VS3",
+        "transactionId": "T2506171004129050124849",
+        "amount": 5000000,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "CARD",
+          "cardType": "CREDIT_CARD",
+          "bankTransactionId": null,
+          "arn": "12121214455",
+          "authRefId": "Dummy-auth12345",
+          "bankId": null,
+          "brn": "B12345"
+        }
+      }
+    },
+    "updatedAt": "2025-06-17T04:39:37.026Z"
+  },
+  "modifieddate": 1750135177447
+}
+Filtered data result: {
+  "userid": 39,
+  "orderamount": 10500,
+  "orderid": "ORDER_TXN_1750134852598_FO0VS3_1750135178112",
+  "orderstatus": "payment_completed",
+  "quantity": 1,
+  "transactionid": "REQIT-TRAN-00015",
+  "productamount": 10500,
+  "discountamount": 0,
+  "ispaymentsucceed": true,
+  "merchanttransactionid": "TXN_1750134923761_1U3T7W",
+  "productid": [
+    173
+  ],
+  "createddate": 1750135178112,
+  "modifieddate": 1750135178112
+}
+Filtered data result: {
+  "orderid": 19,
+  "productid": 173,
+  "userid": 39,
+  "productamount": 10500,
+  "discountamount": 0,
+  "orderamount": 10500,
+  "quantity": 1,
+  "merchanttransactionid": "TXN_1750134923761_1U3T7W",
+  "orderstatus": "payment_completed",
+  "orderlinenumber": "ORDER_TXN_1750134852598_FO0VS3_1750135178112_LINE_1",
+  "ordereddate": 1750135178112,
+  "createddate": 1750135178112,
+  "modifieddate": 1750135178112,
+  "uniqueordderid": "UOD-1750135179417-ngxu87hfl"
+}
+Filtered data result: {
+  "transactiondata": {
+    "status": "ERROR",
+    "paymentCompleteAt": "2025-06-17T04:39:40.712Z",
+    "phonePeResponse": {
+      "error": "\nInvalid `prisma.$queryRawUnsafe()` invocation:\n\n\nRaw query failed. Code: `23503`. Message: `insert or update on table \"orderline\" violates foreign key constraint \"orderline_productid_fkey\"`"
+    },
+    "updatedAt": "2025-06-17T04:39:40.712Z"
+  },
+  "modifieddate": 1750135181149
+}
+Filtered data result: {
+  "transactionid": "TXN_1750135204294_HSSM8K",
+  "merchanttransactionid": "TXN_1750135204294_HSSM8K",
+  "name": "Final Test Payment",
+  "amount": 15000,
+  "mobilenumber": 8708893235,
+  "userid": 39,
+  "productid": [
+    178
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "INITIATED",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_INITIATED",
+      "message": "Payment initiated",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1750135204294_HSSM8K",
+        "instrumentResponse": {
+          "type": "PAY_PAGE",
+          "redirectInfo": {
+            "url": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBanRoryaD6Gw7qUPJp3uWY6",
+            "method": "GET"
+          }
+        }
+      }
+    },
+    "paymentData": {
+      "merchantId": "PGTESTPAYUAT86",
+      "merchantTransactionId": "TXN_1750135204294_HSSM8K",
+      "name": "Final Test Payment",
+      "amount": 1500000,
+      "redirectUrl": "https://revo365-sit-1004893667696.us-central1.run.app/v1/phonepe/callback/TXN_1750135204294_HSSM8K",
+      "redirectMode": "POST",
+      "mobileNumber": "8708893235",
+      "paymentInstrument": {
+        "type": "PAY_PAGE"
+      }
+    }
+  },
+  "createddate": 1750135204516,
+  "modifieddate": 1750135204516
+}
+Filtered data result: {
+  "transactiondata": {
+    "status": "FAILED",
+    "paymentCompleteAt": "2025-06-17T04:40:17.352Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_PENDING",
+      "message": "Your payment is in pending state.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1750135204294_HSSM8K",
+        "transactionId": "T2506171010045420124495",
+        "amount": 1500000,
+        "state": "PENDING",
+        "responseCode": null
+      }
+    },
+    "updatedAt": "2025-06-17T04:40:17.352Z"
+  },
+  "modifieddate": 1750135217565
+}
+Filtered data result: {
+  "transactionid": "TXN_1750135284811_KSTQ1E",
+  "merchanttransactionid": "TXN_1750135284811_KSTQ1E",
+  "name": "product test",
+  "amount": 10500,
+  "mobilenumber": 8708893235,
+  "userid": 39,
+  "productid": [
+    173
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "INITIATED",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_INITIATED",
+      "message": "Payment initiated",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1750135284811_KSTQ1E",
+        "instrumentResponse": {
+          "type": "PAY_PAGE",
+          "redirectInfo": {
+            "url": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBanRorydQjff7zMvuNX5vB6",
+            "method": "GET"
+          }
+        }
+      }
+    },
+    "paymentData": {
+      "merchantId": "PGTESTPAYUAT86",
+      "merchantTransactionId": "TXN_1750135284811_KSTQ1E",
+      "name": "product test",
+      "amount": 1050000,
+      "redirectUrl": "https://revo365-sit-1004893667696.us-central1.run.app/v1/phonepe/callback/TXN_1750135284811_KSTQ1E",
+      "redirectMode": "POST",
+      "mobileNumber": "8708893235",
+      "paymentInstrument": {
+        "type": "PAY_PAGE"
+      }
+    }
+  },
+  "createddate": 1750135285061,
+  "modifieddate": 1750135285061
+}
+Filtered data result: {
+  "transactionid": "TXN_1750135703184_82OJ7N",
+  "merchanttransactionid": "TXN_1750135703184_82OJ7N",
+  "name": "TEST",
+  "amount": 10,
+  "mobilenumber": 9005006885,
+  "userid": 1,
+  "productid": [
+    173
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "INITIATED",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_INITIATED",
+      "message": "Payment initiated",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1750135703184_82OJ7N",
+        "instrumentResponse": {
+          "type": "PAY_PAGE",
+          "redirectInfo": {
+            "url": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBanRorqH08ThtyWb4PIh2vP",
+            "method": "GET"
+          }
+        }
+      }
+    },
+    "paymentData": {
+      "merchantId": "PGTESTPAYUAT86",
+      "merchantTransactionId": "TXN_1750135703184_82OJ7N",
+      "name": "TEST",
+      "amount": 1000,
+      "redirectUrl": "http://localhost:5600/v1/phonepe/callback/TXN_1750135703184_82OJ7N",
+      "redirectMode": "POST",
+      "mobileNumber": "9005006885",
+      "paymentInstrument": {
+        "type": "PAY_PAGE"
+      }
+    }
+  },
+  "createddate": 1750135703515,
+  "modifieddate": 1750135703515
+}
+Filtered data result: {
+  "transactiondata": {
+    "status": "SUCCESS",
+    "paymentCompleteAt": "2025-06-17T04:49:11.334Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Your payment is successful.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1750135703184_82OJ7N",
+        "transactionId": "T2506171018235930124297",
+        "amount": 1000,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "CARD",
+          "cardType": "CREDIT_CARD",
+          "bankTransactionId": null,
+          "arn": "12121214455",
+          "authRefId": "Dummy-auth12345",
+          "bankId": null,
+          "brn": "B12345"
+        }
+      }
+    },
+    "updatedAt": "2025-06-17T04:49:11.334Z"
+  },
+  "modifieddate": 1750135751787
+}
+Filtered data result: {
+  "userid": 1,
+  "orderamount": 10,
+  "orderid": "ORDER_TXN_1750135703184_82OJ7N_1750135752972",
+  "orderstatus": "payment_completed",
+  "quantity": 1,
+  "transactionid": "REQIT-TRAN-00018",
+  "productamount": 10,
+  "discountamount": 0,
+  "ispaymentsucceed": true,
+  "merchanttransactionid": "TXN_1750135703184_82OJ7N",
+  "productid": [
+    173
+  ],
+  "createddate": 1750135752972,
+  "modifieddate": 1750135752972
+}
+Filtered data result: {
+  "orderid": 20,
+  "productid": 173,
+  "userid": 1,
+  "productamount": 10,
+  "discountamount": 0,
+  "orderamount": 10,
+  "quantity": 1,
+  "merchanttransactionid": "TXN_1750135703184_82OJ7N",
+  "orderstatus": "payment_completed",
+  "orderlinenumber": "ORDER_TXN_1750135703184_82OJ7N_1750135752972_LINE_1",
+  "ordereddate": 1750135752972,
+  "createddate": 1750135752972,
+  "modifieddate": 1750135752972,
+  "uniqueordderid": "UOD-1750135753889-w9zpm5gha"
+}
+Filtered data result: {
+  "transactiondata": {
+    "status": "ERROR",
+    "paymentCompleteAt": "2025-06-17T04:49:15.057Z",
+    "phonePeResponse": {
+      "error": "\nInvalid `prisma.$queryRawUnsafe()` invocation:\n\n\nRaw query failed. Code: `23503`. Message: `insert or update on table \"orderline\" violates foreign key constraint \"orderline_productid_fkey\"`"
+    },
+    "updatedAt": "2025-06-17T04:49:15.057Z"
+  },
+  "modifieddate": 1750135755523
+}
+Filtered data result: {
+  "transactionid": "TXN_1750136219694_PPV4BJ",
+  "merchanttransactionid": "TXN_1750136219694_PPV4BJ",
+  "name": "TEST",
+  "amount": 12,
+  "mobilenumber": 9005006885,
+  "userid": 1,
+  "productid": [
+    173
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "INITIATED",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_INITIATED",
+      "message": "Payment initiated",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1750136219694_PPV4BJ",
+        "instrumentResponse": {
+          "type": "PAY_PAGE",
+          "redirectInfo": {
+            "url": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBanRoXODMPXbJUKAq9AgQAF",
+            "method": "GET"
+          }
+        }
+      }
+    },
+    "paymentData": {
+      "merchantId": "PGTESTPAYUAT86",
+      "merchantTransactionId": "TXN_1750136219694_PPV4BJ",
+      "name": "TEST",
+      "amount": 1200,
+      "redirectUrl": "http://localhost:5600/v1/phonepe/callback/TXN_1750136219694_PPV4BJ",
+      "redirectMode": "POST",
+      "mobileNumber": "9005006885",
+      "paymentInstrument": {
+        "type": "PAY_PAGE"
+      }
+    }
+  },
+  "createddate": 1750136219960,
+  "modifieddate": 1750136219960
+}
+Filtered data result: {
+  "transactiondata": {
+    "status": "SUCCESS",
+    "paymentCompleteAt": "2025-06-17T04:57:32.666Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Your payment is successful.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1750136219694_PPV4BJ",
+        "transactionId": "T2506171027000210124635",
+        "amount": 1200,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "CARD",
+          "cardType": "CREDIT_CARD",
+          "bankTransactionId": null,
+          "arn": "12121214455",
+          "authRefId": "Dummy-auth12345",
+          "bankId": null,
+          "brn": "B12345"
+        }
+      }
+    },
+    "updatedAt": "2025-06-17T04:57:32.666Z"
+  },
+  "modifieddate": 1750136253120
+}
+Filtered data result: {
+  "userid": 1,
+  "orderamount": 12,
+  "orderid": "ORDER_TXN_1750136219694_PPV4BJ_1750136254038",
+  "orderstatus": "payment_completed",
+  "quantity": 1,
+  "transactionid": "REQIT-TRAN-00019",
+  "productamount": 12,
+  "discountamount": 0,
+  "ispaymentsucceed": true,
+  "merchanttransactionid": "TXN_1750136219694_PPV4BJ",
+  "productid": [
+    173
+  ],
+  "createddate": 1750136254038,
+  "modifieddate": 1750136254038
+}
