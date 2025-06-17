@@ -28,7 +28,7 @@ export class PhonePeController {
                 amount: requestBody.transaction.amount,
                 name: requestBody.transaction.name,
                 mobileNumber: requestBody.transaction.mobilenumber,
-                userId: parseInt(requestBody.transaction.userId),
+                userId: requestBody.transaction.userId,
                 productIds: requestBody.transaction.productid,
                 transactionFor: requestBody.transaction.transactionfor
             };
@@ -44,7 +44,14 @@ export class PhonePeController {
                 const transactionData = {
                     originalPayload: requestBody,
                     paymentRequest: paymentRequest,
-                    initiatedAt: new Date().toISOString()
+                    initiatedAt: new Date().toISOString(),
+                    phonePeResponses: {
+                        initiation: {
+                            timestamp: new Date().toISOString(),
+                            response: result,
+                            status: 'INITIATED'
+                        }
+                    }
                 };
                 // Store transaction with complete data
                 await this.storeTransactionData(paymentRequest, transactionData);
@@ -357,37 +364,50 @@ export class PhonePeController {
             logger.info({ transactionId, status }, 'Updating transaction status');
             // Find transaction by merchanttransactionid
             const transactions = await this.transactionService.findMany({ merchanttransactionid: transactionId }, 1, 1);
-            console.log(`🔧 [DEBUG] Transaction lookup result:`, {
-                found: !!(transactions.data && transactions.data.length > 0),
-                totalTransactions: transactions.data?.length || 0,
-                searchedFor: transactionId
-            });
             if (!transactions.data || transactions.data.length === 0) {
-                logger.error({ transactionId }, 'Transaction not found for order creation');
-                console.log(`🔧 [DEBUG] ❌ Transaction not found: ${transactionId}`);
-                throw new Error(`Transaction not found: ${transactionId}`);
+                throw new Error(`Transaction not found with merchanttransactionid: ${transactionId}`);
             }
             const transaction = transactions.data[0];
-            console.log(`🔧 [DEBUG] Found transaction:`, {
-                transactionId: transaction?.transactionid,
-                merchantTransactionId: transaction?.merchanttransactionid,
-                productIds: transaction?.productid,
-                userId: transaction?.userid,
-                amount: transaction?.amount
-            });
-            // Update transaction data with payment status
+            // Get existing transaction data or create new structure
+            const existingTransactionData = transaction.transactiondata || {};
+            // Ensure phonePeResponses object exists
+            if (!existingTransactionData.phonePeResponses) {
+                existingTransactionData.phonePeResponses = {};
+            }
+            // Add the new status response
+            const statusKey = status.toLowerCase();
+            existingTransactionData.phonePeResponses[statusKey] = {
+                timestamp: new Date().toISOString(),
+                response: paymentData,
+                status: status
+            };
+            // Update the main status fields for backward compatibility
+            existingTransactionData.status = status;
+            existingTransactionData.paymentCompleteAt = new Date().toISOString();
+            existingTransactionData.updatedAt = new Date().toISOString();
+            // If there's an error, store it in the phonePeResponse field for backward compatibility
+            if (status === 'ERROR' || status === 'FAILED') {
+                existingTransactionData.phonePeResponse = {
+                    error: paymentData.error || paymentData.message || 'Payment failed'
+                };
+            }
+            else {
+                existingTransactionData.phonePeResponse = paymentData;
+            }
+            // Update transaction data with enhanced structure
             const updateData = {
-                transactiondata: {
-                    status,
-                    paymentCompleteAt: new Date().toISOString(),
-                    phonePeResponse: paymentData,
-                    updatedAt: new Date().toISOString()
-                },
+                transactiondata: existingTransactionData,
                 modifieddate: Date.now()
             };
             // Use TransactionService to update transaction by database ID
             const result = await this.transactionService.update(transaction.id.toString(), updateData);
-            logger.info({ transactionId, status }, 'Transaction status updated successfully');
+            logger.info({
+                transactionId,
+                status,
+                statusKey,
+                hasExistingData: !!transaction.transactiondata,
+                responseCount: Object.keys(existingTransactionData.phonePeResponses).length
+            }, 'Transaction status updated successfully with enhanced data structure');
             return result;
         }
         catch (error) {
@@ -404,28 +424,13 @@ export class PhonePeController {
      */
     async createOrderAfterPayment(transactionId) {
         try {
-            logger.info({ transactionId }, 'Starting order creation after payment');
-            console.log(`🔧 [DEBUG] Starting order creation for transaction: ${transactionId}`);
-            // Find the transaction by merchant transaction ID
+            logger.info({ transactionId }, 'Creating order after successful payment');
+            // Find transaction by merchanttransactionid
             const transactions = await this.transactionService.findMany({ merchanttransactionid: transactionId }, 1, 1);
-            console.log(`🔧 [DEBUG] Transaction lookup result:`, {
-                found: !!(transactions.data && transactions.data.length > 0),
-                totalTransactions: transactions.data?.length || 0,
-                searchedFor: transactionId
-            });
             if (!transactions.data || transactions.data.length === 0) {
-                logger.error({ transactionId }, 'Transaction not found for order creation');
-                console.log(`🔧 [DEBUG] ❌ Transaction not found: ${transactionId}`);
-                throw new Error(`Transaction not found: ${transactionId}`);
+                throw new Error(`Transaction not found with merchanttransactionid: ${transactionId}`);
             }
             const transaction = transactions.data[0];
-            console.log(`🔧 [DEBUG] Found transaction:`, {
-                transactionId: transaction?.transactionid,
-                merchantTransactionId: transaction?.merchanttransactionid,
-                productIds: transaction?.productid,
-                userId: transaction?.userid,
-                amount: transaction?.amount
-            });
             logger.info({
                 transactionId,
                 foundTransaction: {
@@ -517,7 +522,7 @@ export class PhonePeController {
                     const orderlinePromises = validProductIds.map(async (productId, index) => {
                         const orderlineData = {
                             orderid: order.id,
-                            productid: BigInt(productId),
+                            productid: productId,
                             userid: transaction.userid,
                             productamount: parseFloat(transaction.amount?.toString() || '0') / validProductIds.length,
                             discountamount: 0,
@@ -536,25 +541,11 @@ export class PhonePeController {
                             orderlineData
                         }, 'Creating orderline');
                         try {
-                            // Use direct SQL to create orderline to bypass Prisma client type issues
-                            const orderline = await prisma.$queryRaw `
-                INSERT INTO orderline (
-                  orderid, productid, userid, productamount, discountamount, 
-                  orderamount, quantity, merchanttransactionid, orderstatus, 
-                  orderlinenumber, ordereddate, createddate, modifieddate
-                ) VALUES (
-                  ${order.id}, ${BigInt(productId)}, ${transaction.userid}, 
-                  ${parseFloat(transaction.amount?.toString() || '0') / validProductIds.length}, 
-                  ${0}, 
-                  ${parseFloat(transaction.amount?.toString() || '0') / validProductIds.length}, 
-                  ${1}, ${transaction.merchanttransactionid}, ${'payment_completed'}, 
-                  ${`${orderid}_LINE_${index + 1}`}, ${currentTime}, ${currentTime}, ${currentTime}
-                ) RETURNING id, orderlinenumber
-              `;
+                            const orderline = await this.orderlineService.create(orderlineData);
                             logger.info({
                                 transactionId,
                                 productId,
-                                orderlineId: Array.isArray(orderline) && orderline.length > 0 ? orderline[0].id : 'unknown'
+                                orderlineId: orderline.id
                             }, 'Orderline created successfully');
                             return orderline;
                         }
@@ -577,7 +568,7 @@ export class PhonePeController {
                             orderlineCount: orderlines.length,
                             validProductIds,
                             skippedProductIds: invalidProductIds,
-                            createdOrderlineIds: orderlines.map((ol) => Array.isArray(ol) && ol.length > 0 ? ol[0].id : 'unknown')
+                            createdOrderlineIds: orderlines.map(ol => ol.id)
                         }, 'All orderlines created successfully');
                     }
                     catch (error) {

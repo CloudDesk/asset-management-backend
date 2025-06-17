@@ -34,8 +34,8 @@ export class PhonePeController {
           productcategory: string;
           productid: number;
           productname: string;
-          quantity: string;
-          userid: string;
+          quantity: number;
+          userid: number;
         }>;
         transaction: {
           amount: number;
@@ -43,7 +43,7 @@ export class PhonePeController {
           name: string;
           productid: number[];
           transactionfor: string;
-          userId: string;
+          userId: number;
         };
       };
 
@@ -60,7 +60,7 @@ export class PhonePeController {
         amount: requestBody.transaction.amount,
         name: requestBody.transaction.name,
         mobileNumber: requestBody.transaction.mobilenumber,
-        userId: parseInt(requestBody.transaction.userId),
+        userId: requestBody.transaction.userId,
         productIds: requestBody.transaction.productid,
         transactionFor: requestBody.transaction.transactionfor
       };
@@ -79,7 +79,14 @@ export class PhonePeController {
         const transactionData = {
           originalPayload: requestBody,
           paymentRequest: paymentRequest,
-          initiatedAt: new Date().toISOString()
+          initiatedAt: new Date().toISOString(),
+          phonePeResponses: {
+            initiation: {
+              timestamp: new Date().toISOString(),
+              response: result,
+              status: 'INITIATED'
+            }
+          }
         };
 
         // Store transaction with complete data
@@ -524,20 +531,51 @@ export class PhonePeController {
       
       const transaction = transactions.data[0];
       
-      // Update transaction data with payment status
+      // Get existing transaction data or create new structure
+      const existingTransactionData = transaction.transactiondata || {};
+      
+      // Ensure phonePeResponses object exists
+      if (!existingTransactionData.phonePeResponses) {
+        existingTransactionData.phonePeResponses = {};
+      }
+      
+      // Add the new status response
+      const statusKey = status.toLowerCase();
+      existingTransactionData.phonePeResponses[statusKey] = {
+        timestamp: new Date().toISOString(),
+        response: paymentData,
+        status: status
+      };
+      
+      // Update the main status fields for backward compatibility
+      existingTransactionData.status = status;
+      existingTransactionData.paymentCompleteAt = new Date().toISOString();
+      existingTransactionData.updatedAt = new Date().toISOString();
+      
+      // If there's an error, store it in the phonePeResponse field for backward compatibility
+      if (status === 'ERROR' || status === 'FAILED') {
+        existingTransactionData.phonePeResponse = {
+          error: paymentData.error || paymentData.message || 'Payment failed'
+        };
+      } else {
+        existingTransactionData.phonePeResponse = paymentData;
+      }
+
+      // Update transaction data with enhanced structure
       const updateData = {
-        transactiondata: {
-          status,
-          paymentCompleteAt: new Date().toISOString(),
-          phonePeResponse: paymentData,
-          updatedAt: new Date().toISOString()
-        },
+        transactiondata: existingTransactionData,
         modifieddate: Date.now()
       };
 
       // Use TransactionService to update transaction by database ID
       const result = await this.transactionService.update(transaction.id.toString(), updateData);
-      logger.info({ transactionId, status }, 'Transaction status updated successfully');
+      logger.info({ 
+        transactionId, 
+        status,
+        statusKey,
+        hasExistingData: !!transaction.transactiondata,
+        responseCount: Object.keys(existingTransactionData.phonePeResponses).length
+      }, 'Transaction status updated successfully with enhanced data structure');
       
       return result;
     } catch (error: any) {
@@ -603,45 +641,18 @@ export class PhonePeController {
       const order = await this.ordersService.create(orderData);
       logger.info({ transactionId, orderId: order.id }, 'Order created successfully');
 
-      // Create orderline records for each product (with validation)
-      if (transaction.productid && transaction.productid.length > 0) {
+      // Create orderline records for each product (with improved validation)
+      if (transaction.productid && Array.isArray(transaction.productid) && transaction.productid.length > 0) {
         logger.info({ 
           transactionId,
           productIds: transaction.productid,
           productCount: transaction.productid.length
         }, 'Starting product validation for orderline creation');
 
-        // Validate product IDs first to avoid foreign key constraint violations
-        const validProductIds: number[] = [];
-        const invalidProductIds: number[] = [];
-        
-        for (const productId of transaction.productid) {
-          try {
-            logger.debug({ transactionId, productId }, 'Checking if product exists');
-            
-            // Check if product exists in product table
-            const productExists = await this.checkProductExists(productId);
-            
-            if (productExists) {
-              validProductIds.push(productId);
-              logger.info({ transactionId, productId }, 'Product validated successfully');
-            } else {
-              invalidProductIds.push(productId);
-              logger.warn({ 
-                transactionId, 
-                productId 
-              }, 'Product ID does not exist in database, skipping orderline creation');
-            }
-          } catch (error: any) {
-            invalidProductIds.push(productId);
-            logger.error({ 
-              transactionId, 
-              productId, 
-              error: error.message,
-              stack: error.stack
-            }, 'Error validating product ID, skipping orderline creation');
-          }
-        }
+        // Validate all products at once using Prisma
+        const validProducts = await this.validateProductsBatch(transaction.productid);
+        const validProductIds = validProducts.map(p => p.id);
+        const invalidProductIds = transaction.productid.filter(id => !validProductIds.includes(id));
 
         logger.info({ 
           transactionId,
@@ -667,66 +678,40 @@ export class PhonePeController {
             orderlineCount: validProductIds.length
           }, 'Creating orderlines for valid products');
 
-          const orderlinePromises = validProductIds.map(async (productId: number, index: number) => {
-            const orderlineData = {
-              orderid: order.id,
-              productid: productId,
-              userid: transaction.userid,
-              productamount: parseFloat(transaction.amount?.toString() || '0') / validProductIds.length,
-              discountamount: 0,
-              orderamount: parseFloat(transaction.amount?.toString() || '0') / validProductIds.length,
-              quantity: 1,
-              merchanttransactionid: transaction.merchanttransactionid,
-              orderstatus: 'payment_completed',
-              orderlinenumber: `${orderid}_LINE_${index + 1}`,
-              ordereddate: currentTime,
-              createddate: currentTime,
-              modifieddate: currentTime
-            };
+          // Create orderlines with proper error handling
+          const orderlineResults = await this.createOrderlinesForProducts(
+            order.id,
+            validProducts,
+            transaction,
+            orderid,
+            currentTime,
+            transactionId
+          );
 
-            logger.debug({ 
+          const successfulOrderlines = orderlineResults.filter(result => result.success);
+          const failedOrderlines = orderlineResults.filter(result => !result.success);
+
+          logger.info({ 
+            transactionId, 
+            orderId: order.id, 
+            totalOrderlines: orderlineResults.length,
+            successfulCount: successfulOrderlines.length,
+            failedCount: failedOrderlines.length,
+            successfulOrderlineIds: successfulOrderlines.map(r => r.orderline?.id).filter(Boolean),
+            failedProductIds: failedOrderlines.map(r => r.productId)
+          }, 'Orderline creation completed');
+
+          // If all orderlines failed, throw an error
+          if (successfulOrderlines.length === 0 && failedOrderlines.length > 0) {
+            throw new Error(`Failed to create any orderlines. Errors: ${failedOrderlines.map(r => r.error).join(', ')}`);
+          }
+
+          // Log warnings for partial failures
+          if (failedOrderlines.length > 0) {
+            logger.warn({ 
               transactionId,
-              productId,
-              orderlineData
-            }, 'Creating orderline');
-
-            try {
-              const orderline = await this.orderlineService.create(orderlineData);
-              logger.info({ 
-                transactionId,
-                productId,
-                orderlineId: orderline.id
-              }, 'Orderline created successfully');
-              return orderline;
-            } catch (error: any) {
-              logger.error({ 
-                transactionId,
-                productId,
-                orderlineData,
-                error: error.message,
-                stack: error.stack
-              }, 'Failed to create orderline');
-              throw error;
-            }
-          });
-
-          try {
-            const orderlines = await Promise.all(orderlinePromises);
-            logger.info({ 
-              transactionId, 
-              orderId: order.id, 
-              orderlineCount: orderlines.length,
-              validProductIds,
-              skippedProductIds: invalidProductIds,
-              createdOrderlineIds: orderlines.map(ol => ol.id)
-            }, 'All orderlines created successfully');
-          } catch (error: any) {
-            logger.error({ 
-              transactionId,
-              error: error.message,
-              stack: error.stack
-            }, 'Error creating one or more orderlines');
-            throw error;
+              failedOrderlines: failedOrderlines.map(r => ({ productId: r.productId, error: r.error }))
+            }, 'Some orderlines failed to create');
           }
         } else {
           logger.warn({ 
@@ -756,17 +741,242 @@ export class PhonePeController {
   }
 
   /**
+   * Validate products in batch using Prisma
+   */
+  private async validateProductsBatch(productIds: number[]): Promise<Array<{ id: number, name?: string }>> {
+    try {
+      logger.debug({ productIds }, 'Validating products in batch');
+      
+      const products = await prisma.product.findMany({
+        where: { 
+          id: { in: productIds.map((id: number) => BigInt(id)) } 
+        },
+        select: { 
+          id: true, 
+          name: true 
+        }
+      });
+      
+      const formattedProducts = products.map(p => ({
+        id: Number(p.id),
+        name: p.name || undefined
+      })).filter(p => p.id && !isNaN(p.id)) as Array<{ id: number, name?: string }>;
+      
+      logger.debug({ 
+        requestedIds: productIds,
+        foundProducts: formattedProducts.map(p => ({ id: p.id, name: p.name }))
+      }, 'Batch product validation completed');
+      
+      return formattedProducts;
+    } catch (error: any) {
+      logger.error({ 
+        productIds, 
+        error: error.message,
+        stack: error.stack 
+      }, 'Error in batch product validation');
+      return [];
+    }
+  }
+
+  /**
+   * Validate and clean orderline data before creation
+   */
+  private validateOrderlineData(orderlineData: any): { isValid: boolean; errors: string[]; cleanedData?: any } {
+    const errors: string[] = [];
+    const cleanedData = { ...orderlineData };
+
+    // Validate required fields
+    if (!cleanedData.orderid || typeof cleanedData.orderid !== 'number') {
+      errors.push('orderid must be a valid number');
+    }
+
+    if (!cleanedData.productid || typeof cleanedData.productid !== 'number') {
+      errors.push('productid must be a valid number');
+    }
+
+    if (!cleanedData.userid || typeof cleanedData.userid !== 'number') {
+      errors.push('userid must be a valid number');
+    }
+
+    // Validate and clean numeric fields
+    const numericFields = ['productamount', 'discountamount', 'orderamount', 'quantity'];
+    numericFields.forEach(field => {
+      if (cleanedData[field] !== undefined && cleanedData[field] !== null) {
+        const numValue = Number(cleanedData[field]);
+        if (isNaN(numValue)) {
+          errors.push(`${field} must be a valid number`);
+        } else {
+          cleanedData[field] = numValue;
+        }
+      }
+    });
+
+    // Validate and clean timestamp fields
+    const timestampFields = ['createddate', 'modifieddate', 'ordereddate'];
+    timestampFields.forEach(field => {
+      if (cleanedData[field] !== undefined && cleanedData[field] !== null) {
+        const numValue = Number(cleanedData[field]);
+        if (isNaN(numValue) || numValue < 0) {
+          errors.push(`${field} must be a valid timestamp`);
+        } else {
+          cleanedData[field] = numValue;
+        }
+      }
+    });
+
+    // Validate string fields length
+    const stringFields = [
+      { field: 'merchanttransactionid', maxLength: 250 },
+      { field: 'productname', maxLength: 500 },
+      { field: 'productcategory', maxLength: 500 },
+      { field: 'productcolour', maxLength: 500 },
+      { field: 'orderstatus', maxLength: 500 },
+      { field: 'uniqueordderid', maxLength: 500 },
+      { field: 'orderlinenumber', maxLength: 500 },
+      { field: 'deliveryfrom', maxLength: 500 },
+      { field: 'location', maxLength: 500 }
+    ];
+
+    stringFields.forEach(({ field, maxLength }) => {
+      if (cleanedData[field] && typeof cleanedData[field] === 'string') {
+        if (cleanedData[field].length > maxLength) {
+          errors.push(`${field} must be ${maxLength} characters or less`);
+        }
+      }
+    });
+
+    // Ensure null values for optional fields that might be undefined
+    const optionalFields = ['addressid', 'productcategory', 'productcolour', 'deliveryfrom', 'location'];
+    optionalFields.forEach(field => {
+      if (cleanedData[field] === undefined) {
+        cleanedData[field] = null;
+      }
+    });
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      cleanedData: errors.length === 0 ? cleanedData : undefined
+    };
+  }
+
+  /**
+   * Create orderlines for validated products
+   */
+  private async createOrderlinesForProducts(
+    orderId: number,
+    validProducts: Array<{ id: number, name?: string }>,
+    transaction: any,
+    orderid: string,
+    currentTime: number,
+    transactionId: string
+  ): Promise<Array<{ success: boolean; productId: number; orderline?: any; error?: string }>> {
+    const results: Array<{ success: boolean; productId: number; orderline?: any; error?: string }> = [];
+    
+    // Calculate amount per product
+    const totalAmount = parseFloat(transaction.amount?.toString() || '0');
+    const amountPerProduct = validProducts.length > 0 ? totalAmount / validProducts.length : 0;
+
+    for (let index = 0; index < validProducts.length; index++) {
+      const product = validProducts[index];
+      
+      if (!product) {
+        logger.warn({ transactionId, index }, 'Skipping undefined product');
+        continue;
+      }
+      
+      try {
+        const orderlineData = {
+          orderid: orderId, // Use the numeric order ID, not the string orderid
+          productid: product.id,
+          userid: transaction.userid,
+          productamount: Number(amountPerProduct),
+          discountamount: 0,
+          orderamount: Number(amountPerProduct),
+          quantity: 1,
+          merchanttransactionid: transaction.merchanttransactionid,
+          orderstatus: 'payment_completed',
+          orderlinenumber: `${orderid}_LINE_${index + 1}`,
+          productname: product.name || null,
+          ordereddate: currentTime,
+          createddate: currentTime,
+          modifieddate: currentTime
+        };
+
+        // Validate orderline data before creation
+        const validation = this.validateOrderlineData(orderlineData);
+        if (!validation.isValid) {
+          throw new Error(`Orderline data validation failed: ${validation.errors.join(', ')}`);
+        }
+
+        logger.debug({ 
+          transactionId,
+          productId: product.id,
+          orderlineData: {
+            ...validation.cleanedData,
+            // Don't log the full productname to keep logs clean
+            productname: product.name ? '***' : null
+          }
+        }, 'Creating orderline with validated data');
+
+        const orderline = await this.orderlineService.create(validation.cleanedData!);
+        
+        logger.info({ 
+          transactionId,
+          productId: product.id,
+          orderlineId: orderline.id,
+          orderlinenumber: orderline.orderlinenumber
+        }, 'Orderline created successfully');
+        
+        results.push({ 
+          success: true, 
+          productId: product.id, 
+          orderline 
+        });
+        
+      } catch (error: any) {
+        logger.error({ 
+          transactionId,
+          productId: product.id,
+          error: error.message,
+          stack: error.stack,
+          errorType: error.constructor.name
+        }, 'Failed to create orderline for product');
+        
+        results.push({ 
+          success: false, 
+          productId: product.id, 
+          error: error.message 
+        });
+      }
+    }
+
+    return results;
+  }
+
+  /**
    * Check if product exists in product table
    */
   private async checkProductExists(productId: number): Promise<boolean> {
     try {
-      // Use direct prisma query to check if product exists
-      const result = await prisma.$queryRaw`
-        SELECT id FROM product WHERE id = ${productId} LIMIT 1
-      `;
-      return Array.isArray(result) && result.length > 0;
+      logger.debug({ productId }, 'Checking if product exists in database');
+      
+      // Use Prisma's findUnique instead of raw SQL for better reliability
+      const product = await prisma.product.findUnique({
+        where: { id: BigInt(productId) },
+        select: { id: true }
+      });
+      
+      const exists = !!product;
+      logger.debug({ productId, exists }, 'Product existence check completed');
+      
+      return exists;
     } catch (error: any) {
-      logger.error({ productId, error: error.message }, 'Error checking product existence');
+      logger.error({ 
+        productId, 
+        error: error.message,
+        stack: error.stack 
+      }, 'Error checking product existence');
       return false;
     }
   }

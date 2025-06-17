@@ -2,7 +2,7 @@ import { z } from 'zod';
 // Orderline schema based on actual database fields from prisma schema  
 export const createOrderlineSchema = z.object({
     orderid: z.number().optional(),
-    productid: z.bigint().optional(),
+    productid: z.number().optional(),
     userid: z.number().optional(),
     addressid: z.number().optional(),
     productamount: z.number().optional(),
@@ -30,7 +30,7 @@ export const createOrderlineSchema = z.object({
 }).passthrough();
 export const updateOrderlineSchema = z.object({
     orderid: z.number().optional(),
-    productid: z.bigint().optional(),
+    productid: z.number().optional(),
     userid: z.number().optional(),
     addressid: z.number().optional(),
     productamount: z.number().optional(),
@@ -58,7 +58,7 @@ export const updateOrderlineSchema = z.object({
 export const upsertOrderlineSchema = z.object({
     id: z.number().optional(),
     orderid: z.number().optional(),
-    productid: z.bigint().optional(),
+    productid: z.number().optional(),
     userid: z.number().optional(),
     addressid: z.number().optional(),
     productamount: z.number().optional(),

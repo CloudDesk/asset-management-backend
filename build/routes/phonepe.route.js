@@ -15,22 +15,62 @@ export async function phonePeRoutes(fastify) {
                         items: {
                             type: 'object',
                             properties: {
-                                addressid: { type: 'number', minimum: 1, description: 'Address ID' },
-                                cartId: { type: 'number', minimum: 1, description: 'Cart ID' },
-                                discountamount: { type: 'number', minimum: 0, description: 'Discount amount' },
-                                orderamount: { type: 'number', minimum: 0.01, description: 'Order amount' },
-                                productamount: { type: 'number', minimum: 0.01, description: 'Product amount' },
-                                productcategory: { type: 'string', minLength: 1, description: 'Product category' },
-                                productid: { type: 'number', minimum: 1, description: 'Product ID' },
-                                productname: { type: 'string', minLength: 1, description: 'Product name' },
-                                quantity: { type: 'string', minLength: 1, description: 'Quantity as string' },
-                                userid: { type: 'string', minLength: 1, description: 'User ID as string' }
+                                addressid: {
+                                    type: 'number',
+                                    minimum: 1,
+                                    description: 'Address ID from address table'
+                                },
+                                cartId: {
+                                    type: 'number',
+                                    minimum: 1,
+                                    description: 'Shopping cart ID'
+                                },
+                                discountamount: {
+                                    type: 'number',
+                                    minimum: 0,
+                                    description: 'Discount amount in INR'
+                                },
+                                orderamount: {
+                                    type: 'number',
+                                    minimum: 0.01,
+                                    description: 'Total order amount in INR'
+                                },
+                                productamount: {
+                                    type: 'number',
+                                    minimum: 0.01,
+                                    description: 'Product price in INR'
+                                },
+                                productcategory: {
+                                    type: 'string',
+                                    minLength: 1,
+                                    description: 'Product category'
+                                },
+                                productid: {
+                                    type: 'number',
+                                    minimum: 1,
+                                    description: 'Product ID from product table'
+                                },
+                                productname: {
+                                    type: 'string',
+                                    minLength: 1,
+                                    description: 'Product name'
+                                },
+                                quantity: {
+                                    type: 'number',
+                                    minimum: 1,
+                                    description: 'Quantity of product'
+                                },
+                                userid: {
+                                    type: 'number',
+                                    minimum: 1,
+                                    description: 'User ID from users table'
+                                }
                             },
                             required: ['addressid', 'cartId', 'discountamount', 'orderamount', 'productamount', 'productcategory', 'productid', 'productname', 'quantity', 'userid'],
                             additionalProperties: false
                         },
                         minItems: 1,
-                        description: 'Array of order items'
+                        description: 'Array of order items to purchase'
                     },
                     transaction: {
                         type: 'object',
@@ -39,35 +79,39 @@ export async function phonePeRoutes(fastify) {
                                 type: 'number',
                                 minimum: 0.01,
                                 maximum: 100000,
-                                description: 'Transaction amount in INR'
+                                description: 'Total transaction amount in INR'
                             },
                             mobilenumber: {
                                 type: 'string',
                                 pattern: '^[1-9][0-9]{9}$',
-                                description: '10-digit mobile number (cannot start with 0)'
+                                description: '10-digit Indian mobile number (cannot start with 0)'
                             },
                             name: {
                                 type: 'string',
                                 minLength: 1,
                                 maxLength: 100,
-                                description: 'Customer name/email'
+                                description: 'Customer name or email address'
                             },
                             productid: {
                                 type: 'array',
-                                items: { type: 'number', minimum: 1 },
+                                items: {
+                                    type: 'number',
+                                    minimum: 1
+                                },
                                 minItems: 1,
-                                description: 'Array of product IDs'
+                                description: 'Array of product IDs being purchased'
                             },
                             transactionfor: {
                                 type: 'string',
                                 minLength: 1,
                                 maxLength: 255,
-                                description: 'Purpose of transaction'
+                                description: 'Purpose of the transaction',
+                                enum: ['product', 'service', 'subscription', 'donation']
                             },
                             userId: {
-                                type: 'string',
-                                minLength: 1,
-                                description: 'User ID as string'
+                                type: 'number',
+                                minimum: 1,
+                                description: 'User ID from users table'
                             }
                         },
                         required: ['amount', 'mobilenumber', 'name', 'productid', 'transactionfor', 'userId'],
@@ -86,10 +130,22 @@ export async function phonePeRoutes(fastify) {
                         data: {
                             type: 'object',
                             properties: {
-                                merchantTransactionId: { type: 'string' },
-                                redirectUrl: { type: 'string' },
-                                amount: { type: 'number' },
-                                status: { type: 'string' }
+                                merchantTransactionId: {
+                                    type: 'string',
+                                    description: 'Unique merchant transaction ID'
+                                },
+                                redirectUrl: {
+                                    type: 'string',
+                                    description: 'PhonePe payment page URL'
+                                },
+                                amount: {
+                                    type: 'number',
+                                    description: 'Transaction amount'
+                                },
+                                status: {
+                                    type: 'string',
+                                    description: 'Payment status'
+                                }
                             }
                         }
                     }
@@ -97,19 +153,19 @@ export async function phonePeRoutes(fastify) {
                 400: {
                     type: 'object',
                     properties: {
-                        success: { type: 'boolean', example: false },
+                        success: { type: 'boolean' },
                         message: { type: 'string' },
                         details: { type: 'string' },
-                        statusCode: { type: 'number', example: 400 }
+                        statusCode: { type: 'number' }
                     }
                 },
                 500: {
                     type: 'object',
                     properties: {
-                        success: { type: 'boolean', example: false },
+                        success: { type: 'boolean' },
                         message: { type: 'string' },
                         details: { type: 'string' },
-                        statusCode: { type: 'number', example: 500 }
+                        statusCode: { type: 'number' }
                     }
                 }
             }
@@ -145,8 +201,8 @@ export async function phonePeRoutes(fastify) {
                     description: 'Redirect to success/failure page',
                     type: 'object',
                     properties: {
-                        statusCode: { type: 'number', example: 302 },
-                        message: { type: 'string', example: 'Redirecting...' }
+                        statusCode: { type: 'number' },
+                        message: { type: 'string' }
                     }
                 },
                 200: {
@@ -216,7 +272,7 @@ export async function phonePeRoutes(fastify) {
                         type: 'string',
                         minLength: 1,
                         maxLength: 35,
-                        description: 'Merchant transaction ID'
+                        description: 'Merchant transaction ID returned from payment initiation'
                     }
                 },
                 required: ['merchantTransactionId']
@@ -230,11 +286,27 @@ export async function phonePeRoutes(fastify) {
                         data: {
                             type: 'object',
                             properties: {
-                                merchantTransaction: { type: 'string' },
-                                status: { type: 'string' },
-                                success: { type: 'boolean' },
-                                message: { type: 'string' },
-                                paymentData: { type: 'object' }
+                                merchantTransactionId: {
+                                    type: 'string',
+                                    description: 'Merchant transaction ID'
+                                },
+                                status: {
+                                    type: 'string',
+                                    description: 'Current payment status',
+                                    enum: ['PAYMENT_INITIATED', 'PAYMENT_PENDING', 'PAYMENT_SUCCESS', 'PAYMENT_ERROR', 'PAYMENT_DECLINED']
+                                },
+                                success: {
+                                    type: 'boolean',
+                                    description: 'Whether the payment was successful'
+                                },
+                                message: {
+                                    type: 'string',
+                                    description: 'Status message from PhonePe'
+                                },
+                                paymentData: {
+                                    type: 'object',
+                                    description: 'Complete payment response from PhonePe'
+                                }
                             }
                         }
                     }
@@ -242,18 +314,18 @@ export async function phonePeRoutes(fastify) {
                 400: {
                     type: 'object',
                     properties: {
-                        success: { type: 'boolean', example: false },
+                        success: { type: 'boolean' },
                         message: { type: 'string' },
                         details: { type: 'string' },
-                        statusCode: { type: 'number', example: 400 }
+                        statusCode: { type: 'number' }
                     }
                 },
                 404: {
                     type: 'object',
                     properties: {
-                        success: { type: 'boolean', example: false },
-                        message: { type: 'string', example: 'Transaction not found' },
-                        statusCode: { type: 'number', example: 404 }
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        statusCode: { type: 'number' }
                     }
                 }
             }
@@ -272,7 +344,7 @@ export async function phonePeRoutes(fastify) {
                         type: 'string',
                         minLength: 1,
                         maxLength: 35,
-                        description: 'Merchant transaction ID'
+                        description: 'Merchant transaction ID of the original payment'
                     }
                 },
                 required: ['merchantTransactionId']
@@ -304,11 +376,26 @@ export async function phonePeRoutes(fastify) {
                         data: {
                             type: 'object',
                             properties: {
-                                merchantTransaction: { type: 'string' },
-                                refundId: { type: 'string' },
-                                refundAmount: { type: 'number' },
-                                reason: { type: 'string' },
-                                status: { type: 'string' }
+                                merchantTransactionId: {
+                                    type: 'string',
+                                    description: 'Original transaction ID'
+                                },
+                                refundId: {
+                                    type: 'string',
+                                    description: 'Unique refund transaction ID'
+                                },
+                                refundAmount: {
+                                    type: 'number',
+                                    description: 'Refund amount in INR'
+                                },
+                                reason: {
+                                    type: 'string',
+                                    description: 'Refund reason'
+                                },
+                                status: {
+                                    type: 'string',
+                                    description: 'Refund status'
+                                }
                             }
                         }
                     }
@@ -316,18 +403,18 @@ export async function phonePeRoutes(fastify) {
                 400: {
                     type: 'object',
                     properties: {
-                        success: { type: 'boolean', example: false },
+                        success: { type: 'boolean' },
                         message: { type: 'string' },
                         details: { type: 'string' },
-                        statusCode: { type: 'number', example: 400 }
+                        statusCode: { type: 'number' }
                     }
                 },
                 404: {
                     type: 'object',
                     properties: {
-                        success: { type: 'boolean', example: false },
-                        message: { type: 'string', example: 'Transaction not found' },
-                        statusCode: { type: 'number', example: 404 }
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        statusCode: { type: 'number' }
                     }
                 }
             }
@@ -357,13 +444,13 @@ export async function phonePeRoutes(fastify) {
                         type: 'string',
                         pattern: '^[0-9]+$',
                         default: '1',
-                        description: 'Page number'
+                        description: 'Page number for pagination'
                     },
                     limit: {
                         type: 'string',
                         pattern: '^[0-9]+$',
                         default: '10',
-                        description: 'Items per page (max 100)'
+                        description: 'Number of items per page (max 100)'
                     }
                 },
                 additionalProperties: false
@@ -377,16 +464,31 @@ export async function phonePeRoutes(fastify) {
                         data: {
                             type: 'object',
                             properties: {
-                                data: { type: 'array', items: { type: 'object' } },
+                                data: {
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            id: { type: 'number' },
+                                            merchanttransactionid: { type: 'string' },
+                                            amount: { type: 'number' },
+                                            status: { type: 'string' },
+                                            createddate: { type: 'number' },
+                                            productid: { type: 'array', items: { type: 'number' } },
+                                            transactionfor: { type: 'string' }
+                                        }
+                                    },
+                                    description: 'Array of user transactions'
+                                },
                                 pagination: {
                                     type: 'object',
                                     properties: {
-                                        currentPage: { type: 'number' },
-                                        totalPages: { type: 'number' },
-                                        pageSize: { type: 'number' },
-                                        total: { type: 'number' },
-                                        hasNext: { type: 'boolean' },
-                                        hasPrev: { type: 'boolean' }
+                                        currentPage: { type: 'number', description: 'Current page number' },
+                                        totalPages: { type: 'number', description: 'Total number of pages' },
+                                        pageSize: { type: 'number', description: 'Items per page' },
+                                        total: { type: 'number', description: 'Total number of transactions' },
+                                        hasNext: { type: 'boolean', description: 'Whether next page exists' },
+                                        hasPrev: { type: 'boolean', description: 'Whether previous page exists' }
                                     }
                                 }
                             }
@@ -394,9 +496,9 @@ export async function phonePeRoutes(fastify) {
                         meta: {
                             type: 'object',
                             properties: {
-                                userId: { type: 'number' },
-                                page: { type: 'number' },
-                                limit: { type: 'number' }
+                                userId: { type: 'number', description: 'User ID' },
+                                page: { type: 'number', description: 'Requested page' },
+                                limit: { type: 'number', description: 'Requested limit' }
                             }
                         }
                     }
@@ -404,10 +506,10 @@ export async function phonePeRoutes(fastify) {
                 400: {
                     type: 'object',
                     properties: {
-                        success: { type: 'boolean', example: false },
+                        success: { type: 'boolean' },
                         message: { type: 'string' },
                         details: { type: 'string' },
-                        statusCode: { type: 'number', example: 400 }
+                        statusCode: { type: 'number' }
                     }
                 }
             }
@@ -434,24 +536,48 @@ export async function phonePeRoutes(fastify) {
                 200: {
                     type: 'object',
                     properties: {
-                        success: { type: 'boolean', example: true },
+                        success: { type: 'boolean' },
                         message: { type: 'string' },
                         data: {
                             type: 'object',
                             properties: {
-                                totalTransactions: { type: 'number' },
-                                successfulTransactions: { type: 'number' },
-                                failedTransactions: { type: 'number' },
-                                totalAmount: { type: 'number' },
-                                averageAmount: { type: 'number' },
-                                successRate: { type: 'number' }
+                                totalTransactions: {
+                                    type: 'number',
+                                    description: 'Total number of transactions'
+                                },
+                                successfulTransactions: {
+                                    type: 'number',
+                                    description: 'Number of successful transactions'
+                                },
+                                failedTransactions: {
+                                    type: 'number',
+                                    description: 'Number of failed transactions'
+                                },
+                                totalAmount: {
+                                    type: 'number',
+                                    description: 'Total transaction amount in INR'
+                                },
+                                averageAmount: {
+                                    type: 'number',
+                                    description: 'Average transaction amount in INR'
+                                },
+                                successRate: {
+                                    type: 'number',
+                                    description: 'Success rate percentage'
+                                }
                             }
                         },
                         meta: {
                             type: 'object',
                             properties: {
-                                userId: { type: 'number' },
-                                generatedAt: { type: 'string' }
+                                userId: {
+                                    type: 'number',
+                                    description: 'User ID (if filtered)'
+                                },
+                                generatedAt: {
+                                    type: 'string',
+                                    description: 'Statistics generation timestamp'
+                                }
                             }
                         }
                     }
@@ -468,25 +594,57 @@ export async function phonePeRoutes(fastify) {
             headers: {
                 type: 'object',
                 properties: {
-                    'x-verify': { type: 'string', description: 'PhonePe signature header' }
+                    'x-verify': {
+                        type: 'string',
+                        description: 'PhonePe signature header for webhook verification'
+                    }
                 },
                 required: ['x-verify']
             },
             body: {
                 type: 'object',
-                description: 'Webhook payload from PhonePe'
+                description: 'Webhook payload from PhonePe',
+                properties: {
+                    merchantId: {
+                        type: 'string',
+                        description: 'Merchant ID'
+                    },
+                    merchantTransactionId: {
+                        type: 'string',
+                        description: 'Merchant transaction ID'
+                    },
+                    transactionId: {
+                        type: 'string',
+                        description: 'PhonePe transaction ID'
+                    },
+                    amount: {
+                        type: 'number',
+                        description: 'Transaction amount in paise'
+                    },
+                    state: {
+                        type: 'string',
+                        description: 'Transaction state'
+                    },
+                    responseCode: {
+                        type: 'string',
+                        description: 'Response code'
+                    }
+                }
             },
             response: {
                 200: {
                     type: 'object',
                     properties: {
-                        success: { type: 'boolean', example: true },
-                        message: { type: 'string', example: 'Webhook processed successfully' },
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
                         data: {
                             type: 'object',
                             properties: {
-                                received: { type: 'boolean', example: true },
-                                timestamp: { type: 'string' }
+                                received: { type: 'boolean', description: 'Webhook received status' },
+                                timestamp: {
+                                    type: 'string',
+                                    description: 'Processing timestamp'
+                                }
                             }
                         }
                     }
@@ -494,9 +652,9 @@ export async function phonePeRoutes(fastify) {
                 401: {
                     type: 'object',
                     properties: {
-                        success: { type: 'boolean', example: false },
-                        message: { type: 'string', example: 'Invalid signature' },
-                        statusCode: { type: 'number', example: 401 }
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        statusCode: { type: 'number' }
                     }
                 }
             }
@@ -526,14 +684,23 @@ export async function phonePeRoutes(fastify) {
                 200: {
                     type: 'object',
                     properties: {
-                        success: { type: 'boolean', example: true },
-                        message: { type: 'string', example: 'Transaction ID generated successfully' },
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
                         data: {
                             type: 'object',
                             properties: {
-                                merchantTransaction: { type: 'string' },
-                                prefix: { type: 'string' },
-                                timestamp: { type: 'number' }
+                                merchantTransactionId: {
+                                    type: 'string',
+                                    description: 'Generated unique transaction ID'
+                                },
+                                prefix: {
+                                    type: 'string',
+                                    description: 'Used prefix'
+                                },
+                                timestamp: {
+                                    type: 'number',
+                                    description: 'Generation timestamp'
+                                }
                             }
                         }
                     }
@@ -556,23 +723,56 @@ export async function phonePeRoutes(fastify) {
                         data: {
                             type: 'object',
                             properties: {
-                                service: { type: 'string' },
-                                status: { type: 'string' },
-                                timestamp: { type: 'string' },
-                                version: { type: 'string' },
-                                environment: { type: 'string' },
+                                service: {
+                                    type: 'string',
+                                    description: 'Service name'
+                                },
+                                status: {
+                                    type: 'string',
+                                    description: 'Service status'
+                                },
+                                timestamp: {
+                                    type: 'string',
+                                    description: 'Health check timestamp'
+                                },
+                                version: {
+                                    type: 'string',
+                                    description: 'Service version'
+                                },
+                                environment: {
+                                    type: 'string',
+                                    description: 'Current environment'
+                                },
                                 configuration: {
                                     type: 'object',
                                     properties: {
-                                        merchantId: { type: 'string' },
-                                        saltKey: { type: 'string' },
-                                        baseUrl: { type: 'string' },
+                                        merchantId: {
+                                            type: 'string',
+                                            description: 'Merchant ID configuration status'
+                                        },
+                                        saltKey: {
+                                            type: 'string',
+                                            description: 'Salt key configuration status'
+                                        },
+                                        baseUrl: {
+                                            type: 'string',
+                                            description: 'PhonePe API base URL'
+                                        },
                                         redirectUrls: {
                                             type: 'object',
                                             properties: {
-                                                success: { type: 'string' },
-                                                failure: { type: 'string' },
-                                                status: { type: 'string' }
+                                                success: {
+                                                    type: 'string',
+                                                    description: 'Success redirect URL'
+                                                },
+                                                failure: {
+                                                    type: 'string',
+                                                    description: 'Failure redirect URL'
+                                                },
+                                                status: {
+                                                    type: 'string',
+                                                    description: 'Status check URL'
+                                                }
                                             }
                                         }
                                     }
@@ -584,9 +784,9 @@ export async function phonePeRoutes(fastify) {
                 500: {
                     type: 'object',
                     properties: {
-                        success: { type: 'boolean', example: false },
+                        success: { type: 'boolean' },
                         message: { type: 'string' },
-                        statusCode: { type: 'number', example: 500 }
+                        statusCode: { type: 'number' }
                     }
                 }
             }
@@ -609,8 +809,8 @@ export async function phonePeRoutes(fastify) {
                 200: {
                     type: 'object',
                     properties: {
-                        success: { type: 'boolean', example: true },
-                        message: { type: 'string', example: 'Refund callback processed' }
+                        success: { type: 'boolean' },
+                        message: { type: 'string' }
                     }
                 }
             }
@@ -635,70 +835,6 @@ export async function phonePeRoutes(fastify) {
             }
         });
     });
-    // Test endpoint for manual order creation (for testing only)
-    fastify.post('/test-order-creation/:transactionId', {
-        schema: {
-            description: 'Test endpoint to manually trigger order creation',
-            tags: ['PhonePe Testing'],
-            summary: 'Manually trigger order creation for testing purposes',
-            params: {
-                type: 'object',
-                properties: {
-                    transactionId: {
-                        type: 'string',
-                        description: 'Merchant transaction ID'
-                    }
-                },
-                required: ['transactionId']
-            },
-            response: {
-                200: {
-                    type: 'object',
-                    properties: {
-                        success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        data: { type: 'object' }
-                    }
-                }
-            }
-        }
-    }, async (request, reply) => {
-        try {
-            const { transactionId } = request.params;
-            console.log(`🔧 [TEST] Starting order creation for transaction: ${transactionId}`);
-            // Call the order creation method
-            const order = await phonePeController.createOrderAfterPayment(transactionId);
-            console.log(`🔧 [TEST] Order creation completed:`, {
-                orderId: order?.id,
-                transactionId,
-                success: !!order
-            });
-            return {
-                success: true,
-                message: 'Order created successfully via manual test',
-                data: {
-                    orderId: order?.id,
-                    transactionId,
-                    orderCreated: !!order
-                }
-            };
-        }
-        catch (error) {
-            console.error(`🔧 [TEST] Error in manual order creation:`, {
-                transactionId: request.params?.transactionId,
-                error: error.message,
-                stack: error.stack
-            });
-            return {
-                success: false,
-                message: `Order creation failed: ${error.message}`,
-                data: {
-                    error: error.message,
-                    transactionId: request.params?.transactionId
-                }
-            };
-        }
-    });
     // Bulk transaction status check endpoint
     fastify.post('/bulk-status', {
         schema: {
@@ -710,7 +846,9 @@ export async function phonePeRoutes(fastify) {
                 properties: {
                     merchantTransactionIds: {
                         type: 'array',
-                        items: { type: 'string' },
+                        items: {
+                            type: 'string'
+                        },
                         minItems: 1,
                         maxItems: 20,
                         description: 'Array of merchant transaction IDs (max 20)'
@@ -722,17 +860,42 @@ export async function phonePeRoutes(fastify) {
                 200: {
                     type: 'object',
                     properties: {
-                        success: { type: 'boolean', example: true },
+                        success: { type: 'boolean' },
                         message: { type: 'string' },
                         data: {
                             type: 'array',
                             items: {
                                 type: 'object',
                                 properties: {
-                                    merchantTransaction: { type: 'string' },
-                                    status: { type: 'string' },
-                                    success: { type: 'boolean' },
-                                    error: { type: 'string' }
+                                    merchantTransactionId: {
+                                        type: 'string',
+                                        description: 'Merchant transaction ID'
+                                    },
+                                    status: {
+                                        type: 'string',
+                                        description: 'Transaction status'
+                                    },
+                                    success: {
+                                        type: 'boolean',
+                                        description: 'Whether the transaction was successful'
+                                    },
+                                    error: {
+                                        type: 'string',
+                                        description: 'Error message if any'
+                                    }
+                                }
+                            }
+                        },
+                        meta: {
+                            type: 'object',
+                            properties: {
+                                totalRequested: {
+                                    type: 'number',
+                                    description: 'Total number of transactions requested'
+                                },
+                                timestamp: {
+                                    type: 'string',
+                                    description: 'Bulk check timestamp'
                                 }
                             }
                         }

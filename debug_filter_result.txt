@@ -3580,3 +3580,667 @@ Filtered data result: {
   },
   "modifieddate": 1750141663234
 }
+Filtered data result: {
+  "transactionid": "TXN_1750143714542_OJWXCN",
+  "merchanttransactionid": "TXN_1750143714542_OJWXCN",
+  "name": "string",
+  "amount": 100000,
+  "mobilenumber": 3834475466,
+  "userid": 39,
+  "productid": [
+    178
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "INITIATED",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_INITIATED",
+      "message": "Payment initiated",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1750143714542_OJWXCN",
+        "instrumentResponse": {
+          "type": "PAY_PAGE",
+          "redirectInfo": {
+            "url": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBanU5sEXstXbPYNoeplYHUF",
+            "method": "GET"
+          }
+        }
+      }
+    },
+    "paymentData": {
+      "merchantId": "PGTESTPAYUAT86",
+      "merchantTransactionId": "TXN_1750143714542_OJWXCN",
+      "name": "string",
+      "amount": 10000000,
+      "redirectUrl": "http://localhost:5600/v1/phonepe/callback/TXN_1750143714542_OJWXCN",
+      "redirectMode": "POST",
+      "mobileNumber": "3834475466",
+      "paymentInstrument": {
+        "type": "PAY_PAGE"
+      }
+    }
+  },
+  "createddate": 1750143714831,
+  "modifieddate": 1750143714831
+}
+Filtered data result: {
+  "transactionid": "TXN_1750143714542_OJWXCN",
+  "merchanttransactionid": "TXN_1750143714542_OJWXCN",
+  "userid": 39,
+  "amount": 100000,
+  "mobilenumber": 3834475466,
+  "name": "string",
+  "productid": [
+    178
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "originalPayload": {
+      "order": [
+        {
+          "addressid": 1,
+          "cartId": 1,
+          "discountamount": 0,
+          "orderamount": 0.01,
+          "productamount": 0.01,
+          "productcategory": "string",
+          "productid": 1,
+          "productname": "oil",
+          "quantity": 2,
+          "userid": 39
+        }
+      ],
+      "transaction": {
+        "amount": 100000,
+        "mobilenumber": "3834475466",
+        "name": "string",
+        "productid": [
+          178
+        ],
+        "transactionfor": "product",
+        "userId": 39
+      }
+    },
+    "paymentRequest": {
+      "merchantTransactionId": "TXN_1750143714542_OJWXCN",
+      "amount": 100000,
+      "name": "string",
+      "mobileNumber": "3834475466",
+      "userId": 39,
+      "productIds": [
+        178
+      ],
+      "transactionFor": "product"
+    },
+    "initiatedAt": "2025-06-17T07:01:56.356Z",
+    "phonePeResponses": {
+      "initiation": {
+        "timestamp": "2025-06-17T07:01:56.356Z",
+        "response": {
+          "success": true,
+          "message": "Payment initiated successfully",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBanU5sEXstXbPYNoeplYHUF",
+          "transactionId": "TXN_1750143714542_OJWXCN"
+        },
+        "status": "INITIATED"
+      }
+    }
+  },
+  "createddate": 1750143716357,
+  "modifieddate": 1750143716357
+}
+Filtered data result: {
+  "transactionid": "TXN_1750143735804_UEHA7V",
+  "merchanttransactionid": "TXN_1750143735804_UEHA7V",
+  "name": "string",
+  "amount": 100000,
+  "mobilenumber": 3834475466,
+  "userid": 39,
+  "productid": [
+    178
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "INITIATED",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_INITIATED",
+      "message": "Payment initiated",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1750143735804_UEHA7V",
+        "instrumentResponse": {
+          "type": "PAY_PAGE",
+          "redirectInfo": {
+            "url": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBanU5sEYghmvFalFHmFOWND",
+            "method": "GET"
+          }
+        }
+      }
+    },
+    "paymentData": {
+      "merchantId": "PGTESTPAYUAT86",
+      "merchantTransactionId": "TXN_1750143735804_UEHA7V",
+      "name": "string",
+      "amount": 10000000,
+      "redirectUrl": "http://localhost:5600/v1/phonepe/callback/TXN_1750143735804_UEHA7V",
+      "redirectMode": "POST",
+      "mobileNumber": "3834475466",
+      "paymentInstrument": {
+        "type": "PAY_PAGE"
+      }
+    }
+  },
+  "createddate": 1750143736035,
+  "modifieddate": 1750143736035
+}
+Filtered data result: {
+  "transactionid": "TXN_1750143735804_UEHA7V",
+  "merchanttransactionid": "TXN_1750143735804_UEHA7V",
+  "userid": 39,
+  "amount": 100000,
+  "mobilenumber": 3834475466,
+  "name": "string",
+  "productid": [
+    178
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "originalPayload": {
+      "order": [
+        {
+          "addressid": 1,
+          "cartId": 1,
+          "discountamount": 0,
+          "orderamount": 0.01,
+          "productamount": 0.01,
+          "productcategory": "string",
+          "productid": 1,
+          "productname": "oil",
+          "quantity": 2,
+          "userid": 39
+        }
+      ],
+      "transaction": {
+        "amount": 100000,
+        "mobilenumber": "3834475466",
+        "name": "string",
+        "productid": [
+          178
+        ],
+        "transactionfor": "product",
+        "userId": 39
+      }
+    },
+    "paymentRequest": {
+      "merchantTransactionId": "TXN_1750143735804_UEHA7V",
+      "amount": 100000,
+      "name": "string",
+      "mobileNumber": "3834475466",
+      "userId": 39,
+      "productIds": [
+        178
+      ],
+      "transactionFor": "product"
+    },
+    "initiatedAt": "2025-06-17T07:02:16.470Z",
+    "phonePeResponses": {
+      "initiation": {
+        "timestamp": "2025-06-17T07:02:16.470Z",
+        "response": {
+          "success": true,
+          "message": "Payment initiated successfully",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBanU5sEYghmvFalFHmFOWND",
+          "transactionId": "TXN_1750143735804_UEHA7V"
+        },
+        "status": "INITIATED"
+      }
+    }
+  },
+  "createddate": 1750143736470,
+  "modifieddate": 1750143736470
+}
+Filtered data result: {
+  "transactiondata": {
+    "initiatedAt": "2025-06-17T07:02:16.470Z",
+    "paymentRequest": {
+      "name": "string",
+      "amount": 100000,
+      "userId": 39,
+      "productIds": [
+        178
+      ],
+      "mobileNumber": "3834475466",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1750143735804_UEHA7V"
+    },
+    "originalPayload": {
+      "order": [
+        {
+          "cartId": 1,
+          "userid": 39,
+          "quantity": 2,
+          "addressid": 1,
+          "productid": 1,
+          "orderamount": 0.01,
+          "productname": "oil",
+          "productamount": 0.01,
+          "discountamount": 0,
+          "productcategory": "string"
+        }
+      ],
+      "transaction": {
+        "name": "string",
+        "amount": 100000,
+        "userId": 39,
+        "productid": [
+          178
+        ],
+        "mobilenumber": "3834475466",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponses": {
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBanU5sEYghmvFalFHmFOWND",
+          "transactionId": "TXN_1750143735804_UEHA7V"
+        },
+        "timestamp": "2025-06-17T07:02:16.470Z"
+      },
+      "failed": {
+        "timestamp": "2025-06-17T07:02:47.779Z",
+        "response": "",
+        "status": "FAILED"
+      }
+    },
+    "status": "FAILED",
+    "paymentCompleteAt": "2025-06-17T07:02:47.779Z",
+    "updatedAt": "2025-06-17T07:02:47.779Z",
+    "phonePeResponse": {
+      "error": "Payment failed"
+    }
+  },
+  "modifieddate": 1750143768214
+}
+Filtered data result: {
+  "transactionid": "TXN_1750150248588_0H1M6N",
+  "merchanttransactionid": "TXN_1750150248588_0H1M6N",
+  "name": "harish123@gmail.com",
+  "amount": 549,
+  "mobilenumber": 9632587410,
+  "userid": 39,
+  "productid": [
+    178
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "INITIATED",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_INITIATED",
+      "message": "Payment initiated",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1750150248588_0H1M6N",
+        "instrumentResponse": {
+          "type": "PAY_PAGE",
+          "redirectInfo": {
+            "url": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBanUYJwUQMB42d60T8MvamF",
+            "method": "GET"
+          }
+        }
+      }
+    },
+    "paymentData": {
+      "merchantId": "PGTESTPAYUAT86",
+      "merchantTransactionId": "TXN_1750150248588_0H1M6N",
+      "name": "harish123@gmail.com",
+      "amount": 54900,
+      "redirectUrl": "http://localhost:5600/v1/phonepe/callback/TXN_1750150248588_0H1M6N",
+      "redirectMode": "POST",
+      "mobileNumber": "9632587410",
+      "paymentInstrument": {
+        "type": "PAY_PAGE"
+      }
+    }
+  },
+  "createddate": 1750150248958,
+  "modifieddate": 1750150248958
+}
+Filtered data result: {
+  "transactionid": "TXN_1750150248588_0H1M6N",
+  "merchanttransactionid": "TXN_1750150248588_0H1M6N",
+  "userid": 39,
+  "amount": 549,
+  "mobilenumber": 9632587410,
+  "name": "harish123@gmail.com",
+  "productid": [
+    178
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "originalPayload": {
+      "order": [
+        {
+          "addressid": 16,
+          "cartId": 50,
+          "discountamount": 0,
+          "orderamount": 499,
+          "productamount": 499,
+          "productcategory": "wellness",
+          "productid": 178,
+          "productname": "ThinkArtDecor Soy Wax Scented Candles for Home Decoration",
+          "quantity": 1,
+          "userid": 39
+        }
+      ],
+      "transaction": {
+        "amount": 549,
+        "mobilenumber": "9632587410",
+        "name": "harish123@gmail.com",
+        "productid": [
+          178
+        ],
+        "transactionfor": "product",
+        "userId": 39
+      }
+    },
+    "paymentRequest": {
+      "merchantTransactionId": "TXN_1750150248588_0H1M6N",
+      "amount": 549,
+      "name": "harish123@gmail.com",
+      "mobileNumber": "9632587410",
+      "userId": 39,
+      "productIds": [
+        178
+      ],
+      "transactionFor": "product"
+    },
+    "initiatedAt": "2025-06-17T08:50:50.489Z",
+    "phonePeResponses": {
+      "initiation": {
+        "timestamp": "2025-06-17T08:50:50.489Z",
+        "response": {
+          "success": true,
+          "message": "Payment initiated successfully",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBanUYJwUQMB42d60T8MvamF",
+          "transactionId": "TXN_1750150248588_0H1M6N"
+        },
+        "status": "INITIATED"
+      }
+    }
+  },
+  "createddate": 1750150250489,
+  "modifieddate": 1750150250489
+}
+Filtered data result: {
+  "transactiondata": {
+    "initiatedAt": "2025-06-17T08:50:50.489Z",
+    "paymentRequest": {
+      "name": "harish123@gmail.com",
+      "amount": 549,
+      "userId": 39,
+      "productIds": [
+        178
+      ],
+      "mobileNumber": "9632587410",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1750150248588_0H1M6N"
+    },
+    "originalPayload": {
+      "order": [
+        {
+          "cartId": 50,
+          "userid": 39,
+          "quantity": 1,
+          "addressid": 16,
+          "productid": 178,
+          "orderamount": 499,
+          "productname": "ThinkArtDecor Soy Wax Scented Candles for Home Decoration",
+          "productamount": 499,
+          "discountamount": 0,
+          "productcategory": "wellness"
+        }
+      ],
+      "transaction": {
+        "name": "harish123@gmail.com",
+        "amount": 549,
+        "userId": 39,
+        "productid": [
+          178
+        ],
+        "mobilenumber": "9632587410",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponses": {
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBanUYJwUQMB42d60T8MvamF",
+          "transactionId": "TXN_1750150248588_0H1M6N"
+        },
+        "timestamp": "2025-06-17T08:50:50.489Z"
+      },
+      "success": {
+        "timestamp": "2025-06-17T08:51:24.796Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Your payment is successful.",
+          "data": {
+            "merchantId": "PGTESTPAYUAT86",
+            "merchantTransactionId": "TXN_1750150248588_0H1M6N",
+            "transactionId": "T2506171420489140124893",
+            "amount": 54900,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "CARD",
+              "cardType": "CREDIT_CARD",
+              "bankTransactionId": null,
+              "arn": "12121214455",
+              "authRefId": "Dummy-auth12345",
+              "bankId": null,
+              "brn": "B12345"
+            }
+          }
+        },
+        "status": "SUCCESS"
+      }
+    },
+    "status": "SUCCESS",
+    "paymentCompleteAt": "2025-06-17T08:51:24.796Z",
+    "updatedAt": "2025-06-17T08:51:24.796Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Your payment is successful.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1750150248588_0H1M6N",
+        "transactionId": "T2506171420489140124893",
+        "amount": 54900,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "CARD",
+          "cardType": "CREDIT_CARD",
+          "bankTransactionId": null,
+          "arn": "12121214455",
+          "authRefId": "Dummy-auth12345",
+          "bankId": null,
+          "brn": "B12345"
+        }
+      }
+    }
+  },
+  "modifieddate": 1750150285221
+}
+Filtered data result: {
+  "userid": 39,
+  "orderamount": 549,
+  "orderid": "ORDER_TXN_1750150248588_0H1M6N_1750150286103",
+  "orderstatus": "payment_completed",
+  "quantity": 1,
+  "transactionid": "REQIT-TRAN-00091",
+  "productamount": 549,
+  "discountamount": 0,
+  "ispaymentsucceed": true,
+  "merchanttransactionid": "TXN_1750150248588_0H1M6N",
+  "productid": [
+    178
+  ],
+  "createddate": 1750150286103,
+  "modifieddate": 1750150286103
+}
+Filtered data result: {
+  "orderid": 39,
+  "productid": 178,
+  "userid": 39,
+  "productamount": 549,
+  "discountamount": 0,
+  "orderamount": 549,
+  "quantity": 1,
+  "merchanttransactionid": "TXN_1750150248588_0H1M6N",
+  "orderstatus": "payment_completed",
+  "orderlinenumber": "ORDER_TXN_1750150248588_0H1M6N_1750150286103_LINE_1",
+  "productname": "ThinkArtDecor Soy Wax Scented Candles for Home Decoration",
+  "ordereddate": 1750150286103,
+  "createddate": 1750150286103,
+  "modifieddate": 1750150286103,
+  "addressid": null,
+  "productcategory": null,
+  "productcolour": null,
+  "deliveryfrom": null,
+  "location": null,
+  "uniqueordderid": "UOD-1750150287872-ajcpah45p"
+}
+Filtered data result: {
+  "transactiondata": {
+    "status": "SUCCESS",
+    "updatedAt": "2025-06-17T08:51:28.942Z",
+    "initiatedAt": "2025-06-17T08:50:50.489Z",
+    "paymentRequest": {
+      "name": "harish123@gmail.com",
+      "amount": 549,
+      "userId": 39,
+      "productIds": [
+        178
+      ],
+      "mobileNumber": "9632587410",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1750150248588_0H1M6N"
+    },
+    "originalPayload": {
+      "order": [
+        {
+          "cartId": 50,
+          "userid": 39,
+          "quantity": 1,
+          "addressid": 16,
+          "productid": 178,
+          "orderamount": 499,
+          "productname": "ThinkArtDecor Soy Wax Scented Candles for Home Decoration",
+          "productamount": 499,
+          "discountamount": 0,
+          "productcategory": "wellness"
+        }
+      ],
+      "transaction": {
+        "name": "harish123@gmail.com",
+        "amount": 549,
+        "userId": 39,
+        "productid": [
+          178
+        ],
+        "mobilenumber": "9632587410",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Your payment is successful.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1750150248588_0H1M6N",
+        "transactionId": "T2506171420489140124893",
+        "amount": 54900,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "CARD",
+          "cardType": "CREDIT_CARD",
+          "bankTransactionId": null,
+          "arn": "12121214455",
+          "authRefId": "Dummy-auth12345",
+          "bankId": null,
+          "brn": "B12345"
+        }
+      },
+      "orderCreation": {
+        "status": "success",
+        "error": null,
+        "orderId": 39,
+        "timestamp": "2025-06-17T08:51:28.730Z"
+      },
+      "paymentCompleteAt": "2025-06-17T08:51:28.730Z"
+    },
+    "phonePeResponses": {
+      "success": {
+        "timestamp": "2025-06-17T08:51:28.942Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Your payment is successful.",
+          "data": {
+            "merchantId": "PGTESTPAYUAT86",
+            "merchantTransactionId": "TXN_1750150248588_0H1M6N",
+            "transactionId": "T2506171420489140124893",
+            "amount": 54900,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "CARD",
+              "cardType": "CREDIT_CARD",
+              "bankTransactionId": null,
+              "arn": "12121214455",
+              "authRefId": "Dummy-auth12345",
+              "bankId": null,
+              "brn": "B12345"
+            }
+          },
+          "orderCreation": {
+            "status": "success",
+            "error": null,
+            "orderId": 39,
+            "timestamp": "2025-06-17T08:51:28.730Z"
+          },
+          "paymentCompleteAt": "2025-06-17T08:51:28.730Z"
+        },
+        "status": "SUCCESS"
+      },
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBanUYJwUQMB42d60T8MvamF",
+          "transactionId": "TXN_1750150248588_0H1M6N"
+        },
+        "timestamp": "2025-06-17T08:50:50.489Z"
+      }
+    },
+    "paymentCompleteAt": "2025-06-17T08:51:28.942Z"
+  },
+  "modifieddate": 1750150289378
+}
