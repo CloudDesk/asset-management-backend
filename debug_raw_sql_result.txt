@@ -439,3 +439,474 @@ Update result: [
     "transactionfor": "product"
   }
 ]
+Update result: [
+  {
+    "id": 21,
+    "transactionid": "REQIT-TRAN-00021",
+    "createddate": 1750157176,
+    "modifieddate": 1750157214,
+    "transactiondata": {
+      "status": "SUCCESS",
+      "updatedAt": "2025-06-17T05:16:52.965Z",
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "data": {
+          "state": "COMPLETED",
+          "amount": 54900,
+          "merchantId": "PGTESTPAYUAT86",
+          "responseCode": "SUCCESS",
+          "transactionId": "T2506171046139330124027",
+          "paymentInstrument": {
+            "arn": "12121214455",
+            "brn": "B12345",
+            "type": "CARD",
+            "bankId": null,
+            "cardType": "CREDIT_CARD",
+            "authRefId": "Dummy-auth12345",
+            "bankTransactionId": null
+          },
+          "merchantTransactionId": "TXN_1750137373592_IKC73X"
+        },
+        "message": "Your payment is successful.",
+        "success": true
+      },
+      "paymentCompleteAt": "2025-06-17T05:16:52.965Z"
+    },
+    "userid": 39,
+    "productid": [
+      178
+    ],
+    "merchanttransactionid": "TXN_1750137373592_IKC73X",
+    "name": "harish123@gmail.com",
+    "amount": "549",
+    "mobilenumber": 9632587410,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 25,
+    "transactionid": "REQIT-TRAN-00025",
+    "createddate": 1750157345,
+    "modifieddate": 1750157397,
+    "transactiondata": {
+      "status": "SUCCESS",
+      "updatedAt": "2025-06-17T05:19:56.274Z",
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "data": {
+          "state": "COMPLETED",
+          "amount": 34500,
+          "merchantId": "PGTESTPAYUAT86",
+          "responseCode": "SUCCESS",
+          "transactionId": "T2506171049040050124747",
+          "paymentInstrument": {
+            "arn": "12121214455",
+            "brn": "B12345",
+            "type": "CARD",
+            "bankId": null,
+            "cardType": "CREDIT_CARD",
+            "authRefId": "Dummy-auth12345",
+            "bankTransactionId": null
+          },
+          "merchantTransactionId": "TXN_1750137543816_DVV227"
+        },
+        "message": "Your payment is successful.",
+        "success": true
+      },
+      "paymentCompleteAt": "2025-06-17T05:19:56.274Z"
+    },
+    "userid": 39,
+    "productid": [
+      178
+    ],
+    "merchanttransactionid": "TXN_1750137543816_DVV227",
+    "name": "harish123@gmail.com",
+    "amount": "345",
+    "mobilenumber": 9632587410,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 27,
+    "transactionid": "REQIT-TRAN-00027",
+    "createddate": 1750157898,
+    "modifieddate": 1750157901,
+    "transactiondata": {
+      "status": "FAILED",
+      "updatedAt": "2025-06-17T05:28:20.325Z",
+      "phonePeResponse": {
+        "code": "PAYMENT_PENDING",
+        "data": {
+          "state": "PENDING",
+          "amount": 54900,
+          "merchantId": "PGTESTPAYUAT86",
+          "responseCode": null,
+          "transactionId": "T2506171058158410124192",
+          "merchantTransactionId": "TXN_1750138095593_TXD41W"
+        },
+        "message": "Your payment is in pending state.",
+        "success": true
+      },
+      "paymentCompleteAt": "2025-06-17T05:28:20.325Z"
+    },
+    "userid": 39,
+    "productid": [
+      178
+    ],
+    "merchanttransactionid": "TXN_1750138095593_TXD41W",
+    "name": "harish123@gmail.com",
+    "amount": "549",
+    "mobilenumber": 9632587410,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 33,
+    "transactionid": "REQIT-TRAN-00033",
+    "createddate": 1750158045,
+    "modifieddate": 1750158048,
+    "transactiondata": {
+      "status": "SUCCESS",
+      "updatedAt": "2025-06-17T05:30:47.147Z",
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "message": "Manual test payment success",
+        "success": true
+      },
+      "paymentCompleteAt": "2025-06-17T05:30:47.147Z"
+    },
+    "userid": 39,
+    "productid": [
+      178,
+      178
+    ],
+    "merchanttransactionid": "TXN_1750138244616_EV2PZB",
+    "name": "harish123@gmail.com",
+    "amount": "798",
+    "mobilenumber": 9632587410,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 33,
+    "transactionid": "REQIT-TRAN-00033",
+    "createddate": 1750158045,
+    "modifieddate": 1750158054,
+    "transactiondata": {
+      "status": "SUCCESS",
+      "updatedAt": "2025-06-17T05:30:52.973Z",
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "message": "Manual test payment success",
+        "success": true
+      },
+      "paymentCompleteAt": "2025-06-17T05:30:52.973Z"
+    },
+    "userid": 39,
+    "productid": [
+      178,
+      178
+    ],
+    "merchanttransactionid": "TXN_1750138244616_EV2PZB",
+    "name": "harish123@gmail.com",
+    "amount": "798",
+    "mobilenumber": 9632587410,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 33,
+    "transactionid": "REQIT-TRAN-00033",
+    "createddate": 1750158045,
+    "modifieddate": 1750158063,
+    "transactiondata": {
+      "status": "SUCCESS",
+      "updatedAt": "2025-06-17T05:31:02.444Z",
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "message": "Manual test payment success",
+        "success": true
+      },
+      "paymentCompleteAt": "2025-06-17T05:31:02.444Z"
+    },
+    "userid": 39,
+    "productid": [
+      178,
+      178
+    ],
+    "merchanttransactionid": "TXN_1750138244616_EV2PZB",
+    "name": "harish123@gmail.com",
+    "amount": "798",
+    "mobilenumber": 9632587410,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 37,
+    "transactionid": "REQIT-TRAN-00037",
+    "createddate": 1750158268,
+    "modifieddate": 1750158271,
+    "transactiondata": {
+      "status": "SUCCESS",
+      "updatedAt": "2025-06-17T05:34:29.763Z",
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "message": "Manual test payment success",
+        "success": true
+      },
+      "paymentCompleteAt": "2025-06-17T05:34:29.763Z"
+    },
+    "userid": 39,
+    "productid": [
+      178,
+      178
+    ],
+    "merchanttransactionid": "TXN_1750138467216_XPH8F5",
+    "name": "harish123@gmail.com",
+    "amount": "798",
+    "mobilenumber": 9632587410,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 37,
+    "transactionid": "REQIT-TRAN-00037",
+    "createddate": 1750158268,
+    "modifieddate": 1750158277,
+    "transactiondata": {
+      "status": "SUCCESS",
+      "updatedAt": "2025-06-17T05:34:36.077Z",
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "message": "Manual test payment success",
+        "success": true
+      },
+      "paymentCompleteAt": "2025-06-17T05:34:36.077Z"
+    },
+    "userid": 39,
+    "productid": [
+      178,
+      178
+    ],
+    "merchanttransactionid": "TXN_1750138467216_XPH8F5",
+    "name": "harish123@gmail.com",
+    "amount": "798",
+    "mobilenumber": 9632587410,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 37,
+    "transactionid": "REQIT-TRAN-00037",
+    "createddate": 1750158268,
+    "modifieddate": 1750158288,
+    "transactiondata": {
+      "status": "SUCCESS",
+      "updatedAt": "2025-06-17T05:34:47.272Z",
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "message": "Manual test payment success",
+        "success": true
+      },
+      "paymentCompleteAt": "2025-06-17T05:34:47.272Z"
+    },
+    "userid": 39,
+    "productid": [
+      178,
+      178
+    ],
+    "merchanttransactionid": "TXN_1750138467216_XPH8F5",
+    "name": "harish123@gmail.com",
+    "amount": "798",
+    "mobilenumber": 9632587410,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 41,
+    "transactionid": "REQIT-TRAN-00041",
+    "createddate": 1750158746,
+    "modifieddate": 1750158749,
+    "transactiondata": {
+      "status": "SUCCESS",
+      "updatedAt": "2025-06-17T05:42:28.074Z",
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "message": "Manual test payment success",
+        "success": true
+      },
+      "paymentCompleteAt": "2025-06-17T05:42:28.074Z"
+    },
+    "userid": 39,
+    "productid": [
+      178,
+      178
+    ],
+    "merchanttransactionid": "TXN_1750138945281_607CQQ",
+    "name": "harish123@gmail.com",
+    "amount": "798",
+    "mobilenumber": 9632587410,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 41,
+    "transactionid": "REQIT-TRAN-00041",
+    "createddate": 1750158746,
+    "modifieddate": 1750158754,
+    "transactiondata": {
+      "status": "SUCCESS",
+      "updatedAt": "2025-06-17T05:42:33.765Z",
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "message": "Manual test payment success",
+        "success": true
+      },
+      "paymentCompleteAt": "2025-06-17T05:42:33.765Z"
+    },
+    "userid": 39,
+    "productid": [
+      178,
+      178
+    ],
+    "merchanttransactionid": "TXN_1750138945281_607CQQ",
+    "name": "harish123@gmail.com",
+    "amount": "798",
+    "mobilenumber": 9632587410,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 41,
+    "transactionid": "REQIT-TRAN-00041",
+    "createddate": 1750158746,
+    "modifieddate": 1750158764,
+    "transactiondata": {
+      "status": "SUCCESS",
+      "updatedAt": "2025-06-17T05:42:43.582Z",
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "message": "Manual test payment success",
+        "success": true
+      },
+      "paymentCompleteAt": "2025-06-17T05:42:43.582Z"
+    },
+    "userid": 39,
+    "productid": [
+      178,
+      178
+    ],
+    "merchanttransactionid": "TXN_1750138945281_607CQQ",
+    "name": "harish123@gmail.com",
+    "amount": "798",
+    "mobilenumber": 9632587410,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 45,
+    "transactionid": "REQIT-TRAN-00045",
+    "createddate": 1750158841,
+    "modifieddate": 1750158842,
+    "transactiondata": {
+      "status": "SUCCESS",
+      "updatedAt": "2025-06-17T05:44:01.388Z",
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "message": "Manual test payment success",
+        "success": true
+      },
+      "paymentCompleteAt": "2025-06-17T05:44:01.388Z"
+    },
+    "userid": 39,
+    "productid": [
+      178,
+      178
+    ],
+    "merchanttransactionid": "TXN_1750139040396_QMGE8Q",
+    "name": "harish123@gmail.com",
+    "amount": "798",
+    "mobilenumber": 9632587410,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 45,
+    "transactionid": "REQIT-TRAN-00045",
+    "createddate": 1750158841,
+    "modifieddate": 1750158847,
+    "transactiondata": {
+      "status": "SUCCESS",
+      "updatedAt": "2025-06-17T05:44:06.517Z",
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "message": "Manual test payment success",
+        "success": true
+      },
+      "paymentCompleteAt": "2025-06-17T05:44:06.517Z"
+    },
+    "userid": 39,
+    "productid": [
+      178,
+      178
+    ],
+    "merchanttransactionid": "TXN_1750139040396_QMGE8Q",
+    "name": "harish123@gmail.com",
+    "amount": "798",
+    "mobilenumber": 9632587410,
+    "transactionfor": "product"
+  }
+]
+Update result: []
+Update result: []
+Update result: []
+Update result: []
+Update result: []
+Update result: [
+  {
+    "id": 53,
+    "transactionid": "REQIT-TRAN-00053",
+    "createddate": 1750161410,
+    "modifieddate": 1750161464,
+    "transactiondata": {
+      "status": "FAILED",
+      "updatedAt": "2025-06-17T06:27:42.798Z",
+      "phonePeResponse": {
+        "code": "PAYMENT_PENDING",
+        "data": {
+          "state": "PENDING",
+          "amount": 10000000,
+          "merchantId": "PGTESTPAYUAT86",
+          "responseCode": null,
+          "transactionId": "T2506171156488740124147",
+          "merchantTransactionId": "TXN_1750141608592_CBTNRQ"
+        },
+        "message": "Your payment is in pending state.",
+        "success": true
+      },
+      "paymentCompleteAt": "2025-06-17T06:27:42.798Z"
+    },
+    "userid": 39,
+    "productid": [
+      178
+    ],
+    "merchanttransactionid": "TXN_1750141608592_CBTNRQ",
+    "name": "string",
+    "amount": "100000",
+    "mobilenumber": 3834475466,
+    "transactionfor": "product"
+  }
+]

@@ -13,55 +13,71 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
       body: {
         type: 'object',
         properties: {
-          merchantTransaction: { 
-            type: 'string', 
-            minLength: 1,
-            maxLength: 35,
-            description: 'Merchant transaction ID (optional, will be auto-generated if not provided)'
-          },
-          amount: { 
-            type: 'number', 
-            minimum: 0.01,
-            maximum: 100000,
-            description: 'Payment amount in INR'
-          },
-          name: { 
-            type: 'string', 
-            minLength: 1,
-            maxLength: 100,
-            pattern: '^[a-zA-Z\\s]+$',
-            description: 'Customer name'
-          },
-          mobileNumber: { 
-            type: 'string', 
-            pattern: '^[1-9][0-9]{9}$',
-            description: '10-digit mobile number (cannot start with 0)'
-          },
-          userId: { 
-            type: 'number', 
-            minimum: 1,
-            description: 'User ID'
-          },
-          productIds: { 
+          order: {
             type: 'array',
-            items: { type: 'number', minimum: 1 },
-            default: [],
-            description: 'Array of product IDs'
+            items: {
+              type: 'object',
+              properties: {
+                addressid: { type: 'number', minimum: 1, description: 'Address ID' },
+                cartId: { type: 'number', minimum: 1, description: 'Cart ID' },
+                discountamount: { type: 'number', minimum: 0, description: 'Discount amount' },
+                orderamount: { type: 'number', minimum: 0.01, description: 'Order amount' },
+                productamount: { type: 'number', minimum: 0.01, description: 'Product amount' },
+                productcategory: { type: 'string', minLength: 1, description: 'Product category' },
+                productid: { type: 'number', minimum: 1, description: 'Product ID' },
+                productname: { type: 'string', minLength: 1, description: 'Product name' },
+                quantity: { type: 'string', minLength: 1, description: 'Quantity as string' },
+                userid: { type: 'string', minLength: 1, description: 'User ID as string' }
+              },
+              required: ['addressid', 'cartId', 'discountamount', 'orderamount', 'productamount', 'productcategory', 'productid', 'productname', 'quantity', 'userid'],
+              additionalProperties: false
+            },
+            minItems: 1,
+            description: 'Array of order items'
           },
-          transactionFor: { 
-            type: 'string', 
-            minLength: 1,
-            maxLength: 255,
-            default: 'product_purchase',
-            description: 'Purpose of transaction'
-          },
-          callbackUrl: { 
-            type: 'string', 
-            format: 'uri',
-            description: 'Callback URL after payment completion'
+          transaction: {
+            type: 'object',
+            properties: {
+              amount: { 
+                type: 'number', 
+                minimum: 0.01,
+                maximum: 100000,
+                description: 'Transaction amount in INR'
+              },
+              mobilenumber: { 
+                type: 'string', 
+                pattern: '^[1-9][0-9]{9}$',
+                description: '10-digit mobile number (cannot start with 0)'
+              },
+              name: { 
+                type: 'string', 
+                minLength: 1,
+                maxLength: 100,
+                description: 'Customer name/email'
+              },
+              productid: { 
+                type: 'array',
+                items: { type: 'number', minimum: 1 },
+                minItems: 1,
+                description: 'Array of product IDs'
+              },
+              transactionfor: { 
+                type: 'string', 
+                minLength: 1,
+                maxLength: 255,
+                description: 'Purpose of transaction'
+              },
+              userId: { 
+                type: 'string', 
+                minLength: 1,
+                description: 'User ID as string'
+              }
+            },
+            required: ['amount', 'mobilenumber', 'name', 'productid', 'transactionfor', 'userId'],
+            additionalProperties: false
           }
         },
-        required: ['amount', 'name', 'mobileNumber', 'userId'],
+        required: ['order', 'transaction'],
         additionalProperties: false
       },
       response: {
@@ -73,7 +89,7 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
             data: {
               type: 'object',
               properties: {
-                merchantTransaction: { type: 'string' },
+                merchantTransactionId: { type: 'string' },
                 redirectUrl: { type: 'string' },
                 amount: { type: 'number' },
                 status: { type: 'string' }
@@ -161,9 +177,21 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
         
         // Update transaction status
         await phonePeController.updateTransactionStatus(transactionId, 'SUCCESS', paymentStatus);
+        fastify.log.info(`Transaction status updated to SUCCESS for: ${transactionId}`);
         
         // Create order and orderline records
-        await phonePeController.createOrderAfterPayment(transactionId);
+        try {
+          fastify.log.info(`Calling createOrderAfterPayment for transaction: ${transactionId}`);
+          const order = await phonePeController.createOrderAfterPayment(transactionId);
+          fastify.log.info(`Order created successfully for transaction: ${transactionId}`, { orderId: order.id });
+        } catch (orderError: any) {
+          fastify.log.error(`Error creating order for transaction: ${transactionId}`, {
+            error: orderError.message,
+            stack: orderError.stack
+          });
+          // Don't fail the entire flow if order creation fails
+          // The payment was successful, just log the error
+        }
         
         // Redirect to success page
         return reply.redirect('http://localhost:5600/health');

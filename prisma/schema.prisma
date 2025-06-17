@@ -65,6 +65,7 @@ model Product {
   small             String[]
   supplier          Supplier? @relation(fields: [supplierid], references: [id], map: "fk_supplier")
   stock             Stock[]
+  orderline         orderline[]
 
   @@map("product")
 }
@@ -355,7 +356,7 @@ model orderline {
   paymentfaileddate     BigInt?
   address               address?      @relation(fields: [addressid], references: [id], onDelete: NoAction, onUpdate: NoAction)
   orders                orders?       @relation(fields: [orderid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  product_revo          product_revo? @relation(fields: [productid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  product               Product?      @relation(fields: [productid], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users                 users?        @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
   rating                rating[]      @ignore
   stock                 Stock[]

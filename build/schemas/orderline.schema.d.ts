@@ -1,7 +1,7 @@
 import { z } from 'zod';
 export declare const createOrderlineSchema: z.ZodObject<{
     orderid: z.ZodOptional<z.ZodNumber>;
-    productid: z.ZodOptional<z.ZodNumber>;
+    productid: z.ZodOptional<z.ZodBigInt>;
     userid: z.ZodOptional<z.ZodNumber>;
     addressid: z.ZodOptional<z.ZodNumber>;
     productamount: z.ZodOptional<z.ZodNumber>;
@@ -28,7 +28,7 @@ export declare const createOrderlineSchema: z.ZodObject<{
     modifieddate: z.ZodOptional<z.ZodNumber>;
 }, "passthrough", z.ZodTypeAny, z.objectOutputType<{
     orderid: z.ZodOptional<z.ZodNumber>;
-    productid: z.ZodOptional<z.ZodNumber>;
+    productid: z.ZodOptional<z.ZodBigInt>;
     userid: z.ZodOptional<z.ZodNumber>;
     addressid: z.ZodOptional<z.ZodNumber>;
     productamount: z.ZodOptional<z.ZodNumber>;
@@ -55,7 +55,7 @@ export declare const createOrderlineSchema: z.ZodObject<{
     modifieddate: z.ZodOptional<z.ZodNumber>;
 }, z.ZodTypeAny, "passthrough">, z.objectInputType<{
     orderid: z.ZodOptional<z.ZodNumber>;
-    productid: z.ZodOptional<z.ZodNumber>;
+    productid: z.ZodOptional<z.ZodBigInt>;
     userid: z.ZodOptional<z.ZodNumber>;
     addressid: z.ZodOptional<z.ZodNumber>;
     productamount: z.ZodOptional<z.ZodNumber>;
@@ -83,7 +83,7 @@ export declare const createOrderlineSchema: z.ZodObject<{
 }, z.ZodTypeAny, "passthrough">>;
 export declare const updateOrderlineSchema: z.ZodObject<{
     orderid: z.ZodOptional<z.ZodNumber>;
-    productid: z.ZodOptional<z.ZodNumber>;
+    productid: z.ZodOptional<z.ZodBigInt>;
     userid: z.ZodOptional<z.ZodNumber>;
     addressid: z.ZodOptional<z.ZodNumber>;
     productamount: z.ZodOptional<z.ZodNumber>;
@@ -109,7 +109,7 @@ export declare const updateOrderlineSchema: z.ZodObject<{
     modifieddate: z.ZodOptional<z.ZodNumber>;
 }, "passthrough", z.ZodTypeAny, z.objectOutputType<{
     orderid: z.ZodOptional<z.ZodNumber>;
-    productid: z.ZodOptional<z.ZodNumber>;
+    productid: z.ZodOptional<z.ZodBigInt>;
     userid: z.ZodOptional<z.ZodNumber>;
     addressid: z.ZodOptional<z.ZodNumber>;
     productamount: z.ZodOptional<z.ZodNumber>;
@@ -135,7 +135,7 @@ export declare const updateOrderlineSchema: z.ZodObject<{
     modifieddate: z.ZodOptional<z.ZodNumber>;
 }, z.ZodTypeAny, "passthrough">, z.objectInputType<{
     orderid: z.ZodOptional<z.ZodNumber>;
-    productid: z.ZodOptional<z.ZodNumber>;
+    productid: z.ZodOptional<z.ZodBigInt>;
     userid: z.ZodOptional<z.ZodNumber>;
     addressid: z.ZodOptional<z.ZodNumber>;
     productamount: z.ZodOptional<z.ZodNumber>;
@@ -163,7 +163,7 @@ export declare const updateOrderlineSchema: z.ZodObject<{
 export declare const upsertOrderlineSchema: z.ZodObject<{
     id: z.ZodOptional<z.ZodNumber>;
     orderid: z.ZodOptional<z.ZodNumber>;
-    productid: z.ZodOptional<z.ZodNumber>;
+    productid: z.ZodOptional<z.ZodBigInt>;
     userid: z.ZodOptional<z.ZodNumber>;
     addressid: z.ZodOptional<z.ZodNumber>;
     productamount: z.ZodOptional<z.ZodNumber>;
@@ -191,7 +191,7 @@ export declare const upsertOrderlineSchema: z.ZodObject<{
 }, "passthrough", z.ZodTypeAny, z.objectOutputType<{
     id: z.ZodOptional<z.ZodNumber>;
     orderid: z.ZodOptional<z.ZodNumber>;
-    productid: z.ZodOptional<z.ZodNumber>;
+    productid: z.ZodOptional<z.ZodBigInt>;
     userid: z.ZodOptional<z.ZodNumber>;
     addressid: z.ZodOptional<z.ZodNumber>;
     productamount: z.ZodOptional<z.ZodNumber>;
@@ -219,7 +219,7 @@ export declare const upsertOrderlineSchema: z.ZodObject<{
 }, z.ZodTypeAny, "passthrough">, z.objectInputType<{
     id: z.ZodOptional<z.ZodNumber>;
     orderid: z.ZodOptional<z.ZodNumber>;
-    productid: z.ZodOptional<z.ZodNumber>;
+    productid: z.ZodOptional<z.ZodBigInt>;
     userid: z.ZodOptional<z.ZodNumber>;
     addressid: z.ZodOptional<z.ZodNumber>;
     productamount: z.ZodOptional<z.ZodNumber>;

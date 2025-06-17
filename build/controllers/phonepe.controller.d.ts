@@ -50,8 +50,12 @@ export declare class PhonePeController {
      */
     createOrderAfterPayment(transactionId: string): Promise<any>;
     /**
-     * Check if product exists in product_revo table
+     * Check if product exists in product table
      */
     private checkProductExists;
+    /**
+     * Store transaction data in database
+     */
+    private storeTransactionData;
 }
 //# sourceMappingURL=phonepe.controller.d.ts.map

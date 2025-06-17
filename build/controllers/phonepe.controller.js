@@ -15,18 +15,39 @@ export class PhonePeController {
      */
     initiatePayment = asyncHandler(async (request, reply) => {
         try {
-            const paymentRequest = request.body;
-            // Generate merchant transaction ID if not provided
-            if (!paymentRequest.merchantTransactionId) {
-                paymentRequest.merchantTransactionId = PhonePeService.generateMerchantTransactionId();
-            }
+            const requestBody = request.body;
+            logger.info({
+                orderCount: requestBody.order.length,
+                transactionAmount: requestBody.transaction.amount,
+                userId: requestBody.transaction.userId,
+                productIds: requestBody.transaction.productid
+            }, 'Payment initiation request received with new payload structure');
+            // Create PhonePe payment request from the new payload structure
+            const paymentRequest = {
+                merchantTransactionId: PhonePeService.generateMerchantTransactionId(),
+                amount: requestBody.transaction.amount,
+                name: requestBody.transaction.name,
+                mobileNumber: requestBody.transaction.mobilenumber,
+                userId: parseInt(requestBody.transaction.userId),
+                productIds: requestBody.transaction.productid,
+                transactionFor: requestBody.transaction.transactionfor
+            };
             logger.info({
                 merchantTransactionId: paymentRequest.merchantTransactionId,
                 amount: paymentRequest.amount,
-                userId: paymentRequest.userId
-            }, 'Payment initiation request received');
+                userId: paymentRequest.userId,
+                productIds: paymentRequest.productIds
+            }, 'Converted payload to PhonePe payment request');
             const result = await this.phonePeService.initiatePayment(paymentRequest);
             if (result.success) {
+                // Store the complete payload in transaction data for later use in order creation
+                const transactionData = {
+                    originalPayload: requestBody,
+                    paymentRequest: paymentRequest,
+                    initiatedAt: new Date().toISOString()
+                };
+                // Store transaction with complete data
+                await this.storeTransactionData(paymentRequest, transactionData);
                 const response = createSuccessResponse('Payment initiated successfully', {
                     merchantTransactionId: result.transactionId,
                     redirectUrl: result.redirectUrl,
@@ -336,10 +357,24 @@ export class PhonePeController {
             logger.info({ transactionId, status }, 'Updating transaction status');
             // Find transaction by merchanttransactionid
             const transactions = await this.transactionService.findMany({ merchanttransactionid: transactionId }, 1, 1);
+            console.log(`🔧 [DEBUG] Transaction lookup result:`, {
+                found: !!(transactions.data && transactions.data.length > 0),
+                totalTransactions: transactions.data?.length || 0,
+                searchedFor: transactionId
+            });
             if (!transactions.data || transactions.data.length === 0) {
-                throw new Error(`Transaction not found with merchanttransactionid: ${transactionId}`);
+                logger.error({ transactionId }, 'Transaction not found for order creation');
+                console.log(`🔧 [DEBUG] ❌ Transaction not found: ${transactionId}`);
+                throw new Error(`Transaction not found: ${transactionId}`);
             }
             const transaction = transactions.data[0];
+            console.log(`🔧 [DEBUG] Found transaction:`, {
+                transactionId: transaction?.transactionid,
+                merchantTransactionId: transaction?.merchanttransactionid,
+                productIds: transaction?.productid,
+                userId: transaction?.userid,
+                amount: transaction?.amount
+            });
             // Update transaction data with payment status
             const updateData = {
                 transactiondata: {
@@ -369,13 +404,37 @@ export class PhonePeController {
      */
     async createOrderAfterPayment(transactionId) {
         try {
-            logger.info({ transactionId }, 'Creating order after successful payment');
-            // Find transaction by merchanttransactionid
+            logger.info({ transactionId }, 'Starting order creation after payment');
+            console.log(`🔧 [DEBUG] Starting order creation for transaction: ${transactionId}`);
+            // Find the transaction by merchant transaction ID
             const transactions = await this.transactionService.findMany({ merchanttransactionid: transactionId }, 1, 1);
+            console.log(`🔧 [DEBUG] Transaction lookup result:`, {
+                found: !!(transactions.data && transactions.data.length > 0),
+                totalTransactions: transactions.data?.length || 0,
+                searchedFor: transactionId
+            });
             if (!transactions.data || transactions.data.length === 0) {
-                throw new Error(`Transaction not found with merchanttransactionid: ${transactionId}`);
+                logger.error({ transactionId }, 'Transaction not found for order creation');
+                console.log(`🔧 [DEBUG] ❌ Transaction not found: ${transactionId}`);
+                throw new Error(`Transaction not found: ${transactionId}`);
             }
             const transaction = transactions.data[0];
+            console.log(`🔧 [DEBUG] Found transaction:`, {
+                transactionId: transaction?.transactionid,
+                merchantTransactionId: transaction?.merchanttransactionid,
+                productIds: transaction?.productid,
+                userId: transaction?.userid,
+                amount: transaction?.amount
+            });
+            logger.info({
+                transactionId,
+                foundTransaction: {
+                    id: transaction.id,
+                    userid: transaction.userid,
+                    productid: transaction.productid,
+                    amount: transaction.amount
+                }
+            }, 'Transaction found for order creation');
             const currentTime = Date.now();
             const orderid = `ORDER_${transactionId}_${currentTime}`;
             // Create order record
@@ -399,15 +458,22 @@ export class PhonePeController {
             logger.info({ transactionId, orderId: order.id }, 'Order created successfully');
             // Create orderline records for each product (with validation)
             if (transaction.productid && transaction.productid.length > 0) {
+                logger.info({
+                    transactionId,
+                    productIds: transaction.productid,
+                    productCount: transaction.productid.length
+                }, 'Starting product validation for orderline creation');
                 // Validate product IDs first to avoid foreign key constraint violations
                 const validProductIds = [];
                 const invalidProductIds = [];
                 for (const productId of transaction.productid) {
                     try {
-                        // Check if product exists in product_revo table
+                        logger.debug({ transactionId, productId }, 'Checking if product exists');
+                        // Check if product exists in product table
                         const productExists = await this.checkProductExists(productId);
                         if (productExists) {
                             validProductIds.push(productId);
+                            logger.info({ transactionId, productId }, 'Product validated successfully');
                         }
                         else {
                             invalidProductIds.push(productId);
@@ -419,13 +485,22 @@ export class PhonePeController {
                     }
                     catch (error) {
                         invalidProductIds.push(productId);
-                        logger.warn({
+                        logger.error({
                             transactionId,
                             productId,
-                            error: error.message
+                            error: error.message,
+                            stack: error.stack
                         }, 'Error validating product ID, skipping orderline creation');
                     }
                 }
+                logger.info({
+                    transactionId,
+                    totalProducts: transaction.productid.length,
+                    validProductIds,
+                    invalidProductIds,
+                    validCount: validProductIds.length,
+                    invalidCount: invalidProductIds.length
+                }, 'Product validation completed');
                 if (invalidProductIds.length > 0) {
                     logger.warn({
                         transactionId,
@@ -434,10 +509,15 @@ export class PhonePeController {
                     }, 'Some product IDs are invalid and will be skipped');
                 }
                 if (validProductIds.length > 0) {
+                    logger.info({
+                        transactionId,
+                        validProductIds,
+                        orderlineCount: validProductIds.length
+                    }, 'Creating orderlines for valid products');
                     const orderlinePromises = validProductIds.map(async (productId, index) => {
                         const orderlineData = {
                             orderid: order.id,
-                            productid: productId,
+                            productid: BigInt(productId),
                             userid: transaction.userid,
                             productamount: parseFloat(transaction.amount?.toString() || '0') / validProductIds.length,
                             discountamount: 0,
@@ -450,16 +530,64 @@ export class PhonePeController {
                             createddate: currentTime,
                             modifieddate: currentTime
                         };
-                        return this.orderlineService.create(orderlineData);
+                        logger.debug({
+                            transactionId,
+                            productId,
+                            orderlineData
+                        }, 'Creating orderline');
+                        try {
+                            // Use direct SQL to create orderline to bypass Prisma client type issues
+                            const orderline = await prisma.$queryRaw `
+                INSERT INTO orderline (
+                  orderid, productid, userid, productamount, discountamount, 
+                  orderamount, quantity, merchanttransactionid, orderstatus, 
+                  orderlinenumber, ordereddate, createddate, modifieddate
+                ) VALUES (
+                  ${order.id}, ${BigInt(productId)}, ${transaction.userid}, 
+                  ${parseFloat(transaction.amount?.toString() || '0') / validProductIds.length}, 
+                  ${0}, 
+                  ${parseFloat(transaction.amount?.toString() || '0') / validProductIds.length}, 
+                  ${1}, ${transaction.merchanttransactionid}, ${'payment_completed'}, 
+                  ${`${orderid}_LINE_${index + 1}`}, ${currentTime}, ${currentTime}, ${currentTime}
+                ) RETURNING id, orderlinenumber
+              `;
+                            logger.info({
+                                transactionId,
+                                productId,
+                                orderlineId: Array.isArray(orderline) && orderline.length > 0 ? orderline[0].id : 'unknown'
+                            }, 'Orderline created successfully');
+                            return orderline;
+                        }
+                        catch (error) {
+                            logger.error({
+                                transactionId,
+                                productId,
+                                orderlineData,
+                                error: error.message,
+                                stack: error.stack
+                            }, 'Failed to create orderline');
+                            throw error;
+                        }
                     });
-                    const orderlines = await Promise.all(orderlinePromises);
-                    logger.info({
-                        transactionId,
-                        orderId: order.id,
-                        orderlineCount: orderlines.length,
-                        validProductIds,
-                        skippedProductIds: invalidProductIds
-                    }, 'Orderlines created successfully');
+                    try {
+                        const orderlines = await Promise.all(orderlinePromises);
+                        logger.info({
+                            transactionId,
+                            orderId: order.id,
+                            orderlineCount: orderlines.length,
+                            validProductIds,
+                            skippedProductIds: invalidProductIds,
+                            createdOrderlineIds: orderlines.map((ol) => Array.isArray(ol) && ol.length > 0 ? ol[0].id : 'unknown')
+                        }, 'All orderlines created successfully');
+                    }
+                    catch (error) {
+                        logger.error({
+                            transactionId,
+                            error: error.message,
+                            stack: error.stack
+                        }, 'Error creating one or more orderlines');
+                        throw error;
+                    }
                 }
                 else {
                     logger.warn({
@@ -469,31 +597,76 @@ export class PhonePeController {
                     }, 'No valid product IDs found, no orderlines created');
                 }
             }
+            else {
+                logger.warn({
+                    transactionId,
+                    productid: transaction.productid
+                }, 'No product IDs found in transaction, skipping orderline creation');
+            }
             logger.info({ transactionId, orderId: order.id }, 'Order and orderlines created successfully after payment');
             return order;
         }
         catch (error) {
             logger.error({
                 error: error.message,
+                stack: error.stack,
                 transactionId
             }, 'Error creating order after payment');
             throw error;
         }
     }
     /**
-     * Check if product exists in product_revo table
+     * Check if product exists in product table
      */
     async checkProductExists(productId) {
         try {
             // Use direct prisma query to check if product exists
             const result = await prisma.$queryRaw `
-        SELECT id FROM product_revo WHERE id = ${productId} LIMIT 1
+        SELECT id FROM product WHERE id = ${productId} LIMIT 1
       `;
             return Array.isArray(result) && result.length > 0;
         }
         catch (error) {
             logger.error({ productId, error: error.message }, 'Error checking product existence');
             return false;
+        }
+    }
+    /**
+     * Store transaction data in database
+     */
+    async storeTransactionData(paymentRequest, transactionData) {
+        try {
+            logger.info({
+                merchantTransactionId: paymentRequest.merchantTransactionId,
+                amount: paymentRequest.amount,
+                userId: paymentRequest.userId
+            }, 'Storing transaction data');
+            const transactionRecord = {
+                transactionid: paymentRequest.merchantTransactionId,
+                merchanttransactionid: paymentRequest.merchantTransactionId,
+                userid: paymentRequest.userId,
+                amount: paymentRequest.amount,
+                mobilenumber: parseInt(paymentRequest.mobileNumber),
+                name: paymentRequest.name,
+                productid: paymentRequest.productIds || [],
+                transactionfor: paymentRequest.transactionFor,
+                transactiondata: transactionData,
+                createddate: Date.now(),
+                modifieddate: Date.now()
+            };
+            const result = await this.transactionService.create(transactionRecord);
+            logger.info({
+                merchantTransactionId: paymentRequest.merchantTransactionId,
+                transactionId: result.id
+            }, 'Transaction data stored successfully');
+            return result;
+        }
+        catch (error) {
+            logger.error({
+                error: error.message,
+                merchantTransactionId: paymentRequest.merchantTransactionId
+            }, 'Error storing transaction data');
+            throw error;
         }
     }
 }
