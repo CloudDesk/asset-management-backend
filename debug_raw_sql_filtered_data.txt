@@ -917,3 +917,229 @@ Filtered data: {
   },
   "modifieddate": 1750150289378
 }
+Filtered data: {
+  "transactiondata": {
+    "initiatedAt": "2025-06-17T12:44:20.111Z",
+    "paymentRequest": {
+      "name": "string",
+      "amount": 100000,
+      "userId": 1,
+      "productIds": [
+        1
+      ],
+      "mobileNumber": "9364664175",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1750164258298_3U9ENO"
+    },
+    "originalPayload": {
+      "order": [
+        {
+          "cartId": 1,
+          "userid": 1,
+          "quantity": 1,
+          "addressid": 1,
+          "productid": 1,
+          "orderamount": 0.01,
+          "productname": "Test",
+          "productamount": 0.01,
+          "discountamount": 0,
+          "productcategory": "Test"
+        }
+      ],
+      "transaction": {
+        "name": "string",
+        "amount": 100000,
+        "userId": 1,
+        "productid": [
+          1
+        ],
+        "mobilenumber": "9364664175",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponses": {
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBanTBlFhJVq9pYivGh7uYeE",
+          "transactionId": "TXN_1750164258298_3U9ENO"
+        },
+        "timestamp": "2025-06-17T12:44:20.111Z"
+      },
+      "success": {
+        "timestamp": "2025-06-17T12:44:49.968Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Your payment is successful.",
+          "data": {
+            "merchantId": "PGTESTPAYUAT86",
+            "merchantTransactionId": "TXN_1750164258298_3U9ENO",
+            "transactionId": "T2506171814185890124060",
+            "amount": 10000000,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "CARD",
+              "cardType": "CREDIT_CARD",
+              "bankTransactionId": null,
+              "arn": "12121214455",
+              "authRefId": "Dummy-auth12345",
+              "bankId": null,
+              "brn": "B12345"
+            }
+          }
+        },
+        "status": "SUCCESS"
+      }
+    },
+    "status": "SUCCESS",
+    "paymentCompleteAt": "2025-06-17T12:44:49.968Z",
+    "updatedAt": "2025-06-17T12:44:49.968Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Your payment is successful.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1750164258298_3U9ENO",
+        "transactionId": "T2506171814185890124060",
+        "amount": 10000000,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "CARD",
+          "cardType": "CREDIT_CARD",
+          "bankTransactionId": null,
+          "arn": "12121214455",
+          "authRefId": "Dummy-auth12345",
+          "bankId": null,
+          "brn": "B12345"
+        }
+      }
+    }
+  },
+  "modifieddate": 1750164290396
+}
+Filtered data: {
+  "transactiondata": {
+    "status": "SUCCESS",
+    "updatedAt": "2025-06-17T12:44:52.809Z",
+    "initiatedAt": "2025-06-17T12:44:20.111Z",
+    "paymentRequest": {
+      "name": "string",
+      "amount": 100000,
+      "userId": 1,
+      "productIds": [
+        1
+      ],
+      "mobileNumber": "9364664175",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1750164258298_3U9ENO"
+    },
+    "originalPayload": {
+      "order": [
+        {
+          "cartId": 1,
+          "userid": 1,
+          "quantity": 1,
+          "addressid": 1,
+          "productid": 1,
+          "orderamount": 0.01,
+          "productname": "Test",
+          "productamount": 0.01,
+          "discountamount": 0,
+          "productcategory": "Test"
+        }
+      ],
+      "transaction": {
+        "name": "string",
+        "amount": 100000,
+        "userId": 1,
+        "productid": [
+          1
+        ],
+        "mobilenumber": "9364664175",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Your payment is successful.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1750164258298_3U9ENO",
+        "transactionId": "T2506171814185890124060",
+        "amount": 10000000,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "CARD",
+          "cardType": "CREDIT_CARD",
+          "bankTransactionId": null,
+          "arn": "12121214455",
+          "authRefId": "Dummy-auth12345",
+          "bankId": null,
+          "brn": "B12345"
+        }
+      },
+      "orderCreation": {
+        "status": "success",
+        "error": null,
+        "orderId": 40,
+        "timestamp": "2025-06-17T12:44:52.379Z"
+      },
+      "paymentCompleteAt": "2025-06-17T12:44:52.379Z"
+    },
+    "phonePeResponses": {
+      "success": {
+        "timestamp": "2025-06-17T12:44:52.809Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Your payment is successful.",
+          "data": {
+            "merchantId": "PGTESTPAYUAT86",
+            "merchantTransactionId": "TXN_1750164258298_3U9ENO",
+            "transactionId": "T2506171814185890124060",
+            "amount": 10000000,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "CARD",
+              "cardType": "CREDIT_CARD",
+              "bankTransactionId": null,
+              "arn": "12121214455",
+              "authRefId": "Dummy-auth12345",
+              "bankId": null,
+              "brn": "B12345"
+            }
+          },
+          "orderCreation": {
+            "status": "success",
+            "error": null,
+            "orderId": 40,
+            "timestamp": "2025-06-17T12:44:52.379Z"
+          },
+          "paymentCompleteAt": "2025-06-17T12:44:52.379Z"
+        },
+        "status": "SUCCESS"
+      },
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBanTBlFhJVq9pYivGh7uYeE",
+          "transactionId": "TXN_1750164258298_3U9ENO"
+        },
+        "timestamp": "2025-06-17T12:44:20.111Z"
+      }
+    },
+    "paymentCompleteAt": "2025-06-17T12:44:52.809Z"
+  },
+  "modifieddate": 1750164293251
+}

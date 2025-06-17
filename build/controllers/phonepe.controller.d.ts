@@ -50,6 +50,18 @@ export declare class PhonePeController {
      */
     createOrderAfterPayment(transactionId: string): Promise<any>;
     /**
+     * Validate products in batch using Prisma
+     */
+    private validateProductsBatch;
+    /**
+     * Validate and clean orderline data before creation
+     */
+    private validateOrderlineData;
+    /**
+     * Create orderlines for validated products
+     */
+    private createOrderlinesForProducts;
+    /**
      * Check if product exists in product table
      */
     private checkProductExists;
