@@ -2,6 +2,14 @@ import { CreateTransactionInput, UpdateTransactionInput, UpsertTransactionInput 
 import { PaginationResult } from '../utils/pagination.js';
 import { FilterOptions } from '../utils/filterBuilder.js';
 export declare class TransactionService {
+    /**
+     * Enhanced error handler for database operations
+     */
+    private handleDatabaseError;
+    /**
+     * Retry wrapper for database operations
+     */
+    private retryDatabaseOperation;
     findMany(filters: FilterOptions, page: number, limit: number): Promise<PaginationResult<any>>;
     findById(id: string): Promise<any>;
     findByTransactionId(transactionid: string): Promise<any>;

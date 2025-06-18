@@ -77,6 +77,7 @@ export class PhonePeController {
       if (result.success) {
         // Store the complete payload in transaction data for later use in order creation
         const transactionData = {
+          status: 'INITIATED',
           originalPayload: requestBody,
           paymentRequest: paymentRequest,
           initiatedAt: new Date().toISOString(),
@@ -84,12 +85,13 @@ export class PhonePeController {
             initiation: {
               timestamp: new Date().toISOString(),
               response: result,
-              status: 'INITIATED'
+              status: 'INITIATED',
+              redirectUrl: result.redirectUrl
             }
           }
         };
 
-        // Store transaction with complete data
+        // Store transaction with complete data (single transaction record)
         await this.storeTransactionData(paymentRequest, transactionData);
 
         const response = createSuccessResponse('Payment initiated successfully', {

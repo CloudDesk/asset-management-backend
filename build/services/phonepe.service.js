@@ -59,22 +59,8 @@ export class PhonePeService {
             const response = await axios.post(apiUrl, {
                 request: payloadMain
             }, { headers });
-            // Store initial transaction record
-            await this.createInitialTransaction({
-                transactionid: merchantTransactionId,
-                merchanttransactionid: merchantTransactionId,
-                name,
-                amount,
-                mobilenumber: parseInt(mobileNumber),
-                userid: userId,
-                productid: productIds,
-                transactionfor: transactionFor,
-                transactiondata: {
-                    status: 'INITIATED',
-                    phonePeResponse: response.data,
-                    paymentData
-                }
-            });
+            // Note: Transaction creation is handled by the controller to avoid duplicates
+            // The controller will store the complete transaction data including PhonePe response
             logger.info({
                 merchantTransactionId,
                 success: response.data.success,
@@ -98,9 +84,12 @@ export class PhonePeService {
                 stack: error.stack,
                 paymentRequest
             }, 'Error initiating PhonePe payment');
-            // Update transaction with error status if it was created
+            // Update transaction with error status if it exists
             try {
-                await this.updateTransactionStatus(paymentRequest.merchantTransactionId, 'FAILED', { error: error.message });
+                const existingTransaction = await this.transactionService.findByTransactionId(paymentRequest.merchantTransactionId);
+                if (existingTransaction) {
+                    await this.updateTransactionStatus(paymentRequest.merchantTransactionId, 'FAILED', { error: error.message });
+                }
             }
             catch (updateError) {
                 logger.error({ updateError }, 'Failed to update transaction status after payment initiation error');
