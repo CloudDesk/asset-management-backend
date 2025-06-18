@@ -617,117 +617,145 @@ export class PhonePeController {
         }
       }, 'Transaction found for order creation');
 
+      // Validate products BEFORE creating order
+      if (!transaction.productid || !Array.isArray(transaction.productid) || transaction.productid.length === 0) {
+        logger.warn({ 
+          transactionId,
+          productid: transaction.productid
+        }, 'No product IDs found in transaction, cannot create order');
+        throw new Error('No product IDs found in transaction - cannot create order');
+      }
+
+      // Validate all products at once using Prisma
+      const validProducts = await this.validateProductsBatch(transaction.productid);
+      const validProductIds = validProducts.map(p => p.id);
+      const invalidProductIds = transaction.productid.filter((id: number) => !validProductIds.includes(id));
+
+      logger.info({ 
+        transactionId,
+        totalProducts: transaction.productid.length,
+        validProductIds,
+        invalidProductIds,
+        validCount: validProductIds.length,
+        invalidCount: invalidProductIds.length
+      }, 'Product validation completed before order creation');
+
+      // Prevent order creation if no valid products exist
+      if (validProductIds.length === 0) {
+        const errorMsg = `Cannot create order - no valid products found. Invalid product IDs: ${JSON.stringify(invalidProductIds)}`;
+        logger.error({ 
+          transactionId, 
+          invalidProductIds,
+          totalRequested: transaction.productid.length
+        }, errorMsg);
+        throw new Error(errorMsg);
+      }
+
+      // Log warnings for invalid products but continue with valid ones
+      if (invalidProductIds.length > 0) {
+        logger.warn({ 
+          transactionId, 
+          invalidProductIds,
+          validProductIds,
+          message: 'Some products are invalid but order will be created with valid products only'
+        }, 'Invalid products detected - will skip these during orderline creation');
+      }
+
       const currentTime = Date.now();
       const orderid = `ORDER_${transactionId}_${currentTime}`;
 
-      // Create order record
+      // Create order record with only valid products
       const orderData = {
         userid: transaction.userid,
         orderamount: parseFloat(transaction.amount?.toString() || '0'),
         orderid: orderid,
         orderstatus: 'payment_completed',
-        quantity: transaction.productid?.length || 1,
-        transactionid: transaction.transactionid, // Use the database transactionid field
+        quantity: validProductIds.length, // Use valid product count
+        transactionid: transaction.transactionid,
         productamount: parseFloat(transaction.amount?.toString() || '0'),
         discountamount: 0,
         ispaymentsucceed: true,
         merchanttransactionid: transaction.merchanttransactionid,
-        productid: transaction.productid || [],
+        productid: validProductIds, // Store only valid product IDs
         createddate: currentTime,
         modifieddate: currentTime
       };
 
       // Create order using OrdersService
       const order = await this.ordersService.create(orderData);
-      logger.info({ transactionId, orderId: order.id }, 'Order created successfully');
+      logger.info({ 
+        transactionId, 
+        orderId: order.id,
+        validProductCount: validProductIds.length,
+        invalidProductCount: invalidProductIds.length
+      }, 'Order created successfully with validated products');
 
-      // Create orderline records for each product (with improved validation)
-      if (transaction.productid && Array.isArray(transaction.productid) && transaction.productid.length > 0) {
-        logger.info({ 
+      // Create orderlines for valid products
+      logger.info({ 
+        transactionId,
+        validProductIds,
+        orderlineCount: validProductIds.length
+      }, 'Creating orderlines for valid products');
+
+      // Create orderlines with proper error handling
+      const orderlineResults = await this.createOrderlinesForProducts(
+        order.id,
+        validProducts,
+        transaction,
+        orderid,
+        currentTime,
+        transactionId
+      );
+
+      const successfulOrderlines = orderlineResults.filter(result => result.success);
+      const failedOrderlines = orderlineResults.filter(result => !result.success);
+
+      logger.info({ 
+        transactionId, 
+        orderId: order.id, 
+        totalOrderlines: orderlineResults.length,
+        successfulCount: successfulOrderlines.length,
+        failedCount: failedOrderlines.length,
+        successfulOrderlineIds: successfulOrderlines.map(r => r.orderline?.id).filter(Boolean),
+        failedProductIds: failedOrderlines.map(r => r.productId),
+        invalidProductsSkipped: invalidProductIds
+      }, 'Orderline creation completed');
+
+      // If all orderlines failed, throw an error
+      if (successfulOrderlines.length === 0) {
+        const errorMsg = `Failed to create any orderlines for order ${order.id}. Errors: ${failedOrderlines.map(r => r.error).join(', ')}`;
+        logger.error({ 
           transactionId,
-          productIds: transaction.productid,
-          productCount: transaction.productid.length
-        }, 'Starting product validation for orderline creation');
-
-        // Validate all products at once using Prisma
-        const validProducts = await this.validateProductsBatch(transaction.productid);
-        const validProductIds = validProducts.map(p => p.id);
-        const invalidProductIds = transaction.productid.filter(id => !validProductIds.includes(id));
-
-        logger.info({ 
-          transactionId,
-          totalProducts: transaction.productid.length,
-          validProductIds,
-          invalidProductIds,
-          validCount: validProductIds.length,
-          invalidCount: invalidProductIds.length
-        }, 'Product validation completed');
-
-        if (invalidProductIds.length > 0) {
-          logger.warn({ 
-            transactionId, 
-            invalidProductIds,
-            validProductIds 
-          }, 'Some product IDs are invalid and will be skipped');
-        }
-
-        if (validProductIds.length > 0) {
-          logger.info({ 
-            transactionId,
-            validProductIds,
-            orderlineCount: validProductIds.length
-          }, 'Creating orderlines for valid products');
-
-          // Create orderlines with proper error handling
-          const orderlineResults = await this.createOrderlinesForProducts(
-            order.id,
-            validProducts,
-            transaction,
-            orderid,
-            currentTime,
-            transactionId
-          );
-
-          const successfulOrderlines = orderlineResults.filter(result => result.success);
-          const failedOrderlines = orderlineResults.filter(result => !result.success);
-
-          logger.info({ 
-            transactionId, 
-            orderId: order.id, 
-            totalOrderlines: orderlineResults.length,
-            successfulCount: successfulOrderlines.length,
-            failedCount: failedOrderlines.length,
-            successfulOrderlineIds: successfulOrderlines.map(r => r.orderline?.id).filter(Boolean),
-            failedProductIds: failedOrderlines.map(r => r.productId)
-          }, 'Orderline creation completed');
-
-          // If all orderlines failed, throw an error
-          if (successfulOrderlines.length === 0 && failedOrderlines.length > 0) {
-            throw new Error(`Failed to create any orderlines. Errors: ${failedOrderlines.map(r => r.error).join(', ')}`);
-          }
-
-          // Log warnings for partial failures
-          if (failedOrderlines.length > 0) {
-            logger.warn({ 
-              transactionId,
-              failedOrderlines: failedOrderlines.map(r => ({ productId: r.productId, error: r.error }))
-            }, 'Some orderlines failed to create');
-          }
-        } else {
-          logger.warn({ 
-            transactionId, 
-            orderId: order.id,
-            invalidProductIds 
-          }, 'No valid product IDs found, no orderlines created');
-        }
-      } else {
-        logger.warn({ 
-          transactionId,
-          productid: transaction.productid
-        }, 'No product IDs found in transaction, skipping orderline creation');
+          orderId: order.id,
+          failedOrderlines: failedOrderlines.map(r => ({ productId: r.productId, error: r.error }))
+        }, errorMsg);
+        throw new Error(errorMsg);
       }
 
-      logger.info({ transactionId, orderId: order.id }, 'Order and orderlines created successfully after payment');
+      // Log warnings for partial failures
+      if (failedOrderlines.length > 0) {
+        logger.warn({ 
+          transactionId,
+          orderId: order.id,
+          failedOrderlines: failedOrderlines.map(r => ({ productId: r.productId, error: r.error }))
+        }, 'Some orderlines failed to create but order has partial success');
+      }
+
+      // Final success log with comprehensive summary
+      logger.info({ 
+        transactionId, 
+        orderId: order.id,
+        summary: {
+          totalProductsRequested: transaction.productid.length,
+          validProducts: validProductIds.length,
+          invalidProducts: invalidProductIds.length,
+          successfulOrderlines: successfulOrderlines.length,
+          failedOrderlines: failedOrderlines.length,
+          orderAmount: order.orderamount,
+          orderStatus: order.orderstatus
+        }
+      }, 'Order and orderlines created successfully after payment');
+
       return order;
 
     } catch (error: any) {
@@ -785,41 +813,63 @@ export class PhonePeController {
     const errors: string[] = [];
     const cleanedData = { ...orderlineData };
 
-    // Validate required fields
+    // Validate required ID fields (all should be Int)
     if (!cleanedData.orderid || typeof cleanedData.orderid !== 'number') {
-      errors.push('orderid must be a valid number');
+      errors.push('orderid must be a valid number (Int)');
     }
 
     if (!cleanedData.productid || typeof cleanedData.productid !== 'number') {
-      errors.push('productid must be a valid number');
+      errors.push('productid must be a valid number (Int)');
     }
 
     if (!cleanedData.userid || typeof cleanedData.userid !== 'number') {
-      errors.push('userid must be a valid number');
+      errors.push('userid must be a valid number (Int)');
     }
 
-    // Validate and clean numeric fields
-    const numericFields = ['productamount', 'discountamount', 'orderamount', 'quantity'];
+    // Optional ID fields (should be Int or null)
+    if (cleanedData.addressid !== undefined && cleanedData.addressid !== null) {
+      const addressId = Number(cleanedData.addressid);
+      if (isNaN(addressId)) {
+        errors.push('addressid must be a valid number (Int) or null');
+      } else {
+        cleanedData.addressid = addressId;
+      }
+    }
+
+    // Validate and clean numeric fields (Decimal in DB, Number in JS)
+    const numericFields = ['productamount', 'discountamount', 'orderamount'];
     numericFields.forEach(field => {
       if (cleanedData[field] !== undefined && cleanedData[field] !== null) {
         const numValue = Number(cleanedData[field]);
         if (isNaN(numValue)) {
-          errors.push(`${field} must be a valid number`);
+          errors.push(`${field} must be a valid number (Decimal)`);
         } else {
           cleanedData[field] = numValue;
         }
       }
     });
 
-    // Validate and clean timestamp fields
-    const timestampFields = ['createddate', 'modifieddate', 'ordereddate'];
+    // Validate quantity (should be Int)
+    if (cleanedData.quantity !== undefined && cleanedData.quantity !== null) {
+      const quantityValue = Number(cleanedData.quantity);
+      if (isNaN(quantityValue) || !Number.isInteger(quantityValue)) {
+        errors.push('quantity must be a valid integer (Int)');
+      } else {
+        cleanedData.quantity = quantityValue;
+      }
+    }
+
+    // Validate and clean timestamp fields (should be BigInt)
+    const timestampFields = ['createddate', 'modifieddate', 'ordereddate', 'readytodispatchdate', 
+                           'delivereddate', 'cancelleddate', 'returneddate', 'dispatcheddate', 'paymentfaileddate'];
     timestampFields.forEach(field => {
       if (cleanedData[field] !== undefined && cleanedData[field] !== null) {
-        const numValue = Number(cleanedData[field]);
-        if (isNaN(numValue) || numValue < 0) {
-          errors.push(`${field} must be a valid timestamp`);
-        } else {
-          cleanedData[field] = numValue;
+        try {
+          // Convert to BigInt for date fields
+          const timestampValue = BigInt(cleanedData[field]);
+          cleanedData[field] = timestampValue;
+        } catch (error) {
+          errors.push(`${field} must be a valid timestamp (BigInt)`);
         }
       }
     });
@@ -887,20 +937,20 @@ export class PhonePeController {
       
       try {
         const orderlineData = {
-          orderid: orderId, // Use the numeric order ID, not the string orderid
-          productid: product.id,
-          userid: transaction.userid,
+          orderid: orderId, // Int - correct
+          productid: product.id, // Int - correct (not BigInt)
+          userid: transaction.userid, // Int - correct
           productamount: Number(amountPerProduct),
           discountamount: 0,
           orderamount: Number(amountPerProduct),
-          quantity: 1,
+          quantity: 1, // Int - correct
           merchanttransactionid: transaction.merchanttransactionid,
           orderstatus: 'payment_completed',
           orderlinenumber: `${orderid}_LINE_${index + 1}`,
           productname: product.name || null,
-          ordereddate: currentTime,
-          createddate: currentTime,
-          modifieddate: currentTime
+          ordereddate: BigInt(currentTime), // BigInt - correct for date fields
+          createddate: BigInt(currentTime), // BigInt - correct for date fields
+          modifieddate: BigInt(currentTime) // BigInt - correct for date fields
         };
 
         // Validate orderline data before creation

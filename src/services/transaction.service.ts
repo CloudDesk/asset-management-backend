@@ -14,87 +14,192 @@ import {
 } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
 
+// Enhanced error handling for database operations
+class DatabaseConnectionError extends Error {
+  constructor(message: string, originalError?: any) {
+    super(message);
+    this.name = 'DatabaseConnectionError';
+    this.originalError = originalError;
+  }
+  originalError?: any;
+}
+
 export class TransactionService {
+  
+  /**
+   * Enhanced error handler for database operations
+   */
+  private handleDatabaseError(error: any, operation: string, context: any = {}) {
+    logger.error({ 
+      error: error.message, 
+      code: error.code,
+      operation,
+      context,
+      stack: error.stack 
+    }, `Database error in transaction ${operation}`);
+
+    // Handle specific database connection errors
+    if (
+      error.code === 'P1001' || // Can't reach database server
+      error.code === 'P1017' || // Server has closed the connection
+      error.message?.includes("Can't reach database server") ||
+      error.message?.includes("Connection terminated") ||
+      error.message?.includes("connect timeout")
+    ) {
+      throw new DatabaseConnectionError(
+        `Database connection failed during ${operation}. This might be a temporary issue. Please try again.`,
+        error
+      );
+    }
+
+    // Handle foreign key constraint errors
+    if (error.code === 'P2003') {
+      throw new Error(`Foreign key constraint violation during ${operation}: ${error.message}`);
+    }
+
+    // Handle unique constraint errors
+    if (error.code === 'P2002') {
+      throw new Error(`Unique constraint violation during ${operation}: ${error.message}`);
+    }
+
+    // For other errors, throw the original error
+    throw error;
+  }
+
+  /**
+   * Retry wrapper for database operations
+   */
+  private async retryDatabaseOperation<T>(
+    operation: () => Promise<T>,
+    operationName: string,
+    maxRetries: number = 3
+  ): Promise<T> {
+    let lastError: any;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error: any) {
+        lastError = error;
+        
+        // Only retry on connection errors
+        if (
+          attempt < maxRetries &&
+          (
+            error.code === 'P1001' || 
+            error.code === 'P1017' ||
+            error.message?.includes("Can't reach database server") ||
+            error.message?.includes("Connection terminated")
+          )
+        ) {
+          const delay = Math.pow(2, attempt - 1) * 1000; // Exponential backoff
+          logger.warn({ 
+            operation: operationName,
+            attempt, 
+            maxRetries, 
+            delay,
+            error: error.message 
+          }, `Database operation failed, retrying in ${delay}ms...`);
+          
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+        
+        // If not retryable or max retries reached, handle the error
+        this.handleDatabaseError(error, operationName);
+      }
+    }
+    
+    // This should never be reached, but just in case
+    throw lastError;
+  }
+
   async findMany(
     filters: FilterOptions,
     page: number,
     limit: number
   ): Promise<PaginationResult<any>> {
-    try {
-      logger.info({ filters, page, limit }, 'Starting dynamic transaction findMany with filters');
+    return this.retryDatabaseOperation(async () => {
+      try {
+        logger.info({ filters, page, limit }, 'Starting dynamic transaction findMany with filters');
 
-      const { skip, take } = getPrismaSkipTake(page, limit);
+        const { skip, take } = getPrismaSkipTake(page, limit);
 
-      // Handle special filters for amount range
-      const processedFilters = this.processFilters(filters);
+        // Handle special filters for amount range
+        const processedFilters = this.processFilters(filters);
 
-      // Use the new dynamic filtering system
-      const { data: transactions, total } = await dynamicFindManyWithFilters('transaction', processedFilters, {
-        skip,
-        take,
-        useAllColumns: true // Get all available columns
-      });
+        // Use the new dynamic filtering system
+        const { data: transactions, total } = await dynamicFindManyWithFilters('transaction', processedFilters, {
+          skip,
+          take,
+          useAllColumns: true // Get all available columns
+        });
 
-      logger.info({
-        transactionCount: transactions.length, 
-        total,
-        filtered: Object.keys(processedFilters).length > 0,
-        appliedFilters: Object.keys(processedFilters),
-        availableFields: transactions.length > 0 ? Object.keys(transactions[0]) : []
-      }, 'Dynamic transaction findMany with filters completed');
+        logger.info({
+          transactionCount: transactions.length, 
+          total,
+          filtered: Object.keys(processedFilters).length > 0,
+          appliedFilters: Object.keys(processedFilters),
+          availableFields: transactions.length > 0 ? Object.keys(transactions[0]) : []
+        }, 'Dynamic transaction findMany with filters completed');
 
-      return createPaginationResult(transactions, total, page, limit);
-    } catch (error) {
-      logger.error({ error, filters, page, limit }, 'Error in dynamic transaction findMany operation');
-      throw error;
-    }
+        return createPaginationResult(transactions, total, page, limit);
+      } catch (error) {
+        logger.error({ error, filters, page, limit }, 'Error in dynamic transaction findMany operation');
+        throw error;
+      }
+    }, 'findMany');
   }
 
   async findById(id: string) {
-    try {
-      logger.debug({ transactionId: id }, 'Starting dynamic transaction findById operation');
+    return this.retryDatabaseOperation(async () => {
+      try {
+        logger.debug({ transactionId: id }, 'Starting dynamic transaction findById operation');
 
-      const transaction = await dynamicFindUnique('transaction', { id: parseInt(id) });
+        const transaction = await dynamicFindUnique('transaction', { id: parseInt(id) });
 
-      if (!transaction) {
-        throw new Error('Transaction not found');
+        if (!transaction) {
+          throw new Error('Transaction not found');
+        }
+
+        logger.debug({ 
+          transactionId: id, 
+          availableFields: Object.keys(transaction) 
+        }, 'Dynamic transaction findById completed');
+
+        return transaction;
+      } catch (error) {
+        logger.error({ error, transactionId: id }, 'Error in transaction findById operation');
+        throw error;
       }
-
-      logger.debug({ 
-        transactionId: id, 
-        availableFields: Object.keys(transaction) 
-      }, 'Dynamic transaction findById completed');
-
-      return transaction;
-    } catch (error) {
-      logger.error({ error, transactionId: id }, 'Error in transaction findById operation');
-      throw error;
-    }
+    }, 'findById');
   }
 
   async findByTransactionId(transactionid: string) {
-    try {
-      logger.debug({ transactionid }, 'Starting dynamic transaction findByTransactionId operation');
+    return this.retryDatabaseOperation(async () => {
+      try {
+        logger.debug({ transactionid }, 'Starting dynamic transaction findByTransactionId operation');
 
-      const transactions = await dynamicFindManyWithFilters('transaction', { transactionid }, {
-        skip: 0,
-        take: 1,
-        useAllColumns: true
-      });
+        const transactions = await dynamicFindManyWithFilters('transaction', { transactionid }, {
+          skip: 0,
+          take: 1,
+          useAllColumns: true
+        });
 
-      const transaction = transactions.data?.[0] || null;
+        const transaction = transactions.data?.[0] || null;
 
-      logger.debug({ 
-        transactionid, 
-        found: !!transaction,
-        availableFields: transaction ? Object.keys(transaction) : []
-      }, 'Dynamic transaction findByTransactionId completed');
+        logger.debug({ 
+          transactionid, 
+          found: !!transaction,
+          availableFields: transaction ? Object.keys(transaction) : []
+        }, 'Dynamic transaction findByTransactionId completed');
 
-      return transaction;
-    } catch (error) {
-      logger.error({ error, transactionid }, 'Error in transaction findByTransactionId operation');
-      throw error;
-    }
+        return transaction;
+      } catch (error) {
+        logger.error({ error, transactionid }, 'Error in transaction findByTransactionId operation');
+        throw error;
+      }
+    }, 'findByTransactionId');
   }
 
   async findByUserId(userId: number, page: number = 1, limit: number = 10): Promise<PaginationResult<any>> {

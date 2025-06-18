@@ -41,3 +41,7 @@ Available columns: ["id","transactionid","createddate","modifieddate","transacti
 Available columns: ["id","transactionid","createddate","modifieddate","transactiondata","userid","productid","merchanttransactionid","name","amount","mobilenumber","transactionfor"]
 Available columns: ["id","transactionid","createddate","modifieddate","transactiondata","userid","productid","merchanttransactionid","name","amount","mobilenumber","transactionfor"]
 Available columns: ["id","transactionid","createddate","modifieddate","transactiondata","userid","productid","merchanttransactionid","name","amount","mobilenumber","transactionfor"]
+Available columns: ["id","transactionid","createddate","modifieddate","transactiondata","userid","productid","merchanttransactionid","name","amount","mobilenumber","transactionfor"]
+Available columns: ["id","transactionid","createddate","modifieddate","transactiondata","userid","productid","merchanttransactionid","name","amount","mobilenumber","transactionfor"]
+Available columns: ["id","transactionid","createddate","modifieddate","transactiondata","userid","productid","merchanttransactionid","name","amount","mobilenumber","transactionfor"]
+Available columns: ["id","transactionid","createddate","modifieddate","transactiondata","userid","productid","merchanttransactionid","name","amount","mobilenumber","transactionfor"]
