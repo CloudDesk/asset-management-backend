@@ -925,9 +925,23 @@ export class PhonePeController {
   ): Promise<Array<{ success: boolean; productId: number; orderline?: any; error?: string }>> {
     const results: Array<{ success: boolean; productId: number; orderline?: any; error?: string }> = [];
     
-    // Calculate amount per product
-    const totalAmount = parseFloat(transaction.amount?.toString() || '0');
-    const amountPerProduct = validProducts.length > 0 ? totalAmount / validProducts.length : 0;
+    // Get original order data from transaction to retrieve individual product amounts
+    const originalOrderData = transaction.transactiondata?.originalPayload?.order || [];
+    
+    // Create a map of product amounts from original order data
+    const productAmountMap = new Map<number, number>();
+    originalOrderData.forEach((orderItem: any) => {
+      if (orderItem.productid && orderItem.productamount !== undefined) {
+        productAmountMap.set(orderItem.productid, parseFloat(orderItem.productamount.toString()) || 0);
+      }
+    });
+    
+    logger.debug({ 
+      transactionId,
+      originalOrderData: originalOrderData.length,
+      productAmountMap: Object.fromEntries(productAmountMap),
+      validProductIds: validProducts.map(p => p.id)
+    }, 'Product amount mapping from original order data');
 
     for (let index = 0; index < validProducts.length; index++) {
       const product = validProducts[index];
@@ -938,13 +952,39 @@ export class PhonePeController {
       }
       
       try {
+        // Get individual product amount from the original order data
+        const individualProductAmount = productAmountMap.get(product.id);
+        
+        if (individualProductAmount === undefined) {
+          logger.warn({ 
+            transactionId, 
+            productId: product.id,
+            availableAmounts: Object.fromEntries(productAmountMap)
+          }, 'Product amount not found in original order data, using fallback calculation');
+          
+          // Fallback to equal division if individual amount not found
+          const totalAmount = parseFloat(transaction.amount?.toString() || '0');
+          const fallbackAmount = validProducts.length > 0 ? totalAmount / validProducts.length : 0;
+          
+          logger.warn({ 
+            transactionId,
+            productId: product.id,
+            fallbackAmount,
+            totalAmount,
+            validProductsCount: validProducts.length
+          }, 'Using fallback equal division for product amount');
+        }
+        
+        const productAmountToUse = individualProductAmount ?? 
+          (validProducts.length > 0 ? parseFloat(transaction.amount?.toString() || '0') / validProducts.length : 0);
+        
         const orderlineData = {
           orderid: orderId, // Int - correct
           productid: product.id, // Int - correct (not BigInt)
           userid: transaction.userid, // Int - correct
-          productamount: Number(amountPerProduct),
+          productamount: Number(productAmountToUse),
           discountamount: 0,
-          orderamount: Number(amountPerProduct),
+          orderamount: Number(productAmountToUse),
           quantity: 1, // Int - correct
           merchanttransactionid: transaction.merchanttransactionid,
           orderstatus: 'payment_completed',
@@ -964,12 +1004,14 @@ export class PhonePeController {
         logger.debug({ 
           transactionId,
           productId: product.id,
+          individualAmount: individualProductAmount,
+          amountUsed: productAmountToUse,
           orderlineData: {
             ...validation.cleanedData,
             // Don't log the full productname to keep logs clean
             productname: product.name ? '***' : null
           }
-        }, 'Creating orderline with validated data');
+        }, 'Creating orderline with individual product amount');
 
         const orderline = await this.orderlineService.create(validation.cleanedData!);
         
@@ -977,8 +1019,9 @@ export class PhonePeController {
           transactionId,
           productId: product.id,
           orderlineId: orderline.id,
-          orderlinenumber: orderline.orderlinenumber
-        }, 'Orderline created successfully');
+          orderlinenumber: orderline.orderlinenumber,
+          productAmount: productAmountToUse
+        }, 'Orderline created successfully with individual product amount');
         
         results.push({ 
           success: true, 

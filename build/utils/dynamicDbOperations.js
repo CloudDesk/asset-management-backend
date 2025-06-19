@@ -775,6 +775,12 @@ export async function dynamicFindUnique(modelName, where, include) {
                     where,
                     ...(include && { include }),
                 });
+                // Check if the result is missing the isdealoftheday field
+                // If so, fall back to raw SQL to get the complete data
+                if (result && !result.hasOwnProperty('isdealoftheday')) {
+                    logger.debug({ modelName }, 'Prisma result missing isdealoftheday field, falling back to raw SQL');
+                    throw new Error('Prisma client outdated, using raw SQL fallback');
+                }
             }
             else if (modelName === 'stock') {
                 // Convert string ID to integer for stock model
@@ -1236,6 +1242,20 @@ export async function dynamicDelete(modelName, where) {
             }, 'No Prisma model found or delete failed, falling back to raw SQL');
         }
         catch (prismaError) {
+            // For foreign key constraints and other critical errors, re-throw them
+            // so the calling code can handle them with meaningful error messages
+            if (prismaError.code === 'P2003' ||
+                prismaError.code === 'P2002' ||
+                prismaError.code === 'P2025' ||
+                prismaError.message.includes('foreign key constraint')) {
+                logger.error({
+                    error: prismaError.message,
+                    code: prismaError.code,
+                    modelName,
+                    where
+                }, 'Prisma delete failed with constraint error - re-throwing');
+                throw prismaError;
+            }
             logger.warn({
                 error: prismaError.message,
                 modelName,
@@ -1292,16 +1312,23 @@ export async function dynamicDelete(modelName, where) {
                     constraint: sqlError.constraint
                 }, 'Cannot delete record due to foreign key constraint');
             }
+            // Re-throw SQL errors so they can be handled properly by the route
             throw sqlError;
         }
     }
     catch (error) {
+        // Only catch and return false for unexpected errors that aren't constraint violations
+        if (error.code === 'P2003' || error.code === 'P2002' || error.code === 'P2025' ||
+            error.code === '23503' || error.message.includes('foreign key constraint')) {
+            // Re-throw constraint errors so they reach the route handler
+            throw error;
+        }
         logger.error({
             error: error.message,
             modelName,
             where,
             stack: error.stack
-        }, 'Error in dynamic delete operation');
+        }, 'Unexpected error in dynamic delete operation');
         return false;
     }
 }
@@ -2144,5 +2171,323 @@ export function formatEntitiesForAPI(entities, entityType) {
     if (!Array.isArray(entities))
         return entities;
     return entities.map(entity => formatEntityForAPI(entity, entityType));
+}
+const MODEL_RELATIONSHIPS = {
+    product: [
+        {
+            table: 'orderline',
+            foreignKey: 'productid',
+            includeFields: ['id', 'orderid', 'orderstatus', 'productname', 'quantity', 'orderamount'],
+            displayTemplate: (record) => `orderline ID ${record.id} (order ${record.orderid}, status: ${record.orderstatus})`
+        },
+        {
+            table: 'stock',
+            foreignKey: 'puc',
+            matchField: 'puc', // Match product.puc with stock.puc
+            includeFields: ['id', 'serialnumber', 'stockstatus', 'productname', 'location', 'assetlocation'],
+            displayTemplate: (record) => `stock ID ${record.id} (${record.stockstatus}${record.location || record.assetlocation ? `, location: ${record.location || record.assetlocation}` : ''})`
+        }
+    ],
+    supplier: [
+        {
+            table: 'product',
+            foreignKey: 'supplierid',
+            includeFields: ['id', 'name', 'category', 'productstatus', 'price'],
+            displayTemplate: (record) => `product ID ${record.id} (${record.name}, status: ${record.productstatus})`
+        },
+        {
+            table: 'purchaseorder',
+            foreignKey: 'supplierid',
+            includeFields: ['ponumber', 'po_status', 'total', 'createddate'],
+            displayTemplate: (record) => `purchase order ${record.ponumber} (status: ${record.po_status})`
+        },
+        {
+            table: 'purchaserequest',
+            foreignKey: 'supplierid',
+            includeFields: ['prnumber', 'prstatus', 'companyname'],
+            displayTemplate: (record) => `purchase request ${record.prnumber} (status: ${record.prstatus})`
+        }
+    ],
+    stock: [
+        {
+            table: 'orderline',
+            foreignKey: 'orderlinenumber',
+            matchField: 'orderlinenumber',
+            includeFields: ['id', 'orderid', 'orderstatus', 'productname', 'quantity'],
+            displayTemplate: (record) => `orderline ID ${record.id} (order ${record.orderid}, status: ${record.orderstatus})`
+        }
+    ],
+    orders: [
+        {
+            table: 'orderline',
+            foreignKey: 'orderid',
+            includeFields: ['id', 'productid', 'productname', 'orderstatus', 'quantity', 'orderamount'],
+            displayTemplate: (record) => `orderline ID ${record.id} (product: ${record.productname}, status: ${record.orderstatus})`
+        },
+        {
+            table: 'stock',
+            foreignKey: 'orderid',
+            includeFields: ['id', 'serialnumber', 'stockstatus', 'productname'],
+            displayTemplate: (record) => `stock ID ${record.id} (${record.productname}, status: ${record.stockstatus})`
+        }
+    ]
+};
+/**
+ * Identifies specific records that are blocking deletion due to foreign key constraints
+ * Now supports all models dynamically based on MODEL_RELATIONSHIPS configuration
+ */
+async function identifyBlockingRecords(modelName, id) {
+    const blockingRecords = [];
+    try {
+        const relationships = MODEL_RELATIONSHIPS[modelName];
+        if (!relationships) {
+            return {
+                blockingRecords: [],
+                summary: `No relationship configuration found for model: ${modelName}`
+            };
+        }
+        // Get the main record to access its data for relationship matching
+        let mainRecord = null;
+        try {
+            if (modelName === 'product') {
+                mainRecord = await prisma.product.findUnique({ where: { id: BigInt(id) } });
+            }
+            else if (modelName === 'supplier') {
+                mainRecord = await prisma.supplier.findUnique({ where: { id: parseInt(id) } });
+            }
+            else if (modelName === 'stock') {
+                mainRecord = await prisma.stock.findUnique({ where: { id: parseInt(id) } });
+            }
+            else if (modelName === 'orders') {
+                mainRecord = await prisma.orders.findUnique({ where: { id: parseInt(id) } });
+            }
+            // Add more models as needed
+            if (!mainRecord) {
+                return { blockingRecords: [], summary: `${modelName} not found` };
+            }
+        }
+        catch (error) {
+            logger.error({ error, modelName, id }, 'Error fetching main record for relationship check');
+            return { blockingRecords: [], summary: `Error fetching ${modelName} record` };
+        }
+        // Check each relationship
+        for (const relationship of relationships) {
+            try {
+                let whereClause = {};
+                // Determine the match criteria
+                if (relationship.matchField) {
+                    // Use a specific field from the main record (like PUC matching)
+                    const matchValue = mainRecord[relationship.matchField];
+                    if (matchValue) {
+                        whereClause[relationship.foreignKey] = matchValue;
+                    }
+                    else {
+                        continue; // Skip if the match field is empty
+                    }
+                }
+                else {
+                    // Use the record ID directly
+                    whereClause[relationship.foreignKey] = modelName === 'product' ? parseInt(id) : parseInt(id);
+                }
+                // Execute query based on table
+                let relatedRecords = [];
+                if (relationship.table === 'orderline') {
+                    relatedRecords = await prisma.orderline.findMany({ where: whereClause });
+                }
+                else if (relationship.table === 'stock') {
+                    relatedRecords = await prisma.stock.findMany({ where: whereClause });
+                }
+                else if (relationship.table === 'product') {
+                    relatedRecords = await prisma.product.findMany({ where: whereClause });
+                }
+                else if (relationship.table === 'purchaseorder') {
+                    relatedRecords = await prisma.purchaseOrder.findMany({ where: whereClause });
+                }
+                else if (relationship.table === 'purchaserequest') {
+                    relatedRecords = await prisma.purchaseRequest.findMany({ where: whereClause });
+                }
+                // Add more table queries as needed
+                // Process found records
+                for (const record of relatedRecords) {
+                    const details = {};
+                    // Extract specified fields
+                    for (const field of relationship.includeFields) {
+                        if (record[field] !== undefined) {
+                            details[field] = record[field]?.toString() || record[field];
+                        }
+                    }
+                    blockingRecords.push({
+                        table: relationship.table,
+                        recordId: record.id,
+                        details
+                    });
+                }
+            }
+            catch (relationshipError) {
+                logger.error({
+                    error: relationshipError.message,
+                    modelName,
+                    id,
+                    relationship: relationship.table
+                }, 'Error checking relationship');
+            }
+        }
+        // Generate dynamic summary
+        let summary = '';
+        if (blockingRecords.length === 0) {
+            summary = 'No blocking records found';
+        }
+        else {
+            const tableGroups = blockingRecords.reduce((acc, record) => {
+                if (!acc[record.table])
+                    acc[record.table] = [];
+                acc[record.table].push(record);
+                return acc;
+            }, {});
+            const summaryParts = Object.entries(tableGroups).map(([table, records]) => {
+                const relationship = relationships.find(r => r.table === table);
+                if (relationship?.displayTemplate) {
+                    const recordDetails = records.map(r => relationship.displayTemplate(r.details)).join(', ');
+                    return `${records.length} ${table} record(s): ${recordDetails}`;
+                }
+                else {
+                    // Fallback for tables without custom display templates
+                    const recordIds = records.map(r => `ID ${r.recordId}`).join(', ');
+                    return `${records.length} ${table} record(s): ${recordIds}`;
+                }
+            });
+            summary = summaryParts.join('; ');
+        }
+        return { blockingRecords, summary };
+    }
+    catch (error) {
+        logger.error({ error: error.message, modelName, id }, 'Error identifying blocking records');
+        return {
+            blockingRecords: [],
+            summary: `Error checking blocking records: ${error.message}`
+        };
+    }
+}
+/**
+ * Enhanced error details for foreign key constraints
+ */
+export async function getConstraintViolationDetails(modelName, id, error) {
+    try {
+        const blockingInfo = await identifyBlockingRecords(modelName, id);
+        // Extract constraint information from the error
+        const constraintInfo = {};
+        if (error.meta?.constraint) {
+            constraintInfo.constraintName = error.meta.constraint;
+            // Try to extract referenced table from constraint name
+            if (error.meta.constraint.includes('_fkey')) {
+                const parts = error.meta.constraint.split('_');
+                if (parts.length > 1) {
+                    constraintInfo.referencedTable = parts[0];
+                }
+            }
+        }
+        // Create specific message based on blocking records
+        let specificMessage = '';
+        if (blockingInfo.blockingRecords.length > 0) {
+            if (modelName === 'product') {
+                specificMessage = `Product ID ${id} cannot be deleted because it is referenced by: ${blockingInfo.summary}`;
+            }
+            else {
+                specificMessage = `${modelName} ID ${id} cannot be deleted because it is referenced by: ${blockingInfo.summary}`;
+            }
+        }
+        else {
+            specificMessage = `${modelName} ID ${id} cannot be deleted due to foreign key constraint: ${error.meta?.constraint || 'unknown constraint'}`;
+        }
+        return {
+            specificMessage,
+            blockingRecords: blockingInfo.blockingRecords,
+            constraintInfo
+        };
+    }
+    catch (detailError) {
+        logger.error({ detailError: detailError.message, modelName, id }, 'Error getting constraint violation details');
+        return {
+            specificMessage: `${modelName} ID ${id} cannot be deleted due to foreign key constraint`,
+            blockingRecords: [],
+            constraintInfo: {}
+        };
+    }
+}
+/**
+ * Reusable helper for DELETE routes to handle errors with detailed constraint information
+ * This can be used in any DELETE route across the application
+ */
+export async function handleDeleteError(error, modelName, id, reply) {
+    console.log(`=== ${modelName.toUpperCase()} DELETE ERROR:`, error.message);
+    console.log(`=== ${modelName.toUpperCase()} DELETE ERROR STACK:`, error.stack);
+    if (error.message.includes("not found")) {
+        const errorResponse = {
+            success: false,
+            message: `${modelName.charAt(0).toUpperCase() + modelName.slice(1)} with ID ${id} not found`,
+            details: "The requested resource could not be found",
+            statusCode: 404,
+        };
+        return reply.code(404).send(errorResponse);
+    }
+    // Check for database/foreign key constraint errors
+    if (error.code === 'P2003' || error.message.includes('foreign key constraint')) {
+        // Get detailed information about what's blocking the deletion
+        const constraintDetails = await getConstraintViolationDetails(modelName, id, error);
+        const errorResponse = {
+            success: false,
+            message: `Cannot delete ${modelName} with ID ${id}`,
+            details: constraintDetails.specificMessage,
+            statusCode: 409,
+            errorCode: error.code || 'FOREIGN_KEY_CONSTRAINT',
+            blockingRecords: constraintDetails.blockingRecords,
+            constraintInfo: constraintDetails.constraintInfo
+        };
+        return reply.code(409).send(errorResponse);
+    }
+    // Check for database connection errors
+    if (error.code === 'ECONNREFUSED' || error.message.includes('connect ECONNREFUSED')) {
+        const errorResponse = {
+            success: false,
+            message: "Database connection error",
+            details: "Unable to connect to the database. Please try again later.",
+            statusCode: 503,
+            errorCode: error.code || 'DATABASE_CONNECTION_ERROR'
+        };
+        return reply.code(503).send(errorResponse);
+    }
+    // Check for Prisma-specific errors
+    if (error.code && error.code.startsWith('P')) {
+        const errorResponse = {
+            success: false,
+            message: `Database operation failed for ${modelName} ${id}`,
+            details: `Prisma error: ${error.message}`,
+            statusCode: 500,
+            errorCode: error.code,
+            meta: error.meta || null
+        };
+        return reply.code(500).send(errorResponse);
+    }
+    // Check for validation errors
+    if (error.name === 'ValidationError' || error.message.includes('validation')) {
+        const errorResponse = {
+            success: false,
+            message: `Validation error during ${modelName} deletion`,
+            details: error.message,
+            statusCode: 400,
+            errorCode: 'VALIDATION_ERROR'
+        };
+        return reply.code(400).send(errorResponse);
+    }
+    // Enhanced default error response with more details
+    const errorResponse = {
+        success: false,
+        message: `Failed to delete ${modelName} with ID ${id}`,
+        details: error.message || `An unexpected error occurred during ${modelName} deletion`,
+        statusCode: 500,
+        errorCode: error.code || error.name || 'UNKNOWN_ERROR',
+        timestamp: new Date().toISOString()
+    };
+    return reply.code(500).send(errorResponse);
 }
 //# sourceMappingURL=dynamicDbOperations.js.map

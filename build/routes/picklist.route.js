@@ -347,6 +347,38 @@ export async function picklistRoutes(fastify) {
                         statusCode: { type: 'number' },
                     },
                 },
+                409: {
+                    type: "object",
+                    properties: {
+                        success: { type: "boolean" },
+                        message: { type: "string" },
+                        details: { type: "string" },
+                        statusCode: { type: "number" },
+                        errorCode: { type: "string" },
+                        blockingRecords: {
+                            type: "array",
+                            items: {
+                                type: "object",
+                                properties: {
+                                    table: { type: "string", description: "Table name containing the blocking record" },
+                                    recordId: { type: ["string", "number"], description: "ID of the blocking record" },
+                                    details: {
+                                        type: "object",
+                                        description: "Detailed information about the blocking record",
+                                        additionalProperties: true
+                                    }
+                                }
+                            }
+                        },
+                        constraintInfo: {
+                            type: "object",
+                            properties: {
+                                constraintName: { type: "string", description: "Foreign key constraint name" },
+                                referencedTable: { type: "string", description: "Table being referenced" }
+                            }
+                        }
+                    },
+                },
                 500: {
                     type: 'object',
                     properties: {
@@ -380,24 +412,8 @@ export async function picklistRoutes(fastify) {
             return reply.code(200).send(response);
         }
         catch (error) {
-            console.log('=== PICKLIST DELETE ERROR:', error.message);
-            if (error.message.includes('not found')) {
-                const errorResponse = {
-                    success: false,
-                    message: `Picklist with ID ${request.params.id} not found`,
-                    details: 'The requested resource could not be found',
-                    statusCode: 404
-                };
-                return reply.code(404).send(errorResponse);
-            }
-            // Default error response
-            const errorResponse = {
-                success: false,
-                message: 'Internal server error',
-                details: 'Something went wrong on the server',
-                statusCode: 500
-            };
-            return reply.code(500).send(errorResponse);
+            const { handleDeleteError } = await import('../utils/dynamicDbOperations.js');
+            return await handleDeleteError(error, 'picklist', request.params.id, reply);
         }
     });
     // PATCH /v1/picklists/:id/toggle - Toggle picklist active status

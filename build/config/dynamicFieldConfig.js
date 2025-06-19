@@ -4,7 +4,8 @@ export const dynamicFieldConfigs = {
         allowedFields: [
             'brand', 'model', 'color', 'size', 'weight', 'dimensions',
             'material', 'warranty', 'tags', 'notes', 'customField1',
-            'customField2', 'customField3', 'customField4', 'customField5'
+            'customField2', 'customField3', 'customField4', 'customField5',
+            'isdealoftheday'
         ],
         requiredFields: ['name', 'category'],
         fieldTypes: {
@@ -22,7 +23,8 @@ export const dynamicFieldConfigs = {
             customField2: 'string',
             customField3: 'string',
             customField4: 'string',
-            customField5: 'string'
+            customField5: 'string',
+            isdealoftheday: 'boolean'
         }
     },
     stock: {

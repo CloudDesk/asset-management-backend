@@ -8,6 +8,7 @@ export const createProductSchema = z.object({
     category: z.string().max(100).optional(),
     price: z.number().positive().optional(),
     status: z.string().optional(),
+    isdealoftheday: z.boolean().optional(),
     // Common alternative field names
     product_name: z.string().min(1).max(255).optional(),
     product_description: z.string().optional(),
@@ -22,6 +23,7 @@ export const updateProductSchema = z.object({
     category: z.string().max(100).optional(),
     price: z.number().positive().optional(),
     status: z.string().optional(),
+    isdealoftheday: z.boolean().optional(),
     // Common alternative field names
     product_name: z.string().min(1).max(255).optional(),
     product_description: z.string().optional(),
@@ -37,6 +39,7 @@ export const upsertProductSchema = z.object({
     category: z.string().max(100).optional(),
     price: z.number().positive().optional(),
     status: z.string().optional(),
+    isdealoftheday: z.boolean().optional(),
     // Common alternative field names
     product_name: z.string().min(1).max(255).optional(),
     product_description: z.string().optional(),
@@ -62,6 +65,7 @@ export const productQuerySchema = z.object({
     maxStock: z.string().optional(),
     createdAfter: z.string().optional(),
     createdBefore: z.string().optional(),
+    isdealoftheday: z.string().optional(),
     // Alternative field names
     product_name: z.string().optional(),
     product_category: z.string().optional(),

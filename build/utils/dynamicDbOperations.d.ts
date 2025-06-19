@@ -137,4 +137,24 @@ export declare function formatEntityForAPI(entity: any, entityType?: string): an
  * Formats an array of entities for API response
  */
 export declare function formatEntitiesForAPI(entities: any[], entityType?: string): any[];
+/**
+ * Enhanced error details for foreign key constraints
+ */
+export declare function getConstraintViolationDetails(modelName: string, id: any, error: any): Promise<{
+    specificMessage: string;
+    blockingRecords: Array<{
+        table: string;
+        recordId: any;
+        details: Record<string, any>;
+    }>;
+    constraintInfo: {
+        constraintName?: string;
+        referencedTable?: string;
+    };
+}>;
+/**
+ * Reusable helper for DELETE routes to handle errors with detailed constraint information
+ * This can be used in any DELETE route across the application
+ */
+export declare function handleDeleteError(error: any, modelName: string, id: string, reply: any): Promise<void>;
 //# sourceMappingURL=dynamicDbOperations.d.ts.map

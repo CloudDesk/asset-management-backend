@@ -5,6 +5,7 @@ export declare const createProductSchema: z.ZodObject<{
     category: z.ZodOptional<z.ZodString>;
     price: z.ZodOptional<z.ZodNumber>;
     status: z.ZodOptional<z.ZodString>;
+    isdealoftheday: z.ZodOptional<z.ZodBoolean>;
     product_name: z.ZodOptional<z.ZodString>;
     product_description: z.ZodOptional<z.ZodString>;
     product_category: z.ZodOptional<z.ZodString>;
@@ -16,6 +17,7 @@ export declare const createProductSchema: z.ZodObject<{
     category: z.ZodOptional<z.ZodString>;
     price: z.ZodOptional<z.ZodNumber>;
     status: z.ZodOptional<z.ZodString>;
+    isdealoftheday: z.ZodOptional<z.ZodBoolean>;
     product_name: z.ZodOptional<z.ZodString>;
     product_description: z.ZodOptional<z.ZodString>;
     product_category: z.ZodOptional<z.ZodString>;
@@ -27,6 +29,7 @@ export declare const createProductSchema: z.ZodObject<{
     category: z.ZodOptional<z.ZodString>;
     price: z.ZodOptional<z.ZodNumber>;
     status: z.ZodOptional<z.ZodString>;
+    isdealoftheday: z.ZodOptional<z.ZodBoolean>;
     product_name: z.ZodOptional<z.ZodString>;
     product_description: z.ZodOptional<z.ZodString>;
     product_category: z.ZodOptional<z.ZodString>;
@@ -39,6 +42,7 @@ export declare const updateProductSchema: z.ZodObject<{
     category: z.ZodOptional<z.ZodString>;
     price: z.ZodOptional<z.ZodNumber>;
     status: z.ZodOptional<z.ZodString>;
+    isdealoftheday: z.ZodOptional<z.ZodBoolean>;
     product_name: z.ZodOptional<z.ZodString>;
     product_description: z.ZodOptional<z.ZodString>;
     product_category: z.ZodOptional<z.ZodString>;
@@ -50,6 +54,7 @@ export declare const updateProductSchema: z.ZodObject<{
     category: z.ZodOptional<z.ZodString>;
     price: z.ZodOptional<z.ZodNumber>;
     status: z.ZodOptional<z.ZodString>;
+    isdealoftheday: z.ZodOptional<z.ZodBoolean>;
     product_name: z.ZodOptional<z.ZodString>;
     product_description: z.ZodOptional<z.ZodString>;
     product_category: z.ZodOptional<z.ZodString>;
@@ -61,6 +66,7 @@ export declare const updateProductSchema: z.ZodObject<{
     category: z.ZodOptional<z.ZodString>;
     price: z.ZodOptional<z.ZodNumber>;
     status: z.ZodOptional<z.ZodString>;
+    isdealoftheday: z.ZodOptional<z.ZodBoolean>;
     product_name: z.ZodOptional<z.ZodString>;
     product_description: z.ZodOptional<z.ZodString>;
     product_category: z.ZodOptional<z.ZodString>;
@@ -74,6 +80,7 @@ export declare const upsertProductSchema: z.ZodObject<{
     category: z.ZodOptional<z.ZodString>;
     price: z.ZodOptional<z.ZodNumber>;
     status: z.ZodOptional<z.ZodString>;
+    isdealoftheday: z.ZodOptional<z.ZodBoolean>;
     product_name: z.ZodOptional<z.ZodString>;
     product_description: z.ZodOptional<z.ZodString>;
     product_category: z.ZodOptional<z.ZodString>;
@@ -86,6 +93,7 @@ export declare const upsertProductSchema: z.ZodObject<{
     category: z.ZodOptional<z.ZodString>;
     price: z.ZodOptional<z.ZodNumber>;
     status: z.ZodOptional<z.ZodString>;
+    isdealoftheday: z.ZodOptional<z.ZodBoolean>;
     product_name: z.ZodOptional<z.ZodString>;
     product_description: z.ZodOptional<z.ZodString>;
     product_category: z.ZodOptional<z.ZodString>;
@@ -98,6 +106,7 @@ export declare const upsertProductSchema: z.ZodObject<{
     category: z.ZodOptional<z.ZodString>;
     price: z.ZodOptional<z.ZodNumber>;
     status: z.ZodOptional<z.ZodString>;
+    isdealoftheday: z.ZodOptional<z.ZodBoolean>;
     product_name: z.ZodOptional<z.ZodString>;
     product_description: z.ZodOptional<z.ZodString>;
     product_category: z.ZodOptional<z.ZodString>;
@@ -124,6 +133,7 @@ export declare const productQuerySchema: z.ZodObject<{
     maxStock: z.ZodOptional<z.ZodString>;
     createdAfter: z.ZodOptional<z.ZodString>;
     createdBefore: z.ZodOptional<z.ZodString>;
+    isdealoftheday: z.ZodOptional<z.ZodString>;
     product_name: z.ZodOptional<z.ZodString>;
     product_category: z.ZodOptional<z.ZodString>;
     product_status: z.ZodOptional<z.ZodString>;
@@ -139,6 +149,7 @@ export declare const productQuerySchema: z.ZodObject<{
     name?: string | undefined;
     category?: string | undefined;
     description?: string | undefined;
+    isdealoftheday?: string | undefined;
     product_name?: string | undefined;
     product_description?: string | undefined;
     product_category?: string | undefined;
@@ -162,6 +173,7 @@ export declare const productQuerySchema: z.ZodObject<{
     name?: string | undefined;
     category?: string | undefined;
     description?: string | undefined;
+    isdealoftheday?: string | undefined;
     product_name?: string | undefined;
     product_description?: string | undefined;
     product_category?: string | undefined;
