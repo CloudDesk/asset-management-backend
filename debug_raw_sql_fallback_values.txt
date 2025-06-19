@@ -1,0 +1,18 @@
+Fallback values: [
+  180,
+  false,
+  "Updated Test Product (Not Deal of Day)",
+  1750306233
+]
+Fallback values: [
+  182,
+  false,
+  "Updated Test Product (Not Deal of Day)",
+  1750306320
+]
+Fallback values: [
+  185,
+  false,
+  "Updated Test Product (Not Deal of Day)",
+  1750306479
+]

@@ -56,6 +56,8 @@ model Product {
   artist_name       String?
   // Status field
   isactive          Boolean?
+  // Deal of the day field
+  isdealoftheday    Boolean?  @default(false)
   // Category fields (2 new fields)
   category          String?   @db.VarChar(255)
   subcategory       String?   @db.VarChar(255)

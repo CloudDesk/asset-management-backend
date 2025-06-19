@@ -167,6 +167,11 @@ export async function productRoutes(fastify: FastifyInstance) {
               type: "string",
               description: "Filter by active status (true/false)",
             },
+            // Deal of the day filter field
+            isdealoftheday: {
+              type: "string",
+              description: "Filter by deal of the day status (true/false)",
+            },
             // Category filter fields
             category: { type: "string", description: "Filter by category" },
             subcategory: {
@@ -408,6 +413,12 @@ export async function productRoutes(fastify: FastifyInstance) {
                       type: "boolean",
                       nullable: true,
                       description: "Is product active",
+                    },
+                    // Deal of the day field
+                    isdealoftheday: {
+                      type: "boolean",
+                      nullable: true,
+                      description: "Is deal of the day",
                     },
                     // Category fields
                     category: {
@@ -716,6 +727,12 @@ export async function productRoutes(fastify: FastifyInstance) {
                     nullable: true,
                     description: "Is product active",
                   },
+                  // Deal of the day field
+                  isdealoftheday: {
+                    type: "boolean",
+                    nullable: true,
+                    description: "Is deal of the day",
+                  },
                 },
                 additionalProperties: true, // Allow additional dynamic fields
               },
@@ -959,6 +976,8 @@ export async function productRoutes(fastify: FastifyInstance) {
             artist_name: { type: "string", description: "Artist name" },
             // Status field
             isactive: { type: "boolean", description: "Is product active" },
+            // Deal of the day field
+            isdealoftheday: { type: "boolean", description: "Is deal of the day" },
             // Category fields
             category: {
               type: "string",
@@ -1208,6 +1227,42 @@ export async function productRoutes(fastify: FastifyInstance) {
                     nullable: true,
                     description: "Is product active",
                   },
+                  // Deal of the day field
+                  isdealoftheday: {
+                    type: "boolean",
+                    nullable: true,
+                    description: "Is deal of the day",
+                  },
+                  // Category fields
+                  category: {
+                    type: "string",
+                    nullable: true,
+                    description: "Product category",
+                  },
+                  subcategory: {
+                    type: "string",
+                    nullable: true,
+                    description: "Product subcategory",
+                  },
+                  // Size-related fields (3 new fields)
+                  large: {
+                    type: "array",
+                    items: { type: "string" },
+                    nullable: true,
+                    description: "Large size options",
+                  },
+                  medium: {
+                    type: "array",
+                    items: { type: "string" },
+                    nullable: true,
+                    description: "Medium size options",
+                  },
+                  small: {
+                    type: "array",
+                    items: { type: "string" },
+                    nullable: true,
+                    description: "Small size options",
+                  },
                 },
                 additionalProperties: true, // Allow additional dynamic fields
               },
@@ -1403,6 +1458,8 @@ export async function productRoutes(fastify: FastifyInstance) {
             artist_name: { type: "string", description: "Artist name" },
             // Status field
             isactive: { type: "boolean", description: "Is product active" },
+            // Deal of the day field
+            isdealoftheday: { type: "boolean", description: "Is deal of the day" },
             // Category fields
             category: {
               type: "string",
@@ -1650,6 +1707,12 @@ export async function productRoutes(fastify: FastifyInstance) {
                     type: "boolean",
                     nullable: true,
                     description: "Is product active",
+                  },
+                  // Deal of the day field
+                  isdealoftheday: {
+                    type: "boolean",
+                    nullable: true,
+                    description: "Is deal of the day",
                   },
                   // Category fields
                   category: {
@@ -2105,6 +2168,35 @@ export async function productRoutes(fastify: FastifyInstance) {
             artist_name: { type: "string", description: "Artist name" },
             // Status field
             isactive: { type: "boolean", description: "Is product active" },
+            // Deal of the day field
+            isdealoftheday: { type: "boolean", description: "Is deal of the day" },
+            // Category fields
+            category: {
+              type: "string",
+              maxLength: 255,
+              description: "Product category",
+            },
+            subcategory: {
+              type: "string",
+              maxLength: 255,
+              description: "Product subcategory",
+            },
+            // Size-related fields (3 new fields)
+            large: {
+              type: "array",
+              items: { type: "string" },
+              description: "Large size options",
+            },
+            medium: {
+              type: "array",
+              items: { type: "string" },
+              description: "Medium size options",
+            },
+            small: {
+              type: "array",
+              items: { type: "string" },
+              description: "Small size options",
+            },
           },
           additionalProperties: true, // Allow additional dynamic fields
         },
@@ -2328,6 +2420,12 @@ export async function productRoutes(fastify: FastifyInstance) {
                         type: "boolean",
                         nullable: true,
                         description: "Is product active",
+                      },
+                      // Deal of the day field
+                      isdealoftheday: {
+                        type: "boolean",
+                        nullable: true,
+                        description: "Is deal of the day",
                       },
                     },
                     additionalProperties: true,

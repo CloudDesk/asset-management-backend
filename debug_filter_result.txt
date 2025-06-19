@@ -6222,3 +6222,93 @@ Filtered data result: {
   },
   "modifieddate": 1750219879308
 }
+Filtered data result: {
+  "name": "Test Deal Product",
+  "category": "Test Category",
+  "price": 99.99,
+  "isdealoftheday": true,
+  "shortdescription": "Test product for deal of the day functionality",
+  "fulldescription": "This is a comprehensive test product for the isdealoftheday field",
+  "subcategory": "Test Subcategory",
+  "availablequantity": 10,
+  "productstatus": "Available",
+  "isactive": true,
+  "puc": "TEST-DEAL-1750306231305"
+}
+Filtered data result: {
+  "isdealoftheday": false,
+  "name": "Updated Test Product (Not Deal of Day)"
+}
+Filtered data result: {
+  "name": "Another Deal Product",
+  "category": "Test Category",
+  "price": 99.99,
+  "isdealoftheday": true,
+  "shortdescription": "Test product for deal of the day functionality",
+  "fulldescription": "This is a comprehensive test product for the isdealoftheday field",
+  "subcategory": "Test Subcategory",
+  "availablequantity": 10,
+  "productstatus": "Available",
+  "isactive": true,
+  "puc": "TEST-DEAL-2-1750306233622"
+}
+Filtered data result: {
+  "name": "Test Deal Product",
+  "category": "Test Category",
+  "price": 99.99,
+  "isdealoftheday": true,
+  "shortdescription": "Test product for deal of the day functionality",
+  "fulldescription": "This is a comprehensive test product for the isdealoftheday field",
+  "subcategory": "Test Subcategory",
+  "availablequantity": 10,
+  "productstatus": "Available",
+  "isactive": true,
+  "puc": "TEST-DEAL-1750306318531"
+}
+Filtered data result: {
+  "isdealoftheday": false,
+  "name": "Updated Test Product (Not Deal of Day)"
+}
+Filtered data result: {
+  "name": "Another Deal Product",
+  "category": "Test Category",
+  "price": 99.99,
+  "isdealoftheday": true,
+  "shortdescription": "Test product for deal of the day functionality",
+  "fulldescription": "This is a comprehensive test product for the isdealoftheday field",
+  "subcategory": "Test Subcategory",
+  "availablequantity": 10,
+  "productstatus": "Available",
+  "isactive": true,
+  "puc": "TEST-DEAL-2-1750306321087"
+}
+Filtered data result: {
+  "name": "Test Deal Product",
+  "category": "Test Category",
+  "price": 99.99,
+  "isdealoftheday": true,
+  "shortdescription": "Test product for deal of the day functionality",
+  "fulldescription": "This is a comprehensive test product for the isdealoftheday field",
+  "subcategory": "Test Subcategory",
+  "availablequantity": 10,
+  "productstatus": "Available",
+  "isactive": true,
+  "puc": "TEST-DEAL-1750306476871"
+}
+Filtered data result: {
+  "isdealoftheday": false,
+  "name": "Updated Test Product (Not Deal of Day)"
+}
+Filtered data result: {
+  "name": "Another Deal Product",
+  "category": "Test Category",
+  "price": 99.99,
+  "isdealoftheday": true,
+  "shortdescription": "Test product for deal of the day functionality",
+  "fulldescription": "This is a comprehensive test product for the isdealoftheday field",
+  "subcategory": "Test Subcategory",
+  "availablequantity": 10,
+  "productstatus": "Available",
+  "isactive": true,
+  "puc": "TEST-DEAL-2-1750306480083"
+}

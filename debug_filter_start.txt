@@ -6222,3 +6222,93 @@ Filtering data for transaction (transaction): {
   },
   "modifieddate": 1750219879308
 }
+Filtering data for product (product): {
+  "name": "Test Deal Product",
+  "category": "Test Category",
+  "price": 99.99,
+  "isdealoftheday": true,
+  "shortdescription": "Test product for deal of the day functionality",
+  "fulldescription": "This is a comprehensive test product for the isdealoftheday field",
+  "subcategory": "Test Subcategory",
+  "availablequantity": 10,
+  "productstatus": "Available",
+  "isactive": true,
+  "puc": "TEST-DEAL-1750306231305"
+}
+Filtering data for product (product): {
+  "isdealoftheday": false,
+  "name": "Updated Test Product (Not Deal of Day)"
+}
+Filtering data for product (product): {
+  "name": "Another Deal Product",
+  "category": "Test Category",
+  "price": 99.99,
+  "isdealoftheday": true,
+  "shortdescription": "Test product for deal of the day functionality",
+  "fulldescription": "This is a comprehensive test product for the isdealoftheday field",
+  "subcategory": "Test Subcategory",
+  "availablequantity": 10,
+  "productstatus": "Available",
+  "isactive": true,
+  "puc": "TEST-DEAL-2-1750306233622"
+}
+Filtering data for product (product): {
+  "name": "Test Deal Product",
+  "category": "Test Category",
+  "price": 99.99,
+  "isdealoftheday": true,
+  "shortdescription": "Test product for deal of the day functionality",
+  "fulldescription": "This is a comprehensive test product for the isdealoftheday field",
+  "subcategory": "Test Subcategory",
+  "availablequantity": 10,
+  "productstatus": "Available",
+  "isactive": true,
+  "puc": "TEST-DEAL-1750306318531"
+}
+Filtering data for product (product): {
+  "isdealoftheday": false,
+  "name": "Updated Test Product (Not Deal of Day)"
+}
+Filtering data for product (product): {
+  "name": "Another Deal Product",
+  "category": "Test Category",
+  "price": 99.99,
+  "isdealoftheday": true,
+  "shortdescription": "Test product for deal of the day functionality",
+  "fulldescription": "This is a comprehensive test product for the isdealoftheday field",
+  "subcategory": "Test Subcategory",
+  "availablequantity": 10,
+  "productstatus": "Available",
+  "isactive": true,
+  "puc": "TEST-DEAL-2-1750306321087"
+}
+Filtering data for product (product): {
+  "name": "Test Deal Product",
+  "category": "Test Category",
+  "price": 99.99,
+  "isdealoftheday": true,
+  "shortdescription": "Test product for deal of the day functionality",
+  "fulldescription": "This is a comprehensive test product for the isdealoftheday field",
+  "subcategory": "Test Subcategory",
+  "availablequantity": 10,
+  "productstatus": "Available",
+  "isactive": true,
+  "puc": "TEST-DEAL-1750306476871"
+}
+Filtering data for product (product): {
+  "isdealoftheday": false,
+  "name": "Updated Test Product (Not Deal of Day)"
+}
+Filtering data for product (product): {
+  "name": "Another Deal Product",
+  "category": "Test Category",
+  "price": 99.99,
+  "isdealoftheday": true,
+  "shortdescription": "Test product for deal of the day functionality",
+  "fulldescription": "This is a comprehensive test product for the isdealoftheday field",
+  "subcategory": "Test Subcategory",
+  "availablequantity": 10,
+  "productstatus": "Available",
+  "isactive": true,
+  "puc": "TEST-DEAL-2-1750306480083"
+}

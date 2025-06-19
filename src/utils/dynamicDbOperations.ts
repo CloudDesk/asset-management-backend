@@ -932,6 +932,13 @@ export async function dynamicFindUnique(
           where,
           ...(include && { include }),
         });
+        
+        // Check if the result is missing the isdealoftheday field
+        // If so, fall back to raw SQL to get the complete data
+        if (result && !result.hasOwnProperty('isdealoftheday')) {
+          logger.debug({ modelName }, 'Prisma result missing isdealoftheday field, falling back to raw SQL');
+          throw new Error('Prisma client outdated, using raw SQL fallback');
+        }
       } else if (modelName === 'stock') {
         // Convert string ID to integer for stock model
         const stockWhere = { ...where };
