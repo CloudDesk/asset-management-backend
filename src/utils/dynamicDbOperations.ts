@@ -1471,6 +1471,21 @@ export async function dynamicDelete(
       }, 'No Prisma model found or delete failed, falling back to raw SQL');
       
     } catch (prismaError: any) {
+      // For foreign key constraints and other critical errors, re-throw them
+      // so the calling code can handle them with meaningful error messages
+      if (prismaError.code === 'P2003' || 
+          prismaError.code === 'P2002' || 
+          prismaError.code === 'P2025' ||
+          prismaError.message.includes('foreign key constraint')) {
+        logger.error({ 
+          error: prismaError.message, 
+          code: prismaError.code,
+          modelName,
+          where 
+        }, 'Prisma delete failed with constraint error - re-throwing');
+        throw prismaError;
+      }
+      
       logger.warn({ 
         error: prismaError.message, 
         modelName,
@@ -1533,15 +1548,23 @@ export async function dynamicDelete(
         }, 'Cannot delete record due to foreign key constraint');
       }
       
+      // Re-throw SQL errors so they can be handled properly by the route
       throw sqlError;
     }
   } catch (error: any) {
+    // Only catch and return false for unexpected errors that aren't constraint violations
+    if (error.code === 'P2003' || error.code === 'P2002' || error.code === 'P2025' || 
+        error.code === '23503' || error.message.includes('foreign key constraint')) {
+      // Re-throw constraint errors so they reach the route handler
+      throw error;
+    }
+    
     logger.error({ 
       error: error.message, 
       modelName, 
       where,
       stack: error.stack
-    }, 'Error in dynamic delete operation');
+    }, 'Unexpected error in dynamic delete operation');
     return false;
   }
 }
@@ -2455,4 +2478,193 @@ export function formatEntitiesForAPI(entities: any[], entityType?: string): any[
   if (!Array.isArray(entities)) return entities;
   
   return entities.map(entity => formatEntityForAPI(entity, entityType));
-} 
+}
+
+/**
+ * Identifies specific records that are blocking deletion due to foreign key constraints
+ */
+async function identifyBlockingRecords(modelName: string, id: any): Promise<{
+  blockingRecords: Array<{
+    table: string;
+    recordId: any;
+    details: Record<string, any>;
+  }>;
+  summary: string;
+}> {
+  const blockingRecords: Array<{
+    table: string;
+    recordId: any;
+    details: Record<string, any>;
+  }> = [];
+
+  try {
+    if (modelName === 'product') {
+      const productId = typeof id === 'string' ? parseInt(id, 10) : id;
+      
+      // First get the product details
+      const product = await prisma.product.findUnique({
+        where: { id: BigInt(productId) }
+      });
+      
+      if (!product) {
+        return { blockingRecords: [], summary: 'Product not found' };
+      }
+
+      // Check orderline records
+      const orderlineRecords = await prisma.orderline.findMany({
+        where: { productid: productId },
+        include: {
+          orders: {
+            select: {
+              id: true,
+              orderid: true,
+              orderstatus: true
+            }
+          }
+        }
+      });
+
+      for (const orderline of orderlineRecords) {
+        blockingRecords.push({
+          table: 'orderline',
+          recordId: orderline.id,
+          details: {
+            orderlineId: orderline.id,
+            orderId: orderline.orderid,
+            orderStatus: orderline.orderstatus,
+            productName: orderline.productname,
+            quantity: orderline.quantity,
+            orderAmount: orderline.orderamount?.toString() || null,
+            systemOrderId: orderline.orders?.id || null,
+            systemOrderStatus: orderline.orders?.orderstatus || null
+          }
+        });
+      }
+
+      // Check stock records (by PUC)
+      if (product.puc) {
+        const stockRecords = await prisma.stock.findMany({
+          where: { puc: product.puc }
+        });
+
+        for (const stock of stockRecords) {
+          blockingRecords.push({
+            table: 'stock',
+            recordId: stock.id,
+            details: {
+              stockId: stock.id,
+              serialNumber: stock.serialnumber,
+              stockStatus: stock.stockstatus,
+              productName: stock.productname,
+              location: stock.location || stock.assetlocation,
+              puc: stock.puc
+            }
+          });
+        }
+      }
+
+      // Add more checks for other tables that might reference products
+      // This can be extended as needed
+    }
+
+    // Generate summary
+    let summary = '';
+    if (blockingRecords.length === 0) {
+      summary = 'No blocking records found';
+    } else {
+      const tableGroups = blockingRecords.reduce((acc, record) => {
+        if (!acc[record.table]) acc[record.table] = [];
+        acc[record.table].push(record);
+        return acc;
+      }, {} as Record<string, typeof blockingRecords>);
+
+      const summaryParts = Object.entries(tableGroups).map(([table, records]) => {
+        if (table === 'orderline') {
+          const orderDetails = records.map(r => 
+            `orderline ID ${r.details.orderlineId} (order ${r.details.orderId}, status: ${r.details.orderStatus})`
+          ).join(', ');
+          return `${records.length} orderline record(s): ${orderDetails}`;
+        } else if (table === 'stock') {
+          const stockDetails = records.map(r => 
+            `stock ID ${r.details.stockId} (${r.details.stockStatus}${r.details.location ? `, location: ${r.details.location}` : ''})`
+          ).join(', ');
+          return `${records.length} stock record(s): ${stockDetails}`;
+        } else {
+          return `${records.length} ${table} record(s)`;
+        }
+      });
+
+      summary = summaryParts.join('; ');
+    }
+
+    return { blockingRecords, summary };
+
+  } catch (error: any) {
+    logger.error({ error: error.message, modelName, id }, 'Error identifying blocking records');
+    return { 
+      blockingRecords: [], 
+      summary: `Error checking blocking records: ${error.message}` 
+    };
+  }
+}
+
+/**
+ * Enhanced error details for foreign key constraints
+ */
+export async function getConstraintViolationDetails(modelName: string, id: any, error: any): Promise<{
+  specificMessage: string;
+  blockingRecords: Array<{
+    table: string;
+    recordId: any;
+    details: Record<string, any>;
+  }>;
+  constraintInfo: {
+    constraintName?: string;
+    referencedTable?: string;
+  };
+}> {
+  try {
+    const blockingInfo = await identifyBlockingRecords(modelName, id);
+    
+    // Extract constraint information from the error
+    const constraintInfo: { constraintName?: string; referencedTable?: string } = {};
+    
+    if (error.meta?.constraint) {
+      constraintInfo.constraintName = error.meta.constraint;
+      
+      // Try to extract referenced table from constraint name
+      if (error.meta.constraint.includes('_fkey')) {
+        const parts = error.meta.constraint.split('_');
+        if (parts.length > 1) {
+          constraintInfo.referencedTable = parts[0];
+        }
+      }
+    }
+    
+    // Create specific message based on blocking records
+    let specificMessage = '';
+    if (blockingInfo.blockingRecords.length > 0) {
+      if (modelName === 'product') {
+        specificMessage = `Product ID ${id} cannot be deleted because it is referenced by: ${blockingInfo.summary}`;
+      } else {
+        specificMessage = `${modelName} ID ${id} cannot be deleted because it is referenced by: ${blockingInfo.summary}`;
+      }
+    } else {
+      specificMessage = `${modelName} ID ${id} cannot be deleted due to foreign key constraint: ${error.meta?.constraint || 'unknown constraint'}`;
+    }
+    
+    return {
+      specificMessage,
+      blockingRecords: blockingInfo.blockingRecords,
+      constraintInfo
+    };
+    
+  } catch (detailError: any) {
+    logger.error({ detailError: detailError.message, modelName, id }, 'Error getting constraint violation details');
+    return {
+      specificMessage: `${modelName} ID ${id} cannot be deleted due to foreign key constraint`,
+      blockingRecords: [],
+      constraintInfo: {}
+    };
+  }
+}
