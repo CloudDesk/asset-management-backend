@@ -1950,84 +1950,8 @@ export async function productRoutes(fastify: FastifyInstance) {
         };
         return reply.code(200).send(response);
       } catch (error: any) {
-        console.log("=== PRODUCT DELETE ERROR:", error.message);
-        console.log("=== PRODUCT DELETE ERROR STACK:", error.stack);
-
-        if (error.message.includes("not found")) {
-          const errorResponse = {
-            success: false,
-            message: `Product with ID ${request.params.id} not found`,
-            details: "The requested resource could not be found",
-            statusCode: 404,
-          };
-          return reply.code(404).send(errorResponse);
-        }
-
-        // Check for database/foreign key constraint errors
-        if (error.code === 'P2003' || error.message.includes('foreign key constraint')) {
-          // Get detailed information about what's blocking the deletion
-          const { getConstraintViolationDetails } = await import('../utils/dynamicDbOperations.js');
-          const constraintDetails = await getConstraintViolationDetails('product', request.params.id, error);
-          
-          const errorResponse = {
-            success: false,
-            message: `Cannot delete product with ID ${request.params.id}`,
-            details: constraintDetails.specificMessage,
-            statusCode: 409,
-            errorCode: error.code || 'FOREIGN_KEY_CONSTRAINT',
-            blockingRecords: constraintDetails.blockingRecords,
-            constraintInfo: constraintDetails.constraintInfo
-          };
-          return reply.code(409).send(errorResponse);
-        }
-
-        // Check for database connection errors
-        if (error.code === 'ECONNREFUSED' || error.message.includes('connect ECONNREFUSED')) {
-          const errorResponse = {
-            success: false,
-            message: "Database connection error",
-            details: "Unable to connect to the database. Please try again later.",
-            statusCode: 503,
-            errorCode: error.code || 'DATABASE_CONNECTION_ERROR'
-          };
-          return reply.code(503).send(errorResponse);
-        }
-
-        // Check for Prisma-specific errors
-        if (error.code && error.code.startsWith('P')) {
-          const errorResponse = {
-            success: false,
-            message: `Database operation failed for product ${request.params.id}`,
-            details: `Prisma error: ${error.message}`,
-            statusCode: 500,
-            errorCode: error.code,
-            meta: error.meta || null
-          };
-          return reply.code(500).send(errorResponse);
-        }
-
-        // Check for validation errors
-        if (error.name === 'ValidationError' || error.message.includes('validation')) {
-          const errorResponse = {
-            success: false,
-            message: "Validation error during product deletion",
-            details: error.message,
-            statusCode: 400,
-            errorCode: 'VALIDATION_ERROR'
-          };
-          return reply.code(400).send(errorResponse);
-        }
-
-        // Enhanced default error response with more details
-        const errorResponse = {
-          success: false,
-          message: `Failed to delete product with ID ${request.params.id}`,
-          details: error.message || "An unexpected error occurred during product deletion",
-          statusCode: 500,
-          errorCode: error.code || error.name || 'UNKNOWN_ERROR',
-          timestamp: new Date().toISOString()
-        };
-        return reply.code(500).send(errorResponse);
+        const { handleDeleteError } = await import('../utils/dynamicDbOperations.js');
+        return await handleDeleteError(error, 'product', request.params.id, reply);
       }
     }
   );

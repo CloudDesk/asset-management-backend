@@ -2481,7 +2481,80 @@ export function formatEntitiesForAPI(entities: any[], entityType?: string): any[
 }
 
 /**
+ * Model relationship configuration for identifying blocking records
+ */
+interface RelationshipConfig {
+  table: string;
+  foreignKey: string;
+  matchField?: string; // Optional field to match against (e.g., 'puc')
+  includeFields: string[];
+  displayTemplate: (record: any) => string;
+}
+
+const MODEL_RELATIONSHIPS: Record<string, RelationshipConfig[]> = {
+  product: [
+    {
+      table: 'orderline',
+      foreignKey: 'productid',
+      includeFields: ['id', 'orderid', 'orderstatus', 'productname', 'quantity', 'orderamount'],
+      displayTemplate: (record: any) => `orderline ID ${record.id} (order ${record.orderid}, status: ${record.orderstatus})`
+    },
+    {
+      table: 'stock',
+      foreignKey: 'puc',
+      matchField: 'puc', // Match product.puc with stock.puc
+      includeFields: ['id', 'serialnumber', 'stockstatus', 'productname', 'location', 'assetlocation'],
+      displayTemplate: (record: any) => `stock ID ${record.id} (${record.stockstatus}${record.location || record.assetlocation ? `, location: ${record.location || record.assetlocation}` : ''})`
+    }
+  ],
+  supplier: [
+    {
+      table: 'product',
+      foreignKey: 'supplierid',
+      includeFields: ['id', 'name', 'category', 'productstatus', 'price'],
+      displayTemplate: (record: any) => `product ID ${record.id} (${record.name}, status: ${record.productstatus})`
+    },
+    {
+      table: 'purchaseorder',
+      foreignKey: 'supplierid',
+      includeFields: ['ponumber', 'po_status', 'total', 'createddate'],
+      displayTemplate: (record: any) => `purchase order ${record.ponumber} (status: ${record.po_status})`
+    },
+    {
+      table: 'purchaserequest',
+      foreignKey: 'supplierid',
+      includeFields: ['prnumber', 'prstatus', 'companyname'],
+      displayTemplate: (record: any) => `purchase request ${record.prnumber} (status: ${record.prstatus})`
+    }
+  ],
+  stock: [
+    {
+      table: 'orderline',
+      foreignKey: 'orderlinenumber',
+      matchField: 'orderlinenumber',
+      includeFields: ['id', 'orderid', 'orderstatus', 'productname', 'quantity'],
+      displayTemplate: (record: any) => `orderline ID ${record.id} (order ${record.orderid}, status: ${record.orderstatus})`
+    }
+  ],
+  orders: [
+    {
+      table: 'orderline',
+      foreignKey: 'orderid',
+      includeFields: ['id', 'productid', 'productname', 'orderstatus', 'quantity', 'orderamount'],
+      displayTemplate: (record: any) => `orderline ID ${record.id} (product: ${record.productname}, status: ${record.orderstatus})`
+    },
+    {
+      table: 'stock',
+      foreignKey: 'orderid',
+      includeFields: ['id', 'serialnumber', 'stockstatus', 'productname'],
+      displayTemplate: (record: any) => `stock ID ${record.id} (${record.productname}, status: ${record.stockstatus})`
+    }
+  ]
+};
+
+/**
  * Identifies specific records that are blocking deletion due to foreign key constraints
+ * Now supports all models dynamically based on MODEL_RELATIONSHIPS configuration
  */
 async function identifyBlockingRecords(modelName: string, id: any): Promise<{
   blockingRecords: Array<{
@@ -2498,99 +2571,121 @@ async function identifyBlockingRecords(modelName: string, id: any): Promise<{
   }> = [];
 
   try {
-    if (modelName === 'product') {
-      const productId = typeof id === 'string' ? parseInt(id, 10) : id;
-      
-      // First get the product details
-      const product = await prisma.product.findUnique({
-        where: { id: BigInt(productId) }
-      });
-      
-      if (!product) {
-        return { blockingRecords: [], summary: 'Product not found' };
-      }
-
-      // Check orderline records
-      const orderlineRecords = await prisma.orderline.findMany({
-        where: { productid: productId },
-        include: {
-          orders: {
-            select: {
-              id: true,
-              orderid: true,
-              orderstatus: true
-            }
-          }
-        }
-      });
-
-      for (const orderline of orderlineRecords) {
-        blockingRecords.push({
-          table: 'orderline',
-          recordId: orderline.id,
-          details: {
-            orderlineId: orderline.id,
-            orderId: orderline.orderid,
-            orderStatus: orderline.orderstatus,
-            productName: orderline.productname,
-            quantity: orderline.quantity,
-            orderAmount: orderline.orderamount?.toString() || null,
-            systemOrderId: orderline.orders?.id || null,
-            systemOrderStatus: orderline.orders?.orderstatus || null
-          }
-        });
-      }
-
-      // Check stock records (by PUC)
-      if (product.puc) {
-        const stockRecords = await prisma.stock.findMany({
-          where: { puc: product.puc }
-        });
-
-        for (const stock of stockRecords) {
-          blockingRecords.push({
-            table: 'stock',
-            recordId: stock.id,
-            details: {
-              stockId: stock.id,
-              serialNumber: stock.serialnumber,
-              stockStatus: stock.stockstatus,
-              productName: stock.productname,
-              location: stock.location || stock.assetlocation,
-              puc: stock.puc
-            }
-          });
-        }
-      }
-
-      // Add more checks for other tables that might reference products
-      // This can be extended as needed
+    const relationships = MODEL_RELATIONSHIPS[modelName as keyof typeof MODEL_RELATIONSHIPS];
+    
+    if (!relationships) {
+      return { 
+        blockingRecords: [], 
+        summary: `No relationship configuration found for model: ${modelName}` 
+      };
     }
 
-    // Generate summary
+    // Get the main record to access its data for relationship matching
+    let mainRecord: any = null;
+    try {
+      if (modelName === 'product') {
+        mainRecord = await prisma.product.findUnique({ where: { id: BigInt(id) } });
+      } else if (modelName === 'supplier') {
+        mainRecord = await prisma.supplier.findUnique({ where: { id: parseInt(id) } });
+      } else if (modelName === 'stock') {
+        mainRecord = await prisma.stock.findUnique({ where: { id: parseInt(id) } });
+      } else if (modelName === 'orders') {
+        mainRecord = await prisma.orders.findUnique({ where: { id: parseInt(id) } });
+      }
+      // Add more models as needed
+      
+      if (!mainRecord) {
+        return { blockingRecords: [], summary: `${modelName} not found` };
+      }
+    } catch (error) {
+      logger.error({ error, modelName, id }, 'Error fetching main record for relationship check');
+      return { blockingRecords: [], summary: `Error fetching ${modelName} record` };
+    }
+
+    // Check each relationship
+    for (const relationship of relationships) {
+      try {
+        let whereClause: any = {};
+        
+        // Determine the match criteria
+        if (relationship.matchField) {
+          // Use a specific field from the main record (like PUC matching)
+          const matchValue = mainRecord[relationship.matchField];
+          if (matchValue) {
+            whereClause[relationship.foreignKey] = matchValue;
+          } else {
+            continue; // Skip if the match field is empty
+          }
+        } else {
+          // Use the record ID directly
+          whereClause[relationship.foreignKey] = modelName === 'product' ? parseInt(id) : parseInt(id);
+        }
+
+        // Execute query based on table
+        let relatedRecords: any[] = [];
+        
+        if (relationship.table === 'orderline') {
+          relatedRecords = await prisma.orderline.findMany({ where: whereClause });
+        } else if (relationship.table === 'stock') {
+          relatedRecords = await prisma.stock.findMany({ where: whereClause });
+        } else if (relationship.table === 'product') {
+          relatedRecords = await prisma.product.findMany({ where: whereClause });
+        } else if (relationship.table === 'purchaseorder') {
+          relatedRecords = await prisma.purchaseOrder.findMany({ where: whereClause });
+        } else if (relationship.table === 'purchaserequest') {
+          relatedRecords = await prisma.purchaseRequest.findMany({ where: whereClause });
+        }
+        // Add more table queries as needed
+
+        // Process found records
+        for (const record of relatedRecords) {
+          const details: Record<string, any> = {};
+          
+          // Extract specified fields
+          for (const field of relationship.includeFields) {
+            if (record[field] !== undefined) {
+              details[field] = record[field]?.toString() || record[field];
+            }
+          }
+
+          blockingRecords.push({
+            table: relationship.table,
+            recordId: record.id,
+            details
+          });
+        }
+
+      } catch (relationshipError: any) {
+        logger.error({ 
+          error: relationshipError.message, 
+          modelName, 
+          id, 
+          relationship: relationship.table 
+        }, 'Error checking relationship');
+      }
+    }
+
+    // Generate dynamic summary
     let summary = '';
     if (blockingRecords.length === 0) {
       summary = 'No blocking records found';
     } else {
       const tableGroups = blockingRecords.reduce((acc, record) => {
         if (!acc[record.table]) acc[record.table] = [];
-        acc[record.table].push(record);
+        acc[record.table]!.push(record);
         return acc;
       }, {} as Record<string, typeof blockingRecords>);
 
       const summaryParts = Object.entries(tableGroups).map(([table, records]) => {
-        if (table === 'orderline') {
-          const orderDetails = records.map(r => 
-            `orderline ID ${r.details.orderlineId} (order ${r.details.orderId}, status: ${r.details.orderStatus})`
-          ).join(', ');
-          return `${records.length} orderline record(s): ${orderDetails}`;
-        } else if (table === 'stock') {
-          const stockDetails = records.map(r => 
-            `stock ID ${r.details.stockId} (${r.details.stockStatus}${r.details.location ? `, location: ${r.details.location}` : ''})`
-          ).join(', ');
-          return `${records.length} stock record(s): ${stockDetails}`;
+        const relationship = relationships.find(r => r.table === table);
+        
+        if (relationship?.displayTemplate) {
+          const recordDetails = records.map(r => relationship.displayTemplate(r.details)).join(', ');
+          return `${records.length} ${table} record(s): ${recordDetails}`;
         } else {
-          return `${records.length} ${table} record(s)`;
+          // Fallback for tables without custom display templates
+          const recordIds = records.map(r => `ID ${r.recordId}`).join(', ');
+          return `${records.length} ${table} record(s): ${recordIds}`;
         }
       });
 
@@ -2667,4 +2762,93 @@ export async function getConstraintViolationDetails(modelName: string, id: any, 
       constraintInfo: {}
     };
   }
+}
+
+/**
+ * Reusable helper for DELETE routes to handle errors with detailed constraint information
+ * This can be used in any DELETE route across the application
+ */
+export async function handleDeleteError(
+  error: any, 
+  modelName: string, 
+  id: string,
+  reply: any
+): Promise<void> {
+  console.log(`=== ${modelName.toUpperCase()} DELETE ERROR:`, error.message);
+  console.log(`=== ${modelName.toUpperCase()} DELETE ERROR STACK:`, error.stack);
+
+  if (error.message.includes("not found")) {
+    const errorResponse = {
+      success: false,
+      message: `${modelName.charAt(0).toUpperCase() + modelName.slice(1)} with ID ${id} not found`,
+      details: "The requested resource could not be found",
+      statusCode: 404,
+    };
+    return reply.code(404).send(errorResponse);
+  }
+
+  // Check for database/foreign key constraint errors
+  if (error.code === 'P2003' || error.message.includes('foreign key constraint')) {
+    // Get detailed information about what's blocking the deletion
+    const constraintDetails = await getConstraintViolationDetails(modelName, id, error);
+    
+    const errorResponse = {
+      success: false,
+      message: `Cannot delete ${modelName} with ID ${id}`,
+      details: constraintDetails.specificMessage,
+      statusCode: 409,
+      errorCode: error.code || 'FOREIGN_KEY_CONSTRAINT',
+      blockingRecords: constraintDetails.blockingRecords,
+      constraintInfo: constraintDetails.constraintInfo
+    };
+    return reply.code(409).send(errorResponse);
+  }
+
+  // Check for database connection errors
+  if (error.code === 'ECONNREFUSED' || error.message.includes('connect ECONNREFUSED')) {
+    const errorResponse = {
+      success: false,
+      message: "Database connection error",
+      details: "Unable to connect to the database. Please try again later.",
+      statusCode: 503,
+      errorCode: error.code || 'DATABASE_CONNECTION_ERROR'
+    };
+    return reply.code(503).send(errorResponse);
+  }
+
+  // Check for Prisma-specific errors
+  if (error.code && error.code.startsWith('P')) {
+    const errorResponse = {
+      success: false,
+      message: `Database operation failed for ${modelName} ${id}`,
+      details: `Prisma error: ${error.message}`,
+      statusCode: 500,
+      errorCode: error.code,
+      meta: error.meta || null
+    };
+    return reply.code(500).send(errorResponse);
+  }
+
+  // Check for validation errors
+  if (error.name === 'ValidationError' || error.message.includes('validation')) {
+    const errorResponse = {
+      success: false,
+      message: `Validation error during ${modelName} deletion`,
+      details: error.message,
+      statusCode: 400,
+      errorCode: 'VALIDATION_ERROR'
+    };
+    return reply.code(400).send(errorResponse);
+  }
+
+  // Enhanced default error response with more details
+  const errorResponse = {
+    success: false,
+    message: `Failed to delete ${modelName} with ID ${id}`,
+    details: error.message || `An unexpected error occurred during ${modelName} deletion`,
+    statusCode: 500,
+    errorCode: error.code || error.name || 'UNKNOWN_ERROR',
+    timestamp: new Date().toISOString()
+  };
+  return reply.code(500).send(errorResponse);
 }
