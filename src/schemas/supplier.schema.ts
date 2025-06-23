@@ -17,6 +17,8 @@ export const createSupplierSchema = z.object({
   streetname: z.string().max(255).optional(),
   pincode: z.number().optional(),
   isdeleted: z.boolean().optional(),
+  createddate: z.number().optional(),
+  modifieddate: z.number().optional(),
 }).passthrough(); // Allow any additional fields
 
 export const updateSupplierSchema = z.object({
@@ -35,6 +37,8 @@ export const updateSupplierSchema = z.object({
   streetname: z.string().max(255).optional(),
   pincode: z.number().optional(),
   isdeleted: z.boolean().optional(),
+  createddate: z.number().optional(),
+  modifieddate: z.number().optional(),
 }).passthrough();
 
 export const upsertSupplierSchema = z.object({
@@ -55,6 +59,8 @@ export const upsertSupplierSchema = z.object({
   streetname: z.string().max(255).optional(),
   pincode: z.number().optional(),
   isdeleted: z.boolean().optional(),
+  createddate: z.number().optional(),
+  modifieddate: z.number().optional(),
 }).passthrough();
 
 export const supplierParamsSchema = z.object({

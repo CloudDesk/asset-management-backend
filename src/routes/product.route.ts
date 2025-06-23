@@ -52,6 +52,14 @@ export async function productRoutes(fastify: FastifyInstance) {
               type: "string",
               description: "Filter by available quantity",
             },
+            quantity: {
+              type: "string",
+              description: "Filter by quantity",
+            },
+            ecompublishedquantity: {
+              type: "string",
+              description: "Filter by e-commerce published quantity",
+            },
             productstatus: {
               type: "string",
               description: "Filter by product status",
@@ -250,6 +258,16 @@ export async function productRoutes(fastify: FastifyInstance) {
                       type: "number",
                       nullable: true,
                       description: "Available quantity",
+                    },
+                    quantity: {
+                      type: "number",
+                      nullable: true,
+                      description: "Product quantity",
+                    },
+                    ecompublishedquantity: {
+                      type: "number",
+                      nullable: true,
+                      description: "E-commerce published quantity",
                     },
                     productstatus: {
                       type: "string",
@@ -564,6 +582,16 @@ export async function productRoutes(fastify: FastifyInstance) {
                     nullable: true,
                     description: "Available quantity",
                   },
+                  quantity: {
+                    type: "number",
+                    nullable: true,
+                    description: "Product quantity",
+                  },
+                  ecompublishedquantity: {
+                    type: "number",
+                    nullable: true,
+                    description: "E-commerce published quantity",
+                  },
                   productstatus: {
                     type: "string",
                     nullable: true,
@@ -863,6 +891,16 @@ export async function productRoutes(fastify: FastifyInstance) {
               type: "number",
               description: "Available quantity",
             },
+            quantity: {
+              type: "number",
+              minimum: 0,
+              description: "Product quantity",
+            },
+            ecompublishedquantity: {
+              type: "number",
+              minimum: 0,
+              description: "E-commerce published quantity",
+            },
             productstatus: {
               type: "string",
               maxLength: 255,
@@ -1063,6 +1101,16 @@ export async function productRoutes(fastify: FastifyInstance) {
                     type: "number",
                     nullable: true,
                     description: "Available quantity",
+                  },
+                  quantity: {
+                    type: "number",
+                    nullable: true,
+                    description: "Product quantity",
+                  },
+                  ecompublishedquantity: {
+                    type: "number",
+                    nullable: true,
+                    description: "E-commerce published quantity",
                   },
                   productstatus: {
                     type: "string",
@@ -1345,6 +1393,16 @@ export async function productRoutes(fastify: FastifyInstance) {
               type: "number",
               description: "Available quantity",
             },
+            quantity: {
+              type: "number",
+              minimum: 0,
+              description: "Product quantity",
+            },
+            ecompublishedquantity: {
+              type: "number",
+              minimum: 0,
+              description: "E-commerce published quantity",
+            },
             productstatus: {
               type: "string",
               maxLength: 255,
@@ -1544,6 +1602,16 @@ export async function productRoutes(fastify: FastifyInstance) {
                     type: "number",
                     nullable: true,
                     description: "Available quantity",
+                  },
+                  quantity: {
+                    type: "number",
+                    nullable: true,
+                    description: "Product quantity",
+                  },
+                  ecompublishedquantity: {
+                    type: "number",
+                    nullable: true,
+                    description: "E-commerce published quantity",
                   },
                   productstatus: {
                     type: "string",
@@ -2069,6 +2137,16 @@ export async function productRoutes(fastify: FastifyInstance) {
               type: "number",
               description: "Available quantity",
             },
+            quantity: {
+              type: "number",
+              minimum: 0,
+              description: "Product quantity",
+            },
+            ecompublishedquantity: {
+              type: "number",
+              minimum: 0,
+              description: "E-commerce published quantity",
+            },
             productstatus: {
               type: "string",
               maxLength: 255,
@@ -2271,6 +2349,16 @@ export async function productRoutes(fastify: FastifyInstance) {
                         type: "number",
                         nullable: true,
                         description: "Available quantity",
+                      },
+                      quantity: {
+                        type: "number",
+                        nullable: true,
+                        description: "Product quantity",
+                      },
+                      ecompublishedquantity: {
+                        type: "number",
+                        nullable: true,
+                        description: "E-commerce published quantity",
                       },
                       productstatus: {
                         type: "string",

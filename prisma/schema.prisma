@@ -19,6 +19,8 @@ model Product {
   supplierid        Int?
   soldquantity      Int?
   availablequantity Int?
+  quantity          Int?
+  ecompublishedquantity Int?
   productstatus     String?   @db.VarChar(255)
   ponumber          String?   @db.VarChar(255)
   puc               String?   @unique @db.VarChar(255)
@@ -73,7 +75,7 @@ model Product {
 }
 
 model Stock {
-  id                     Int                      @id(map: "stock_revo_pkey") @default(autoincrement())
+  id                     Int                      @id @default(autoincrement())
   puc                    String?                  @db.VarChar(500)
   category               String?                  @db.VarChar(500)
   subcategory            String?                  @db.VarChar(500)
@@ -115,7 +117,7 @@ model Stock {
   ewaste                 Boolean?                 @default(false)
   orderline              orderline?               @relation(fields: [orderlinenumber], references: [orderlinenumber], onDelete: NoAction, onUpdate: NoAction, map: "fk_orderlinenumber")
   product                Product?                 @relation(fields: [puc], references: [puc], onDelete: Cascade, onUpdate: NoAction, map: "fk_puc")
-  orders                 orders?                  @relation(fields: [orderid], references: [orderid], onDelete: NoAction, onUpdate: NoAction, map: "stock_revo_orderid_fkey")
+  orders                 orders?                  @relation(fields: [orderid], references: [orderid], onDelete: NoAction, onUpdate: NoAction, map: "stock_orderid_fkey")
 
   @@index([category], map: "idx_stock_category")
   @@index([createddate], map: "idx_stock_createddate")
@@ -159,7 +161,6 @@ model Supplier {
   suppliertype        String            @default("local") @db.VarChar(255)
   country             String?           @db.VarChar(255)
   product             Product[]
-  // product_revo        product_revo[]
   purchaseorder       PurchaseOrder[]
   purchaserequest     PurchaseRequest[]
 
@@ -209,7 +210,6 @@ model PurchaseOrder {
   comments            String?
   suppliertype        String           @default("local") @db.VarChar(255)
   poinvoice           poinvoice[]
-  product_revo        product_revo[]
   purchaserequest     PurchaseRequest? @relation(fields: [prnumber], references: [prnumber], onDelete: Cascade, onUpdate: NoAction, map: "fk_prnumber_purchaseorder")
   supplier            Supplier?        @relation(fields: [supplierid], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_supplierid_purchaseorder_supplier")
 
@@ -234,7 +234,7 @@ model PurchaseRequest {
   supplieremail  String?         @db.VarChar(200)
   purchaseorder  PurchaseOrder[]
   supplier       Supplier?       @relation(fields: [supplierid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_supplierid_purchaserequest")
-  quotes         quotes[]        @ignore
+  quotes         quotes[]
 
   @@map("purchaserequest")
 }
@@ -331,7 +331,7 @@ model notes {
 model orderline {
   id                    Int           @id @default(autoincrement())
   orderid               Int?
-  productid             Int?
+  productid             BigInt?
   userid                Int?
   addressid             Int?
   productamount         Decimal?      @db.Decimal
@@ -436,196 +436,10 @@ model poinvoice {
 }
 
 model pricing_markup {
-  region            String   @id @db.VarChar(10)
+  id                BigInt   @id @default(autoincrement())
+  category          String?  @db.VarChar(255)
+  subcategory       String?  @db.VarChar(255)
   markup_percentage Decimal? @db.Decimal(5, 2)
-}
-
-model product_revo {
-  productname                  String?                  @db.VarChar(500)
-  id                           Int                      @id @default(autoincrement())
-  storage                      String?                  @db.VarChar(500)
-  display                      String?                  @db.VarChar(500)
-  graphicsprocessingunit       String?                  @db.VarChar(500)
-  operatingsystem              String?                  @db.VarChar(500)
-  ports                        String?                  @db.VarChar(500)
-  connectivity                 String?                  @db.VarChar(500)
-  weight                       Decimal?                 @db.Decimal
-  category                     String?                  @db.VarChar(500)
-  unitofmeasurement            String?                  @db.VarChar(500)
-  costperproduct               Decimal?                 @db.Decimal(10, 2)
-  createddate                  BigInt?
-  modifieddate                 BigInt?
-  large                        String[]                 @db.VarChar
-  medium                       String[]                 @db.VarChar
-  small                        String[]                 @db.VarChar
-  price                        Decimal?                 @db.Decimal
-  processor                    String?                  @db.VarChar(500)
-  brand                        String?                  @db.VarChar(500)
-  model                        String?                  @db.VarChar(500)
-  operatingsystemversion       String?                  @db.VarChar(500)
-  ram                          String?                  @db.VarChar(500)
-  storagetype                  String?                  @db.VarChar(500)
-  storagecapacity              String?                  @db.VarChar(500)
-  displaytype                  String?                  @db.VarChar(500)
-  displaysize                  Decimal?                 @db.Decimal
-  displayresolution            String?                  @db.VarChar(500)
-  batterylife                  Decimal?                 @db.Decimal
-  colour                       String?                  @db.VarChar(500)
-  fingerprintreader            Boolean?                 @default(false)
-  chargerports                 String[]                 @db.VarChar
-  adaptertypes                 String?                  @db.VarChar(500)
-  dimensions                   String?                  @db.VarChar(500)
-  imageupload                  String?                  @db.VarChar(500)
-  manufacturedate              BigInt?
-  releaseyear                  BigInt?
-  additionalfeatures           String?
-  suppliername                 String?                  @db.VarChar(500)
-  doornumber                   String?                  @db.VarChar(500)
-  streetname                   String?
-  city                         String?                  @db.VarChar(500)
-  state                        String?                  @db.VarChar(500)
-  pincode                      Decimal?                 @db.Decimal
-  graphicscard                 String?                  @db.VarChar(500)
-  recordtype                   String?                  @db.VarChar(500)
-  subcategory                  String?                  @db.VarChar(500)
-  location                     String?                  @db.VarChar(500)
-  productadditiondate          BigInt?
-  supplierphonenumber          BigInt?
-  supplierlandline             BigInt?
-  condition                    String?                  @db.VarChar(500)
-  ageoflaptop                  String?                  @db.VarChar(500)
-  usagehours                   Int?
-  servicehistory               String?
-  laptopconditiondescription   String?
-  accessoriesincluded          String[]                 @db.VarChar
-  originalbox                  Boolean?                 @default(false)
-  previoususage                String?
-  alterations                  String?
-  warrantyvalid                Boolean?                 @default(false)
-  accessories                  String?                  @db.VarChar(500)
-  imeinumber                   Decimal?                 @db.Decimal
-  batteryhealth                String?                  @db.VarChar(500)
-  screencondition              String?                  @db.VarChar(500)
-  bodycondition                String?                  @db.VarChar(500)
-  cameracondition              String?                  @db.VarChar(500)
-  additionalnotes              String?
-  frontcameraspecifications    String?                  @db.VarChar(500)
-  backcameraspecifications     String?                  @db.VarChar(500)
-  chargingtype                 String?                  @db.VarChar(500)
-  batterytype                  String?                  @db.VarChar(500)
-  batterycapacity              String?                  @db.VarChar(500)
-  isarchive                    Boolean?                 @default(false)
-  refurbishmentstatus          String?                  @db.VarChar(500)
-  refurbishmentdate            BigInt?
-  warranty                     String?                  @db.VarChar(500)
-  refurbisherinformation       String?                  @db.VarChar(500)
-  certifications               String?                  @db.VarChar(500)
-  refurbishmentprocessdetails  String?
-  additionalrefurbishmentnotes String?
-  refurbishedwarrantyterms     String?
-  material                     String?                  @db.VarChar(500)
-  cablelength                  String?                  @db.VarChar(500)
-  outputpowerwattage           String?                  @db.VarChar(500)
-  plugtype                     String?                  @db.VarChar(500)
-  inputvoltage                 String?                  @db.VarChar(500)
-  inputcurrent                 String?                  @db.VarChar(500)
-  outputvoltage                String?                  @db.VarChar(500)
-  outputcurrent                String?                  @db.VarChar(500)
-  poweroutput                  String?                  @db.VarChar(500)
-  physicalcondition            String?                  @db.VarChar(500)
-  workingcondition             String?                  @db.VarChar(500)
-  missingparts                 String?                  @db.VarChar(500)
-  ageoflaptopyear              String?                  @db.VarChar(500)
-  ageoflaptopmonth             String?                  @db.VarChar(500)
-  ageoftheproduct              Decimal?                 @db.Decimal
-  refurbishedpart              String?                  @db.VarChar(500)
-  refurbisheddate              BigInt?
-  warrantyenddate              BigInt?
-  isdeleted                    Boolean?                 @default(false)
-  laptopaccessories            String?                  @db.VarChar(500)
-  mobileaccessories            String?                  @db.VarChar(500)
-  connectivitytype             String?                  @db.VarChar(500)
-  dpi                          Boolean?                 @default(false)
-  sensortype                   String?                  @db.VarChar(500)
-  pollingrate                  String?                  @db.VarChar(500)
-  numberofbuttons              String?                  @db.VarChar(500)
-  keylayout                    String?                  @db.VarChar(500)
-  backlight                    String?                  @db.VarChar(500)
-  accessoriesfor               String?                  @db.VarChar(500)
-  interface                    String?                  @db.VarChar(500)
-  datatransferspeed            String?                  @db.VarChar(500)
-  formfactor                   String?                  @db.VarChar(500)
-  systemrequirements           String?                  @db.VarChar(500)
-  numberofports                Int?
-  accessoriestype              String?                  @db.VarChar(500)
-  portsandconnectivity         String?                  @db.VarChar(500)
-  coolingpadmaterial           String?                  @db.VarChar(500)
-  fanspeed                     String?                  @db.VarChar(500)
-  numberoffans                 Int?
-  noiselevel                   String?                  @db.VarChar(500)
-  powersource                  String?                  @db.VarChar(500)
-  paneltype                    String?                  @db.VarChar(500)
-  refreshrate                  String?                  @db.VarChar(500)
-  responsetime                 String?                  @db.VarChar(500)
-  aspectratio                  String?                  @db.VarChar(500)
-  contrastratio                String?                  @db.VarChar(500)
-  touchscreensupport           Boolean?                 @default(false)
-  frequency                    String?                  @db.VarChar(500)
-  noisecancellation            String?                  @db.VarChar(500)
-  headsettype                  String?                  @db.VarChar(500)
-  deepbass                     Boolean?                 @default(false)
-  headphonedriversize          String?                  @db.VarChar(500)
-  inlineremote                 Boolean?                 @default(false)
-  connectortype                String?                  @db.VarChar(500)
-  voltageandcurrentrating      String?                  @db.VarChar(500)
-  compatiblelaptopsize         String?                  @db.VarChar(500)
-  bagcapacity                  String?                  @db.VarChar(500)
-  accessoriesbrand             String?                  @db.VarChar(500)
-  thickness                    String?                  @db.VarChar(500)
-  packagecontents              String?                  @db.VarChar(500)
-  designedfor                  String?                  @db.VarChar(500)
-  lightindicator               String?                  @db.VarChar(500)
-  includeschargingcable        String?                  @db.VarChar(500)
-  powerinput                   String?                  @db.VarChar(500)
-  powersupply                  String?                  @db.VarChar(500)
-  foldable                     String?                  @db.VarChar(500)
-  compatibility                String?
-  accessoriesmaterial          String?                  @db.VarChar(500)
-  sticklength                  String?                  @db.VarChar(500)
-  connector1                   String?                  @db.VarChar(500)
-  connector2                   String?                  @db.VarChar(500)
-  connector3                   String?                  @db.VarChar(500)
-  connector4                   String?                  @db.VarChar(500)
-  adapterporttype              String?                  @db.VarChar(500)
-  supports                     String[]                 @db.VarChar
-  supplierid                   BigInt?
-  puc                          String?                  @unique(map: "unique_puc") @db.VarChar(500)
-  quantity                     Int?                     @default(0)
-  ecompublishedquantity        Int?                     @default(0)
-  soldquantity                 Int?                     @default(0)
-  availablequantity            Int?                     @default(0)
-  removefromrecyclebin         Boolean?                 @default(false)
-  productstatus                String?                  @default("Out Of Stock") @db.VarChar(500)
-  ponumber                     String?                  @db.VarChar(500)
-  serialnumber                 String?                  @db.VarChar(500)
-  searchtext                   Unsupported("tsvector")?
-  averagerating                Decimal?                 @default(0) @db.Decimal
-  orderedquantity              BigInt?                  @default(0)
-  discount                     Decimal?                 @default(0) @db.Decimal
-  quantityforlocation          Json?
-  lock_qty                     Int?                     @default(0)
-  qrcode                       String?                  @unique(map: "unique_qrcode") @db.VarChar(500)
-  barcode                      String?                  @unique(map: "unique_barcode") @db.VarChar(500)
-  // cart                         cart[]
-  orderline                    orderline[]
-  purchaseorder                PurchaseOrder?           @relation(fields: [ponumber], references: [ponumber], onDelete: Cascade, onUpdate: NoAction, map: "fk_ponumber_product_revo")
-  // supplier                     Supplier?                @relation(fields: [supplierid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_supplierid")
-
-  @@index([category], map: "idx_product_category")
-  @@index([createddate], map: "idx_product_createddate")
-  @@index([id], map: "idx_product_id")
-  @@index([productstatus], map: "idx_product_productstatus")
-  @@index([puc], map: "idx_product_puc")
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
@@ -637,8 +451,8 @@ model quotes {
   prnumber        String?          @db.VarChar(500)
   quoteurl        String?          @db.VarChar(500)
   quotenumber     String?          @unique(map: "unique_quotenumber") @db.VarChar(500)
+  purchaserequest PurchaseRequest? @relation(fields: [prnumber], references: [prnumber], onDelete: Cascade, onUpdate: NoAction)
   notes           notes[]          @ignore
-  purchaserequest PurchaseRequest? @relation(fields: [prnumber], references: [prnumber], onDelete: Cascade, onUpdate: NoAction, map: "fk_prnumber_purchaserequest_quotes")
 
   @@map("quotes")
 }

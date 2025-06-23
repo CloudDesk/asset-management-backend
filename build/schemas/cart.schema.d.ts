@@ -95,9 +95,9 @@ export declare const cartQuerySchema: z.ZodObject<{
     createdAfter: z.ZodOptional<z.ZodString>;
     createdBefore: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
+    quantity?: string | undefined;
     productid?: string | undefined;
     userid?: string | undefined;
-    quantity?: string | undefined;
     iscart?: string | undefined;
     iswishlist?: string | undefined;
     page?: string | undefined;
@@ -105,9 +105,9 @@ export declare const cartQuerySchema: z.ZodObject<{
     createdAfter?: string | undefined;
     createdBefore?: string | undefined;
 }, {
+    quantity?: string | undefined;
     productid?: string | undefined;
     userid?: string | undefined;
-    quantity?: string | undefined;
     iscart?: string | undefined;
     iswishlist?: string | undefined;
     page?: string | undefined;

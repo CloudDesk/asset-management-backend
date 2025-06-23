@@ -2262,3 +2262,187 @@ Update result: [
     "transactionfor": "product"
   }
 ]
+Update result: [
+  {
+    "id": 4,
+    "createddate": 1750418626,
+    "modifieddate": 1750418628,
+    "prstatus": "Completed",
+    "companyname": "Test Org",
+    "companyaddress": "AAA, BB, C",
+    "contactname": "Test Address",
+    "phonenumber": 9876543210,
+    "gstnumber": "",
+    "companymail": "Sample@mail.com",
+    "supplierid": 1,
+    "prurl": null,
+    "prdata": {
+      "items": [
+        {
+          "id": 1,
+          "name": "Prod 1",
+          "quantity": 10
+        },
+        {
+          "id": 2,
+          "name": "Prod 2",
+          "quantity": 15
+        }
+      ]
+    },
+    "prnumber": "FATHY-NIVANA-PR-00007",
+    "supplieremail": "test@gmail.com"
+  }
+]
+Update result: [
+  {
+    "id": 2,
+    "ponumber": "FATHY-PO-0000000001",
+    "companyname": "Test Org",
+    "companyaddress": "AAA, BB, C",
+    "contactname": "Test Address",
+    "phonenumber": "9876543210",
+    "gstnumber": "",
+    "io_companyname": "Test Org",
+    "io_companyaddress": "AAA, BB, C",
+    "io_contactname": "Test Address",
+    "io_phonenumber": "9876543210",
+    "io_gstnumber": "",
+    "dt_companyname": "",
+    "dt_companyaddress": "",
+    "dt_contactname": "",
+    "dt_phonenumber": null,
+    "dt_gstnumber": "",
+    "supplierid": 1,
+    "subtotal": "5000",
+    "discount": "100",
+    "sgst": "6",
+    "cgst": "6",
+    "payabletaxamount": "588",
+    "total": "5488",
+    "createddate": 1750418654,
+    "modifieddate": 1750419909,
+    "product": {
+      "items": [
+        {
+          "id": 1,
+          "name": "a",
+          "quantity": 10,
+          "unitprice": 100,
+          "totalprice": 1000
+        },
+        {
+          "id": 2,
+          "name": "b",
+          "quantity": 20,
+          "unitprice": 200,
+          "totalprice": 4000
+        }
+      ]
+    },
+    "po_status": "partially_fulfilled",
+    "supplieraddress": "23, AAA, BB, C, Test City, Test State, India",
+    "suppliercompanyname": "Fathys Marketing",
+    "supplierphonenumber": "9876543210",
+    "suppliergstnumber": "33AOEPD8282M1ZP",
+    "instructions": "...",
+    "fileurl": null,
+    "invoiceurl": null,
+    "sameasinvoice": true,
+    "prnumber": "FATHY-NIVANA-PR-00012",
+    "paymentterms": "60",
+    "overduedate": null,
+    "comments": "",
+    "suppliertype": "local"
+  }
+]
+Update result: [
+  {
+    "id": 1,
+    "invoiceamount": "1488",
+    "ponumber": "FATHY-PO-0000000001",
+    "invoicedate": 1750377600,
+    "invoicenumber": "INV_001",
+    "invoiceurl": "https://storage.cloud.google.com/vyb-poinvoice-dev/FATHY-PO-0000000001/invoice_INV-0001.pdf",
+    "paymentdata": [
+      {
+        "id": 1,
+        "comments": "hello",
+        "paymentdate": "2025-06-20",
+        "paymenttype": "Full Payment",
+        "paymentamount": 1488,
+        "paymentmethod": "banktransfer",
+        "transactionid": "TRN__00123",
+        "receiptcomments": "hi"
+      }
+    ],
+    "createddate": 1750419905,
+    "modifieddate": 1750419910,
+    "balanceamount": "0",
+    "iscreditpayment": false,
+    "paymentduedate": 1755561600,
+    "invoicestatus": "partial",
+    "pototal": "5488",
+    "purchaseorderstatus": "partially_fulfilled",
+    "transportationcharges": null,
+    "exchangeamount": null,
+    "customdutytaxamount": null,
+    "suppliertype": "local",
+    "customdutychallanurl": null,
+    "billofentryurl": null
+  }
+]
+Update result: [
+  {
+    "id": 1,
+    "useremail": "pravinsf24@gmail.com",
+    "userpassword": "$2a$12$yggldTuEcnuItzfZLxT5ueLuKpDglwALXfea2OhV40S/AQTv/FMB.",
+    "createddate": 1750421418,
+    "modifieddate": 1750421419,
+    "role": null,
+    "usersphonenumber": null,
+    "firstname": "Pravin",
+    "lastname": "Raja",
+    "location": null,
+    "fcmid": null,
+    "sessiontoken": "aeca6dd7d6847b204bcc4278c45c7e3183dd90ff58472b071ebfef7960c79d6c",
+    "resettoken": null,
+    "resettokenexpires": null
+  }
+]
+Update result: [
+  {
+    "id": 1,
+    "useremail": "pravinsf24@gmail.com",
+    "userpassword": "$2a$12$yggldTuEcnuItzfZLxT5ueLuKpDglwALXfea2OhV40S/AQTv/FMB.",
+    "createddate": 1750421418,
+    "modifieddate": 1750421432,
+    "role": null,
+    "usersphonenumber": null,
+    "firstname": "Pravin",
+    "lastname": "Raja",
+    "location": null,
+    "fcmid": null,
+    "sessiontoken": "b9c4288614fdae5c8aed77cdfbfc263b77a0dd1e36fa15dc3227e50b8fcab353",
+    "resettoken": null,
+    "resettokenexpires": null
+  }
+]
+Update result: [
+  {
+    "id": 2,
+    "type": "featured_ad",
+    "placement": "sidebar",
+    "title": "Bulk Test Asset",
+    "content": {
+      "test": "bulk"
+    },
+    "priority": 99,
+    "is_active": false,
+    "schedule_start": null,
+    "schedule_end": null,
+    "createddate": 1750444222,
+    "modifieddate": 1750444223,
+    "version": 1
+  }
+]

@@ -33,6 +33,19 @@ export class PoinvoiceController {
     });
     createPoinvoice = asyncHandler(async (request, reply) => {
         console.log('🎯 DEBUG: Controller createPoinvoice called with data:', JSON.stringify(request.body, null, 2));
+        // Additional debug logging for paymentdata specifically
+        const body = request.body;
+        if (body && body.paymentdata) {
+            console.log('🔍 DEBUG: paymentdata type:', typeof body.paymentdata);
+            console.log('🔍 DEBUG: paymentdata isArray:', Array.isArray(body.paymentdata));
+            if (Array.isArray(body.paymentdata)) {
+                console.log('🔍 DEBUG: paymentdata length:', body.paymentdata.length);
+                body.paymentdata.forEach((item, index) => {
+                    console.log(`🔍 DEBUG: paymentdata[${index}] type:`, typeof item);
+                    console.log(`🔍 DEBUG: paymentdata[${index}] value:`, item);
+                });
+            }
+        }
         const data = createPoinvoiceSchema.parse(request.body);
         console.log('🎯 DEBUG: Data after schema validation:', JSON.stringify(data, null, 2));
         const poinvoice = await this.poinvoiceService.create(data);

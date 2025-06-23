@@ -14,6 +14,8 @@ export declare const createSupplierSchema: z.ZodObject<{
     streetname: z.ZodOptional<z.ZodString>;
     pincode: z.ZodOptional<z.ZodNumber>;
     isdeleted: z.ZodOptional<z.ZodBoolean>;
+    createddate: z.ZodOptional<z.ZodNumber>;
+    modifieddate: z.ZodOptional<z.ZodNumber>;
 }, "passthrough", z.ZodTypeAny, z.objectOutputType<{
     suppliername: z.ZodOptional<z.ZodString>;
     suppliercode: z.ZodOptional<z.ZodString>;
@@ -29,6 +31,8 @@ export declare const createSupplierSchema: z.ZodObject<{
     streetname: z.ZodOptional<z.ZodString>;
     pincode: z.ZodOptional<z.ZodNumber>;
     isdeleted: z.ZodOptional<z.ZodBoolean>;
+    createddate: z.ZodOptional<z.ZodNumber>;
+    modifieddate: z.ZodOptional<z.ZodNumber>;
 }, z.ZodTypeAny, "passthrough">, z.objectInputType<{
     suppliername: z.ZodOptional<z.ZodString>;
     suppliercode: z.ZodOptional<z.ZodString>;
@@ -44,6 +48,8 @@ export declare const createSupplierSchema: z.ZodObject<{
     streetname: z.ZodOptional<z.ZodString>;
     pincode: z.ZodOptional<z.ZodNumber>;
     isdeleted: z.ZodOptional<z.ZodBoolean>;
+    createddate: z.ZodOptional<z.ZodNumber>;
+    modifieddate: z.ZodOptional<z.ZodNumber>;
 }, z.ZodTypeAny, "passthrough">>;
 export declare const updateSupplierSchema: z.ZodObject<{
     suppliername: z.ZodOptional<z.ZodString>;
@@ -60,6 +66,8 @@ export declare const updateSupplierSchema: z.ZodObject<{
     streetname: z.ZodOptional<z.ZodString>;
     pincode: z.ZodOptional<z.ZodNumber>;
     isdeleted: z.ZodOptional<z.ZodBoolean>;
+    createddate: z.ZodOptional<z.ZodNumber>;
+    modifieddate: z.ZodOptional<z.ZodNumber>;
 }, "passthrough", z.ZodTypeAny, z.objectOutputType<{
     suppliername: z.ZodOptional<z.ZodString>;
     suppliercode: z.ZodOptional<z.ZodString>;
@@ -75,6 +83,8 @@ export declare const updateSupplierSchema: z.ZodObject<{
     streetname: z.ZodOptional<z.ZodString>;
     pincode: z.ZodOptional<z.ZodNumber>;
     isdeleted: z.ZodOptional<z.ZodBoolean>;
+    createddate: z.ZodOptional<z.ZodNumber>;
+    modifieddate: z.ZodOptional<z.ZodNumber>;
 }, z.ZodTypeAny, "passthrough">, z.objectInputType<{
     suppliername: z.ZodOptional<z.ZodString>;
     suppliercode: z.ZodOptional<z.ZodString>;
@@ -90,6 +100,8 @@ export declare const updateSupplierSchema: z.ZodObject<{
     streetname: z.ZodOptional<z.ZodString>;
     pincode: z.ZodOptional<z.ZodNumber>;
     isdeleted: z.ZodOptional<z.ZodBoolean>;
+    createddate: z.ZodOptional<z.ZodNumber>;
+    modifieddate: z.ZodOptional<z.ZodNumber>;
 }, z.ZodTypeAny, "passthrough">>;
 export declare const upsertSupplierSchema: z.ZodObject<{
     id: z.ZodOptional<z.ZodString>;
@@ -107,6 +119,8 @@ export declare const upsertSupplierSchema: z.ZodObject<{
     streetname: z.ZodOptional<z.ZodString>;
     pincode: z.ZodOptional<z.ZodNumber>;
     isdeleted: z.ZodOptional<z.ZodBoolean>;
+    createddate: z.ZodOptional<z.ZodNumber>;
+    modifieddate: z.ZodOptional<z.ZodNumber>;
 }, "passthrough", z.ZodTypeAny, z.objectOutputType<{
     id: z.ZodOptional<z.ZodString>;
     suppliername: z.ZodOptional<z.ZodString>;
@@ -123,6 +137,8 @@ export declare const upsertSupplierSchema: z.ZodObject<{
     streetname: z.ZodOptional<z.ZodString>;
     pincode: z.ZodOptional<z.ZodNumber>;
     isdeleted: z.ZodOptional<z.ZodBoolean>;
+    createddate: z.ZodOptional<z.ZodNumber>;
+    modifieddate: z.ZodOptional<z.ZodNumber>;
 }, z.ZodTypeAny, "passthrough">, z.objectInputType<{
     id: z.ZodOptional<z.ZodString>;
     suppliername: z.ZodOptional<z.ZodString>;
@@ -139,6 +155,8 @@ export declare const upsertSupplierSchema: z.ZodObject<{
     streetname: z.ZodOptional<z.ZodString>;
     pincode: z.ZodOptional<z.ZodNumber>;
     isdeleted: z.ZodOptional<z.ZodBoolean>;
+    createddate: z.ZodOptional<z.ZodNumber>;
+    modifieddate: z.ZodOptional<z.ZodNumber>;
 }, z.ZodTypeAny, "passthrough">>;
 export declare const supplierParamsSchema: z.ZodObject<{
     id: z.ZodString;

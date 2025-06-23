@@ -16,3 +16,57 @@ Fallback values: [
   "Updated Test Product (Not Deal of Day)",
   1750306479
 ]
+Fallback values: [
+  "es-we-0000000005",
+  2,
+  1,
+  1750411143
+]
+Fallback values: [
+  "es-we-0000000005",
+  2,
+  1,
+  1750411146
+]
+Fallback values: [
+  "es-we-0000000005",
+  2,
+  1,
+  1750411301
+]
+Fallback values: [
+  "es-we-0000000005",
+  3,
+  1,
+  1750411526
+]
+Fallback values: [
+  "es-we-0000000005",
+  4,
+  2,
+  1750411529
+]
+Fallback values: [
+  "es-we-0000000005",
+  4,
+  1,
+  1750411532
+]
+Fallback values: [
+  "es-we-0000000005",
+  4,
+  2,
+  1750411536
+]
+Fallback values: [
+  "es-we-0000000005",
+  3,
+  1,
+  1750411539
+]
+Fallback values: [
+  "es-we-0000000005",
+  3,
+  2,
+  1750411690
+]

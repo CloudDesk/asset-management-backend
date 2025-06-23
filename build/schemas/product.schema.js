@@ -9,6 +9,8 @@ export const createProductSchema = z.object({
     price: z.number().positive().optional(),
     status: z.string().optional(),
     isdealoftheday: z.boolean().optional(),
+    quantity: z.number().int().min(0).optional(),
+    ecompublishedquantity: z.number().int().min(0).optional(),
     // Common alternative field names
     product_name: z.string().min(1).max(255).optional(),
     product_description: z.string().optional(),
@@ -24,6 +26,8 @@ export const updateProductSchema = z.object({
     price: z.number().positive().optional(),
     status: z.string().optional(),
     isdealoftheday: z.boolean().optional(),
+    quantity: z.number().int().min(0).optional(),
+    ecompublishedquantity: z.number().int().min(0).optional(),
     // Common alternative field names
     product_name: z.string().min(1).max(255).optional(),
     product_description: z.string().optional(),
@@ -40,6 +44,8 @@ export const upsertProductSchema = z.object({
     price: z.number().positive().optional(),
     status: z.string().optional(),
     isdealoftheday: z.boolean().optional(),
+    quantity: z.number().int().min(0).optional(),
+    ecompublishedquantity: z.number().int().min(0).optional(),
     // Common alternative field names
     product_name: z.string().min(1).max(255).optional(),
     product_description: z.string().optional(),
@@ -66,6 +72,12 @@ export const productQuerySchema = z.object({
     createdAfter: z.string().optional(),
     createdBefore: z.string().optional(),
     isdealoftheday: z.string().optional(),
+    quantity: z.string().optional(),
+    ecompublishedquantity: z.string().optional(),
+    minQuantity: z.string().optional(),
+    maxQuantity: z.string().optional(),
+    minEcompublishedquantity: z.string().optional(),
+    maxEcompublishedquantity: z.string().optional(),
     // Alternative field names
     product_name: z.string().optional(),
     product_category: z.string().optional(),

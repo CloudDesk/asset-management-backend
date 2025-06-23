@@ -16,6 +16,8 @@ export const createSupplierSchema = z.object({
     streetname: z.string().max(255).optional(),
     pincode: z.number().optional(),
     isdeleted: z.boolean().optional(),
+    createddate: z.number().optional(),
+    modifieddate: z.number().optional(),
 }).passthrough(); // Allow any additional fields
 export const updateSupplierSchema = z.object({
     // All fields optional for updates
@@ -33,6 +35,8 @@ export const updateSupplierSchema = z.object({
     streetname: z.string().max(255).optional(),
     pincode: z.number().optional(),
     isdeleted: z.boolean().optional(),
+    createddate: z.number().optional(),
+    modifieddate: z.number().optional(),
 }).passthrough();
 export const upsertSupplierSchema = z.object({
     id: z.string().optional(), // Changed from uuid() to allow numeric IDs
@@ -51,6 +55,8 @@ export const upsertSupplierSchema = z.object({
     streetname: z.string().max(255).optional(),
     pincode: z.number().optional(),
     isdeleted: z.boolean().optional(),
+    createddate: z.number().optional(),
+    modifieddate: z.number().optional(),
 }).passthrough();
 export const supplierParamsSchema = z.object({
     id: z.string().min(1, 'Invalid supplier ID'),

@@ -6312,3 +6312,2148 @@ Filtered data result: {
   "isactive": true,
   "puc": "TEST-DEAL-2-1750306480083"
 }
+Filtered data result: {
+  "id": 4,
+  "prstatus": "Completed",
+  "companyname": "Test Org",
+  "companyaddress": "AAA, BB, C",
+  "contactname": "Test Address",
+  "phonenumber": 9876543210,
+  "gstnumber": "",
+  "companymail": "Sample@mail.com",
+  "supplierid": 1,
+  "prurl": null,
+  "prdata": {
+    "items": [
+      {
+        "id": 1,
+        "name": "Prod 1",
+        "quantity": 10
+      },
+      {
+        "id": 2,
+        "name": "Prod 2",
+        "quantity": 15
+      }
+    ]
+  },
+  "prnumber": "TEST-PR-1750398825020",
+  "supplieremail": "test@gmail.com"
+}
+Filtered data result: {
+  "id": 4,
+  "prstatus": "Completed",
+  "companyname": "Test Org",
+  "companyaddress": "AAA, BB, C",
+  "contactname": "Test Address",
+  "phonenumber": 9876543210,
+  "gstnumber": "",
+  "companymail": "Sample@mail.com",
+  "supplierid": 1,
+  "prurl": null,
+  "prdata": {
+    "items": [
+      {
+        "id": 1,
+        "name": "Prod 1",
+        "quantity": 10
+      },
+      {
+        "id": 2,
+        "name": "Prod 2",
+        "quantity": 15
+      }
+    ]
+  },
+  "prnumber": "FATHY-NIVANA-PR-00007",
+  "supplieremail": "test@gmail.com"
+}
+Filtered data result: {
+  "invoiceamount": 1488,
+  "ponumber": "FATHY-PO-0000000001",
+  "invoicedate": 1750377600,
+  "invoicenumber": "INV_001",
+  "invoiceurl": "https://storage.cloud.google.com/vyb-poinvoice-dev/FATHY-PO-0000000001/invoice_INV-0001.pdf",
+  "paymentdata": [
+    {
+      "id": 1,
+      "comments": "hello",
+      "paymentdate": "2025-06-20",
+      "paymenttype": "Full Payment",
+      "paymentamount": 1488,
+      "paymentmethod": "banktransfer",
+      "transactionid": "TRN__00123",
+      "receiptcomments": "hi"
+    }
+  ],
+  "balanceamount": 0,
+  "iscreditpayment": false,
+  "paymentduedate": 1755561600,
+  "invoicestatus": "partial",
+  "pototal": 5488,
+  "purchaseorderstatus": "in_progress",
+  "suppliertype": "local",
+  "createddate": 1750400103874,
+  "modifieddate": 1750400103874
+}
+Filtered data result: {
+  "po_status": "partially_fulfilled",
+  "modifieddate": 1750400108
+}
+Filtered data result: {
+  "purchaseorderstatus": "partially_fulfilled",
+  "modifieddate": 1750400103874
+}
+Filtered data result: {
+  "useremail": "pravinsf24@gmail.com",
+  "userpassword": "$2a$12$yggldTuEcnuItzfZLxT5ueLuKpDglwALXfea2OhV40S/AQTv/FMB.",
+  "firstname": "Pravin",
+  "lastname": "Raja",
+  "createddate": 1750401617322,
+  "modifieddate": 1750401617322
+}
+Filtered data result: {
+  "sessiontoken": "aeca6dd7d6847b204bcc4278c45c7e3183dd90ff58472b071ebfef7960c79d6c",
+  "modifieddate": 1750401618550
+}
+Filtered data result: {
+  "sessiontoken": "b9c4288614fdae5c8aed77cdfbfc263b77a0dd1e36fa15dc3227e50b8fcab353",
+  "modifieddate": 1750401631481
+}
+Filtered data result: {
+  "invoiceamount": 250,
+  "ponumber": "FATHY-PO-0000000001",
+  "invoicedate": 1750377600,
+  "invoicenumber": "7894566",
+  "paymentdata": [
+    {
+      "id": 1,
+      "comments": null,
+      "paymentdate": null,
+      "paymenttype": "Part Payment",
+      "paymentamount": 0,
+      "paymentmethod": "",
+      "transactionid": null,
+      "receiptcomments": ""
+    }
+  ],
+  "balanceamount": 250,
+  "iscreditpayment": false,
+  "paymentduedate": 1755561600,
+  "invoicestatus": "partial",
+  "pototal": 5488,
+  "purchaseorderstatus": "partially_fulfilled",
+  "suppliertype": "local",
+  "createddate": 1750402247126,
+  "modifieddate": 1750402247126
+}
+Filtered data result: {
+  "name": "Rose Essential Oil - 10ml",
+  "category": "wellness",
+  "price": 1200,
+  "isdealoftheday": false,
+  "subcategory": "essential-oils",
+  "supplierid": 1,
+  "suppliername": "Fathys Marketing",
+  "shortdescription": "Organic Harvest Rose Essential Oil is a certified organic product made with plant derived ingredients. Rose has a beautiful, strong floral and sweet fragrance that is intoxicating helps in bringing balance, harmony due to its stimulating and uplifting properties.",
+  "fulldescription": "",
+  "discount": 100,
+  "availablequantity": 0,
+  "productstatus": "active",
+  "ingredients": "",
+  "usage": "",
+  "extractionmethod": "",
+  "note": "top",
+  "shelflife": ""
+}
+Filtered data result: {
+  "name": "Rose Essential Oil - 10ml",
+  "category": "wellness",
+  "price": 1200,
+  "isdealoftheday": false,
+  "subcategory": "essential-oils",
+  "supplierid": 1,
+  "suppliername": "Fathys Marketing",
+  "shortdescription": "Organic Harvest Rose Essential Oil is a certified organic product made with plant derived ingredients. Rose has a beautiful, strong floral and sweet fragrance that is intoxicating helps in bringing balance, harmony due to its stimulating and uplifting properties.",
+  "fulldescription": "",
+  "discount": 100,
+  "availablequantity": 0,
+  "productstatus": "active",
+  "ingredients": "",
+  "usage": "",
+  "extractionmethod": "",
+  "note": "top",
+  "shelflife": ""
+}
+Filtered data result: {
+  "name": "Rose Essential Oil - 10ml",
+  "category": "wellness",
+  "price": 1200,
+  "isdealoftheday": false,
+  "subcategory": "essential-oils",
+  "supplierid": 1,
+  "suppliername": "Fathys Marketing",
+  "shortdescription": "Organic Harvest Rose Essential Oil is a certified organic product made with plant derived ingredients. Rose has a beautiful, strong floral and sweet fragrance that is intoxicating helps in bringing balance, harmony due to its stimulating and uplifting properties.",
+  "fulldescription": "",
+  "discount": 100,
+  "availablequantity": 0,
+  "productstatus": "active",
+  "ingredients": "",
+  "usage": "",
+  "extractionmethod": "",
+  "note": "top",
+  "shelflife": ""
+}
+Filtered data result: {
+  "name": "Rose Essential Oil - 10ml",
+  "category": "wellness",
+  "price": 1200,
+  "isdealoftheday": false,
+  "subcategory": "essential-oils",
+  "supplierid": 1,
+  "suppliername": "Fathys Marketing",
+  "shortdescription": "Organic Harvest Rose Essential Oil is a certified organic product made with plant derived ingredients. Rose has a beautiful, strong floral and sweet fragrance that is intoxicating helps in bringing balance, harmony due to its stimulating and uplifting properties.",
+  "fulldescription": "",
+  "discount": 100,
+  "availablequantity": 0,
+  "productstatus": "active",
+  "ingredients": "",
+  "usage": "",
+  "extractionmethod": "",
+  "note": "top",
+  "shelflife": ""
+}
+Filtered data result: {
+  "name": "Rose Essential Oil - 10ml",
+  "category": "wellness",
+  "price": 1200,
+  "isdealoftheday": false,
+  "subcategory": "essential-oils",
+  "supplierid": 1,
+  "suppliername": "Fathys Marketing",
+  "shortdescription": "Organic Harvest Rose Essential Oil is a certified organic product made with plant derived ingredients. Rose has a beautiful, strong floral and sweet fragrance that is intoxicating helps in bringing balance, harmony due to its stimulating and uplifting properties.",
+  "fulldescription": "",
+  "discount": 100,
+  "availablequantity": 0,
+  "productstatus": "active",
+  "ingredients": "",
+  "usage": "",
+  "extractionmethod": "",
+  "note": "top",
+  "shelflife": ""
+}
+Filtered data result: {
+  "name": "Rose Essential Oil - 10ml",
+  "category": "wellness",
+  "price": 1200,
+  "isdealoftheday": false,
+  "subcategory": "essential-oils",
+  "supplierid": 1,
+  "suppliername": "Fathys Marketing",
+  "shortdescription": "Organic Harvest Rose Essential Oil is a certified organic product made with plant derived ingredients. Rose has a beautiful, strong floral and sweet fragrance that is intoxicating helps in bringing balance, harmony due to its stimulating and uplifting properties.",
+  "fulldescription": "",
+  "discount": 100,
+  "availablequantity": 0,
+  "productstatus": "active",
+  "ingredients": "",
+  "usage": "",
+  "extractionmethod": "",
+  "note": "top",
+  "shelflife": ""
+}
+Filtered data result: {
+  "name": "Rose Essential Oil - 10ml",
+  "category": "wellness",
+  "price": 1200,
+  "isdealoftheday": false,
+  "subcategory": "essential-oils",
+  "supplierid": 1,
+  "suppliername": "Fathys Marketing",
+  "shortdescription": "Organic Harvest Rose Essential Oil is a certified organic product made with plant derived ingredients. Rose has a beautiful, strong floral and sweet fragrance that is intoxicating helps in bringing balance, harmony due to its stimulating and uplifting properties.",
+  "fulldescription": "",
+  "discount": 100,
+  "availablequantity": 0,
+  "productstatus": "active",
+  "ingredients": "",
+  "usage": "",
+  "extractionmethod": "",
+  "note": "top",
+  "shelflife": ""
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "rfid": "",
+  "serialnumber": "YRTESHJS",
+  "manufacturedyear": 1750377600,
+  "ecompublish": true,
+  "releaseyear": 1750896000,
+  "location": "warehouse-a",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "large": [
+    ""
+  ],
+  "medium": [
+    ""
+  ],
+  "small": [
+    ""
+  ]
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "TEST_SERIAL_1750411126738_1",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "category": "wellness",
+  "subcategory": "essential-oils",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "availablequantity": 2,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "TEST_SERIAL_1750411126738_2",
+  "stockstatus": "Available",
+  "ecompublish": false,
+  "location": "test-warehouse",
+  "category": "wellness",
+  "subcategory": "essential-oils",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "availablequantity": 3,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "TEST_SERIAL_1750411126738_3",
+  "stockstatus": "Damaged",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "category": "wellness",
+  "subcategory": "essential-oils",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "availablequantity": 3,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "stockstatus": "Damaged"
+}
+Filtered data result: {
+  "availablequantity": 2,
+  "ecompublishedquantity": 1
+}
+Filtered data result: {
+  "ecompublish": true
+}
+Filtered data result: {
+  "availablequantity": 2,
+  "ecompublishedquantity": 1
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "rfid": "",
+  "serialnumber": "TESTDATA",
+  "manufacturedyear": 1750377600,
+  "ecompublish": true,
+  "releaseyear": 1750723200,
+  "location": "warehouse-a",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "availablequantity": 2,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "rfid": "",
+  "serialnumber": "YRTESHJS",
+  "manufacturedyear": 1750377600,
+  "ecompublish": false,
+  "releaseyear": 1750896000,
+  "location": "warehouse-a"
+}
+Filtered data result: {
+  "availablequantity": 2,
+  "ecompublishedquantity": 1
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "TEST_COMPREHENSIVE_1750411507914_1",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "category": "wellness",
+  "subcategory": "essential-oils",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "availablequantity": 3,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "TEST_COMPREHENSIVE_1750411507914_2",
+  "stockstatus": "Available",
+  "ecompublish": false,
+  "location": "test-warehouse",
+  "category": "wellness",
+  "subcategory": "essential-oils",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "availablequantity": 4,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "TEST_COMPREHENSIVE_1750411507914_3",
+  "stockstatus": "Damaged",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "category": "wellness",
+  "subcategory": "essential-oils",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "availablequantity": 4,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "TEST_COMPREHENSIVE_1750411507914_4",
+  "stockstatus": "Out of Stock",
+  "ecompublish": false,
+  "location": "test-warehouse",
+  "category": "wellness",
+  "subcategory": "essential-oils",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "availablequantity": 4,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "stockstatus": "Damaged"
+}
+Filtered data result: {
+  "availablequantity": 3,
+  "ecompublishedquantity": 1
+}
+Filtered data result: {
+  "stockstatus": "Available"
+}
+Filtered data result: {
+  "availablequantity": 4,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "ecompublish": false
+}
+Filtered data result: {
+  "availablequantity": 4,
+  "ecompublishedquantity": 1
+}
+Filtered data result: {
+  "ecompublish": true
+}
+Filtered data result: {
+  "availablequantity": 4,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "stockstatus": "Out of Stock"
+}
+Filtered data result: {
+  "availablequantity": 3,
+  "ecompublishedquantity": 1
+}
+Filtered data result: {
+  "large": []
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "TEST_FIX_1750411688",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "availablequantity": 3,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "TEST_NEW_FIX_1750411808",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "availablequantity": 4,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "TEST_COMPREHENSIVE_1750411860962_1",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "category": "wellness",
+  "subcategory": "essential-oils",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "availablequantity": 5,
+  "ecompublishedquantity": 4
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "TEST_COMPREHENSIVE_1750411860962_2",
+  "stockstatus": "Available",
+  "ecompublish": false,
+  "location": "test-warehouse",
+  "category": "wellness",
+  "subcategory": "essential-oils",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "availablequantity": 6,
+  "ecompublishedquantity": 4
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "TEST_COMPREHENSIVE_1750411860962_3",
+  "stockstatus": "Damaged",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "category": "wellness",
+  "subcategory": "essential-oils",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "availablequantity": 6,
+  "ecompublishedquantity": 4
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "TEST_COMPREHENSIVE_1750411860962_4",
+  "stockstatus": "Out of Stock",
+  "ecompublish": false,
+  "location": "test-warehouse",
+  "category": "wellness",
+  "subcategory": "essential-oils",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "availablequantity": 6,
+  "ecompublishedquantity": 4
+}
+Filtered data result: {
+  "stockstatus": "Damaged"
+}
+Filtered data result: {
+  "availablequantity": 5,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "stockstatus": "Available"
+}
+Filtered data result: {
+  "availablequantity": 6,
+  "ecompublishedquantity": 4
+}
+Filtered data result: {
+  "ecompublish": false
+}
+Filtered data result: {
+  "availablequantity": 6,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "ecompublish": true
+}
+Filtered data result: {
+  "availablequantity": 6,
+  "ecompublishedquantity": 4
+}
+Filtered data result: {
+  "stockstatus": "Out of Stock"
+}
+Filtered data result: {
+  "availablequantity": 5,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "availablequantity": 3,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "TEST_COMPREHENSIVE_1750412008449_1",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "category": "wellness",
+  "subcategory": "essential-oils",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "availablequantity": 4,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "TEST_COMPREHENSIVE_1750412008449_2",
+  "stockstatus": "Available",
+  "ecompublish": false,
+  "location": "test-warehouse",
+  "category": "wellness",
+  "subcategory": "essential-oils",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "availablequantity": 5,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "TEST_COMPREHENSIVE_1750412008449_3",
+  "stockstatus": "Damaged",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "category": "wellness",
+  "subcategory": "essential-oils",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "availablequantity": 5,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "TEST_COMPREHENSIVE_1750412008449_4",
+  "stockstatus": "Out of Stock",
+  "ecompublish": false,
+  "location": "test-warehouse",
+  "category": "wellness",
+  "subcategory": "essential-oils",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "availablequantity": 5,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "stockstatus": "Damaged"
+}
+Filtered data result: {
+  "availablequantity": 4,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "stockstatus": "Available"
+}
+Filtered data result: {
+  "availablequantity": 5,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "ecompublish": false
+}
+Filtered data result: {
+  "availablequantity": 5,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "ecompublish": true
+}
+Filtered data result: {
+  "availablequantity": 5,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "stockstatus": "Out of Stock"
+}
+Filtered data result: {
+  "availablequantity": 4,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "availablequantity": 3,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "availablequantity": 3,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "availablequantity": 3,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "availablequantity": 3,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "availablequantity": 2,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "rfid": "",
+  "serialnumber": "TESTDATA",
+  "manufacturedyear": 1750377600,
+  "ecompublish": false,
+  "releaseyear": 1750723200,
+  "location": "warehouse-a"
+}
+Filtered data result: {
+  "availablequantity": 2,
+  "ecompublishedquantity": 1
+}
+Filtered data result: {
+  "large": [
+    ""
+  ],
+  "medium": [
+    "",
+    ""
+  ],
+  "small": [
+    "",
+    ""
+  ]
+}
+Filtered data result: {
+  "large": []
+}
+Filtered data result: {
+  "large": [
+    ""
+  ],
+  "medium": [
+    "",
+    "",
+    ""
+  ],
+  "small": [
+    "",
+    "",
+    ""
+  ]
+}
+Filtered data result: {
+  "large": []
+}
+Filtered data result: {
+  "large": [
+    "https://storage.googleapis.com/vyb-product-images-dev/7/large/large_1_44.png"
+  ],
+  "medium": [
+    "",
+    "",
+    "",
+    "https://storage.googleapis.com/vyb-product-images-dev/7/medium/medium_1_44.png"
+  ],
+  "small": [
+    "",
+    "",
+    "",
+    "https://storage.googleapis.com/vyb-product-images-dev/7/small/small_1_44.png"
+  ]
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "TEST_QUANTITY_1750414288",
+  "stockstatus": "Available",
+  "ecompublish": false,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 3,
+  "availablequantity": 3,
+  "soldquantity": 0,
+  "ecompublishedquantity": 1
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "TEST_SOLD_1750414495054_1",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "category": "wellness",
+  "subcategory": "essential-oils",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 4,
+  "availablequantity": 4,
+  "soldquantity": 0,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "TEST_SOLD_1750414495054_2",
+  "stockstatus": "Available",
+  "ecompublish": false,
+  "location": "test-warehouse",
+  "category": "wellness",
+  "subcategory": "essential-oils",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 5,
+  "availablequantity": 5,
+  "soldquantity": 0,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "TEST_SOLD_1750414495054_3",
+  "stockstatus": "Sold",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "category": "wellness",
+  "subcategory": "essential-oils",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 6,
+  "availablequantity": 5,
+  "soldquantity": 1,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "TEST_SOLD_1750414495054_4",
+  "stockstatus": "Sold",
+  "ecompublish": false,
+  "location": "test-warehouse",
+  "category": "wellness",
+  "subcategory": "essential-oils",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 7,
+  "availablequantity": 5,
+  "soldquantity": 2,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "TEST_SOLD_1750414495054_5",
+  "stockstatus": "Damaged",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "category": "wellness",
+  "subcategory": "essential-oils",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 8,
+  "availablequantity": 5,
+  "soldquantity": 2,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "stockstatus": "Sold"
+}
+Filtered data result: {
+  "quantity": 8,
+  "availablequantity": 4,
+  "soldquantity": 3,
+  "ecompublishedquantity": 1
+}
+Filtered data result: {
+  "stockstatus": "Available"
+}
+Filtered data result: {
+  "quantity": 8,
+  "availablequantity": 5,
+  "soldquantity": 2,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "stockstatus": "Damaged"
+}
+Filtered data result: {
+  "quantity": 8,
+  "availablequantity": 4,
+  "soldquantity": 2,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "stockstatus": "Damaged"
+}
+Filtered data result: {
+  "quantity": 8,
+  "availablequantity": 4,
+  "soldquantity": 1,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "ecompublish": true
+}
+Filtered data result: {
+  "quantity": 8,
+  "availablequantity": 4,
+  "soldquantity": 1,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "quantity": 7,
+  "availablequantity": 3,
+  "soldquantity": 1,
+  "ecompublishedquantity": 1
+}
+Filtered data result: {
+  "quantity": 6,
+  "availablequantity": 3,
+  "soldquantity": 1,
+  "ecompublishedquantity": 1
+}
+Filtered data result: {
+  "quantity": 5,
+  "availablequantity": 3,
+  "soldquantity": 1,
+  "ecompublishedquantity": 1
+}
+Filtered data result: {
+  "quantity": 4,
+  "availablequantity": 3,
+  "soldquantity": 0,
+  "ecompublishedquantity": 1
+}
+Filtered data result: {
+  "quantity": 3,
+  "availablequantity": 3,
+  "soldquantity": 0,
+  "ecompublishedquantity": 1
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "TEST_MANUAL_SOLD_1750414584",
+  "stockstatus": "Sold",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 4,
+  "availablequantity": 3,
+  "soldquantity": 1,
+  "ecompublishedquantity": 1
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "SOLD_TEST_1750414671894",
+  "stockstatus": "Sold",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 5,
+  "availablequantity": 3,
+  "soldquantity": 2,
+  "ecompublishedquantity": 1
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "AVAILABLE_TO_SOLD_1750414676122",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 6,
+  "availablequantity": 4,
+  "soldquantity": 2,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "stockstatus": "Sold"
+}
+Filtered data result: {
+  "quantity": 6,
+  "availablequantity": 3,
+  "soldquantity": 3,
+  "ecompublishedquantity": 1
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "SOLD_TO_AVAILABLE_1750414682684",
+  "stockstatus": "Sold",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 7,
+  "availablequantity": 3,
+  "soldquantity": 4,
+  "ecompublishedquantity": 1
+}
+Filtered data result: {
+  "stockstatus": "Available"
+}
+Filtered data result: {
+  "quantity": 7,
+  "availablequantity": 4,
+  "soldquantity": 3,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "DELETE_SOLD_1750414689490",
+  "stockstatus": "Sold",
+  "ecompublish": false,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 8,
+  "availablequantity": 4,
+  "soldquantity": 4,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "quantity": 7,
+  "availablequantity": 4,
+  "soldquantity": 3,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "ECOM_UPDATE_1750414696301",
+  "stockstatus": "Available",
+  "ecompublish": false,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 8,
+  "availablequantity": 5,
+  "soldquantity": 3,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "ecompublish": true
+}
+Filtered data result: {
+  "quantity": 8,
+  "availablequantity": 5,
+  "soldquantity": 3,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "quantity": 7,
+  "availablequantity": 5,
+  "soldquantity": 2,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "quantity": 6,
+  "availablequantity": 5,
+  "soldquantity": 1,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "quantity": 5,
+  "availablequantity": 4,
+  "soldquantity": 1,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "quantity": 4,
+  "availablequantity": 3,
+  "soldquantity": 1,
+  "ecompublishedquantity": 1
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "NEW_LOGIC_1_1750415532785",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 5,
+  "availablequantity": 2,
+  "soldquantity": 1,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "NEW_LOGIC_2_1750415538707",
+  "stockstatus": "Available",
+  "ecompublish": false,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 6,
+  "availablequantity": 2,
+  "soldquantity": 1,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "NEW_LOGIC_3_1750415542374",
+  "stockstatus": "Damaged",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 7,
+  "availablequantity": 2,
+  "soldquantity": 1,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "NEW_LOGIC_4_1750415545686",
+  "stockstatus": "Sold",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 8,
+  "availablequantity": 2,
+  "soldquantity": 2,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "NEW_LOGIC_5_1750415549439",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 9,
+  "availablequantity": 3,
+  "soldquantity": 2,
+  "ecompublishedquantity": 4
+}
+Filtered data result: {
+  "ecompublish": false
+}
+Filtered data result: {
+  "quantity": 9,
+  "availablequantity": 2,
+  "soldquantity": 2,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "NEW_LOGIC_6_1750415562120",
+  "stockstatus": "Available",
+  "ecompublish": false,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 2,
+  "soldquantity": 2,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "ecompublish": true
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 3,
+  "soldquantity": 2,
+  "ecompublishedquantity": 4
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "NEW_LOGIC_7_1750415570849",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 4,
+  "soldquantity": 2,
+  "ecompublishedquantity": 5
+}
+Filtered data result: {
+  "stockstatus": "Damaged"
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 3,
+  "soldquantity": 2,
+  "ecompublishedquantity": 5
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "NEW_LOGIC_8_1750415578763",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 3,
+  "soldquantity": 2,
+  "ecompublishedquantity": 5
+}
+Filtered data result: {
+  "stockstatus": "Sold"
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 2,
+  "soldquantity": 3,
+  "ecompublishedquantity": 4
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 2,
+  "soldquantity": 3,
+  "ecompublishedquantity": 4
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 2,
+  "soldquantity": 3,
+  "ecompublishedquantity": 4
+}
+Filtered data result: {
+  "quantity": 9,
+  "availablequantity": 2,
+  "soldquantity": 3,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "quantity": 8,
+  "availablequantity": 2,
+  "soldquantity": 2,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "quantity": 7,
+  "availablequantity": 2,
+  "soldquantity": 2,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "quantity": 6,
+  "availablequantity": 1,
+  "soldquantity": 2,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "quantity": 5,
+  "availablequantity": 1,
+  "soldquantity": 2,
+  "ecompublishedquantity": 1
+}
+Filtered data result: {
+  "quantity": 4,
+  "availablequantity": 1,
+  "soldquantity": 1,
+  "ecompublishedquantity": 1
+}
+Filtered data result: {
+  "location": "test-warehouse"
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "NEW_LOGIC_1_1750419898149",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 5,
+  "availablequantity": 2,
+  "soldquantity": 1,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "NEW_LOGIC_2_1750419902815",
+  "stockstatus": "Available",
+  "ecompublish": false,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 6,
+  "availablequantity": 2,
+  "soldquantity": 1,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "NEW_LOGIC_3_1750419906417",
+  "stockstatus": "Damaged",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 7,
+  "availablequantity": 2,
+  "soldquantity": 1,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "NEW_LOGIC_4_1750419910164",
+  "stockstatus": "Sold",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 8,
+  "availablequantity": 2,
+  "soldquantity": 2,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "NEW_LOGIC_5_1750419913663",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 9,
+  "availablequantity": 3,
+  "soldquantity": 2,
+  "ecompublishedquantity": 4
+}
+Filtered data result: {
+  "ecompublish": false
+}
+Filtered data result: {
+  "quantity": 9,
+  "availablequantity": 2,
+  "soldquantity": 2,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "NEW_LOGIC_6_1750419923175",
+  "stockstatus": "Available",
+  "ecompublish": false,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 2,
+  "soldquantity": 2,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "ecompublish": true
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 3,
+  "soldquantity": 2,
+  "ecompublishedquantity": 4
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "NEW_LOGIC_7_1750419931144",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 4,
+  "soldquantity": 2,
+  "ecompublishedquantity": 5
+}
+Filtered data result: {
+  "stockstatus": "Damaged"
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 3,
+  "soldquantity": 2,
+  "ecompublishedquantity": 5
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "NEW_LOGIC_8_1750419938280",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 3,
+  "soldquantity": 2,
+  "ecompublishedquantity": 5
+}
+Filtered data result: {
+  "stockstatus": "Sold"
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 2,
+  "soldquantity": 3,
+  "ecompublishedquantity": 4
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 2,
+  "soldquantity": 3,
+  "ecompublishedquantity": 4
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 2,
+  "soldquantity": 3,
+  "ecompublishedquantity": 4
+}
+Filtered data result: {
+  "quantity": 9,
+  "availablequantity": 2,
+  "soldquantity": 3,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "quantity": 8,
+  "availablequantity": 2,
+  "soldquantity": 2,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "quantity": 7,
+  "availablequantity": 2,
+  "soldquantity": 2,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "quantity": 6,
+  "availablequantity": 1,
+  "soldquantity": 2,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "quantity": 5,
+  "availablequantity": 1,
+  "soldquantity": 2,
+  "ecompublishedquantity": 1
+}
+Filtered data result: {
+  "quantity": 4,
+  "availablequantity": 1,
+  "soldquantity": 1,
+  "ecompublishedquantity": 1
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "NEW_LOGIC_1_1750420118771",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 5,
+  "availablequantity": 2,
+  "soldquantity": 1,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "NEW_LOGIC_2_1750420122475",
+  "stockstatus": "Available",
+  "ecompublish": false,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 6,
+  "availablequantity": 2,
+  "soldquantity": 1,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "NEW_LOGIC_3_1750420126767",
+  "stockstatus": "Damaged",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 7,
+  "availablequantity": 2,
+  "soldquantity": 1,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "NEW_LOGIC_4_1750420131839",
+  "stockstatus": "Sold",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 8,
+  "availablequantity": 2,
+  "soldquantity": 2,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "NEW_LOGIC_5_1750420136560",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 9,
+  "availablequantity": 3,
+  "soldquantity": 2,
+  "ecompublishedquantity": 4
+}
+Filtered data result: {
+  "ecompublish": false
+}
+Filtered data result: {
+  "quantity": 9,
+  "availablequantity": 2,
+  "soldquantity": 2,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "NEW_LOGIC_6_1750420143204",
+  "stockstatus": "Available",
+  "ecompublish": false,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 2,
+  "soldquantity": 2,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "ecompublish": true
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 3,
+  "soldquantity": 2,
+  "ecompublishedquantity": 4
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "NEW_LOGIC_7_1750420151677",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 4,
+  "soldquantity": 2,
+  "ecompublishedquantity": 5
+}
+Filtered data result: {
+  "stockstatus": "Damaged"
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 3,
+  "soldquantity": 2,
+  "ecompublishedquantity": 5
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "NEW_LOGIC_8_1750420157980",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 3,
+  "soldquantity": 2,
+  "ecompublishedquantity": 5
+}
+Filtered data result: {
+  "stockstatus": "Sold"
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 2,
+  "soldquantity": 3,
+  "ecompublishedquantity": 4
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 2,
+  "soldquantity": 3,
+  "ecompublishedquantity": 4
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 2,
+  "soldquantity": 3,
+  "ecompublishedquantity": 4
+}
+Filtered data result: {
+  "quantity": 9,
+  "availablequantity": 2,
+  "soldquantity": 3,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "quantity": 8,
+  "availablequantity": 2,
+  "soldquantity": 2,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "quantity": 7,
+  "availablequantity": 2,
+  "soldquantity": 2,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "quantity": 6,
+  "availablequantity": 1,
+  "soldquantity": 2,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "quantity": 5,
+  "availablequantity": 1,
+  "soldquantity": 2,
+  "ecompublishedquantity": 1
+}
+Filtered data result: {
+  "quantity": 4,
+  "availablequantity": 1,
+  "soldquantity": 1,
+  "ecompublishedquantity": 1
+}
+Filtered data result: {
+  "type": "popup",
+  "placement": "modal_overlay",
+  "title": "Newsletter Signup",
+  "content": {
+    "heading": "Get 10% Off!",
+    "description": "Subscribe to our newsletter",
+    "buttonText": "Subscribe"
+  },
+  "priority": 5,
+  "is_active": true,
+  "version": 1,
+  "createddate": 1750424420479,
+  "modifieddate": 1750424420479
+}
+Filtered data result: {
+  "asset_id": 1,
+  "action": "create",
+  "changed_by": "anonymous",
+  "changes": {
+    "created": {
+      "type": "popup",
+      "placement": "modal_overlay",
+      "title": "Newsletter Signup",
+      "content": {
+        "heading": "Get 10% Off!",
+        "description": "Subscribe to our newsletter",
+        "buttonText": "Subscribe"
+      },
+      "priority": 5,
+      "is_active": true,
+      "version": 1,
+      "createddate": 1750424420479,
+      "modifieddate": 1750424420479
+    }
+  },
+  "createddate": 1750424420924
+}
+Filtered data result: {
+  "type": "featured_ad",
+  "placement": "sidebar",
+  "title": "Bulk Test Asset",
+  "content": {
+    "test": "bulk"
+  },
+  "priority": 1,
+  "is_active": true,
+  "version": 1,
+  "createddate": 1750424421898,
+  "modifieddate": 1750424421898
+}
+Filtered data result: {
+  "asset_id": 2,
+  "action": "create",
+  "changed_by": "anonymous",
+  "changes": {
+    "created": {
+      "type": "featured_ad",
+      "placement": "sidebar",
+      "title": "Bulk Test Asset",
+      "content": {
+        "test": "bulk"
+      },
+      "priority": 1,
+      "is_active": true,
+      "version": 1,
+      "createddate": 1750424421898,
+      "modifieddate": 1750424421898
+    }
+  },
+  "createddate": 1750424422121
+}
+Filtered data result: {
+  "priority": 99,
+  "is_active": false,
+  "modifieddate": 1750424422843
+}
+Filtered data result: {
+  "asset_id": 2,
+  "action": "update",
+  "changed_by": "anonymous",
+  "changes": {
+    "priority": {
+      "from": 1,
+      "to": 99
+    },
+    "is_active": {
+      "from": true,
+      "to": false
+    },
+    "modifieddate": {
+      "from": 1750444222,
+      "to": 1750424422843
+    }
+  },
+  "createddate": 1750424423295
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "NEW_LOGIC_1_1750652923411",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 5,
+  "availablequantity": 2,
+  "soldquantity": 1,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "NEW_LOGIC_2_1750652928514",
+  "stockstatus": "Available",
+  "ecompublish": false,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 6,
+  "availablequantity": 2,
+  "soldquantity": 1,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "NEW_LOGIC_3_1750652931794",
+  "stockstatus": "Damaged",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 7,
+  "availablequantity": 2,
+  "soldquantity": 1,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "NEW_LOGIC_4_1750652934832",
+  "stockstatus": "Sold",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 8,
+  "availablequantity": 2,
+  "soldquantity": 2,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "NEW_LOGIC_5_1750652938084",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 9,
+  "availablequantity": 3,
+  "soldquantity": 2,
+  "ecompublishedquantity": 4
+}
+Filtered data result: {
+  "ecompublish": false
+}
+Filtered data result: {
+  "quantity": 9,
+  "availablequantity": 2,
+  "soldquantity": 2,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "NEW_LOGIC_6_1750652945027",
+  "stockstatus": "Available",
+  "ecompublish": false,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 2,
+  "soldquantity": 2,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "ecompublish": true
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 3,
+  "soldquantity": 2,
+  "ecompublishedquantity": 4
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "NEW_LOGIC_7_1750652951110",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 4,
+  "soldquantity": 2,
+  "ecompublishedquantity": 5
+}
+Filtered data result: {
+  "stockstatus": "Damaged"
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 3,
+  "soldquantity": 2,
+  "ecompublishedquantity": 5
+}
+Filtered data result: {
+  "puc": "es-we-0000000005",
+  "serialnumber": "NEW_LOGIC_8_1750652957617",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "location": "test-warehouse",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 3,
+  "soldquantity": 2,
+  "ecompublishedquantity": 5
+}
+Filtered data result: {
+  "stockstatus": "Sold"
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 2,
+  "soldquantity": 3,
+  "ecompublishedquantity": 4
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 2,
+  "soldquantity": 3,
+  "ecompublishedquantity": 4
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 2,
+  "soldquantity": 3,
+  "ecompublishedquantity": 4
+}
+Filtered data result: {
+  "quantity": 9,
+  "availablequantity": 2,
+  "soldquantity": 3,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "quantity": 8,
+  "availablequantity": 2,
+  "soldquantity": 2,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "quantity": 7,
+  "availablequantity": 2,
+  "soldquantity": 2,
+  "ecompublishedquantity": 3
+}
+Filtered data result: {
+  "quantity": 6,
+  "availablequantity": 1,
+  "soldquantity": 2,
+  "ecompublishedquantity": 2
+}
+Filtered data result: {
+  "quantity": 5,
+  "availablequantity": 1,
+  "soldquantity": 2,
+  "ecompublishedquantity": 1
+}
+Filtered data result: {
+  "quantity": 4,
+  "availablequantity": 1,
+  "soldquantity": 1,
+  "ecompublishedquantity": 1
+}
