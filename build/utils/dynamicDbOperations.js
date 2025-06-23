@@ -168,6 +168,19 @@ export function convertBigIntToNumber(obj) {
         if (typeof obj.toJSON === 'function') {
             return convertBigIntToNumber(obj.toJSON());
         }
+        // Handle JSONB objects from PostgreSQL - they often have a special constructor
+        // but should be treated as plain JSON
+        if (obj.constructor && obj.constructor.name && obj.constructor.name.includes('Json')) {
+            // For JSONB objects, try to extract the actual JSON data
+            try {
+                const jsonString = JSON.stringify(obj);
+                const parsed = JSON.parse(jsonString);
+                return convertBigIntToNumber(parsed);
+            }
+            catch (e) {
+                // If that fails, treat as plain object
+            }
+        }
         // For plain objects, recursively convert properties
         if (obj.constructor === Object || obj.constructor === undefined) {
             const converted = {};
@@ -189,6 +202,19 @@ export function convertBigIntToNumber(obj) {
         }
         catch (e) {
             // JSON stringify/parse failed, continue with other methods
+        }
+        // JSONB FIX: PostgreSQL JSONB objects sometimes have special handling
+        // If it's an object with enumerable properties, preserve them
+        if (typeof obj === 'object' && obj !== null) {
+            const keys = Object.keys(obj);
+            if (keys.length > 0) {
+                // This is likely a valid JSON object that should be preserved
+                const converted = {};
+                for (const key of keys) {
+                    converted[key] = convertBigIntToNumber(obj[key]);
+                }
+                return converted;
+            }
         }
         // For other objects, try to extract a meaningful value
         // This is a fallback for unknown object types
@@ -884,7 +910,7 @@ export async function dynamicCreate(modelName, data, include) {
         for (const [key, value] of Object.entries(filteredData)) {
             if (availableColumns.includes(key)) {
                 // Handle JSON fields properly for PostgreSQL
-                if ((key === 'paymentdata' || key === 'items') && value !== null && value !== undefined) {
+                if ((key === 'paymentdata' || key === 'items' || key === 'content') && value !== null && value !== undefined) {
                     // For JSONB fields with explicit casting, stringify the JSON
                     rawData[key] = typeof value === 'string' ? value : JSON.stringify(value);
                 }
@@ -2117,6 +2143,8 @@ export function formatEntityForAPI(entity, entityType) {
                 return formatOrdersForAPI(entity);
             case 'orderline':
                 return formatOrderlineForAPI(entity);
+            case 'promotional_assets':
+                return formatPromotionalAssetForAPI(entity);
             default:
                 return serializeForAPI(entity);
         }
@@ -2161,6 +2189,9 @@ export function formatEntityForAPI(entity, entityType) {
     if (entity.orderlinenumber !== undefined || (entity.orderid !== undefined && entity.productid !== undefined)) {
         return formatOrderlineForAPI(entity);
     }
+    if (entity.type && entity.placement && entity.title && entity.content !== undefined) {
+        return formatPromotionalAssetForAPI(entity);
+    }
     // Fallback to generic serialization
     return serializeForAPI(entity);
 }
@@ -2171,6 +2202,43 @@ export function formatEntitiesForAPI(entities, entityType) {
     if (!Array.isArray(entities))
         return entities;
     return entities.map(entity => formatEntityForAPI(entity, entityType));
+}
+export function formatPromotionalAssetForAPI(asset) {
+    if (!asset)
+        return asset;
+    const formatted = serializeForAPI(asset);
+    // Format all numeric fields
+    if (formatted.id !== undefined) {
+        formatted.id = formatIntegerField(formatted.id) || formatted.id;
+    }
+    if (formatted.priority !== undefined) {
+        formatted.priority = formatIntegerField(formatted.priority) || formatted.priority;
+    }
+    if (formatted.version !== undefined) {
+        formatted.version = formatIntegerField(formatted.version) || formatted.version;
+    }
+    if (formatted.createddate !== undefined) {
+        formatted.createddate = formatIntegerField(formatted.createddate) || formatted.createddate;
+    }
+    if (formatted.modifieddate !== undefined) {
+        formatted.modifieddate = formatIntegerField(formatted.modifieddate) || formatted.modifieddate;
+    }
+    // Ensure boolean fields are properly formatted
+    if (formatted.is_active !== undefined) {
+        formatted.is_active = Boolean(formatted.is_active);
+    }
+    // Handle date fields
+    if (formatted.schedule_start) {
+        formatted.schedule_start = formatted.schedule_start instanceof Date ?
+            formatted.schedule_start.toISOString() : formatted.schedule_start;
+    }
+    if (formatted.schedule_end) {
+        formatted.schedule_end = formatted.schedule_end instanceof Date ?
+            formatted.schedule_end.toISOString() : formatted.schedule_end;
+    }
+    // Content field should already be properly handled by serializeForAPI
+    // which calls convertBigIntToNumber
+    return formatted;
 }
 const MODEL_RELATIONSHIPS = {
     product: [

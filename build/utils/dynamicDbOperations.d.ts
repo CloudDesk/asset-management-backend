@@ -137,6 +137,7 @@ export declare function formatEntityForAPI(entity: any, entityType?: string): an
  * Formats an array of entities for API response
  */
 export declare function formatEntitiesForAPI(entities: any[], entityType?: string): any[];
+export declare function formatPromotionalAssetForAPI(asset: any): any;
 /**
  * Enhanced error details for foreign key constraints
  */

@@ -2,6 +2,7 @@ import { PromotionalAssetsService } from "../services/promotional-assets.service
 import { createPromotionalAssetSchema, updatePromotionalAssetSchema, promotionalAssetParamsSchema, } from "../schemas/promotional-assets.schema.js";
 import { getPaginationParams } from "../utils/pagination.js";
 import { createSuccessResponse, asyncHandler } from "../utils/errorHandler.js";
+import { formatPromotionalAssetForAPI, formatEntitiesForAPI } from "../utils/dynamicDbOperations.js";
 export class PromotionalAssetsController {
     promotionalAssetsService = new PromotionalAssetsService();
     getAssets = asyncHandler(async (request, reply) => {
@@ -9,7 +10,8 @@ export class PromotionalAssetsController {
         const { page, limit } = getPaginationParams(allFilters);
         const { page: _, limit: __, ...filters } = allFilters;
         const result = await this.promotionalAssetsService.findMany(filters, page, limit);
-        const response = createSuccessResponse("Promotional assets retrieved successfully", result.data);
+        const formattedData = formatEntitiesForAPI(result.data, 'promotional_assets');
+        const response = createSuccessResponse("Promotional assets retrieved successfully", formattedData);
         return reply.code(200).send({
             ...response,
             pagination: result.pagination,
@@ -23,7 +25,7 @@ export class PromotionalAssetsController {
     getAsset = asyncHandler(async (request, reply) => {
         const { id } = promotionalAssetParamsSchema.parse(request.params);
         const asset = await this.promotionalAssetsService.findById(parseInt(id));
-        const response = createSuccessResponse("Promotional asset retrieved successfully", asset);
+        const response = createSuccessResponse("Promotional asset retrieved successfully", formatPromotionalAssetForAPI(asset));
         return reply.code(200).send(response);
     });
     createAsset = asyncHandler(async (request, reply) => {
@@ -31,7 +33,7 @@ export class PromotionalAssetsController {
         const data = createPromotionalAssetSchema.parse(request.body);
         const userId = authRequest.user?.useremail || 'test-user@example.com';
         const asset = await this.promotionalAssetsService.create(data, userId);
-        const response = createSuccessResponse("Promotional asset created successfully", asset);
+        const response = createSuccessResponse("Promotional asset created successfully", formatPromotionalAssetForAPI(asset));
         return reply.code(201).send(response);
     });
     updateAsset = asyncHandler(async (request, reply) => {
@@ -40,7 +42,7 @@ export class PromotionalAssetsController {
         const data = updatePromotionalAssetSchema.parse(request.body);
         const userId = authRequest.user?.useremail || 'test-user@example.com';
         const asset = await this.promotionalAssetsService.update(parseInt(id), data, userId);
-        const response = createSuccessResponse("Promotional asset updated successfully", asset);
+        const response = createSuccessResponse("Promotional asset updated successfully", formatPromotionalAssetForAPI(asset));
         return reply.code(200).send(response);
     });
     deleteAsset = asyncHandler(async (request, reply) => {
