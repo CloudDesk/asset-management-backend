@@ -252,6 +252,7 @@ export declare const purchaseRequestQuerySchema: z.ZodObject<{
     created_before: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     status?: string | undefined;
+    priority?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
     createdAfter?: string | undefined;
@@ -265,7 +266,6 @@ export declare const purchaseRequestQuerySchema: z.ZodObject<{
     requestNumber?: string | undefined;
     request_number?: string | undefined;
     request_status?: string | undefined;
-    priority?: string | undefined;
     request_priority?: string | undefined;
     requestedBy?: string | undefined;
     requested_by?: string | undefined;
@@ -283,6 +283,7 @@ export declare const purchaseRequestQuerySchema: z.ZodObject<{
     required_date_before?: string | undefined;
 }, {
     status?: string | undefined;
+    priority?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
     createdAfter?: string | undefined;
@@ -296,7 +297,6 @@ export declare const purchaseRequestQuerySchema: z.ZodObject<{
     requestNumber?: string | undefined;
     request_number?: string | undefined;
     request_status?: string | undefined;
-    priority?: string | undefined;
     request_priority?: string | undefined;
     requestedBy?: string | undefined;
     requested_by?: string | undefined;

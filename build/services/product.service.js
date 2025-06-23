@@ -123,38 +123,149 @@ export class ProductService {
             throw error;
         }
     }
-    async updateStockTotals(productId) {
+    async updateStockTotals(productIdentifier) {
         try {
-            logger.debug({ productId }, 'Starting dynamic stock totals update');
+            logger.debug({ productIdentifier }, 'Starting dynamic stock totals update');
+            // First, try to determine if productIdentifier is an ID or PUC and find the product
+            let product = null;
+            let productPuc = productIdentifier;
+            let productId = productIdentifier;
+            // Try to find product by ID first (if it's numeric)
+            if (/^\d+$/.test(productIdentifier)) {
+                try {
+                    product = await dynamicFindUnique('product', { id: productIdentifier });
+                    if (product && product.puc) {
+                        productPuc = product.puc;
+                        productId = product.id;
+                        logger.debug({ productIdentifier, productId, productPuc }, 'Found product by ID');
+                    }
+                }
+                catch (error) {
+                    logger.debug({ productIdentifier }, 'Could not find product by ID, will try by PUC');
+                }
+            }
+            // If not found by ID or not numeric, try to find by PUC
+            if (!product) {
+                try {
+                    const products = await dynamicFindMany('product', {
+                        where: { puc: productIdentifier },
+                        take: 1
+                    });
+                    if (products && products.length > 0) {
+                        product = products[0];
+                        productPuc = product.puc;
+                        productId = product.id;
+                        logger.debug({ productIdentifier, productId, productPuc }, 'Found product by PUC');
+                    }
+                }
+                catch (error) {
+                    logger.warn({ productIdentifier }, 'Could not find product by PUC either');
+                }
+            }
+            if (!product) {
+                logger.warn({ productIdentifier }, 'Product not found, skipping stock totals update');
+                return { totalQuantity: 0, totalAvailable: 0, totalSold: 0, totalEcomPublished: 0 };
+            }
+            // Find stocks by PUC (primary relationship) and also try productId as fallback
             const stocks = await dynamicFindMany('stock', {
-                where: { productId },
+                where: {
+                    OR: [
+                        { puc: productPuc },
+                        { productId: productId },
+                        { product_id: productId }
+                    ]
+                },
             });
             if (!Array.isArray(stocks) || stocks.length === 0) {
-                logger.warn({ productId }, 'No stocks found for product, skipping stock totals update');
-                return { totalQuantity: 0, totalAvailable: 0, totalSold: 0 };
+                logger.warn({ productIdentifier, productPuc, productId }, 'No stocks found for product, setting quantities to zero');
+                // Update product to zero quantities if no stocks found
+                const updateData = {
+                    quantity: 0,
+                    availablequantity: 0,
+                    soldquantity: 0,
+                    ecompublishedquantity: 0,
+                    totalStockQuantity: 0,
+                    totalStockAvailable: 0,
+                    totalStockSold: 0,
+                };
+                await dynamicUpdate('product', { id: productId }, updateData);
+                logger.info({ productIdentifier, productId }, 'Updated product quantities to zero (no stocks found)');
+                return { totalQuantity: 0, totalAvailable: 0, totalSold: 0, totalEcomPublished: 0 };
             }
-            const totals = stocks.reduce((acc, stock) => ({
-                totalQuantity: acc.totalQuantity + (stock.quantity || 0),
-                totalAvailable: acc.totalAvailable + (stock.availableQuantity || stock.available_quantity || 0),
-                totalSold: acc.totalSold + (stock.soldQuantity || stock.sold_quantity || 0),
-            }), { totalQuantity: 0, totalAvailable: 0, totalSold: 0 });
-            // Try to update stock totals if the fields exist
+            // Calculate totals based on business logic
+            const totals = stocks.reduce((acc, stock) => {
+                const quantity = stock.quantity || 1; // Default to 1 if quantity not specified
+                // Add to total quantity (no conditions - all stocks count)
+                acc.totalQuantity += quantity;
+                // NEW LOGIC: Add to available quantity only if stockstatus="Available" AND ecompublish=true
+                if (stock.stockstatus === 'Available' && stock.ecompublish === true) {
+                    acc.totalAvailable += quantity;
+                }
+                // Add to sold quantity only if stock status is "Sold"
+                if (stock.stockstatus === 'Sold') {
+                    acc.totalSold += quantity;
+                }
+                // NEW LOGIC: Add to ecom published quantity if ecompublish=true AND stockstatus is NOT "Sold"
+                if (stock.ecompublish === true && stock.stockstatus !== 'Sold') {
+                    acc.totalEcomPublished += quantity;
+                }
+                return acc;
+            }, { totalQuantity: 0, totalAvailable: 0, totalSold: 0, totalEcomPublished: 0 });
+            logger.info({
+                productIdentifier,
+                productId,
+                productPuc,
+                stockCount: stocks.length,
+                totals,
+                stockDetails: stocks.map(s => ({
+                    id: s.id,
+                    puc: s.puc,
+                    stockstatus: s.stockstatus,
+                    ecompublish: s.ecompublish,
+                    quantity: s.quantity || 1
+                }))
+            }, 'Calculated stock totals with NEW business logic - availablequantity requires ecompublish=true');
+            // Update product with calculated totals
             const updateData = {
+                // Total quantity field - sum of all stocks regardless of status
+                quantity: totals.totalQuantity,
+                // Update available quantity based on stockstatus = "Available"
+                availablequantity: totals.totalAvailable,
+                // Update sold quantity based on stockstatus = "Sold"
+                soldquantity: totals.totalSold,
+                // Update ecom published quantity based on ecompublish flag AND Available status
+                ecompublishedquantity: totals.totalEcomPublished,
+                // Keep existing fields for backward compatibility
                 totalStockQuantity: totals.totalQuantity,
                 totalStockAvailable: totals.totalAvailable,
                 totalStockSold: totals.totalSold,
             };
             const updatedProduct = await dynamicUpdate('product', { id: productId }, updateData);
             if (updatedProduct) {
-                logger.debug({ productId, totals }, 'Updated product stock totals successfully');
+                logger.info({
+                    productIdentifier,
+                    productId,
+                    productPuc,
+                    totals,
+                    updatedFields: Object.keys(updateData)
+                }, 'Updated product stock totals successfully with business logic');
             }
             else {
-                logger.debug({ productId, totals }, 'Stock total fields not available in schema, skipping update');
+                logger.warn({
+                    productIdentifier,
+                    productId,
+                    productPuc,
+                    totals,
+                    attemptedFields: Object.keys(updateData)
+                }, 'Could not update product - fields may not be available in schema');
             }
-            return totals;
+            return {
+                ...totals,
+                updatedProduct: updatedProduct || null
+            };
         }
         catch (error) {
-            logger.error({ error, productId }, 'Error in updateStockTotals operation');
+            logger.error({ error, productIdentifier }, 'Error in updateStockTotals operation');
             throw error;
         }
     }

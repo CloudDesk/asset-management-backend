@@ -31,11 +31,11 @@ export declare const phonePeRefundSchema: z.ZodObject<{
     refundAmount: z.ZodOptional<z.ZodNumber>;
     reason: z.ZodOptional<z.ZodString>;
 }, "strict", z.ZodTypeAny, {
-    refundAmount?: number | undefined;
     reason?: string | undefined;
+    refundAmount?: number | undefined;
 }, {
-    refundAmount?: number | undefined;
     reason?: string | undefined;
+    refundAmount?: number | undefined;
 }>;
 export declare const merchantTransactionIdParamsSchema: z.ZodObject<{
     merchantTransactionId: z.ZodString;

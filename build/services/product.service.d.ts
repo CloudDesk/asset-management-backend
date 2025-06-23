@@ -8,7 +8,18 @@ export declare class ProductService {
     update(id: string, data: UpdateProductInput & Record<string, any>): Promise<any>;
     delete(id: string): Promise<void>;
     upsert(data: UpsertProductInput & Record<string, any>): Promise<any>;
-    updateStockTotals(productId: string): Promise<any>;
+    updateStockTotals(productIdentifier: string): Promise<{
+        totalQuantity: number;
+        totalAvailable: number;
+        totalSold: number;
+        totalEcomPublished: number;
+    } | {
+        updatedProduct: any;
+        totalQuantity: number;
+        totalAvailable: number;
+        totalSold: number;
+        totalEcomPublished: number;
+    }>;
     /**
      * Upsert product with file upload handling - merges image URLs into size arrays
      */

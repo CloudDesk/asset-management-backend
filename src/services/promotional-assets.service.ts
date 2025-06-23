@@ -291,7 +291,7 @@ export class PromotionalAssetsService {
       }
 
       // Remove version from update data
-      const { version, ...updateData } = data;
+      const { version, ...updateData }: any = data;
 
       const updatedAsset = await prisma.$transaction(async (tx) => {
         const updated = await tx.promotional_assets.update({
