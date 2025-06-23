@@ -1,0 +1,144 @@
+import { FastifyRequest, FastifyReply } from "fastify";
+import { PromotionalAssetsService } from "../services/promotional-assets.service.js";
+import {
+  createPromotionalAssetSchema,
+  updatePromotionalAssetSchema,
+  promotionalAssetParamsSchema,
+  PromotionalAssetParams,
+} from "../schemas/promotional-assets.schema.js";
+import { getPaginationParams } from "../utils/pagination.js";
+import { createSuccessResponse, asyncHandler } from "../utils/errorHandler.js";
+import { logger } from "../config/logger.js";
+import { AuthenticatedRequest } from "../middleware/auth.middleware.js";
+
+export class PromotionalAssetsController {
+  public promotionalAssetsService = new PromotionalAssetsService();
+
+  getAssets = asyncHandler(
+    async (
+      request: FastifyRequest<{ Querystring: Record<string, any> }>,
+      reply: FastifyReply
+    ) => {
+      const allFilters: Record<string, any> = request.query || {};
+      const { page, limit } = getPaginationParams(allFilters);
+      const { page: _, limit: __, ...filters } = allFilters;
+
+      const result = await this.promotionalAssetsService.findMany(filters, page, limit);
+
+      const response = createSuccessResponse(
+        "Promotional assets retrieved successfully",
+        result.data
+      );
+      
+      return reply.code(200).send({
+        ...response,
+        pagination: result.pagination,
+        meta: {
+          filters: Object.keys(filters),
+          total: result.pagination.total,
+          filtered: Object.keys(filters).length > 0,
+        },
+      });
+    }
+  );
+
+  getAsset = asyncHandler(
+    async (
+      request: FastifyRequest<{ Params: PromotionalAssetParams }>,
+      reply: FastifyReply
+    ) => {
+      const { id } = promotionalAssetParamsSchema.parse(request.params);
+      const asset = await this.promotionalAssetsService.findById(parseInt(id));
+
+      const response = createSuccessResponse(
+        "Promotional asset retrieved successfully",
+        asset
+      );
+      return reply.code(200).send(response);
+    }
+  );
+
+  createAsset = asyncHandler(
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const authRequest = request as AuthenticatedRequest;
+      const data = createPromotionalAssetSchema.parse(request.body);
+      const userId = authRequest.user?.useremail || 'test-user@example.com';
+
+      const asset = await this.promotionalAssetsService.create(data, userId);
+
+      const response = createSuccessResponse(
+        "Promotional asset created successfully",
+        asset
+      );
+      return reply.code(201).send(response);
+    }
+  );
+
+  updateAsset = asyncHandler(
+    async (
+      request: FastifyRequest<{ Params: PromotionalAssetParams }>,
+      reply: FastifyReply
+    ) => {
+      const authRequest = request as AuthenticatedRequest;
+      const { id } = promotionalAssetParamsSchema.parse(request.params);
+      const data = updatePromotionalAssetSchema.parse(request.body);
+      const userId = authRequest.user?.useremail || 'test-user@example.com';
+
+      const asset = await this.promotionalAssetsService.update(parseInt(id), data, userId);
+
+      const response = createSuccessResponse(
+        "Promotional asset updated successfully",
+        asset
+      );
+      return reply.code(200).send(response);
+    }
+  );
+
+  deleteAsset = asyncHandler(
+    async (
+      request: FastifyRequest<{ Params: PromotionalAssetParams }>,
+      reply: FastifyReply
+    ) => {
+      const authRequest = request as AuthenticatedRequest;
+      const { id } = promotionalAssetParamsSchema.parse(request.params);
+      const userId = authRequest.user?.useremail || 'test-user@example.com';
+
+      await this.promotionalAssetsService.delete(parseInt(id), userId);
+
+      const response = createSuccessResponse(
+        "Promotional asset deleted successfully",
+        null
+      );
+      return reply.code(200).send(response);
+    }
+  );
+
+  getAuditLogs = asyncHandler(
+    async (
+      request: FastifyRequest<{ 
+        Params: PromotionalAssetParams;
+        Querystring: Record<string, any>;
+      }>,
+      reply: FastifyReply
+    ) => {
+      const { id } = promotionalAssetParamsSchema.parse(request.params);
+      const { page, limit } = getPaginationParams(request.query || {});
+
+      const result = await this.promotionalAssetsService.getAuditLogs(
+        parseInt(id), 
+        page, 
+        limit
+      );
+
+      const response = createSuccessResponse(
+        "Audit logs retrieved successfully",
+        result.data
+      );
+      
+      return reply.code(200).send({
+        ...response,
+        pagination: result.pagination,
+      });
+    }
+  );
+} 

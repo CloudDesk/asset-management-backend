@@ -637,3 +637,35 @@ model users {
   orders           orders[]
   tickets          tickets[]   @ignore
 }
+
+model promotional_assets {
+  id             Int                  @id @default(autoincrement())
+  type           String               @db.VarChar(50)
+  placement      String               @db.VarChar(100)
+  title          String               @db.VarChar(255)
+  content        Json
+  priority       Int                  @default(0)
+  is_active      Boolean              @default(true)
+  schedule_start DateTime?            @db.Timestamptz
+  schedule_end   DateTime?            @db.Timestamptz
+  createddate    BigInt?
+  modifieddate   BigInt?
+  version        Int                  @default(1)
+  
+  audit_logs     asset_audit_logs[]
+
+  @@map("promotional_assets")
+}
+
+model asset_audit_logs {
+  id          Int                @id @default(autoincrement())
+  asset_id    Int
+  action      String             @db.VarChar(50)
+  changed_by  String             @db.VarChar(255)
+  changes     Json
+  createddate BigInt?
+  
+  asset       promotional_assets @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+
+  @@map("asset_audit_logs")
+}
