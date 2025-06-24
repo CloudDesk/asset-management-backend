@@ -636,7 +636,7 @@ model promotional_assets {
   type           String             @db.VarChar(50)
   placement      String             @db.VarChar(100)
   title          String             @db.VarChar(255)
-  content        Json
+  content        Json?
   priority       Int                @default(0)
   is_active      Boolean            @default(true)
   schedule_start DateTime?          @db.Timestamptz(6)

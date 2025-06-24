@@ -159,7 +159,7 @@ export async function promotionalAssetsRoutes(fastify: FastifyInstance) {
           tags: ["Promotional Assets"],
           body: {
             type: "object",
-            required: ["type", "placement", "title", "content"],
+            required: ["type", "placement", "title"],
             properties: {
               type: { 
                 type: "string", 
