@@ -3,6 +3,7 @@ import { PromotionalAssetsService } from "../services/promotional-assets.service
 import {
   createPromotionalAssetSchema,
   updatePromotionalAssetSchema,
+  upsertPromotionalAssetSchema,
   promotionalAssetParamsSchema,
   PromotionalAssetParams,
 } from "../schemas/promotional-assets.schema.js";
@@ -90,6 +91,66 @@ export class PromotionalAssetsController {
 
       const response = createSuccessResponse(
         "Promotional asset updated successfully",
+        formatPromotionalAssetForAPI(asset)
+      );
+      return reply.code(200).send(response);
+    }
+  );
+
+  upsertAsset = asyncHandler(
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const authRequest = request as AuthenticatedRequest;
+      const data = upsertPromotionalAssetSchema.parse(request.body);
+      const userId = authRequest.user?.useremail || 'test-user@example.com';
+
+      const result = await this.promotionalAssetsService.upsert(data, userId);
+
+      const statusCode = result.operation === 'created' ? 201 : 200;
+      const message = result.operation === 'created' 
+        ? "Promotional asset created successfully"
+        : "Promotional asset updated successfully";
+
+      const response = {
+        success: true,
+        message,
+        operation: result.operation,
+        data: formatPromotionalAssetForAPI(result.asset)
+      };
+      
+      return reply.code(statusCode).send(response);
+    }
+  );
+
+  deleteImage = asyncHandler(
+    async (
+      request: FastifyRequest<{ 
+        Params: PromotionalAssetParams;
+        Body: { imageUrl: string }
+      }>,
+      reply: FastifyReply
+    ) => {
+      const authRequest = request as AuthenticatedRequest;
+      const { id } = promotionalAssetParamsSchema.parse(request.params);
+      const body = request.body as { imageUrl: string };
+      
+      if (!body.imageUrl) {
+        return reply.code(400).send({
+          success: false,
+          message: "Image URL is required",
+          statusCode: 400
+        });
+      }
+
+      const userId = authRequest.user?.useremail || 'test-user@example.com';
+
+      const asset = await this.promotionalAssetsService.deleteImage(
+        parseInt(id), 
+        body.imageUrl, 
+        userId
+      );
+
+      const response = createSuccessResponse(
+        "Image deleted from promotional asset successfully",
         formatPromotionalAssetForAPI(asset)
       );
       return reply.code(200).send(response);

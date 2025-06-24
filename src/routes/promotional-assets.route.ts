@@ -310,6 +310,77 @@ export async function promotionalAssetsRoutes(fastify: FastifyInstance) {
       controller.updateAsset
     );
 
+    // DELETE /v1/promotional-assets/:id/image - Delete specific image from asset
+    fastify.delete(
+      "/:id/image",
+      {
+        schema: {
+          description: "Delete specific image URL from promotional asset content.images array",
+          tags: ["Promotional Assets"],
+          params: {
+            type: "object",
+            required: ["id"],
+            properties: {
+              id: { type: "string", pattern: "^\\d+$", description: "Asset ID" }
+            }
+          },
+          body: {
+            type: "object",
+            required: ["imageUrl"],
+            properties: {
+              imageUrl: { 
+                type: "string", 
+                description: "The image URL to remove from content.images array"
+              }
+            }
+          },
+          response: {
+            200: {
+              type: "object",
+              properties: {
+                success: { type: "boolean" },
+                message: { type: "string" },
+                data: {
+                  type: "object",
+                  properties: {
+                    id: { type: "integer" },
+                    type: { type: "string" },
+                    placement: { type: "string" },
+                    title: { type: "string" },
+                    content: { type: "object", additionalProperties: true },
+                    priority: { type: "integer" },
+                    is_active: { type: "boolean" },
+                    schedule_start: { type: "string", format: "date-time" },
+                    schedule_end: { type: "string", format: "date-time" },
+                    version: { type: "integer" },
+                    createddate: { type: "number" },
+                    modifieddate: { type: "number" }
+                  }
+                }
+              }
+            },
+            400: {
+              type: "object",
+              properties: {
+                success: { type: "boolean" },
+                message: { type: "string" },
+                statusCode: { type: "integer" }
+              }
+            },
+            404: {
+              type: "object",
+              properties: {
+                success: { type: "boolean" },
+                message: { type: "string" },
+                statusCode: { type: "integer" }
+              }
+            }
+          }
+        },
+      },
+      controller.deleteImage
+    );
+
     // DELETE /v1/promotional-assets/:id - Delete asset
     fastify.delete(
       "/:id",
@@ -337,6 +408,135 @@ export async function promotionalAssetsRoutes(fastify: FastifyInstance) {
         },
       },
       controller.deleteAsset
+    );
+
+    // POST /v1/promotional-assets/upsert - Upsert asset (create or update)
+    fastify.post(
+      "/upsert",
+      {
+        schema: {
+          description: "Upsert promotional asset - create if no ID provided, update if ID exists. For creates (no ID): type, placement, title required. For updates (with ID): all fields optional.",
+          tags: ["Promotional Assets"],
+          body: {
+            type: "object",
+            properties: {
+              id: { 
+                type: "integer", 
+                minimum: 1,
+                description: "If provided, will update existing asset; if omitted, will create new asset"
+              },
+              type: { 
+                type: "string", 
+                enum: ["banner", "featured_ad", "popup", "carousel"],
+                description: "Type of promotional asset"
+              },
+              placement: { 
+                type: "string", 
+                maxLength: 100,
+                description: "Where the asset will be displayed"
+              },
+              title: { 
+                type: "string", 
+                maxLength: 255,
+                description: "Title of the promotional asset"
+              },
+              content: { 
+                type: "object",
+                additionalProperties: true,
+                description: "JSONB content of the asset (images, text, etc.)"
+              },
+              priority: { 
+                type: "integer", 
+                minimum: 0, 
+                default: 0,
+                description: "Display priority (higher numbers shown first)"
+              },
+              is_active: { 
+                type: "boolean", 
+                default: true,
+                description: "Whether the asset is active"
+              },
+              schedule_start: { 
+                type: "string", 
+                format: "date-time",
+                description: "When the asset should start showing (ISO 8601)"
+              },
+              schedule_end: { 
+                type: "string", 
+                format: "date-time",
+                description: "When the asset should stop showing (ISO 8601)"
+              },
+              version: { 
+                type: "integer", 
+                minimum: 1,
+                description: "Version for optimistic concurrency control (optional - if not provided for updates, current version will be auto-fetched)"
+              }
+            }
+          },
+          response: {
+            200: {
+              type: "object",
+              properties: {
+                success: { type: "boolean" },
+                message: { type: "string" },
+                operation: { type: "string", enum: ["created", "updated"] },
+                data: {
+                  type: "object",
+                  properties: {
+                    id: { type: "integer" },
+                    type: { type: "string" },
+                    placement: { type: "string" },
+                    title: { type: "string" },
+                    content: { type: "object", additionalProperties: true },
+                    priority: { type: "integer" },
+                    is_active: { type: "boolean" },
+                    schedule_start: { type: "string", format: "date-time" },
+                    schedule_end: { type: "string", format: "date-time" },
+                    version: { type: "integer" },
+                    createddate: { type: "number" },
+                    modifieddate: { type: "number" }
+                  }
+                }
+              }
+            },
+            201: {
+              type: "object",
+              properties: {
+                success: { type: "boolean" },
+                message: { type: "string" },
+                operation: { type: "string", enum: ["created", "updated"] },
+                data: {
+                  type: "object",
+                  properties: {
+                    id: { type: "integer" },
+                    type: { type: "string" },
+                    placement: { type: "string" },
+                    title: { type: "string" },
+                    content: { type: "object", additionalProperties: true },
+                    priority: { type: "integer" },
+                    is_active: { type: "boolean" },
+                    schedule_start: { type: "string", format: "date-time" },
+                    schedule_end: { type: "string", format: "date-time" },
+                    version: { type: "integer" },
+                    createddate: { type: "number" },
+                    modifieddate: { type: "number" }
+                  }
+                }
+              }
+            },
+            409: {
+              type: "object",
+              properties: {
+                success: { type: "boolean" },
+                message: { type: "string" },
+                details: { type: "string" },
+                statusCode: { type: "integer" }
+              }
+            }
+          }
+        },
+      },
+      controller.upsertAsset
     );
 
     // GET /v1/promotional-assets/audit/:id - Get audit logs

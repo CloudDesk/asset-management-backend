@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import {
   CreatePromotionalAssetInput,
   UpdatePromotionalAssetInput,
+  UpsertPromotionalAssetInput,
 } from "../schemas/promotional-assets.schema.js";
 import {
   PaginationResult,
@@ -333,6 +334,7 @@ export class PromotionalAssetsService {
         const newAsset = await tx.promotional_assets.create({
           data: {
             ...data,
+            content: data.content || {},
             schedule_start: data.schedule_start
               ? new Date(data.schedule_start)
               : null,
@@ -395,6 +397,42 @@ export class PromotionalAssetsService {
       // Remove version from update data
       const { version, ...updateData }: any = data;
 
+      // Handle content merging logic
+      if (updateData.content) {
+        const existingContent = existingAsset.content || {};
+        
+        // If content.images is provided, handle image appending
+        if (updateData.content.images && Array.isArray(updateData.content.images)) {
+          const existingImages = Array.isArray(existingContent.images) ? existingContent.images : [];
+          const newImages = updateData.content.images;
+          
+          // Append new images to existing ones (avoid duplicates)
+          const uniqueNewImages = newImages.filter((img: string) => !existingImages.includes(img));
+          const mergedImages = [...existingImages, ...uniqueNewImages];
+          
+          updateData.content = {
+            ...existingContent,
+            ...updateData.content,
+            images: mergedImages
+          };
+          
+          logger.debug({ 
+            existingImages: existingImages.length, 
+            newImages: newImages.length, 
+            uniqueNewImages: uniqueNewImages.length,
+            finalImages: mergedImages.length 
+          }, "Image appending logic applied");
+        } else {
+          // If no images in update, preserve existing images
+          updateData.content = {
+            ...existingContent,
+            ...updateData.content
+          };
+          
+          logger.debug("Content merged, preserving existing images");
+        }
+      }
+
       const updatedAsset = await prisma.$transaction(async (tx) => {
         const updated = await tx.promotional_assets.update({
           where: { id },
@@ -442,6 +480,137 @@ export class PromotionalAssetsService {
         throw error;
       }
       throw new DatabaseError("Failed to update promotional asset");
+    }
+  }
+
+  async upsert(data: UpsertPromotionalAssetInput, userId: string): Promise<{
+    asset: any;
+    operation: 'created' | 'updated';
+  }> {
+    try {
+      logger.debug({ data, userId }, "Starting promotional asset upsert operation");
+
+      // If ID is provided, perform update
+      if (data.id) {
+        logger.debug({ id: data.id }, "Performing update operation for existing asset");
+        
+        // Auto-fetch version if not provided
+        let updateData = { ...data };
+        if (!updateData.version && data.id) {
+          logger.debug({ id: data.id }, "Version not provided, auto-fetching current version");
+          const existingAsset = await this.findById(data.id);
+          updateData.version = existingAsset.version;
+          logger.debug({ id: data.id, version: updateData.version }, "Auto-fetched version for update");
+        }
+        
+        const { id, ...updateFields } = updateData;
+        const updatedAsset = await this.update(id!, updateFields, userId);
+        
+        return {
+          asset: updatedAsset,
+          operation: 'updated'
+        };
+      } else {
+        // No ID provided, perform create
+        logger.debug("Performing create operation for new asset");
+        
+        // Remove id and version fields for create operation
+        const { id, version, ...createData } = data;
+        const newAsset = await this.create(createData as CreatePromotionalAssetInput, userId);
+        
+        return {
+          asset: newAsset,
+          operation: 'created'
+        };
+      }
+    } catch (error) {
+      logger.error({ error, data, userId }, "Error in promotional asset upsert operation");
+      
+      // Re-throw known errors
+      if (error instanceof NotFoundError || 
+          error instanceof ValidationError || 
+          error instanceof DatabaseError) {
+        throw error;
+      }
+      
+      // Handle Prisma validation errors
+      if (error instanceof Prisma.PrismaClientValidationError) {
+        throw new ValidationError(`Invalid data provided: ${error.message}`);
+      }
+      
+      // Handle Prisma known request errors
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          throw new ValidationError("A promotional asset with these details already exists");
+        }
+        if (error.code === 'P2025') {
+          throw new NotFoundError("Asset not found for update operation");
+        }
+      }
+      
+      throw new DatabaseError("Failed to upsert promotional asset");
+    }
+  }
+
+  async deleteImage(id: number, imageUrl: string, userId: string) {
+    try {
+      const existingAsset = await this.findById(id);
+      
+      if (!existingAsset.content || !Array.isArray(existingAsset.content.images)) {
+        throw new ValidationError("Asset has no images to delete");
+      }
+
+      const existingImages = existingAsset.content.images;
+      if (!existingImages.includes(imageUrl)) {
+        throw new NotFoundError("Image URL not found in asset");
+      }
+
+      // Remove the specific image URL
+      const updatedImages = existingImages.filter((img: string) => img !== imageUrl);
+      
+      const updatedContent = {
+        ...existingAsset.content,
+        images: updatedImages
+      };
+
+      const updatedAsset = await prisma.$transaction(async (tx) => {
+        const updated = await tx.promotional_assets.update({
+          where: { id },
+          data: {
+            content: updatedContent,
+            version: { increment: 1 },
+          },
+        });
+
+        // Create audit log
+        await tx.asset_audit_logs.create({
+          data: {
+            asset_id: id,
+            action: "update",
+            changed_by: userId,
+            changes: {
+              before: { images: existingImages },
+              after: { images: updatedImages },
+              deleted_image: imageUrl
+            },
+            createddate: BigInt(Date.now()),
+          },
+        });
+
+        return updated;
+      });
+
+      logger.info(
+        { assetId: id, imageUrl, userId },
+        "Image deleted from promotional asset successfully"
+      );
+      return convertBigIntToNumber(updatedAsset);
+    } catch (error) {
+      logger.error({ error, id, imageUrl, userId }, "Error deleting image from promotional asset");
+      if (error instanceof NotFoundError || error instanceof ValidationError) {
+        throw error;
+      }
+      throw new DatabaseError("Failed to delete image from promotional asset");
     }
   }
 
