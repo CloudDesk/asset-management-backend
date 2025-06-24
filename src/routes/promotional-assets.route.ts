@@ -59,7 +59,7 @@ export async function promotionalAssetsRoutes(fastify: FastifyInstance) {
                       type: { type: "string" },
                       placement: { type: "string" },
                       title: { type: "string" },
-                      content: { type: "object" },
+                      content: { type: "object", additionalProperties: true },
                       priority: { type: "integer" },
                       is_active: { type: "boolean" },
                       schedule_start: { type: "string", format: "date-time" },
@@ -124,7 +124,7 @@ export async function promotionalAssetsRoutes(fastify: FastifyInstance) {
                     type: { type: "string" },
                     placement: { type: "string" },
                     title: { type: "string" },
-                    content: { type: "object" },
+                    content: { type: "object", additionalProperties: true },
                     priority: { type: "integer" },
                     is_active: { type: "boolean" },
                     schedule_start: { type: "string", format: "date-time" },
@@ -178,6 +178,7 @@ export async function promotionalAssetsRoutes(fastify: FastifyInstance) {
               },
               content: { 
                 type: "object",
+                additionalProperties: true,
                 description: "JSONB content of the asset (images, text, etc.)"
               },
               priority: { 
@@ -216,7 +217,7 @@ export async function promotionalAssetsRoutes(fastify: FastifyInstance) {
                     type: { type: "string" },
                     placement: { type: "string" },
                     title: { type: "string" },
-                    content: { type: "object" },
+                    content: { type: "object", additionalProperties: true },
                     priority: { type: "integer" },
                     is_active: { type: "boolean" },
                     schedule_start: { type: "string", format: "date-time" },
@@ -258,7 +259,7 @@ export async function promotionalAssetsRoutes(fastify: FastifyInstance) {
               },
               placement: { type: "string", maxLength: 100 },
               title: { type: "string", maxLength: 255 },
-              content: { type: "object" },
+              content: { type: "object", additionalProperties: true },
               priority: { type: "integer", minimum: 0 },
               is_active: { type: "boolean" },
               schedule_start: { type: "string", format: "date-time" },
@@ -283,7 +284,7 @@ export async function promotionalAssetsRoutes(fastify: FastifyInstance) {
                     type: { type: "string" },
                     placement: { type: "string" },
                     title: { type: "string" },
-                    content: { type: "object" },
+                    content: { type: "object", additionalProperties: true },
                     priority: { type: "integer" },
                     is_active: { type: "boolean" },
                     schedule_start: { type: "string", format: "date-time" },
@@ -375,7 +376,7 @@ export async function promotionalAssetsRoutes(fastify: FastifyInstance) {
                       asset_id: { type: "integer" },
                       action: { type: "string" },
                       changed_by: { type: "string" },
-                      changes: { type: "object" },
+                      changes: { type: "object", additionalProperties: true },
                       createddate: { type: "number" }
                     }
                   }
