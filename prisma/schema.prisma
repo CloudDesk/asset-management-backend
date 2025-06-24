@@ -8,68 +8,63 @@ datasource db {
 }
 
 model Product {
-  id                BigInt    @id @default(autoincrement())
-  name              String    @db.VarChar(500)
-  shortdescription  String?
-  fulldescription   String?
-  fragnancetype     String?   @db.VarChar(255)
-  volume            String?   @db.VarChar(50)
-  origincountry     String?   @db.VarChar(255)
-  organiccertified  Boolean?
-  supplierid        Int?
-  soldquantity      Int?
-  availablequantity Int?
-  quantity          Int?
+  id                    BigInt                   @id @default(autoincrement())
+  name                  String                   @db.VarChar(500)
+  shortdescription      String?
+  fulldescription       String?
+  fragnancetype         String?                  @db.VarChar(255)
+  volume                String?                  @db.VarChar(50)
+  origincountry         String?                  @db.VarChar(255)
+  organiccertified      Boolean?
+  supplierid            Int?
+  soldquantity          Int?
+  availablequantity     Int?
+  quantity              Int?
   ecompublishedquantity Int?
-  productstatus     String?   @db.VarChar(255)
-  ponumber          String?   @db.VarChar(255)
-  puc               String?   @unique @db.VarChar(255)
-  suppliername      String?   @db.VarChar(255)
-  serialnumber      String?   @db.VarChar(255)
-  averagerating     Decimal?  @db.Decimal(2, 1)
-  discount          Int?
-  price             Decimal?  @db.Decimal(10, 2)
-  orderedquantity   Int?
-  createddate       BigInt?
-  modifieddate      BigInt?
-  // Additional product fields from database (21 missing fields)
-  ingredients       String?
-  usage             String?
-  extractionmethod  String?   @db.VarChar(100)
-  note              String?   @db.VarChar(150)
-  shelflife         String?   @db.VarChar(150)
-  // Candle-specific fields
-  wax_type          String?   @db.VarChar(150)
-  burn_time         String?   @db.VarChar(150)
-  scent_profile     String?   @db.VarChar(100)
-  container_material String?  @db.VarChar(100)
-  candle_dimensions String?
-  // Planter-specific fields
-  planter_material  String?
-  drainage_hole     Boolean?
-  suitable_for      String?
-  planter_dimensions String?
-  plant_included    Boolean?
-  // Art-specific fields
-  art_type          String?
-  frame_included    Boolean?
-  art_dimensions    String?
-  orientation       String?
-  artist_name       String?
-  // Status field
-  isactive          Boolean?
-  // Deal of the day field
-  isdealoftheday    Boolean?  @default(false)
-  // Category fields (2 new fields)
-  category          String?   @db.VarChar(255)
-  subcategory       String?   @db.VarChar(255)
-  // Size-related fields (3 new fields)
-  large             String[]
-  medium            String[]
-  small             String[]
-  supplier          Supplier? @relation(fields: [supplierid], references: [id], map: "fk_supplier")
-  stock             Stock[]
-  orderline         orderline[]
+  productstatus         String?                  @db.VarChar(255)
+  ponumber              String?                  @db.VarChar(255)
+  puc                   String?                  @unique @db.VarChar(255)
+  suppliername          String?                  @db.VarChar(255)
+  serialnumber          String?                  @db.VarChar(255)
+  averagerating         Decimal?                 @db.Decimal(2, 1)
+  discount              Int?
+  price                 Decimal?                 @db.Decimal(10, 2)
+  orderedquantity       Int?
+  createddate           BigInt?
+  modifieddate          BigInt?
+  ingredients           String?
+  usage                 String?
+  extractionmethod      String?                  @db.VarChar(100)
+  note                  String?                  @db.VarChar(150)
+  shelflife             String?                  @db.VarChar(150)
+  wax_type              String?                  @db.VarChar(150)
+  burn_time             String?                  @db.VarChar(150)
+  scent_profile         String?                  @db.VarChar(100)
+  container_material    String?                  @db.VarChar(100)
+  candle_dimensions     String?
+  planter_material      String?
+  drainage_hole         Boolean?
+  suitable_for          String?
+  planter_dimensions    String?
+  plant_included        Boolean?
+  art_type              String?
+  frame_included        Boolean?
+  art_dimensions        String?
+  orientation           String?
+  artist_name           String?
+  isactive              Boolean?
+  isdealoftheday        Boolean?                 @default(false)
+  category              String?                  @db.VarChar(255)
+  subcategory           String?                  @db.VarChar(255)
+  large                 String[]
+  medium                String[]
+  small                 String[]
+  qrcode                String?                  @db.VarChar(500)
+  searchtext            Unsupported("tsvector")?
+  barcode               String?                  @db.VarChar(500)
+  orderline             orderline[]
+  supplier              Supplier?                @relation(fields: [supplierid], references: [id], map: "fk_supplier")
+  stock                 Stock[]
 
   @@map("product")
 }
@@ -128,7 +123,7 @@ model Stock {
 }
 
 model Picklist {
-  id                  Int     @id(map: "pk") @default(autoincrement())
+  id                  Int     @id @default(autoincrement())
   label               String? @db.VarChar(255)
   value               String? @db.VarChar(255)
   object              String? @db.VarChar(255)
@@ -138,7 +133,6 @@ model Picklist {
   controlledfieldname String? @db.VarChar(255)
   parent              String? @db.VarChar(20)
 
-  @@index([id], map: "idx_picklist_id")
   @@map("picklist")
 }
 
@@ -258,15 +252,14 @@ model address {
 }
 
 model cart {
-  id           Int           @id @default(autoincrement())
+  id           Int      @id @default(autoincrement())
   productid    BigInt?
   userid       Int?
   createddate  BigInt?
-  quantity     Decimal?      @db.Decimal
-  iscart       Boolean?      @default(false)
-  iswishlist   Boolean?      @default(false)
+  quantity     Decimal? @db.Decimal
+  iscart       Boolean? @default(false)
+  iswishlist   Boolean? @default(false)
   modifieddate BigInt?
-  // product_revo product_revo? @relation(fields: [productid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_productid_revo")
 }
 
 model exchange_rates {
@@ -276,20 +269,20 @@ model exchange_rates {
 }
 
 model inventoryusers {
-  id                 Int     @id @default(autoincrement())
-  useremail          String? @unique(map: "unique_email_inventory_users") @db.VarChar(255)
-  userpassword       String? @db.VarChar(255)
-  createddate        BigInt?
-  modifieddate       BigInt?
-  role               String? @db.VarChar(500)
-  usersphonenumber   BigInt?
-  firstname          String? @db.VarChar(255)
-  lastname           String? @db.VarChar(255)
-  location           String? @db.VarChar(500)
-  fcmid              String? @db.VarChar(400)
-  sessiontoken       String? @db.VarChar(255)
-  resettoken         String? @db.VarChar(255)
-  resettokenexpires  BigInt?
+  id                Int     @id @default(autoincrement())
+  useremail         String? @unique(map: "unique_email_inventory_users") @db.VarChar(255)
+  userpassword      String? @db.VarChar(255)
+  createddate       BigInt?
+  modifieddate      BigInt?
+  role              String? @db.VarChar(500)
+  usersphonenumber  BigInt?
+  firstname         String? @db.VarChar(255)
+  lastname          String? @db.VarChar(255)
+  location          String? @db.VarChar(500)
+  fcmid             String? @db.VarChar(400)
+  sessiontoken      String? @db.VarChar(255)
+  resettoken        String? @db.VarChar(255)
+  resettokenexpires BigInt?
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
@@ -329,40 +322,40 @@ model notes {
 }
 
 model orderline {
-  id                    Int           @id @default(autoincrement())
+  id                    Int       @id @default(autoincrement())
   orderid               Int?
   productid             BigInt?
   userid                Int?
   addressid             Int?
-  productamount         Decimal?      @db.Decimal
-  discountamount        Decimal?      @db.Decimal
-  orderamount           Decimal?      @db.Decimal
+  productamount         Decimal?  @db.Decimal
+  discountamount        Decimal?  @db.Decimal
+  orderamount           Decimal?  @db.Decimal
   quantity              Int?
   createddate           BigInt?
   modifieddate          BigInt?
-  merchanttransactionid String?       @db.VarChar(250)
-  productname           String?       @db.VarChar(500)
-  productcategory       String?       @db.VarChar(500)
-  productcolour         String?       @db.VarChar(500)
+  merchanttransactionid String?   @db.VarChar(250)
+  productname           String?   @db.VarChar(500)
+  productcategory       String?   @db.VarChar(500)
+  productcolour         String?   @db.VarChar(500)
   readytodispatchdate   BigInt?
   delivereddate         BigInt?
   cancelleddate         BigInt?
   returneddate          BigInt?
-  orderstatus           String?       @db.VarChar(500)
-  uniqueordderid        String?       @db.VarChar(500)
-  orderlinenumber       String?       @unique(map: "unique_orderlinenumber") @db.VarChar(500)
-  deliveryfrom          String?       @db.VarChar(500)
-  location              String?       @db.VarChar(500)
+  orderstatus           String?   @db.VarChar(500)
+  uniqueordderid        String?   @db.VarChar(500)
+  orderlinenumber       String?   @unique(map: "unique_orderlinenumber") @db.VarChar(500)
+  deliveryfrom          String?   @db.VarChar(500)
+  location              String?   @db.VarChar(500)
   dispatcheddate        BigInt?
   ordereddate           BigInt?
   paymentfaileddate     BigInt?
-  address               address?      @relation(fields: [addressid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  orders                orders?       @relation(fields: [orderid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  product               Product?      @relation(fields: [productid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users                 users?        @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  rating                rating[]      @ignore
+  address               address?  @relation(fields: [addressid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  orders                orders?   @relation(fields: [orderid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  product               Product?  @relation(fields: [productid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users                 users?    @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  rating                rating[] @ignore
   stock                 Stock[]
-  tickets               tickets[]     @ignore
+  tickets               tickets[] @ignore
 }
 
 model orders {
@@ -451,8 +444,8 @@ model quotes {
   prnumber        String?          @db.VarChar(500)
   quoteurl        String?          @db.VarChar(500)
   quotenumber     String?          @unique(map: "unique_quotenumber") @db.VarChar(500)
+  notes           notes[] @ignore
   purchaserequest PurchaseRequest? @relation(fields: [prnumber], references: [prnumber], onDelete: Cascade, onUpdate: NoAction)
-  notes           notes[]          @ignore
 
   @@map("quotes")
 }
@@ -635,25 +628,29 @@ model users {
   address          address[]
   orderline        orderline[]
   orders           orders[]
-  tickets          tickets[]   @ignore
+  tickets          tickets[] @ignore
 }
 
 model promotional_assets {
-  id             Int                  @id @default(autoincrement())
-  type           String               @db.VarChar(50)
-  placement      String               @db.VarChar(100)
-  title          String               @db.VarChar(255)
+  id             Int                @id @default(autoincrement())
+  type           String             @db.VarChar(50)
+  placement      String             @db.VarChar(100)
+  title          String             @db.VarChar(255)
   content        Json
-  priority       Int                  @default(0)
-  is_active      Boolean              @default(true)
-  schedule_start DateTime?            @db.Timestamptz
-  schedule_end   DateTime?            @db.Timestamptz
+  priority       Int                @default(0)
+  is_active      Boolean            @default(true)
+  schedule_start DateTime?          @db.Timestamptz(6)
+  schedule_end   DateTime?          @db.Timestamptz(6)
   createddate    BigInt?
   modifieddate   BigInt?
-  version        Int                  @default(1)
-  
+  version        Int                @default(1)
   audit_logs     asset_audit_logs[]
 
+  @@index([content], map: "idx_promotional_assets_content", type: Gin)
+  @@index([is_active], map: "idx_promotional_assets_is_active")
+  @@index([placement], map: "idx_promotional_assets_placement")
+  @@index([schedule_start, schedule_end], map: "idx_promotional_assets_schedule")
+  @@index([type], map: "idx_promotional_assets_type")
   @@map("promotional_assets")
 }
 
@@ -664,8 +661,7 @@ model asset_audit_logs {
   changed_by  String             @db.VarChar(255)
   changes     Json
   createddate BigInt?
-  
-  asset       promotional_assets @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+  asset       promotional_assets @relation(fields: [asset_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("asset_audit_logs")
 }
