@@ -9,6 +9,7 @@ import {
 import { getPaginationParams } from "../utils/pagination.js";
 import { createSuccessResponse, asyncHandler } from "../utils/errorHandler.js";
 import { logger } from "../config/logger.js";
+import { formatPromotionalAssetForAPI, formatEntitiesForAPI } from "../utils/dynamicDbOperations.js";
 import { AuthenticatedRequest } from "../middleware/auth.middleware.js";
 
 export class PromotionalAssetsController {
@@ -25,9 +26,10 @@ export class PromotionalAssetsController {
 
       const result = await this.promotionalAssetsService.findMany(filters, page, limit);
 
+      const formattedData = formatEntitiesForAPI(result.data, 'promotional_assets');
       const response = createSuccessResponse(
         "Promotional assets retrieved successfully",
-        result.data
+        formattedData
       );
       
       return reply.code(200).send({
@@ -52,7 +54,7 @@ export class PromotionalAssetsController {
 
       const response = createSuccessResponse(
         "Promotional asset retrieved successfully",
-        asset
+        formatPromotionalAssetForAPI(asset)
       );
       return reply.code(200).send(response);
     }
@@ -68,7 +70,7 @@ export class PromotionalAssetsController {
 
       const response = createSuccessResponse(
         "Promotional asset created successfully",
-        asset
+        formatPromotionalAssetForAPI(asset)
       );
       return reply.code(201).send(response);
     }
@@ -88,7 +90,7 @@ export class PromotionalAssetsController {
 
       const response = createSuccessResponse(
         "Promotional asset updated successfully",
-        asset
+        formatPromotionalAssetForAPI(asset)
       );
       return reply.code(200).send(response);
     }

@@ -1,1 +1,0 @@
-Skipping status update - payment: 0, ponumber: FATHY-PO-0000000001

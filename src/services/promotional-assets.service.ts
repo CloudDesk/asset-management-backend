@@ -254,7 +254,11 @@ export class PromotionalAssetsService {
           where,
           skip,
           take,
-          orderBy: [{ priority: "desc" }, { createddate: "desc" }],
+          orderBy: [
+            { modifieddate: "desc" },
+            { priority: "desc" },
+            { createddate: "desc" },
+          ],
         }),
         prisma.promotional_assets.count({ where }),
       ]);

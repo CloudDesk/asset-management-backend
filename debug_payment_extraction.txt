@@ -1,2 +1,0 @@
-Payment extracted: 1488 from data: [{"id":1,"comments":"hello","paymentdate":"2025-06-20","paymenttype":"Full Payment","paymentamount":1488,"paymentmethod":"banktransfer","transactionid":"TRN__00123","receiptcomments":"hi"}]
-Payment extracted: 0 from data: [{"id":1,"comments":null,"paymentdate":null,"paymenttype":"Part Payment","paymentamount":0,"paymentmethod":"","transactionid":null,"receiptcomments":""}]
