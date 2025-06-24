@@ -61,13 +61,33 @@ export class OrdersController {
   });
 
   createOrder = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
-    const data = createOrdersSchema.parse(request.body);
+    const requestBody = request.body;
     
-    const order = await this.ordersService.create(data);
-    
-    const response = createSuccessResponse('Order created successfully', formatEntitiesForAPI([order], 'orders')[0]);
-    return reply.code(201).send(response);
+    // Check if the request body is an array (cart items) or object (single order)
+    if (Array.isArray(requestBody)) {
+      // Handle cart-based order creation
+      if (requestBody.length === 0) {
+        return reply.code(400).send({
+          success: false,
+          message: 'Cart items array cannot be empty',
+          details: 'Please provide at least one cart item',
+          statusCode: 400
+        });
+      }
+      
+      const order = await this.ordersService.createFromCartItems(requestBody);
+      const response = createSuccessResponse('Order created successfully from cart', formatEntitiesForAPI([order], 'orders')[0]);
+      return reply.code(201).send(response);
+    } else {
+      // Handle single order creation
+      const data = createOrdersSchema.parse(requestBody);
+      const order = await this.ordersService.create(data);
+      const response = createSuccessResponse('Order created successfully', formatEntitiesForAPI([order], 'orders')[0]);
+      return reply.code(201).send(response);
+    }
   });
+
+
 
   updateOrder = asyncHandler(async (request: FastifyRequest<{ Params: OrdersParams }>, reply: FastifyReply) => {
     const { id } = ordersParamsSchema.parse(request.params);

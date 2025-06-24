@@ -1,7 +1,7 @@
 import { prisma } from "../models/prisma.js";
 import { Prisma } from "@prisma/client";
-import {
-  CreatePromotionalAssetInput,
+import { 
+  CreatePromotionalAssetInput, 
   UpdatePromotionalAssetInput,
   UpsertPromotionalAssetInput,
 } from "../schemas/promotional-assets.schema.js";
@@ -51,16 +51,16 @@ export class PromotionalAssetsService {
 
       const { skip, take } = getPrismaSkipTake(page, limit);
       logger.debug("Pagination params:", { skip, take });
-
+      
       // Build where clause
       const where: Prisma.promotional_assetsWhereInput = {};
       logger.debug("Initial where clause:", where);
-
+      
       if (filters.type) {
         logger.debug("Processing type filter:", filters.type);
         // Handle both single type and array of types
         let types = filters.type;
-
+        
         // Handle comma-separated values in string format
         if (typeof types === "string" && types.includes(",")) {
           types = types
@@ -68,10 +68,10 @@ export class PromotionalAssetsService {
             .map((t: string) => t.trim())
             .filter(Boolean);
         }
-
+        
         // Validate type values
         const validTypes = ["banner", "featured_ad", "popup", "carousel"];
-
+        
         if (Array.isArray(types)) {
           const invalidTypes = types.filter((t) => !validTypes.includes(t));
           if (invalidTypes.length > 0) {
@@ -96,12 +96,12 @@ export class PromotionalAssetsService {
         }
         logger.debug("Type filter applied:", where.type);
       }
-
+      
       if (filters.placement) {
         where.placement = { contains: filters.placement, mode: "insensitive" };
         logger.debug("Placement filter applied:", where.placement);
       }
-
+      
       if (filters.is_active !== undefined) {
         logger.debug("Processing is_active filter:", filters.is_active);
         const isActive = filters.is_active;
@@ -122,7 +122,7 @@ export class PromotionalAssetsService {
         }
         logger.debug("is_active filter applied:", where.is_active);
       }
-
+      
       // Priority filtering - handle single value or range
       if (filters.priority !== undefined) {
         logger.debug("Processing priority filter:", filters.priority);
@@ -142,7 +142,7 @@ export class PromotionalAssetsService {
           max: filters.priority_max,
         });
         const priorityFilter: Prisma.IntFilter = {};
-
+        
         if (filters.priority_min !== undefined) {
           const minPriority = parseInt(filters.priority_min);
           if (isNaN(minPriority)) {
@@ -151,7 +151,7 @@ export class PromotionalAssetsService {
           }
           priorityFilter.gte = minPriority;
         }
-
+        
         if (filters.priority_max !== undefined) {
           const maxPriority = parseInt(filters.priority_max);
           if (isNaN(maxPriority)) {
@@ -160,7 +160,7 @@ export class PromotionalAssetsService {
           }
           priorityFilter.lte = maxPriority;
         }
-
+        
         where.priority = priorityFilter;
         logger.debug("Priority range filter applied:", where.priority);
       }
@@ -170,7 +170,7 @@ export class PromotionalAssetsService {
         where.title = { contains: filters.title, mode: "insensitive" };
         logger.debug("Title filter applied:", where.title);
       }
-
+      
       // Content search filtering (JSONB search)
       if (filters.content_search) {
         where.content = {
@@ -181,7 +181,7 @@ export class PromotionalAssetsService {
 
       // Enhanced schedule filtering
       const andConditions: Prisma.promotional_assetsWhereInput[] = [];
-
+      
       if (filters.schedule_active === "true") {
         logger.debug("Processing schedule_active filter");
         const now = new Date();
@@ -192,7 +192,7 @@ export class PromotionalAssetsService {
           OR: [{ schedule_end: null }, { schedule_end: { gte: now } }],
         });
       }
-
+      
       if (filters.schedule_start) {
         logger.debug(
           "Processing schedule_start filter:",
@@ -218,7 +218,7 @@ export class PromotionalAssetsService {
           throw new ValidationError("Invalid schedule_start date format");
         }
       }
-
+      
       if (filters.schedule_end) {
         logger.debug("Processing schedule_end filter:", filters.schedule_end);
         try {
@@ -235,7 +235,7 @@ export class PromotionalAssetsService {
           throw new ValidationError("Invalid schedule_end date format");
         }
       }
-
+      
       if (andConditions.length > 0) {
         if (where.AND) {
           where.AND = Array.isArray(where.AND)
@@ -287,8 +287,8 @@ export class PromotionalAssetsService {
             error instanceof Error
               ? { message: error.message, stack: error.stack, name: error.name }
               : error,
-          filters,
-          page,
+        filters, 
+        page, 
           limit,
         },
         "Error in promotional assets findMany"
@@ -373,7 +373,7 @@ export class PromotionalAssetsService {
             error instanceof Error
               ? { message: error.message, stack: error.stack, name: error.name }
               : error,
-          data,
+        data, 
           userId,
         },
         "Error creating promotional asset"
@@ -385,7 +385,7 @@ export class PromotionalAssetsService {
   async update(id: number, data: UpdatePromotionalAssetInput, userId: string) {
     try {
       const existingAsset = await this.findById(id);
-
+      
       // Optimistic concurrency check
       if (data.version && existingAsset.version !== data.version) {
         throw new ValidationError(
@@ -651,7 +651,7 @@ export class PromotionalAssetsService {
   async getAuditLogs(assetId: number, page: number = 1, limit: number = 20) {
     try {
       const { skip, take } = getPrismaSkipTake(page, limit);
-
+      
       const [logs, total] = await Promise.all([
         prisma.asset_audit_logs.findMany({
           where: { asset_id: assetId },
@@ -687,4 +687,4 @@ export class PromotionalAssetsService {
 
     return changes;
   }
-}
+} 
