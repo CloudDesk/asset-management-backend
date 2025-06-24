@@ -30,7 +30,7 @@ export const createPromotionalAssetSchema = basePromotionalAssetSchema.refine(
 export const updatePromotionalAssetSchema = basePromotionalAssetSchema
   .partial()
   .extend({
-    version: z.number().int().min(1)
+    version: z.number().int().min(1).optional()
   })
   .refine(
     (data) => {
