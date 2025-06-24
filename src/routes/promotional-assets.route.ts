@@ -251,7 +251,6 @@ export async function promotionalAssetsRoutes(fastify: FastifyInstance) {
           },
           body: {
             type: "object",
-            required: ["version"],
             properties: {
               type: { 
                 type: "string", 

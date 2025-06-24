@@ -187,6 +187,7 @@ export class PromotionalAssetsService {
           skip,
           take,
           orderBy: [
+            { modifieddate: 'desc' },
             { priority: 'desc' },
             { createddate: 'desc' }
           ]

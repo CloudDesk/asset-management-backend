@@ -690,7 +690,7 @@ export async function dynamicFindManyWithFilters(
       SELECT ${columnList} 
       FROM ${tableName} 
       ${whereClause}
-      ORDER BY id DESC 
+      ORDER BY COALESCE(modifieddate, createddate, id) DESC 
       LIMIT ${take} OFFSET ${skip}
     `;
     
@@ -773,8 +773,9 @@ export async function dynamicFindMany(
     if (!options.where || Object.keys(options.where).length === 0) {
       logger.debug({ tableName, skip, take }, 'Executing optimized raw SQL SELECT query');
       
-      // Build dynamic ORDER BY based on available columns
-      const orderByClause = availableColumns.includes('created_at') ? 'created_at DESC' :
+      // Build dynamic ORDER BY based on available columns, prioritizing modified date
+      const orderByClause = availableColumns.includes('modifieddate') ? 'COALESCE(modifieddate, createddate, id) DESC' :
+                           availableColumns.includes('created_at') ? 'created_at DESC' :
                            availableColumns.includes('createddate') ? 'createddate DESC' :
                            availableColumns.includes('id') ? 'id DESC' :
                            '1'; // fallback to constant if no suitable column
@@ -849,8 +850,9 @@ export async function dynamicFindMany(
         modelName 
       }, 'Prisma findMany failed, falling back to raw SQL');
       
-      // Fallback to raw SQL without filters
-      const orderByClause = availableColumns.includes('created_at') ? 'created_at DESC' :
+      // Fallback to raw SQL without filters, prioritizing modifieddate
+      const orderByClause = availableColumns.includes('modifieddate') ? 'COALESCE(modifieddate, createddate, id) DESC' :
+                           availableColumns.includes('created_at') ? 'created_at DESC' :
                            availableColumns.includes('createddate') ? 'createddate DESC' :
                            availableColumns.includes('id') ? 'id DESC' :
                            '1'; // fallback to constant if no suitable column
