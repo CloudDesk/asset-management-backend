@@ -239,6 +239,7 @@ export class ProductService {
           availablequantity: 0,
           soldquantity: 0,
           ecompublishedquantity: 0,
+          productstatus: 'out_of_stock',
           totalStockQuantity: 0,
           totalStockAvailable: 0,
           totalStockSold: 0,
@@ -298,6 +299,14 @@ export class ProductService {
         }))
       }, 'Calculated stock totals with NEW business logic - availablequantity requires ecompublish=true');
 
+      // Determine product status based on available quantity
+      let productStatus = 'out_of_stock';
+      if (totals.totalAvailable > 5) {
+        productStatus = 'in_stock';
+      } else if (totals.totalAvailable > 0) {
+        productStatus = 'low_stock';
+      }
+
       // Update product with calculated totals
       const updateData = {
         // Total quantity field - sum of all stocks regardless of status
@@ -308,6 +317,8 @@ export class ProductService {
         soldquantity: totals.totalSold,
         // Update ecom published quantity based on ecompublish flag AND Available status
         ecompublishedquantity: totals.totalEcomPublished,
+        // Automatically update product status based on available quantity
+        productstatus: productStatus,
         // Keep existing fields for backward compatibility
         totalStockQuantity: totals.totalQuantity,
         totalStockAvailable: totals.totalAvailable,
@@ -322,14 +333,17 @@ export class ProductService {
           productId,
           productPuc,
           totals,
+          productStatus,
+          availableQuantity: totals.totalAvailable,
           updatedFields: Object.keys(updateData)
-        }, 'Updated product stock totals successfully with business logic');
+        }, 'Updated product stock totals and status successfully with business logic');
       } else {
         logger.warn({ 
           productIdentifier, 
           productId,
           productPuc,
           totals,
+          productStatus,
           attemptedFields: Object.keys(updateData)
         }, 'Could not update product - fields may not be available in schema');
       }

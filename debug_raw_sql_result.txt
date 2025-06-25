@@ -16,3 +16,21 @@ Update result: [
     "resettokenexpires": null
   }
 ]
+Update result: [
+  {
+    "id": 1,
+    "useremail": "pravinsf24@gmail.com",
+    "userpassword": "$2a$12$yggldTuEcnuItzfZLxT5ueLuKpDglwALXfea2OhV40S/AQTv/FMB.",
+    "createddate": 1750421418,
+    "modifieddate": 1750846635,
+    "role": null,
+    "usersphonenumber": null,
+    "firstname": "Pravin",
+    "lastname": "Raja",
+    "location": null,
+    "fcmid": null,
+    "sessiontoken": "cdc4d489e28e71e441a01de277a21c2e9c0bf3cf1e26bdad13c7ee52bb30befd",
+    "resettoken": null,
+    "resettokenexpires": null
+  }
+]

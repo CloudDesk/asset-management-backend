@@ -124,17 +124,38 @@ export class OrdersService {
         logger.info({ 
           orderId: order.id,
           productIds: data.productid,
-          orderlineCount: data.productid.length
+          orderlineCount: data.productid.length,
+          hasOrderItems: !!data.orderItems
         }, 'Creating orderlines for valid products');
 
-        // Create orderlines with proper error handling
-        const orderlineResults = await this.createOrderlinesForProducts(
-          order.id,
-          data.productid,
-          data,
-          order.orderid,
-          currentTimestamp
-        );
+        // Use detailed order items if available, otherwise fall back to simple product IDs
+        let orderlineResults;
+        if (data.orderItems && Array.isArray(data.orderItems) && data.orderItems.length > 0) {
+          logger.info({
+            orderId: order.id,
+            orderItems: data.orderItems.length
+          }, 'Creating orderlines from detailed order items');
+          
+          orderlineResults = await this.createOrderlinesFromOrderItems(
+            order.id,
+            data.orderItems,
+            order.orderid,
+            currentTimestamp
+          );
+        } else {
+          logger.info({
+            orderId: order.id,
+            productIds: data.productid.length
+          }, 'Creating orderlines from product IDs (fallback)');
+          
+          orderlineResults = await this.createOrderlinesForProducts(
+            order.id,
+            data.productid,
+            data,
+            order.orderid,
+            currentTimestamp
+          );
+        }
 
         logger.info({ 
           orderId: order.id, 
@@ -343,6 +364,61 @@ export class OrdersService {
           orderlineData, 
           cartItem: item 
         }, 'Failed to create orderline for cart item');
+        // Continue with other orderlines even if one fails
+      }
+    }
+
+    return orderlines;
+  }
+
+  async createOrderlinesFromOrderItems(
+    orderId: number,
+    orderItems: any[],
+    orderidString: string,
+    currentTime: number
+  ) {
+    const orderlines = [];
+    
+    for (let i = 0; i < orderItems.length; i++) {
+      const orderItem = orderItems[i];
+      
+      const orderlineData = {
+        orderid: orderId, // Use the database ID, not the string orderid
+        productid: orderItem.productid,
+        userid: parseInt(orderItem.userid?.toString() || '0') || null,
+        addressid: parseInt(orderItem.addressid?.toString() || '0') || null,
+        productamount: parseFloat(orderItem.productamount?.toString() || '0') || null,
+        discountamount: parseFloat(orderItem.discountamount?.toString() || '0') || null,
+        orderamount: parseFloat(orderItem.orderamount?.toString() || '0') || null,
+        quantity: parseInt(orderItem.quantity?.toString() || '1') || 1,
+        productname: orderItem.productname || null,
+        productcategory: orderItem.productcategory || null,
+        orderstatus: 'payment_completed',
+        uniqueordderid: orderidString, // Use the string orderid
+        createddate: currentTime,
+        modifieddate: currentTime,
+        ordereddate: currentTime
+      };
+
+      try {
+        const orderline = await dynamicCreate('orderline', orderlineData);
+        if (orderline) {
+          orderlines.push(orderline);
+          logger.debug({ 
+            orderlineId: orderline.id, 
+            orderlineNumber: orderline.orderlinenumber,
+            productId: orderItem.productid,
+            productName: orderItem.productname,
+            orderAmount: orderItem.orderamount,
+            discountAmount: orderItem.discountamount
+          }, 'Orderline created successfully from order item');
+        }
+      } catch (orderlineError: any) {
+        logger.error({ 
+          error: orderlineError, 
+          orderlineData, 
+          orderItem 
+        }, 'Failed to create orderline for order item');
         // Continue with other orderlines even if one fails
       }
     }
