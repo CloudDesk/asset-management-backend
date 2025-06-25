@@ -5696,3 +5696,11 @@ Filtered data result: {
   "ecompublishedquantity": 10,
   "productstatus": "in_stock"
 }
+Filtered data result: {
+  "quantity": 9,
+  "availablequantity": 9,
+  "soldquantity": 0,
+  "ecompublishedquantity": 9,
+  "productstatus": "in_stock",
+  "modifieddate": 1750835672842
+}

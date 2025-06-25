@@ -6395,3 +6395,11 @@ Filtering data for product (product): {
   "totalStockAvailable": 9,
   "totalStockSold": 0
 }
+Filtering data for product (product): {
+  "quantity": 9,
+  "availablequantity": 9,
+  "soldquantity": 0,
+  "ecompublishedquantity": 9,
+  "productstatus": "in_stock",
+  "modifieddate": 1750835672842
+}
