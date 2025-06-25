@@ -1,0 +1,12 @@
+Fallback query: 
+        UPDATE "picklist" 
+        SET "label" = $2, "value" = $3, "modifieddate" = $4 
+        WHERE "id" = $1 
+        RETURNING id, label, value, object, controlledvalue, fieldname, controlledlabel, controlledfieldname, parent, createddate, modifieddate
+      
+Fallback query: 
+        UPDATE "picklist" 
+        SET "label" = $2, "value" = $3, "modifieddate" = $4 
+        WHERE "id" = $1 
+        RETURNING id, label, value, object, controlledvalue, fieldname, controlledlabel, controlledfieldname, parent, createddate, modifieddate
+      

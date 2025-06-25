@@ -483,7 +483,15 @@ export class PhonePeController {
             }
             const currentTime = Date.now();
             const orderid = `ORDER_${transactionId}_${currentTime}`;
-            // Create order record with only valid products
+            // Get original order data from transaction for detailed orderline creation
+            const originalOrderData = transaction.transactiondata?.originalPayload?.order || [];
+            logger.info({
+                transactionId,
+                originalOrderData: originalOrderData.length,
+                validProductIds,
+                step: 'preparing_order_with_detailed_items'
+            }, 'Preparing order creation with detailed product information');
+            // Create order record with productid to enable automatic orderline creation
             const orderData = {
                 userid: transaction.userid,
                 orderamount: parseFloat(transaction.amount?.toString() || '0'),
@@ -495,26 +503,40 @@ export class PhonePeController {
                 discountamount: 0,
                 ispaymentsucceed: true,
                 merchanttransactionid: transaction.merchanttransactionid,
-                productid: validProductIds, // Store only valid product IDs
+                productid: validProductIds, // Include product IDs for automatic orderline creation
                 createddate: currentTime,
-                modifieddate: currentTime
+                modifieddate: currentTime,
+                // Add original order items for detailed orderline creation
+                orderItems: originalOrderData.filter((item) => validProductIds.includes(item.productid))
             };
-            // Create order using OrdersService
+            // Create order using OrdersService (with automatic orderline creation)
             const order = await this.ordersService.create(orderData);
             logger.info({
                 transactionId,
                 orderId: order.id,
+                orderidString: order.orderid,
                 validProductCount: validProductIds.length,
-                invalidProductCount: invalidProductIds.length
-            }, 'Order created successfully with validated products');
-            // Create orderlines for valid products
+                invalidProductCount: invalidProductIds.length,
+                step: 'order_created_with_automatic_orderlines'
+            }, 'Order created successfully with automatic orderline creation');
+            // Check if orderlines were created automatically
+            const createdOrderlines = await prisma.orderline.findMany({
+                where: { orderid: order.id },
+                select: { id: true, productid: true, orderlinenumber: true }
+            });
             logger.info({
                 transactionId,
-                validProductIds,
-                orderlineCount: validProductIds.length
-            }, 'Creating orderlines for valid products');
-            // Create orderlines with proper error handling
-            const orderlineResults = await this.createOrderlinesForProducts(order.id, validProducts, transaction, orderid, currentTime, transactionId);
+                orderId: order.id,
+                automaticOrderlines: createdOrderlines.length,
+                orderlineIds: createdOrderlines.map(ol => ol.id),
+                step: 'automatic_orderlines_verified'
+            }, 'Automatic orderline creation completed and verified');
+            // Use the automatically created orderlines
+            const orderlineResults = createdOrderlines.map(ol => ({
+                success: true,
+                productId: Number(ol.productid),
+                orderline: ol
+            }));
             const successfulOrderlines = orderlineResults.filter(result => result.success);
             const failedOrderlines = orderlineResults.filter(result => !result.success);
             logger.info({

@@ -5704,3 +5704,23 @@ Filtered data result: {
   "productstatus": "in_stock",
   "modifieddate": 1750835672842
 }
+Filtered data result: {
+  "label": "Test Status",
+  "value": "test_status",
+  "object": "product",
+  "fieldname": "productstatus"
+}
+Filtered data result: {
+  "label": "Updated Test Status",
+  "value": "updated_test_status"
+}
+Filtered data result: {
+  "label": "Test Production Status",
+  "value": "test_production_status",
+  "object": "product",
+  "fieldname": "productstatus"
+}
+Filtered data result: {
+  "label": "Updated Production Status",
+  "value": "updated_production_status"
+}

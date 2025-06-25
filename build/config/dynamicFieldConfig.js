@@ -51,18 +51,19 @@ export const dynamicFieldConfigs = {
     picklist: {
         table: 'picklist',
         allowedFields: [
-            'type', 'table', 'field', 'label', 'value',
-            'isActive', 'ordering'
+            'label', 'value', 'object', 'controlledvalue', 'fieldname',
+            'controlledlabel', 'controlledfieldname', 'parent'
         ],
-        requiredFields: ['type', 'table', 'field', 'label', 'value'],
+        requiredFields: ['label', 'value'],
         fieldTypes: {
-            type: 'string',
-            table: 'string',
-            field: 'string',
             label: 'string',
             value: 'string',
-            isActive: 'boolean',
-            ordering: 'number'
+            object: 'string',
+            controlledvalue: 'string',
+            fieldname: 'string',
+            controlledlabel: 'string',
+            controlledfieldname: 'string',
+            parent: 'string'
         }
     },
     purchaserequest: {
@@ -94,6 +95,7 @@ export const dynamicFieldConfigs = {
         }
     }
 };
+// Legacy picklist types - kept for backward compatibility
 export const picklistTypes = {
     PRODUCT_STATUS: 'PRODUCT_STATUS',
     PRODUCT_CATEGORY: 'PRODUCT_CATEGORY',

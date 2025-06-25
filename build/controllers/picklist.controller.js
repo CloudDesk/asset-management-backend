@@ -31,12 +31,21 @@ export class PicklistController {
         const response = createSuccessResponse('Picklist retrieved successfully', formatPicklistForAPI(picklist));
         return reply.code(200).send(response);
     });
-    getPicklistByType = asyncHandler(async (request, reply) => {
-        const { type, table, field } = request.query;
-        if (!type) {
-            throw new ValidationError('Type parameter is required');
+    getPicklistByObject = asyncHandler(async (request, reply) => {
+        const { object } = request.query;
+        if (!object) {
+            throw new ValidationError('Object parameter is required');
         }
-        const picklists = await this.picklistService.findByType(type, table, field);
+        const picklists = await this.picklistService.findByObject(object);
+        const response = createSuccessResponse('Picklist items retrieved successfully', formatEntitiesForAPI(picklists, 'picklist'));
+        return reply.code(200).send(response);
+    });
+    getPicklistByFieldname = asyncHandler(async (request, reply) => {
+        const { fieldname } = request.query;
+        if (!fieldname) {
+            throw new ValidationError('Fieldname parameter is required');
+        }
+        const picklists = await this.picklistService.findByFieldname(fieldname);
         const response = createSuccessResponse('Picklist items retrieved successfully', formatEntitiesForAPI(picklists, 'picklist'));
         return reply.code(200).send(response);
     });
@@ -57,19 +66,6 @@ export class PicklistController {
         const { id } = picklistParamsSchema.parse(request.params);
         await this.picklistService.delete(id);
         const response = createSuccessResponse('Picklist item deleted successfully', null);
-        return reply.code(200).send(response);
-    });
-    toggleActive = asyncHandler(async (request, reply) => {
-        const { id } = picklistParamsSchema.parse(request.params);
-        const picklist = await this.picklistService.toggleActive(id);
-        const message = `Picklist item ${picklist.isActive ? 'activated' : 'deactivated'} successfully`;
-        const response = createSuccessResponse(message, formatPicklistForAPI(picklist));
-        return reply.code(200).send(response);
-    });
-    reorderPicklists = asyncHandler(async (request, reply) => {
-        const { type, table, field, items } = request.body;
-        const picklists = await this.picklistService.reorder(type, table, field, items);
-        const response = createSuccessResponse('Picklist items reordered successfully', formatEntitiesForAPI(picklists, 'picklist'));
         return reply.code(200).send(response);
     });
 }

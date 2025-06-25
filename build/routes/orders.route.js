@@ -220,35 +220,63 @@ export async function ordersRoutes(fastify) {
     // POST /v1/orders - Create new order
     fastify.post('/', {
         schema: {
-            description: 'Create a new order',
+            description: 'Create a new order from single order object or cart items array',
             tags: ['Orders'],
             body: {
-                type: 'object',
-                properties: {
-                    userid: { type: 'number', description: 'User ID' },
-                    addressid: { type: 'number', description: 'Address ID' },
-                    orderamount: { type: 'number', description: 'Order amount' },
-                    orderid: { type: 'string', maxLength: 500, description: 'Order ID string' },
-                    orderstatus: { type: 'string', maxLength: 500, description: 'Order status' },
-                    quantity: { type: 'number', description: 'Quantity' },
-                    transactionid: { type: 'string', maxLength: 500, description: 'Transaction ID' },
-                    readytodispatchdate: { type: 'number', description: 'Ready to dispatch date (timestamp)' },
-                    dispatcheddate: { type: 'number', description: 'Dispatched date (timestamp)' },
-                    productamount: { type: 'number', description: 'Product amount' },
-                    discountamount: { type: 'number', description: 'Discount amount' },
-                    deliveryfrom: { type: 'string', maxLength: 200, description: 'Delivery from location' },
-                    orderprocessingtime: { type: 'number', description: 'Order processing time' },
-                    ispaymentsucceed: { type: 'boolean', description: 'Payment success status' },
-                    merchanttransactionid: { type: 'string', maxLength: 250, description: 'Merchant transaction ID' },
-                    productid: { type: 'array', items: { type: 'number' }, description: 'Product IDs' },
-                    delivereddate: { type: 'number', description: 'Delivered date (timestamp)' },
-                    cancelleddate: { type: 'number', description: 'Cancelled date (timestamp)' },
-                    returneddate: { type: 'number', description: 'Returned date (timestamp)' },
-                    paymentfaileddate: { type: 'number', description: 'Payment failed date (timestamp)' },
-                    createddate: { type: 'number', description: 'Created date (timestamp)' },
-                    modifieddate: { type: 'number', description: 'Modified date (timestamp)' }
-                },
-                additionalProperties: true, // Allow any additional fields
+                oneOf: [
+                    {
+                        // Single order object
+                        type: 'object',
+                        properties: {
+                            userid: { type: 'number', description: 'User ID' },
+                            addressid: { type: 'number', description: 'Address ID' },
+                            orderamount: { type: 'number', description: 'Order amount' },
+                            orderid: { type: 'string', maxLength: 500, description: 'Order ID string' },
+                            orderstatus: { type: 'string', maxLength: 500, description: 'Order status' },
+                            quantity: { type: 'number', description: 'Quantity' },
+                            transactionid: { type: 'string', maxLength: 500, description: 'Transaction ID' },
+                            readytodispatchdate: { type: 'number', description: 'Ready to dispatch date (timestamp)' },
+                            dispatcheddate: { type: 'number', description: 'Dispatched date (timestamp)' },
+                            productamount: { type: 'number', description: 'Product amount' },
+                            discountamount: { type: 'number', description: 'Discount amount' },
+                            deliveryfrom: { type: 'string', maxLength: 200, description: 'Delivery from location' },
+                            orderprocessingtime: { type: 'number', description: 'Order processing time' },
+                            ispaymentsucceed: { type: 'boolean', description: 'Payment success status' },
+                            merchanttransactionid: { type: 'string', maxLength: 250, description: 'Merchant transaction ID' },
+                            productid: { type: 'array', items: { type: 'number' }, description: 'Product IDs' },
+                            delivereddate: { type: 'number', description: 'Delivered date (timestamp)' },
+                            cancelleddate: { type: 'number', description: 'Cancelled date (timestamp)' },
+                            returneddate: { type: 'number', description: 'Returned date (timestamp)' },
+                            paymentfaileddate: { type: 'number', description: 'Payment failed date (timestamp)' },
+                            createddate: { type: 'number', description: 'Created date (timestamp)' },
+                            modifieddate: { type: 'number', description: 'Modified date (timestamp)' }
+                        },
+                        additionalProperties: true
+                    },
+                    {
+                        // Cart items array
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                addressid: { type: 'number', description: 'Address ID' },
+                                cartId: { type: 'number', description: 'Cart ID' },
+                                discountamount: { type: 'number', description: 'Discount amount for this item' },
+                                orderamount: { type: 'number', description: 'Order amount for this item' },
+                                productamount: { type: 'number', description: 'Product amount for this item' },
+                                productcategory: { type: 'string', description: 'Product category' },
+                                productid: { type: 'number', description: 'Product ID' },
+                                productname: { type: 'string', description: 'Product name' },
+                                quantity: { type: 'number', description: 'Quantity of this product' },
+                                userid: { type: 'number', description: 'User ID' }
+                            },
+                            required: ['productid', 'userid', 'quantity'],
+                            additionalProperties: true
+                        },
+                        minItems: 1,
+                        description: 'Array of cart items to create order from'
+                    }
+                ]
             },
             response: {
                 201: {

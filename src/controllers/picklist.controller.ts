@@ -7,7 +7,6 @@ import {
   PicklistParams
 } from '../schemas/picklist.schema.js';
 import { getPaginationParams } from '../utils/pagination.js';
-import { PicklistType } from '../config/dynamicFieldConfig.js';
 import { 
   createSuccessResponse,
   asyncHandler,
@@ -52,21 +51,6 @@ export class PicklistController {
     return reply.code(200).send(response);
   });
 
-  getPicklistByType = asyncHandler(async (request: FastifyRequest<{ 
-    Querystring: { type: PicklistType; table?: string; field?: string } 
-  }>, reply: FastifyReply) => {
-    const { type, table, field } = request.query;
-    
-    if (!type) {
-      throw new ValidationError('Type parameter is required');
-    }
-    
-    const picklists = await this.picklistService.findByType(type, table, field);
-    
-    const response = createSuccessResponse('Picklist items retrieved successfully', formatEntitiesForAPI(picklists, 'picklist'));
-    return reply.code(200).send(response);
-  });
-
   createPicklist = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const data = createPicklistSchema.parse(request.body);
     
@@ -92,32 +76,6 @@ export class PicklistController {
     await this.picklistService.delete(id);
     
     const response = createSuccessResponse('Picklist item deleted successfully', null);
-    return reply.code(200).send(response);
-  });
-
-  toggleActive = asyncHandler(async (request: FastifyRequest<{ Params: PicklistParams }>, reply: FastifyReply) => {
-    const { id } = picklistParamsSchema.parse(request.params);
-    
-    const picklist = await this.picklistService.toggleActive(id);
-    
-    const message = `Picklist item ${picklist.isActive ? 'activated' : 'deactivated'} successfully`;
-    const response = createSuccessResponse(message, formatPicklistForAPI(picklist));
-    return reply.code(200).send(response);
-  });
-
-  reorderPicklists = asyncHandler(async (request: FastifyRequest<{
-    Body: {
-      type: PicklistType;
-      table: string;
-      field: string;
-      items: { id: string; ordering: number }[];
-    }
-  }>, reply: FastifyReply) => {
-    const { type, table, field, items } = request.body;
-    
-    const picklists = await this.picklistService.reorder(type, table, field, items);
-    
-    const response = createSuccessResponse('Picklist items reordered successfully', formatEntitiesForAPI(picklists, 'picklist'));
     return reply.code(200).send(response);
   });
 } 

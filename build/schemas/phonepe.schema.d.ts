@@ -12,8 +12,8 @@ export declare const phonePePaymentInitiationSchema: z.ZodObject<{
     name: string;
     amount: number;
     userId: number;
-    mobileNumber: string;
     productIds: number[];
+    mobileNumber: string;
     transactionFor: string;
     merchantTransactionId?: string | undefined;
     callbackUrl?: string | undefined;
@@ -22,8 +22,8 @@ export declare const phonePePaymentInitiationSchema: z.ZodObject<{
     amount: number;
     userId: number;
     mobileNumber: string;
-    merchantTransactionId?: string | undefined;
     productIds?: number[] | undefined;
+    merchantTransactionId?: string | undefined;
     transactionFor?: string | undefined;
     callbackUrl?: string | undefined;
 }>;

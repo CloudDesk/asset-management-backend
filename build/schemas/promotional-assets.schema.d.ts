@@ -3,25 +3,26 @@ export declare const createPromotionalAssetSchema: z.ZodEffects<z.ZodObject<{
     type: z.ZodEnum<["banner", "featured_ad", "popup", "carousel"]>;
     placement: z.ZodString;
     title: z.ZodString;
-    content: z.ZodEffects<z.ZodRecord<z.ZodString, z.ZodAny>, Record<string, any>, Record<string, any>>;
     priority: z.ZodDefault<z.ZodNumber>;
     is_active: z.ZodDefault<z.ZodBoolean>;
     schedule_start: z.ZodOptional<z.ZodString>;
     schedule_end: z.ZodOptional<z.ZodString>;
+} & {
+    content: z.ZodOptional<z.ZodUnion<[z.ZodEffects<z.ZodRecord<z.ZodString, z.ZodAny>, Record<string, any>, Record<string, any>>, z.ZodEffects<z.ZodArray<z.ZodAny, "many">, any[], any[]>]>>;
 }, "strip", z.ZodTypeAny, {
     type: "banner" | "featured_ad" | "popup" | "carousel";
     placement: string;
     title: string;
-    content: Record<string, any>;
     priority: number;
     is_active: boolean;
+    content?: any[] | Record<string, any> | undefined;
     schedule_start?: string | undefined;
     schedule_end?: string | undefined;
 }, {
     type: "banner" | "featured_ad" | "popup" | "carousel";
     placement: string;
     title: string;
-    content: Record<string, any>;
+    content?: any[] | Record<string, any> | undefined;
     priority?: number | undefined;
     is_active?: boolean | undefined;
     schedule_start?: string | undefined;
@@ -30,16 +31,16 @@ export declare const createPromotionalAssetSchema: z.ZodEffects<z.ZodObject<{
     type: "banner" | "featured_ad" | "popup" | "carousel";
     placement: string;
     title: string;
-    content: Record<string, any>;
     priority: number;
     is_active: boolean;
+    content?: any[] | Record<string, any> | undefined;
     schedule_start?: string | undefined;
     schedule_end?: string | undefined;
 }, {
     type: "banner" | "featured_ad" | "popup" | "carousel";
     placement: string;
     title: string;
-    content: Record<string, any>;
+    content?: any[] | Record<string, any> | undefined;
     priority?: number | undefined;
     is_active?: boolean | undefined;
     schedule_start?: string | undefined;
@@ -49,49 +50,127 @@ export declare const updatePromotionalAssetSchema: z.ZodEffects<z.ZodObject<{
     type: z.ZodOptional<z.ZodEnum<["banner", "featured_ad", "popup", "carousel"]>>;
     placement: z.ZodOptional<z.ZodString>;
     title: z.ZodOptional<z.ZodString>;
-    content: z.ZodOptional<z.ZodEffects<z.ZodRecord<z.ZodString, z.ZodAny>, Record<string, any>, Record<string, any>>>;
+    content: z.ZodOptional<z.ZodUnion<[z.ZodEffects<z.ZodRecord<z.ZodString, z.ZodAny>, Record<string, any>, Record<string, any>>, z.ZodEffects<z.ZodArray<z.ZodAny, "many">, any[], any[]>]>>;
     priority: z.ZodOptional<z.ZodDefault<z.ZodNumber>>;
     is_active: z.ZodOptional<z.ZodDefault<z.ZodBoolean>>;
     schedule_start: z.ZodOptional<z.ZodOptional<z.ZodString>>;
     schedule_end: z.ZodOptional<z.ZodOptional<z.ZodString>>;
 } & {
-    version: z.ZodNumber;
+    version: z.ZodOptional<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
-    version: number;
     type?: "banner" | "featured_ad" | "popup" | "carousel" | undefined;
+    version?: number | undefined;
     placement?: string | undefined;
     title?: string | undefined;
-    content?: Record<string, any> | undefined;
+    content?: any[] | Record<string, any> | undefined;
     priority?: number | undefined;
     is_active?: boolean | undefined;
     schedule_start?: string | undefined;
     schedule_end?: string | undefined;
 }, {
-    version: number;
     type?: "banner" | "featured_ad" | "popup" | "carousel" | undefined;
+    version?: number | undefined;
     placement?: string | undefined;
     title?: string | undefined;
-    content?: Record<string, any> | undefined;
+    content?: any[] | Record<string, any> | undefined;
     priority?: number | undefined;
     is_active?: boolean | undefined;
     schedule_start?: string | undefined;
     schedule_end?: string | undefined;
 }>, {
-    version: number;
     type?: "banner" | "featured_ad" | "popup" | "carousel" | undefined;
+    version?: number | undefined;
     placement?: string | undefined;
     title?: string | undefined;
-    content?: Record<string, any> | undefined;
+    content?: any[] | Record<string, any> | undefined;
     priority?: number | undefined;
     is_active?: boolean | undefined;
     schedule_start?: string | undefined;
     schedule_end?: string | undefined;
 }, {
-    version: number;
     type?: "banner" | "featured_ad" | "popup" | "carousel" | undefined;
+    version?: number | undefined;
     placement?: string | undefined;
     title?: string | undefined;
-    content?: Record<string, any> | undefined;
+    content?: any[] | Record<string, any> | undefined;
+    priority?: number | undefined;
+    is_active?: boolean | undefined;
+    schedule_start?: string | undefined;
+    schedule_end?: string | undefined;
+}>;
+export declare const upsertPromotionalAssetSchema: z.ZodEffects<z.ZodEffects<z.ZodObject<{
+    id: z.ZodOptional<z.ZodNumber>;
+    type: z.ZodOptional<z.ZodEnum<["banner", "featured_ad", "popup", "carousel"]>>;
+    placement: z.ZodOptional<z.ZodString>;
+    title: z.ZodOptional<z.ZodString>;
+    content: z.ZodOptional<z.ZodUnion<[z.ZodEffects<z.ZodRecord<z.ZodString, z.ZodAny>, Record<string, any>, Record<string, any>>, z.ZodEffects<z.ZodArray<z.ZodAny, "many">, any[], any[]>]>>;
+    priority: z.ZodOptional<z.ZodDefault<z.ZodNumber>>;
+    is_active: z.ZodOptional<z.ZodBoolean>;
+    schedule_start: z.ZodOptional<z.ZodString>;
+    schedule_end: z.ZodOptional<z.ZodString>;
+    version: z.ZodOptional<z.ZodNumber>;
+}, "strip", z.ZodTypeAny, {
+    type?: "banner" | "featured_ad" | "popup" | "carousel" | undefined;
+    version?: number | undefined;
+    id?: number | undefined;
+    placement?: string | undefined;
+    title?: string | undefined;
+    content?: any[] | Record<string, any> | undefined;
+    priority?: number | undefined;
+    is_active?: boolean | undefined;
+    schedule_start?: string | undefined;
+    schedule_end?: string | undefined;
+}, {
+    type?: "banner" | "featured_ad" | "popup" | "carousel" | undefined;
+    version?: number | undefined;
+    id?: number | undefined;
+    placement?: string | undefined;
+    title?: string | undefined;
+    content?: any[] | Record<string, any> | undefined;
+    priority?: number | undefined;
+    is_active?: boolean | undefined;
+    schedule_start?: string | undefined;
+    schedule_end?: string | undefined;
+}>, {
+    type?: "banner" | "featured_ad" | "popup" | "carousel" | undefined;
+    version?: number | undefined;
+    id?: number | undefined;
+    placement?: string | undefined;
+    title?: string | undefined;
+    content?: any[] | Record<string, any> | undefined;
+    priority?: number | undefined;
+    is_active?: boolean | undefined;
+    schedule_start?: string | undefined;
+    schedule_end?: string | undefined;
+}, {
+    type?: "banner" | "featured_ad" | "popup" | "carousel" | undefined;
+    version?: number | undefined;
+    id?: number | undefined;
+    placement?: string | undefined;
+    title?: string | undefined;
+    content?: any[] | Record<string, any> | undefined;
+    priority?: number | undefined;
+    is_active?: boolean | undefined;
+    schedule_start?: string | undefined;
+    schedule_end?: string | undefined;
+}>, {
+    type?: "banner" | "featured_ad" | "popup" | "carousel" | undefined;
+    version?: number | undefined;
+    id?: number | undefined;
+    placement?: string | undefined;
+    title?: string | undefined;
+    content?: any[] | Record<string, any> | undefined;
+    priority?: number | undefined;
+    is_active?: boolean | undefined;
+    schedule_start?: string | undefined;
+    schedule_end?: string | undefined;
+}, {
+    type?: "banner" | "featured_ad" | "popup" | "carousel" | undefined;
+    version?: number | undefined;
+    id?: number | undefined;
+    placement?: string | undefined;
+    title?: string | undefined;
+    content?: any[] | Record<string, any> | undefined;
     priority?: number | undefined;
     is_active?: boolean | undefined;
     schedule_start?: string | undefined;
@@ -144,6 +223,7 @@ export declare const auditLogQuerySchema: z.ZodObject<{
 }>;
 export type CreatePromotionalAssetInput = z.infer<typeof createPromotionalAssetSchema>;
 export type UpdatePromotionalAssetInput = z.infer<typeof updatePromotionalAssetSchema>;
+export type UpsertPromotionalAssetInput = z.infer<typeof upsertPromotionalAssetSchema>;
 export type PromotionalAssetParams = z.infer<typeof promotionalAssetParamsSchema>;
 export type PromotionalAssetQuery = z.infer<typeof promotionalAssetQuerySchema>;
 export type AuditLogQuery = z.infer<typeof auditLogQuerySchema>;

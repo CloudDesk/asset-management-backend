@@ -76,21 +76,256 @@ export class OrdersService {
             if (!createData.orderid) {
                 createData.orderid = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
             }
+            // Create the order first
             const order = await dynamicCreate('orders', createData);
             if (!order) {
                 throw new Error('Failed to create order - no valid fields provided');
+            }
+            // Create orderlines for valid products if productid array is provided
+            if (data.productid && Array.isArray(data.productid) && data.productid.length > 0) {
+                logger.info({
+                    orderId: order.id,
+                    productIds: data.productid,
+                    orderlineCount: data.productid.length,
+                    hasOrderItems: !!data.orderItems
+                }, 'Creating orderlines for valid products');
+                // Use detailed order items if available, otherwise fall back to simple product IDs
+                let orderlineResults;
+                if (data.orderItems && Array.isArray(data.orderItems) && data.orderItems.length > 0) {
+                    logger.info({
+                        orderId: order.id,
+                        orderItems: data.orderItems.length
+                    }, 'Creating orderlines from detailed order items');
+                    orderlineResults = await this.createOrderlinesFromOrderItems(order.id, data.orderItems, order.orderid, currentTimestamp);
+                }
+                else {
+                    logger.info({
+                        orderId: order.id,
+                        productIds: data.productid.length
+                    }, 'Creating orderlines from product IDs (fallback)');
+                    orderlineResults = await this.createOrderlinesForProducts(order.id, data.productid, data, order.orderid, currentTimestamp);
+                }
+                logger.info({
+                    orderId: order.id,
+                    orderid: order.orderid,
+                    createdOrderlines: orderlineResults.length,
+                    totalProducts: data.productid.length
+                }, 'Order and orderlines creation completed');
+                // Return order with orderlines info
+                return {
+                    ...order,
+                    orderlines: orderlineResults
+                };
             }
             logger.info({
                 orderId: order.id,
                 orderid: order.orderid,
                 availableFields: Object.keys(order)
-            }, 'Dynamic orders create completed');
+            }, 'Dynamic orders create completed (no orderlines created)');
             return order;
         }
         catch (error) {
             logger.error({ error, data }, 'Error in orders create operation');
             throw error;
         }
+    }
+    async createFromCartItems(cartItems) {
+        try {
+            logger.debug({ cartItems, itemCount: cartItems.length }, 'Starting order creation from cart items');
+            if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
+                throw new Error('Cart items array is required and cannot be empty');
+            }
+            // Calculate totals from cart items
+            const totalOrderAmount = cartItems.reduce((sum, item) => sum + (item.orderamount || 0), 0);
+            const totalProductAmount = cartItems.reduce((sum, item) => sum + (item.productamount || 0), 0);
+            const totalDiscountAmount = cartItems.reduce((sum, item) => sum + (item.discountamount || 0), 0);
+            const totalQuantity = cartItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
+            const productIds = cartItems.map(item => item.productid);
+            // Use data from first item for common order fields
+            const firstItem = cartItems[0];
+            const currentTimestamp = Date.now();
+            // Generate unique orderid
+            const orderid = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            // Create order record with aggregated data
+            const orderData = {
+                userid: firstItem.userid,
+                addressid: firstItem.addressid,
+                orderamount: totalOrderAmount,
+                orderid: orderid,
+                orderstatus: 'order_processing',
+                quantity: totalQuantity,
+                productamount: totalProductAmount,
+                discountamount: totalDiscountAmount,
+                ispaymentsucceed: false,
+                productid: productIds,
+                createddate: currentTimestamp,
+                modifieddate: currentTimestamp
+            };
+            // Create the order first
+            const order = await dynamicCreate('orders', orderData);
+            if (!order) {
+                throw new Error('Failed to create order - no valid fields provided');
+            }
+            logger.info({
+                orderId: order.id,
+                cartItems: cartItems.length,
+                totalAmount: totalOrderAmount
+            }, 'Creating orderlines for cart items');
+            // Create orderlines with proper error handling
+            const orderlineResults = await this.createOrderlinesFromCartItems(order.id, cartItems, order.orderid, currentTimestamp);
+            logger.info({
+                orderId: order.id,
+                orderid: order.orderid,
+                createdOrderlines: orderlineResults.length,
+                totalCartItems: cartItems.length
+            }, 'Order and orderlines creation from cart completed');
+            // Return order with orderlines info
+            return {
+                ...order,
+                orderlines: orderlineResults
+            };
+        }
+        catch (error) {
+            logger.error({ error, cartItems }, 'Error in order creation from cart items');
+            throw error;
+        }
+    }
+    async createOrderlinesForProducts(orderId, productIds, orderData, orderidString, currentTime) {
+        const orderlines = [];
+        for (let i = 0; i < productIds.length; i++) {
+            const productId = productIds[i];
+            const orderlineData = {
+                orderid: orderId, // Use the database ID, not the string orderid
+                productid: productId,
+                userid: orderData.userid || null,
+                addressid: orderData.addressid || null,
+                productamount: orderData.productamount || null,
+                discountamount: orderData.discountamount || null,
+                orderamount: orderData.orderamount || null,
+                quantity: orderData.quantity || 1, // Default quantity per line
+                merchanttransactionid: orderData.merchanttransactionid || null,
+                orderstatus: orderData.orderstatus || 'order_processing',
+                uniqueordderid: orderidString, // Use the string orderid
+                deliveryfrom: orderData.deliveryfrom || null,
+                createddate: currentTime,
+                modifieddate: currentTime,
+                readytodispatchdate: orderData.readytodispatchdate || null,
+                dispatcheddate: orderData.dispatcheddate || null,
+                delivereddate: orderData.delivereddate || null,
+                cancelleddate: orderData.cancelleddate || null,
+                returneddate: orderData.returneddate || null,
+                paymentfaileddate: orderData.paymentfaileddate || null
+            };
+            try {
+                const orderline = await dynamicCreate('orderline', orderlineData);
+                if (orderline) {
+                    orderlines.push(orderline);
+                    logger.debug({
+                        orderlineId: orderline.id,
+                        orderlineNumber: orderline.orderlinenumber,
+                        productId: productId
+                    }, 'Orderline created successfully');
+                }
+            }
+            catch (orderlineError) {
+                logger.error({
+                    error: orderlineError,
+                    orderlineData,
+                    productId
+                }, 'Failed to create orderline for product');
+                // Continue with other orderlines even if one fails
+            }
+        }
+        return orderlines;
+    }
+    async createOrderlinesFromCartItems(orderId, cartItems, orderidString, currentTime) {
+        const orderlines = [];
+        for (let i = 0; i < cartItems.length; i++) {
+            const item = cartItems[i];
+            const orderlineData = {
+                orderid: orderId, // Use the database ID, not the string orderid
+                productid: item.productid,
+                userid: item.userid || null,
+                addressid: item.addressid || null,
+                productamount: item.productamount || null,
+                discountamount: item.discountamount || null,
+                orderamount: item.orderamount || null,
+                quantity: item.quantity || 1,
+                productname: item.productname || null,
+                productcategory: item.productcategory || null,
+                orderstatus: 'order_processing',
+                uniqueordderid: orderidString, // Use the string orderid
+                createddate: currentTime,
+                modifieddate: currentTime
+            };
+            try {
+                const orderline = await dynamicCreate('orderline', orderlineData);
+                if (orderline) {
+                    orderlines.push(orderline);
+                    logger.debug({
+                        orderlineId: orderline.id,
+                        orderlineNumber: orderline.orderlinenumber,
+                        productId: item.productid,
+                        productName: item.productname
+                    }, 'Orderline created successfully from cart item');
+                }
+            }
+            catch (orderlineError) {
+                logger.error({
+                    error: orderlineError,
+                    orderlineData,
+                    cartItem: item
+                }, 'Failed to create orderline for cart item');
+                // Continue with other orderlines even if one fails
+            }
+        }
+        return orderlines;
+    }
+    async createOrderlinesFromOrderItems(orderId, orderItems, orderidString, currentTime) {
+        const orderlines = [];
+        for (let i = 0; i < orderItems.length; i++) {
+            const orderItem = orderItems[i];
+            const orderlineData = {
+                orderid: orderId, // Use the database ID, not the string orderid
+                productid: orderItem.productid,
+                userid: parseInt(orderItem.userid?.toString() || '0') || null,
+                addressid: parseInt(orderItem.addressid?.toString() || '0') || null,
+                productamount: parseFloat(orderItem.productamount?.toString() || '0') || null,
+                discountamount: parseFloat(orderItem.discountamount?.toString() || '0') || null,
+                orderamount: parseFloat(orderItem.orderamount?.toString() || '0') || null,
+                quantity: parseInt(orderItem.quantity?.toString() || '1') || 1,
+                productname: orderItem.productname || null,
+                productcategory: orderItem.productcategory || null,
+                orderstatus: 'payment_completed',
+                uniqueordderid: orderidString, // Use the string orderid
+                createddate: currentTime,
+                modifieddate: currentTime,
+                ordereddate: currentTime
+            };
+            try {
+                const orderline = await dynamicCreate('orderline', orderlineData);
+                if (orderline) {
+                    orderlines.push(orderline);
+                    logger.debug({
+                        orderlineId: orderline.id,
+                        orderlineNumber: orderline.orderlinenumber,
+                        productId: orderItem.productid,
+                        productName: orderItem.productname,
+                        orderAmount: orderItem.orderamount,
+                        discountAmount: orderItem.discountamount
+                    }, 'Orderline created successfully from order item');
+                }
+            }
+            catch (orderlineError) {
+                logger.error({
+                    error: orderlineError,
+                    orderlineData,
+                    orderItem
+                }, 'Failed to create orderline for order item');
+                // Continue with other orderlines even if one fails
+            }
+        }
+        return orderlines;
     }
     async update(id, data) {
         try {

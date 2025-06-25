@@ -6403,3 +6403,23 @@ Filtering data for product (product): {
   "productstatus": "in_stock",
   "modifieddate": 1750835672842
 }
+Filtering data for picklist (picklist): {
+  "label": "Test Status",
+  "value": "test_status",
+  "object": "product",
+  "fieldname": "productstatus"
+}
+Filtering data for picklist (picklist): {
+  "label": "Updated Test Status",
+  "value": "updated_test_status"
+}
+Filtering data for picklist (picklist): {
+  "label": "Test Production Status",
+  "value": "test_production_status",
+  "object": "product",
+  "fieldname": "productstatus"
+}
+Filtering data for picklist (picklist): {
+  "label": "Updated Production Status",
+  "value": "updated_production_status"
+}

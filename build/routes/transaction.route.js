@@ -37,7 +37,7 @@ export async function transactionRoutes(fastify) {
                                 properties: {
                                     id: { type: 'number' },
                                     transactionid: { type: 'string' },
-                                    transactiondata: { type: 'object', description: 'JSON transaction data' },
+                                    transactiondata: { type: 'object', additionalProperties: true, description: 'JSON transaction data' },
                                     userid: { type: 'number' },
                                     productid: { type: 'array', items: { type: 'number' } },
                                     merchanttransactionid: { type: 'string' },
@@ -169,7 +169,7 @@ export async function transactionRoutes(fastify) {
                                 properties: {
                                     id: { type: 'number' },
                                     transactionid: { type: 'string' },
-                                    transactiondata: { type: 'object' },
+                                    transactiondata: { type: 'object', additionalProperties: true },
                                     userid: { type: 'number' },
                                     productid: { type: 'array', items: { type: 'number' } },
                                     merchanttransactionid: { type: 'string' },
@@ -246,7 +246,7 @@ export async function transactionRoutes(fastify) {
                             properties: {
                                 id: { type: 'number' },
                                 transactionid: { type: 'string' },
-                                transactiondata: { type: 'object' },
+                                transactiondata: { type: 'object', additionalProperties: true },
                                 userid: { type: 'number' },
                                 productid: { type: 'array', items: { type: 'number' } },
                                 merchanttransactionid: { type: 'string' },
@@ -314,7 +314,7 @@ export async function transactionRoutes(fastify) {
                             properties: {
                                 id: { type: 'number' },
                                 transactionid: { type: 'string' },
-                                transactiondata: { type: 'object' },
+                                transactiondata: { type: 'object', additionalProperties: true },
                                 userid: { type: 'number' },
                                 productid: { type: 'array', items: { type: 'number' } },
                                 merchanttransactionid: { type: 'string' },
@@ -369,7 +369,7 @@ export async function transactionRoutes(fastify) {
                 type: 'object',
                 properties: {
                     transactionid: { type: 'string', description: 'Unique transaction ID' },
-                    transactiondata: { type: 'object', description: 'JSON transaction data' },
+                    transactiondata: { type: 'object', additionalProperties: true, description: 'JSON transaction data' },
                     userid: { type: 'number', description: 'User ID' },
                     productid: { type: 'array', items: { type: 'number' }, description: 'Array of product IDs' },
                     merchanttransactionid: { type: 'string', description: 'Merchant transaction ID' },
@@ -429,7 +429,7 @@ export async function transactionRoutes(fastify) {
             body: {
                 type: 'object',
                 properties: {
-                    transactiondata: { type: 'object', description: 'JSON transaction data' },
+                    transactiondata: { type: 'object', additionalProperties: true, description: 'JSON transaction data' },
                     userid: { type: 'number', description: 'User ID' },
                     productid: { type: 'array', items: { type: 'number' }, description: 'Array of product IDs' },
                     merchanttransactionid: { type: 'string', description: 'Merchant transaction ID' },
@@ -497,7 +497,7 @@ export async function transactionRoutes(fastify) {
             body: {
                 type: 'object',
                 properties: {
-                    transactiondata: { type: 'object', description: 'JSON transaction data' },
+                    transactiondata: { type: 'object', additionalProperties: true, description: 'JSON transaction data' },
                     userid: { type: 'number', description: 'User ID' },
                     productid: { type: 'array', items: { type: 'number' }, description: 'Array of product IDs' },
                     merchanttransactionid: { type: 'string', description: 'Merchant transaction ID' },
@@ -560,7 +560,7 @@ export async function transactionRoutes(fastify) {
                 properties: {
                     id: { type: 'number', description: 'Database ID (optional, for update)' },
                     transactionid: { type: 'string', description: 'Transaction ID (optional, for update)' },
-                    transactiondata: { type: 'object', description: 'JSON transaction data' },
+                    transactiondata: { type: 'object', additionalProperties: true, description: 'JSON transaction data' },
                     userid: { type: 'number', description: 'User ID' },
                     productid: { type: 'array', items: { type: 'number' }, description: 'Array of product IDs' },
                     merchanttransactionid: { type: 'string', description: 'Merchant transaction ID' },

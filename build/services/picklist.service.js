@@ -44,40 +44,51 @@ export class PicklistService {
             throw error;
         }
     }
-    async findByType(type, table, field) {
+    async findByObject(object) {
         try {
-            const where = { type, isActive: true };
-            if (table)
-                where.table = table;
-            if (field)
-                where.field = field;
-            logger.debug({ type, table, field }, 'Finding picklists by type');
+            logger.debug({ object }, 'Finding picklists by object');
             const picklists = await dynamicFindMany('picklist', {
-                where,
-                orderBy: [{ ordering: 'asc' }, { label: 'asc' }],
+                where: { object },
+                orderBy: [{ label: 'asc' }],
             });
-            logger.debug({ type, picklistCount: picklists.length }, 'Found picklists by type');
+            logger.debug({ object, picklistCount: picklists.length }, 'Found picklists by object');
             return picklists;
         }
         catch (error) {
-            logger.error({ error, type, table, field }, 'Error finding picklists by type');
+            logger.error({ error, object }, 'Error finding picklists by object');
+            throw error;
+        }
+    }
+    async findByFieldname(fieldname) {
+        try {
+            logger.debug({ fieldname }, 'Finding picklists by fieldname');
+            const picklists = await dynamicFindMany('picklist', {
+                where: { fieldname },
+                orderBy: [{ label: 'asc' }],
+            });
+            logger.debug({ fieldname, picklistCount: picklists.length }, 'Found picklists by fieldname');
+            return picklists;
+        }
+        catch (error) {
+            logger.error({ error, fieldname }, 'Error finding picklists by fieldname');
             throw error;
         }
     }
     async create(data) {
         try {
             logger.debug({ originalData: data }, 'Starting dynamic picklist create operation');
-            // Check if value already exists for this type (if we can)
+            // Check if value already exists (basic check)
             try {
                 const existing = await dynamicFindMany('picklist', {
                     where: {
-                        type: data.type,
                         value: data.value,
+                        ...(data.object && { object: data.object }),
+                        ...(data.fieldname && { fieldname: data.fieldname })
                     },
                     take: 1
                 });
                 if (existing.length > 0) {
-                    throw new Error(`Picklist item with value '${data.value}' already exists for type '${data.type}'`);
+                    throw new Error(`Picklist item with value '${data.value}' already exists`);
                 }
             }
             catch (error) {
@@ -86,21 +97,6 @@ export class PicklistService {
                 }
                 else {
                     throw error;
-                }
-            }
-            // Get the next ordering value if not provided
-            if (data.ordering === undefined || data.ordering === 0) {
-                try {
-                    const lastItems = await dynamicFindMany('picklist', {
-                        where: { type: data.type, table: data.table, field: data.field },
-                        orderBy: { ordering: 'desc' },
-                        take: 1
-                    });
-                    data.ordering = (lastItems[0]?.ordering || 0) + 1;
-                }
-                catch (error) {
-                    logger.warn({ error }, 'Could not get last ordering value, using default');
-                    data.ordering = 1;
                 }
             }
             const picklist = await dynamicCreate('picklist', data);
@@ -131,7 +127,7 @@ export class PicklistService {
                         },
                         take: 10 // Get a few to check if any have different IDs
                     });
-                    const duplicate = existing.find(item => item.id !== id);
+                    const duplicate = existing.find(item => item.id !== parseInt(id));
                     if (duplicate) {
                         throw new Error(`Picklist item with value '${data.value}' already exists`);
                     }
@@ -174,55 +170,6 @@ export class PicklistService {
         }
         catch (error) {
             logger.error({ error, picklistId: id }, 'Error in picklist delete operation');
-            throw error;
-        }
-    }
-    async reorder(type, table, field, itemOrders) {
-        try {
-            logger.debug({ type, table, field, itemOrders }, 'Starting picklist reorder operation');
-            // Validate all items exist and belong to the same type/table/field
-            const items = await dynamicFindMany('picklist', {
-                where: {
-                    type,
-                    table,
-                    field,
-                },
-            });
-            const requestedIds = itemOrders.map(item => item.id);
-            const foundItems = items.filter(item => requestedIds.includes(item.id));
-            if (foundItems.length !== itemOrders.length) {
-                throw new Error('Some picklist items not found or do not belong to the specified type/table/field');
-            }
-            // Update ordering for each item
-            const updatePromises = itemOrders.map(item => dynamicUpdate('picklist', { id: item.id }, { ordering: item.ordering }));
-            await Promise.all(updatePromises);
-            logger.info({ type, table, field, itemCount: itemOrders.length }, 'Picklist reorder completed');
-            return await this.findByType(type, table, field);
-        }
-        catch (error) {
-            logger.error({ error, type, table, field, itemOrders }, 'Error in picklist reorder operation');
-            throw error;
-        }
-    }
-    async toggleActive(id) {
-        try {
-            const picklist = await this.findById(id);
-            logger.debug({ picklistId: id, currentActive: picklist.isActive }, 'Toggling picklist active status');
-            const updatedPicklist = await dynamicUpdate('picklist', { id }, {
-                isActive: !picklist.isActive,
-                is_active: !picklist.isActive // Also try snake_case
-            });
-            if (!updatedPicklist) {
-                throw new Error('Failed to toggle picklist active status');
-            }
-            logger.info({
-                picklistId: id,
-                newActive: updatedPicklist.isActive || updatedPicklist.is_active
-            }, 'Picklist active status toggled');
-            return updatedPicklist;
-        }
-        catch (error) {
-            logger.error({ error, picklistId: id }, 'Error toggling picklist active status');
             throw error;
         }
     }

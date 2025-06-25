@@ -125,7 +125,7 @@ export class ProductService {
     }
     async updateStockTotals(productIdentifier) {
         try {
-            logger.debug({ productIdentifier }, 'Starting dynamic stock totals update');
+            logger.debug({ productIdentifier }, 'Starting comprehensive stock totals update');
             // First, try to determine if productIdentifier is an ID or PUC and find the product
             let product = null;
             let productPuc = productIdentifier;
@@ -166,79 +166,69 @@ export class ProductService {
                 logger.warn({ productIdentifier }, 'Product not found, skipping stock totals update');
                 return { totalQuantity: 0, totalAvailable: 0, totalSold: 0, totalEcomPublished: 0 };
             }
-            // Find stocks by PUC (primary relationship) and also try productId as fallback
+            // Find stocks by PUC (primary relationship) - only use active stocks
             const stocks = await dynamicFindMany('stock', {
                 where: {
-                    OR: [
-                        { puc: productPuc },
-                        { productId: productId },
-                        { product_id: productId }
-                    ]
+                    puc: productPuc,
+                    isdeleted: { not: true },
+                    isarchive: { not: true }
                 },
             });
             if (!Array.isArray(stocks) || stocks.length === 0) {
-                logger.warn({ productIdentifier, productPuc, productId }, 'No stocks found for product, setting quantities to zero');
+                logger.warn({ productIdentifier, productPuc, productId }, 'No active stocks found for product, setting quantities to zero');
                 // Update product to zero quantities if no stocks found
                 const updateData = {
                     quantity: 0,
                     availablequantity: 0,
                     soldquantity: 0,
                     ecompublishedquantity: 0,
-                    totalStockQuantity: 0,
-                    totalStockAvailable: 0,
-                    totalStockSold: 0,
+                    productstatus: 'out_of_stock',
+                    modifieddate: BigInt(Date.now())
                 };
                 await dynamicUpdate('product', { id: productId }, updateData);
-                logger.info({ productIdentifier, productId }, 'Updated product quantities to zero (no stocks found)');
+                logger.info({ productIdentifier, productId }, 'Updated product quantities to zero (no active stocks found)');
                 return { totalQuantity: 0, totalAvailable: 0, totalSold: 0, totalEcomPublished: 0 };
             }
-            // Calculate totals based on business logic
-            const totals = stocks.reduce((acc, stock) => {
-                const quantity = stock.quantity || 1; // Default to 1 if quantity not specified
-                // Add to total quantity (no conditions - all stocks count)
-                acc.totalQuantity += quantity;
-                // NEW LOGIC: Add to available quantity only if stockstatus="Available" AND ecompublish=true
-                if (stock.stockstatus === 'Available' && stock.ecompublish === true) {
-                    acc.totalAvailable += quantity;
-                }
-                // Add to sold quantity only if stock status is "Sold"
-                if (stock.stockstatus === 'Sold') {
-                    acc.totalSold += quantity;
-                }
-                // NEW LOGIC: Add to ecom published quantity if ecompublish=true AND stockstatus is NOT "Sold"
-                if (stock.ecompublish === true && stock.stockstatus !== 'Sold') {
-                    acc.totalEcomPublished += quantity;
-                }
-                return acc;
-            }, { totalQuantity: 0, totalAvailable: 0, totalSold: 0, totalEcomPublished: 0 });
+            // Calculate totals based on simplified business logic
+            const availableStocks = stocks.filter(s => s.stockstatus === 'Available');
+            const soldStocks = stocks.filter(s => s.stockstatus === 'Sold');
+            const damagedStocks = stocks.filter(s => s.stockstatus === 'Damaged');
+            const ecomPublishedStocks = availableStocks.filter(s => s.ecompublish === true);
+            const totals = {
+                totalQuantity: stocks.length,
+                totalAvailable: availableStocks.length,
+                totalSold: soldStocks.length,
+                totalEcomPublished: ecomPublishedStocks.length
+            };
             logger.info({
                 productIdentifier,
                 productId,
                 productPuc,
                 stockCount: stocks.length,
                 totals,
-                stockDetails: stocks.map(s => ({
-                    id: s.id,
-                    puc: s.puc,
-                    stockstatus: s.stockstatus,
-                    ecompublish: s.ecompublish,
-                    quantity: s.quantity || 1
-                }))
-            }, 'Calculated stock totals with NEW business logic - availablequantity requires ecompublish=true');
+                stockBreakdown: {
+                    available: availableStocks.length,
+                    sold: soldStocks.length,
+                    damaged: damagedStocks.length,
+                    ecomPublished: ecomPublishedStocks.length
+                }
+            }, 'Calculated stock totals with simplified logic');
+            // Determine product status based on available quantity
+            let productStatus = 'out_of_stock';
+            if (totals.totalAvailable > 5) {
+                productStatus = 'in_stock';
+            }
+            else if (totals.totalAvailable >= 1) {
+                productStatus = 'low_stock';
+            }
             // Update product with calculated totals
             const updateData = {
-                // Total quantity field - sum of all stocks regardless of status
                 quantity: totals.totalQuantity,
-                // Update available quantity based on stockstatus = "Available"
                 availablequantity: totals.totalAvailable,
-                // Update sold quantity based on stockstatus = "Sold"
                 soldquantity: totals.totalSold,
-                // Update ecom published quantity based on ecompublish flag AND Available status
                 ecompublishedquantity: totals.totalEcomPublished,
-                // Keep existing fields for backward compatibility
-                totalStockQuantity: totals.totalQuantity,
-                totalStockAvailable: totals.totalAvailable,
-                totalStockSold: totals.totalSold,
+                productstatus: productStatus,
+                modifieddate: BigInt(Date.now())
             };
             const updatedProduct = await dynamicUpdate('product', { id: productId }, updateData);
             if (updatedProduct) {
@@ -247,8 +237,10 @@ export class ProductService {
                     productId,
                     productPuc,
                     totals,
+                    productStatus,
+                    availableQuantity: totals.totalAvailable,
                     updatedFields: Object.keys(updateData)
-                }, 'Updated product stock totals successfully with business logic');
+                }, 'Updated product stock totals and status successfully');
             }
             else {
                 logger.warn({
@@ -256,6 +248,7 @@ export class ProductService {
                     productId,
                     productPuc,
                     totals,
+                    productStatus,
                     attemptedFields: Object.keys(updateData)
                 }, 'Could not update product - fields may not be available in schema');
             }
