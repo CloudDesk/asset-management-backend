@@ -60,3 +60,46 @@ Filtering data for product (product): {
   "productstatus": "in_stock",
   "modifieddate": 1750914073491
 }
+Filtering data for users (users): {
+  "userpassword": "$2a$12$6vNripJiWaeOPA5z/YYFkeCxHybWu.8l4/Z1haj0v7fqib7ZBKsEC",
+  "modifieddate": 1750915586886
+}
+Filtering data for users (users): {
+  "userpassword": "$2a$12$kMQlIY/HY9dnEBcTUM0REOJvlDO7AF8ektGtJAhcXzmVs.3vRjH76",
+  "modifieddate": 1750915614412
+}
+Filtering data for users (users): {
+  "usermobilenumber": 9876543210,
+  "firstname": "User",
+  "lastname": "9876543210",
+  "createddate": 1750916594839,
+  "modifieddate": 1750916594839
+}
+Filtering data for users (users): {
+  "usermobilenumber": 9111111111,
+  "firstname": "User",
+  "lastname": "9111111111",
+  "createddate": 1750916596009,
+  "modifieddate": 1750916596009
+}
+Filtering data for users (users): {
+  "usermobilenumber": 9222222222,
+  "firstname": "User",
+  "lastname": "9222222222",
+  "createddate": 1750916596460,
+  "modifieddate": 1750916596460
+}
+Filtering data for users (users): {
+  "usermobilenumber": 9333333333,
+  "firstname": "User",
+  "lastname": "9333333333",
+  "createddate": 1750916596917,
+  "modifieddate": 1750916596917
+}
+Filtering data for users (users): {
+  "usermobilenumber": 9999888777,
+  "firstname": "User",
+  "lastname": "9999888777",
+  "createddate": 1750916723699,
+  "modifieddate": 1750916723699
+}

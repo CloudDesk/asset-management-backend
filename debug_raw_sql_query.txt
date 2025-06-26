@@ -1,0 +1,12 @@
+Update query: 
+        UPDATE "users" 
+        SET "userpassword" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, useremail, userpassword, createddate, modifieddate, usermobilenumber, fcmid, firstname, lastname, gender, gstnumber, isbusinessuser
+      
+Update query: 
+        UPDATE "users" 
+        SET "userpassword" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, useremail, userpassword, createddate, modifieddate, usermobilenumber, fcmid, firstname, lastname, gender, gstnumber, isbusinessuser
+      

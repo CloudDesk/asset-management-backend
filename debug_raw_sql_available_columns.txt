@@ -1,0 +1,2 @@
+Available columns: ["id","useremail","userpassword","createddate","modifieddate","usermobilenumber","fcmid","firstname","lastname","gender","gstnumber","isbusinessuser"]
+Available columns: ["id","useremail","userpassword","createddate","modifieddate","usermobilenumber","fcmid","firstname","lastname","gender","gstnumber","isbusinessuser"]

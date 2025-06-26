@@ -10,6 +10,7 @@ import { notesRoutes } from './notes.route.js';
 import { usersRoutes } from './users.route.js';
 import { inventoryUsersRoutes } from './inventoryusers.route.js';
 import { authRoutes } from './auth.route.js';
+import { mobileAuthRoutes } from './mobile-auth.route.js';
 import { poinvoiceRoutes } from './poinvoice.route.js';
 import { addressRoutes } from './address.route.js';
 import { samplePurchaseRequestRoutes } from './samplepurchaserequest.route.js';
@@ -64,6 +65,7 @@ export async function routes(fastify: FastifyInstance) {
   await fastify.register(async function (fastify) {
  
     await fastify.register(authRoutes, { prefix: '/auth' });
+    await fastify.register(mobileAuthRoutes, { prefix: '/mobile-auth' });
     await fastify.register(productRoutes, { prefix: '/products' });
     await fastify.register(stockRoutes, { prefix: '/stocks' });
     await fastify.register(picklistRoutes, { prefix: '/picklists' });
