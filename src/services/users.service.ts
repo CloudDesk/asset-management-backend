@@ -289,7 +289,7 @@ export class UsersService {
   /**
    * Generate OTP for mobile number (passwordless login step 1)
    */
-  async generateMobileOTP(mobileNumber: number): Promise<{ otp: string; expiresAt: Date; isNewUser?: boolean } | null> {
+  async generateMobileOTP(mobileNumber: number): Promise<{ otp: number; expiresAt: Date; isNewUser?: boolean } | null> {
     try {
       logger.debug({ mobileNumber }, 'Generating OTP for mobile number');
 
@@ -305,7 +305,6 @@ export class UsersService {
           const newUserData = {
             usermobilenumber: mobileNumber,
             firstname: `User`, // Default first name
-            lastname: `${mobileNumber}`, // Use mobile number as lastname for identification
             createddate: Date.now(),
             modifieddate: Date.now()
           };
@@ -325,7 +324,7 @@ export class UsersService {
       }
 
       // Use hardcoded OTP for development (no SMS gateway needed)
-      const otp = "1234"; // Hardcoded for development - easy testing
+      const otp = 1234; // Hardcoded integer for development - easy testing
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
 
       // Store OTP in memory for verification
@@ -348,9 +347,9 @@ export class UsersService {
   /**
    * Verify OTP and authenticate user (passwordless login step 2)
    */
-  async verifyMobileOTP(mobileNumber: number, otp: string): Promise<{ user: any; token: string } | null> {
+  async verifyMobileOTP(mobileNumber: number, otp: number): Promise<{ user: any; token: string } | null> {
     try {
-      logger.debug({ mobileNumber, otpLength: otp.length }, 'Verifying OTP for mobile authentication');
+      logger.debug({ mobileNumber, otp }, 'Verifying OTP for mobile authentication');
 
       // Check if user exists
       const user = await this.findByMobileNumber(mobileNumber);
@@ -388,9 +387,9 @@ export class UsersService {
   }
 
   // OTP storage (in-memory for testing - use Redis/DB in production)
-  private otpStorage = new Map<number, { otp: string; expiresAt: Date }>();
+  private otpStorage = new Map<number, { otp: number; expiresAt: Date }>();
 
-  private storeOTP(mobileNumber: number, otp: string, expiresAt: Date): void {
+  private storeOTP(mobileNumber: number, otp: number, expiresAt: Date): void {
     this.otpStorage.set(mobileNumber, { otp, expiresAt });
     
     // Auto-cleanup expired OTP after expiry time
@@ -399,7 +398,7 @@ export class UsersService {
     }, expiresAt.getTime() - Date.now());
   }
 
-  private verifyOTP(mobileNumber: number, otp: string): boolean {
+  private verifyOTP(mobileNumber: number, otp: number): boolean {
     const storedOTP = this.otpStorage.get(mobileNumber);
     
     if (!storedOTP) {
@@ -423,7 +422,7 @@ export class UsersService {
   /**
    * Get OTP for testing purposes (remove in production)
    */
-  async getOTPForTesting(mobileNumber: number): Promise<string | null> {
+  async getOTPForTesting(mobileNumber: number): Promise<number | null> {
     const storedOTP = this.otpStorage.get(mobileNumber);
     return storedOTP?.otp || null;
   }

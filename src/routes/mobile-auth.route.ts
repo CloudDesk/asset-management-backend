@@ -45,7 +45,7 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
                 otpSent: { type: 'boolean' },
                 expiresAt: { type: 'string' },
                 // For development only - remove in production
-                otp: { type: 'string', description: 'Development only - hardcoded OTP' },
+                otp: { type: 'integer', description: 'Development only - hardcoded OTP' },
                 isNewUser: { type: 'boolean', description: 'Whether a new user was created automatically' }
               },
             },
@@ -162,7 +162,7 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
       tags: ['Mobile Authentication'],
       body: {
         type: 'object',
-        required: ['usermobilenumber', 'otp'],
+        required: ['usermobilenumber'],
         properties: {
           usermobilenumber: { 
             type: 'number', 
@@ -171,17 +171,14 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
             description: 'User mobile number (10-11 digits)'
           },
           otp: { 
-            type: 'string', 
-            minLength: 4,
-            maxLength: 6,
-            description: 'OTP received (use "1234" for development)'
+            description: 'OTP received (use 1234 for development)'
           },
         },
         additionalProperties: false,
         examples: [
           {
             usermobilenumber: 9344715431,
-            otp: "1234"
+            otp: 1234
           }
         ]
       },
@@ -253,7 +250,35 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
       },
     },
   }, asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
-    const { usermobilenumber, otp } = request.body as { usermobilenumber: number; otp: string };
+    const { usermobilenumber, otp } = request.body as { usermobilenumber: number; otp?: number };
+
+    // Custom OTP validation with user-friendly messages
+    if (otp === undefined || otp === null) {
+      return reply.code(400).send({
+        success: false,
+        message: 'OTP is required',
+        details: 'Please enter the 4-digit OTP you received',
+        statusCode: 400
+      });
+    }
+
+    if (typeof otp !== 'number') {
+      return reply.code(400).send({
+        success: false,
+        message: 'Invalid OTP format',
+        details: 'OTP must be a number',
+        statusCode: 400
+      });
+    }
+
+    if (otp < 1000 || otp > 9999) {
+      return reply.code(400).send({
+        success: false,
+        message: 'Invalid OTP format',
+        details: 'OTP must be exactly 4 digits',
+        statusCode: 400
+      });
+    }
 
     // Rate limiting check using mobile number
     const identifier = `${request.ip}-${usermobilenumber}`;
