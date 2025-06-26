@@ -9,5 +9,7 @@ export declare class StockController {
     deleteStock: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     upsertStock: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     updateQuantities: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    updateStockByRfid: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    bulkUpdateStockByRfid: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
 }
 //# sourceMappingURL=stock.controller.d.ts.map

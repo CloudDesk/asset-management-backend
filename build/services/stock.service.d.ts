@@ -16,5 +16,41 @@ export declare class StockService {
         availableQuantity?: number;
         soldQuantity?: number;
     }): Promise<any>;
+    updateByRfid(rfid: string, orderlineid: string): Promise<any>;
+    bulkUpdateByRfid(updates: Array<{
+        rfid: string;
+        orderlineid: string;
+    }>): Promise<{
+        summary: {
+            total: number;
+            successful: number;
+            failed: number;
+            successRate: string;
+        };
+        results: ({
+            index: number;
+            rfid: string;
+            orderlineid: string;
+            success: boolean;
+            error: any;
+            errorDetails: any;
+        } | {
+            index: number;
+            rfid: string;
+            orderlineid: string;
+            success: boolean;
+            data: any;
+            stockId: any;
+            status: any;
+        })[];
+        errors: {
+            index: number;
+            rfid: string;
+            orderlineid: string;
+            success: boolean;
+            error: any;
+            errorDetails: any;
+        }[] | undefined;
+    }>;
 }
 //# sourceMappingURL=stock.service.d.ts.map

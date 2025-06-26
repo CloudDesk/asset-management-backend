@@ -1,2 +1,0 @@
-Starting raw SQL update for inventoryusers (inventoryusers)
-Starting raw SQL update for inventoryusers (inventoryusers)

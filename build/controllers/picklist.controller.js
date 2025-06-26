@@ -1,7 +1,7 @@
 import { PicklistService } from '../services/picklist.service.js';
 import { createPicklistSchema, updatePicklistSchema, picklistParamsSchema } from '../schemas/picklist.schema.js';
 import { getPaginationParams } from '../utils/pagination.js';
-import { createSuccessResponse, asyncHandler, ValidationError } from '../utils/errorHandler.js';
+import { createSuccessResponse, asyncHandler } from '../utils/errorHandler.js';
 import { formatPicklistForAPI, formatEntitiesForAPI } from '../utils/dynamicDbOperations.js';
 export class PicklistController {
     picklistService = new PicklistService();
@@ -29,24 +29,6 @@ export class PicklistController {
         const { id } = picklistParamsSchema.parse(request.params);
         const picklist = await this.picklistService.findById(id);
         const response = createSuccessResponse('Picklist retrieved successfully', formatPicklistForAPI(picklist));
-        return reply.code(200).send(response);
-    });
-    getPicklistByObject = asyncHandler(async (request, reply) => {
-        const { object } = request.query;
-        if (!object) {
-            throw new ValidationError('Object parameter is required');
-        }
-        const picklists = await this.picklistService.findByObject(object);
-        const response = createSuccessResponse('Picklist items retrieved successfully', formatEntitiesForAPI(picklists, 'picklist'));
-        return reply.code(200).send(response);
-    });
-    getPicklistByFieldname = asyncHandler(async (request, reply) => {
-        const { fieldname } = request.query;
-        if (!fieldname) {
-            throw new ValidationError('Fieldname parameter is required');
-        }
-        const picklists = await this.picklistService.findByFieldname(fieldname);
-        const response = createSuccessResponse('Picklist items retrieved successfully', formatEntitiesForAPI(picklists, 'picklist'));
         return reply.code(200).send(response);
     });
     createPicklist = asyncHandler(async (request, reply) => {

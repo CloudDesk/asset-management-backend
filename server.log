@@ -1,0 +1,15 @@
+
+> asset-management-backend@1.0.0 dev
+> npx tsx watch src/index.ts
+
+🚀 POINVOICE SERVICE LOADED - This should appear when the service is imported
+[04:12:38 UTC] [32mINFO[39m: [36mundefined - Logger plugin registered successfully[39m
+✅ Database connected successfully
+prisma:query SELECT 1
+{"level":30,"time":1750911160878,"pid":66707,"hostname":"MYs-Mac-Pro.local","msg":"Database plugin registered successfully"}
+[04:12:40 UTC] [32mINFO[39m: [36mundefined - ✅ Database connected and tested successfully[39m
+strict mode: use allowUnionTypes to allow union type keyword at "#/properties/productid" (strictTypes)
+{"level":30,"time":1750911162323,"pid":66707,"hostname":"MYs-Mac-Pro.local","msg":"Server listening at http://127.0.0.1:5600"}
+{"level":30,"time":1750911162323,"pid":66707,"hostname":"MYs-Mac-Pro.local","msg":"Server listening at http://192.168.0.102:5600"}
+{"level":30,"time":1750911162323,"pid":66707,"hostname":"MYs-Mac-Pro.local","msg":"🚀 Server running at http://localhost:5600"}
+{"level":30,"time":1750911162323,"pid":66707,"hostname":"MYs-Mac-Pro.local","msg":"📚 API Documentation available at http://localhost:5600/docs"}

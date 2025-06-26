@@ -1,5 +1,5 @@
 import { StockService } from '../services/stock.service.js';
-import { createStockSchema, updateStockSchema, upsertStockSchema, stockParamsSchema } from '../schemas/stock.schema.js';
+import { createStockSchema, updateStockSchema, upsertStockSchema, stockParamsSchema, rfidUpdateStockSchema, bulkRfidUpdateStockSchema } from '../schemas/stock.schema.js';
 import { getPaginationParams } from '../utils/pagination.js';
 import { createSuccessResponse, asyncHandler } from '../utils/errorHandler.js';
 import { formatStockForAPI, formatEntitiesForAPI } from '../utils/dynamicDbOperations.js';
@@ -63,6 +63,37 @@ export class StockController {
         const stock = await this.stockService.updateQuantities(id, quantities);
         const response = createSuccessResponse('Stock quantities updated successfully', formatStockForAPI(stock));
         return reply.code(200).send(response);
+    });
+    updateStockByRfid = asyncHandler(async (request, reply) => {
+        const { rfid, orderlineid } = rfidUpdateStockSchema.parse(request.body);
+        const stock = await this.stockService.updateByRfid(rfid, orderlineid);
+        const response = createSuccessResponse('Stock updated successfully via RFID scan', formatStockForAPI(stock));
+        return reply.code(200).send(response);
+    });
+    bulkUpdateStockByRfid = asyncHandler(async (request, reply) => {
+        const updates = bulkRfidUpdateStockSchema.parse(request.body);
+        const result = await this.stockService.bulkUpdateByRfid(updates);
+        // Format the successful stock results
+        const formattedResults = result.results.map(item => {
+            if (item.success && 'data' in item) {
+                return {
+                    ...item,
+                    data: formatStockForAPI(item.data)
+                };
+            }
+            return item;
+        });
+        const responseData = {
+            ...result,
+            results: formattedResults
+        };
+        // Determine response code based on results
+        const responseCode = result.summary.failed === 0 ? 200 : 207; // 207 = Multi-Status
+        const message = result.summary.failed === 0
+            ? `All ${result.summary.successful} stocks updated successfully via RFID scan`
+            : `Bulk RFID update completed: ${result.summary.successful} successful, ${result.summary.failed} failed`;
+        const response = createSuccessResponse(message, responseData);
+        return reply.code(responseCode).send(response);
     });
 }
 //# sourceMappingURL=stock.controller.js.map

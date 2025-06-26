@@ -650,4 +650,194 @@ export async function stockRoutes(fastify: FastifyInstance) {
       },
     },
   }, stockController.updateQuantities.bind(stockController));
+
+  // POST /v1/stocks/rfid-update - Update stock by RFID scan
+  fastify.post('/rfid-update', {
+    schema: {
+      description: 'Update stock status and order line by RFID scan',
+      tags: ['Stocks'],
+      body: {
+        type: 'object',
+        properties: {
+          rfid: { 
+            type: 'string', 
+            description: 'RFID tag identifier',
+            minLength: 1,
+            maxLength: 500
+          },
+          orderlineid: { 
+            type: 'string', 
+            description: 'Order line ID to associate with this stock',
+            minLength: 1,
+            maxLength: 500
+          },
+        },
+        required: ['rfid', 'orderlineid'],
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            data: { 
+              type: 'object',
+              additionalProperties: true,
+              description: 'Updated stock object'
+            },
+            message: { type: 'string' },
+          },
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+        404: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+      },
+    },
+  }, stockController.updateStockByRfid.bind(stockController));
+
+  // POST /v1/stocks/bulk-rfid-update - Bulk update stocks by RFID scan
+  fastify.post('/bulk-rfid-update', {
+    schema: {
+      description: 'Update multiple stocks status and order lines by RFID scan',
+      tags: ['Stocks'],
+      body: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            rfid: { 
+              type: 'string', 
+              description: 'RFID tag identifier',
+              minLength: 1,
+              maxLength: 500
+            },
+            orderlineid: { 
+              type: 'string', 
+              description: 'Order line ID to associate with this stock',
+              minLength: 1,
+              maxLength: 500
+            },
+          },
+          required: ['rfid', 'orderlineid'],
+        },
+        minItems: 1,
+        maxItems: 100,
+        description: 'Array of RFID and order line ID pairs to update'
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            data: { 
+              type: 'object',
+              properties: {
+                summary: {
+                  type: 'object',
+                  properties: {
+                    total: { type: 'number' },
+                    successful: { type: 'number' },
+                    failed: { type: 'number' },
+                    successRate: { type: 'string' }
+                  }
+                },
+                results: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    additionalProperties: true
+                  }
+                },
+                errors: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    additionalProperties: true
+                  },
+                  description: 'Failed updates (only present if there are failures)'
+                }
+              }
+            },
+            message: { type: 'string' },
+          },
+        },
+        207: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            data: { 
+              type: 'object',
+              properties: {
+                summary: {
+                  type: 'object',
+                  properties: {
+                    total: { type: 'number' },
+                    successful: { type: 'number' },
+                    failed: { type: 'number' },
+                    successRate: { type: 'string' }
+                  }
+                },
+                results: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    additionalProperties: true
+                  }
+                },
+                errors: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    additionalProperties: true
+                  }
+                }
+              }
+            },
+            message: { type: 'string' },
+          },
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+      },
+    },
+  }, stockController.bulkUpdateStockByRfid.bind(stockController));
 } 

@@ -46,6 +46,24 @@ export declare const updateStockSchema: z.ZodObject<{
     warehouse_location: z.ZodOptional<z.ZodString>;
     available_quantity: z.ZodOptional<z.ZodNumber>;
     sold_quantity: z.ZodOptional<z.ZodNumber>;
+    orderlinenumber: z.ZodOptional<z.ZodString>;
+    stockstatus: z.ZodOptional<z.ZodString>;
+    solddate: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodBigInt]>>;
+    rfidscannedtime: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodBigInt]>>;
+    rfid: z.ZodOptional<z.ZodString>;
+    puc: z.ZodOptional<z.ZodString>;
+    category: z.ZodOptional<z.ZodString>;
+    subcategory: z.ZodOptional<z.ZodString>;
+    brand: z.ZodOptional<z.ZodString>;
+    model: z.ZodOptional<z.ZodString>;
+    serialnumber: z.ZodOptional<z.ZodString>;
+    productname: z.ZodOptional<z.ZodString>;
+    location: z.ZodOptional<z.ZodString>;
+    assetlocation: z.ZodOptional<z.ZodString>;
+    ecompublish: z.ZodOptional<z.ZodBoolean>;
+    isdeleted: z.ZodOptional<z.ZodBoolean>;
+    isarchive: z.ZodOptional<z.ZodBoolean>;
+    ewaste: z.ZodOptional<z.ZodBoolean>;
 }, "passthrough", z.ZodTypeAny, z.objectOutputType<{
     batchNumber: z.ZodOptional<z.ZodString>;
     warehouseLocation: z.ZodOptional<z.ZodString>;
@@ -56,6 +74,24 @@ export declare const updateStockSchema: z.ZodObject<{
     warehouse_location: z.ZodOptional<z.ZodString>;
     available_quantity: z.ZodOptional<z.ZodNumber>;
     sold_quantity: z.ZodOptional<z.ZodNumber>;
+    orderlinenumber: z.ZodOptional<z.ZodString>;
+    stockstatus: z.ZodOptional<z.ZodString>;
+    solddate: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodBigInt]>>;
+    rfidscannedtime: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodBigInt]>>;
+    rfid: z.ZodOptional<z.ZodString>;
+    puc: z.ZodOptional<z.ZodString>;
+    category: z.ZodOptional<z.ZodString>;
+    subcategory: z.ZodOptional<z.ZodString>;
+    brand: z.ZodOptional<z.ZodString>;
+    model: z.ZodOptional<z.ZodString>;
+    serialnumber: z.ZodOptional<z.ZodString>;
+    productname: z.ZodOptional<z.ZodString>;
+    location: z.ZodOptional<z.ZodString>;
+    assetlocation: z.ZodOptional<z.ZodString>;
+    ecompublish: z.ZodOptional<z.ZodBoolean>;
+    isdeleted: z.ZodOptional<z.ZodBoolean>;
+    isarchive: z.ZodOptional<z.ZodBoolean>;
+    ewaste: z.ZodOptional<z.ZodBoolean>;
 }, z.ZodTypeAny, "passthrough">, z.objectInputType<{
     batchNumber: z.ZodOptional<z.ZodString>;
     warehouseLocation: z.ZodOptional<z.ZodString>;
@@ -66,6 +102,24 @@ export declare const updateStockSchema: z.ZodObject<{
     warehouse_location: z.ZodOptional<z.ZodString>;
     available_quantity: z.ZodOptional<z.ZodNumber>;
     sold_quantity: z.ZodOptional<z.ZodNumber>;
+    orderlinenumber: z.ZodOptional<z.ZodString>;
+    stockstatus: z.ZodOptional<z.ZodString>;
+    solddate: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodBigInt]>>;
+    rfidscannedtime: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodBigInt]>>;
+    rfid: z.ZodOptional<z.ZodString>;
+    puc: z.ZodOptional<z.ZodString>;
+    category: z.ZodOptional<z.ZodString>;
+    subcategory: z.ZodOptional<z.ZodString>;
+    brand: z.ZodOptional<z.ZodString>;
+    model: z.ZodOptional<z.ZodString>;
+    serialnumber: z.ZodOptional<z.ZodString>;
+    productname: z.ZodOptional<z.ZodString>;
+    location: z.ZodOptional<z.ZodString>;
+    assetlocation: z.ZodOptional<z.ZodString>;
+    ecompublish: z.ZodOptional<z.ZodBoolean>;
+    isdeleted: z.ZodOptional<z.ZodBoolean>;
+    isarchive: z.ZodOptional<z.ZodBoolean>;
+    ewaste: z.ZodOptional<z.ZodBoolean>;
 }, z.ZodTypeAny, "passthrough">>;
 export declare const upsertStockSchema: z.ZodObject<{
     id: z.ZodOptional<z.ZodString>;
@@ -178,10 +232,32 @@ export declare const stockQuerySchema: z.ZodObject<{
     min_available?: string | undefined;
     max_available?: string | undefined;
 }>;
+export declare const rfidUpdateStockSchema: z.ZodObject<{
+    rfid: z.ZodString;
+    orderlineid: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    rfid: string;
+    orderlineid: string;
+}, {
+    rfid: string;
+    orderlineid: string;
+}>;
+export declare const bulkRfidUpdateStockSchema: z.ZodArray<z.ZodObject<{
+    rfid: z.ZodString;
+    orderlineid: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    rfid: string;
+    orderlineid: string;
+}, {
+    rfid: string;
+    orderlineid: string;
+}>, "many">;
 export declare function validateStockDynamicFields(data: Record<string, any>): Record<string, any>;
 export type CreateStockInput = z.infer<typeof createStockSchema>;
 export type UpdateStockInput = z.infer<typeof updateStockSchema>;
 export type UpsertStockInput = z.infer<typeof upsertStockSchema>;
 export type StockParams = z.infer<typeof stockParamsSchema>;
 export type StockQuery = z.infer<typeof stockQuerySchema>;
+export type RfidUpdateStockInput = z.infer<typeof rfidUpdateStockSchema>;
+export type BulkRfidUpdateStockInput = z.infer<typeof bulkRfidUpdateStockSchema>;
 //# sourceMappingURL=stock.schema.d.ts.map

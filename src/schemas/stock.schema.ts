@@ -32,6 +32,28 @@ export const updateStockSchema = z.object({
   warehouse_location: z.string().max(100).optional(),
   available_quantity: z.number().int().min(0).optional(),
   sold_quantity: z.number().int().min(0).optional(),
+  
+  // RFID-related fields for stock updates
+  orderlinenumber: z.string().optional(),
+  stockstatus: z.string().optional(),
+  solddate: z.union([z.number(), z.bigint()]).optional(),
+  rfidscannedtime: z.union([z.number(), z.bigint()]).optional(),
+  rfid: z.string().optional(),
+  
+  // Other stock fields that might be updated
+  puc: z.string().optional(),
+  category: z.string().optional(),
+  subcategory: z.string().optional(),
+  brand: z.string().optional(),
+  model: z.string().optional(),
+  serialnumber: z.string().optional(),
+  productname: z.string().optional(),
+  location: z.string().optional(),
+  assetlocation: z.string().optional(),
+  ecompublish: z.boolean().optional(),
+  isdeleted: z.boolean().optional(),
+  isarchive: z.boolean().optional(),
+  ewaste: z.boolean().optional(),
 }).passthrough();
 
 export const upsertStockSchema = z.object({
@@ -85,6 +107,18 @@ export const stockQuerySchema = z.object({
   created_before: z.string().optional(),
 });
 
+export const rfidUpdateStockSchema = z.object({
+  rfid: z.string().min(1, 'RFID is required').max(500, 'RFID too long'),
+  orderlineid: z.string().min(1, 'Order line ID is required').max(500, 'Order line ID too long'),
+});
+
+export const bulkRfidUpdateStockSchema = z.array(
+  z.object({
+    rfid: z.string().min(1, 'RFID is required').max(500, 'RFID too long'),
+    orderlineid: z.string().min(1, 'Order line ID is required').max(500, 'Order line ID too long'),
+  })
+).min(1, 'At least one RFID update is required').max(100, 'Maximum 100 RFID updates allowed per request');
+
 // Dynamic field validation - now more permissive
 export function validateStockDynamicFields(data: Record<string, any>): Record<string, any> {
   const config = dynamicFieldConfigs.stock;
@@ -129,4 +163,6 @@ export type CreateStockInput = z.infer<typeof createStockSchema>;
 export type UpdateStockInput = z.infer<typeof updateStockSchema>;
 export type UpsertStockInput = z.infer<typeof upsertStockSchema>;
 export type StockParams = z.infer<typeof stockParamsSchema>;
-export type StockQuery = z.infer<typeof stockQuerySchema>; 
+export type StockQuery = z.infer<typeof stockQuerySchema>;
+export type RfidUpdateStockInput = z.infer<typeof rfidUpdateStockSchema>;
+export type BulkRfidUpdateStockInput = z.infer<typeof bulkRfidUpdateStockSchema>; 

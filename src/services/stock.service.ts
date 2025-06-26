@@ -611,4 +611,185 @@ export class StockService {
       throw error;
     }
   }
+
+  async updateByRfid(rfid: string, orderlineid: string) {
+    try {
+      logger.info(
+        { rfid, orderlineid },
+        "Starting stock update by RFID"
+      );
+
+      // Find stock by RFID
+      const stockList = await dynamicFindMany("stock", {
+        where: { rfid: rfid },
+        take: 1
+      });
+
+      if (!stockList || stockList.length === 0) {
+        throw new Error(`Stock not found with RFID: ${rfid}`);
+      }
+
+      const stock = stockList[0];
+      const stockId = stock.id; // Keep as integer, don't convert to string
+
+      logger.debug(
+        { stockId, currentStatus: stock.stockstatus, rfid },
+        "Found stock by RFID"
+      );
+
+      // Update stock with new orderlinenumber and status
+      const currentTime = Date.now();
+      const updateData = {
+        orderlinenumber: orderlineid,
+        stockstatus: "Sold",
+        solddate: BigInt(currentTime),
+        rfidscannedtime: BigInt(currentTime)
+      };
+
+      const updatedStock = await dynamicUpdate("stock", { id: stockId }, updateData);
+
+      if (!updatedStock) {
+        throw new Error("Failed to update stock");
+      }
+
+      logger.info(
+        {
+          stockId,
+          rfid,
+          orderlineid,
+          oldStatus: stock.stockstatus,
+          newStatus: "Sold"
+        },
+        "Stock updated successfully"
+      );
+
+      // Update product quantities using existing logic if PUC is available
+      if (updatedStock.puc) {
+        try {
+          await this.updateProductByPuc(updatedStock.puc, "RFID stock sale");
+          logger.info(
+            { 
+              stockId, 
+              puc: updatedStock.puc,
+              reason: "RFID stock sale"
+            },
+            "Product quantities updated after RFID sale"
+          );
+        } catch (error: any) {
+          logger.error(
+            { 
+              error: error.message, 
+              stockId, 
+              puc: updatedStock.puc
+            },
+            "Failed to update product quantities after RFID sale"
+          );
+          // Don't throw error here, stock update was successful
+        }
+      } else {
+        logger.warn(
+          { stockId, rfid },
+          "No PUC found for stock, skipping product quantity update"
+        );
+      }
+
+      return updatedStock;
+    } catch (error) {
+      logger.error(
+        { error, rfid, orderlineid },
+        "Error in updateByRfid operation"
+      );
+      throw error;
+    }
+  }
+
+  async bulkUpdateByRfid(updates: Array<{ rfid: string; orderlineid: string }>) {
+    try {
+      logger.info(
+        { updateCount: updates.length },
+        "Starting bulk stock update by RFID"
+      );
+
+      const results = [];
+      const errors = [];
+      let successCount = 0;
+      let failureCount = 0;
+
+      // Process each update
+      for (const [index, { rfid, orderlineid }] of updates.entries()) {
+        try {
+          logger.debug(
+            { index: index + 1, total: updates.length, rfid, orderlineid },
+            "Processing individual RFID update"
+          );
+
+          const updatedStock = await this.updateByRfid(rfid, orderlineid);
+          
+          results.push({
+            index,
+            rfid,
+            orderlineid,
+            success: true,
+            data: updatedStock,
+            stockId: updatedStock.id,
+            status: updatedStock.stockstatus
+          });
+          
+          successCount++;
+          
+          logger.debug(
+            { index: index + 1, rfid, stockId: updatedStock.id },
+            "Individual RFID update successful"
+          );
+          
+        } catch (error: any) {
+          const errorResult = {
+            index,
+            rfid,
+            orderlineid,
+            success: false,
+            error: error.message,
+            errorDetails: error.stack
+          };
+          
+          results.push(errorResult);
+          errors.push(errorResult);
+          failureCount++;
+          
+          logger.warn(
+            { index: index + 1, rfid, error: error.message },
+            "Individual RFID update failed"
+          );
+        }
+      }
+
+      const summary = {
+        total: updates.length,
+        successful: successCount,
+        failed: failureCount,
+        successRate: `${((successCount / updates.length) * 100).toFixed(1)}%`
+      };
+
+      logger.info(
+        { 
+          summary,
+          hasErrors: errors.length > 0
+        },
+        "Bulk RFID update completed"
+      );
+
+      return {
+        summary,
+        results,
+        errors: errors.length > 0 ? errors : undefined
+      };
+      
+    } catch (error) {
+      logger.error(
+        { error, updateCount: updates.length },
+        "Error in bulkUpdateByRfid operation"
+      );
+      throw error;
+    }
+  }
 }
