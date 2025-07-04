@@ -5,7 +5,6 @@ import { env } from './config/env.js';
 (BigInt.prototype as any).toJSON = function() {
   return Number(this);
 };
-
 async function start() {
   try {
     const fastify = await buildServer();

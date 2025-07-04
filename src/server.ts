@@ -15,6 +15,7 @@ export async function buildServer() {
     logger: true, // Use default logger instead of passing pino instance
     disableRequestLogging: true, // We'll handle this in our logger plugin
   });
+  console.log('test');
 
   // Register logger plugin first
   await fastify.register(loggerPlugin);
