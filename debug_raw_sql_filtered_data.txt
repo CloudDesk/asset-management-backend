@@ -6,3 +6,35 @@ Filtered data: {
   "userpassword": "$2a$12$kMQlIY/HY9dnEBcTUM0REOJvlDO7AF8ektGtJAhcXzmVs.3vRjH76",
   "modifieddate": 1750915614412
 }
+Filtered data: {
+  "promotion_id": 1,
+  "rule_type": "cart_total",
+  "operator": "gte",
+  "value": "100",
+  "logic_group": "A",
+  "is_active": true,
+  "modifieddate": 1751622489649
+}
+Filtered data: {
+  "name": "Early Bird Updated",
+  "status": "active",
+  "max_redemptions": 2000,
+  "modifieddate": 1751622767850
+}
+Filtered data: {
+  "name": "Summer Sale UPDATED via Upsert",
+  "max_redemptions": 5000,
+  "modifieddate": 1751622884216
+}
+Filtered data: {
+  "stackable": true,
+  "modifieddate": 1751623214044
+}
+Filtered data: {
+  "stackable": true,
+  "modifieddate": 1751623242071
+}
+Filtered data: {
+  "name": "Updated Name",
+  "modifieddate": 1751624786549
+}

@@ -10,3 +10,39 @@ Update query:
         WHERE "id" = $1 
         RETURNING id, useremail, userpassword, createddate, modifieddate, usermobilenumber, fcmid, firstname, lastname, gender, gstnumber, isbusinessuser
       
+Update query: 
+        UPDATE "promotion_rules" 
+        SET "promotion_id" = $2, "rule_type" = $3, "operator" = $4, "value" = $5, "logic_group" = $6, "is_active" = $7, "modifieddate" = $8 
+        WHERE "id" = $1 
+        RETURNING id, promotion_id, rule_type, condition_key, operator, value, value_type, logic_group, priority, exclude, is_active, notes, createddate, modifieddate
+      
+Update query: 
+        UPDATE "promotions" 
+        SET "name" = $2, "status" = $3, "max_redemptions" = $4, "modifieddate" = $5 
+        WHERE "id" = $1 
+        RETURNING id, name, type, code, auto_apply, start_date, end_date, status, priority, visibility, max_redemptions, per_user_limit, stackable, createddate, modifieddate
+      
+Update query: 
+        UPDATE "promotions" 
+        SET "name" = $2, "max_redemptions" = $3, "modifieddate" = $4 
+        WHERE "id" = $1 
+        RETURNING id, name, type, code, auto_apply, start_date, end_date, status, priority, visibility, max_redemptions, per_user_limit, stackable, createddate, modifieddate
+      
+Update query: 
+        UPDATE "promotions" 
+        SET "stackable" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, name, type, code, auto_apply, start_date, end_date, status, priority, visibility, max_redemptions, per_user_limit, stackable, createddate, modifieddate
+      
+Update query: 
+        UPDATE "promotions" 
+        SET "stackable" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, name, type, code, auto_apply, start_date, end_date, status, priority, visibility, max_redemptions, per_user_limit, stackable, createddate, modifieddate
+      
+Update query: 
+        UPDATE "promotions" 
+        SET "name" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, name, type, code, auto_apply, start_date, end_date, status, priority, visibility, max_redemptions, per_user_limit, stackable, createddate, modifieddate
+      

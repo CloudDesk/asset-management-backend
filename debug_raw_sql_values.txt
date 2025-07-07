@@ -8,3 +8,41 @@ Values: [
   "$2a$12$kMQlIY/HY9dnEBcTUM0REOJvlDO7AF8ektGtJAhcXzmVs.3vRjH76",
   1750915614
 ]
+Values: [
+  1,
+  1,
+  "cart_total",
+  "gte",
+  "100",
+  "A",
+  true,
+  1751622489
+]
+Values: [
+  4,
+  "Early Bird Updated",
+  "active",
+  2000,
+  1751622767
+]
+Values: [
+  1,
+  "Summer Sale UPDATED via Upsert",
+  5000,
+  1751622884
+]
+Values: [
+  5,
+  true,
+  1751623214
+]
+Values: [
+  6,
+  true,
+  1751623242
+]
+Values: [
+  999999,
+  "Updated Name",
+  1751624786
+]

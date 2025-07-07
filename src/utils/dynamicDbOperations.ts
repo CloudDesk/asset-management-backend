@@ -530,6 +530,9 @@ async function buildDynamicWhereClause(
       /^iscreditpayment$/i, // specific boolean fields
       /^isbusinessuser$/i, // specific boolean fields
       /^ispinned$/i, // specific boolean fields
+      /^stackable$/i, // promotion stackable field
+      /^auto_apply$/i, // promotion auto_apply field
+      /^is_active$/i, // promotion rule is_active field
     ];
     
     return booleanFieldPatterns.some(pattern => pattern.test(fieldName));

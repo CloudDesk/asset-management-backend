@@ -665,3 +665,108 @@ model asset_audit_logs {
 
   @@map("asset_audit_logs")
 }
+
+model promotions {
+  id               Int                      @id @default(autoincrement())
+  name             String?                  @db.Text
+  type             String?                  @db.Text
+  code             String?                  @db.Text
+  auto_apply       Boolean?
+  start_date       DateTime?                @db.Date
+  end_date         DateTime?                @db.Date
+  status           String?                  @db.Text
+  priority         Int?
+  visibility       String?                  @db.Text
+  max_redemptions  Int?
+  per_user_limit   Int?
+  stackable        Boolean?
+  createddate      BigInt?
+  modifieddate     BigInt?
+  
+  // Relations
+  promotion_rules       promotion_rules[]
+  promotion_actions     promotion_actions[]
+  promotion_target_link promotion_target_link[]
+  promotion_usage_log   promotion_usage_log[]
+
+  @@map("promotions")
+}
+
+model promotion_rules {
+  id            Int          @id @default(autoincrement())
+  promotion_id  Int?
+  rule_type     String?      @db.Text
+  condition_key String?      @db.Text
+  operator      String?      @db.Text
+  value         String?      @db.Text
+  value_type    String?      @db.Text
+  logic_group   String?      @db.Text
+  priority      Int?
+  exclude       Boolean?
+  is_active     Boolean?
+  notes         String?      @db.Text
+  createddate   BigInt?
+  modifieddate  BigInt?
+
+  // Relations
+  promotion     promotions?  @relation(fields: [promotion_id], references: [id], onDelete: Cascade)
+
+  @@map("promotion_rules")
+}
+
+model promotion_actions {
+  id                   Int          @id @default(autoincrement())
+  promotion_id         Int?
+  action_type          String?      @db.Text
+  target               String?      @db.Text
+  value_type           String?      @db.Text
+  value                Decimal?     @db.Decimal(10, 2)
+  reward_product_id    Int?
+  min_combo_size       Int?
+  apply_to_product_ids Int[]
+  max_discount_cap     Decimal?     @db.Decimal(10, 2)
+  check_inventory      Boolean?
+  execution_group      String?      @db.Text
+  action_order         Int?
+  createddate          BigInt?
+  modifieddate         BigInt?
+
+  // Relations
+  promotion            promotions?  @relation(fields: [promotion_id], references: [id], onDelete: Cascade)
+
+  @@map("promotion_actions")
+}
+
+model promotion_target_link {
+  id           Int          @id @default(autoincrement())
+  promotion_id Int?
+  target_type  String?      @db.Text
+  target_id    String?      @db.Text
+  target_label String?      @db.Text
+  apply_scope  String?      @db.Text
+  is_active    Boolean?
+  createddate  BigInt?
+  modifieddate BigInt?
+
+  // Relations
+  promotion    promotions?  @relation(fields: [promotion_id], references: [id], onDelete: Cascade)
+
+  @@map("promotion_target_link")
+}
+
+model promotion_usage_log {
+  id               Int          @id @default(autoincrement())
+  promotion_id     Int?
+  user_id          String?      @db.Text
+  order_id         String?      @db.Text
+  redemption_date  DateTime?    @default(now())
+  discount_applied Decimal?     @db.Decimal(10, 2)
+  platform         String?      @db.Text
+  createddate      BigInt?
+  modifieddate     BigInt?
+
+  // Relations
+  promotion        promotions?  @relation(fields: [promotion_id], references: [id], onDelete: Cascade)
+
+  @@map("promotion_usage_log")
+}

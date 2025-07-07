@@ -139,3 +139,1202 @@ Filtered data result: {
   "createddate": 1750918853980,
   "modifieddate": 1750918853980
 }
+Filtered data result: {
+  "name": "Summer Sale 2024",
+  "type": "percentage_discount",
+  "code": "SUMMER20",
+  "auto_apply": false,
+  "start_date": "2024-07-01T00:00:00Z",
+  "end_date": "2024-08-31T23:59:59Z",
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "max_redemptions": 1000,
+  "per_user_limit": 3,
+  "stackable": true,
+  "createddate": 1751620759701,
+  "modifieddate": 1751620759701
+}
+Filtered data result: {
+  "name": "Test Promotion",
+  "type": "percentage_discount",
+  "code": "TEST10",
+  "auto_apply": false,
+  "status": "active",
+  "priority": 1,
+  "stackable": true,
+  "createddate": 1751620768990,
+  "modifieddate": 1751620768990
+}
+Filtered data result: {
+  "name": "",
+  "type": "discount",
+  "createddate": 1751621571083,
+  "modifieddate": 1751621571083
+}
+Filtered data result: {
+  "name": "Summer Sale 2024",
+  "type": "percentage_discount",
+  "code": "SUMMER20",
+  "status": "active",
+  "priority": 1,
+  "stackable": true,
+  "createddate": 1751622074052,
+  "modifieddate": 1751622074052
+}
+Filtered data result: {
+  "name": "Summer Sale 2024",
+  "type": "percentage_discount",
+  "code": "SUMMER20",
+  "status": "active",
+  "priority": 1,
+  "stackable": true,
+  "createddate": 1751622134729,
+  "modifieddate": 1751622134729
+}
+Filtered data result: {
+  "name": "Winter Clearance",
+  "type": "fixed_amount_discount",
+  "code": "WINTER50",
+  "status": "draft",
+  "priority": 2,
+  "stackable": false,
+  "max_redemptions": 100,
+  "per_user_limit": 1,
+  "createddate": 1751622145570,
+  "modifieddate": 1751622145570
+}
+Filtered data result: {
+  "name": "Black Friday Special",
+  "type": "percentage_discount",
+  "code": "BF2024",
+  "status": "active",
+  "priority": 3,
+  "stackable": true,
+  "visibility": "premium_users",
+  "max_redemptions": 500,
+  "createddate": 1751622153465,
+  "modifieddate": 1751622153465
+}
+Filtered data result: {
+  "promotion_id": 1,
+  "rule_type": "cart_total",
+  "operator": "gte",
+  "value": "100",
+  "logic_group": "A",
+  "createddate": 1751622298932,
+  "modifieddate": 1751622298932
+}
+Filtered data result: {
+  "promotion_id": 1,
+  "action_type": "percentage_discount",
+  "value": 20,
+  "createddate": 1751622306716,
+  "modifieddate": 1751622306716
+}
+Filtered data result: {
+  "promotion_id": 1,
+  "rule_type": "cart_total",
+  "operator": "gte",
+  "value": "100",
+  "logic_group": "A",
+  "is_active": true,
+  "modifieddate": 1751622489649
+}
+Filtered data result: {
+  "name": "Early Bird Special",
+  "type": "buy_x_get_y",
+  "code": "EARLY25",
+  "auto_apply": true,
+  "start_date": "2024-01-01T00:00:00.000Z",
+  "end_date": "2024-12-31T23:59:59.000Z",
+  "status": "active",
+  "priority": 5,
+  "visibility": "all_users",
+  "max_redemptions": 1000,
+  "per_user_limit": 3,
+  "stackable": false,
+  "createddate": 1751622711130,
+  "modifieddate": 1751622711130
+}
+Filtered data result: {
+  "name": "Early Bird Special",
+  "type": "buy_x_get_y",
+  "code": "EARLY25",
+  "auto_apply": true,
+  "status": "active",
+  "priority": 5,
+  "visibility": "all_users",
+  "max_redemptions": 1000,
+  "per_user_limit": 3,
+  "stackable": false,
+  "createddate": 1751622721131,
+  "modifieddate": 1751622721131
+}
+Filtered data result: {
+  "promotion_id": 4,
+  "rule_type": "product_count",
+  "operator": "gte",
+  "value": "2",
+  "logic_group": "A",
+  "is_active": true,
+  "createddate": 1751622732796,
+  "modifieddate": 1751622732796
+}
+Filtered data result: {
+  "promotion_id": 4,
+  "action_type": "buy_x_get_y",
+  "value": 1,
+  "min_combo_size": 2,
+  "execution_group": "A",
+  "action_order": 1,
+  "createddate": 1751622746090,
+  "modifieddate": 1751622746090
+}
+Filtered data result: {
+  "promotion_id": 4,
+  "target_type": "product_category",
+  "createddate": 1751622746751,
+  "modifieddate": 1751622746751
+}
+Filtered data result: {
+  "promotion_id": 1,
+  "user_id": "user123",
+  "order_id": "order456",
+  "discount_applied": 25.5,
+  "createddate": 1751622747215,
+  "modifieddate": 1751622747215
+}
+Filtered data result: {
+  "name": "Early Bird Updated",
+  "status": "active",
+  "max_redemptions": 2000,
+  "modifieddate": 1751622767850
+}
+Filtered data result: {
+  "name": "Summer Sale UPDATED via Upsert",
+  "max_redemptions": 5000,
+  "modifieddate": 1751622884216
+}
+Filtered data result: {
+  "promotion_id": 1,
+  "rule_type": "platform",
+  "operator": "eq",
+  "value": "mobile",
+  "logic_group": "B",
+  "is_active": true,
+  "createddate": 1751622884686,
+  "modifieddate": 1751622884686
+}
+Filtered data result: {
+  "name": "VIP Premium Offer",
+  "type": "premium_discount",
+  "code": "VIP2024",
+  "status": "active",
+  "priority": 10,
+  "visibility": "premium_users",
+  "max_redemptions": 100,
+  "per_user_limit": 1,
+  "stackable": false,
+  "createddate": 1751623082784,
+  "modifieddate": 1751623082784
+}
+Filtered data result: {
+  "promotion_id": 5,
+  "rule_type": "cart_total",
+  "operator": "gte",
+  "value": "500",
+  "logic_group": "A",
+  "is_active": true,
+  "createddate": 1751623083450,
+  "modifieddate": 1751623083450
+}
+Filtered data result: {
+  "promotion_id": 5,
+  "rule_type": "platform",
+  "operator": "eq",
+  "value": "mobile",
+  "logic_group": "A",
+  "is_active": true,
+  "createddate": 1751623083762,
+  "modifieddate": 1751623083762
+}
+Filtered data result: {
+  "promotion_id": 5,
+  "rule_type": "product_count",
+  "operator": "gte",
+  "value": "5",
+  "logic_group": "B",
+  "is_active": true,
+  "createddate": 1751623084004,
+  "modifieddate": 1751623084004
+}
+Filtered data result: {
+  "promotion_id": 5,
+  "action_type": "percentage_discount",
+  "value": 30,
+  "execution_group": "A",
+  "action_order": 1,
+  "createddate": 1751623187639,
+  "modifieddate": 1751623187639
+}
+Filtered data result: {
+  "stackable": true,
+  "modifieddate": 1751623214044
+}
+Filtered data result: {
+  "name": "Exclusive Flash Sale",
+  "type": "flash_discount",
+  "code": "FLASH99",
+  "status": "active",
+  "priority": 1,
+  "stackable": false,
+  "max_redemptions": 50,
+  "createddate": 1751623233450,
+  "modifieddate": 1751623233450
+}
+Filtered data result: {
+  "stackable": true,
+  "modifieddate": 1751623242071
+}
+Filtered data result: {
+  "name": "First Time User Bonus",
+  "type": "welcome_bonus",
+  "code": "WELCOME10",
+  "status": "active",
+  "priority": 5,
+  "max_redemptions": 3,
+  "per_user_limit": 1,
+  "stackable": true,
+  "createddate": 1751623277082,
+  "modifieddate": 1751623277082
+}
+Filtered data result: {
+  "promotion_id": 7,
+  "user_id": "newuser123",
+  "order_id": "order789",
+  "discount_applied": 15.75,
+  "platform": "web",
+  "createddate": 1751623283807,
+  "modifieddate": 1751623283807
+}
+Filtered data result: {
+  "name": "Electronics Only Discount",
+  "type": "category_discount",
+  "code": "ELEC20",
+  "status": "active",
+  "priority": 3,
+  "stackable": true,
+  "createddate": 1751623312501,
+  "modifieddate": 1751623312501
+}
+Filtered data result: {
+  "promotion_id": 8,
+  "target_type": "product_category",
+  "createddate": 1751623314962,
+  "modifieddate": 1751623314962
+}
+Filtered data result: {
+  "promotion_id": 8,
+  "target_type": "user_segment",
+  "createddate": 1751623316873,
+  "modifieddate": 1751623316873
+}
+Filtered data result: {
+  "name": "Future New Year Sale",
+  "type": "seasonal_discount",
+  "code": "NEWYEAR2025",
+  "auto_apply": true,
+  "status": "active",
+  "priority": 2,
+  "stackable": true,
+  "createddate": 1751623354982,
+  "modifieddate": 1751623354982
+}
+Filtered data result: {
+  "name": "Expired Black Friday",
+  "type": "seasonal_discount",
+  "code": "EXPBF2024",
+  "auto_apply": false,
+  "status": "active",
+  "priority": 4,
+  "stackable": true,
+  "createddate": 1751623356727,
+  "modifieddate": 1751623356727
+}
+Filtered data result: {
+  "name": "Desktop Only Offer",
+  "type": "platform_exclusive",
+  "code": "DESKTOP50",
+  "status": "active",
+  "priority": 6,
+  "stackable": true,
+  "createddate": 1751623393068,
+  "modifieddate": 1751623393068
+}
+Filtered data result: {
+  "promotion_id": 11,
+  "rule_type": "platform",
+  "operator": "eq",
+  "value": "mobile",
+  "logic_group": "A",
+  "exclude": true,
+  "is_active": true,
+  "createddate": 1751623393526,
+  "modifieddate": 1751623393526
+}
+Filtered data result: {
+  "name": "Student Discount",
+  "type": "education_discount",
+  "code": "STUDENT15",
+  "status": "active",
+  "max_redemptions": 1000,
+  "stackable": true,
+  "createddate": 1751623433210,
+  "modifieddate": 1751623433210
+}
+Filtered data result: {
+  "name": "Senior Citizen Offer",
+  "type": "demographic_discount",
+  "code": "SENIOR20",
+  "status": "draft",
+  "per_user_limit": 2,
+  "stackable": true,
+  "createddate": 1751623433876,
+  "modifieddate": 1751623433876
+}
+Filtered data result: {
+  "promotion_id": 12,
+  "rule_type": "total_quantity",
+  "operator": "gte",
+  "value": "3",
+  "logic_group": "A",
+  "is_active": true,
+  "createddate": 1751623434327,
+  "modifieddate": 1751623434327
+}
+Filtered data result: {
+  "createddate": 1751623466547,
+  "modifieddate": 1751623466547
+}
+Filtered data result: {
+  "promotion_id": 1,
+  "user_id": "customer456",
+  "order_id": "ORD789123",
+  "discount_applied": 50,
+  "platform": "mobile",
+  "createddate": 1751623524801,
+  "modifieddate": 1751623524801
+}
+Filtered data result: {
+  "promotion_id": 999999,
+  "rule_type": "cart_total",
+  "operator": "gte",
+  "value": "100",
+  "createddate": 1751624784329,
+  "modifieddate": 1751624784329
+}
+Filtered data result: {
+  "name": "Updated Name",
+  "modifieddate": 1751624786549
+}
+Filtered data result: {
+  "promotion_id": 888888,
+  "action_type": "percentage_discount",
+  "value": 20,
+  "createddate": 1751624802787,
+  "modifieddate": 1751624802787
+}
+Filtered data result: {
+  "name": "Test",
+  "status": "maybe_active",
+  "visibility": "everyone",
+  "createddate": 1751624803879,
+  "modifieddate": 1751624803879
+}
+Filtered data result: {
+  "promotion_id": 999999,
+  "rule_type": "cart_total",
+  "operator": "gte",
+  "value": "100",
+  "createddate": 1751624909955,
+  "modifieddate": 1751624909955
+}
+Filtered data result: {
+  "promotion_id": 1,
+  "rule_type": "",
+  "operator": "",
+  "value": "",
+  "createddate": 1751624910849,
+  "modifieddate": 1751624910849
+}
+Filtered data result: {
+  "promotion_id": 888888,
+  "rule_type": "cart_total",
+  "operator": "gte",
+  "value": "100",
+  "createddate": 1751625008954,
+  "modifieddate": 1751625008954
+}
+Filtered data result: {
+  "promotion_id": 999999,
+  "rule_type": "cart_total",
+  "operator": "gte",
+  "value": "100",
+  "createddate": 1751625077500,
+  "modifieddate": 1751625077500
+}
+Filtered data result: {
+  "name": "Test Promotion - coupon",
+  "type": "coupon",
+  "code": "TEST_1751861874162_672irn",
+  "status": "active",
+  "visibility": "public",
+  "createddate": 1751861874170,
+  "modifieddate": 1751861874170
+}
+Filtered data result: {
+  "name": "Test Promotion - automatic",
+  "type": "automatic",
+  "code": "TEST_1751861875582_8vx9xb",
+  "status": "active",
+  "visibility": "public",
+  "createddate": 1751861875586,
+  "modifieddate": 1751861875586
+}
+Filtered data result: {
+  "name": "Test Promotion - waive_fee",
+  "type": "waive_fee",
+  "code": "TEST_1751861875908_wa554o",
+  "status": "active",
+  "visibility": "public",
+  "createddate": 1751861875911,
+  "modifieddate": 1751861875911
+}
+Filtered data result: {
+  "name": "Test Promotion - invalid_type",
+  "type": "invalid_type",
+  "code": "TEST_1751861876237_xo9p90",
+  "status": "active",
+  "visibility": "public",
+  "createddate": 1751861876239,
+  "modifieddate": 1751861876239
+}
+Filtered data result: {
+  "name": "Test Promotion - discount",
+  "type": "discount",
+  "code": "TEST_1751861876561_eoshfc",
+  "status": "active",
+  "visibility": "public",
+  "createddate": 1751861876563,
+  "modifieddate": 1751861876563
+}
+Filtered data result: {
+  "name": "Test Promotion - special",
+  "type": "special",
+  "code": "TEST_1751861876886_8xqq8s",
+  "status": "active",
+  "visibility": "public",
+  "createddate": 1751861876888,
+  "modifieddate": 1751861876888
+}
+Filtered data result: {
+  "name": "Test Promotion - active",
+  "type": "coupon",
+  "code": "TEST_1751861877209_qohi5i",
+  "status": "active",
+  "visibility": "public",
+  "createddate": 1751861877212,
+  "modifieddate": 1751861877212
+}
+Filtered data result: {
+  "name": "Test Promotion - inactive",
+  "type": "coupon",
+  "code": "TEST_1751861877534_wkcz5g",
+  "status": "inactive",
+  "visibility": "public",
+  "createddate": 1751861877536,
+  "modifieddate": 1751861877536
+}
+Filtered data result: {
+  "name": "Test Promotion - pending",
+  "type": "coupon",
+  "code": "TEST_1751861877868_o74gxt",
+  "status": "pending",
+  "visibility": "public",
+  "createddate": 1751861877872,
+  "modifieddate": 1751861877872
+}
+Filtered data result: {
+  "name": "Test Promotion - draft",
+  "type": "coupon",
+  "code": "TEST_1751861878196_9vn226",
+  "status": "draft",
+  "visibility": "public",
+  "createddate": 1751861878198,
+  "modifieddate": 1751861878198
+}
+Filtered data result: {
+  "name": "Test Promotion - expired",
+  "type": "coupon",
+  "code": "TEST_1751861878738_xzusys",
+  "status": "expired",
+  "visibility": "public",
+  "createddate": 1751861878740,
+  "modifieddate": 1751861878740
+}
+Filtered data result: {
+  "name": "Test Promotion - public",
+  "type": "coupon",
+  "code": "TEST_1751861879067_bz6wgn",
+  "status": "active",
+  "visibility": "public",
+  "createddate": 1751861879069,
+  "modifieddate": 1751861879069
+}
+Filtered data result: {
+  "name": "Test Promotion - private",
+  "type": "coupon",
+  "code": "TEST_1751861879394_mdz1k6",
+  "status": "active",
+  "visibility": "private",
+  "createddate": 1751861879396,
+  "modifieddate": 1751861879396
+}
+Filtered data result: {
+  "name": "Test Promotion - restricted",
+  "type": "coupon",
+  "code": "TEST_1751861879733_hdpvyx",
+  "status": "active",
+  "visibility": "restricted",
+  "createddate": 1751861879735,
+  "modifieddate": 1751861879735
+}
+Filtered data result: {
+  "name": "Test Promotion - internal",
+  "type": "coupon",
+  "code": "TEST_1751861880056_1wvsvc",
+  "status": "active",
+  "visibility": "internal",
+  "createddate": 1751861880058,
+  "modifieddate": 1751861880058
+}
+Filtered data result: {
+  "promotion_id": 16,
+  "rule_type": "user",
+  "condition_key": "test_key",
+  "operator": "equals",
+  "value": "test_value",
+  "value_type": "string",
+  "createddate": 1751861880385,
+  "modifieddate": 1751861880385
+}
+Filtered data result: {
+  "promotion_id": 16,
+  "rule_type": "product",
+  "condition_key": "test_key",
+  "operator": "equals",
+  "value": "test_value",
+  "value_type": "string",
+  "createddate": 1751861881358,
+  "modifieddate": 1751861881358
+}
+Filtered data result: {
+  "promotion_id": 16,
+  "rule_type": "cart",
+  "condition_key": "test_key",
+  "operator": "equals",
+  "value": "test_value",
+  "value_type": "string",
+  "createddate": 1751861881684,
+  "modifieddate": 1751861881684
+}
+Filtered data result: {
+  "promotion_id": 16,
+  "rule_type": "payment",
+  "condition_key": "test_key",
+  "operator": "equals",
+  "value": "test_value",
+  "value_type": "string",
+  "createddate": 1751861882009,
+  "modifieddate": 1751861882009
+}
+Filtered data result: {
+  "promotion_id": 16,
+  "rule_type": "order",
+  "condition_key": "test_key",
+  "operator": "equals",
+  "value": "test_value",
+  "value_type": "string",
+  "createddate": 1751861882336,
+  "modifieddate": 1751861882336
+}
+Filtered data result: {
+  "promotion_id": 16,
+  "rule_type": "category",
+  "condition_key": "test_key",
+  "operator": "equals",
+  "value": "test_value",
+  "value_type": "string",
+  "createddate": 1751861882661,
+  "modifieddate": 1751861882661
+}
+Filtered data result: {
+  "promotion_id": 16,
+  "rule_type": "brand",
+  "condition_key": "test_key",
+  "operator": "equals",
+  "value": "test_value",
+  "value_type": "string",
+  "createddate": 1751861882987,
+  "modifieddate": 1751861882987
+}
+Filtered data result: {
+  "promotion_id": 16,
+  "rule_type": "user",
+  "condition_key": "test_key",
+  "operator": "equals",
+  "value": "test_value",
+  "value_type": "string",
+  "createddate": 1751861883312,
+  "modifieddate": 1751861883312
+}
+Filtered data result: {
+  "promotion_id": 16,
+  "rule_type": "user",
+  "condition_key": "test_key",
+  "operator": "equals",
+  "value": "100",
+  "value_type": "number",
+  "createddate": 1751861883635,
+  "modifieddate": 1751861883635
+}
+Filtered data result: {
+  "promotion_id": 16,
+  "rule_type": "user",
+  "condition_key": "test_key",
+  "operator": "equals",
+  "value": "test_value",
+  "value_type": "currency",
+  "createddate": 1751861883960,
+  "modifieddate": 1751861883960
+}
+Filtered data result: {
+  "promotion_id": 16,
+  "rule_type": "user",
+  "condition_key": "test_key",
+  "operator": "equals",
+  "value": "test_value",
+  "value_type": "boolean",
+  "createddate": 1751861884285,
+  "modifieddate": 1751861884285
+}
+Filtered data result: {
+  "promotion_id": 16,
+  "rule_type": "user",
+  "condition_key": "test_key",
+  "operator": "equals",
+  "value": "test_value",
+  "value_type": "date",
+  "createddate": 1751861884611,
+  "modifieddate": 1751861884611
+}
+Filtered data result: {
+  "promotion_id": 16,
+  "rule_type": "user",
+  "condition_key": "test_key",
+  "operator": "equals",
+  "value": "test_value",
+  "value_type": "array",
+  "createddate": 1751861884948,
+  "modifieddate": 1751861884948
+}
+Filtered data result: {
+  "promotion_id": 16,
+  "action_type": "percentage_discount",
+  "target": "cart",
+  "value_type": "percentage",
+  "value": 10,
+  "createddate": 1751861885289,
+  "modifieddate": 1751861885289
+}
+Filtered data result: {
+  "promotion_id": 16,
+  "action_type": "flat_discount",
+  "target": "cart",
+  "value_type": "percentage",
+  "value": 10,
+  "createddate": 1751861886274,
+  "modifieddate": 1751861886274
+}
+Filtered data result: {
+  "promotion_id": 16,
+  "action_type": "free_product",
+  "target": "cart",
+  "value_type": "percentage",
+  "value": 10,
+  "createddate": 1751861886597,
+  "modifieddate": 1751861886597
+}
+Filtered data result: {
+  "promotion_id": 16,
+  "action_type": "waive_fee",
+  "target": "cart",
+  "value_type": "percentage",
+  "value": 10,
+  "createddate": 1751861886920,
+  "modifieddate": 1751861886920
+}
+Filtered data result: {
+  "promotion_id": 16,
+  "action_type": "buy_one_get_one",
+  "target": "cart",
+  "value_type": "percentage",
+  "value": 10,
+  "createddate": 1751861887249,
+  "modifieddate": 1751861887249
+}
+Filtered data result: {
+  "promotion_id": 16,
+  "action_type": "bundle_discount",
+  "target": "cart",
+  "value_type": "percentage",
+  "value": 10,
+  "createddate": 1751861887572,
+  "modifieddate": 1751861887572
+}
+Filtered data result: {
+  "promotion_id": 16,
+  "action_type": "percentage_discount",
+  "target": "cart",
+  "value_type": "percentage",
+  "value": 15,
+  "createddate": 1751861887897,
+  "modifieddate": 1751861887897
+}
+Filtered data result: {
+  "promotion_id": 16,
+  "action_type": "percentage_discount",
+  "target": "cart",
+  "value_type": "currency",
+  "value": 25,
+  "createddate": 1751861888220,
+  "modifieddate": 1751861888220
+}
+Filtered data result: {
+  "promotion_id": 16,
+  "action_type": "percentage_discount",
+  "target": "cart",
+  "value_type": "fixed",
+  "value": 10,
+  "createddate": 1751861888542,
+  "modifieddate": 1751861888542
+}
+Filtered data result: {
+  "promotion_id": 16,
+  "action_type": "percentage_discount",
+  "target": "cart",
+  "value_type": "ratio",
+  "value": 10,
+  "createddate": 1751861888865,
+  "modifieddate": 1751861888865
+}
+Filtered data result: {
+  "name": "Complete E2E Test Promotion",
+  "type": "coupon",
+  "code": "TEST_1751861889191_wwmwjd",
+  "start_date": "2025-07-07T04:18:09.191Z",
+  "end_date": "2025-07-14T04:18:09.191Z",
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "max_redemptions": 100,
+  "per_user_limit": 1,
+  "stackable": true,
+  "createddate": 1751861889194,
+  "modifieddate": 1751861889194
+}
+Filtered data result: {
+  "name": "Combo Test - coupon-active-public",
+  "type": "coupon",
+  "code": "TEST_1751861889444_vg65rq",
+  "status": "active",
+  "visibility": "public",
+  "createddate": 1751861889446,
+  "modifieddate": 1751861889446
+}
+Filtered data result: {
+  "name": "Combo Test - coupon-active-private",
+  "type": "coupon",
+  "code": "TEST_1751861889753_l24j3k",
+  "status": "active",
+  "visibility": "private",
+  "createddate": 1751861889754,
+  "modifieddate": 1751861889754
+}
+Filtered data result: {
+  "name": "Combo Test - coupon-inactive-public",
+  "type": "coupon",
+  "code": "TEST_1751861890027_9arv5l",
+  "status": "inactive",
+  "visibility": "public",
+  "createddate": 1751861890028,
+  "modifieddate": 1751861890028
+}
+Filtered data result: {
+  "name": "Combo Test - coupon-inactive-private",
+  "type": "coupon",
+  "code": "TEST_1751861890305_uzgib1",
+  "status": "inactive",
+  "visibility": "private",
+  "createddate": 1751861890306,
+  "modifieddate": 1751861890306
+}
+Filtered data result: {
+  "name": "Combo Test - automatic-active-public",
+  "type": "automatic",
+  "code": "TEST_1751861890577_9frgtb",
+  "status": "active",
+  "visibility": "public",
+  "createddate": 1751861890579,
+  "modifieddate": 1751861890579
+}
+Filtered data result: {
+  "name": "Combo Test - automatic-active-private",
+  "type": "automatic",
+  "code": "TEST_1751861890851_4exaek",
+  "status": "active",
+  "visibility": "private",
+  "createddate": 1751861890852,
+  "modifieddate": 1751861890852
+}
+Filtered data result: {
+  "name": "Combo Test - automatic-inactive-public",
+  "type": "automatic",
+  "code": "TEST_1751861891123_5gihy1",
+  "status": "inactive",
+  "visibility": "public",
+  "createddate": 1751861891125,
+  "modifieddate": 1751861891125
+}
+Filtered data result: {
+  "name": "Combo Test - automatic-inactive-private",
+  "type": "automatic",
+  "code": "TEST_1751861891396_glr80p",
+  "status": "inactive",
+  "visibility": "private",
+  "createddate": 1751861891397,
+  "modifieddate": 1751861891397
+}
+Filtered data result: {
+  "name": "Combo Test - waive_fee-active-public",
+  "type": "waive_fee",
+  "code": "TEST_1751861891670_0tfsap",
+  "status": "active",
+  "visibility": "public",
+  "createddate": 1751861891671,
+  "modifieddate": 1751861891671
+}
+Filtered data result: {
+  "name": "Combo Test - waive_fee-active-private",
+  "type": "waive_fee",
+  "code": "TEST_1751861891944_xoemj4",
+  "status": "active",
+  "visibility": "private",
+  "createddate": 1751861891946,
+  "modifieddate": 1751861891946
+}
+Filtered data result: {
+  "name": "Combo Test - waive_fee-inactive-public",
+  "type": "waive_fee",
+  "code": "TEST_1751861892217_4agjd9",
+  "status": "inactive",
+  "visibility": "public",
+  "createddate": 1751861892218,
+  "modifieddate": 1751861892218
+}
+Filtered data result: {
+  "name": "Combo Test - waive_fee-inactive-private",
+  "type": "waive_fee",
+  "code": "TEST_1751861892489_u83gbx",
+  "status": "inactive",
+  "visibility": "private",
+  "createddate": 1751861892491,
+  "modifieddate": 1751861892491
+}
+Filtered data result: {
+  "name": "Basic Test Promotion",
+  "type": "automatic",
+  "status": "active",
+  "visibility": "public",
+  "code": "TEST_1751863335280_zv5wz9",
+  "priority": 1,
+  "max_redemptions": 100,
+  "per_user_limit": 1,
+  "stackable": false,
+  "start_date": "2025-07-07T04:42:15.280Z",
+  "end_date": "2025-07-14T04:42:15.280Z",
+  "createddate": 1751863335288,
+  "modifieddate": 1751863335288
+}
+Filtered data result: {
+  "name": "coupon Type Test",
+  "type": "coupon",
+  "status": "active",
+  "visibility": "public",
+  "code": "TEST_1751863336630_01lnqk",
+  "priority": 1,
+  "max_redemptions": 100,
+  "per_user_limit": 1,
+  "stackable": false,
+  "start_date": "2025-07-07T04:42:16.630Z",
+  "end_date": "2025-07-14T04:42:16.630Z",
+  "createddate": 1751863336633,
+  "modifieddate": 1751863336633
+}
+Filtered data result: {
+  "name": "automatic Type Test",
+  "type": "automatic",
+  "status": "active",
+  "visibility": "public",
+  "code": "TEST_1751863336997_jxccum",
+  "priority": 1,
+  "max_redemptions": 100,
+  "per_user_limit": 1,
+  "stackable": false,
+  "start_date": "2025-07-07T04:42:16.997Z",
+  "end_date": "2025-07-14T04:42:16.997Z",
+  "createddate": 1751863336999,
+  "modifieddate": 1751863336999
+}
+Filtered data result: {
+  "name": "waive_fee Type Test",
+  "type": "waive_fee",
+  "status": "active",
+  "visibility": "public",
+  "code": "TEST_1751863337220_jco6cj",
+  "priority": 1,
+  "max_redemptions": 100,
+  "per_user_limit": 1,
+  "stackable": false,
+  "start_date": "2025-07-07T04:42:17.220Z",
+  "end_date": "2025-07-14T04:42:17.220Z",
+  "createddate": 1751863337222,
+  "modifieddate": 1751863337222
+}
+Filtered data result: {
+  "name": "Rule Type Test - user",
+  "type": "automatic",
+  "status": "active",
+  "visibility": "public",
+  "code": "TEST_1751863337443_hiputz",
+  "priority": 1,
+  "max_redemptions": 100,
+  "per_user_limit": 1,
+  "stackable": false,
+  "start_date": "2025-07-07T04:42:17.443Z",
+  "end_date": "2025-07-14T04:42:17.443Z",
+  "createddate": 1751863337445,
+  "modifieddate": 1751863337445
+}
+Filtered data result: {
+  "name": "Rule Type Test - product",
+  "type": "automatic",
+  "status": "active",
+  "visibility": "public",
+  "code": "TEST_1751863337666_v06arz",
+  "priority": 1,
+  "max_redemptions": 100,
+  "per_user_limit": 1,
+  "stackable": false,
+  "start_date": "2025-07-07T04:42:17.666Z",
+  "end_date": "2025-07-14T04:42:17.666Z",
+  "createddate": 1751863337667,
+  "modifieddate": 1751863337667
+}
+Filtered data result: {
+  "name": "Rule Type Test - cart",
+  "type": "automatic",
+  "status": "active",
+  "visibility": "public",
+  "code": "TEST_1751863337890_j48t22",
+  "priority": 1,
+  "max_redemptions": 100,
+  "per_user_limit": 1,
+  "stackable": false,
+  "start_date": "2025-07-07T04:42:17.890Z",
+  "end_date": "2025-07-14T04:42:17.890Z",
+  "createddate": 1751863337892,
+  "modifieddate": 1751863337892
+}
+Filtered data result: {
+  "name": "Rule Type Test - payment",
+  "type": "automatic",
+  "status": "active",
+  "visibility": "public",
+  "code": "TEST_1751863338113_oudqxd",
+  "priority": 1,
+  "max_redemptions": 100,
+  "per_user_limit": 1,
+  "stackable": false,
+  "start_date": "2025-07-07T04:42:18.113Z",
+  "end_date": "2025-07-14T04:42:18.113Z",
+  "createddate": 1751863338115,
+  "modifieddate": 1751863338115
+}
+Filtered data result: {
+  "name": "Action Type Test - percentage_discount",
+  "type": "automatic",
+  "status": "active",
+  "visibility": "public",
+  "code": "TEST_1751863338337_av3kdj",
+  "priority": 1,
+  "max_redemptions": 100,
+  "per_user_limit": 1,
+  "stackable": false,
+  "start_date": "2025-07-07T04:42:18.337Z",
+  "end_date": "2025-07-14T04:42:18.337Z",
+  "createddate": 1751863338339,
+  "modifieddate": 1751863338339
+}
+Filtered data result: {
+  "name": "Action Type Test - flat_discount",
+  "type": "automatic",
+  "status": "active",
+  "visibility": "public",
+  "code": "TEST_1751863338563_2m0ymm",
+  "priority": 1,
+  "max_redemptions": 100,
+  "per_user_limit": 1,
+  "stackable": false,
+  "start_date": "2025-07-07T04:42:18.563Z",
+  "end_date": "2025-07-14T04:42:18.563Z",
+  "createddate": 1751863338565,
+  "modifieddate": 1751863338565
+}
+Filtered data result: {
+  "name": "Action Type Test - free_product",
+  "type": "automatic",
+  "status": "active",
+  "visibility": "public",
+  "code": "TEST_1751863338785_28icjn",
+  "priority": 1,
+  "max_redemptions": 100,
+  "per_user_limit": 1,
+  "stackable": false,
+  "start_date": "2025-07-07T04:42:18.785Z",
+  "end_date": "2025-07-14T04:42:18.785Z",
+  "createddate": 1751863338787,
+  "modifieddate": 1751863338787
+}
+Filtered data result: {
+  "name": "Action Type Test - waive_fee",
+  "type": "automatic",
+  "status": "active",
+  "visibility": "public",
+  "code": "TEST_1751863339010_hq2ecv",
+  "priority": 1,
+  "max_redemptions": 100,
+  "per_user_limit": 1,
+  "stackable": false,
+  "start_date": "2025-07-07T04:42:19.010Z",
+  "end_date": "2025-07-14T04:42:19.010Z",
+  "createddate": 1751863339011,
+  "modifieddate": 1751863339011
+}
+Filtered data result: {
+  "name": "Complex Rules Test",
+  "type": "coupon",
+  "status": "active",
+  "visibility": "public",
+  "code": "TEST_1751863339236_91fl4s",
+  "priority": 1,
+  "max_redemptions": 100,
+  "per_user_limit": 1,
+  "stackable": false,
+  "start_date": "2025-07-07T04:42:19.236Z",
+  "end_date": "2025-07-14T04:42:19.236Z",
+  "createddate": 1751863339238,
+  "modifieddate": 1751863339238
+}
+Filtered data result: {
+  "name": "Stackable Promotion",
+  "type": "automatic",
+  "status": "active",
+  "visibility": "public",
+  "code": "TEST_1751863339460_swthl2",
+  "priority": 1,
+  "max_redemptions": 100,
+  "per_user_limit": 1,
+  "stackable": true,
+  "start_date": "2025-07-07T04:42:19.460Z",
+  "end_date": "2025-07-14T04:42:19.460Z",
+  "createddate": 1751863339461,
+  "modifieddate": 1751863339461
+}
+Filtered data result: {
+  "name": "Future Promotion",
+  "type": "automatic",
+  "status": "active",
+  "visibility": "public",
+  "code": "TEST_1751863339681_0fbchx",
+  "priority": 1,
+  "max_redemptions": 100,
+  "per_user_limit": 1,
+  "stackable": false,
+  "start_date": "2025-07-08T04:42:19.681Z",
+  "end_date": "2025-07-14T04:42:19.681Z",
+  "createddate": 1751863339682,
+  "modifieddate": 1751863339682
+}
+Filtered data result: {
+  "name": "Performance Test 1",
+  "type": "coupon",
+  "status": "active",
+  "visibility": "public",
+  "code": "TEST_1751863339932_wkters",
+  "priority": 1,
+  "max_redemptions": 100,
+  "per_user_limit": 1,
+  "stackable": false,
+  "start_date": "2025-07-07T04:42:19.932Z",
+  "end_date": "2025-07-14T04:42:19.932Z",
+  "createddate": 1751863339935,
+  "modifieddate": 1751863339935
+}
+Filtered data result: {
+  "name": "Test Promotion - Valid Schema",
+  "type": "coupon",
+  "code": "VALID_TEST_001",
+  "status": "active",
+  "visibility": "public",
+  "createddate": 1751863362948,
+  "modifieddate": 1751863362948
+}
+Filtered data result: {
+  "name": "Test Cart Total Promotion",
+  "type": "discount",
+  "code": "TEST_CART_TOTAL",
+  "status": "active",
+  "visibility": "public",
+  "createddate": 1751863723981,
+  "modifieddate": 1751863723981
+}
+Filtered data result: {
+  "promotion_id": 44,
+  "rule_type": "cart",
+  "condition_key": "cart_total",
+  "operator": "greater_than",
+  "value": "200",
+  "value_type": "number",
+  "createddate": 1751863724425,
+  "modifieddate": 1751863724425
+}
+Filtered data result: {
+  "promotion_id": 44,
+  "action_type": "flat_discount",
+  "target": "cart",
+  "value": 20,
+  "createddate": 1751863724864,
+  "modifieddate": 1751863724864
+}

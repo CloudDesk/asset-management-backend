@@ -1,2 +1,8 @@
 Available columns: ["id","useremail","userpassword","createddate","modifieddate","usermobilenumber","fcmid","firstname","lastname","gender","gstnumber","isbusinessuser"]
 Available columns: ["id","useremail","userpassword","createddate","modifieddate","usermobilenumber","fcmid","firstname","lastname","gender","gstnumber","isbusinessuser"]
+Available columns: ["id","promotion_id","rule_type","condition_key","operator","value","value_type","logic_group","priority","exclude","is_active","notes","createddate","modifieddate"]
+Available columns: ["id","name","type","code","auto_apply","start_date","end_date","status","priority","visibility","max_redemptions","per_user_limit","stackable","createddate","modifieddate"]
+Available columns: ["id","name","type","code","auto_apply","start_date","end_date","status","priority","visibility","max_redemptions","per_user_limit","stackable","createddate","modifieddate"]
+Available columns: ["id","name","type","code","auto_apply","start_date","end_date","status","priority","visibility","max_redemptions","per_user_limit","stackable","createddate","modifieddate"]
+Available columns: ["id","name","type","code","auto_apply","start_date","end_date","status","priority","visibility","max_redemptions","per_user_limit","stackable","createddate","modifieddate"]
+Available columns: ["id","name","type","code","auto_apply","start_date","end_date","status","priority","visibility","max_redemptions","per_user_limit","stackable","createddate","modifieddate"]

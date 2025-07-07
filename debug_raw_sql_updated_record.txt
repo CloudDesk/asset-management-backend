@@ -26,3 +26,88 @@ Updated record: {
   "gstnumber": null,
   "isbusinessuser": null
 }
+Updated record: {
+  "id": 1,
+  "promotion_id": 1,
+  "rule_type": "cart_total",
+  "condition_key": null,
+  "operator": "gte",
+  "value": "100",
+  "value_type": null,
+  "logic_group": "A",
+  "priority": null,
+  "exclude": null,
+  "is_active": true,
+  "notes": null,
+  "createddate": 1751622298932,
+  "modifieddate": 1751622489
+}
+Updated record: {
+  "id": 4,
+  "name": "Early Bird Updated",
+  "type": "buy_x_get_y",
+  "code": "EARLY25",
+  "auto_apply": true,
+  "start_date": null,
+  "end_date": null,
+  "status": "active",
+  "priority": 5,
+  "visibility": "all_users",
+  "max_redemptions": 2000,
+  "per_user_limit": 3,
+  "stackable": false,
+  "createddate": 1751622721131,
+  "modifieddate": 1751622767
+}
+Updated record: {
+  "id": 1,
+  "name": "Summer Sale UPDATED via Upsert",
+  "type": "percentage_discount",
+  "code": "SUMMER20",
+  "auto_apply": null,
+  "start_date": null,
+  "end_date": null,
+  "status": "active",
+  "priority": 1,
+  "visibility": null,
+  "max_redemptions": 5000,
+  "per_user_limit": null,
+  "stackable": true,
+  "createddate": 1751622134729,
+  "modifieddate": 1751622884
+}
+Updated record: {
+  "id": 5,
+  "name": "VIP Premium Offer",
+  "type": "premium_discount",
+  "code": "VIP2024",
+  "auto_apply": null,
+  "start_date": null,
+  "end_date": null,
+  "status": "active",
+  "priority": 10,
+  "visibility": "premium_users",
+  "max_redemptions": 100,
+  "per_user_limit": 1,
+  "stackable": true,
+  "createddate": 1751623082784,
+  "modifieddate": 1751623214
+}
+Updated record: {
+  "id": 6,
+  "name": "Exclusive Flash Sale",
+  "type": "flash_discount",
+  "code": "FLASH99",
+  "auto_apply": null,
+  "start_date": null,
+  "end_date": null,
+  "status": "active",
+  "priority": 1,
+  "visibility": null,
+  "max_redemptions": 50,
+  "per_user_limit": null,
+  "stackable": true,
+  "createddate": 1751623233450,
+  "modifieddate": 1751623242
+}
+Updated record: null

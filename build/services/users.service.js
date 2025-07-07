@@ -66,6 +66,27 @@ export class UsersService {
             throw error;
         }
     }
+    async findByMobileNumber(mobileNumber) {
+        try {
+            logger.debug({ mobileNumber }, 'Starting dynamic users findByMobileNumber operation');
+            const users = await dynamicFindManyWithFilters('users', { usermobilenumber: mobileNumber }, {
+                skip: 0,
+                take: 1,
+                useAllColumns: true
+            });
+            const user = users.data?.[0] || null;
+            logger.debug({
+                mobileNumber,
+                found: !!user,
+                availableFields: user ? Object.keys(user) : []
+            }, 'Dynamic users findByMobileNumber completed');
+            return user;
+        }
+        catch (error) {
+            logger.error({ error, mobileNumber }, 'Error in users findByMobileNumber operation');
+            throw error;
+        }
+    }
     async create(data) {
         try {
             logger.debug({ originalData: data }, 'Starting dynamic users create operation');
@@ -172,6 +193,155 @@ export class UsersService {
             logger.error({ error, email }, 'Error during authentication');
             throw error;
         }
+    }
+    /**
+     * Authenticate user with mobile number and password
+     */
+    async authenticateByMobile(mobileNumber, password) {
+        try {
+            logger.debug({ mobileNumber }, 'Attempting to authenticate user by mobile number');
+            const user = await this.findByMobileNumber(mobileNumber);
+            if (!user || !user.userpassword) {
+                logger.warn({ mobileNumber }, 'Authentication failed: User not found or no password set');
+                return null;
+            }
+            const isPasswordValid = await verifyPassword(password, user.userpassword);
+            if (!isPasswordValid) {
+                logger.warn({ mobileNumber, userId: user.id }, 'Authentication failed: Invalid password');
+                return null;
+            }
+            // Generate session token
+            const sessionToken = generateSessionToken();
+            logger.info({
+                userId: user.id,
+                mobileNumber: user.usermobilenumber
+            }, 'User authenticated successfully via mobile number');
+            return {
+                user: sanitizeUserData(user),
+                token: sessionToken
+            };
+        }
+        catch (error) {
+            logger.error({ error, mobileNumber }, 'Error during mobile authentication');
+            throw error;
+        }
+    }
+    /**
+     * Generate OTP for mobile number (passwordless login step 1)
+     */
+    async generateMobileOTP(mobileNumber) {
+        try {
+            logger.debug({ mobileNumber }, 'Generating OTP for mobile number');
+            // Check if user exists
+            let user = await this.findByMobileNumber(mobileNumber);
+            let isNewUser = false;
+            if (!user) {
+                // User doesn't exist, create a new user automatically
+                logger.info({ mobileNumber }, 'Mobile number not found, creating new user automatically');
+                try {
+                    const newUserData = {
+                        usermobilenumber: mobileNumber,
+                        firstname: `User`, // Default first name
+                        createddate: Date.now(),
+                        modifieddate: Date.now()
+                    };
+                    user = await this.create(newUserData);
+                    isNewUser = true;
+                    logger.info({
+                        userId: user.id,
+                        mobileNumber: user.usermobilenumber
+                    }, 'New user created successfully for mobile login');
+                }
+                catch (createError) {
+                    logger.error({ error: createError, mobileNumber }, 'Failed to create new user for mobile number');
+                    return null;
+                }
+            }
+            // Use hardcoded OTP for development (no SMS gateway needed)
+            const otp = 1234; // Hardcoded integer for development - easy testing
+            const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
+            // Store OTP in memory for verification
+            this.storeOTP(mobileNumber, otp, expiresAt);
+            logger.info({
+                userId: user.id,
+                mobileNumber: user.usermobilenumber,
+                otp: otp, // Log OTP for development (remove in production)
+                isNewUser: isNewUser
+            }, `OTP generated successfully for mobile login ${isNewUser ? '(new user created)' : '(existing user)'}`);
+            return { otp, expiresAt, isNewUser };
+        }
+        catch (error) {
+            logger.error({ error, mobileNumber }, 'Error during OTP generation');
+            throw error;
+        }
+    }
+    /**
+     * Verify OTP and authenticate user (passwordless login step 2)
+     */
+    async verifyMobileOTP(mobileNumber, otp) {
+        try {
+            logger.debug({ mobileNumber, otp }, 'Verifying OTP for mobile authentication');
+            // Check if user exists
+            const user = await this.findByMobileNumber(mobileNumber);
+            if (!user) {
+                logger.warn({ mobileNumber }, 'OTP verification failed: User not found');
+                return null;
+            }
+            // Verify OTP
+            const isOTPValid = this.verifyOTP(mobileNumber, otp);
+            if (!isOTPValid) {
+                logger.warn({ mobileNumber, userId: user.id }, 'OTP verification failed: Invalid or expired OTP');
+                return null;
+            }
+            // Clear OTP after successful verification
+            this.clearOTP(mobileNumber);
+            // Generate session token
+            const sessionToken = generateSessionToken();
+            logger.info({
+                userId: user.id,
+                mobileNumber: user.usermobilenumber
+            }, 'User authenticated successfully via mobile OTP');
+            return {
+                user: sanitizeUserData(user),
+                token: sessionToken
+            };
+        }
+        catch (error) {
+            logger.error({ error, mobileNumber }, 'Error during OTP verification');
+            throw error;
+        }
+    }
+    // OTP storage (in-memory for testing - use Redis/DB in production)
+    otpStorage = new Map();
+    storeOTP(mobileNumber, otp, expiresAt) {
+        this.otpStorage.set(mobileNumber, { otp, expiresAt });
+        // Auto-cleanup expired OTP after expiry time
+        setTimeout(() => {
+            this.otpStorage.delete(mobileNumber);
+        }, expiresAt.getTime() - Date.now());
+    }
+    verifyOTP(mobileNumber, otp) {
+        const storedOTP = this.otpStorage.get(mobileNumber);
+        if (!storedOTP) {
+            return false;
+        }
+        // Check if OTP has expired
+        if (new Date() > storedOTP.expiresAt) {
+            this.otpStorage.delete(mobileNumber);
+            return false;
+        }
+        // Verify OTP
+        return storedOTP.otp === otp;
+    }
+    clearOTP(mobileNumber) {
+        this.otpStorage.delete(mobileNumber);
+    }
+    /**
+     * Get OTP for testing purposes (remove in production)
+     */
+    async getOTPForTesting(mobileNumber) {
+        const storedOTP = this.otpStorage.get(mobileNumber);
+        return storedOTP?.otp || null;
     }
     async upsert(data) {
         try {

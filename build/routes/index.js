@@ -9,6 +9,7 @@ import { notesRoutes } from './notes.route.js';
 import { usersRoutes } from './users.route.js';
 import { inventoryUsersRoutes } from './inventoryusers.route.js';
 import { authRoutes } from './auth.route.js';
+import { mobileAuthRoutes } from './mobile-auth.route.js';
 import { poinvoiceRoutes } from './poinvoice.route.js';
 import { addressRoutes } from './address.route.js';
 import { samplePurchaseRequestRoutes } from './samplepurchaserequest.route.js';
@@ -18,6 +19,11 @@ import { orderlineRoutes } from './orderline.route.js';
 import { transactionRoutes } from './transaction.route.js';
 import { phonePeRoutes } from './phonepe.route.js';
 import { promotionalAssetsRoutes } from './promotional-assets.route.js';
+import { promotionsRoutes } from './promotions.route.js';
+import { promotionRulesRoutes } from './promotion-rules.route.js';
+import { promotionActionsRoutes } from './promotion-actions.route.js';
+import { promotionTargetLinkRoutes } from './promotion-target-link.route.js';
+import { promotionUsageLogRoutes } from './promotion-usage-log.route.js';
 import { requireAuthentication } from '../middleware/auth.middleware.js';
 import { createSuccessResponse } from '../utils/errorHandler.js';
 export async function routes(fastify) {
@@ -59,6 +65,7 @@ export async function routes(fastify) {
     // API v1 routes
     await fastify.register(async function (fastify) {
         await fastify.register(authRoutes, { prefix: '/auth' });
+        await fastify.register(mobileAuthRoutes, { prefix: '/mobile-auth' });
         await fastify.register(productRoutes, { prefix: '/products' });
         await fastify.register(stockRoutes, { prefix: '/stocks' });
         await fastify.register(picklistRoutes, { prefix: '/picklists' });
@@ -78,6 +85,12 @@ export async function routes(fastify) {
         await fastify.register(transactionRoutes, { prefix: '/transactions' });
         await fastify.register(phonePeRoutes, { prefix: '/phonepe' });
         await fastify.register(promotionalAssetsRoutes, { prefix: '/promotional-assets' });
+        // Promotion system routes
+        await fastify.register(promotionsRoutes, { prefix: '/promotions' });
+        await fastify.register(promotionRulesRoutes, { prefix: '/promotion-rules' });
+        await fastify.register(promotionActionsRoutes, { prefix: '/promotion-actions' });
+        await fastify.register(promotionTargetLinkRoutes, { prefix: '/promotion-target-link' });
+        await fastify.register(promotionUsageLogRoutes, { prefix: '/promotion-usage-log' });
         await fastify.register(async function (fastify) {
             // Apply authentication middleware to all routes in this scope
             fastify.addHook('preHandler', requireAuthentication);
