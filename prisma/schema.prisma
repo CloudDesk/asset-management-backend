@@ -151,7 +151,7 @@ model Supplier {
   createddate         BigInt?
   gstnumber           String?           @db.VarChar(500)
   supplieremail       String?           @db.VarChar(500)
-  suppliercode        String?           @unique(map: "unique_supplier_code") @db.VarChar(5)
+  suppliercode        String?           @unique(map: "unique_supplier_code") @db.VarChar(50)
   suppliertype        String            @default("local") @db.VarChar(255)
   country             String?           @db.VarChar(255)
   product             Product[]

@@ -111,3 +111,35 @@ Updated record: {
   "modifieddate": 1751623242
 }
 Updated record: null
+Updated record: {
+  "id": 1,
+  "useremail": "pravinsf24@gmail.com",
+  "userpassword": "$2a$12$I/bC9IXwlwJTCWIxCGefy.HQjzDAcxAyqsr0bE3.2GhkCh8TzTFje",
+  "createddate": 1751863918637,
+  "modifieddate": 1751863919,
+  "role": null,
+  "usersphonenumber": null,
+  "firstname": "Pravin",
+  "lastname": "Raja",
+  "location": null,
+  "fcmid": null,
+  "sessiontoken": "8108705d974d5ac69b1f9f74dc3521cd572f42e9cf2a071ae883d40bd94e5382",
+  "resettoken": null,
+  "resettokenexpires": null
+}
+Updated record: {
+  "id": 1,
+  "useremail": "pravinsf24@gmail.com",
+  "userpassword": "$2a$12$I/bC9IXwlwJTCWIxCGefy.HQjzDAcxAyqsr0bE3.2GhkCh8TzTFje",
+  "createddate": 1751863918637,
+  "modifieddate": 1751863950,
+  "role": null,
+  "usersphonenumber": null,
+  "firstname": "Pravin",
+  "lastname": "Raja",
+  "location": null,
+  "fcmid": null,
+  "sessiontoken": "8997babf653d3df69ef57c05965e7103f55a28ac9dfd376db0f87f1204b1e8b4",
+  "resettoken": null,
+  "resettokenexpires": null
+}

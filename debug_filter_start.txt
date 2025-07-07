@@ -1348,3 +1348,414 @@ Filtering data for promotion_actions (promotion_actions): {
   "createddate": 1751863724864,
   "modifieddate": 1751863724864
 }
+Filtering data for inventoryusers (inventoryusers): {
+  "useremail": "pravinsf24@gmail.com",
+  "userpassword": "$2a$12$I/bC9IXwlwJTCWIxCGefy.HQjzDAcxAyqsr0bE3.2GhkCh8TzTFje",
+  "firstname": "Pravin",
+  "lastname": "Raja",
+  "createddate": 1751863918637,
+  "modifieddate": 1751863918637
+}
+Filtering data for inventoryusers (inventoryusers): {
+  "sessiontoken": "8108705d974d5ac69b1f9f74dc3521cd572f42e9cf2a071ae883d40bd94e5382",
+  "modifieddate": 1751863919695
+}
+Filtering data for inventoryusers (inventoryusers): {
+  "sessiontoken": "8997babf653d3df69ef57c05965e7103f55a28ac9dfd376db0f87f1204b1e8b4",
+  "modifieddate": 1751863950320
+}
+Filtering data for product (product): {
+  "name": "Essancia Peppermint Essential Oil",
+  "category": "wellness",
+  "price": 250,
+  "isdealoftheday": false,
+  "quantity": 0,
+  "ecompublishedquantity": 0,
+  "subcategory": "essential-oils",
+  "supplierid": 0,
+  "suppliername": "",
+  "shortdescription": "Essancia Peppermint Essential Oil For Hair Regrowth, Skin, Face, Cold, Congestion, Steam Inhaler, Insects, Rats Repellent, Teeth, Ants & Diffuser. 100% Natural, Undiluted, Pure & Therapeutic Grade Essential Oil.",
+  "fulldescription": "",
+  "discount": 18,
+  "supplier": "",
+  "orderedquantity": 0,
+  "availablequantity": 0,
+  "soldquantity": 0,
+  "productstatus": "",
+  "ingredients": "Essancia Peppermint Essential Oil For Hair Regrowth, Skin, Face, Cold, Congestion, Steam Inhaler, Insects, Rats Repellent, Teeth, Ants & Diffuser. 100% Natural, Undiluted, Pure & Therapeutic Grade Essential Oil.",
+  "usage": " Go natural with one of the best aromatherapy essential oils for humidifiers and DIY projects like mint essential oils for soap making with refreshing winter essential oils\n\nEssential Peppermint Oil for Hair - Try our pure essential oils for hair care like this mint oil for a cleansing dry scalp oil for build-up to help minimize the appearance of flakes and dull hair\n\nAromatic Essential Oils for Diffuser - Breathe in the benefits of aromatherapy oils for diffuser machines with our natural essential oil peppermint essential oil great for promoting overall wellness\n\nEssential Oils for Skin Use - Cleanse and clarify your skin for more radiant glowing skin great for skin care DIY beauty products and dry scalp care best paired with one of our many carrier oils\n\nFor Oral Care Add a drop or two to your toothpaste to keep foul breath at bay and also fight cavities.\n\nFor Skin Care Add a few drops daily to body wash or lotion for healthy & radiant skin. For acne, mix 2-3 drops in a tsp of carrier oil and apply to the affected area.",
+  "extractionmethod": "steam-distillation",
+  "note": "top",
+  "shelflife": ""
+}
+Filtering data for supplier (supplier): {
+  "suppliername": "KS Oils",
+  "suppliercode": "KS-0011",
+  "suppliertype": "local",
+  "supplieremail": "pravinsf24@gmail.com",
+  "supplierphonenumber": 8888777788,
+  "supplierlandline": 0,
+  "city": "Chennai",
+  "state": "Tamil Nadu",
+  "country": "India",
+  "gstnumber": "",
+  "doornumber": "10/40",
+  "streetname": "Rajiv Street",
+  "pincode": 655665
+}
+Filtering data for supplier (supplier): {
+  "suppliername": "KS Oils",
+  "suppliercode": "KS-001",
+  "suppliertype": "local",
+  "supplieremail": "pravinsf24@gmail.com",
+  "supplierphonenumber": 8877994455,
+  "supplierlandline": 0,
+  "city": "Chennai",
+  "state": "Tamil Nadu",
+  "country": "India",
+  "gstnumber": "",
+  "doornumber": "10/40",
+  "streetname": "Rajiv street",
+  "pincode": 556456
+}
+Filtering data for supplier (supplier): {
+  "suppliername": "KS OIls",
+  "suppliercode": "KS-001",
+  "suppliertype": "local",
+  "supplieremail": "pravinsf24@gmail.com",
+  "supplierphonenumber": 7788994455,
+  "supplierlandline": 0,
+  "city": "Chennai",
+  "state": "Tamil Nadu",
+  "country": "India",
+  "gstnumber": "",
+  "doornumber": "10/40",
+  "streetname": "Rajiv Strret",
+  "pincode": 654654
+}
+Filtering data for product (product): {
+  "name": "Essancia Peppermint Essential Oil",
+  "category": "wellness",
+  "price": 250,
+  "isdealoftheday": false,
+  "quantity": 0,
+  "ecompublishedquantity": 0,
+  "subcategory": "essential-oils",
+  "supplierid": 1,
+  "suppliername": "KS OIls",
+  "shortdescription": "Essancia Peppermint Essential Oil For Hair Regrowth, Skin, Face, Cold, Congestion, Steam Inhaler, Insects, Rats Repellent, Teeth, Ants & Diffuser. 100% Natural, Undiluted, Pure & Therapeutic Grade Essential Oil.",
+  "fulldescription": "",
+  "discount": 18,
+  "supplier": "",
+  "orderedquantity": 0,
+  "availablequantity": 0,
+  "soldquantity": 0,
+  "productstatus": "",
+  "ingredients": "Go natural with one of the best aromatherapy essential oils for humidifiers and DIY projects like mint essential oils for soap making with refreshing winter essential oils",
+  "usage": "Try our pure essential oils for hair care like this mint oil for a cleansing dry scalp oil for build-up to help minimize the appearance of flakes and dull hair\n\nAromatic Essential Oils for Diffuser - Breathe in the benefits of aromatherapy oils for diffuser machines with our natural essential oil peppermint essential oil great for promoting overall wellness\n\nEssential Oils for Skin Use - Cleanse and clarify your skin for more radiant glowing skin great for skin care DIY beauty products and dry scalp care best paired with one of our many carrier oils\n\nFor Oral Care Add a drop or two to your toothpaste to keep foul breath at bay and also fight cavities.\n\nFor Skin Care Add a few drops daily to body wash or lotion for healthy & radiant skin. For acne, mix 2-3 drops in a tsp of carrier oil and apply to the affected area.",
+  "extractionmethod": "steam-distillation",
+  "note": "top",
+  "shelflife": ""
+}
+Filtering data for product (product): {
+  "success": false,
+  "error": "Unsupported MIME type: image/webp"
+}
+Filtering data for product (product): {
+  "success": false,
+  "error": "Unsupported MIME type: image/webp"
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/vyb-product-images-dev/2/large/large_dku5w_512.jpg"
+  ],
+  "medium": [
+    "https://storage.googleapis.com/vyb-product-images-dev/2/medium/medium_dku5w_512.jpg"
+  ],
+  "small": [
+    "https://storage.googleapis.com/vyb-product-images-dev/2/small/small_dku5w_512.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/vyb-product-images-dev/2/large/large_dku5w_512.jpg",
+    "https://storage.googleapis.com/vyb-product-images-dev/2/large/large_wemtr_512.jpg"
+  ],
+  "medium": [
+    "https://storage.googleapis.com/vyb-product-images-dev/2/medium/medium_dku5w_512.jpg",
+    "https://storage.googleapis.com/vyb-product-images-dev/2/medium/medium_wemtr_512.jpg"
+  ],
+  "small": [
+    "https://storage.googleapis.com/vyb-product-images-dev/2/small/small_dku5w_512.jpg",
+    "https://storage.googleapis.com/vyb-product-images-dev/2/small/small_wemtr_512.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "name": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+  "category": "wellness",
+  "price": 650,
+  "isdealoftheday": false,
+  "quantity": 0,
+  "ecompublishedquantity": 0,
+  "subcategory": "essential-oils",
+  "supplierid": 1,
+  "suppliername": "KS OIls",
+  "shortdescription": "Our Peppermint Essential Oil (aceite de menta) is steam distilled from the Mentha Piperita plant, a plant native to Europe and the Middle East valued for centuries in medicines, dental preparations, liniments, cleaners, and cosmetics. The oil has a sweet, sharp, mint aroma. Undiluted, this oil has a very strong aroma.",
+  "fulldescription": "",
+  "discount": 12,
+  "supplier": "",
+  "orderedquantity": 0,
+  "availablequantity": 0,
+  "soldquantity": 0,
+  "productstatus": "",
+  "ingredients": "Our Peppermint Essential Oil (aceite de menta) is steam distilled from the Mentha Piperita plant, a plant native to Europe and the Middle East valued for centuries in medicines, dental preparations, liniments, cleaners, and cosmetics. The oil has a sweet, sharp, mint aroma. Undiluted, this oil has a very strong aroma.",
+  "usage": "",
+  "extractionmethod": "steam-distillation",
+  "note": "top",
+  "shelflife": ""
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/vyb-product-images-dev/3/large/large_dbwjc_512.jpg",
+    "https://storage.googleapis.com/vyb-product-images-dev/3/large/large_kvg2b_512.jpg"
+  ],
+  "medium": [
+    "https://storage.googleapis.com/vyb-product-images-dev/3/medium/medium_dbwjc_512.jpg",
+    "https://storage.googleapis.com/vyb-product-images-dev/3/medium/medium_kvg2b_512.jpg"
+  ],
+  "small": [
+    "https://storage.googleapis.com/vyb-product-images-dev/3/small/small_dbwjc_512.jpg",
+    "https://storage.googleapis.com/vyb-product-images-dev/3/small/small_kvg2b_512.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/vyb-product-images-dev/3/large/large_kvg2b_512.jpg",
+    "https://storage.googleapis.com/vyb-product-images-dev/3/large/large_dbwjc_512.jpg"
+  ]
+}
+Filtering data for stock (stock): {
+  "puc": "",
+  "rfid": "8899558855",
+  "serialnumber": "ARAVI-001",
+  "manufacturedyear": 1752019200,
+  "ecompublish": true,
+  "releaseyear": 1751846400,
+  "location": "warehouse-a",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtering data for product (product): {
+  "name": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+  "category": "wellness",
+  "price": 520,
+  "isdealoftheday": false,
+  "quantity": 0,
+  "ecompublishedquantity": 0,
+  "subcategory": "essential-oils",
+  "supplierid": 1,
+  "suppliername": "KS OIls",
+  "shortdescription": "Our Peppermint Essential Oil (aceite de menta) is steam distilled from the Mentha Piperita plant, a plant native to Europe and the Middle East valued for centuries in medicines, dental preparations, liniments, cleaners, and cosmetics. The oil has a sweet, sharp, mint aroma. Undiluted, this oil has a very strong aroma.",
+  "fulldescription": "",
+  "discount": 12,
+  "supplier": "",
+  "orderedquantity": 0,
+  "availablequantity": 0,
+  "soldquantity": 0,
+  "productstatus": "",
+  "ingredients": "Our Peppermint Essential Oil (aceite de menta) is steam distilled from the Mentha Piperita plant, a plant native to Europe and the Middle East valued for centuries in medicines, dental preparations, liniments, cleaners, and cosmetics. The oil has a sweet, sharp, mint aroma. Undiluted, this oil has a very strong aroma.",
+  "usage": "Our Peppermint Essential Oil (aceite de menta) is steam distilled from the Mentha Piperita plant, a plant native to Europe and the Middle East valued for centuries in medicines, dental preparations, liniments, cleaners, and cosmetics. The oil has a sweet, sharp, mint aroma. Undiluted, this oil has a very strong aroma.",
+  "extractionmethod": "steam-distillation",
+  "note": "top",
+  "shelflife": ""
+}
+Filtering data for product (product): {
+  "name": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+  "category": "wellness",
+  "price": 520,
+  "isdealoftheday": false,
+  "quantity": 0,
+  "ecompublishedquantity": 0,
+  "subcategory": "essential-oils",
+  "supplierid": 1,
+  "suppliername": "KS OIls",
+  "shortdescription": "Our Peppermint Essential Oil (aceite de menta) is steam distilled from the Mentha Piperita plant, a plant native to Europe and the Middle East valued for centuries in medicines, dental preparations, liniments, cleaners, and cosmetics. The oil has a sweet, sharp, mint aroma. Undiluted, this oil has a very strong aroma.",
+  "fulldescription": "",
+  "discount": 12,
+  "supplier": "",
+  "orderedquantity": 0,
+  "availablequantity": 0,
+  "soldquantity": 0,
+  "productstatus": "",
+  "ingredients": "Our Peppermint Essential Oil (aceite de menta) is steam distilled from the Mentha Piperita plant, a plant native to Europe and the Middle East valued for centuries in medicines, dental preparations, liniments, cleaners, and cosmetics. The oil has a sweet, sharp, mint aroma. Undiluted, this oil has a very strong aroma.",
+  "usage": "Our Peppermint Essential Oil (aceite de menta) is steam distilled from the Mentha Piperita plant, a plant native to Europe and the Middle East valued for centuries in medicines, dental preparations, liniments, cleaners, and cosmetics. The oil has a sweet, sharp, mint aroma. Undiluted, this oil has a very strong aroma.",
+  "extractionmethod": "steam-distillation",
+  "note": "top",
+  "shelflife": ""
+}
+Filtering data for product (product): {
+  "name": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+  "category": "wellness",
+  "price": 520,
+  "isdealoftheday": false,
+  "quantity": 0,
+  "ecompublishedquantity": 0,
+  "subcategory": "essential-oils",
+  "supplierid": 1,
+  "suppliername": "KS OIls",
+  "shortdescription": "Our Peppermint Essential Oil (aceite de menta) is steam distilled from the Mentha Piperita plant, a plant native to Europe and the Middle East valued for centuries in medicines, dental preparations, liniments, cleaners, and cosmetics. The oil has a sweet, sharp, mint aroma. Undiluted, this oil has a very strong aroma.",
+  "fulldescription": "",
+  "discount": 12,
+  "supplier": "",
+  "orderedquantity": 0,
+  "availablequantity": 0,
+  "soldquantity": 0,
+  "productstatus": "",
+  "ingredients": "Our Peppermint Essential Oil (aceite de menta) is steam distilled from the Mentha Piperita plant, a plant native to Europe and the Middle East valued for centuries in medicines, dental preparations, liniments, cleaners, and cosmetics. The oil has a sweet, sharp, mint aroma. Undiluted, this oil has a very strong aroma.",
+  "usage": "Our Peppermint Essential Oil (aceite de menta) is steam distilled from the Mentha Piperita plant, a plant native to Europe and the Middle East valued for centuries in medicines, dental preparations, liniments, cleaners, and cosmetics. The oil has a sweet, sharp, mint aroma. Undiluted, this oil has a very strong aroma.",
+  "extractionmethod": "steam-distillation",
+  "note": "top",
+  "shelflife": ""
+}
+Filtering data for product (product): {
+  "name": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+  "category": "wellness",
+  "price": 520,
+  "isdealoftheday": false,
+  "quantity": 0,
+  "ecompublishedquantity": 0,
+  "subcategory": "essential-oils",
+  "supplierid": 1,
+  "suppliername": "KS OIls",
+  "shortdescription": "Our Peppermint Essential Oil (aceite de menta) is steam distilled from the Mentha Piperita plant, a plant native to Europe and the Middle East valued for centuries in medicines, dental preparations, liniments, cleaners, and cosmetics. The oil has a sweet, sharp, mint aroma. Undiluted, this oil has a very strong aroma.",
+  "fulldescription": "",
+  "discount": 12,
+  "supplier": "",
+  "orderedquantity": 0,
+  "availablequantity": 0,
+  "soldquantity": 0,
+  "productstatus": "",
+  "ingredients": "Our Peppermint Essential Oil (aceite de menta) is steam distilled from the Mentha Piperita plant, a plant native to Europe and the Middle East valued for centuries in medicines, dental preparations, liniments, cleaners, and cosmetics. The oil has a sweet, sharp, mint aroma. Undiluted, this oil has a very strong aroma.",
+  "usage": "Our Peppermint Essential Oil (aceite de menta) is steam distilled from the Mentha Piperita plant, a plant native to Europe and the Middle East valued for centuries in medicines, dental preparations, liniments, cleaners, and cosmetics. The oil has a sweet, sharp, mint aroma. Undiluted, this oil has a very strong aroma.",
+  "extractionmethod": "steam-distillation",
+  "note": "top",
+  "shelflife": ""
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/vyb-product-images-dev/7/large/large_dbwjc_512.jpg",
+    "https://storage.googleapis.com/vyb-product-images-dev/7/large/large_kvg2b_512.jpg"
+  ],
+  "medium": [
+    "https://storage.googleapis.com/vyb-product-images-dev/7/medium/medium_dbwjc_512.jpg",
+    "https://storage.googleapis.com/vyb-product-images-dev/7/medium/medium_kvg2b_512.jpg"
+  ],
+  "small": [
+    "https://storage.googleapis.com/vyb-product-images-dev/7/small/small_dbwjc_512.jpg",
+    "https://storage.googleapis.com/vyb-product-images-dev/7/small/small_kvg2b_512.jpg"
+  ]
+}
+Filtering data for stock (stock): {
+  "puc": "es-we-0000000002",
+  "rfid": "00998893543",
+  "serialnumber": "ARAVI-001",
+  "manufacturedyear": 1751328000,
+  "ecompublish": true,
+  "releaseyear": 1751932800,
+  "location": "warehouse-a",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtering data for product (product): {
+  "quantity": 1,
+  "availablequantity": 1,
+  "soldquantity": 0,
+  "ecompublishedquantity": 1,
+  "productstatus": "low_stock",
+  "modifieddate": 1751877587348
+}
+Filtering data for stock (stock): {
+  "puc": "es-we-0000000002",
+  "rfid": "8877990086",
+  "serialnumber": "ARAVI-002",
+  "manufacturedyear": 1748908800,
+  "ecompublish": false,
+  "releaseyear": 1751414400,
+  "location": "warehouse-a",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtering data for product (product): {
+  "quantity": 2,
+  "availablequantity": 2,
+  "soldquantity": 0,
+  "ecompublishedquantity": 1,
+  "productstatus": "low_stock",
+  "modifieddate": 1751877620716
+}
+Filtering data for product (product): {
+  "name": "WishCare Pure Rosemary Essential Oil - 15 ML",
+  "category": "wellness",
+  "price": 850,
+  "isdealoftheday": false,
+  "quantity": 0,
+  "ecompublishedquantity": 0,
+  "subcategory": "essential-oils",
+  "supplierid": 1,
+  "suppliername": "KS OIls",
+  "shortdescription": "Rosemary (Rosmarinus officinalis) has a fresh, herbaceous, sweet, slightly medicinal aroma. An energizing oil, it is beneficial for helping to restore mental alertness when experiencing fatigue. Helps with a variety of congested respiratory tract problems, stiff muscles, coldness as well as boosting the liver and gall bladder. It is also used for improving hair and scalp health. Improves confidence and perception; Creativity; Helps balance mind and body; Reduces mental strain; Helps in exhaustion and reduces lethargy. We are confident we have developed the absolute best rosemary essential oil in the market.",
+  "fulldescription": "",
+  "discount": 152,
+  "supplier": "",
+  "orderedquantity": 0,
+  "availablequantity": 0,
+  "soldquantity": 0,
+  "productstatus": "",
+  "ingredients": "Rosemary (Rosmarinus officinalis) has a fresh, herbaceous, sweet, slightly medicinal aroma. An energizing oil, it is beneficial for helping to restore mental alertness when experiencing fatigue. Helps with a variety of congested respiratory tract problems, stiff muscles, coldness as well as boosting the liver and gall bladder. It is also used for improving hair and scalp health. Improves confidence and perception; Creativity; Helps balance mind and body; Reduces mental strain; Helps in exhaustion and reduces lethargy. We are confident we have developed the absolute best rosemary essential oil in the market.",
+  "usage": "",
+  "extractionmethod": "steam-distillation",
+  "note": "middle",
+  "shelflife": ""
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/vyb-product-images-dev/8/large/large_vhznd_512.jpg"
+  ],
+  "medium": [
+    "https://storage.googleapis.com/vyb-product-images-dev/8/medium/medium_vhznd_512.jpg"
+  ],
+  "small": [
+    "https://storage.googleapis.com/vyb-product-images-dev/8/small/small_vhznd_512.jpg"
+  ]
+}
+Filtering data for stock (stock): {
+  "puc": "es-we-0000000003",
+  "rfid": "8909876545",
+  "serialnumber": "WISHCARE-0001",
+  "manufacturedyear": 1751932800,
+  "ecompublish": true,
+  "releaseyear": 1752105600,
+  "location": "warehouse-a",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtering data for product (product): {
+  "quantity": 1,
+  "availablequantity": 1,
+  "soldquantity": 0,
+  "ecompublishedquantity": 1,
+  "productstatus": "low_stock",
+  "modifieddate": 1751878952057
+}

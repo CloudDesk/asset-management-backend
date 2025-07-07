@@ -6,3 +6,5 @@ Available columns: ["id","name","type","code","auto_apply","start_date","end_dat
 Available columns: ["id","name","type","code","auto_apply","start_date","end_date","status","priority","visibility","max_redemptions","per_user_limit","stackable","createddate","modifieddate"]
 Available columns: ["id","name","type","code","auto_apply","start_date","end_date","status","priority","visibility","max_redemptions","per_user_limit","stackable","createddate","modifieddate"]
 Available columns: ["id","name","type","code","auto_apply","start_date","end_date","status","priority","visibility","max_redemptions","per_user_limit","stackable","createddate","modifieddate"]
+Available columns: ["id","useremail","userpassword","createddate","modifieddate","role","usersphonenumber","firstname","lastname","location","fcmid","sessiontoken","resettoken","resettokenexpires"]
+Available columns: ["id","useremail","userpassword","createddate","modifieddate","role","usersphonenumber","firstname","lastname","location","fcmid","sessiontoken","resettoken","resettokenexpires"]
