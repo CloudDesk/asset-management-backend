@@ -24,6 +24,11 @@ export class AddressController {
     
     // Remove pagination params from filters
     const { page: _, limit: __, ...filters } = allFilters;
+
+    // Convert boolean filters
+    if (filters.isdefaultaddress !== undefined) {
+      filters.isdefaultaddress = filters.isdefaultaddress === 'true';
+    }
     
     const result = await this.addressService.findMany(filters, page, limit);
     
@@ -86,6 +91,33 @@ export class AddressController {
     
     const message = data.id ? 'Address updated successfully' : 'Address created successfully';
     const response = createSuccessResponse(message, formatAddressForAPI(address));
+    return reply.code(200).send(response);
+  });
+
+  getDefaultAddress = asyncHandler(async (request: FastifyRequest<{ Params: { userId: string } }>, reply: FastifyReply) => {
+    const userId = parseInt(request.params.userId);
+    
+    if (isNaN(userId)) {
+      return reply.code(400).send({
+        success: false,
+        message: 'Invalid user ID',
+        details: 'User ID must be a valid number',
+        statusCode: 400,
+      });
+    }
+    
+    const address = await this.addressService.getDefaultAddress(userId);
+    
+    if (!address) {
+      return reply.code(404).send({
+        success: false,
+        message: 'Default address not found',
+        details: 'No default address set for this user',
+        statusCode: 404,
+      });
+    }
+    
+    const response = createSuccessResponse('Default address retrieved successfully', formatAddressForAPI(address));
     return reply.code(200).send(response);
   });
 } 

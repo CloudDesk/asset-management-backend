@@ -78,7 +78,7 @@ export async function promotionsRoutes(fastify) {
             },
         },
     }, promotionsController.getPromotions.bind(promotionsController));
-    // GET /v1/promotions/eligible - Evaluate promotion eligibility (GET version for testing)
+    // GET /v1/promotions/eligible - Evaluate promotion eligibility (GET version)
     fastify.get('/eligible', {
         schema: {
             description: 'Evaluate promotion eligibility for a user and cart (GET version)',
@@ -87,13 +87,10 @@ export async function promotionsRoutes(fastify) {
                 type: 'object',
                 properties: {
                     user_id: { type: 'string', description: 'User ID' },
-                    cart_total: { type: 'string', description: 'Cart total amount' },
-                    product_ids: { type: 'string', description: 'Comma-separated product IDs' },
                     platform: { type: 'string', description: 'Platform (web, mobile, etc.)' },
-                    payment_method: { type: 'string', description: 'Payment method' },
+                    code: { type: 'string', description: 'Promotion code' }
                 },
-                required: ['user_id'],
-                additionalProperties: true
+                required: ['user_id', 'platform']
             },
             response: {
                 200: {
@@ -120,7 +117,7 @@ export async function promotionsRoutes(fastify) {
                                                     properties: {
                                                         type: { type: 'string' },
                                                         target: { type: 'string' },
-                                                        value: { type: ['number', 'string'] },
+                                                        value: { type: ['number', 'string'] }
                                                     }
                                                 }
                                             }
@@ -129,55 +126,12 @@ export async function promotionsRoutes(fastify) {
                                 }
                             }
                         },
-                        message: { type: 'string' },
-                    },
-                },
-            },
-        },
-    }, async (request, reply) => {
-        try {
-            const { user_id, cart_total, product_ids, platform, payment_method } = request.query;
-            // Validate required fields
-            if (!user_id || user_id.trim() === '') {
-                const errorResponse = {
-                    success: false,
-                    message: 'User ID is required for eligibility evaluation',
-                    details: 'Please provide a valid user_id in the query parameters',
-                    statusCode: 400
-                };
-                return reply.code(400).send(errorResponse);
+                        message: { type: 'string' }
+                    }
+                }
             }
-            // Convert query params to the format expected by the controller
-            const productIdList = product_ids ? product_ids.split(',').map(Number) : [];
-            const cartItems = productIdList.map((productId, index) => ({
-                product_id: productId,
-                quantity: 1,
-                amount: cart_total ? Number(cart_total) / productIdList.length : 0
-            }));
-            const evaluationData = {
-                user_id,
-                cart: cartItems,
-                platform: platform || 'web',
-                payment_method,
-                cart_total: cart_total ? Number(cart_total) : 0,
-                product_ids: productIdList
-            };
-            const result = await promotionsController.evaluateEligibility({
-                body: evaluationData
-            }, reply);
-            return result;
         }
-        catch (error) {
-            console.log('=== PROMOTION ELIGIBILITY ERROR:', error.message);
-            const errorResponse = {
-                success: false,
-                message: 'Internal server error',
-                details: 'Something went wrong while evaluating promotion eligibility',
-                statusCode: 500
-            };
-            return reply.code(500).send(errorResponse);
-        }
-    });
+    }, promotionsController.evaluateEligibility.bind(promotionsController));
     // GET /v1/promotions/:id - Get promotion by ID
     fastify.get('/:id', {
         schema: {
@@ -644,24 +598,23 @@ export async function promotionsRoutes(fastify) {
                 type: 'object',
                 properties: {
                     user_id: { type: 'string', description: 'User ID' },
+                    platform: { type: 'string', description: 'Platform (web, mobile, etc.)' },
                     cart: {
                         type: 'array',
                         items: {
                             type: 'object',
                             properties: {
-                                product_id: { type: 'number', description: 'Product ID' },
+                                product_id: { type: 'string', description: 'Product ID' },
                                 quantity: { type: 'number', description: 'Quantity' },
+                                price: { type: 'number', description: 'Price' }
                             },
-                            required: ['product_id', 'quantity']
+                            required: ['product_id', 'quantity', 'price']
                         },
                         description: 'Cart items'
                     },
-                    platform: { type: 'string', description: 'Platform (web, mobile, etc.)' },
-                    payment_method: { type: 'string', description: 'Payment method' },
-                    order_date: { type: 'string', format: 'date-time', description: 'Order date' },
+                    code: { type: 'string', description: 'Promotion code' }
                 },
-                required: ['user_id', 'cart', 'platform'],
-                additionalProperties: true
+                required: ['user_id', 'platform']
             },
             response: {
                 200: {
@@ -688,7 +641,7 @@ export async function promotionsRoutes(fastify) {
                                                     properties: {
                                                         type: { type: 'string' },
                                                         target: { type: 'string' },
-                                                        value: { type: ['number', 'string'] },
+                                                        value: { type: ['number', 'string'] }
                                                     }
                                                 }
                                             }
@@ -697,11 +650,11 @@ export async function promotionsRoutes(fastify) {
                                 }
                             }
                         },
-                        message: { type: 'string' },
-                    },
-                },
-            },
-        },
+                        message: { type: 'string' }
+                    }
+                }
+            }
+        }
     }, promotionsController.evaluateEligibility.bind(promotionsController));
 }
 //# sourceMappingURL=promotions.route.js.map

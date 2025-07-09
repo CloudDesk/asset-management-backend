@@ -23,7 +23,8 @@ export async function addressRoutes(fastify: FastifyInstance) {
           address: { type: 'string', description: 'Filter by address' },
           landmark: { type: 'string', description: 'Filter by landmark' },
           state: { type: 'string', description: 'Filter by state' },
-          city: { type: 'string', description: 'Filter by city' }
+          city: { type: 'string', description: 'Filter by city' },
+          isdefaultaddress: { type: 'string', description: 'Filter by default address status (true/false)' }
         },
         additionalProperties: true, // Allow any query parameters for dynamic filtering
       },
@@ -47,6 +48,7 @@ export async function addressRoutes(fastify: FastifyInstance) {
                   landmark: { type: 'string', nullable: true, description: 'Landmark' },
                   state: { type: 'string', nullable: true, description: 'State' },
                   city: { type: 'string', nullable: true, description: 'City' },
+                  isdefaultaddress: { type: 'boolean', nullable: true, description: 'Whether this is the default address' }
                 },
                 additionalProperties: true // Allow any additional fields
               }
@@ -90,6 +92,74 @@ export async function addressRoutes(fastify: FastifyInstance) {
     },
   }, addressController.getAddresses.bind(addressController));
 
+  // GET /v1/addresses/default/:userId - Get default address for user
+  fastify.get('/default/:userId', {
+    schema: {
+      description: 'Get default address for a user',
+      tags: ['Addresses'],
+      params: {
+        type: 'object',
+        properties: {
+          userId: { type: 'string', description: 'User ID' },
+        },
+        required: ['userId'],
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            data: { 
+              type: 'object',
+              properties: {
+                id: { type: 'number', description: 'Address ID' },
+                userid: { type: 'number', nullable: true, description: 'User ID' },
+                name: { type: 'string', nullable: true, description: 'Name' },
+                mobilenumber: { type: 'number', nullable: true, description: 'Mobile number' },
+                pincode: { type: 'number', nullable: true, description: 'Pincode' },
+                doornumber: { type: 'string', nullable: true, description: 'Door number' },
+                address: { type: 'string', nullable: true, description: 'Address' },
+                landmark: { type: 'string', nullable: true, description: 'Landmark' },
+                state: { type: 'string', nullable: true, description: 'State' },
+                city: { type: 'string', nullable: true, description: 'City' },
+                isdefaultaddress: { type: 'boolean', description: 'Whether this is the default address' }
+              },
+              additionalProperties: true // Allow any additional fields
+            },
+            message: { type: 'string' },
+          },
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+        404: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+      },
+    },
+  }, addressController.getDefaultAddress.bind(addressController));
+
   // GET /v1/addresses/:id - Get address by ID
   fastify.get('/:id', {
     schema: {
@@ -120,6 +190,7 @@ export async function addressRoutes(fastify: FastifyInstance) {
                 landmark: { type: 'string', nullable: true, description: 'Landmark' },
                 state: { type: 'string', nullable: true, description: 'State' },
                 city: { type: 'string', nullable: true, description: 'City' },
+                isdefaultaddress: { type: 'boolean', nullable: true, description: 'Whether this is the default address' }
               },
               additionalProperties: true // Allow any additional fields
             },
@@ -173,7 +244,8 @@ export async function addressRoutes(fastify: FastifyInstance) {
           address: { type: 'string', description: 'Address' },
           landmark: { type: 'string', maxLength: 100, description: 'Landmark' },
           state: { type: 'string', maxLength: 100, description: 'State' },
-          city: { type: 'string', maxLength: 100, description: 'City' }
+          city: { type: 'string', maxLength: 100, description: 'City' },
+          isdefaultaddress: { type: 'boolean', description: 'Whether this should be the default address' }
         },
         additionalProperties: true, // Allow any additional fields
       },
@@ -195,6 +267,7 @@ export async function addressRoutes(fastify: FastifyInstance) {
                 landmark: { type: 'string', nullable: true, description: 'Landmark' },
                 state: { type: 'string', nullable: true, description: 'State' },
                 city: { type: 'string', nullable: true, description: 'City' },
+                isdefaultaddress: { type: 'boolean', nullable: true, description: 'Whether this is the default address' }
               },
               additionalProperties: true // Allow any additional fields
             },
@@ -248,6 +321,7 @@ export async function addressRoutes(fastify: FastifyInstance) {
           state: { type: 'string', maxLength: 100, description: 'State' },
           city: { type: 'string', maxLength: 100, description: 'City' },
           modifieddate: { type: 'number', description: 'Modification timestamp (optional, auto-generated if not provided)' },
+          isdefaultaddress: { type: 'boolean', description: 'Whether this should be the default address' }
         },
         additionalProperties: true, // Allow any additional fields
       },
@@ -268,8 +342,9 @@ export async function addressRoutes(fastify: FastifyInstance) {
                 address: { type: 'string', nullable: true, description: 'Address' },
                 landmark: { type: 'string', nullable: true, description: 'Landmark' },
                 state: { type: 'string', nullable: true, description: 'State' },
-                city: { type: 'string', nullable: true, description: 'City' }
-                },
+                city: { type: 'string', nullable: true, description: 'City' },
+                isdefaultaddress: { type: 'boolean', nullable: true, description: 'Whether this is the default address' }
+              },
               additionalProperties: true // Allow any additional fields
             },
             message: { type: 'string' },
@@ -309,7 +384,7 @@ export async function addressRoutes(fastify: FastifyInstance) {
   // DELETE /v1/addresses/:id - Delete address
   fastify.delete('/:id', {
     schema: {
-      description: 'Delete an address by ID',
+      description: 'Delete an address',
       tags: ['Addresses'],
       params: {
         type: 'object',
@@ -324,7 +399,6 @@ export async function addressRoutes(fastify: FastifyInstance) {
           properties: {
             success: { type: 'boolean' },
             message: { type: 'string' },
-            data: { type: 'null' },
           },
         },
         400: {
@@ -357,71 +431,4 @@ export async function addressRoutes(fastify: FastifyInstance) {
       },
     },
   }, addressController.deleteAddress.bind(addressController));
-
-  // PUT /v1/addresses - Upsert address
-  fastify.put('/', {
-    schema: {
-      description: 'Create or update an address (upsert operation)',
-      tags: ['Addresses'],
-      body: {
-        type: 'object',
-        properties: {
-          id: { type: 'string', description: 'Address ID (optional for create, required for update)' },
-          userid: { type: 'number', description: 'User ID' },
-          name: { type: 'string', maxLength: 100, description: 'Name' },
-          mobilenumber: { type: 'number', description: 'Mobile number' },
-          pincode: { type: 'number', description: 'Pincode' },
-          doornumber: { type: 'string', maxLength: 100, description: 'Door number' },
-          address: { type: 'string', description: 'Address' },
-          landmark: { type: 'string', maxLength: 100, description: 'Landmark' },
-          state: { type: 'string', maxLength: 100, description: 'State' },
-          city: { type: 'string', maxLength: 100, description: 'City' }
-        },
-        additionalProperties: true, // Allow any additional fields
-      },
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            data: { 
-              type: 'object',
-              properties: {
-                id: { type: 'number', description: 'Address ID' },
-                userid: { type: 'number', nullable: true, description: 'User ID' },
-                name: { type: 'string', nullable: true, description: 'Name' },
-                mobilenumber: { type: 'number', nullable: true, description: 'Mobile number' },
-                pincode: { type: 'number', nullable: true, description: 'Pincode' },
-                doornumber: { type: 'string', nullable: true, description: 'Door number' },
-                address: { type: 'string', nullable: true, description: 'Address' },
-                landmark: { type: 'string', nullable: true, description: 'Landmark' },
-                state: { type: 'string', nullable: true, description: 'State' },
-                city: { type: 'string', nullable: true, description: 'City' },
-              },
-              additionalProperties: true // Allow any additional fields
-            },
-            message: { type: 'string' },
-          },
-        },
-        400: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            details: { type: 'string' },
-            statusCode: { type: 'number' },
-          },
-        },
-        500: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            details: { type: 'string' },
-            statusCode: { type: 'number' },
-          },
-        },
-      },
-    },
-  }, addressController.upsertAddress.bind(addressController));
 } 

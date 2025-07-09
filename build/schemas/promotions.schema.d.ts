@@ -177,37 +177,55 @@ export declare const promotionsQuerySchema: z.ZodObject<{
 }>;
 export declare const promotionEligibilitySchema: z.ZodObject<{
     user_id: z.ZodString;
-    cart: z.ZodArray<z.ZodObject<{
-        product_id: z.ZodNumber;
+    platform: z.ZodString;
+    cart: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        product_id: z.ZodString;
         quantity: z.ZodNumber;
+        price: z.ZodNumber;
     }, "strip", z.ZodTypeAny, {
         quantity: number;
-        product_id: number;
+        price: number;
+        product_id: string;
     }, {
         quantity: number;
-        product_id: number;
-    }>, "many">;
-    platform: z.ZodString;
-    payment_method: z.ZodOptional<z.ZodString>;
+        price: number;
+        product_id: string;
+    }>, "many">>;
+    code: z.ZodOptional<z.ZodString>;
     order_date: z.ZodOptional<z.ZodString>;
-}, "strict", z.ZodTypeAny, {
-    cart: {
-        quantity: number;
-        product_id: number;
-    }[];
+}, "strip", z.ZodTypeAny, {
     user_id: string;
     platform: string;
+    code?: string | undefined;
+    cart?: {
+        quantity: number;
+        price: number;
+        product_id: string;
+    }[] | undefined;
     order_date?: string | undefined;
-    payment_method?: string | undefined;
 }, {
-    cart: {
-        quantity: number;
-        product_id: number;
-    }[];
     user_id: string;
     platform: string;
+    code?: string | undefined;
+    cart?: {
+        quantity: number;
+        price: number;
+        product_id: string;
+    }[] | undefined;
     order_date?: string | undefined;
-    payment_method?: string | undefined;
+}>;
+export declare const promotionEligibilityQuerySchema: z.ZodObject<{
+    user_id: z.ZodString;
+    platform: z.ZodString;
+    code: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    user_id: string;
+    platform: string;
+    code?: string | undefined;
+}, {
+    user_id: string;
+    platform: string;
+    code?: string | undefined;
 }>;
 export type CreatePromotionsInput = z.infer<typeof createPromotionsSchema>;
 export type UpdatePromotionsInput = z.infer<typeof updatePromotionsSchema>;
@@ -215,4 +233,5 @@ export type UpsertPromotionsInput = z.infer<typeof upsertPromotionsSchema>;
 export type PromotionsParams = z.infer<typeof promotionsParamsSchema>;
 export type PromotionsQuery = z.infer<typeof promotionsQuerySchema>;
 export type PromotionEligibilityInput = z.infer<typeof promotionEligibilitySchema>;
+export type PromotionEligibilityQueryInput = z.infer<typeof promotionEligibilityQuerySchema>;
 //# sourceMappingURL=promotions.schema.d.ts.map

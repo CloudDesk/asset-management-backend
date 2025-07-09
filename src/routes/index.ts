@@ -25,6 +25,7 @@ import { promotionRulesRoutes } from './promotion-rules.route.js';
 import { promotionActionsRoutes } from './promotion-actions.route.js';
 import { promotionTargetLinkRoutes } from './promotion-target-link.route.js';
 import { promotionUsageLogRoutes } from './promotion-usage-log.route.js';
+import { ratingRoutes } from './rating.route.js';
 import { requireAuthentication } from '../middleware/auth.middleware.js';
 import { createSuccessResponse } from '../utils/errorHandler.js';
 
@@ -97,6 +98,7 @@ export async function routes(fastify: FastifyInstance) {
     await fastify.register(promotionActionsRoutes, { prefix: '/promotion-actions' });
     await fastify.register(promotionTargetLinkRoutes, { prefix: '/promotion-target-link' });
     await fastify.register(promotionUsageLogRoutes, { prefix: '/promotion-usage-log' });
+    await fastify.register(ratingRoutes, { prefix: '/ratings' });
 
     await fastify.register(async function (fastify) {
       // Apply authentication middleware to all routes in this scope

@@ -65,6 +65,7 @@ model Product {
   orderline             orderline[]
   supplier              Supplier?                @relation(fields: [supplierid], references: [id], map: "fk_supplier")
   stock                 Stock[]
+  rating                rating[]
 
   @@map("product")
 }
@@ -322,40 +323,27 @@ model notes {
 }
 
 model orderline {
-  id                    Int       @id @default(autoincrement())
-  orderid               Int?
-  productid             BigInt?
-  userid                Int?
-  addressid             Int?
-  productamount         Decimal?  @db.Decimal
-  discountamount        Decimal?  @db.Decimal
-  orderamount           Decimal?  @db.Decimal
-  quantity              Int?
-  createddate           BigInt?
-  modifieddate          BigInt?
-  merchanttransactionid String?   @db.VarChar(250)
-  productname           String?   @db.VarChar(500)
-  productcategory       String?   @db.VarChar(500)
-  productcolour         String?   @db.VarChar(500)
-  readytodispatchdate   BigInt?
-  delivereddate         BigInt?
-  cancelleddate         BigInt?
-  returneddate          BigInt?
-  orderstatus           String?   @db.VarChar(500)
-  uniqueordderid        String?   @db.VarChar(500)
-  orderlinenumber       String?   @unique(map: "unique_orderlinenumber") @db.VarChar(500)
-  deliveryfrom          String?   @db.VarChar(500)
-  location              String?   @db.VarChar(500)
-  dispatcheddate        BigInt?
-  ordereddate           BigInt?
-  paymentfaileddate     BigInt?
-  address               address?  @relation(fields: [addressid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  orders                orders?   @relation(fields: [orderid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  product               Product?  @relation(fields: [productid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users                 users?    @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  rating                rating[] @ignore
-  stock                 Stock[]
-  tickets               tickets[] @ignore
+  id              Int       @id @default(autoincrement())
+  orderid         String?   @db.VarChar(500)
+  orderlinenumber String?   @unique(map: "unique_orderlinenumber") @db.VarChar(500)
+  productid       BigInt?
+  quantity        Int?
+  price           Decimal?  @db.Decimal
+  createddate     BigInt?
+  modifieddate    BigInt?
+  userid          Int?
+  addressid       Int?
+  status          String?   @db.VarChar(500)
+  ordertype       String?   @db.VarChar(500)
+  address         address?  @relation(fields: [addressid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  product         Product?  @relation(fields: [productid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users           users?    @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  rating          rating[]
+  stock           Stock[]
+  tickets         tickets[] @ignore
+  orders          orders?   @relation(fields: [orderid], references: [orderid], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("orderline")
 }
 
 model orders {
@@ -440,21 +428,21 @@ model quotes {
   id              Int              @id @default(autoincrement())
   createddate     BigInt?
   modifieddate    BigInt?
-  status          String?          @db.VarChar(500)
+  quotestatus     String?          @db.VarChar(500)
+  quotedata       Json?
   prnumber        String?          @db.VarChar(500)
   quoteurl        String?          @db.VarChar(500)
   quotenumber     String?          @unique(map: "unique_quotenumber") @db.VarChar(500)
-  notes           notes[] @ignore
+  notes           notes[]          @ignore
   purchaserequest PurchaseRequest? @relation(fields: [prnumber], references: [prnumber], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("quotes")
 }
 
-/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model rating {
-  id           Int        @default(autoincrement())
+  id           Int        @id @default(autoincrement())
   userid       Int?
-  productid    Int?
+  productid    BigInt?
   orderid      Int?
   starrating   Int?
   comments     String?
@@ -464,8 +452,15 @@ model rating {
   usermail     String?    @db.VarChar(500)
   orderlineid  Int?
   orderline    orderline? @relation(fields: [orderlineid], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_orderline_rating_id")
+  users        users?     @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  product      Product?   @relation(fields: [productid], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@ignore
+  @@index([userid], map: "idx_rating_userid")
+  @@index([productid], map: "idx_rating_productid")
+  @@index([orderid], map: "idx_rating_orderid")
+  @@index([starrating], map: "idx_rating_starrating")
+  @@index([createddate], map: "idx_rating_createddate")
+  @@map("rating")
 }
 
 model revoinvoice {
@@ -628,7 +623,10 @@ model users {
   address          address[]
   orderline        orderline[]
   orders           orders[]
-  tickets          tickets[] @ignore
+  tickets          tickets[]   @ignore
+  rating           rating[]
+
+  @@map("users")
 }
 
 model promotional_assets {
@@ -667,22 +665,22 @@ model asset_audit_logs {
 }
 
 model promotions {
-  id               Int                      @id @default(autoincrement())
-  name             String?                  @db.Text
-  type             String?                  @db.Text
-  code             String?                  @db.Text
-  auto_apply       Boolean?
-  start_date       DateTime?                @db.Date
-  end_date         DateTime?                @db.Date
-  status           String?                  @db.Text
-  priority         Int?
-  visibility       String?                  @db.Text
-  max_redemptions  Int?
-  per_user_limit   Int?
-  stackable        Boolean?
-  createddate      BigInt?
-  modifieddate     BigInt?
-  
+  id              Int       @id @default(autoincrement())
+  name            String?   @db.Text
+  type            String?   @db.Text
+  code            String?   @db.Text
+  auto_apply      Boolean?
+  start_date      DateTime? @db.Date
+  end_date        DateTime? @db.Date
+  status          String?   @db.Text
+  priority        Int?
+  visibility      String?   @db.Text
+  max_redemptions Int?
+  per_user_limit  Int?
+  stackable       Boolean?
+  createddate     BigInt?
+  modifieddate    BigInt?
+
   // Relations
   promotion_rules       promotion_rules[]
   promotion_actions     promotion_actions[]
@@ -693,80 +691,80 @@ model promotions {
 }
 
 model promotion_rules {
-  id            Int          @id @default(autoincrement())
+  id            Int      @id @default(autoincrement())
   promotion_id  Int?
-  rule_type     String?      @db.Text
-  condition_key String?      @db.Text
-  operator      String?      @db.Text
-  value         String?      @db.Text
-  value_type    String?      @db.Text
-  logic_group   String?      @db.Text
+  rule_type     String?  @db.Text
+  condition_key String?  @db.Text
+  operator      String?  @db.Text
+  value         String?  @db.Text
+  value_type    String?  @db.Text
+  logic_group   String?  @db.Text
   priority      Int?
   exclude       Boolean?
   is_active     Boolean?
-  notes         String?      @db.Text
+  notes         String?  @db.Text
   createddate   BigInt?
   modifieddate  BigInt?
 
   // Relations
-  promotion     promotions?  @relation(fields: [promotion_id], references: [id], onDelete: Cascade)
+  promotion promotions? @relation(fields: [promotion_id], references: [id], onDelete: Cascade)
 
   @@map("promotion_rules")
 }
 
 model promotion_actions {
-  id                   Int          @id @default(autoincrement())
+  id                   Int      @id @default(autoincrement())
   promotion_id         Int?
-  action_type          String?      @db.Text
-  target               String?      @db.Text
-  value_type           String?      @db.Text
-  value                Decimal?     @db.Decimal(10, 2)
+  action_type          String?  @db.Text
+  target               String?  @db.Text
+  value_type           String?  @db.Text
+  value                Decimal? @db.Decimal(10, 2)
   reward_product_id    Int?
   min_combo_size       Int?
   apply_to_product_ids Int[]
-  max_discount_cap     Decimal?     @db.Decimal(10, 2)
+  max_discount_cap     Decimal? @db.Decimal(10, 2)
   check_inventory      Boolean?
-  execution_group      String?      @db.Text
+  execution_group      String?  @db.Text
   action_order         Int?
   createddate          BigInt?
   modifieddate         BigInt?
 
   // Relations
-  promotion            promotions?  @relation(fields: [promotion_id], references: [id], onDelete: Cascade)
+  promotion promotions? @relation(fields: [promotion_id], references: [id], onDelete: Cascade)
 
   @@map("promotion_actions")
 }
 
 model promotion_target_link {
-  id           Int          @id @default(autoincrement())
+  id           Int      @id @default(autoincrement())
   promotion_id Int?
-  target_type  String?      @db.Text
-  target_id    String?      @db.Text
-  target_label String?      @db.Text
-  apply_scope  String?      @db.Text
+  target_type  String?  @db.Text
+  target_id    String?  @db.Text
+  target_label String?  @db.Text
+  apply_scope  String?  @db.Text
   is_active    Boolean?
   createddate  BigInt?
   modifieddate BigInt?
 
   // Relations
-  promotion    promotions?  @relation(fields: [promotion_id], references: [id], onDelete: Cascade)
+  promotion promotions? @relation(fields: [promotion_id], references: [id], onDelete: Cascade)
 
   @@map("promotion_target_link")
 }
 
 model promotion_usage_log {
-  id               Int          @id @default(autoincrement())
+  id               Int       @id @default(autoincrement())
   promotion_id     Int?
-  user_id          String?      @db.Text
-  order_id         String?      @db.Text
-  redemption_date  DateTime?    @default(now())
-  discount_applied Decimal?     @db.Decimal(10, 2)
-  platform         String?      @db.Text
+  user_id          String?   @db.Text
+  order_id         String?   @db.Text
+  redemption_date  DateTime? @default(now())
+  discount_applied Decimal?  @db.Decimal(10, 2)
+  platform         String?   @db.Text
   createddate      BigInt?
   modifieddate     BigInt?
 
   // Relations
-  promotion        promotions?  @relation(fields: [promotion_id], references: [id], onDelete: Cascade)
+  promotion promotions? @relation(fields: [promotion_id], references: [id], onDelete: Cascade)
 
   @@map("promotion_usage_log")
 }

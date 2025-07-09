@@ -70,13 +70,20 @@ export const promotionsQuerySchema = z.object({
 });
 // Schema for eligibility check request
 export const promotionEligibilitySchema = z.object({
-    user_id: z.string().min(1, 'User ID is required'),
+    user_id: z.string(),
+    platform: z.string(),
     cart: z.array(z.object({
-        product_id: z.number().int().positive('Product ID must be positive'),
-        quantity: z.number().int().positive('Quantity must be positive')
-    })).min(1, 'Cart must contain at least one item'),
-    platform: z.string().min(1, 'Platform is required'),
-    payment_method: z.string().optional(),
-    order_date: z.string().datetime().optional(),
-}).strict();
+        product_id: z.string(),
+        quantity: z.number(),
+        price: z.number()
+    })).optional(),
+    code: z.string().optional(),
+    order_date: z.string().optional()
+});
+// Schema for query parameters
+export const promotionEligibilityQuerySchema = z.object({
+    user_id: z.string(),
+    platform: z.string(),
+    code: z.string().optional()
+});
 //# sourceMappingURL=promotions.schema.js.map

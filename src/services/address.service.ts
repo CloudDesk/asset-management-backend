@@ -73,6 +73,22 @@ export class AddressService {
     }
   }
 
+  private async resetDefaultAddress(userId: number) {
+    try {
+      logger.debug({ userId }, 'Resetting default address for user');
+      
+      await dynamicUpdate('address', 
+        { userid: userId, isdefaultaddress: true }, 
+        { isdefaultaddress: false }
+      );
+
+      logger.debug({ userId }, 'Default address reset completed');
+    } catch (error) {
+      logger.error({ error, userId }, 'Error resetting default address');
+      throw error;
+    }
+  }
+
   async create(data: CreateAddressInput & Record<string, any>) {
     try {
       logger.debug({ originalData: data }, 'Starting dynamic address create operation');
@@ -84,6 +100,11 @@ export class AddressService {
         createddate: data.createddate || currentTimestamp,
         modifieddate: data.modifieddate || currentTimestamp,
       };
+
+      // If this is set as default address, reset any existing default
+      if (createData.userid && createData.isdefaultaddress) {
+        await this.resetDefaultAddress(createData.userid);
+      }
 
       const address = await dynamicCreate('address', createData);
 
@@ -106,7 +127,7 @@ export class AddressService {
   async update(id: string, data: UpdateAddressInput & Record<string, any>) {
     try {
       // Check if address exists
-      await this.findById(id);
+      const existingAddress = await this.findById(id);
 
       logger.debug({ originalData: data, addressId: id }, 'Starting dynamic address update operation');
 
@@ -115,6 +136,11 @@ export class AddressService {
         ...data,
         modifieddate: data.modifieddate || Date.now(),
       };
+
+      // If this is being set as default address, reset any existing default
+      if (existingAddress.userid && updateData.isdefaultaddress) {
+        await this.resetDefaultAddress(existingAddress.userid);
+      }
 
       const address = await dynamicUpdate('address', { id }, updateData);
 
@@ -169,6 +195,26 @@ export class AddressService {
       }
     } catch (error) {
       logger.error({ error, data }, 'Error in address upsert operation');
+      throw error;
+    }
+  }
+
+  async getDefaultAddress(userId: number) {
+    try {
+      logger.debug({ userId }, 'Getting default address for user');
+
+      const { data: addresses } = await dynamicFindManyWithFilters('address', {
+        userid: userId,
+        isdefaultaddress: true
+      }, {
+        skip: 0,
+        take: 1,
+        useAllColumns: true
+      });
+
+      return addresses[0] || null;
+    } catch (error) {
+      logger.error({ error, userId }, 'Error getting default address');
       throw error;
     }
   }

@@ -46,3 +46,29 @@ Filtered data: {
   "sessiontoken": "8997babf653d3df69ef57c05965e7103f55a28ac9dfd376db0f87f1204b1e8b4",
   "modifieddate": 1751863950320
 }
+Filtered data: {
+  "starrating": 5,
+  "comments": "Updated comment",
+  "modifieddate": 1752040535994
+}
+Filtered data: {
+  "id": 35,
+  "starrating": 5,
+  "comments": "Updated via upsert",
+  "modifieddate": 1752040543652
+}
+Filtered data: {
+  "starrating": 5,
+  "comments": "Updated: Even better than expected!",
+  "modifieddate": 1752040896658
+}
+Filtered data: {
+  "isdefaultaddress": false
+}
+Filtered data: {
+  "isdefaultaddress": false
+}
+Filtered data: {
+  "isdefaultaddress": true,
+  "modifieddate": 1752041776376
+}

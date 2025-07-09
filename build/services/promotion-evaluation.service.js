@@ -1,5 +1,6 @@
 import { dynamicFindManyWithFilters } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
+import { DatabaseError } from '../utils/errorHandler.js';
 export class PromotionEvaluationService {
     /**
      * Main method to evaluate promotion eligibility
@@ -9,7 +10,7 @@ export class PromotionEvaluationService {
         try {
             logger.info({
                 user_id: data.user_id,
-                cart_items: data.cart.length,
+                cart_items: data.cart?.length || 0,
                 platform: data.platform
             }, 'Starting promotion eligibility evaluation');
             // Step 1: Filter active promotions within date range
@@ -21,11 +22,21 @@ export class PromotionEvaluationService {
             // Step 2: Evaluate each promotion for eligibility
             const eligiblePromotions = [];
             for (const promotion of activePromotions) {
-                const isEligible = await this.checkPromotionEligibility(promotion, data);
-                if (isEligible) {
-                    const actions = await this.getPromotionActions(promotion.id);
-                    const eligiblePromotion = await this.formatEligiblePromotion(promotion, actions);
-                    eligiblePromotions.push(eligiblePromotion);
+                try {
+                    const isEligible = await this.checkPromotionEligibility(promotion, data);
+                    if (isEligible) {
+                        const actions = await this.getPromotionActions(promotion.id);
+                        const eligiblePromotion = await this.formatEligiblePromotion(promotion, actions);
+                        eligiblePromotions.push(eligiblePromotion);
+                    }
+                }
+                catch (promotionError) {
+                    logger.error({
+                        error: promotionError,
+                        promotion_id: promotion.id
+                    }, `Error evaluating promotion ${promotion.id}`);
+                    // Continue with next promotion
+                    continue;
                 }
             }
             // Step 3: Handle stackable logic and priority sorting
@@ -40,7 +51,20 @@ export class PromotionEvaluationService {
         }
         catch (error) {
             logger.error({ error, data }, 'Error in promotion eligibility evaluation');
-            throw error;
+            // Provide specific error messages based on the error type
+            if (error.code === 'P2025') {
+                throw new DatabaseError('Failed to evaluate promotion eligibility', 'One or more referenced records not found', 404);
+            }
+            if (error.code === 'P2002') {
+                throw new DatabaseError('Failed to evaluate promotion eligibility', 'Duplicate entry found in promotion data', 400);
+            }
+            if (error.code === 'P2003') {
+                throw new DatabaseError('Failed to evaluate promotion eligibility', 'Invalid reference in promotion data', 400);
+            }
+            if (error.message.includes('validation')) {
+                throw new DatabaseError('Failed to evaluate promotion eligibility', 'Invalid promotion data format', 400);
+            }
+            throw new DatabaseError('Failed to evaluate promotion eligibility', error.message || 'An unexpected error occurred while processing promotions', 500);
         }
     }
     /**

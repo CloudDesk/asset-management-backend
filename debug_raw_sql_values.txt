@@ -56,3 +56,37 @@ Values: [
   "8997babf653d3df69ef57c05965e7103f55a28ac9dfd376db0f87f1204b1e8b4",
   1751863950
 ]
+Values: [
+  28,
+  5,
+  "Updated comment",
+  1752040535
+]
+Values: [
+  35,
+  35,
+  5,
+  "Updated via upsert",
+  1752040543
+]
+Values: [
+  36,
+  5,
+  "Updated: Even better than expected!",
+  1752040896
+]
+Values: [
+  null,
+  false,
+  1752041750
+]
+Values: [
+  null,
+  false,
+  1752041776
+]
+Values: [
+  4,
+  true,
+  1752041776
+]

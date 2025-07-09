@@ -143,3 +143,65 @@ Updated record: {
   "resettoken": null,
   "resettokenexpires": null
 }
+Updated record: {
+  "id": 28,
+  "userid": 2,
+  "productid": 9,
+  "orderid": 1,
+  "starrating": 5,
+  "comments": "Updated comment",
+  "createddate": 1752060336,
+  "modifieddate": 1752060336,
+  "url": [
+    "https://example.com/image1.jpg"
+  ],
+  "usermail": "test@example.com",
+  "orderlineid": 2
+}
+Updated record: {
+  "id": 35,
+  "userid": 2,
+  "productid": 9,
+  "orderid": 1,
+  "starrating": 5,
+  "comments": "Updated via upsert",
+  "createddate": 1752060343,
+  "modifieddate": 1752060344,
+  "url": [
+    "https://example.com/image1.jpg"
+  ],
+  "usermail": "test@example.com",
+  "orderlineid": 2
+}
+Updated record: {
+  "id": 36,
+  "userid": 3,
+  "productid": 10,
+  "orderid": 2,
+  "starrating": 5,
+  "comments": "Updated: Even better than expected!",
+  "createddate": 1752060668,
+  "modifieddate": 1752060697,
+  "url": [
+    "https://example.com/image1.jpg"
+  ],
+  "usermail": "test@example.com",
+  "orderlineid": 3
+}
+Updated record: null
+Updated record: null
+Updated record: {
+  "id": 4,
+  "userid": 3,
+  "name": "Office",
+  "mobilenumber": "9876543210",
+  "pincode": "54321",
+  "doornumber": "456",
+  "address": "456 Work St",
+  "landmark": "Near Office",
+  "state": "CA",
+  "city": "San Francisco",
+  "modifieddate": 1752061577,
+  "createddate": 1752061559,
+  "isdefaultaddress": true
+}
