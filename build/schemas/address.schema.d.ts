@@ -11,6 +11,7 @@ export declare const createAddressSchema: z.ZodObject<{
     city: z.ZodOptional<z.ZodString>;
     modifieddate: z.ZodOptional<z.ZodNumber>;
     createddate: z.ZodOptional<z.ZodNumber>;
+    isdefaultaddress: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
 }, "passthrough", z.ZodTypeAny, z.objectOutputType<{
     userid: z.ZodOptional<z.ZodNumber>;
     name: z.ZodOptional<z.ZodString>;
@@ -23,6 +24,7 @@ export declare const createAddressSchema: z.ZodObject<{
     city: z.ZodOptional<z.ZodString>;
     modifieddate: z.ZodOptional<z.ZodNumber>;
     createddate: z.ZodOptional<z.ZodNumber>;
+    isdefaultaddress: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
 }, z.ZodTypeAny, "passthrough">, z.objectInputType<{
     userid: z.ZodOptional<z.ZodNumber>;
     name: z.ZodOptional<z.ZodString>;
@@ -35,6 +37,7 @@ export declare const createAddressSchema: z.ZodObject<{
     city: z.ZodOptional<z.ZodString>;
     modifieddate: z.ZodOptional<z.ZodNumber>;
     createddate: z.ZodOptional<z.ZodNumber>;
+    isdefaultaddress: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
 }, z.ZodTypeAny, "passthrough">>;
 export declare const updateAddressSchema: z.ZodObject<{
     userid: z.ZodOptional<z.ZodNumber>;
@@ -47,6 +50,7 @@ export declare const updateAddressSchema: z.ZodObject<{
     state: z.ZodOptional<z.ZodString>;
     city: z.ZodOptional<z.ZodString>;
     modifieddate: z.ZodOptional<z.ZodNumber>;
+    isdefaultaddress: z.ZodOptional<z.ZodBoolean>;
 }, "passthrough", z.ZodTypeAny, z.objectOutputType<{
     userid: z.ZodOptional<z.ZodNumber>;
     name: z.ZodOptional<z.ZodString>;
@@ -58,6 +62,7 @@ export declare const updateAddressSchema: z.ZodObject<{
     state: z.ZodOptional<z.ZodString>;
     city: z.ZodOptional<z.ZodString>;
     modifieddate: z.ZodOptional<z.ZodNumber>;
+    isdefaultaddress: z.ZodOptional<z.ZodBoolean>;
 }, z.ZodTypeAny, "passthrough">, z.objectInputType<{
     userid: z.ZodOptional<z.ZodNumber>;
     name: z.ZodOptional<z.ZodString>;
@@ -69,6 +74,7 @@ export declare const updateAddressSchema: z.ZodObject<{
     state: z.ZodOptional<z.ZodString>;
     city: z.ZodOptional<z.ZodString>;
     modifieddate: z.ZodOptional<z.ZodNumber>;
+    isdefaultaddress: z.ZodOptional<z.ZodBoolean>;
 }, z.ZodTypeAny, "passthrough">>;
 export declare const upsertAddressSchema: z.ZodObject<{
     id: z.ZodOptional<z.ZodString>;
@@ -83,6 +89,7 @@ export declare const upsertAddressSchema: z.ZodObject<{
     city: z.ZodOptional<z.ZodString>;
     modifieddate: z.ZodOptional<z.ZodNumber>;
     createddate: z.ZodOptional<z.ZodNumber>;
+    isdefaultaddress: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
 }, "passthrough", z.ZodTypeAny, z.objectOutputType<{
     id: z.ZodOptional<z.ZodString>;
     userid: z.ZodOptional<z.ZodNumber>;
@@ -96,6 +103,7 @@ export declare const upsertAddressSchema: z.ZodObject<{
     city: z.ZodOptional<z.ZodString>;
     modifieddate: z.ZodOptional<z.ZodNumber>;
     createddate: z.ZodOptional<z.ZodNumber>;
+    isdefaultaddress: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
 }, z.ZodTypeAny, "passthrough">, z.objectInputType<{
     id: z.ZodOptional<z.ZodString>;
     userid: z.ZodOptional<z.ZodNumber>;
@@ -109,6 +117,7 @@ export declare const upsertAddressSchema: z.ZodObject<{
     city: z.ZodOptional<z.ZodString>;
     modifieddate: z.ZodOptional<z.ZodNumber>;
     createddate: z.ZodOptional<z.ZodNumber>;
+    isdefaultaddress: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
 }, z.ZodTypeAny, "passthrough">>;
 export declare const addressParamsSchema: z.ZodObject<{
     id: z.ZodString;

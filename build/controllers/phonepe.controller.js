@@ -546,16 +546,16 @@ export class PhonePeController {
                 successfulCount: successfulOrderlines.length,
                 failedCount: failedOrderlines.length,
                 successfulOrderlineIds: successfulOrderlines.map(r => r.orderline?.id).filter(Boolean),
-                failedProductIds: failedOrderlines.map(r => r.productId),
+                failedProductIds: failedOrderlines.map((r) => r.productId),
                 invalidProductsSkipped: invalidProductIds
             }, 'Orderline creation completed');
             // If all orderlines failed, throw an error
             if (successfulOrderlines.length === 0) {
-                const errorMsg = `Failed to create any orderlines for order ${order.id}. Errors: ${failedOrderlines.map(r => r.error).join(', ')}`;
+                const errorMsg = `Failed to create any orderlines for order ${order.id}. Errors: ${failedOrderlines.map((r) => r.error).join(', ')}`;
                 logger.error({
                     transactionId,
                     orderId: order.id,
-                    failedOrderlines: failedOrderlines.map(r => ({ productId: r.productId, error: r.error }))
+                    failedOrderlines: failedOrderlines.map((r) => ({ productId: r.productId, error: r.error }))
                 }, errorMsg);
                 throw new Error(errorMsg);
             }
@@ -564,7 +564,7 @@ export class PhonePeController {
                 logger.warn({
                     transactionId,
                     orderId: order.id,
-                    failedOrderlines: failedOrderlines.map(r => ({ productId: r.productId, error: r.error }))
+                    failedOrderlines: failedOrderlines.map((r) => ({ productId: r.productId, error: r.error }))
                 }, 'Some orderlines failed to create but order has partial success');
             }
             // Final success log with comprehensive summary

@@ -11,6 +11,22 @@ export class RatingController {
         const { page, limit } = getPaginationParams(allFilters);
         // Remove pagination params from filters
         const { page: _, limit: __, ...filters } = allFilters;
+        // Convert numeric filters
+        if (filters.starrating) {
+            filters.starrating = parseInt(filters.starrating);
+        }
+        if (filters.userid) {
+            filters.userid = parseInt(filters.userid);
+        }
+        if (filters.productid) {
+            filters.productid = parseInt(filters.productid);
+        }
+        if (filters.orderid) {
+            filters.orderid = parseInt(filters.orderid);
+        }
+        if (filters.orderlineid) {
+            filters.orderlineid = parseInt(filters.orderlineid);
+        }
         const result = await this.ratingService.findMany(filters, page, limit);
         // Format all ratings in the result
         const formattedData = formatEntitiesForAPI(result.data, 'rating');

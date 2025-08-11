@@ -295,7 +295,7 @@ export class PromotionEvaluationService {
         return link.target_id === data.user_id;
       
       case 'product_id':
-        return data.cart.some(item => item.product_id.toString() === link.target_id);
+        return Array.isArray(data.cart) && data.cart.some(item => item.product_id.toString() === link.target_id);
       
       case 'category':
         // Would need to fetch product details to check category
@@ -419,7 +419,7 @@ export class PromotionEvaluationService {
           return data.cart_total;
         }
         // Calculate from cart items if they have amount/price
-        return data.cart.reduce((sum, item) => {
+        return (data.cart ?? []).reduce((sum, item) => {
           const itemAmount = (item as any).amount || 
                            ((item as any).price ? Number((item as any).price) * item.quantity : 0);
           return sum + (Number(itemAmount) || 0);
@@ -430,7 +430,7 @@ export class PromotionEvaluationService {
         if ('cart_total' in data && data.cart_total !== undefined) {
           return data.cart_total;
         }
-        return data.cart.reduce((sum, item) => {
+        return (data.cart ?? []).reduce((sum, item) => {
           const itemAmount = (item as any).amount || 
                            ((item as any).price ? Number((item as any).price) * item.quantity : 0);
           return sum + (Number(itemAmount) || 0);
@@ -443,10 +443,10 @@ export class PromotionEvaluationService {
         return data.payment_method || '';
       
       case 'product_count':
-        return data.cart.length;
+        return (data.cart ?? []).length;
       
       case 'total_quantity':
-        return data.cart.reduce((sum, item) => sum + item.quantity, 0);
+        return (data.cart ?? []).reduce((sum, item) => sum + item.quantity, 0);
       
       default:
         logger.warn({ condition_key: conditionKey }, 'Unknown condition key');

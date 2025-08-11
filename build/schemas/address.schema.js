@@ -12,6 +12,7 @@ export const createAddressSchema = z.object({
     city: z.string().max(100).optional(),
     modifieddate: z.number().optional(),
     createddate: z.number().optional(),
+    isdefaultaddress: z.boolean().optional().default(false),
 }).passthrough();
 export const updateAddressSchema = z.object({
     userid: z.number().optional(),
@@ -24,6 +25,7 @@ export const updateAddressSchema = z.object({
     state: z.string().max(100).optional(),
     city: z.string().max(100).optional(),
     modifieddate: z.number().optional(),
+    isdefaultaddress: z.boolean().optional(),
 }).passthrough();
 export const upsertAddressSchema = z.object({
     id: z.string().optional(),
@@ -38,6 +40,7 @@ export const upsertAddressSchema = z.object({
     city: z.string().max(100).optional(),
     modifieddate: z.number().optional(),
     createddate: z.number().optional(),
+    isdefaultaddress: z.boolean().optional().default(false),
 }).passthrough();
 export const addressParamsSchema = z.object({
     id: z.string().min(1),

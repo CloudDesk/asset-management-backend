@@ -221,7 +221,7 @@ export class PromotionEvaluationService {
             case 'user_id':
                 return link.target_id === data.user_id;
             case 'product_id':
-                return data.cart.some(item => item.product_id.toString() === link.target_id);
+                return Array.isArray(data.cart) && data.cart.some(item => item.product_id.toString() === link.target_id);
             case 'category':
                 // Would need to fetch product details to check category
                 // For now, assume it matches (implement product category lookup if needed)
@@ -326,7 +326,7 @@ export class PromotionEvaluationService {
                     return data.cart_total;
                 }
                 // Calculate from cart items if they have amount/price
-                return data.cart.reduce((sum, item) => {
+                return (data.cart ?? []).reduce((sum, item) => {
                     const itemAmount = item.amount ||
                         (item.price ? Number(item.price) * item.quantity : 0);
                     return sum + (Number(itemAmount) || 0);
@@ -336,7 +336,7 @@ export class PromotionEvaluationService {
                 if ('cart_total' in data && data.cart_total !== undefined) {
                     return data.cart_total;
                 }
-                return data.cart.reduce((sum, item) => {
+                return (data.cart ?? []).reduce((sum, item) => {
                     const itemAmount = item.amount ||
                         (item.price ? Number(item.price) * item.quantity : 0);
                     return sum + (Number(itemAmount) || 0);
@@ -346,9 +346,9 @@ export class PromotionEvaluationService {
             case 'payment_method':
                 return data.payment_method || '';
             case 'product_count':
-                return data.cart.length;
+                return (data.cart ?? []).length;
             case 'total_quantity':
-                return data.cart.reduce((sum, item) => sum + item.quantity, 0);
+                return (data.cart ?? []).reduce((sum, item) => sum + item.quantity, 0);
             default:
                 logger.warn({ condition_key: conditionKey }, 'Unknown condition key');
                 return null;

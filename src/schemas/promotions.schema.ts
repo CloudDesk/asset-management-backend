@@ -85,7 +85,9 @@ export const promotionEligibilitySchema = z.object({
     price: z.number()
   })).optional(),
   code: z.string().optional(),
-  order_date: z.string().optional()
+  order_date: z.string().optional(),
+  payment_method: z.string().optional()
+
 });
 
 // Schema for query parameters

@@ -193,6 +193,7 @@ export declare const promotionEligibilitySchema: z.ZodObject<{
     }>, "many">>;
     code: z.ZodOptional<z.ZodString>;
     order_date: z.ZodOptional<z.ZodString>;
+    payment_method: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     user_id: string;
     platform: string;
@@ -203,6 +204,7 @@ export declare const promotionEligibilitySchema: z.ZodObject<{
         product_id: string;
     }[] | undefined;
     order_date?: string | undefined;
+    payment_method?: string | undefined;
 }, {
     user_id: string;
     platform: string;
@@ -213,6 +215,7 @@ export declare const promotionEligibilitySchema: z.ZodObject<{
         product_id: string;
     }[] | undefined;
     order_date?: string | undefined;
+    payment_method?: string | undefined;
 }>;
 export declare const promotionEligibilityQuerySchema: z.ZodObject<{
     user_id: z.ZodString;

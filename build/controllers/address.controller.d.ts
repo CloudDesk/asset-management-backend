@@ -8,5 +8,6 @@ export declare class AddressController {
     updateAddress: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     deleteAddress: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     upsertAddress: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    getDefaultAddress: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
 }
 //# sourceMappingURL=address.controller.d.ts.map
