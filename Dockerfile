@@ -18,6 +18,10 @@ COPY . .
 # Expose the port that your application will run on
 EXPOSE 5600
 
+
+# Expose the Prisma
+RUN npx prisma generate
+
 # Explicitly install docxtemplater (in case it's not in package.json)
 RUN npm install docxtemplater
 
