@@ -14,3 +14,6 @@ Available columns: ["id","userid","productid","orderid","starrating","comments",
 Available columns: ["id","userid","name","mobilenumber","pincode","doornumber","address","landmark","state","city","modifieddate","createddate","isdefaultaddress"]
 Available columns: ["id","userid","name","mobilenumber","pincode","doornumber","address","landmark","state","city","modifieddate","createddate","isdefaultaddress"]
 Available columns: ["id","userid","name","mobilenumber","pincode","doornumber","address","landmark","state","city","modifieddate","createddate","isdefaultaddress"]
+Available columns: ["id","useremail","userpassword","createddate","modifieddate","role","usersphonenumber","firstname","lastname","location","fcmid","sessiontoken","resettoken","resettokenexpires"]
+Available columns: ["id","useremail","userpassword","createddate","modifieddate","role","usersphonenumber","firstname","lastname","location","fcmid","sessiontoken","resettoken","resettokenexpires"]
+Available columns: ["id","useremail","userpassword","createddate","modifieddate","role","usersphonenumber","firstname","lastname","location","fcmid","sessiontoken","resettoken","resettokenexpires"]

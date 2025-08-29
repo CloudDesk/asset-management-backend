@@ -7,12 +7,17 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
   // Payment initiation endpoint
   fastify.post('/initiate', {
     schema: {
-      description: 'Initiate payment with PhonePe',
+      description: 'Initiate payment with PhonePe or create COD order',
       tags: ['PhonePe Payment'],
-      summary: 'Start a payment transaction with PhonePe gateway',
+      summary: 'Start a payment transaction with PhonePe gateway or create Cash on Delivery order',
       body: {
         type: 'object',
         properties: {
+          mode: { 
+            type: 'string', 
+            // enum: ['phonepe', 'cod'],
+            description: 'Payment mode: phonepe for online payment, cod for cash on delivery'
+          },
           order: {
             type: 'array',
             items: {
@@ -121,7 +126,7 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
             additionalProperties: false
           }
         },
-        required: ['order', 'transaction'],
+        required: ['mode', 'order', 'transaction'],
         additionalProperties: false
       },
       response: {
@@ -242,7 +247,8 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
         
         try {
           fastify.log.info(`Calling createOrderAfterPayment for transaction: ${transactionId}`);
-          const order = await phonePeController.createOrderAfterPayment(transactionId);
+          // Force mode to "phonepe" since this is PhonePe webhook callback
+          const order = await phonePeController.createOrderAfterPayment(transactionId, 'phonepe');
           orderId = order.id;
           fastify.log.info(`Order created successfully for transaction: ${transactionId}`, { 
             orderId: order.id,

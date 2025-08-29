@@ -205,3 +205,51 @@ Updated record: {
   "createddate": 1752061559,
   "isdefaultaddress": true
 }
+Updated record: {
+  "id": 2,
+  "useremail": "harish@mail.com",
+  "userpassword": "$2a$12$so.ymfCoVsAVlnB5GvSo5.gXz0VKpmlA8lBKrE2EcBbzx/.dPhbVm",
+  "createddate": 1754579214,
+  "modifieddate": 1756377945,
+  "role": null,
+  "usersphonenumber": null,
+  "firstname": null,
+  "lastname": null,
+  "location": null,
+  "fcmid": null,
+  "sessiontoken": "76b777e95b5aab70de8a8f06ceab871be0aa1ac3fba597d45c7442f2daed7244",
+  "resettoken": null,
+  "resettokenexpires": null
+}
+Updated record: {
+  "id": 2,
+  "useremail": "harish@mail.com",
+  "userpassword": "$2a$12$so.ymfCoVsAVlnB5GvSo5.gXz0VKpmlA8lBKrE2EcBbzx/.dPhbVm",
+  "createddate": 1754579214,
+  "modifieddate": 1756385505,
+  "role": null,
+  "usersphonenumber": null,
+  "firstname": null,
+  "lastname": null,
+  "location": null,
+  "fcmid": null,
+  "sessiontoken": "8b9194ce60ef742d6c9065ab44d6253407e48bfb8184916fd484729b7c8e7fcf",
+  "resettoken": null,
+  "resettokenexpires": null
+}
+Updated record: {
+  "id": 2,
+  "useremail": "harish@mail.com",
+  "userpassword": "$2a$12$so.ymfCoVsAVlnB5GvSo5.gXz0VKpmlA8lBKrE2EcBbzx/.dPhbVm",
+  "createddate": 1754579214,
+  "modifieddate": 1756466007,
+  "role": null,
+  "usersphonenumber": null,
+  "firstname": null,
+  "lastname": null,
+  "location": null,
+  "fcmid": null,
+  "sessiontoken": "ac962f7220b393ec434ff0d7be4bd51f841fc46d7a3fe3d42ee827886c261797",
+  "resettoken": null,
+  "resettokenexpires": null
+}

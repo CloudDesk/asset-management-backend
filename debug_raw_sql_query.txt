@@ -94,3 +94,21 @@ Update query:
         WHERE "id" = $1 
         RETURNING id, userid, name, mobilenumber, pincode, doornumber, address, landmark, state, city, modifieddate, createddate, isdefaultaddress
       
+Update query: 
+        UPDATE "inventoryusers" 
+        SET "sessiontoken" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, useremail, userpassword, createddate, modifieddate, role, usersphonenumber, firstname, lastname, location, fcmid, sessiontoken, resettoken, resettokenexpires
+      
+Update query: 
+        UPDATE "inventoryusers" 
+        SET "sessiontoken" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, useremail, userpassword, createddate, modifieddate, role, usersphonenumber, firstname, lastname, location, fcmid, sessiontoken, resettoken, resettokenexpires
+      
+Update query: 
+        UPDATE "inventoryusers" 
+        SET "sessiontoken" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, useremail, userpassword, createddate, modifieddate, role, usersphonenumber, firstname, lastname, location, fcmid, sessiontoken, resettoken, resettokenexpires
+      
