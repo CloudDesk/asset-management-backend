@@ -1,42 +1,35 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
+import { SamplePurchaseRequestService } from '../services/samplepurchaserequest.service.js';
 export declare class SamplePurchaseRequestController {
-    private readonly samplePurchaseRequestService;
+    samplePurchaseRequestService: SamplePurchaseRequestService;
     /**
-     * Get sample purchase requests with optimized filtering and pagination
-     * Supports any field that exists in the database with enhanced performance
+     * Get sample purchase requests with dynamic filtering and pagination
+     * Supports any field that exists in the database
      */
     getSamplePurchaseRequests: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     /**
-     * Get single sample purchase request by ID with optimized caching
+     * Get single sample purchase request by ID
      */
     getSamplePurchaseRequest: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     /**
-     * Create new sample purchase request with enhanced validation
+     * Create new sample purchase request with dynamic field support
      */
     createSamplePurchaseRequest: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     /**
-     * Update sample purchase request with optimized validation
+     * Update sample purchase request with dynamic field support
      */
     updateSamplePurchaseRequest: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     /**
-     * Delete sample purchase request by ID with optimized logging
+     * Delete sample purchase request by ID
      */
     deleteSamplePurchaseRequest: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     /**
-     * Upsert sample purchase request with enhanced logic
+     * Upsert sample purchase request - create or update based on ID presence
      */
     upsertSamplePurchaseRequest: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     /**
-     * Get sample purchase requests by supplier ID with enhanced performance
+     * Get sample purchase requests by supplier ID
      */
     getSamplePurchaseRequestsBySupplier: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
-    /**
-     * Get service statistics for monitoring and debugging
-     */
-    getStats: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
-    /**
-     * Clear service cache (for admin/debugging purposes)
-     */
-    clearCache: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
 }
 //# sourceMappingURL=samplepurchaserequest.controller.d.ts.map

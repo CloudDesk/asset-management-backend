@@ -11,16 +11,36 @@ export async function stockRoutes(fastify) {
                 properties: {
                     page: { type: 'string', description: 'Page number' },
                     limit: { type: 'string', description: 'Items per page' },
-                    puc: { type: 'string', description: 'Filter by product ID' },
+                    puc: { type: 'string', description: 'Filter by product unique code' },
                     category: { type: 'string', description: 'Filter by category' },
                     subcategory: { type: 'string', description: 'Filter by subcategory' },
-                    warehouseLocation: { type: 'string', description: 'Filter by warehouse location' },
-                    minQuantity: { type: 'string', description: 'Minimum quantity filter' },
-                    maxQuantity: { type: 'string', description: 'Maximum quantity filter' },
-                    minAvailable: { type: 'string', description: 'Minimum available quantity filter' },
-                    maxAvailable: { type: 'string', description: 'Maximum available quantity filter' },
-                    createdAfter: { type: 'string', description: 'Created after date' },
-                    createdBefore: { type: 'string', description: 'Created before date' },
+                    brand: { type: 'string', description: 'Filter by brand' },
+                    model: { type: 'string', description: 'Filter by model' },
+                    operatingsystem: { type: 'string', description: 'Filter by operating system' },
+                    ram: { type: 'string', description: 'Filter by RAM specification' },
+                    storagetype: { type: 'string', description: 'Filter by storage type' },
+                    storagecapacity: { type: 'string', description: 'Filter by storage capacity' },
+                    colour: { type: 'string', description: 'Filter by color' },
+                    processor: { type: 'string', description: 'Filter by processor' },
+                    serialnumber: { type: 'string', description: 'Filter by serial number' },
+                    stockstatus: { type: 'string', description: 'Filter by stock status' },
+                    productname: { type: 'string', description: 'Filter by product name' },
+                    location: { type: 'string', description: 'Filter by storage location' },
+                    assetlocation: { type: 'string', description: 'Filter by asset location' },
+                    orderid: { type: 'string', description: 'Filter by order ID' },
+                    orderlinenumber: { type: 'string', description: 'Filter by order line number' },
+                    isdeleted: { type: 'string', description: 'Filter by deletion status (true/false)' },
+                    isarchive: { type: 'string', description: 'Filter by archive status (true/false)' },
+                    ecompublish: { type: 'string', description: 'Filter by e-commerce publish status (true/false)' },
+                    ewaste: { type: 'string', description: 'Filter by e-waste status (true/false)' },
+                    minManufacturedYear: { type: 'string', description: 'Minimum manufactured year' },
+                    maxManufacturedYear: { type: 'string', description: 'Maximum manufactured year' },
+                    minReleaseYear: { type: 'string', description: 'Minimum release year' },
+                    maxReleaseYear: { type: 'string', description: 'Maximum release year' },
+                    createdAfter: { type: 'string', description: 'Created after date (timestamp)' },
+                    createdBefore: { type: 'string', description: 'Created before date (timestamp)' },
+                    modifiedAfter: { type: 'string', description: 'Modified after date (timestamp)' },
+                    modifiedBefore: { type: 'string', description: 'Modified before date (timestamp)' },
                 },
             },
             response: {
@@ -32,7 +52,48 @@ export async function stockRoutes(fastify) {
                             type: 'array',
                             items: {
                                 type: 'object',
-                                additionalProperties: true // Allow any fields in stock objects
+                                properties: {
+                                    id: { type: 'number', description: 'Stock ID' },
+                                    puc: { type: 'string', nullable: true, description: 'Product unique code' },
+                                    category: { type: 'string', nullable: true, description: 'Product category' },
+                                    subcategory: { type: 'string', nullable: true, description: 'Product subcategory' },
+                                    brand: { type: 'string', nullable: true, description: 'Product brand' },
+                                    model: { type: 'string', nullable: true, description: 'Product model' },
+                                    operatingsystem: { type: 'string', nullable: true, description: 'Operating system' },
+                                    operatingsystemversion: { type: 'string', nullable: true, description: 'OS version' },
+                                    ram: { type: 'string', nullable: true, description: 'RAM specification' },
+                                    storagetype: { type: 'string', nullable: true, description: 'Storage type' },
+                                    storagecapacity: { type: 'string', nullable: true, description: 'Storage capacity' },
+                                    colour: { type: 'string', nullable: true, description: 'Product color' },
+                                    graphicscard: { type: 'string', nullable: true, description: 'Graphics card' },
+                                    processor: { type: 'string', nullable: true, description: 'Processor specification' },
+                                    serialnumber: { type: 'string', nullable: true, description: 'Serial number' },
+                                    stockstatus: { type: 'string', description: 'Stock status' },
+                                    manufacturedyear: { type: 'number', nullable: true, description: 'Manufactured year' },
+                                    releaseyear: { type: 'number', nullable: true, description: 'Release year' },
+                                    isdeleted: { type: 'boolean', nullable: true, description: 'Deletion status' },
+                                    isarchive: { type: 'boolean', nullable: true, description: 'Archive status' },
+                                    removefromrecyclebin: { type: 'boolean', nullable: true, description: 'Recycle bin status' },
+                                    ecompublish: { type: 'boolean', nullable: true, description: 'E-commerce publish status' },
+                                    productname: { type: 'string', nullable: true, description: 'Product name' },
+                                    rfid: { type: 'string', nullable: true, description: 'RFID tag' },
+                                    nfc: { type: 'string', nullable: true, description: 'NFC tag' },
+                                    orderid: { type: 'string', nullable: true, description: 'Order ID' },
+                                    invoiceurl: { type: 'string', nullable: true, description: 'Invoice URL' },
+                                    location: { type: 'string', nullable: true, description: 'Storage location' },
+                                    solddate: { type: 'number', nullable: true, description: 'Sold date timestamp' },
+                                    assetlocation: { type: 'string', nullable: true, description: 'Asset location' },
+                                    rfidscannedtime: { type: 'number', nullable: true, description: 'RFID scan timestamp' },
+                                    orderlinenumber: { type: 'string', nullable: true, description: 'Order line number' },
+                                    qrcode: { type: 'string', nullable: true, description: 'QR code' },
+                                    barcode: { type: 'string', nullable: true, description: 'Barcode' },
+                                    ewaste: { type: 'boolean', nullable: true, description: 'E-waste status' },
+                                    createddate: { type: 'number', description: 'Creation timestamp' },
+                                    modifieddate: { type: 'number', description: 'Modification timestamp' },
+                                    createdby: { type: 'number', nullable: true, description: 'Created by user ID' },
+                                    modifiedby: { type: 'number', nullable: true, description: 'Modified by user ID' },
+                                },
+                                additionalProperties: true // Allow additional dynamic fields
                             }
                         },
                         pagination: {
@@ -44,6 +105,14 @@ export async function stockRoutes(fastify) {
                                 totalPages: { type: 'number' },
                                 hasNext: { type: 'boolean' },
                                 hasPrev: { type: 'boolean' },
+                            },
+                        },
+                        meta: {
+                            type: 'object',
+                            properties: {
+                                filters: { type: 'array', items: { type: 'string' } },
+                                total: { type: 'number' },
+                                filtered: { type: 'boolean' },
                             },
                         },
                     },
@@ -108,7 +177,7 @@ export async function stockRoutes(fastify) {
         try {
             const { id } = request.params;
             // Validate ID format
-            if (!/^\d+$/.test(id)) {
+            if (!id || id.trim() === '' || !/^\d+$/.test(id)) {
                 const errorResponse = {
                     success: false,
                     message: 'Invalid ID format. ID must be an integer.',
@@ -152,6 +221,76 @@ export async function stockRoutes(fastify) {
         schema: {
             description: 'Create a new stock entry',
             tags: ['Stocks'],
+            body: {
+                type: 'object',
+                properties: {
+                    productId: { type: 'string', minLength: 1, maxLength: 500, description: 'Product ID' },
+                    serialNumber: { type: 'string', minLength: 1, maxLength: 500, description: 'Serial number (unique)' },
+                    manufactureYear: {
+                        type: ['string', 'number'],
+                        description: 'Manufacture year as date string or number'
+                    },
+                    releaseYear: {
+                        type: ['string', 'number'],
+                        description: 'Release year as date string or number'
+                    },
+                    ecommercePublish: { type: 'boolean', description: 'Whether to publish on ecommerce platform', default: false },
+                    location: { type: 'string', minLength: 1, maxLength: 500, description: 'Stock location' },
+                    // Existing fields
+                    puc: { type: 'string', maxLength: 500, description: 'Product unique code' },
+                    category: { type: 'string', maxLength: 500, description: 'Product category' },
+                    subcategory: { type: 'string', maxLength: 500, description: 'Product subcategory' },
+                    brand: { type: 'string', maxLength: 500, description: 'Product brand' },
+                    model: { type: 'string', maxLength: 500, description: 'Product model' },
+                    operatingsystem: { type: 'string', maxLength: 500, description: 'Operating system' },
+                    operatingsystemversion: { type: 'string', maxLength: 500, description: 'OS version' },
+                    ram: { type: 'string', maxLength: 500, description: 'RAM specification' },
+                    storagetype: { type: 'string', maxLength: 500, description: 'Storage type' },
+                    storagecapacity: { type: 'string', maxLength: 500, description: 'Storage capacity' },
+                    colour: { type: 'string', maxLength: 500, description: 'Product color' },
+                    graphicscard: { type: 'string', maxLength: 500, description: 'Graphics card' },
+                    processor: { type: 'string', maxLength: 500, description: 'Processor specification' },
+                    serialnumber: { type: 'string', maxLength: 500, description: 'Serial number (alternative)' },
+                    stockstatus: { type: 'string', maxLength: 500, description: 'Stock status', default: 'Available' },
+                    manufacturedyear: { type: 'number', description: 'Manufactured year (alternative)' },
+                    releaseyear: { type: 'number', description: 'Release year (alternative)' },
+                    isdeleted: { type: 'boolean', description: 'Deletion status', default: false },
+                    isarchive: { type: 'boolean', description: 'Archive status', default: false },
+                    // Quantity fields
+                    quantity: { type: 'number', minimum: 0, description: 'Total quantity' },
+                    availableQuantity: { type: 'number', minimum: 0, description: 'Available quantity' },
+                    soldQuantity: { type: 'number', minimum: 0, description: 'Sold quantity' },
+                    batchNumber: { type: 'string', maxLength: 100, description: 'Batch number' },
+                    warehouseLocation: { type: 'string', maxLength: 100, description: 'Warehouse location' },
+                    // Alternative field names (snake_case)
+                    product_id: { type: 'string', maxLength: 500, description: 'Product ID (alternative)' },
+                    serial_number: { type: 'string', maxLength: 500, description: 'Serial number (alternative)' },
+                    manufacture_year: {
+                        type: ['string', 'number'],
+                        description: 'Manufacture year as date string or number'
+                    },
+                    release_year: {
+                        type: ['string', 'number'],
+                        description: 'Release year as date string or number'
+                    },
+                    ecommerce_publish: { type: 'boolean', default: false },
+                    batch_number: { type: 'string', maxLength: 100 },
+                    warehouse_location: { type: 'string', maxLength: 100 },
+                    available_quantity: { type: 'number', minimum: 0 },
+                    sold_quantity: { type: 'number', minimum: 0 }
+                },
+                additionalProperties: true, // Allow additional fields for flexibility
+                examples: [
+                    {
+                        productId: "137",
+                        serialNumber: "dad56as7dsa",
+                        manufactureYear: "2025-06-03",
+                        ecommercePublish: true,
+                        releaseYear: "2025-06-05",
+                        location: "chennai"
+                    }
+                ]
+            },
             response: {
                 201: {
                     type: 'object',
@@ -171,6 +310,41 @@ export async function stockRoutes(fastify) {
                         message: { type: 'string' },
                         details: { type: 'string' },
                         statusCode: { type: 'number' },
+                        errors: {
+                            type: 'array',
+                            items: {
+                                type: 'object',
+                                properties: {
+                                    field: { type: 'string' },
+                                    message: { type: 'string' },
+                                    received: {}
+                                }
+                            }
+                        },
+                        validationFailed: { type: 'boolean' },
+                        businessLogicError: { type: 'boolean' },
+                        creationError: { type: 'boolean' }
+                    },
+                },
+                404: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                        referenceError: { type: 'boolean' }
+                    },
+                },
+                409: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                        duplicateError: { type: 'boolean' },
+                        constraintError: { type: 'boolean' }
                     },
                 },
                 500: {
@@ -180,6 +354,7 @@ export async function stockRoutes(fastify) {
                         message: { type: 'string' },
                         details: { type: 'string' },
                         statusCode: { type: 'number' },
+                        internalError: { type: 'boolean' }
                     },
                 },
             },
@@ -199,7 +374,45 @@ export async function stockRoutes(fastify) {
             },
             body: {
                 type: 'object',
-                additionalProperties: true, // Allow any fields for dynamic updates
+                properties: {
+                    puc: { type: 'string', maxLength: 500, description: 'Product unique code' },
+                    category: { type: 'string', maxLength: 500, description: 'Product category' },
+                    subcategory: { type: 'string', maxLength: 500, description: 'Product subcategory' },
+                    brand: { type: 'string', maxLength: 500, description: 'Product brand' },
+                    model: { type: 'string', maxLength: 500, description: 'Product model' },
+                    operatingsystem: { type: 'string', maxLength: 500, description: 'Operating system' },
+                    operatingsystemversion: { type: 'string', maxLength: 500, description: 'OS version' },
+                    ram: { type: 'string', maxLength: 500, description: 'RAM specification' },
+                    storagetype: { type: 'string', maxLength: 500, description: 'Storage type' },
+                    storagecapacity: { type: 'string', maxLength: 500, description: 'Storage capacity' },
+                    colour: { type: 'string', maxLength: 500, description: 'Product color' },
+                    graphicscard: { type: 'string', maxLength: 500, description: 'Graphics card' },
+                    processor: { type: 'string', maxLength: 500, description: 'Processor specification' },
+                    serialnumber: { type: 'string', maxLength: 500, description: 'Serial number (unique)' },
+                    stockstatus: { type: 'string', maxLength: 500, description: 'Stock status' },
+                    manufacturedyear: { type: 'number', description: 'Manufactured year' },
+                    releaseyear: { type: 'number', description: 'Release year' },
+                    isdeleted: { type: 'boolean', description: 'Deletion status' },
+                    isarchive: { type: 'boolean', description: 'Archive status' },
+                    removefromrecyclebin: { type: 'boolean', description: 'Recycle bin status' },
+                    ecompublish: { type: 'boolean', description: 'E-commerce publish status' },
+                    productname: { type: 'string', maxLength: 500, description: 'Product name' },
+                    rfid: { type: 'string', maxLength: 500, description: 'RFID tag' },
+                    nfc: { type: 'string', maxLength: 500, description: 'NFC tag (unique)' },
+                    orderid: { type: 'string', maxLength: 500, description: 'Order ID' },
+                    invoiceurl: { type: 'string', maxLength: 500, description: 'Invoice URL' },
+                    location: { type: 'string', maxLength: 500, description: 'Storage location' },
+                    solddate: { type: 'number', description: 'Sold date timestamp' },
+                    assetlocation: { type: 'string', maxLength: 200, description: 'Asset location' },
+                    rfidscannedtime: { type: 'number', description: 'RFID scan timestamp' },
+                    orderlinenumber: { type: 'string', maxLength: 500, description: 'Order line number' },
+                    qrcode: { type: 'string', maxLength: 500, description: 'QR code (unique)' },
+                    barcode: { type: 'string', maxLength: 500, description: 'Barcode (unique)' },
+                    ewaste: { type: 'boolean', description: 'E-waste status' },
+                    createdby: { type: 'number', description: 'Created by user ID' },
+                    modifiedby: { type: 'number', description: 'Modified by user ID' },
+                },
+                additionalProperties: true, // Allow additional dynamic fields
             },
             response: {
                 200: {

@@ -2990,3 +2990,150 @@ Filtering data for product (product): {
     "https://example.com/new-medium.jpg"
   ]
 }
+Filtering data for stock (stock): {
+  "productId": "137",
+  "rfid": "",
+  "serialNumber": "dad56as7dsa",
+  "manufactureYear": "2025-06-03",
+  "ecommercePublish": true,
+  "releaseYear": "2025-06-05",
+  "location": "",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ecompublish": false,
+  "ewaste": false
+}
+Filtering data for stock (stock): {
+  "productId": "137",
+  "rfid": "21243563523245",
+  "serialNumber": "dad56as7dsa",
+  "manufactureYear": "2025-06-03",
+  "ecommercePublish": true,
+  "releaseYear": "2025-06-05",
+  "location": "chennai",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ecompublish": false,
+  "ewaste": false
+}
+Filtering data for stock (stock): {
+  "productId": "137",
+  "serialNumber": "dad56as7dsa",
+  "manufactureYear": "2025-06-03",
+  "ecommercePublish": true,
+  "releaseYear": "2025-06-05",
+  "location": "chennai",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ecompublish": false,
+  "ewaste": false
+}
+Filtering data for stock (stock): {
+  "productId": "137",
+  "serialNumber": "dad56as7dsa",
+  "manufactureYear": "2025-06-03",
+  "releaseYear": "2025-06-05",
+  "ecommercePublish": true,
+  "location": "chennai",
+  "ecommerce_publish": false,
+  "stockstatus": "Available",
+  "stockStatus": "Available",
+  "isdeleted": false,
+  "isDeleted": false,
+  "isarchive": false,
+  "isArchive": false
+}
+Filtering data for stock (stock): {
+  "ecommercePublish": false,
+  "location": "mumbai",
+  "product_id": "138",
+  "serial_number": "test123abc",
+  "manufacture_year": "2024-01-15",
+  "release_year": "2024-02-01",
+  "ecommerce_publish": false,
+  "stockstatus": "Available",
+  "stockStatus": "Available",
+  "isdeleted": false,
+  "isDeleted": false,
+  "isarchive": false,
+  "isArchive": false
+}
+Filtering data for stock (stock): {
+  "productId": "140",
+  "ecommercePublish": false,
+  "location": "bangalore",
+  "ecommerce_publish": false,
+  "stockstatus": "Available",
+  "stockStatus": "Available",
+  "isdeleted": false,
+  "isDeleted": false,
+  "isarchive": false,
+  "isArchive": false
+}
+Filtering data for stock (stock): {
+  "productId": "141",
+  "serialNumber": "qty_test_001",
+  "ecommercePublish": false,
+  "location": "hyderabad",
+  "batchNumber": "BATCH001",
+  "quantity": 100,
+  "availableQuantity": 80,
+  "soldQuantity": 20,
+  "ecommerce_publish": false,
+  "stockstatus": "Available",
+  "stockStatus": "Available",
+  "isdeleted": false,
+  "isDeleted": false,
+  "isarchive": false,
+  "isArchive": false
+}
+Filtering data for stock (stock): {
+  "productId": "147",
+  "serialNumber": "dad56as7dsa",
+  "ecommercePublish": false,
+  "location": "lucknow",
+  "ecommerce_publish": false,
+  "stockstatus": "Available",
+  "stockStatus": "Available",
+  "isdeleted": false,
+  "isDeleted": false,
+  "isarchive": false,
+  "isArchive": false
+}
+Filtering data for stock (stock): {
+  "location": "lucknow",
+  "ecommerce_publish": false,
+  "stockstatus": "Available",
+  "stockStatus": "Available",
+  "isdeleted": false,
+  "isDeleted": false,
+  "isarchive": false,
+  "isArchive": false,
+  "puc": "147",
+  "serialnumber": "dad56as7dsa",
+  "ecompublish": false,
+  "createddate": 1749734200755,
+  "modifieddate": 1749734200755
+}
+Filtering data for stock (stock): {
+  "location": "chennai",
+  "ecommerce_publish": false,
+  "stockstatus": "Available",
+  "stockStatus": "Available",
+  "isdeleted": false,
+  "isDeleted": false,
+  "isarchive": false,
+  "isArchive": false,
+  "serialnumber": "manual_test_001",
+  "manufacturedyear": 1748908800000,
+  "releaseyear": 1749081600000,
+  "ecompublish": true,
+  "createddate": 1749734232204,
+  "modifieddate": 1749734232204
+}

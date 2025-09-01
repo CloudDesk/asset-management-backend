@@ -1,26 +1,17 @@
 import { SamplePurchaseRequestController } from '../controllers/samplepurchaserequest.controller.js';
+import { formatSamplePurchaseRequestForAPI } from '../utils/dynamicDbOperations.js';
 export async function samplePurchaseRequestRoutes(fastify) {
     const samplePurchaseRequestController = new SamplePurchaseRequestController();
-    // GET /v1/samplepurchaserequests - Get all sample purchase requests with optimized pagination and filtering
+    // GET /v1/samplepurchaserequests - Get all sample purchase requests with pagination and filtering
     fastify.get('/', {
         schema: {
-            description: 'Get all sample purchase requests with optimized pagination, filtering, and sorting',
+            description: 'Get all sample purchase requests with pagination and filtering',
             tags: ['Sample Purchase Requests'],
             querystring: {
                 type: 'object',
                 properties: {
-                    page: { type: 'string', description: 'Page number (default: 1)' },
-                    limit: { type: 'string', description: 'Items per page (max: 100, default: 10)' },
-                    sortBy: {
-                        type: 'string',
-                        enum: ['id', 'companyname', 'contactname', 'createddate', 'modifieddate'],
-                        description: 'Field to sort by'
-                    },
-                    sortOrder: {
-                        type: 'string',
-                        enum: ['asc', 'desc'],
-                        description: 'Sort order (default: desc)'
-                    },
+                    page: { type: 'string', description: 'Page number' },
+                    limit: { type: 'string', description: 'Items per page' },
                     companyname: { type: 'string', description: 'Filter by company name' },
                     contactname: { type: 'string', description: 'Filter by contact name' },
                     phonenumber: { type: 'string', description: 'Filter by phone number' },
@@ -33,14 +24,13 @@ export async function samplePurchaseRequestRoutes(fastify) {
                     createdby: { type: 'string', description: 'Filter by created by' },
                     modifiedby: { type: 'string', description: 'Filter by modified by' },
                 },
-                additionalProperties: false,
+                additionalProperties: true,
             },
             response: {
                 200: {
                     type: 'object',
                     properties: {
                         success: { type: 'boolean' },
-                        message: { type: 'string' },
                         data: {
                             type: 'array',
                             items: {
@@ -90,30 +80,36 @@ export async function samplePurchaseRequestRoutes(fastify) {
                                 filters: { type: 'array', items: { type: 'string' } },
                                 total: { type: 'number' },
                                 filtered: { type: 'boolean' },
-                                sortBy: { type: 'string' },
-                                sortOrder: { type: 'string' },
-                                responseTime: { type: 'number' },
-                                cached: { type: 'boolean' },
                             },
                         },
                     },
                 },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        error: { type: 'string' },
+                    },
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        error: { type: 'string' },
+                    },
+                },
             },
         },
-    }, samplePurchaseRequestController.getSamplePurchaseRequests);
-    // GET /v1/samplepurchaserequests/:id - Get sample purchase request by ID with caching
+    }, samplePurchaseRequestController.getSamplePurchaseRequests.bind(samplePurchaseRequestController));
+    // GET /v1/samplepurchaserequests/:id - Get sample purchase request by ID
     fastify.get('/:id', {
         schema: {
-            description: 'Get sample purchase request by ID with optimized caching',
+            description: 'Get sample purchase request by ID',
             tags: ['Sample Purchase Requests'],
             params: {
                 type: 'object',
                 properties: {
-                    id: {
-                        type: 'string',
-                        pattern: '^\\d+$',
-                        description: 'Sample purchase request ID (must be a positive integer)'
-                    },
+                    id: { type: 'string', description: 'Sample purchase request ID' },
                 },
                 required: ['id'],
             },
@@ -122,188 +118,247 @@ export async function samplePurchaseRequestRoutes(fastify) {
                     type: 'object',
                     properties: {
                         success: { type: 'boolean' },
-                        message: { type: 'string' },
                         data: {
                             type: 'object',
                             additionalProperties: true // Allow any fields in sample purchase request object
                         },
-                        meta: {
-                            type: 'object',
-                            properties: {
-                                responseTime: { type: 'number' },
-                                cached: { type: 'boolean' },
-                            },
-                        },
+                        message: { type: 'string' },
+                    },
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
+                404: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
                     },
                 },
             },
         },
-    }, samplePurchaseRequestController.getSamplePurchaseRequest);
-    // POST /v1/samplepurchaserequests - Create new sample purchase request with enhanced validation
+    }, async (request, reply) => {
+        try {
+            const { id } = request.params;
+            // Validate ID format
+            if (!/^\d+$/.test(id)) {
+                const errorResponse = {
+                    success: false,
+                    message: 'Invalid ID format. ID must be an integer.',
+                    details: `The provided ID '${id}' is not a valid integer format.`,
+                    statusCode: 400
+                };
+                return reply.code(400).send(errorResponse);
+            }
+            // Call the service method directly
+            const samplePurchaseRequest = await samplePurchaseRequestController.samplePurchaseRequestService.findById(id);
+            const response = {
+                success: true,
+                message: 'Sample purchase request retrieved successfully',
+                data: formatSamplePurchaseRequestForAPI(samplePurchaseRequest)
+            };
+            return reply.code(200).send(response);
+        }
+        catch (error) {
+            console.log('=== SAMPLE PURCHASE REQUEST GET ERROR:', error.message);
+            if (error.message.includes('not found')) {
+                const errorResponse = {
+                    success: false,
+                    message: `Sample purchase request with ID ${request.params.id} not found`,
+                    details: 'The requested resource could not be found',
+                    statusCode: 404
+                };
+                return reply.code(404).send(errorResponse);
+            }
+            // Default error response
+            const errorResponse = {
+                success: false,
+                message: 'Internal server error',
+                details: error.message,
+                statusCode: 500
+            };
+            return reply.code(500).send(errorResponse);
+        }
+    });
+    // POST /v1/samplepurchaserequests - Create new sample purchase request
     fastify.post('/', {
         schema: {
-            description: 'Create new sample purchase request with enhanced validation',
+            description: 'Create a new sample purchase request',
             tags: ['Sample Purchase Requests'],
             body: {
                 type: 'object',
                 properties: {
-                    companyname: { type: 'string', minLength: 1, maxLength: 255, description: 'Company name' },
-                    contactname: { type: 'string', minLength: 1, maxLength: 255, description: 'Contact name' },
-                    phonenumber: {
-                        type: 'number',
-                        minimum: 1000000000,
-                        maximum: 9999999999,
-                        description: 'Phone number (10 digits)'
-                    },
-                    companymail: {
-                        type: 'string',
-                        format: 'email',
-                        maxLength: 255,
-                        description: 'Company email'
-                    },
-                    gstnumber: { type: 'string', minLength: 1, maxLength: 50, description: 'GST number' },
-                    companyaddress: { type: 'string', minLength: 1, maxLength: 1000, description: 'Company address' },
-                    supplierid: { type: 'number', minimum: 1, description: 'Supplier ID' },
+                    companyname: { type: 'string', description: 'Company name' },
+                    contactname: { type: 'string', description: 'Contact name' },
+                    phonenumber: { type: 'number', description: 'Phone number' },
+                    companymail: { type: 'string', format: 'email', description: 'Company email' },
+                    gstnumber: { type: 'string', description: 'GST number' },
+                    companyaddress: { type: 'string', description: 'Company address' },
+                    supplierid: { type: 'number', description: 'Supplier ID' },
                     items: {
                         type: 'array',
-                        minItems: 1,
-                        maxItems: 100,
                         items: {
                             type: 'object',
                             properties: {
-                                id: { type: 'number', minimum: 1, description: 'Item ID' },
-                                name: { type: 'string', minLength: 1, maxLength: 255, description: 'Item name' },
-                                quantity: { type: 'number', minimum: 1, maximum: 999999, description: 'Item quantity' }
+                                id: { type: 'number', description: 'Item ID' },
+                                name: { type: 'string', description: 'Item name' },
+                                quantity: { type: 'number', description: 'Item quantity' }
                             },
-                            required: ['id', 'name', 'quantity'],
-                            additionalProperties: false
+                            required: ['id', 'name', 'quantity']
                         },
-                        description: 'Items array (max 100 items)'
+                        minItems: 1
                     },
-                    createdby: { type: 'string', minLength: 1, maxLength: 255, description: 'Created by' },
-                    modifiedby: { type: 'string', minLength: 1, maxLength: 255, description: 'Modified by' },
-                    createddate: { type: 'number', minimum: 0, description: 'Creation timestamp (optional)' },
-                    modifieddate: { type: 'number', minimum: 0, description: 'Modification timestamp (optional)' },
+                    createdby: { type: 'string', description: 'Created by' },
+                    modifiedby: { type: 'string', description: 'Modified by' },
+                    createddate: { type: 'number', description: 'Creation timestamp' },
+                    modifieddate: { type: 'number', description: 'Modification timestamp' }
                 },
-                required: [
-                    'companyname', 'contactname', 'phonenumber', 'companymail',
-                    'gstnumber', 'companyaddress', 'supplierid', 'items',
-                    'createdby', 'modifiedby'
-                ],
-                additionalProperties: false,
+                required: ['companyname', 'contactname', 'phonenumber', 'companymail', 'gstnumber', 'companyaddress', 'supplierid', 'items', 'createdby', 'modifiedby'],
+                additionalProperties: true
             },
             response: {
                 201: {
                     type: 'object',
                     properties: {
                         success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        data: { type: 'object', additionalProperties: true },
-                        meta: {
+                        data: {
                             type: 'object',
-                            properties: {
-                                responseTime: { type: 'number' },
-                                created: { type: 'boolean' },
-                            },
+                            additionalProperties: true
                         },
+                        message: { type: 'string' },
+                    },
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
                     },
                 },
             },
         },
-    }, samplePurchaseRequestController.createSamplePurchaseRequest);
-    // PUT /v1/samplepurchaserequests/:id - Update sample purchase request with optimized validation
+    }, samplePurchaseRequestController.createSamplePurchaseRequest.bind(samplePurchaseRequestController));
+    // PUT /v1/samplepurchaserequests/:id - Update sample purchase request
     fastify.put('/:id', {
         schema: {
-            description: 'Update sample purchase request with optimized validation',
+            description: 'Update sample purchase request by ID',
             tags: ['Sample Purchase Requests'],
             params: {
                 type: 'object',
                 properties: {
-                    id: {
-                        type: 'string',
-                        pattern: '^\\d+$',
-                        description: 'Sample purchase request ID (must be a positive integer)'
-                    },
+                    id: { type: 'string', description: 'Sample purchase request ID' },
                 },
                 required: ['id'],
             },
             body: {
                 type: 'object',
                 properties: {
-                    companyname: { type: 'string', minLength: 1, maxLength: 255, description: 'Company name' },
-                    contactname: { type: 'string', minLength: 1, maxLength: 255, description: 'Contact name' },
-                    phonenumber: {
-                        type: 'number',
-                        minimum: 1000000000,
-                        maximum: 9999999999,
-                        description: 'Phone number (10 digits)'
-                    },
-                    companymail: {
-                        type: 'string',
-                        format: 'email',
-                        maxLength: 255,
-                        description: 'Company email'
-                    },
-                    gstnumber: { type: 'string', minLength: 1, maxLength: 50, description: 'GST number' },
-                    companyaddress: { type: 'string', minLength: 1, maxLength: 1000, description: 'Company address' },
-                    supplierid: { type: 'number', minimum: 1, description: 'Supplier ID' },
+                    companyname: { type: 'string', description: 'Company name' },
+                    contactname: { type: 'string', description: 'Contact name' },
+                    phonenumber: { type: 'number', description: 'Phone number' },
+                    companymail: { type: 'string', format: 'email', description: 'Company email' },
+                    gstnumber: { type: 'string', description: 'GST number' },
+                    companyaddress: { type: 'string', description: 'Company address' },
+                    supplierid: { type: 'number', description: 'Supplier ID' },
                     items: {
                         type: 'array',
-                        minItems: 1,
-                        maxItems: 100,
                         items: {
                             type: 'object',
                             properties: {
-                                id: { type: 'number', minimum: 1, description: 'Item ID' },
-                                name: { type: 'string', minLength: 1, maxLength: 255, description: 'Item name' },
-                                quantity: { type: 'number', minimum: 1, maximum: 999999, description: 'Item quantity' }
+                                id: { type: 'number', description: 'Item ID' },
+                                name: { type: 'string', description: 'Item name' },
+                                quantity: { type: 'number', description: 'Item quantity' }
                             },
-                            required: ['id', 'name', 'quantity'],
-                            additionalProperties: false
+                            required: ['id', 'name', 'quantity']
                         },
-                        description: 'Items array (max 100 items)'
+                        minItems: 1
                     },
-                    createdby: { type: 'string', minLength: 1, maxLength: 255, description: 'Created by' },
-                    modifiedby: { type: 'string', minLength: 1, maxLength: 255, description: 'Modified by' },
-                    createddate: { type: 'number', minimum: 0, description: 'Creation timestamp' },
-                    modifieddate: { type: 'number', minimum: 0, description: 'Modification timestamp' },
+                    createdby: { type: 'string', description: 'Created by' },
+                    modifiedby: { type: 'string', description: 'Modified by' },
+                    createddate: { type: 'number', description: 'Creation timestamp' },
+                    modifieddate: { type: 'number', description: 'Modification timestamp' }
                 },
-                minProperties: 1, // At least one field must be provided
-                additionalProperties: false,
+                additionalProperties: true
             },
             response: {
                 200: {
                     type: 'object',
                     properties: {
                         success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        data: { type: 'object', additionalProperties: true },
-                        meta: {
+                        data: {
                             type: 'object',
-                            properties: {
-                                responseTime: { type: 'number' },
-                                updated: { type: 'boolean' },
-                                fieldsUpdated: { type: 'array', items: { type: 'string' } },
-                            },
+                            additionalProperties: true
                         },
+                        message: { type: 'string' },
+                    },
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
+                404: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
                     },
                 },
             },
         },
-    }, samplePurchaseRequestController.updateSamplePurchaseRequest);
-    // DELETE /v1/samplepurchaserequests/:id - Delete sample purchase request with optimized logging
+    }, samplePurchaseRequestController.updateSamplePurchaseRequest.bind(samplePurchaseRequestController));
+    // DELETE /v1/samplepurchaserequests/:id - Delete sample purchase request
     fastify.delete('/:id', {
         schema: {
-            description: 'Delete sample purchase request with optimized logging',
+            description: 'Delete sample purchase request by ID',
             tags: ['Sample Purchase Requests'],
             params: {
                 type: 'object',
                 properties: {
-                    id: {
-                        type: 'string',
-                        pattern: '^\\d+$',
-                        description: 'Sample purchase request ID (must be a positive integer)'
-                    },
+                    id: { type: 'string', description: 'Sample purchase request ID' },
                 },
                 required: ['id'],
             },
@@ -313,149 +368,142 @@ export async function samplePurchaseRequestRoutes(fastify) {
                     properties: {
                         success: { type: 'boolean' },
                         message: { type: 'string' },
-                        data: { type: 'null' },
-                        meta: {
-                            type: 'object',
-                            properties: {
-                                responseTime: { type: 'number' },
-                                deleted: { type: 'boolean' },
-                            },
-                        },
+                    },
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
+                404: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
                     },
                 },
             },
         },
-    }, samplePurchaseRequestController.deleteSamplePurchaseRequest);
-    // POST /v1/samplepurchaserequests/upsert - Upsert sample purchase request with enhanced logic
+    }, samplePurchaseRequestController.deleteSamplePurchaseRequest.bind(samplePurchaseRequestController));
+    // POST /v1/samplepurchaserequests/upsert - Upsert sample purchase request
     fastify.post('/upsert', {
         schema: {
-            description: 'Create or update sample purchase request based on ID presence',
+            description: 'Create or update sample purchase request (upsert)',
             tags: ['Sample Purchase Requests'],
             body: {
                 type: 'object',
                 properties: {
-                    id: { type: 'string', minLength: 1, description: 'Sample purchase request ID (optional for create)' },
-                    companyname: { type: 'string', minLength: 1, maxLength: 255, description: 'Company name' },
-                    contactname: { type: 'string', minLength: 1, maxLength: 255, description: 'Contact name' },
-                    phonenumber: {
-                        type: 'number',
-                        minimum: 1000000000,
-                        maximum: 9999999999,
-                        description: 'Phone number (10 digits)'
-                    },
-                    companymail: {
-                        type: 'string',
-                        format: 'email',
-                        maxLength: 255,
-                        description: 'Company email'
-                    },
-                    gstnumber: { type: 'string', minLength: 1, maxLength: 50, description: 'GST number' },
-                    companyaddress: { type: 'string', minLength: 1, maxLength: 1000, description: 'Company address' },
-                    supplierid: { type: 'number', minimum: 1, description: 'Supplier ID' },
+                    id: { type: 'string', description: 'Sample purchase request ID (optional for create)' },
+                    companyname: { type: 'string', description: 'Company name' },
+                    contactname: { type: 'string', description: 'Contact name' },
+                    phonenumber: { type: 'number', description: 'Phone number' },
+                    companymail: { type: 'string', format: 'email', description: 'Company email' },
+                    gstnumber: { type: 'string', description: 'GST number' },
+                    companyaddress: { type: 'string', description: 'Company address' },
+                    supplierid: { type: 'number', description: 'Supplier ID' },
                     items: {
                         type: 'array',
-                        minItems: 1,
-                        maxItems: 100,
                         items: {
                             type: 'object',
                             properties: {
-                                id: { type: 'number', minimum: 1, description: 'Item ID' },
-                                name: { type: 'string', minLength: 1, maxLength: 255, description: 'Item name' },
-                                quantity: { type: 'number', minimum: 1, maximum: 999999, description: 'Item quantity' }
+                                id: { type: 'number', description: 'Item ID' },
+                                name: { type: 'string', description: 'Item name' },
+                                quantity: { type: 'number', description: 'Item quantity' }
                             },
-                            required: ['id', 'name', 'quantity'],
-                            additionalProperties: false
+                            required: ['id', 'name', 'quantity']
                         },
-                        description: 'Items array (max 100 items)'
+                        minItems: 1
                     },
-                    createdby: { type: 'string', minLength: 1, maxLength: 255, description: 'Created by' },
-                    modifiedby: { type: 'string', minLength: 1, maxLength: 255, description: 'Modified by' },
-                    createddate: { type: 'number', minimum: 0, description: 'Creation timestamp' },
-                    modifieddate: { type: 'number', minimum: 0, description: 'Modification timestamp' },
+                    createdby: { type: 'string', description: 'Created by' },
+                    modifiedby: { type: 'string', description: 'Modified by' },
+                    createddate: { type: 'number', description: 'Creation timestamp' },
+                    modifieddate: { type: 'number', description: 'Modification timestamp' }
                 },
-                additionalProperties: false,
+                additionalProperties: true
             },
             response: {
                 200: {
                     type: 'object',
                     properties: {
                         success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        data: { type: 'object', additionalProperties: true },
-                        meta: {
+                        data: {
                             type: 'object',
-                            properties: {
-                                responseTime: { type: 'number' },
-                                operation: { type: 'string', enum: ['create', 'update'] },
-                            },
+                            additionalProperties: true
                         },
+                        message: { type: 'string' },
                     },
                 },
-                201: {
+                400: {
                     type: 'object',
                     properties: {
                         success: { type: 'boolean' },
                         message: { type: 'string' },
-                        data: { type: 'object', additionalProperties: true },
-                        meta: {
-                            type: 'object',
-                            properties: {
-                                responseTime: { type: 'number' },
-                                operation: { type: 'string', enum: ['create', 'update'] },
-                            },
-                        },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
                     },
                 },
             },
         },
-    }, samplePurchaseRequestController.upsertSamplePurchaseRequest);
-    // GET /v1/samplepurchaserequests/supplier/:supplierId - Get sample purchase requests by supplier with enhanced performance
+    }, samplePurchaseRequestController.upsertSamplePurchaseRequest.bind(samplePurchaseRequestController));
+    // GET /v1/samplepurchaserequests/supplier/:supplierId - Get sample purchase requests by supplier
     fastify.get('/supplier/:supplierId', {
         schema: {
-            description: 'Get sample purchase requests by supplier ID with enhanced performance and caching',
+            description: 'Get sample purchase requests by supplier ID',
             tags: ['Sample Purchase Requests'],
             params: {
                 type: 'object',
                 properties: {
-                    supplierId: {
-                        type: 'string',
-                        minLength: 1,
-                        description: 'Supplier ID'
-                    },
+                    supplierId: { type: 'string', description: 'Supplier ID' },
                 },
                 required: ['supplierId'],
             },
             querystring: {
                 type: 'object',
                 properties: {
-                    page: { type: 'string', description: 'Page number (default: 1)' },
-                    limit: { type: 'string', description: 'Items per page (max: 100, default: 10)' },
-                    sortBy: {
-                        type: 'string',
-                        enum: ['id', 'companyname', 'contactname', 'createddate', 'modifieddate'],
-                        description: 'Field to sort by'
-                    },
-                    sortOrder: {
-                        type: 'string',
-                        enum: ['asc', 'desc'],
-                        description: 'Sort order (default: desc)'
-                    },
+                    page: { type: 'string', description: 'Page number' },
+                    limit: { type: 'string', description: 'Items per page' },
                 },
-                additionalProperties: false,
+                additionalProperties: true,
             },
             response: {
                 200: {
                     type: 'object',
                     properties: {
                         success: { type: 'boolean' },
-                        message: { type: 'string' },
                         data: {
                             type: 'object',
                             properties: {
                                 supplierId: { type: 'string' },
                                 data: {
                                     type: 'array',
-                                    items: { type: 'object', additionalProperties: true }
+                                    items: {
+                                        type: 'object',
+                                        additionalProperties: true
+                                    }
                                 },
                                 pagination: {
                                     type: 'object',
@@ -468,69 +516,31 @@ export async function samplePurchaseRequestRoutes(fastify) {
                                         hasPrev: { type: 'boolean' },
                                     },
                                 },
-                                meta: {
-                                    type: 'object',
-                                    properties: {
-                                        total: { type: 'number' },
-                                        sortBy: { type: 'string' },
-                                        sortOrder: { type: 'string' },
-                                        responseTime: { type: 'number' },
-                                        cached: { type: 'boolean' },
-                                    },
-                                },
-                            },
+                            }
                         },
+                        message: { type: 'string' },
                     },
                 },
-            },
-        },
-    }, samplePurchaseRequestController.getSamplePurchaseRequestsBySupplier);
-    // GET /v1/samplepurchaserequests/stats - Get service statistics for monitoring
-    fastify.get('/stats', {
-        schema: {
-            description: 'Get service statistics for monitoring and debugging',
-            tags: ['Sample Purchase Requests', 'Monitoring'],
-            response: {
-                200: {
+                400: {
                     type: 'object',
                     properties: {
                         success: { type: 'boolean' },
                         message: { type: 'string' },
-                        data: {
-                            type: 'object',
-                            properties: {
-                                service: { type: 'string' },
-                                cacheSize: { type: 'number' },
-                                cacheKeys: { type: 'array', items: { type: 'string' } },
-                                timestamp: { type: 'string' },
-                            },
-                        },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
                     },
                 },
-            },
-        },
-    }, samplePurchaseRequestController.getStats);
-    // POST /v1/samplepurchaserequests/cache/clear - Clear service cache (admin endpoint)
-    fastify.post('/cache/clear', {
-        schema: {
-            description: 'Clear service cache for admin/debugging purposes',
-            tags: ['Sample Purchase Requests', 'Admin'],
-            response: {
-                200: {
+                500: {
                     type: 'object',
                     properties: {
                         success: { type: 'boolean' },
                         message: { type: 'string' },
-                        data: {
-                            type: 'object',
-                            properties: {
-                                timestamp: { type: 'string' },
-                            },
-                        },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
                     },
                 },
             },
         },
-    }, samplePurchaseRequestController.clearCache);
+    }, samplePurchaseRequestController.getSamplePurchaseRequestsBySupplier.bind(samplePurchaseRequestController));
 }
 //# sourceMappingURL=samplepurchaserequest.route.js.map

@@ -152,5 +152,249 @@ export class ProductService {
             throw error;
         }
     }
+    /**
+     * Upsert product with file upload handling - merges image URLs into size arrays
+     */
+    async upsertProductWithFile(data) {
+        try {
+            const { productid, url, ...otherData } = data;
+            let existingProductData = {};
+            const upsertProductData = { ...otherData };
+            // If productid is provided, fetch existing product data
+            if (productid) {
+                logger.debug({ productId: productid }, 'Fetching existing product for file upsert');
+                existingProductData = await dynamicFindUnique('product', { id: productid });
+                if (!existingProductData) {
+                    throw new Error(`Product with ID ${productid} not found`);
+                }
+            }
+            // Handle image URL merging if url data is provided
+            if (url) {
+                logger.debug({
+                    productId: productid,
+                    urlData: url,
+                    existingLarge: existingProductData?.large,
+                    existingMedium: existingProductData?.medium,
+                    existingSmall: existingProductData?.small
+                }, 'Processing image URL data for size arrays');
+                // Merge large images
+                if (url.Large && Array.isArray(url.Large)) {
+                    upsertProductData.large = existingProductData?.large
+                        ? [...(existingProductData.large || []), ...url.Large]
+                        : url.Large;
+                }
+                // Merge medium images
+                if (url.Medium && Array.isArray(url.Medium)) {
+                    upsertProductData.medium = existingProductData?.medium
+                        ? [...(existingProductData.medium || []), ...url.Medium]
+                        : url.Medium;
+                }
+                // Merge small images
+                if (url.Small && Array.isArray(url.Small)) {
+                    upsertProductData.small = existingProductData?.small
+                        ? [...(existingProductData.small || []), ...url.Small]
+                        : url.Small;
+                }
+                logger.debug({
+                    productId: productid,
+                    mergedLarge: upsertProductData.large,
+                    mergedMedium: upsertProductData.medium,
+                    mergedSmall: upsertProductData.small
+                }, 'Image URL arrays merged successfully');
+            }
+            let result;
+            if (productid) {
+                // Update existing product
+                logger.debug({ productId: productid, updateData: upsertProductData }, 'Updating existing product with file data');
+                result = await this.update(productid, upsertProductData);
+            }
+            else {
+                // Create new product
+                logger.debug({ createData: upsertProductData }, 'Creating new product with file data');
+                result = await this.create(upsertProductData);
+            }
+            logger.info({
+                productId: productid || result?.id,
+                operation: productid ? 'update' : 'create',
+                hasImageData: !!url,
+                imageArraysUpdated: {
+                    large: !!upsertProductData.large,
+                    medium: !!upsertProductData.medium,
+                    small: !!upsertProductData.small
+                }
+            }, 'Product upsert with file completed successfully');
+            return {
+                result,
+                productid: productid || result?.id,
+                pathurldatas: url || null
+            };
+        }
+        catch (error) {
+            logger.error({
+                error: error.message,
+                data,
+                productId: data?.productid
+            }, 'Error in product upsert with file operation');
+            // Use the project's error handling pattern
+            if (error.message.includes('not found')) {
+                throw new Error(`Product with ID ${data?.productid} not found`);
+            }
+            throw error;
+        }
+    }
+    /**
+     * Rearrange image URLs within product arrays (large, medium, small)
+     */
+    async rearrangeProductImages(productId, rearrangeData) {
+        try {
+            logger.debug({ productId, rearrangeData }, 'Starting product image rearrangement');
+            // Fetch existing product to validate
+            const existingProduct = await dynamicFindUnique('product', { id: productId });
+            if (!existingProduct) {
+                throw new Error(`Product with ID ${productId} not found`);
+            }
+            // Validate that provided arrays contain the same URLs as existing arrays
+            const updateData = {};
+            if (rearrangeData.large) {
+                const existingLarge = existingProduct.large || [];
+                if (!this.arraysContainSameElements(rearrangeData.large, existingLarge)) {
+                    throw new Error('Large array rearrangement must contain exactly the same URLs as existing array');
+                }
+                updateData.large = rearrangeData.large;
+            }
+            if (rearrangeData.medium) {
+                const existingMedium = existingProduct.medium || [];
+                if (!this.arraysContainSameElements(rearrangeData.medium, existingMedium)) {
+                    throw new Error('Medium array rearrangement must contain exactly the same URLs as existing array');
+                }
+                updateData.medium = rearrangeData.medium;
+            }
+            if (rearrangeData.small) {
+                const existingSmall = existingProduct.small || [];
+                if (!this.arraysContainSameElements(rearrangeData.small, existingSmall)) {
+                    throw new Error('Small array rearrangement must contain exactly the same URLs as existing array');
+                }
+                updateData.small = rearrangeData.small;
+            }
+            if (Object.keys(updateData).length === 0) {
+                throw new Error('No valid rearrangement data provided');
+            }
+            // Update the product with rearranged arrays
+            const result = await this.update(productId, updateData);
+            logger.info({
+                productId,
+                rearrangedArrays: Object.keys(updateData),
+                arrayLengths: {
+                    large: updateData.large?.length,
+                    medium: updateData.medium?.length,
+                    small: updateData.small?.length
+                }
+            }, 'Product image rearrangement completed successfully');
+            return result;
+        }
+        catch (error) {
+            logger.error({
+                error: error.message,
+                productId,
+                rearrangeData
+            }, 'Error in product image rearrangement operation');
+            throw error;
+        }
+    }
+    /**
+     * Helper method to check if two arrays contain the same elements (order doesn't matter)
+     */
+    arraysContainSameElements(arr1, arr2) {
+        if (arr1.length !== arr2.length)
+            return false;
+        const sorted1 = [...arr1].sort();
+        const sorted2 = [...arr2].sort();
+        return sorted1.every((val, index) => val === sorted2[index]);
+    }
+    /**
+     * Delete specific URLs from product image arrays
+     */
+    async deleteProductImageUrls(productId, deleteData) {
+        try {
+            logger.debug({ productId, deleteData }, 'Starting product image URL deletion');
+            // Fetch existing product to validate
+            const existingProduct = await dynamicFindUnique('product', { id: productId });
+            if (!existingProduct) {
+                throw new Error(`Product with ID ${productId} not found`);
+            }
+            const updateData = {};
+            const deletionSummary = {};
+            // Process large array deletions
+            if (deleteData.large && deleteData.large.length > 0) {
+                const existingLarge = existingProduct.large || [];
+                const filteredLarge = existingLarge.filter((url) => !deleteData.large.includes(url));
+                if (filteredLarge.length === existingLarge.length) {
+                    logger.warn({ productId, urlsToDelete: deleteData.large }, 'No matching URLs found in large array');
+                }
+                else {
+                    updateData.large = filteredLarge;
+                    deletionSummary.large = {
+                        before: existingLarge.length,
+                        after: filteredLarge.length,
+                        deleted: existingLarge.length - filteredLarge.length
+                    };
+                }
+            }
+            // Process medium array deletions
+            if (deleteData.medium && deleteData.medium.length > 0) {
+                const existingMedium = existingProduct.medium || [];
+                const filteredMedium = existingMedium.filter((url) => !deleteData.medium.includes(url));
+                if (filteredMedium.length === existingMedium.length) {
+                    logger.warn({ productId, urlsToDelete: deleteData.medium }, 'No matching URLs found in medium array');
+                }
+                else {
+                    updateData.medium = filteredMedium;
+                    deletionSummary.medium = {
+                        before: existingMedium.length,
+                        after: filteredMedium.length,
+                        deleted: existingMedium.length - filteredMedium.length
+                    };
+                }
+            }
+            // Process small array deletions
+            if (deleteData.small && deleteData.small.length > 0) {
+                const existingSmall = existingProduct.small || [];
+                const filteredSmall = existingSmall.filter((url) => !deleteData.small.includes(url));
+                if (filteredSmall.length === existingSmall.length) {
+                    logger.warn({ productId, urlsToDelete: deleteData.small }, 'No matching URLs found in small array');
+                }
+                else {
+                    updateData.small = filteredSmall;
+                    deletionSummary.small = {
+                        before: existingSmall.length,
+                        after: filteredSmall.length,
+                        deleted: existingSmall.length - filteredSmall.length
+                    };
+                }
+            }
+            if (Object.keys(updateData).length === 0) {
+                throw new Error('No URLs were found to delete from the specified arrays');
+            }
+            // Update the product with filtered arrays
+            const result = await this.update(productId, updateData);
+            logger.info({
+                productId,
+                deletionSummary,
+                totalDeleted: Object.values(deletionSummary).reduce((sum, info) => sum + info.deleted, 0)
+            }, 'Product image URL deletion completed successfully');
+            return {
+                product: result,
+                deletionSummary
+            };
+        }
+        catch (error) {
+            logger.error({
+                error: error.message,
+                productId,
+                deleteData
+            }, 'Error in product image URL deletion operation');
+            throw error;
+        }
+    }
 }
 //# sourceMappingURL=product.service.js.map

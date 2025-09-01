@@ -6,6 +6,9 @@ export declare class StockService {
     findMany(filters: FilterOptions, page: number, limit: number): Promise<PaginationResult<any>>;
     findById(id: string): Promise<any>;
     create(data: CreateStockInput & Record<string, any>): Promise<any>;
+    private transformStockData;
+    private convertToTimestamp;
+    private updateProductStockTotals;
     update(id: string, data: UpdateStockInput & Record<string, any>): Promise<any>;
     delete(id: string): Promise<void>;
     upsert(data: UpsertStockInput & Record<string, any>): Promise<any>;

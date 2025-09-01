@@ -2967,3 +2967,85 @@ Filtered data result: {
     "https://example.com/new-medium.jpg"
   ]
 }
+Filtered data result: {
+  "rfid": "",
+  "location": "",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ecompublish": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "rfid": "21243563523245",
+  "location": "chennai",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ecompublish": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "location": "chennai",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ecompublish": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "location": "chennai",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false
+}
+Filtered data result: {
+  "location": "mumbai",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false
+}
+Filtered data result: {
+  "location": "bangalore",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false
+}
+Filtered data result: {
+  "location": "hyderabad",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false
+}
+Filtered data result: {
+  "location": "lucknow",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false
+}
+Filtered data result: {
+  "location": "lucknow",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "puc": "147",
+  "serialnumber": "dad56as7dsa",
+  "ecompublish": false,
+  "createddate": 1749734200755,
+  "modifieddate": 1749734200755
+}
+Filtered data result: {
+  "location": "chennai",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "serialnumber": "manual_test_001",
+  "manufacturedyear": 1748908800000,
+  "releaseyear": 1749081600000,
+  "ecompublish": true,
+  "createddate": 1749734232204,
+  "modifieddate": 1749734232204
+}
