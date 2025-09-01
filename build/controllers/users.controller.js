@@ -56,6 +56,20 @@ export class UsersController {
         const response = createSuccessResponse('User deleted successfully', null);
         return reply.code(200).send(response);
     });
+    authenticate = asyncHandler(async (request, reply) => {
+        const { useremail, userpassword } = request.body;
+        const result = await this.usersService.authenticate(useremail, userpassword);
+        if (!result) {
+            return reply.code(401).send({
+                success: false,
+                message: 'Invalid credentials',
+                details: 'The email or password you entered is incorrect',
+                statusCode: 401,
+            });
+        }
+        const response = createSuccessResponse('Sign-in successful', result);
+        return reply.code(200).send(response);
+    });
     upsertUser = asyncHandler(async (request, reply) => {
         const data = upsertUsersSchema.parse(request.body);
         const user = await this.usersService.upsert(data);

@@ -1,268 +1,83 @@
 Values: [
-  91,
-  1823.2,
-  1748908800,
-  "INV_COMPLEX_TEST",
-  "{\"items\":[{\"id\":1,\"comments\":\"Complex test payment 1\",\"paymentdate\":\"2025-06-03\",\"paymenttype\":\"Part Payment\",\"paymentamount\":823.2,\"paymentmethod\":\"upi\",\"transactionid\":\"561651\",\"receiptcomments\":\"Receipt for complex test 1\"},{\"id\":2,\"comments\":\"Complex test payment 2\",\"paymentdate\":\"2025-06-03\",\"paymenttype\":\"Part Payment\",\"paymentamount\":1000,\"paymentmethod\":\"banktransfer\",\"transactionid\":\"456456\",\"receiptcomments\":\"Receipt for complex test 2\"}]}",
-  0,
-  true,
-  1751500800,
-  500,
-  250,
-  100,
-  1748936984
+  8,
+  {
+    "currency": "EUR",
+    "description": "Updated test transaction",
+    "reference": "TEST-REF-002"
+  },
+  "Updated Test Transaction",
+  199.99,
+  "subscription",
+  1750066319
 ]
 Values: [
-  89,
-  1500,
-  1748908800,
-  "INV_SIMPLE_ARRAY",
-  "[{\"id\":1,\"comments\":\"Simple array payment\",\"paymentdate\":\"2025-06-03\",\"paymenttype\":\"Full Payment\",\"paymentamount\":1500,\"paymentmethod\":\"cash\",\"transactionid\":\"CASH001\",\"receiptcomments\":\"Cash payment receipt\"}]",
-  0,
-  true,
-  1751500800,
-  0,
-  0,
-  0,
-  1748936985
+  null,
+  "Upsert Test Transaction",
+  299.99,
+  "upsert_test",
+  1750066321
 ]
 Values: [
-  91,
-  750,
-  1748908800,
-  "INV_SINGLE_OBJECT",
-  "{\"paymentamount\":750,\"paymentdate\":\"2025-06-03\",\"paymentmethod\":\"cheque\",\"comments\":\"Single object payment test\"}",
-  0,
-  true,
-  1751500800,
-  0,
-  0,
-  0,
-  1748936985
+  9,
+  {
+    "currency": "EUR",
+    "description": "Updated test transaction",
+    "reference": "TEST-REF-002"
+  },
+  "Updated Test Transaction",
+  199.99,
+  "subscription",
+  1750066514
 ]
 Values: [
-  90,
-  3000,
-  1748908800,
-  "INV_PO_STATUS_TEST",
-  "{\"items\":[{\"id\":1,\"comments\":\"PO status test payment\",\"paymentdate\":\"2025-06-03\",\"paymenttype\":\"Full Payment\",\"paymentamount\":3000,\"paymentmethod\":\"banktransfer\",\"transactionid\":\"PO_TEST_001\",\"receiptcomments\":\"Full payment for PO status test\"}]}",
-  0,
-  true,
-  1751500800,
-  0,
-  0,
-  0,
-  1748936986
-]
-Values: [
-  91,
-  1823.2,
-  1748908800,
-  "INV_COMPLEX_TEST",
-  "{\"items\":[{\"id\":1,\"comments\":\"Complex test payment 1\",\"paymentdate\":\"2025-06-03\",\"paymenttype\":\"Part Payment\",\"paymentamount\":823.2,\"paymentmethod\":\"upi\",\"transactionid\":\"561651\",\"receiptcomments\":\"Receipt for complex test 1\"},{\"id\":2,\"comments\":\"Complex test payment 2\",\"paymentdate\":\"2025-06-03\",\"paymenttype\":\"Part Payment\",\"paymentamount\":1000,\"paymentmethod\":\"banktransfer\",\"transactionid\":\"456456\",\"receiptcomments\":\"Receipt for complex test 2\"}]}",
-  0,
-  true,
-  1751500800,
-  500,
-  250,
-  100,
-  1748937150
-]
-Values: [
-  89,
-  1500,
-  1748908800,
-  "INV_SIMPLE_ARRAY",
-  "[{\"id\":1,\"comments\":\"Simple array payment\",\"paymentdate\":\"2025-06-03\",\"paymenttype\":\"Full Payment\",\"paymentamount\":1500,\"paymentmethod\":\"cash\",\"transactionid\":\"CASH001\",\"receiptcomments\":\"Cash payment receipt\"}]",
-  0,
-  true,
-  1751500800,
-  0,
-  0,
-  0,
-  1748937150
-]
-Values: [
-  91,
-  150000,
-  1748908800,
-  "INV_DIRECT_ARRAY_TEST",
-  "[{\"id\":1,\"comments\":\"Initial payment\",\"paymentdate\":\"2025-01-27\",\"paymenttype\":\"Part Payment\",\"paymentamount\":75000,\"paymentmethod\":\"banktransfer\",\"transactionid\":\"TXN-001\",\"receiptcomments\":\"50% advance payment\"},{\"id\":2,\"comments\":null,\"paymentdate\":null,\"paymenttype\":\"Part Payment\",\"paymentamount\":75000,\"paymentmethod\":\"cash\",\"transactionid\":null,\"receiptcomments\":\"Remaining 50% - pending\"}]",
-  0,
-  true,
-  1751500800,
-  1000,
-  500,
-  200,
-  1748937151
-]
-Values: [
-  91,
-  750,
-  1748908800,
-  "INV_SINGLE_OBJECT",
-  "{\"paymentamount\":750,\"paymentdate\":\"2025-06-03\",\"paymentmethod\":\"cheque\",\"comments\":\"Single object payment test\"}",
-  0,
-  true,
-  1751500800,
-  0,
-  0,
-  0,
-  1748937151
-]
-Values: [
-  89,
-  200000,
-  1748908800,
-  "INV_MULTI_PAYMENT_TEST",
-  "[{\"id\":1,\"comments\":\"First installment\",\"paymentdate\":\"2025-01-15\",\"paymenttype\":\"Part Payment\",\"paymentamount\":50000,\"paymentmethod\":\"upi\",\"transactionid\":\"UPI-12345\",\"receiptcomments\":\"25% down payment\"},{\"id\":2,\"comments\":\"Second installment\",\"paymentdate\":\"2025-01-22\",\"paymenttype\":\"Part Payment\",\"paymentamount\":75000,\"paymentmethod\":\"cheque\",\"transactionid\":\"CHQ-98765\",\"receiptcomments\":\"37.5% second payment\"},{\"id\":3,\"comments\":\"Final payment\",\"paymentdate\":\"2025-01-30\",\"paymenttype\":\"Full Payment\",\"paymentamount\":75000,\"paymentmethod\":\"banktransfer\",\"transactionid\":\"BANK-5555\",\"receiptcomments\":\"Final 37.5% payment\"}]",
-  0,
-  true,
-  1751500800,
-  2000,
-  0,
-  5000,
-  1748937152
-]
-Values: [
-  90,
-  3000,
-  1748908800,
-  "INV_PO_STATUS_TEST",
-  "{\"items\":[{\"id\":1,\"comments\":\"PO status test payment\",\"paymentdate\":\"2025-06-03\",\"paymenttype\":\"Full Payment\",\"paymentamount\":3000,\"paymentmethod\":\"banktransfer\",\"transactionid\":\"PO_TEST_001\",\"receiptcomments\":\"Full payment for PO status test\"}]}",
-  0,
-  true,
-  1751500800,
-  0,
-  0,
-  0,
-  1748937152
-]
-Values: [
-  90,
-  180000,
-  1748908800,
-  "INV_PO_DIRECT_ARRAY",
-  "[{\"id\":1,\"comments\":\"PO payment - first part\",\"paymentdate\":\"2025-01-27\",\"paymenttype\":\"Part Payment\",\"paymentamount\":90000,\"paymentmethod\":\"banktransfer\",\"transactionid\":\"PO-BANK-001\",\"receiptcomments\":\"50% of PO payment\"},{\"id\":2,\"comments\":\"PO payment - second part\",\"paymentdate\":\"2025-01-27\",\"paymenttype\":\"Part Payment\",\"paymentamount\":90000,\"paymentmethod\":\"cheque\",\"transactionid\":\"PO-CHQ-002\",\"receiptcomments\":\"Remaining 50% of PO payment\"}]",
-  0,
-  true,
-  1751500800,
-  3000,
-  1000,
-  2000,
-  1748937152
-]
-Values: [
-  91,
-  150000,
-  1748908800,
-  "INV_USER_EXACT_FORMAT",
-  "[{\"id\":1,\"comments\":\"Initial payment\",\"paymentdate\":\"2025-01-27\",\"paymenttype\":\"Part Payment\",\"paymentamount\":75000,\"paymentmethod\":\"banktransfer\",\"transactionid\":\"TXN-001\",\"receiptcomments\":\"50% advance payment\"},{\"id\":2,\"comments\":null,\"paymentdate\":null,\"paymenttype\":\"Part Payment\",\"paymentamount\":75000,\"paymentmethod\":\"cash\",\"transactionid\":null,\"receiptcomments\":\"Remaining 50% - pending\"}]",
-  0,
-  true,
-  1751500800,
-  500,
-  250,
-  100,
-  1748937171
-]
-Values: [
-  1,
-  "Updated Corp Name",
-  "Updated Contact Name",
-  [
-    {
-      "id": 1,
-      "name": "Updated Product",
-      "quantity": 20
-    },
-    {
-      "id": 2,
-      "name": "New Product",
-      "quantity": 5
-    }
-  ],
-  "updateuser"
-]
-Values: [
-  1,
-  "Updated Corp Name",
-  "Updated Contact Name",
-  [
-    {
-      "id": 1,
-      "name": "Updated Product",
-      "quantity": 20
-    },
-    {
-      "id": 2,
-      "name": "New Product",
-      "quantity": 5
-    }
-  ],
-  "updateuser"
-]
-Values: [
-  1,
-  "Updated Corp Name",
-  "Updated Contact Name",
-  [
-    {
-      "id": 1,
-      "name": "Updated Product",
-      "quantity": 20
-    },
-    {
-      "id": 2,
-      "name": "New Product",
-      "quantity": 5
-    }
-  ],
-  "updateuser"
-]
-Values: [
+  null,
+  {
+    "currency": "USD",
+    "description": "Upsert test transaction",
+    "reference": "UPSERT-REF-001"
+  },
   2,
-  "Updated Corp Name",
-  "Updated Contact Name",
   [
-    {
-      "id": 1,
-      "name": "Updated Product",
-      "quantity": 20
-    },
-    {
-      "id": 2,
-      "name": "New Product",
-      "quantity": 5
-    }
+    4,
+    5,
+    6
   ],
-  "updateuser"
+  "MERCHANT-UPSERT-1750066515945",
+  "Upsert Test Transaction",
+  299.99,
+  9876543210,
+  "upsert_test",
+  1750066516
 ]
 Values: [
-  3,
-  "Updated Corp Name",
-  "Updated Contact Name",
+  10,
+  {
+    "currency": "EUR",
+    "description": "Updated test transaction",
+    "reference": "TEST-REF-002"
+  },
+  "Updated Test Transaction",
+  199.99,
+  "subscription",
+  1750066595
+]
+Values: [
+  null,
+  {
+    "currency": "USD",
+    "description": "Upsert test transaction",
+    "reference": "UPSERT-REF-001"
+  },
+  2,
   [
-    {
-      "id": 1,
-      "name": "Updated Product",
-      "quantity": 20
-    },
-    {
-      "id": 2,
-      "name": "New Product",
-      "quantity": 5
-    }
+    4,
+    5,
+    6
   ],
-  "updateuser"
-]
-Values: [
-  3,
-  "Minimal Update Corp",
-  "updateuser"
-]
-Values: [
-  3,
-  "Minimal Update Corp",
-  "updateuser"
+  "MERCHANT-UPSERT-1750066596476",
+  "Upsert Test Transaction",
+  299.99,
+  9876543210,
+  "upsert_test",
+  1750066597
 ]

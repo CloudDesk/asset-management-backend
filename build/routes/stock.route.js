@@ -224,19 +224,6 @@ export async function stockRoutes(fastify) {
             body: {
                 type: 'object',
                 properties: {
-                    productId: { type: 'string', minLength: 1, maxLength: 500, description: 'Product ID' },
-                    serialNumber: { type: 'string', minLength: 1, maxLength: 500, description: 'Serial number (unique)' },
-                    manufactureYear: {
-                        type: ['string', 'number'],
-                        description: 'Manufacture year as date string or number'
-                    },
-                    releaseYear: {
-                        type: ['string', 'number'],
-                        description: 'Release year as date string or number'
-                    },
-                    ecommercePublish: { type: 'boolean', description: 'Whether to publish on ecommerce platform', default: false },
-                    location: { type: 'string', minLength: 1, maxLength: 500, description: 'Stock location' },
-                    // Existing fields
                     puc: { type: 'string', maxLength: 500, description: 'Product unique code' },
                     category: { type: 'string', maxLength: 500, description: 'Product category' },
                     subcategory: { type: 'string', maxLength: 500, description: 'Product subcategory' },
@@ -250,46 +237,31 @@ export async function stockRoutes(fastify) {
                     colour: { type: 'string', maxLength: 500, description: 'Product color' },
                     graphicscard: { type: 'string', maxLength: 500, description: 'Graphics card' },
                     processor: { type: 'string', maxLength: 500, description: 'Processor specification' },
-                    serialnumber: { type: 'string', maxLength: 500, description: 'Serial number (alternative)' },
+                    serialnumber: { type: 'string', maxLength: 500, description: 'Serial number (unique)' },
                     stockstatus: { type: 'string', maxLength: 500, description: 'Stock status', default: 'Available' },
-                    manufacturedyear: { type: 'number', description: 'Manufactured year (alternative)' },
-                    releaseyear: { type: 'number', description: 'Release year (alternative)' },
+                    manufacturedyear: { type: 'number', description: 'Manufactured year' },
+                    releaseyear: { type: 'number', description: 'Release year' },
                     isdeleted: { type: 'boolean', description: 'Deletion status', default: false },
                     isarchive: { type: 'boolean', description: 'Archive status', default: false },
-                    // Quantity fields
-                    quantity: { type: 'number', minimum: 0, description: 'Total quantity' },
-                    availableQuantity: { type: 'number', minimum: 0, description: 'Available quantity' },
-                    soldQuantity: { type: 'number', minimum: 0, description: 'Sold quantity' },
-                    batchNumber: { type: 'string', maxLength: 100, description: 'Batch number' },
-                    warehouseLocation: { type: 'string', maxLength: 100, description: 'Warehouse location' },
-                    // Alternative field names (snake_case)
-                    product_id: { type: 'string', maxLength: 500, description: 'Product ID (alternative)' },
-                    serial_number: { type: 'string', maxLength: 500, description: 'Serial number (alternative)' },
-                    manufacture_year: {
-                        type: ['string', 'number'],
-                        description: 'Manufacture year as date string or number'
-                    },
-                    release_year: {
-                        type: ['string', 'number'],
-                        description: 'Release year as date string or number'
-                    },
-                    ecommerce_publish: { type: 'boolean', default: false },
-                    batch_number: { type: 'string', maxLength: 100 },
-                    warehouse_location: { type: 'string', maxLength: 100 },
-                    available_quantity: { type: 'number', minimum: 0 },
-                    sold_quantity: { type: 'number', minimum: 0 }
+                    removefromrecyclebin: { type: 'boolean', description: 'Recycle bin status', default: false },
+                    ecompublish: { type: 'boolean', description: 'E-commerce publish status', default: false },
+                    productname: { type: 'string', maxLength: 500, description: 'Product name' },
+                    rfid: { type: 'string', maxLength: 500, description: 'RFID tag' },
+                    nfc: { type: 'string', maxLength: 500, description: 'NFC tag (unique)' },
+                    orderid: { type: 'string', maxLength: 500, description: 'Order ID' },
+                    invoiceurl: { type: 'string', maxLength: 500, description: 'Invoice URL' },
+                    location: { type: 'string', maxLength: 500, description: 'Storage location' },
+                    solddate: { type: 'number', description: 'Sold date timestamp' },
+                    assetlocation: { type: 'string', maxLength: 200, description: 'Asset location' },
+                    rfidscannedtime: { type: 'number', description: 'RFID scan timestamp' },
+                    orderlinenumber: { type: 'string', maxLength: 500, description: 'Order line number' },
+                    qrcode: { type: 'string', maxLength: 500, description: 'QR code (unique)' },
+                    barcode: { type: 'string', maxLength: 500, description: 'Barcode (unique)' },
+                    ewaste: { type: 'boolean', description: 'E-waste status', default: false },
+                    createdby: { type: 'number', description: 'Created by user ID' },
+                    modifiedby: { type: 'number', description: 'Modified by user ID' },
                 },
-                additionalProperties: true, // Allow additional fields for flexibility
-                examples: [
-                    {
-                        productId: "137",
-                        serialNumber: "dad56as7dsa",
-                        manufactureYear: "2025-06-03",
-                        ecommercePublish: true,
-                        releaseYear: "2025-06-05",
-                        location: "chennai"
-                    }
-                ]
+                additionalProperties: true, // Allow additional dynamic fields
             },
             response: {
                 201: {
@@ -644,7 +616,7 @@ export async function stockRoutes(fastify) {
             params: {
                 type: 'object',
                 properties: {
-                    id: { type: 'string', format: 'uuid' },
+                    id: { type: 'string', description: 'Stock ID' },
                 },
                 required: ['id'],
             },

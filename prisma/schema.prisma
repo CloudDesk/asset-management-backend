@@ -21,11 +21,12 @@ model Product {
   availablequantity Int?
   productstatus     String?   @db.VarChar(255)
   ponumber          String?   @db.VarChar(255)
-  puc               String?   @db.VarChar(255)
+  puc               String?   @unique @db.VarChar(255)
   suppliername      String?   @db.VarChar(255)
   serialnumber      String?   @db.VarChar(255)
   averagerating     Decimal?  @db.Decimal(2, 1)
   discount          Int?
+  price             Decimal?  @db.Decimal(10, 2)
   orderedquantity   Int?
   createddate       BigInt?
   modifieddate      BigInt?
@@ -63,6 +64,7 @@ model Product {
   medium            String[]
   small             String[]
   supplier          Supplier? @relation(fields: [supplierid], references: [id], map: "fk_supplier")
+  stock             Stock[]
 
   @@map("product")
 }
@@ -109,7 +111,7 @@ model Stock {
   barcode                String?                  @unique(map: "unique_barcode_stock") @db.VarChar(500)
   ewaste                 Boolean?                 @default(false)
   orderline              orderline?               @relation(fields: [orderlinenumber], references: [orderlinenumber], onDelete: NoAction, onUpdate: NoAction, map: "fk_orderlinenumber")
-  product_revo           product_revo?            @relation(fields: [puc], references: [puc], onDelete: Cascade, onUpdate: NoAction, map: "fk_puc")
+  product                Product?                 @relation(fields: [puc], references: [puc], onDelete: Cascade, onUpdate: NoAction, map: "fk_puc")
   orders                 orders?                  @relation(fields: [orderid], references: [orderid], onDelete: NoAction, onUpdate: NoAction, map: "stock_revo_orderid_fkey")
 
   @@index([category], map: "idx_stock_category")
@@ -245,6 +247,7 @@ model address {
   landmark     String?     @db.VarChar(100)
   state        String?     @db.VarChar(100)
   city         String?     @db.VarChar(100)
+  isdefaultaddress Boolean? @default(false)
   modifieddate BigInt?
   createddate  BigInt?
   users        users?      @relation(fields: [userid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_userid_address_user")
@@ -615,7 +618,6 @@ model product_revo {
   orderline                    orderline[]
   purchaseorder                PurchaseOrder?           @relation(fields: [ponumber], references: [ponumber], onDelete: Cascade, onUpdate: NoAction, map: "fk_ponumber_product_revo")
   // supplier                     Supplier?                @relation(fields: [supplierid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_supplierid")
-  stock                        Stock[]
 
   @@index([category], map: "idx_product_category")
   @@index([createddate], map: "idx_product_createddate")

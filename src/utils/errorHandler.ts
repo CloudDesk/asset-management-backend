@@ -175,16 +175,49 @@ function parsePrismaError(error: any, requestBody?: any): { message: string; det
       
       // Handle unique constraint from raw query
       if (rawMessage.includes('already exists')) {
-        const keyMatch = rawMessage.match(/Key \(([^)]+)\)=\(([^)]+)\)/);
+        const keyMatch = rawMessage.match(/Key \(([^)]+)\)=\(([^)]*)\)/);
         if (keyMatch) {
           const fieldName = keyMatch[1];
-          const fieldValue = keyMatch[2];
+          const fieldValue = keyMatch[2] || '(empty)'; // Handle empty values
+          const displayValue = fieldValue === '' ? 'empty value' : `'${fieldValue}'`;
           return {
-            message: `The ${fieldName} '${fieldValue}' already exists. Please use a unique value.`,
-            details: `Duplicate entry detected for field: ${fieldName}`,
+            message: `Duplicate ${fieldName}: ${displayValue} already exists. Please use a unique value.`,
+            details: `A record with ${fieldName} = ${displayValue} already exists in the database.`,
             statusCode: 400
           };
         }
+        
+        // Fallback parsing for other unique constraint formats
+        return {
+          message: 'Duplicate entry detected',
+          details: rawMessage,
+          statusCode: 400
+        };
+      }
+      
+      // Handle foreign key constraint violations
+      if (rawMessage.includes('violates foreign key constraint')) {
+        const constraintMatch = rawMessage.match(/violates foreign key constraint "([^"]+)"/);
+        const keyMatch = rawMessage.match(/Key \(([^)]+)\)=\(([^)]*)\)/);
+        
+        const constraintName = constraintMatch ? constraintMatch[1] : 'foreign key';
+        const fieldName = keyMatch ? keyMatch[1] : 'field';
+        const fieldValue = keyMatch ? (keyMatch[2] || '(empty)') : 'unknown';
+        
+        return {
+          message: `Invalid ${fieldName} reference: ${fieldValue === '(empty)' ? 'empty value' : fieldValue}`,
+          details: `The ${fieldName} value does not exist in the referenced table. Please provide a valid ${fieldName}.`,
+          statusCode: 400
+        };
+      }
+      
+      // Handle tsvector deserialization errors
+      if (rawMessage.includes('Failed to deserialize column of type') && rawMessage.includes('tsvector')) {
+        return {
+          message: 'Database column type error',
+          details: 'Internal database type error. Please contact support.',
+          statusCode: 500
+        };
       }
       
       // Handle type mismatch errors
@@ -220,6 +253,28 @@ function parsePrismaError(error: any, requestBody?: any): { message: string; det
         return {
           message: 'Data constraint violation',
           details: 'The provided data violates database constraints',
+          statusCode: 400
+        };
+      }
+      
+      // Handle PostgreSQL custom constraint/trigger errors
+      if (rawMessage.includes('Invalid')) {
+        // Extract specific constraint message
+        const constraintMatch = rawMessage.match(/Invalid ([^:]+): (.+)/);
+        if (constraintMatch) {
+          const fieldName = constraintMatch[1];
+          const constraintDetails = constraintMatch[2];
+          return {
+            message: `Invalid ${fieldName}: ${constraintDetails}`,
+            details: `The field '${fieldName}' violates database constraints. ${constraintDetails}`,
+            statusCode: 400
+          };
+        }
+        
+        // Fallback for other "Invalid" messages
+        return {
+          message: rawMessage,
+          details: 'The provided data violates database validation rules',
           statusCode: 400
         };
       }
@@ -385,7 +440,15 @@ export function processError(
     details = 'The provided data does not match the expected format';
     
     // Try to extract more specific information from the validation error
-    if (error.message.includes('Argument')) {
+    if (error.message.includes('Unknown argument')) {
+      // Extract the unknown field name
+      const unknownArgMatch = error.message.match(/Unknown argument `([^`]+)`/);
+      if (unknownArgMatch) {
+        const fieldName = unknownArgMatch[1];
+        message = `Invalid field: '${fieldName}'`;
+        details = `The field '${fieldName}' is not supported. Please check the API documentation for valid fields.`;
+      }
+    } else if (error.message.includes('Argument')) {
       const argMatch = error.message.match(/Argument `(\w+)`/);
       if (argMatch) {
         const fieldName = argMatch[1];
@@ -436,6 +499,20 @@ export function processError(
     console.log('=== MATCHED: Not Found message');
     statusCode = 404;
     message = 'Resource not found';
+    details = 'The requested resource could not be found';
+  }
+  // Handle Transaction not found specifically
+  else if (error.message === 'Transaction not found') {
+    console.log('=== MATCHED: Transaction not found message');
+    statusCode = 404;
+    message = 'Transaction not found';
+    details = 'The requested transaction could not be found';
+  }
+  // Handle other not found messages
+  else if (error.message && error.message.toLowerCase().includes('not found')) {
+    console.log('=== MATCHED: Generic not found message');
+    statusCode = 404;
+    message = error.message;
     details = 'The requested resource could not be found';
   }
   // Handle errors with custom statusCode property

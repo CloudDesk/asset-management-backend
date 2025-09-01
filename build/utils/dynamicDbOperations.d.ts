@@ -122,6 +122,14 @@ export declare function formatSamplePurchaseOrderForAPI(samplePurchaseOrder: any
  */
 export declare function formatSamplePurchaseRequestForAPI(samplePurchaseRequest: any): any;
 /**
+ * Formats a single orders object for API response
+ */
+export declare function formatOrdersForAPI(order: any): any;
+/**
+ * Formats a single orderline object for API response
+ */
+export declare function formatOrderlineForAPI(orderline: any): any;
+/**
  * Universal formatter that detects entity type and applies appropriate formatting
  */
 export declare function formatEntityForAPI(entity: any, entityType?: string): any;

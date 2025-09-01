@@ -1,23 +1,27 @@
-import { prisma } from '../models/prisma.js';
-import { 
-  CreateStockInput, 
-  UpdateStockInput, 
+import { prisma } from "../models/prisma.js";
+import {
+  CreateStockInput,
+  UpdateStockInput,
   UpsertStockInput,
-  validateStockDynamicFields 
-} from '../schemas/stock.schema.js';
-import { PaginationResult, createPaginationResult, getPrismaSkipTake } from '../utils/pagination.js';
-import { buildStockFilters, FilterOptions } from '../utils/filterBuilder.js';
-import { 
-  dynamicFindMany, 
-  dynamicCount, 
-  dynamicFindUnique, 
-  dynamicCreate, 
-  dynamicUpdate, 
+  validateStockDynamicFields,
+} from "../schemas/stock.schema.js";
+import {
+  PaginationResult,
+  createPaginationResult,
+  getPrismaSkipTake,
+} from "../utils/pagination.js";
+import { buildStockFilters, FilterOptions } from "../utils/filterBuilder.js";
+import {
+  dynamicFindMany,
+  dynamicCount,
+  dynamicFindUnique,
+  dynamicCreate,
+  dynamicUpdate,
   dynamicDelete,
-  dynamicFindManyWithFilters
-} from '../utils/dynamicDbOperations.js';
-import { logger } from '../config/logger.js';
-import { ProductService } from './product.service.js';
+  dynamicFindManyWithFilters,
+} from "../utils/dynamicDbOperations.js";
+import { logger } from "../config/logger.js";
+import { ProductService } from "./product.service.js";
 
 export class StockService {
   private productService = new ProductService();
@@ -28,57 +32,79 @@ export class StockService {
     limit: number
   ): Promise<PaginationResult<any>> {
     try {
-      logger.info({ filters, page, limit }, 'Starting dynamic stock findMany with filters');
+      logger.info(
+        { filters, page, limit },
+        "Starting dynamic stock findMany with filters"
+      );
 
       const { skip, take } = getPrismaSkipTake(page, limit);
 
       // Use the new dynamic filtering system
-      const { data: stocks, total } = await dynamicFindManyWithFilters('stock', filters, {
-        skip,
-        take,
-        useAllColumns: true // Get all available columns
-      });
+      const { data: stocks, total } = await dynamicFindManyWithFilters(
+        "stock",
+        filters,
+        {
+          skip,
+          take,
+          useAllColumns: true, // Get all available columns
+        }
+      );
 
-      logger.info({
-        stockCount: stocks.length, 
-        total,
-        filtered: Object.keys(filters).length > 0,
-        appliedFilters: Object.keys(filters),
-        availableFields: stocks.length > 0 ? Object.keys(stocks[0]) : []
-      }, 'Dynamic stock findMany with filters completed');
+      logger.info(
+        {
+          stockCount: stocks.length,
+          total,
+          filtered: Object.keys(filters).length > 0,
+          appliedFilters: Object.keys(filters),
+          availableFields: stocks.length > 0 ? Object.keys(stocks[0]) : [],
+        },
+        "Dynamic stock findMany with filters completed"
+      );
 
       return createPaginationResult(stocks, total, page, limit);
     } catch (error) {
-      logger.error({ error, filters, page, limit }, 'Error in dynamic stock findMany operation');
+      logger.error(
+        { error, filters, page, limit },
+        "Error in dynamic stock findMany operation"
+      );
       throw error;
     }
   }
 
   async findById(id: string) {
     try {
-      logger.debug({ stockId: id }, 'Starting dynamic stock findById operation');
+      logger.debug(
+        { stockId: id },
+        "Starting dynamic stock findById operation"
+      );
 
-      const stock = await dynamicFindUnique('stock', { id });
+      const stock = await dynamicFindUnique("stock", { id });
 
       if (!stock) {
-        throw new Error('Stock not found');
+        throw new Error("Stock not found");
       }
 
-      logger.debug({ 
-        stockId: id, 
-        availableFields: Object.keys(stock) 
-      }, 'Dynamic stock findById completed');
+      logger.debug(
+        {
+          stockId: id,
+          availableFields: Object.keys(stock),
+        },
+        "Dynamic stock findById completed"
+      );
 
       return stock;
     } catch (error) {
-      logger.error({ error, stockId: id }, 'Error in stock findById operation');
+      logger.error({ error, stockId: id }, "Error in stock findById operation");
       throw error;
     }
   }
 
   async create(data: CreateStockInput & Record<string, any>) {
     try {
-      logger.debug({ originalData: data }, 'Starting dynamic stock create operation');
+      logger.debug(
+        { originalData: data },
+        "Starting dynamic stock create operation"
+      );
 
       // Map and transform fields to match database schema
       const transformedData = this.transformStockData(data);
@@ -87,39 +113,48 @@ export class StockService {
       const productCode = transformedData.puc;
       if (productCode) {
         try {
-          // Check if product exists - we'll check by puc
-          const existingProduct = await dynamicFindUnique('product', { puc: productCode });
-          if (existingProduct) {
-            logger.debug({ productCode }, 'Product verification successful');
+          const productId :any= data.productId || data.product_id;
+          if (productId) {
+            await this.productService.findById(productId);
+            logger.debug({ productId }, "Product verification successful");
           }
         } catch (error) {
-          logger.warn({ error, productCode }, 'Product verification failed, continuing with stock creation');
+          logger.warn(
+            { error, data },
+            "Product verification failed, continuing with stock creation"
+          );
         }
       }
 
-      const stock = await dynamicCreate('stock', transformedData);
+      const stock = await dynamicCreate("stock", data);
 
       if (!stock) {
-        throw new Error('Failed to create stock - no valid fields provided');
+        throw new Error("Failed to create stock - no valid fields provided");
       }
 
-      logger.info({ 
-        stockId: stock.id, 
-        availableFields: Object.keys(stock) 
-      }, 'Dynamic stock create completed');
+      logger.info(
+        {
+          stockId: stock.id,
+          availableFields: Object.keys(stock),
+        },
+        "Dynamic stock create completed"
+      );
 
       // Try to update product stock totals if possible
       if (productCode) {
         try {
           await this.updateProductStockTotals(productCode);
         } catch (error) {
-          logger.warn({ error, productCode }, 'Failed to update product stock totals');
+          logger.warn(
+            { error, productCode },
+            "Failed to update product stock totals"
+          );
         }
       }
 
       return stock;
     } catch (error) {
-      logger.error({ error, data }, 'Error in stock create operation');
+      logger.error({ error, data }, "Error in stock create operation");
       throw error;
     }
   }
@@ -249,33 +284,48 @@ export class StockService {
       // Check if stock exists
       const existingStock = await this.findById(id);
 
-      logger.debug({ originalData: data, stockId: id }, 'Starting dynamic stock update operation');
+      logger.debug(
+        { originalData: data, stockId: id },
+        "Starting dynamic stock update operation"
+      );
 
-      const stock = await dynamicUpdate('stock', { id }, data);
+      const stock = await dynamicUpdate("stock", { id }, data);
 
       if (!stock) {
-        throw new Error('Failed to update stock - no valid fields provided');
+        throw new Error("Failed to update stock - no valid fields provided");
       }
 
-      logger.info({ 
-        stockId: id, 
-        availableFields: Object.keys(stock) 
-      }, 'Dynamic stock update completed');
+      logger.info(
+        {
+          stockId: id,
+          availableFields: Object.keys(stock),
+        },
+        "Dynamic stock update completed"
+      );
 
       // Try to update product stock totals if possible
-      const productId = existingStock.productId || existingStock.product_id || 
-                       stock.productId || stock.product_id;
+      const productId =
+        existingStock.productId ||
+        existingStock.product_id ||
+        stock.productId ||
+        stock.product_id;
       if (productId) {
         try {
           await this.productService.updateStockTotals(productId);
         } catch (error) {
-          logger.warn({ error, productId }, 'Failed to update product stock totals');
+          logger.warn(
+            { error, productId },
+            "Failed to update product stock totals"
+          );
         }
       }
 
       return stock;
     } catch (error) {
-      logger.error({ error, data, stockId: id }, 'Error in stock update operation');
+      logger.error(
+        { error, data, stockId: id },
+        "Error in stock update operation"
+      );
       throw error;
     }
   }
@@ -285,15 +335,18 @@ export class StockService {
       // Check if stock exists and get product info
       const existingStock = await this.findById(id);
 
-      logger.debug({ stockId: id }, 'Starting dynamic stock delete operation');
+      logger.debug({ stockId: id }, "Starting dynamic stock delete operation");
 
-      const success = await dynamicDelete('stock', { id });
+      const success = await dynamicDelete("stock", { id });
 
       if (!success) {
-        throw new Error('Failed to delete stock');
+        throw new Error("Failed to delete stock");
       }
 
-      logger.info({ stockId: id }, 'Dynamic stock delete completed successfully');
+      logger.info(
+        { stockId: id },
+        "Dynamic stock delete completed successfully"
+      );
 
       // Try to update product stock totals if possible
       const productId = existingStock.productId || existingStock.product_id;
@@ -301,11 +354,14 @@ export class StockService {
         try {
           await this.productService.updateStockTotals(productId);
         } catch (error) {
-          logger.warn({ error, productId }, 'Failed to update product stock totals after delete');
+          logger.warn(
+            { error, productId },
+            "Failed to update product stock totals after delete"
+          );
         }
       }
     } catch (error) {
-      logger.error({ error, stockId: id }, 'Error in stock delete operation');
+      logger.error({ error, stockId: id }, "Error in stock delete operation");
       throw error;
     }
   }
@@ -315,35 +371,46 @@ export class StockService {
       const { id, ...updateData } = data;
 
       if (id) {
-        // Update existing stock
-        logger.debug({ stockId: id, data: updateData }, 'Upserting existing stock');
+        // Update existing stock by ID
+        logger.debug(
+          { stockId: id, data: updateData },
+          "Upserting existing stock by ID"
+        );
         return this.update(id, updateData);
       } else {
-        // Try to find existing stock by productId and batchNumber if both exist
+        // Try to find existing stock by unique fields
+        let existingStock = null;
+
+        // Strategy 1: Try to find by productId and batchNumber
         const productId = data.productId || data.product_id;
         const batchNumber = data.batchNumber || data.batch_number;
-        
+
         if (productId && batchNumber) {
           try {
-            const existingStocks = await dynamicFindMany('stock', {
-              where: { 
+            const existingStocks = await dynamicFindMany("stock", {
+              where: {
                 OR: [
                   { productId, batchNumber },
                   { product_id: productId, batch_number: batchNumber },
                   { productId, batch_number: batchNumber },
-                  { product_id: productId, batchNumber }
-                ]
+                  { product_id: productId, batchNumber },
+                ],
               },
-              take: 1
+              take: 1,
             });
 
             if (existingStocks.length > 0) {
-              // Update existing stock
-              logger.debug({ stockId: existingStocks[0].id, data: updateData }, 'Upserting found existing stock');
-              return this.update(existingStocks[0].id, updateData);
+              existingStock = existingStocks[0];
+              logger.debug(
+                { stockId: existingStock.id },
+                "Found existing stock by productId and batchNumber"
+              );
             }
           } catch (error) {
-            logger.debug({ error }, 'Could not search for existing stock, creating new one');
+            logger.debug(
+              { error },
+              "Could not search by productId and batchNumber"
+            );
           }
         }
 
@@ -365,42 +432,45 @@ export class StockService {
         return this.create(createData);
       }
     } catch (error) {
-      logger.error({ error, data }, 'Error in stock upsert operation');
+      logger.error({ error, data }, "Error in stock upsert operation");
       throw error;
     }
   }
 
   async findByProduct(productId: string) {
     try {
-      logger.debug({ productId }, 'Finding stocks by product');
+      logger.debug({ productId }, "Finding stocks by product");
 
-      const stocks = await dynamicFindMany('stock', {
-        where: { 
-          OR: [
-            { productId },
-            { product_id: productId }
-          ]
+      const stocks = await dynamicFindMany("stock", {
+        where: {
+          OR: [{ productId }, { product_id: productId }],
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
       });
 
-      logger.debug({ productId, stockCount: stocks.length }, 'Found stocks by product');
+      logger.debug(
+        { productId, stockCount: stocks.length },
+        "Found stocks by product"
+      );
       return stocks;
     } catch (error) {
-      logger.error({ error, productId }, 'Error finding stocks by product');
+      logger.error({ error, productId }, "Error finding stocks by product");
       throw error;
     }
   }
 
-  async updateQuantities(id: string, quantities: {
-    quantity?: number;
-    availableQuantity?: number;
-    soldQuantity?: number;
-  }) {
+  async updateQuantities(
+    id: string,
+    quantities: {
+      quantity?: number;
+      availableQuantity?: number;
+      soldQuantity?: number;
+    }
+  ) {
     try {
       const existingStock = await this.findById(id);
 
-      logger.debug({ stockId: id, quantities }, 'Updating stock quantities');
+      logger.debug({ stockId: id, quantities }, "Updating stock quantities");
 
       // Map field names to handle both camelCase and snake_case
       const updateData: Record<string, any> = {};
@@ -416,13 +486,18 @@ export class StockService {
         updateData.sold_quantity = quantities.soldQuantity; // Also try snake_case
       }
 
-      const stock = await dynamicUpdate('stock', { id }, updateData);
+      const stock = await dynamicUpdate("stock", { id }, updateData);
 
       if (!stock) {
-        throw new Error('Failed to update stock quantities - no valid fields provided');
+        throw new Error(
+          "Failed to update stock quantities - no valid fields provided"
+        );
       }
 
-      logger.info({ stockId: id, quantities }, 'Stock quantities updated successfully');
+      logger.info(
+        { stockId: id, quantities },
+        "Stock quantities updated successfully"
+      );
 
       // Try to update product stock totals if possible
       const productId = existingStock.productId || existingStock.product_id;
@@ -430,14 +505,20 @@ export class StockService {
         try {
           await this.productService.updateStockTotals(productId);
         } catch (error) {
-          logger.warn({ error, productId }, 'Failed to update product stock totals after quantity update');
+          logger.warn(
+            { error, productId },
+            "Failed to update product stock totals after quantity update"
+          );
         }
       }
 
       return stock;
     } catch (error) {
-      logger.error({ error, stockId: id, quantities }, 'Error updating stock quantities');
+      logger.error(
+        { error, stockId: id, quantities },
+        "Error updating stock quantities"
+      );
       throw error;
     }
   }
-} 
+}
