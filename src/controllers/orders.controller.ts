@@ -62,7 +62,7 @@ export class OrdersController {
 
   createOrder = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const requestBody = request.body;
-    
+    console.log("createOrdercreateOrder",requestBody)
     // Check if the request body is an array (cart items) or object (single order)
     if (Array.isArray(requestBody)) {
       // Handle cart-based order creation

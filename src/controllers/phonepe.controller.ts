@@ -83,6 +83,7 @@ export class PhonePeController {
 
         // Call PhonePe service for online payment
         result = await this.phonePeService.initiatePayment(paymentRequest);
+        console.log(result ,'for  phone pe')
       } else if (requestBody.mode === 'cod') {
         // For COD, create a mock successful result
         paymentRequest = {
@@ -174,6 +175,7 @@ export class PhonePeController {
         const response = createSuccessResponse(
           requestBody.mode === 'phonepe' ? 'Payment initiated successfully' : 'COD order created successfully', 
           {
+
             merchantTransactionId: result.transactionId,
             redirectUrl: result.redirectUrl,
             amount: paymentRequest.amount,
@@ -187,6 +189,7 @@ export class PhonePeController {
             } : null
           }
         );
+        console.log(response,"response FInal ")
         return reply.code(200).send(response);
       } else {
               const errorResponse = createErrorResponse(
@@ -228,7 +231,7 @@ export class PhonePeController {
     try {
       const { merchantTransactionId } = request.params;
       const { token } = request.query;
-
+      console.log("inside Payment Confirmaion ")
       logger.info({
         merchantTransactionId,
         hasToken: !!token,

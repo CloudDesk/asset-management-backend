@@ -17,3 +17,6 @@ Available columns: ["id","userid","name","mobilenumber","pincode","doornumber","
 Available columns: ["id","useremail","userpassword","createddate","modifieddate","role","usersphonenumber","firstname","lastname","location","fcmid","sessiontoken","resettoken","resettokenexpires"]
 Available columns: ["id","useremail","userpassword","createddate","modifieddate","role","usersphonenumber","firstname","lastname","location","fcmid","sessiontoken","resettoken","resettokenexpires"]
 Available columns: ["id","useremail","userpassword","createddate","modifieddate","role","usersphonenumber","firstname","lastname","location","fcmid","sessiontoken","resettoken","resettokenexpires"]
+Available columns: ["id","transactionid","createddate","modifieddate","transactiondata","userid","productid","merchanttransactionid","name","amount","mobilenumber","transactionfor"]
+Available columns: ["id","transactionid","createddate","modifieddate","transactiondata","userid","productid","merchanttransactionid","name","amount","mobilenumber","transactionfor"]
+Available columns: ["id","transactionid","createddate","modifieddate","transactiondata","userid","productid","merchanttransactionid","name","amount","mobilenumber","transactionfor"]

@@ -285,3 +285,399 @@ Update result: [
     "resettokenexpires": null
   }
 ]
+Update result: [
+  {
+    "id": 46,
+    "transactionid": "NIVAANA-TRAN-00046",
+    "createddate": 1756484733,
+    "modifieddate": 1756484804,
+    "transactiondata": {
+      "mode": "phonepe",
+      "status": "SUCCESS",
+      "codData": null,
+      "updatedAt": "2025-08-29T10:56:43.008Z",
+      "initiatedAt": "2025-08-29T10:55:32.611Z",
+      "paymentRequest": {
+        "name": "User",
+        "amount": 698,
+        "userId": 24,
+        "productIds": [
+          8
+        ],
+        "mobileNumber": "9994824573",
+        "transactionFor": "product",
+        "merchantTransactionId": "TXN_1756464932438_UGPHEF"
+      },
+      "originalPayload": {
+        "mode": "phonepe",
+        "order": [
+          {
+            "cartId": 282,
+            "userid": 24,
+            "quantity": 1,
+            "addressid": 20,
+            "productid": 8,
+            "orderamount": 698,
+            "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+            "productamount": 850,
+            "discountamount": 152,
+            "productcategory": "wellness"
+          }
+        ],
+        "transaction": {
+          "name": "User",
+          "amount": 698,
+          "userId": 24,
+          "productid": [
+            8
+          ],
+          "mobilenumber": "9994824573",
+          "transactionfor": "product"
+        }
+      },
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "data": {
+          "state": "COMPLETED",
+          "amount": 69800,
+          "merchantId": "PGTESTPAYUAT86",
+          "responseCode": "SUCCESS",
+          "transactionId": "T2508291625326575404429",
+          "paymentInstrument": {
+            "arn": "12121214455",
+            "brn": "B12345",
+            "type": "CARD",
+            "bankId": null,
+            "cardType": "CREDIT_CARD",
+            "authRefId": "Dummy-auth12345",
+            "bankTransactionId": null
+          },
+          "merchantTransactionId": "TXN_1756464932438_UGPHEF"
+        },
+        "message": "Your payment is successful.",
+        "success": true
+      },
+      "phonePeResponses": {
+        "success": {
+          "status": "SUCCESS",
+          "response": {
+            "code": "PAYMENT_SUCCESS",
+            "data": {
+              "state": "COMPLETED",
+              "amount": 69800,
+              "merchantId": "PGTESTPAYUAT86",
+              "responseCode": "SUCCESS",
+              "transactionId": "T2508291625326575404429",
+              "paymentInstrument": {
+                "arn": "12121214455",
+                "brn": "B12345",
+                "type": "CARD",
+                "bankId": null,
+                "cardType": "CREDIT_CARD",
+                "authRefId": "Dummy-auth12345",
+                "bankTransactionId": null
+              },
+              "merchantTransactionId": "TXN_1756464932438_UGPHEF"
+            },
+            "message": "Your payment is successful.",
+            "success": true
+          },
+          "timestamp": "2025-08-29T10:56:43.008Z"
+        },
+        "initiation": {
+          "status": "INITIATED",
+          "response": {
+            "message": "Payment initiated successfully",
+            "success": true,
+            "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqX2Do7LWQeQoarHfR2Mu1n",
+            "transactionId": "TXN_1756464932438_UGPHEF"
+          },
+          "timestamp": "2025-08-29T10:55:32.611Z",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqX2Do7LWQeQoarHfR2Mu1n"
+        }
+      },
+      "paymentCompleteAt": "2025-08-29T10:56:43.008Z"
+    },
+    "userid": 24,
+    "productid": [
+      8
+    ],
+    "merchanttransactionid": "TXN_1756464932438_UGPHEF",
+    "name": "User",
+    "amount": "698",
+    "mobilenumber": 9994824573,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 46,
+    "transactionid": "NIVAANA-TRAN-00046",
+    "createddate": 1756484733,
+    "modifieddate": 1756484807,
+    "transactiondata": {
+      "mode": "phonepe",
+      "status": "SUCCESS",
+      "codData": null,
+      "updatedAt": "2025-08-29T10:56:46.532Z",
+      "initiatedAt": "2025-08-29T10:55:32.611Z",
+      "paymentRequest": {
+        "name": "User",
+        "amount": 698,
+        "userId": 24,
+        "productIds": [
+          8
+        ],
+        "mobileNumber": "9994824573",
+        "transactionFor": "product",
+        "merchantTransactionId": "TXN_1756464932438_UGPHEF"
+      },
+      "originalPayload": {
+        "mode": "phonepe",
+        "order": [
+          {
+            "cartId": 282,
+            "userid": 24,
+            "quantity": 1,
+            "addressid": 20,
+            "productid": 8,
+            "orderamount": 698,
+            "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+            "productamount": 850,
+            "discountamount": 152,
+            "productcategory": "wellness"
+          }
+        ],
+        "transaction": {
+          "name": "User",
+          "amount": 698,
+          "userId": 24,
+          "productid": [
+            8
+          ],
+          "mobilenumber": "9994824573",
+          "transactionfor": "product"
+        }
+      },
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "data": {
+          "state": "COMPLETED",
+          "amount": 69800,
+          "merchantId": "PGTESTPAYUAT86",
+          "responseCode": "SUCCESS",
+          "transactionId": "T2508291625326575404429",
+          "paymentInstrument": {
+            "arn": "12121214455",
+            "brn": "B12345",
+            "type": "CARD",
+            "bankId": null,
+            "cardType": "CREDIT_CARD",
+            "authRefId": "Dummy-auth12345",
+            "bankTransactionId": null
+          },
+          "merchantTransactionId": "TXN_1756464932438_UGPHEF"
+        },
+        "message": "Your payment is successful.",
+        "success": true,
+        "orderCreation": {
+          "error": "\n\u001b[31mInvalid \u001b[1m`prisma.orderline.findMany()`\u001b[22m invocation in\u001b[39m\n\u001b[4m/Users/jeyakumarn/Documents/GitHub/Suresh-on-cloud/asset-management-backend/src/controllers/phonepe.controller.ts:862:56\u001b[24m\n\n  \u001b[2m\u001b[90m859\u001b[39m \u001b[34m}\u001b[39m\u001b[34m,\u001b[39m \u001b[1m\u001b[32m'Order created successfully with automatic orderline creation'\u001b[39m\u001b[22m\u001b[2m\u001b[34m)\u001b[39m\u001b[34m;\u001b[39m\u001b[22m\n  \u001b[2m\u001b[90m860\u001b[39m \u001b[22m\n  \u001b[2m\u001b[90m861\u001b[39m \u001b[90m// Check if orderlines were created automatically\u001b[39m\u001b[22m\n\u001b[1m\u001b[31m→\u001b[39m\u001b[22m \u001b[2m\u001b[90m862\u001b[39m \u001b[36mconst\u001b[39m createdOrderlines = \u001b[36mawait\u001b[39m prisma\u001b[34m.\u001b[39morderline\u001b[34m.\u001b[39m\u001b[36mfindMany\u001b[39m\u001b[34m(\u001b[39m\u001b[22m{\n        where: {\n          orderid: \u001b[31m25\u001b[39m\n                   \u001b[31m~~\u001b[39m\n        },\n        select: {\n          id: true,\n          productid: true,\n          orderlinenumber: true\n        }\n      }\u001b[2m)\u001b[22m\n\nArgument `\u001b[1morderid\u001b[22m`: Invalid value provided. Expected \u001b[32mStringNullableFilter\u001b[39m, \u001b[32mString\u001b[39m or \u001b[32mNull\u001b[39m, provided \u001b[31mInt\u001b[39m.",
+          "status": "failed",
+          "timestamp": "2025-08-29T10:56:46.096Z"
+        }
+      },
+      "phonePeResponses": {
+        "success": {
+          "status": "SUCCESS",
+          "response": {
+            "code": "PAYMENT_SUCCESS",
+            "data": {
+              "state": "COMPLETED",
+              "amount": 69800,
+              "merchantId": "PGTESTPAYUAT86",
+              "responseCode": "SUCCESS",
+              "transactionId": "T2508291625326575404429",
+              "paymentInstrument": {
+                "arn": "12121214455",
+                "brn": "B12345",
+                "type": "CARD",
+                "bankId": null,
+                "cardType": "CREDIT_CARD",
+                "authRefId": "Dummy-auth12345",
+                "bankTransactionId": null
+              },
+              "merchantTransactionId": "TXN_1756464932438_UGPHEF"
+            },
+            "message": "Your payment is successful.",
+            "success": true,
+            "orderCreation": {
+              "error": "\n\u001b[31mInvalid \u001b[1m`prisma.orderline.findMany()`\u001b[22m invocation in\u001b[39m\n\u001b[4m/Users/jeyakumarn/Documents/GitHub/Suresh-on-cloud/asset-management-backend/src/controllers/phonepe.controller.ts:862:56\u001b[24m\n\n  \u001b[2m\u001b[90m859\u001b[39m \u001b[34m}\u001b[39m\u001b[34m,\u001b[39m \u001b[1m\u001b[32m'Order created successfully with automatic orderline creation'\u001b[39m\u001b[22m\u001b[2m\u001b[34m)\u001b[39m\u001b[34m;\u001b[39m\u001b[22m\n  \u001b[2m\u001b[90m860\u001b[39m \u001b[22m\n  \u001b[2m\u001b[90m861\u001b[39m \u001b[90m// Check if orderlines were created automatically\u001b[39m\u001b[22m\n\u001b[1m\u001b[31m→\u001b[39m\u001b[22m \u001b[2m\u001b[90m862\u001b[39m \u001b[36mconst\u001b[39m createdOrderlines = \u001b[36mawait\u001b[39m prisma\u001b[34m.\u001b[39morderline\u001b[34m.\u001b[39m\u001b[36mfindMany\u001b[39m\u001b[34m(\u001b[39m\u001b[22m{\n        where: {\n          orderid: \u001b[31m25\u001b[39m\n                   \u001b[31m~~\u001b[39m\n        },\n        select: {\n          id: true,\n          productid: true,\n          orderlinenumber: true\n        }\n      }\u001b[2m)\u001b[22m\n\nArgument `\u001b[1morderid\u001b[22m`: Invalid value provided. Expected \u001b[32mStringNullableFilter\u001b[39m, \u001b[32mString\u001b[39m or \u001b[32mNull\u001b[39m, provided \u001b[31mInt\u001b[39m.",
+              "status": "failed",
+              "timestamp": "2025-08-29T10:56:46.096Z"
+            }
+          },
+          "timestamp": "2025-08-29T10:56:46.532Z"
+        },
+        "initiation": {
+          "status": "INITIATED",
+          "response": {
+            "message": "Payment initiated successfully",
+            "success": true,
+            "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqX2Do7LWQeQoarHfR2Mu1n",
+            "transactionId": "TXN_1756464932438_UGPHEF"
+          },
+          "timestamp": "2025-08-29T10:55:32.611Z",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqX2Do7LWQeQoarHfR2Mu1n"
+        }
+      },
+      "paymentCompleteAt": "2025-08-29T10:56:46.532Z"
+    },
+    "userid": 24,
+    "productid": [
+      8
+    ],
+    "merchanttransactionid": "TXN_1756464932438_UGPHEF",
+    "name": "User",
+    "amount": "698",
+    "mobilenumber": 9994824573,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 46,
+    "transactionid": "NIVAANA-TRAN-00046",
+    "createddate": 1756484733,
+    "modifieddate": 1756484808,
+    "transactiondata": {
+      "mode": "phonepe",
+      "status": "SUCCESS",
+      "codData": null,
+      "updatedAt": "2025-08-29T10:56:47.463Z",
+      "initiatedAt": "2025-08-29T10:55:32.611Z",
+      "paymentRequest": {
+        "name": "User",
+        "amount": 698,
+        "userId": 24,
+        "productIds": [
+          8
+        ],
+        "mobileNumber": "9994824573",
+        "transactionFor": "product",
+        "merchantTransactionId": "TXN_1756464932438_UGPHEF"
+      },
+      "originalPayload": {
+        "mode": "phonepe",
+        "order": [
+          {
+            "cartId": 282,
+            "userid": 24,
+            "quantity": 1,
+            "addressid": 20,
+            "productid": 8,
+            "orderamount": 698,
+            "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+            "productamount": 850,
+            "discountamount": 152,
+            "productcategory": "wellness"
+          }
+        ],
+        "transaction": {
+          "name": "User",
+          "amount": 698,
+          "userId": 24,
+          "productid": [
+            8
+          ],
+          "mobilenumber": "9994824573",
+          "transactionfor": "product"
+        }
+      },
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "data": {
+          "state": "COMPLETED",
+          "amount": 69800,
+          "merchantId": "PGTESTPAYUAT86",
+          "responseCode": "SUCCESS",
+          "transactionId": "T2508291625326575404429",
+          "paymentInstrument": {
+            "arn": "12121214455",
+            "brn": "B12345",
+            "type": "CARD",
+            "bankId": null,
+            "cardType": "CREDIT_CARD",
+            "authRefId": "Dummy-auth12345",
+            "bankTransactionId": null
+          },
+          "merchantTransactionId": "TXN_1756464932438_UGPHEF"
+        },
+        "message": "Your payment is successful.",
+        "success": true,
+        "orderCreation": {
+          "error": "\n\u001b[31mInvalid \u001b[1m`prisma.orderline.findMany()`\u001b[22m invocation in\u001b[39m\n\u001b[4m/Users/jeyakumarn/Documents/GitHub/Suresh-on-cloud/asset-management-backend/src/controllers/phonepe.controller.ts:862:56\u001b[24m\n\n  \u001b[2m\u001b[90m859\u001b[39m \u001b[34m}\u001b[39m\u001b[34m,\u001b[39m \u001b[1m\u001b[32m'Order created successfully with automatic orderline creation'\u001b[39m\u001b[22m\u001b[2m\u001b[34m)\u001b[39m\u001b[34m;\u001b[39m\u001b[22m\n  \u001b[2m\u001b[90m860\u001b[39m \u001b[22m\n  \u001b[2m\u001b[90m861\u001b[39m \u001b[90m// Check if orderlines were created automatically\u001b[39m\u001b[22m\n\u001b[1m\u001b[31m→\u001b[39m\u001b[22m \u001b[2m\u001b[90m862\u001b[39m \u001b[36mconst\u001b[39m createdOrderlines = \u001b[36mawait\u001b[39m prisma\u001b[34m.\u001b[39morderline\u001b[34m.\u001b[39m\u001b[36mfindMany\u001b[39m\u001b[34m(\u001b[39m\u001b[22m{\n        where: {\n          orderid: \u001b[31m25\u001b[39m\n                   \u001b[31m~~\u001b[39m\n        },\n        select: {\n          id: true,\n          productid: true,\n          orderlinenumber: true\n        }\n      }\u001b[2m)\u001b[22m\n\nArgument `\u001b[1morderid\u001b[22m`: Invalid value provided. Expected \u001b[32mStringNullableFilter\u001b[39m, \u001b[32mString\u001b[39m or \u001b[32mNull\u001b[39m, provided \u001b[31mInt\u001b[39m.",
+          "status": "failed",
+          "orderId": null,
+          "timestamp": "2025-08-29T10:56:47.240Z"
+        },
+        "paymentCompleteAt": "2025-08-29T10:56:47.240Z"
+      },
+      "phonePeResponses": {
+        "success": {
+          "status": "SUCCESS",
+          "response": {
+            "code": "PAYMENT_SUCCESS",
+            "data": {
+              "state": "COMPLETED",
+              "amount": 69800,
+              "merchantId": "PGTESTPAYUAT86",
+              "responseCode": "SUCCESS",
+              "transactionId": "T2508291625326575404429",
+              "paymentInstrument": {
+                "arn": "12121214455",
+                "brn": "B12345",
+                "type": "CARD",
+                "bankId": null,
+                "cardType": "CREDIT_CARD",
+                "authRefId": "Dummy-auth12345",
+                "bankTransactionId": null
+              },
+              "merchantTransactionId": "TXN_1756464932438_UGPHEF"
+            },
+            "message": "Your payment is successful.",
+            "success": true,
+            "orderCreation": {
+              "error": "\n\u001b[31mInvalid \u001b[1m`prisma.orderline.findMany()`\u001b[22m invocation in\u001b[39m\n\u001b[4m/Users/jeyakumarn/Documents/GitHub/Suresh-on-cloud/asset-management-backend/src/controllers/phonepe.controller.ts:862:56\u001b[24m\n\n  \u001b[2m\u001b[90m859\u001b[39m \u001b[34m}\u001b[39m\u001b[34m,\u001b[39m \u001b[1m\u001b[32m'Order created successfully with automatic orderline creation'\u001b[39m\u001b[22m\u001b[2m\u001b[34m)\u001b[39m\u001b[34m;\u001b[39m\u001b[22m\n  \u001b[2m\u001b[90m860\u001b[39m \u001b[22m\n  \u001b[2m\u001b[90m861\u001b[39m \u001b[90m// Check if orderlines were created automatically\u001b[39m\u001b[22m\n\u001b[1m\u001b[31m→\u001b[39m\u001b[22m \u001b[2m\u001b[90m862\u001b[39m \u001b[36mconst\u001b[39m createdOrderlines = \u001b[36mawait\u001b[39m prisma\u001b[34m.\u001b[39morderline\u001b[34m.\u001b[39m\u001b[36mfindMany\u001b[39m\u001b[34m(\u001b[39m\u001b[22m{\n        where: {\n          orderid: \u001b[31m25\u001b[39m\n                   \u001b[31m~~\u001b[39m\n        },\n        select: {\n          id: true,\n          productid: true,\n          orderlinenumber: true\n        }\n      }\u001b[2m)\u001b[22m\n\nArgument `\u001b[1morderid\u001b[22m`: Invalid value provided. Expected \u001b[32mStringNullableFilter\u001b[39m, \u001b[32mString\u001b[39m or \u001b[32mNull\u001b[39m, provided \u001b[31mInt\u001b[39m.",
+              "status": "failed",
+              "orderId": null,
+              "timestamp": "2025-08-29T10:56:47.240Z"
+            },
+            "paymentCompleteAt": "2025-08-29T10:56:47.240Z"
+          },
+          "timestamp": "2025-08-29T10:56:47.463Z"
+        },
+        "initiation": {
+          "status": "INITIATED",
+          "response": {
+            "message": "Payment initiated successfully",
+            "success": true,
+            "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqX2Do7LWQeQoarHfR2Mu1n",
+            "transactionId": "TXN_1756464932438_UGPHEF"
+          },
+          "timestamp": "2025-08-29T10:55:32.611Z",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqX2Do7LWQeQoarHfR2Mu1n"
+        }
+      },
+      "paymentCompleteAt": "2025-08-29T10:56:47.463Z"
+    },
+    "userid": 24,
+    "productid": [
+      8
+    ],
+    "merchanttransactionid": "TXN_1756464932438_UGPHEF",
+    "name": "User",
+    "amount": "698",
+    "mobilenumber": 9994824573,
+    "transactionfor": "product"
+  }
+]

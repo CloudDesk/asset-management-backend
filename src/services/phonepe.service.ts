@@ -101,18 +101,28 @@ export class PhonePeService {
       } = paymentRequest;
 
       // Create PhonePe payment payload
+      const finalCallbackUrl = callbackUrl || `${PHONEPE_CONFIG.REDIRECT_STATUS}/v1/phonepe/callback/${merchantTransactionId}`;
+      
       const paymentData = {
         merchantId: PHONEPE_CONFIG.MERCHANT_ID,
         merchantTransactionId,
         name,
         amount: Math.round(amount * 100), // Convert to paise
-        redirectUrl: callbackUrl || `${PHONEPE_CONFIG.REDIRECT_STATUS}/v1/phonepe/callback/${merchantTransactionId}`,
+        redirectUrl: finalCallbackUrl,
         redirectMode: 'POST',
         mobileNumber,
         paymentInstrument: {
           type: 'PAY_PAGE'
         }
       };
+
+      // Log the callback URL being sent to PhonePe
+      logger.info({
+        merchantTransactionId,
+        callbackUrl: finalCallbackUrl,
+        redirectStatus: PHONEPE_CONFIG.REDIRECT_STATUS,
+        step: 'phonepe_callback_url_set'
+      }, 'PhonePe callback URL configured');
 
       logger.info({
         merchantTransactionId,
@@ -148,8 +158,10 @@ export class PhonePeService {
       logger.info({
         merchantTransactionId,
         success: response.data.success,
-        code: response.data.code
-      }, 'PhonePe payment initiated successfully');
+        code: response.data.code,
+        phonePeResponse: response.data,
+        callbackUrl: finalCallbackUrl
+      }, 'PhonePe payment initiated successfully LatestUpdate');
 
       if (response.data.success && response.data.data?.instrumentResponse?.redirectInfo?.url) {
         return {
