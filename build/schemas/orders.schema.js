@@ -17,6 +17,7 @@ export const createOrdersSchema = z.object({
     ispaymentsucceed: z.boolean().optional(),
     merchanttransactionid: z.string().max(250).optional(),
     productid: z.array(z.number()).optional(),
+    mode: z.string().optional(), // Payment mode: 'phonepe' or 'cod'
     delivereddate: z.number().optional(),
     cancelleddate: z.number().optional(),
     returneddate: z.number().optional(),
@@ -41,6 +42,7 @@ export const updateOrdersSchema = z.object({
     ispaymentsucceed: z.boolean().optional(),
     merchanttransactionid: z.string().max(250).optional(),
     productid: z.array(z.number()).optional(),
+    mode: z.string().optional(), // Payment mode: 'phonepe' or 'cod'
     delivereddate: z.number().optional(),
     cancelleddate: z.number().optional(),
     returneddate: z.number().optional(),
@@ -65,6 +67,7 @@ export const upsertOrdersSchema = z.object({
     ispaymentsucceed: z.boolean().optional(),
     merchanttransactionid: z.string().max(250).optional(),
     productid: z.array(z.number()).optional(),
+    mode: z.string().optional(), // Payment mode: 'phonepe' or 'cod'
     delivereddate: z.number().optional(),
     cancelleddate: z.number().optional(),
     returneddate: z.number().optional(),
