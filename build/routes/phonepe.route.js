@@ -4,12 +4,17 @@ export async function phonePeRoutes(fastify) {
     // Payment initiation endpoint
     fastify.post('/initiate', {
         schema: {
-            description: 'Initiate payment with PhonePe',
+            description: 'Initiate payment with PhonePe or create COD order',
             tags: ['PhonePe Payment'],
-            summary: 'Start a payment transaction with PhonePe gateway',
+            summary: 'Start a payment transaction with PhonePe gateway or create Cash on Delivery order',
             body: {
                 type: 'object',
                 properties: {
+                    mode: {
+                        type: 'string',
+                        // enum: ['phonepe', 'cod'],
+                        description: 'Payment mode: phonepe for online payment, cod for cash on delivery'
+                    },
                     order: {
                         type: 'array',
                         items: {
@@ -118,7 +123,7 @@ export async function phonePeRoutes(fastify) {
                         additionalProperties: false
                     }
                 },
-                required: ['order', 'transaction'],
+                required: ['mode', 'order', 'transaction'],
                 additionalProperties: false
             },
             response: {
@@ -172,7 +177,7 @@ export async function phonePeRoutes(fastify) {
         }
     }, phonePeController.initiatePayment);
     // Payment callback endpoint (for PhonePe redirects)
-    fastify.all('/callback/:transactionId', {
+    fastify.post('/callback/:transactionId', {
         schema: {
             description: 'Handle payment callback from PhonePe',
             tags: ['PhonePe Payment'],
@@ -217,6 +222,7 @@ export async function phonePeRoutes(fastify) {
         }
     }, async (request, reply) => {
         const { transactionId } = request.params;
+        console.log(transactionId, "Payment callback received for transaction:");
         try {
             fastify.log.info(`Payment callback received for transaction: ${transactionId}`);
             // Get payment status from PhonePe
@@ -232,7 +238,8 @@ export async function phonePeRoutes(fastify) {
                 let orderId = null;
                 try {
                     fastify.log.info(`Calling createOrderAfterPayment for transaction: ${transactionId}`);
-                    const order = await phonePeController.createOrderAfterPayment(transactionId);
+                    // Force mode to "phonepe" since this is PhonePe webhook callback
+                    const order = await phonePeController.createOrderAfterPayment(transactionId, 'phonepe');
                     orderId = order.id;
                     fastify.log.info(`Order created successfully for transaction: ${transactionId}`, {
                         orderId: order.id,

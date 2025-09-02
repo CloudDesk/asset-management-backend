@@ -16,6 +16,7 @@ export declare const createOrdersSchema: z.ZodObject<{
     ispaymentsucceed: z.ZodOptional<z.ZodBoolean>;
     merchanttransactionid: z.ZodOptional<z.ZodString>;
     productid: z.ZodOptional<z.ZodArray<z.ZodNumber, "many">>;
+    mode: z.ZodOptional<z.ZodString>;
     delivereddate: z.ZodOptional<z.ZodNumber>;
     cancelleddate: z.ZodOptional<z.ZodNumber>;
     returneddate: z.ZodOptional<z.ZodNumber>;
@@ -39,6 +40,7 @@ export declare const createOrdersSchema: z.ZodObject<{
     ispaymentsucceed: z.ZodOptional<z.ZodBoolean>;
     merchanttransactionid: z.ZodOptional<z.ZodString>;
     productid: z.ZodOptional<z.ZodArray<z.ZodNumber, "many">>;
+    mode: z.ZodOptional<z.ZodString>;
     delivereddate: z.ZodOptional<z.ZodNumber>;
     cancelleddate: z.ZodOptional<z.ZodNumber>;
     returneddate: z.ZodOptional<z.ZodNumber>;
@@ -62,6 +64,7 @@ export declare const createOrdersSchema: z.ZodObject<{
     ispaymentsucceed: z.ZodOptional<z.ZodBoolean>;
     merchanttransactionid: z.ZodOptional<z.ZodString>;
     productid: z.ZodOptional<z.ZodArray<z.ZodNumber, "many">>;
+    mode: z.ZodOptional<z.ZodString>;
     delivereddate: z.ZodOptional<z.ZodNumber>;
     cancelleddate: z.ZodOptional<z.ZodNumber>;
     returneddate: z.ZodOptional<z.ZodNumber>;
@@ -86,6 +89,7 @@ export declare const updateOrdersSchema: z.ZodObject<{
     ispaymentsucceed: z.ZodOptional<z.ZodBoolean>;
     merchanttransactionid: z.ZodOptional<z.ZodString>;
     productid: z.ZodOptional<z.ZodArray<z.ZodNumber, "many">>;
+    mode: z.ZodOptional<z.ZodString>;
     delivereddate: z.ZodOptional<z.ZodNumber>;
     cancelleddate: z.ZodOptional<z.ZodNumber>;
     returneddate: z.ZodOptional<z.ZodNumber>;
@@ -108,6 +112,7 @@ export declare const updateOrdersSchema: z.ZodObject<{
     ispaymentsucceed: z.ZodOptional<z.ZodBoolean>;
     merchanttransactionid: z.ZodOptional<z.ZodString>;
     productid: z.ZodOptional<z.ZodArray<z.ZodNumber, "many">>;
+    mode: z.ZodOptional<z.ZodString>;
     delivereddate: z.ZodOptional<z.ZodNumber>;
     cancelleddate: z.ZodOptional<z.ZodNumber>;
     returneddate: z.ZodOptional<z.ZodNumber>;
@@ -130,6 +135,7 @@ export declare const updateOrdersSchema: z.ZodObject<{
     ispaymentsucceed: z.ZodOptional<z.ZodBoolean>;
     merchanttransactionid: z.ZodOptional<z.ZodString>;
     productid: z.ZodOptional<z.ZodArray<z.ZodNumber, "many">>;
+    mode: z.ZodOptional<z.ZodString>;
     delivereddate: z.ZodOptional<z.ZodNumber>;
     cancelleddate: z.ZodOptional<z.ZodNumber>;
     returneddate: z.ZodOptional<z.ZodNumber>;
@@ -154,6 +160,7 @@ export declare const upsertOrdersSchema: z.ZodObject<{
     ispaymentsucceed: z.ZodOptional<z.ZodBoolean>;
     merchanttransactionid: z.ZodOptional<z.ZodString>;
     productid: z.ZodOptional<z.ZodArray<z.ZodNumber, "many">>;
+    mode: z.ZodOptional<z.ZodString>;
     delivereddate: z.ZodOptional<z.ZodNumber>;
     cancelleddate: z.ZodOptional<z.ZodNumber>;
     returneddate: z.ZodOptional<z.ZodNumber>;
@@ -178,6 +185,7 @@ export declare const upsertOrdersSchema: z.ZodObject<{
     ispaymentsucceed: z.ZodOptional<z.ZodBoolean>;
     merchanttransactionid: z.ZodOptional<z.ZodString>;
     productid: z.ZodOptional<z.ZodArray<z.ZodNumber, "many">>;
+    mode: z.ZodOptional<z.ZodString>;
     delivereddate: z.ZodOptional<z.ZodNumber>;
     cancelleddate: z.ZodOptional<z.ZodNumber>;
     returneddate: z.ZodOptional<z.ZodNumber>;
@@ -202,6 +210,7 @@ export declare const upsertOrdersSchema: z.ZodObject<{
     ispaymentsucceed: z.ZodOptional<z.ZodBoolean>;
     merchanttransactionid: z.ZodOptional<z.ZodString>;
     productid: z.ZodOptional<z.ZodArray<z.ZodNumber, "many">>;
+    mode: z.ZodOptional<z.ZodString>;
     delivereddate: z.ZodOptional<z.ZodNumber>;
     cancelleddate: z.ZodOptional<z.ZodNumber>;
     returneddate: z.ZodOptional<z.ZodNumber>;

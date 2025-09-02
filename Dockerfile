@@ -1,29 +1,35 @@
 # Use Node.js 20 as the base image
-FROM node:20
+FROM node:20-slim
 
-# Install LibreOffice for document conversion
-RUN apt-get update && apt-get install -y libreoffice && \
-    apt-get clean
+# Install system dependencies including LibreOffice
+RUN apt-get update && \
+    apt-get install -y \
+    libreoffice \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set the working directory in the container
 WORKDIR /app
 
-# Copy package.json and package-lock.json (if available)
+# Copy package files first for better layer caching
 COPY package*.json ./
 
+# Install all dependencies (including dev dependencies for build)
+RUN npm ci
 
-# Copy the rest of your application's source code
-COPY . .
+# Copy Prisma schema and generate client
+COPY prisma ./prisma/
+RUN npx prisma generate
+
+# Copy source code
+COPY src ./src/
+COPY tsconfig.json ./
+
+# Build the application
+RUN npm run build
 
 # Expose the port that your application will run on
 EXPOSE 5600
 
-
-# Expose the Prisma
-RUN npx prisma generate
-
-# Explicitly install docxtemplater (in case it's not in package.json)
-RUN npm install docxtemplater
-
 # Start the application
-CMD [ "node", "build/index.js" ]
+CMD ["node", "build/index.js"]

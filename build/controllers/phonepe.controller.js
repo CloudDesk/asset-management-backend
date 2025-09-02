@@ -17,56 +17,135 @@ export class PhonePeController {
         try {
             const requestBody = request.body;
             logger.info({
+                mode: requestBody.mode,
                 orderCount: requestBody.order.length,
                 transactionAmount: requestBody.transaction.amount,
                 userId: requestBody.transaction.userId,
                 productIds: requestBody.transaction.productid
             }, 'Payment initiation request received with new payload structure');
-            // Create PhonePe payment request from the new payload structure
-            const paymentRequest = {
-                merchantTransactionId: PhonePeService.generateMerchantTransactionId(),
-                amount: requestBody.transaction.amount,
-                name: requestBody.transaction.name,
-                mobileNumber: requestBody.transaction.mobilenumber,
-                userId: requestBody.transaction.userId,
-                productIds: requestBody.transaction.productid,
-                transactionFor: requestBody.transaction.transactionfor
-            };
-            logger.info({
-                merchantTransactionId: paymentRequest.merchantTransactionId,
-                amount: paymentRequest.amount,
-                userId: paymentRequest.userId,
-                productIds: paymentRequest.productIds
-            }, 'Converted payload to PhonePe payment request');
-            const result = await this.phonePeService.initiatePayment(paymentRequest);
+            // Generate unique transaction ID for both modes
+            const merchantTransactionId = PhonePeService.generateMerchantTransactionId();
+            let result;
+            let paymentRequest;
+            if (requestBody.mode === 'phonepe') {
+                // Create PhonePe payment request
+                paymentRequest = {
+                    merchantTransactionId,
+                    amount: requestBody.transaction.amount,
+                    name: requestBody.transaction.name,
+                    mobileNumber: requestBody.transaction.mobilenumber,
+                    userId: requestBody.transaction.userId,
+                    productIds: requestBody.transaction.productid,
+                    transactionFor: requestBody.transaction.transactionfor
+                };
+                logger.info({
+                    merchantTransactionId: paymentRequest.merchantTransactionId,
+                    amount: paymentRequest.amount,
+                    userId: paymentRequest.userId,
+                    productIds: paymentRequest.productIds
+                }, 'Converted payload to PhonePe payment request');
+                // Call PhonePe service for online payment
+                result = await this.phonePeService.initiatePayment(paymentRequest);
+                console.log(result, 'for  phone pe');
+            }
+            else if (requestBody.mode === 'cod') {
+                // For COD, create a mock successful result
+                paymentRequest = {
+                    merchantTransactionId,
+                    amount: requestBody.transaction.amount,
+                    name: requestBody.transaction.name,
+                    mobileNumber: requestBody.transaction.mobilenumber,
+                    userId: requestBody.transaction.userId,
+                    productIds: requestBody.transaction.productid,
+                    transactionFor: requestBody.transaction.transactionfor
+                };
+                logger.info({
+                    merchantTransactionId: paymentRequest.merchantTransactionId,
+                    amount: paymentRequest.amount,
+                    userId: paymentRequest.userId,
+                    productIds: paymentRequest.productIds
+                }, 'COD payment request created');
+                // Mock successful result for COD
+                result = {
+                    success: true,
+                    message: 'COD order created successfully',
+                    redirectUrl: null, // No redirect for COD
+                    transactionId: merchantTransactionId
+                };
+            }
+            else {
+                throw new Error(`Invalid payment mode: ${requestBody.mode}`);
+            }
             if (result.success) {
                 // Store the complete payload in transaction data for later use in order creation
                 const transactionData = {
-                    status: 'INITIATED',
+                    status: requestBody.mode === 'phonepe' ? 'INITIATED' : 'COD_ORDER_CREATED',
+                    mode: requestBody.mode,
                     originalPayload: requestBody,
                     paymentRequest: paymentRequest,
                     initiatedAt: new Date().toISOString(),
-                    phonePeResponses: {
+                    phonePeResponses: requestBody.mode === 'phonepe' ? {
                         initiation: {
                             timestamp: new Date().toISOString(),
                             response: result,
                             status: 'INITIATED',
                             redirectUrl: result.redirectUrl
                         }
-                    }
+                    } : null,
+                    codData: requestBody.mode === 'cod' ? {
+                        timestamp: new Date().toISOString(),
+                        status: 'COD_ORDER_CREATED',
+                        message: 'Cash on Delivery order created successfully'
+                    } : null
                 };
+                console.log(transactionData, "transactionData");
                 // Store transaction with complete data (single transaction record)
                 await this.storeTransactionData(paymentRequest, transactionData);
-                const response = createSuccessResponse('Payment initiated successfully', {
+                // For COD, create order and orderlines immediately
+                let orderData = null;
+                if (requestBody.mode === 'cod') {
+                    try {
+                        logger.info({
+                            merchantTransactionId: paymentRequest.merchantTransactionId,
+                            mode: 'cod'
+                        }, 'Creating COD order and orderlines immediately');
+                        // Create order and orderlines for COD
+                        // Force mode to "cod" since this is COD order
+                        orderData = await this.createOrderAfterPayment(paymentRequest.merchantTransactionId, 'cod');
+                        logger.info({
+                            merchantTransactionId: paymentRequest.merchantTransactionId,
+                            orderId: orderData?.id,
+                            mode: 'cod'
+                        }, 'COD order and orderlines created successfully');
+                    }
+                    catch (orderError) {
+                        logger.error({
+                            error: orderError.message,
+                            merchantTransactionId: paymentRequest.merchantTransactionId,
+                            mode: 'cod'
+                        }, 'Error creating COD order and orderlines');
+                        // Even if order creation fails, we still return success for transaction
+                        // The order can be created later using the stored transaction data
+                    }
+                }
+                const response = createSuccessResponse(requestBody.mode === 'phonepe' ? 'Payment initiated successfully' : 'COD order created successfully', {
                     merchantTransactionId: result.transactionId,
                     redirectUrl: result.redirectUrl,
                     amount: paymentRequest.amount,
-                    status: 'INITIATED'
+                    status: requestBody.mode === 'phonepe' ? 'INITIATED' : 'COD_ORDER_CREATED',
+                    mode: requestBody.mode,
+                    message: requestBody.mode === 'phonepe' ? 'Redirect to PhonePe for payment' : 'Order created for cash on delivery',
+                    orderData: requestBody.mode === 'cod' ? {
+                        orderId: orderData?.id,
+                        orderid: orderData?.orderid,
+                        status: orderData?.orderstatus
+                    } : null
                 });
+                console.log(response, "response FInal ");
                 return reply.code(200).send(response);
             }
             else {
-                const errorResponse = createErrorResponse(result.message || 'Payment initiation failed', result.error, 400);
+                const errorResponse = createErrorResponse(result.message || `${requestBody.mode === 'phonepe' ? 'Payment' : 'COD order'} ${requestBody.mode === 'phonepe' ? 'initiation' : 'creation'} failed`, result.error, 400);
                 return reply.code(400).send(errorResponse);
             }
         }
@@ -91,6 +170,7 @@ export class PhonePeController {
         try {
             const { merchantTransactionId } = request.params;
             const { token } = request.query;
+            console.log("inside Payment Confirmaion ");
             logger.info({
                 merchantTransactionId,
                 hasToken: !!token,
@@ -98,12 +178,33 @@ export class PhonePeController {
                 headers: request.headers
             }, 'Payment callback received');
             const result = await this.phonePeService.handlePaymentCallback(merchantTransactionId, token);
-            // Redirect to appropriate URL based on payment status
+            // If payment is successful, create order and orderlines
             if (result.success) {
-                logger.info({
-                    merchantTransactionId,
-                    redirectUrl: result.redirectUrl
-                }, 'Payment successful, redirecting to success page');
+                try {
+                    logger.info({
+                        merchantTransactionId,
+                        redirectUrl: result.redirectUrl,
+                        mode: 'phonepe'
+                    }, 'Payment successful, creating order and orderlines with mode: phonepe');
+                    // Create order and orderlines for successful PhonePe payment
+                    // Force mode to "phonepe" since this is PhonePe callback
+                    const orderData = await this.createOrderAfterPayment(merchantTransactionId, 'phonepe');
+                    logger.info({
+                        merchantTransactionId,
+                        orderId: orderData?.id,
+                        orderid: orderData?.orderid,
+                        mode: 'phonepe'
+                    }, 'Order and orderlines created successfully for PhonePe payment');
+                }
+                catch (orderError) {
+                    logger.error({
+                        error: orderError.message,
+                        merchantTransactionId,
+                        mode: 'phonepe'
+                    }, 'Error creating order after PhonePe payment success');
+                    // Even if order creation fails, we still redirect to success page
+                    // The order can be created later using the stored transaction data
+                }
             }
             else {
                 logger.warn({
@@ -424,9 +525,10 @@ export class PhonePeController {
     /**
      * Create order and orderline records after successful payment
      */
-    async createOrderAfterPayment(transactionId) {
+    async createOrderAfterPayment(transactionId, forceMode) {
         try {
             logger.info({ transactionId }, 'Creating order after successful payment');
+            logger.info({ forceMode }, 'forceMode');
             // Find transaction by merchanttransactionid
             const transactions = await this.transactionService.findMany({ merchanttransactionid: transactionId }, 1, 1);
             if (!transactions.data || transactions.data.length === 0) {
@@ -435,6 +537,7 @@ export class PhonePeController {
             const transaction = transactions.data[0];
             logger.info({
                 transactionId,
+                mode: transaction.transactiondata?.mode || 'unknown',
                 foundTransaction: {
                     id: transaction.id,
                     userid: transaction.userid,
@@ -483,10 +586,19 @@ export class PhonePeController {
             }
             const currentTime = Date.now();
             const orderid = `ORDER_${transactionId}_${currentTime}`;
+            // Get mode from transaction data or use forced mode
+            const mode = forceMode || transaction.transactiondata?.mode || 'unknown';
+            logger.info({
+                transactionId,
+                forceMode,
+                originalMode: transaction.transactiondata?.mode,
+                finalMode: mode
+            }, 'Mode determination for order creation');
             // Get original order data from transaction for detailed orderline creation
             const originalOrderData = transaction.transactiondata?.originalPayload?.order || [];
             logger.info({
                 transactionId,
+                mode: mode,
                 originalOrderData: originalOrderData.length,
                 validProductIds,
                 step: 'preparing_order_with_detailed_items'
@@ -504,17 +616,38 @@ export class PhonePeController {
                 ispaymentsucceed: true,
                 merchanttransactionid: transaction.merchanttransactionid,
                 productid: validProductIds, // Include product IDs for automatic orderline creation
+                mode: mode, // Add mode field: 'phonepe' or 'cod'
                 createddate: currentTime,
                 modifieddate: currentTime,
                 // Add original order items for detailed orderline creation
                 orderItems: originalOrderData.filter((item) => validProductIds.includes(item.productid))
             };
+            // Log the orderData being sent to OrdersService
+            logger.info({
+                transactionId,
+                mode: mode,
+                orderDataKeys: Object.keys(orderData),
+                orderDataMode: orderData.mode,
+                orderDataFull: JSON.stringify(orderData, null, 2),
+                step: 'sending_to_orders_service'
+            }, 'Order data being sent to OrdersService');
+            // Add a test to see if mode field is being filtered out
+            logger.info({
+                transactionId,
+                hasModeInOrderData: 'mode' in orderData,
+                modeValue: orderData.mode,
+                modeType: typeof orderData.mode,
+                step: 'mode_field_verification'
+            }, 'Mode field verification before OrdersService.create');
             // Create order using OrdersService (with automatic orderline creation)
             const order = await this.ordersService.create(orderData);
+            // Log the created order to see if mode was saved
             logger.info({
                 transactionId,
                 orderId: order.id,
                 orderidString: order.orderid,
+                orderMode: order.mode,
+                orderFull: JSON.stringify(order, null, 2),
                 validProductCount: validProductIds.length,
                 invalidProductCount: invalidProductIds.length,
                 step: 'order_created_with_automatic_orderlines'
@@ -571,6 +704,7 @@ export class PhonePeController {
             logger.info({
                 transactionId,
                 orderId: order.id,
+                mode: mode,
                 summary: {
                     totalProductsRequested: transaction.productid.length,
                     validProducts: validProductIds.length,
@@ -865,7 +999,8 @@ export class PhonePeController {
             logger.info({
                 merchantTransactionId: paymentRequest.merchantTransactionId,
                 amount: paymentRequest.amount,
-                userId: paymentRequest.userId
+                userId: paymentRequest.userId,
+                mode: transactionData.mode
             }, 'Storing transaction data');
             const transactionRecord = {
                 transactionid: paymentRequest.merchantTransactionId,

@@ -146,11 +146,11 @@ const usersResponse = await fetch('/v1/inventoryusers', {
                     description: 'Development server',
                 },
                 {
-                    url: `https://api.your-api-domain.com`,
+                    url: `https://nivaana-374914445110.us-central1.run.app`,
                     description: 'User Acceptance Testing server',
                 },
                 {
-                    url: `https://prod.your-api-domain.com`,
+                    url: `https://nivaana-374914445110.us-central1.run.app`,
                     description: 'Production server',
                 },
             ],

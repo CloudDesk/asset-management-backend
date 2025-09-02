@@ -244,6 +244,7 @@ export async function ordersRoutes(fastify) {
                             ispaymentsucceed: { type: 'boolean', description: 'Payment success status' },
                             merchanttransactionid: { type: 'string', maxLength: 250, description: 'Merchant transaction ID' },
                             productid: { type: 'array', items: { type: 'number' }, description: 'Product IDs' },
+                            mode: { type: 'string', description: 'Payment mode: phonepe or cod' },
                             delivereddate: { type: 'number', description: 'Delivered date (timestamp)' },
                             cancelleddate: { type: 'number', description: 'Cancelled date (timestamp)' },
                             returneddate: { type: 'number', description: 'Returned date (timestamp)' },

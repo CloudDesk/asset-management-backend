@@ -48,7 +48,7 @@ export declare class PhonePeController {
     /**
      * Create order and orderline records after successful payment
      */
-    createOrderAfterPayment(transactionId: string): Promise<any>;
+    createOrderAfterPayment(transactionId: string, forceMode?: string): Promise<any>;
     /**
      * Validate products in batch using Prisma
      */

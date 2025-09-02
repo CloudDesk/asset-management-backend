@@ -182,161 +182,161 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
   }, phonePeController.initiatePayment);
 
   // Payment callback endpoint (for PhonePe redirects)
-  // fastify.post('/callback/:transactionId', {
-  //   schema: {
-  //     description: 'Handle payment callback from PhonePe',
-  //     tags: ['PhonePe Payment'],
-  //     summary: 'Process payment completion callback from PhonePe',
-  //     params: {
-  //       type: 'object',
-  //       properties: {
-  //         transactionId: {
-  //           type: 'string',
-  //           minLength: 1,
-  //           maxLength: 500,
-  //           description: 'Transaction ID'
-  //         }
-  //       },
-  //       required: ['transactionId']
-  //     },
-  //     querystring: {
-  //       type: 'object',
-  //       properties: {
-  //         token: { type: 'string', description: 'Optional callback token' }
-  //       },
-  //       additionalProperties: true
-  //     },
-  //     response: {
-  //       302: {
-  //         description: 'Redirect to success/failure page',
-  //         type: 'object',
-  //         properties: {
-  //           statusCode: { type: 'number' },
-  //           message: { type: 'string' }
-  //         }
-  //       },
-  //       200: {
-  //         type: 'object',
-  //         properties: {
-  //           success: { type: 'boolean' },
-  //           message: { type: 'string' },
-  //           data: { type: 'object' }
-  //         }
-  //       }
-  //     }
-  //   }
-  // }, async (request, reply) => {
-  //   const { transactionId } = request.params as { transactionId: string };
-  //   console.log(transactionId,"Payment callback received for transaction:")
-  //   try {
-  //     fastify.log.info(`Payment callback received for transaction: ${transactionId}`);
+  fastify.post('/callback/:transactionId', {
+    schema: {
+      description: 'Handle payment callback from PhonePe',
+      tags: ['PhonePe Payment'],
+      summary: 'Process payment completion callback from PhonePe',
+      params: {
+        type: 'object',
+        properties: {
+          transactionId: {
+            type: 'string',
+            minLength: 1,
+            maxLength: 500,
+            description: 'Transaction ID'
+          }
+        },
+        required: ['transactionId']
+      },
+      querystring: {
+        type: 'object',
+        properties: {
+          token: { type: 'string', description: 'Optional callback token' }
+        },
+        additionalProperties: true
+      },
+      response: {
+        302: {
+          description: 'Redirect to success/failure page',
+          type: 'object',
+          properties: {
+            statusCode: { type: 'number' },
+            message: { type: 'string' }
+          }
+        },
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: { type: 'object' }
+          }
+        }
+      }
+    }
+  }, async (request, reply) => {
+    const { transactionId } = request.params as { transactionId: string };
+    console.log(transactionId,"Payment callback received for transaction:")
+    try {
+      fastify.log.info(`Payment callback received for transaction: ${transactionId}`);
       
-  //     // Get payment status from PhonePe
-  //     const paymentStatus = await phonePeController.phonePeService.checkPaymentStatus(transactionId);
+      // Get payment status from PhonePe
+      const paymentStatus = await phonePeController.phonePeService.checkPaymentStatus(transactionId);
       
-  //     if (paymentStatus.success && paymentStatus.code === 'PAYMENT_SUCCESS') {
-  //       fastify.log.info(`Payment successful for transaction: ${transactionId}`);
+      if (paymentStatus.success && paymentStatus.code === 'PAYMENT_SUCCESS') {
+        fastify.log.info(`Payment successful for transaction: ${transactionId}`);
         
-  //       // Update transaction status to success first
-  //       await phonePeController.updateTransactionStatus(transactionId, 'SUCCESS', paymentStatus);
-  //       fastify.log.info(`Transaction status updated to SUCCESS for: ${transactionId}`);
+        // Update transaction status to success first
+        await phonePeController.updateTransactionStatus(transactionId, 'SUCCESS', paymentStatus);
+        fastify.log.info(`Transaction status updated to SUCCESS for: ${transactionId}`);
         
-  //       // Create order and orderline records with improved error handling
-  //       let orderCreationStatus = 'success';
-  //       let orderCreationError = null;
-  //       let orderId = null;
+        // Create order and orderline records with improved error handling
+        let orderCreationStatus = 'success';
+        let orderCreationError = null;
+        let orderId = null;
         
-  //       try {
-  //         fastify.log.info(`Calling createOrderAfterPayment for transaction: ${transactionId}`);
-  //         // Force mode to "phonepe" since this is PhonePe webhook callback
-  //         const order = await phonePeController.createOrderAfterPayment(transactionId, 'phonepe');
-  //         orderId = order.id;
-  //         fastify.log.info(`Order created successfully for transaction: ${transactionId}`, { 
-  //           orderId: order.id,
-  //           orderIdString: order.orderid
-  //         });
-  //       } catch (orderError: any) {
-  //         orderCreationStatus = 'failed';
-  //         orderCreationError = orderError.message;
+        try {
+          fastify.log.info(`Calling createOrderAfterPayment for transaction: ${transactionId}`);
+          // Force mode to "phonepe" since this is PhonePe webhook callback
+          const order = await phonePeController.createOrderAfterPayment(transactionId, 'phonepe');
+          orderId = order.id;
+          fastify.log.info(`Order created successfully for transaction: ${transactionId}`, { 
+            orderId: order.id,
+            orderIdString: order.orderid
+          });
+        } catch (orderError: any) {
+          orderCreationStatus = 'failed';
+          orderCreationError = orderError.message;
           
-  //         fastify.log.error(`Error creating order for transaction: ${transactionId}`, {
-  //           error: orderError.message,
-  //           stack: orderError.stack,
-  //           errorType: orderError.constructor.name
-  //         });
+          fastify.log.error(`Error creating order for transaction: ${transactionId}`, {
+            error: orderError.message,
+            stack: orderError.stack,
+            errorType: orderError.constructor.name
+          });
           
-  //         // Update transaction with order creation error details
-  //         try {
-  //           await phonePeController.updateTransactionStatus(transactionId, 'SUCCESS', {
-  //             ...paymentStatus,
-  //             orderCreation: {
-  //               status: 'failed',
-  //               error: orderError.message,
-  //               timestamp: new Date().toISOString()
-  //             }
-  //           });
-  //         } catch (updateError: any) {
-  //           fastify.log.error(`Failed to update transaction with order creation error for ${transactionId}`, {
-  //             updateError: updateError.message
-  //           });
-  //         }
-  //       }
+          // Update transaction with order creation error details
+          try {
+            await phonePeController.updateTransactionStatus(transactionId, 'SUCCESS', {
+              ...paymentStatus,
+              orderCreation: {
+                status: 'failed',
+                error: orderError.message,
+                timestamp: new Date().toISOString()
+              }
+            });
+          } catch (updateError: any) {
+            fastify.log.error(`Failed to update transaction with order creation error for ${transactionId}`, {
+              updateError: updateError.message
+            });
+          }
+        }
         
-  //       // Update final transaction status with order creation results
-  //       try {
-  //         await phonePeController.updateTransactionStatus(transactionId, 'SUCCESS', {
-  //           ...paymentStatus,
-  //           orderCreation: {
-  //             status: orderCreationStatus,
-  //             error: orderCreationError,
-  //             orderId: orderId,
-  //             timestamp: new Date().toISOString()
-  //           },
-  //           paymentCompleteAt: new Date().toISOString()
-  //         });
-  //       } catch (finalUpdateError: any) {
-  //         fastify.log.error(`Failed to update final transaction status for ${transactionId}`, {
-  //           error: finalUpdateError.message
-  //         });
-  //       }
+        // Update final transaction status with order creation results
+        try {
+          await phonePeController.updateTransactionStatus(transactionId, 'SUCCESS', {
+            ...paymentStatus,
+            orderCreation: {
+              status: orderCreationStatus,
+              error: orderCreationError,
+              orderId: orderId,
+              timestamp: new Date().toISOString()
+            },
+            paymentCompleteAt: new Date().toISOString()
+          });
+        } catch (finalUpdateError: any) {
+          fastify.log.error(`Failed to update final transaction status for ${transactionId}`, {
+            error: finalUpdateError.message
+          });
+        }
         
-  //       // Redirect to success page regardless of order creation status
-  //       // Payment was successful, order creation is secondary
-  //       return reply.redirect('http://localhost:5600/health');
-  //     } else {
-  //       fastify.log.warn(`Payment failed for transaction: ${transactionId}`, paymentStatus);
+        // Redirect to success page regardless of order creation status
+        // Payment was successful, order creation is secondary
+        return reply.redirect('http://localhost:5600/health');
+      } else {
+        fastify.log.warn(`Payment failed for transaction: ${transactionId}`, paymentStatus);
         
-  //       // Update transaction status to failed
-  //       await phonePeController.updateTransactionStatus(transactionId, 'FAILED', paymentStatus);
+        // Update transaction status to failed
+        await phonePeController.updateTransactionStatus(transactionId, 'FAILED', paymentStatus);
         
-  //       // Redirect to failure page
-  //       return reply.redirect('http://localhost:5600/docs#/');
-  //     }
-  //   } catch (error: any) {
-  //     fastify.log.error(`Error processing payment callback for ${transactionId}:`, {
-  //       error: error.message,
-  //       stack: error.stack,
-  //       errorType: error.constructor.name
-  //     });
+        // Redirect to failure page
+        return reply.redirect('http://localhost:5600/docs#/');
+      }
+    } catch (error: any) {
+      fastify.log.error(`Error processing payment callback for ${transactionId}:`, {
+        error: error.message,
+        stack: error.stack,
+        errorType: error.constructor.name
+      });
       
-  //     // Update transaction status to error with detailed information
-  //     try {
-  //       await phonePeController.updateTransactionStatus(transactionId, 'ERROR', { 
-  //         error: error.message,
-  //         errorType: error.constructor.name,
-  //         stack: error.stack,
-  //         timestamp: new Date().toISOString()
-  //       });
-  //     } catch (updateError: any) {
-  //       fastify.log.error(`Failed to update transaction status to ERROR for ${transactionId}`, {
-  //         updateError: updateError.message
-  //       });
-  //     }
+      // Update transaction status to error with detailed information
+      try {
+        await phonePeController.updateTransactionStatus(transactionId, 'ERROR', { 
+          error: error.message,
+          errorType: error.constructor.name,
+          stack: error.stack,
+          timestamp: new Date().toISOString()
+        });
+      } catch (updateError: any) {
+        fastify.log.error(`Failed to update transaction status to ERROR for ${transactionId}`, {
+          updateError: updateError.message
+        });
+      }
       
-  //     // Redirect to failure page
-  //     return reply.redirect('http://localhost:5600/docs#/');
-  //   }
-  // });
+      // Redirect to failure page
+      return reply.redirect('http://localhost:5600/docs#/');
+    }
+  });
 
   // Payment status check endpoint
   fastify.get('/status/:merchantTransactionId', {
