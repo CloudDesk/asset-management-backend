@@ -160,6 +160,41 @@ export class PhonePeController {
               mode: 'cod'
             }, 'COD order and orderlines created successfully');
 
+            // Update product quantities after successful order creation
+            if (orderData && requestBody.order && Array.isArray(requestBody.order)) {
+              try {
+                logger.info({
+                  merchantTransactionId: paymentRequest.merchantTransactionId,
+                  orderId: orderData.id,
+                  mode: 'cod'
+                }, 'Starting product quantity updates for COD order');
+
+                const quantityUpdateResult = await this.updateProductQuantitiesAfterOrder(
+                  orderData,
+                  requestBody.order,
+                  'cod'
+                );
+
+                logger.info({
+                  merchantTransactionId: paymentRequest.merchantTransactionId,
+                  orderId: orderData.id,
+                  mode: 'cod',
+                  quantityUpdateResult
+                }, 'Product quantity updates completed for COD order');
+
+              } catch (quantityUpdateError: any) {
+                logger.error({
+                  error: quantityUpdateError.message,
+                  merchantTransactionId: paymentRequest.merchantTransactionId,
+                  orderId: orderData.id,
+                  mode: 'cod'
+                }, 'Error updating product quantities for COD order');
+
+                // Don't fail the order creation if quantity update fails
+                // The order is already created successfully
+              }
+            }
+
           } catch (orderError: any) {
             logger.error({
               error: orderError.message,
@@ -260,6 +295,52 @@ export class PhonePeController {
             orderid: orderData?.orderid,
             mode: 'phonepe'
           }, 'Order and orderlines created successfully for PhonePe payment');
+
+          // Update product quantities after successful order creation for PhonePe
+          try {
+            // Get the original order data from transaction
+            const transactions = await this.transactionService.findMany(
+              { merchanttransactionid: merchantTransactionId }, 
+              1, 
+              1
+            );
+            
+            if (transactions.data && transactions.data.length > 0) {
+              const transaction = transactions.data[0];
+              const originalOrderItems = transaction.transactiondata?.originalPayload?.order || [];
+              
+              if (originalOrderItems.length > 0) {
+                logger.info({
+                  merchantTransactionId,
+                  orderId: orderData.id,
+                  mode: 'phonepe'
+                }, 'Starting product quantity updates for PhonePe order');
+
+                const quantityUpdateResult = await this.updateProductQuantitiesAfterOrder(
+                  orderData,
+                  originalOrderItems,
+                  'phonepe'
+                );
+
+                logger.info({
+                  merchantTransactionId,
+                  orderId: orderData.id,
+                  mode: 'phonepe',
+                  quantityUpdateResult
+                }, 'Product quantity updates completed for PhonePe order');
+              }
+            }
+          } catch (quantityUpdateError: any) {
+            logger.error({
+              error: quantityUpdateError.message,
+              merchantTransactionId,
+              orderId: orderData?.id,
+              mode: 'phonepe'
+            }, 'Error updating product quantities for PhonePe order');
+
+            // Don't fail the order creation if quantity update fails
+            // The order is already created successfully
+          }
 
         } catch (orderError: any) {
           logger.error({
@@ -710,7 +791,7 @@ export class PhonePeController {
   async createOrderAfterPayment(transactionId: string, forceMode?: string) {
     try {
       logger.info({ transactionId }, 'Creating order after successful payment');
-      logger.info({ forceMode }, 'forceMode')
+      logger.info({ forceMode }, 'forceMode createOrderAfterPayment')
       // Find transaction by merchanttransactionid
       const transactions = await this.transactionService.findMany(
         { merchanttransactionid: transactionId }, 
@@ -1285,6 +1366,140 @@ export class PhonePeController {
         error: error.message,
         merchantTransactionId: paymentRequest.merchantTransactionId
       }, 'Error storing transaction data');
+      throw error;
+    }
+  }
+
+  /**
+   * Update product quantities after successful order creation
+   * This method updates orderedquantity and availablequantity for each product in the order
+   */
+  private async updateProductQuantitiesAfterOrder(
+    orderData: any, 
+    originalOrderItems: any[], 
+    mode: string
+  ) {
+    try {
+      logger.info({
+        orderId: orderData.id,
+        mode: mode,
+        orderItemsCount: originalOrderItems.length
+      }, 'Starting product quantity updates after order creation');
+
+      const updateResults = [];
+
+      for (const orderItem of originalOrderItems) {
+        try {
+          const productId = orderItem.productid;
+          const requestedQuantity = orderItem.quantity || 1;
+
+          // Get current product data
+          const product = await prisma.product.findUnique({
+            where: { id: BigInt(productId) },
+            select: {
+              id: true,
+              name: true,
+              orderedquantity: true,
+              availablequantity: true,
+              quantity: true
+            }
+          });
+
+          if (!product) {
+            logger.warn({
+              productId,
+              orderId: orderData.id
+            }, 'Product not found for quantity update');
+            continue;
+          }
+
+          // Calculate new quantities
+          const currentOrderedQuantity = product.orderedquantity || 0;
+          const currentAvailableQuantity = product.availablequantity || 0;
+          
+          const newOrderedQuantity = currentOrderedQuantity + requestedQuantity;
+          const newAvailableQuantity = Math.max(0, currentAvailableQuantity - requestedQuantity);
+
+          // Update product quantities
+          const updatedProduct = await prisma.product.update({
+            where: { id: BigInt(productId) },
+            data: {
+              orderedquantity: newOrderedQuantity,
+              availablequantity: newAvailableQuantity,
+              modifieddate: BigInt(Date.now())
+            }
+          });
+
+          logger.info({
+            productId,
+            productName: product.name,
+            orderId: orderData.id,
+            mode: mode,
+            quantityUpdate: {
+              requestedQuantity,
+              oldOrderedQuantity: currentOrderedQuantity,
+              newOrderedQuantity,
+              oldAvailableQuantity: currentAvailableQuantity,
+              newAvailableQuantity
+            }
+          }, 'Product quantity updated successfully');
+
+          updateResults.push({
+            productId,
+            productName: product.name,
+            success: true,
+            quantityUpdate: {
+              requestedQuantity,
+              oldOrderedQuantity: currentOrderedQuantity,
+              newOrderedQuantity,
+              oldAvailableQuantity: currentAvailableQuantity,
+              newAvailableQuantity
+            }
+          });
+
+        } catch (productError: any) {
+          logger.error({
+            productId: orderItem.productid,
+            orderId: orderData.id,
+            error: productError.message
+          }, 'Error updating product quantity');
+
+          updateResults.push({
+            productId: orderItem.productid,
+            success: false,
+            error: productError.message
+          });
+        }
+      }
+
+      const successfulUpdates = updateResults.filter(r => r.success);
+      const failedUpdates = updateResults.filter(r => !r.success);
+
+      logger.info({
+        orderId: orderData.id,
+        mode: mode,
+        totalProducts: originalOrderItems.length,
+        successfulUpdates: successfulUpdates.length,
+        failedUpdates: failedUpdates.length,
+        updateResults
+      }, 'Product quantity update process completed');
+
+      return {
+        success: true,
+        totalProducts: originalOrderItems.length,
+        successfulUpdates: successfulUpdates.length,
+        failedUpdates: failedUpdates.length,
+        updateResults
+      };
+
+    } catch (error: any) {
+      logger.error({
+        orderId: orderData.id,
+        mode: mode,
+        error: error.message,
+        stack: error.stack
+      }, 'Error in product quantity update process');
+      
       throw error;
     }
   }
