@@ -174,13 +174,21 @@ export class StockService {
 
       if (productIdentifier) {
         try {
-          const updateResult = await this.productService.updateStockTotals(productIdentifier);
+          // Pass the inserted stock information to updateStockTotals
+          const insertedStockInfo = {
+            ecompublish: stock.ecompublish,
+            stockstatus: stock.stockstatus,
+            quantity: stock.quantity || 1 // Default to 1 if not specified
+          };
+          
+          const updateResult = await this.productService.updateStockTotals(productIdentifier, insertedStockInfo);
           logger.info(
             { 
               stockId: stock.id, 
               productIdentifier,
               stockstatus: stock.stockstatus,
               ecompublish: stock.ecompublish,
+              insertedStockInfo,
               updateResult 
             },
             "Successfully updated product quantities after stock creation"

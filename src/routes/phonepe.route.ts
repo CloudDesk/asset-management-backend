@@ -1036,4 +1036,77 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
       }
     });
   });
+
+  // Manual product quantity update endpoint
+  fastify.post('/orders/:orderId/update-quantities', {
+    schema: {
+      description: 'Manually update product quantities for an existing order',
+      tags: ['PhonePe Payment'],
+      summary: 'Update product quantities for an order (useful for fixing failed quantity updates)',
+      params: {
+        type: 'object',
+        properties: {
+          orderId: {
+            type: 'string',
+            minLength: 1,
+            description: 'Order ID to update quantities for'
+          }
+        },
+        required: ['orderId']
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {
+              type: 'object',
+              properties: {
+                orderId: { type: 'number' },
+                orderlines: { type: 'number' },
+                quantityUpdateResult: { type: 'object' }
+              }
+            }
+          }
+        },
+        404: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            error: { type: 'string' }
+          }
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            error: { type: 'string' }
+          }
+        }
+      }
+    }
+  }, async (request, reply) => {
+    const { orderId } = request.params as { orderId: string };
+    
+    logger.info({ orderId }, 'Manual quantity update request received');
+    
+    try {
+      const result = await phonePeController.updateOrderQuantities(request, reply);
+      return result;
+    } catch (error: any) {
+      logger.error({ 
+        error: error.message, 
+        orderId 
+      }, 'Error in manual quantity update route');
+      
+      return reply.code(500).send({
+        success: false,
+        message: 'Failed to update product quantities',
+        error: error.message
+      });
+    }
+  });
 } 

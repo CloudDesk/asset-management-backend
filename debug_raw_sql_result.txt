@@ -681,3 +681,21 @@ Update result: [
     "transactionfor": "product"
   }
 ]
+Update result: [
+  {
+    "id": 2,
+    "useremail": "harish@mail.com",
+    "userpassword": "$2a$12$so.ymfCoVsAVlnB5GvSo5.gXz0VKpmlA8lBKrE2EcBbzx/.dPhbVm",
+    "createddate": 1754579214,
+    "modifieddate": 1756811387,
+    "role": null,
+    "usersphonenumber": null,
+    "firstname": null,
+    "lastname": null,
+    "location": null,
+    "fcmid": null,
+    "sessiontoken": "80bea7ee46497da689487a419d984c66b66609861853dbf2596193271625b942",
+    "resettoken": null,
+    "resettokenexpires": null
+  }
+]

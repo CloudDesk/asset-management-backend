@@ -324,7 +324,7 @@ model notes {
 
 model orderline {
   id              Int       @id @default(autoincrement())
-  orderid         String?   @db.VarChar(500)
+  orderid         Int  
   orderlinenumber String?   @unique(map: "unique_orderlinenumber") @db.VarChar(500)
   productid       BigInt?
   quantity        Int?
@@ -341,7 +341,7 @@ model orderline {
   rating          rating[]
   stock           Stock[]
   tickets         tickets[] @ignore
-  orders          orders?   @relation(fields: [orderid], references: [orderid], onDelete: NoAction, onUpdate: NoAction)
+  orders          orders?   @relation(fields: [orderid], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("orderline")
 }

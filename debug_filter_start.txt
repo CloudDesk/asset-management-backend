@@ -5616,3 +5616,1213 @@ Filtering data for transaction (transaction): {
   "createddate": 1756465660816,
   "modifieddate": 1756465660816
 }
+Filtering data for inventoryusers (inventoryusers): {
+  "sessiontoken": "80bea7ee46497da689487a419d984c66b66609861853dbf2596193271625b942",
+  "modifieddate": 1756791586421
+}
+Filtering data for cart (cart): {
+  "productid": 11,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1756791613203,
+  "modifieddate": 1756791613203
+}
+Filtering data for transaction (transaction): {
+  "transactionid": "TXN_1756791628520_G25M9B",
+  "merchanttransactionid": "TXN_1756791628520_G25M9B",
+  "userid": 24,
+  "amount": 90,
+  "mobilenumber": 9994824573,
+  "name": "User",
+  "productid": [
+    11
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "COD_ORDER_CREATED",
+    "mode": "cod",
+    "originalPayload": {
+      "transaction": {
+        "name": "User",
+        "amount": 90,
+        "mobilenumber": "9994824573",
+        "userId": 24,
+        "productid": [
+          11
+        ],
+        "transactionfor": "product"
+      },
+      "order": [
+        {
+          "productid": 11,
+          "productname": "ARCASA Scented Candles",
+          "productcategory": "wellness",
+          "userid": 24,
+          "addressid": 20,
+          "productamount": 240,
+          "discountamount": 0,
+          "orderamount": 240,
+          "quantity": 1,
+          "cartId": 292
+        }
+      ],
+      "mode": "cod"
+    },
+    "paymentRequest": {
+      "merchantTransactionId": "TXN_1756791628520_G25M9B",
+      "amount": 90,
+      "name": "User",
+      "mobileNumber": "9994824573",
+      "userId": 24,
+      "productIds": [
+        11
+      ],
+      "transactionFor": "product"
+    },
+    "initiatedAt": "2025-09-02T05:40:28.520Z",
+    "phonePeResponses": null,
+    "codData": {
+      "timestamp": "2025-09-02T05:40:28.520Z",
+      "status": "COD_ORDER_CREATED",
+      "message": "Cash on Delivery order created successfully"
+    }
+  },
+  "createddate": 1756791628522,
+  "modifieddate": 1756791628522
+}
+Filtering data for orders (orders): {
+  "userid": 24,
+  "orderamount": 90,
+  "orderid": "ORDER_TXN_1756791628520_G25M9B_1756791632032",
+  "orderstatus": "payment_completed",
+  "quantity": 1,
+  "transactionid": "NIVAANA-TRAN-00053",
+  "productamount": 90,
+  "discountamount": 0,
+  "ispaymentsucceed": true,
+  "merchanttransactionid": "TXN_1756791628520_G25M9B",
+  "productid": [
+    11
+  ],
+  "mode": "cod",
+  "createddate": 1756791632032,
+  "modifieddate": 1756791632032,
+  "orderItems": [
+    {
+      "cartId": 292,
+      "userid": 24,
+      "quantity": 1,
+      "addressid": 20,
+      "productid": 11,
+      "orderamount": 240,
+      "productname": "ARCASA Scented Candles",
+      "productamount": 240,
+      "discountamount": 0,
+      "productcategory": "wellness"
+    }
+  ]
+}
+Filtering data for orderline (orderline): {
+  "orderid": 27,
+  "productid": 11,
+  "userid": 24,
+  "addressid": 20,
+  "productamount": 240,
+  "discountamount": null,
+  "orderamount": 240,
+  "quantity": 1,
+  "productname": "ARCASA Scented Candles",
+  "productcategory": "wellness",
+  "orderstatus": "payment_completed",
+  "uniqueordderid": "NIVAANA-0000000027",
+  "createddate": 1756791632032,
+  "modifieddate": 1756791632032,
+  "ordereddate": 1756791632032
+}
+Filtering data for cart (cart): {
+  "productid": 8,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1756792559993,
+  "modifieddate": 1756792559993
+}
+Filtering data for transaction (transaction): {
+  "transactionid": "TXN_1756792578590_YEVA6Q",
+  "merchanttransactionid": "TXN_1756792578590_YEVA6Q",
+  "userid": 24,
+  "amount": 548,
+  "mobilenumber": 9994824573,
+  "name": "User",
+  "productid": [
+    8
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "INITIATED",
+    "mode": "phonepe",
+    "originalPayload": {
+      "transaction": {
+        "name": "User",
+        "amount": 548,
+        "mobilenumber": "9994824573",
+        "userId": 24,
+        "productid": [
+          8
+        ],
+        "transactionfor": "product"
+      },
+      "order": [
+        {
+          "productid": 8,
+          "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+          "productcategory": "wellness",
+          "userid": 24,
+          "addressid": 20,
+          "productamount": 850,
+          "discountamount": 152,
+          "orderamount": 698,
+          "quantity": 1,
+          "cartId": 293
+        }
+      ],
+      "mode": "phonepe"
+    },
+    "paymentRequest": {
+      "merchantTransactionId": "TXN_1756792578590_YEVA6Q",
+      "amount": 548,
+      "name": "User",
+      "mobileNumber": "9994824573",
+      "userId": 24,
+      "productIds": [
+        8
+      ],
+      "transactionFor": "product"
+    },
+    "initiatedAt": "2025-09-02T05:56:19.100Z",
+    "phonePeResponses": {
+      "initiation": {
+        "timestamp": "2025-09-02T05:56:19.100Z",
+        "response": {
+          "success": true,
+          "message": "Payment initiated successfully",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqYr5f8kLx41S7Y3jwBlny4",
+          "transactionId": "TXN_1756792578590_YEVA6Q"
+        },
+        "status": "INITIATED",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqYr5f8kLx41S7Y3jwBlny4"
+      }
+    },
+    "codData": null
+  },
+  "createddate": 1756792579102,
+  "modifieddate": 1756792579102
+}
+Filtering data for cart (cart): {
+  "productid": 8,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1756794739957,
+  "modifieddate": 1756794739957
+}
+Filtering data for transaction (transaction): {
+  "transactionid": "TXN_1756794770541_6XTKX3",
+  "merchanttransactionid": "TXN_1756794770541_6XTKX3",
+  "userid": 24,
+  "amount": 698,
+  "mobilenumber": 9994824573,
+  "name": "User",
+  "productid": [
+    8
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "COD_ORDER_CREATED",
+    "mode": "cod",
+    "originalPayload": {
+      "transaction": {
+        "name": "User",
+        "amount": 698,
+        "mobilenumber": "9994824573",
+        "userId": 24,
+        "productid": [
+          8
+        ],
+        "transactionfor": "product"
+      },
+      "order": [
+        {
+          "productid": 8,
+          "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+          "productcategory": "wellness",
+          "userid": 24,
+          "addressid": 20,
+          "productamount": 850,
+          "discountamount": 152,
+          "orderamount": 698,
+          "quantity": 1,
+          "cartId": 294
+        }
+      ],
+      "mode": "cod"
+    },
+    "paymentRequest": {
+      "merchantTransactionId": "TXN_1756794770541_6XTKX3",
+      "amount": 698,
+      "name": "User",
+      "mobileNumber": "9994824573",
+      "userId": 24,
+      "productIds": [
+        8
+      ],
+      "transactionFor": "product"
+    },
+    "initiatedAt": "2025-09-02T06:32:50.541Z",
+    "phonePeResponses": null,
+    "codData": {
+      "timestamp": "2025-09-02T06:32:50.541Z",
+      "status": "COD_ORDER_CREATED",
+      "message": "Cash on Delivery order created successfully"
+    }
+  },
+  "createddate": 1756794770542,
+  "modifieddate": 1756794770542
+}
+Filtering data for orders (orders): {
+  "userid": 24,
+  "orderamount": 698,
+  "orderid": "ORDER_TXN_1756794770541_6XTKX3_1756794773323",
+  "orderstatus": "payment_completed",
+  "quantity": 1,
+  "transactionid": "NIVAANA-TRAN-00056",
+  "productamount": 698,
+  "discountamount": 0,
+  "ispaymentsucceed": true,
+  "merchanttransactionid": "TXN_1756794770541_6XTKX3",
+  "productid": [
+    8
+  ],
+  "mode": "cod",
+  "createddate": 1756794773323,
+  "modifieddate": 1756794773323,
+  "orderItems": [
+    {
+      "cartId": 294,
+      "userid": 24,
+      "quantity": 1,
+      "addressid": 20,
+      "productid": 8,
+      "orderamount": 698,
+      "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+      "productamount": 850,
+      "discountamount": 152,
+      "productcategory": "wellness"
+    }
+  ]
+}
+Filtering data for orderline (orderline): {
+  "orderid": 29,
+  "productid": 8,
+  "userid": 24,
+  "addressid": 20,
+  "productamount": 850,
+  "discountamount": 152,
+  "orderamount": 698,
+  "quantity": 1,
+  "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+  "productcategory": "wellness",
+  "orderstatus": "payment_completed",
+  "uniqueordderid": "NIVAANA-0000000029",
+  "createddate": 1756794773324,
+  "modifieddate": 1756794773324,
+  "ordereddate": 1756794773324
+}
+Filtering data for cart (cart): {
+  "productid": 12,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1756795381877,
+  "modifieddate": 1756795381877
+}
+Filtering data for cart (cart): {
+  "productid": 8,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1756798308399,
+  "modifieddate": 1756798308399
+}
+Filtering data for transaction (transaction): {
+  "transactionid": "TXN_1756798330908_5CC21R",
+  "merchanttransactionid": "TXN_1756798330908_5CC21R",
+  "userid": 24,
+  "amount": 698,
+  "mobilenumber": 9994824573,
+  "name": "User",
+  "productid": [
+    8
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "COD_ORDER_CREATED",
+    "mode": "cod",
+    "originalPayload": {
+      "transaction": {
+        "name": "User",
+        "amount": 698,
+        "mobilenumber": "9994824573",
+        "userId": 24,
+        "productid": [
+          8
+        ],
+        "transactionfor": "product"
+      },
+      "order": [
+        {
+          "productid": 8,
+          "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+          "productcategory": "wellness",
+          "userid": 24,
+          "addressid": 20,
+          "productamount": 850,
+          "discountamount": 152,
+          "orderamount": 698,
+          "quantity": 1,
+          "cartId": 298
+        }
+      ],
+      "mode": "cod"
+    },
+    "paymentRequest": {
+      "merchantTransactionId": "TXN_1756798330908_5CC21R",
+      "amount": 698,
+      "name": "User",
+      "mobileNumber": "9994824573",
+      "userId": 24,
+      "productIds": [
+        8
+      ],
+      "transactionFor": "product"
+    },
+    "initiatedAt": "2025-09-02T07:32:10.909Z",
+    "phonePeResponses": null,
+    "codData": {
+      "timestamp": "2025-09-02T07:32:10.909Z",
+      "status": "COD_ORDER_CREATED",
+      "message": "Cash on Delivery order created successfully"
+    }
+  },
+  "createddate": 1756798330911,
+  "modifieddate": 1756798330911
+}
+Filtering data for orders (orders): {
+  "userid": 24,
+  "orderamount": 698,
+  "orderid": "ORDER_TXN_1756798330908_5CC21R_1756798334408",
+  "orderstatus": "payment_completed",
+  "quantity": 1,
+  "transactionid": "NIVAANA-TRAN-00060",
+  "productamount": 698,
+  "discountamount": 0,
+  "ispaymentsucceed": true,
+  "merchanttransactionid": "TXN_1756798330908_5CC21R",
+  "productid": [
+    8
+  ],
+  "mode": "cod",
+  "createddate": 1756798334408,
+  "modifieddate": 1756798334408,
+  "orderItems": [
+    {
+      "cartId": 298,
+      "userid": 24,
+      "quantity": 1,
+      "addressid": 20,
+      "productid": 8,
+      "orderamount": 698,
+      "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+      "productamount": 850,
+      "discountamount": 152,
+      "productcategory": "wellness"
+    }
+  ]
+}
+Filtering data for orderline (orderline): {
+  "orderid": 32,
+  "productid": 8,
+  "userid": 24,
+  "addressid": 20,
+  "productamount": 850,
+  "discountamount": 152,
+  "orderamount": 698,
+  "quantity": 1,
+  "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+  "productcategory": "wellness",
+  "orderstatus": "payment_completed",
+  "uniqueordderid": "NIVAANA-0000000032",
+  "createddate": 1756798334408,
+  "modifieddate": 1756798334408,
+  "ordereddate": 1756798334408
+}
+Filtering data for cart (cart): {
+  "productid": 8,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1756802602831,
+  "modifieddate": 1756802602831
+}
+Filtering data for transaction (transaction): {
+  "transactionid": "TXN_1756802640744_RQVVNJ",
+  "merchanttransactionid": "TXN_1756802640744_RQVVNJ",
+  "userid": 24,
+  "amount": 698,
+  "mobilenumber": 9994824573,
+  "name": "User",
+  "productid": [
+    8
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "COD_ORDER_CREATED",
+    "mode": "cod",
+    "originalPayload": {
+      "transaction": {
+        "name": "User",
+        "amount": 698,
+        "mobilenumber": "9994824573",
+        "userId": 24,
+        "productid": [
+          8
+        ],
+        "transactionfor": "product"
+      },
+      "order": [
+        {
+          "productid": 8,
+          "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+          "productcategory": "wellness",
+          "userid": 24,
+          "addressid": 20,
+          "productamount": 850,
+          "discountamount": 152,
+          "orderamount": 698,
+          "quantity": 1,
+          "cartId": 299
+        }
+      ],
+      "mode": "cod"
+    },
+    "paymentRequest": {
+      "merchantTransactionId": "TXN_1756802640744_RQVVNJ",
+      "amount": 698,
+      "name": "User",
+      "mobileNumber": "9994824573",
+      "userId": 24,
+      "productIds": [
+        8
+      ],
+      "transactionFor": "product"
+    },
+    "initiatedAt": "2025-09-02T08:44:00.744Z",
+    "phonePeResponses": null,
+    "codData": {
+      "timestamp": "2025-09-02T08:44:00.744Z",
+      "status": "COD_ORDER_CREATED",
+      "message": "Cash on Delivery order created successfully"
+    }
+  },
+  "createddate": 1756802642441,
+  "modifieddate": 1756802642441
+}
+Filtering data for orders (orders): {
+  "userid": 24,
+  "orderamount": 698,
+  "orderid": "ORDER_TXN_1756802640744_RQVVNJ_1756802708412",
+  "orderstatus": "payment_completed",
+  "quantity": 1,
+  "transactionid": "NIVAANA-TRAN-00066",
+  "productamount": 698,
+  "discountamount": 0,
+  "ispaymentsucceed": true,
+  "merchanttransactionid": "TXN_1756802640744_RQVVNJ",
+  "productid": [
+    8
+  ],
+  "mode": "cod",
+  "createddate": 1756802708412,
+  "modifieddate": 1756802708412,
+  "orderItems": [
+    {
+      "cartId": 299,
+      "userid": 24,
+      "quantity": 1,
+      "addressid": 20,
+      "productid": 8,
+      "orderamount": 698,
+      "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+      "productamount": 850,
+      "discountamount": 152,
+      "productcategory": "wellness"
+    }
+  ]
+}
+Filtering data for orderline (orderline): {
+  "orderid": 33,
+  "productid": 8,
+  "userid": 24,
+  "addressid": 20,
+  "productamount": 850,
+  "discountamount": 152,
+  "orderamount": 698,
+  "quantity": 1,
+  "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+  "productcategory": "wellness",
+  "orderstatus": "payment_completed",
+  "uniqueordderid": "NIVAANA-0000000033",
+  "createddate": 1756802709739,
+  "modifieddate": 1756802709739,
+  "ordereddate": 1756802709739
+}
+Filtering data for transaction (transaction): {
+  "transactionid": "TXN_1756802800400_7GCPNG",
+  "merchanttransactionid": "TXN_1756802800400_7GCPNG",
+  "userid": 24,
+  "amount": 698,
+  "mobilenumber": 9994824573,
+  "name": "User",
+  "productid": [
+    8
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "COD_ORDER_CREATED",
+    "mode": "cod",
+    "originalPayload": {
+      "transaction": {
+        "name": "User",
+        "amount": 698,
+        "mobilenumber": "9994824573",
+        "userId": 24,
+        "productid": [
+          8
+        ],
+        "transactionfor": "product"
+      },
+      "order": [
+        {
+          "productid": 8,
+          "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+          "productcategory": "wellness",
+          "userid": 24,
+          "addressid": 20,
+          "productamount": 850,
+          "discountamount": 152,
+          "orderamount": 698,
+          "quantity": 1,
+          "cartId": 299
+        }
+      ],
+      "mode": "cod"
+    },
+    "paymentRequest": {
+      "merchantTransactionId": "TXN_1756802800400_7GCPNG",
+      "amount": 698,
+      "name": "User",
+      "mobileNumber": "9994824573",
+      "userId": 24,
+      "productIds": [
+        8
+      ],
+      "transactionFor": "product"
+    },
+    "initiatedAt": "2025-09-02T08:46:40.401Z",
+    "phonePeResponses": null,
+    "codData": {
+      "timestamp": "2025-09-02T08:46:40.401Z",
+      "status": "COD_ORDER_CREATED",
+      "message": "Cash on Delivery order created successfully"
+    }
+  },
+  "createddate": 1756802800401,
+  "modifieddate": 1756802800401
+}
+Filtering data for orders (orders): {
+  "userid": 24,
+  "orderamount": 698,
+  "orderid": "ORDER_TXN_1756802800400_7GCPNG_1756802802371",
+  "orderstatus": "payment_completed",
+  "quantity": 1,
+  "transactionid": "NIVAANA-TRAN-00067",
+  "productamount": 698,
+  "discountamount": 0,
+  "ispaymentsucceed": true,
+  "merchanttransactionid": "TXN_1756802800400_7GCPNG",
+  "productid": [
+    8
+  ],
+  "mode": "cod",
+  "createddate": 1756802802371,
+  "modifieddate": 1756802802371,
+  "orderItems": [
+    {
+      "cartId": 299,
+      "userid": 24,
+      "quantity": 1,
+      "addressid": 20,
+      "productid": 8,
+      "orderamount": 698,
+      "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+      "productamount": 850,
+      "discountamount": 152,
+      "productcategory": "wellness"
+    }
+  ]
+}
+Filtering data for orderline (orderline): {
+  "orderid": 34,
+  "productid": 8,
+  "userid": 24,
+  "addressid": 20,
+  "productamount": 850,
+  "discountamount": 152,
+  "orderamount": 698,
+  "quantity": 1,
+  "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+  "productcategory": "wellness",
+  "orderstatus": "payment_completed",
+  "uniqueordderid": "NIVAANA-0000000034",
+  "createddate": 1756802802371,
+  "modifieddate": 1756802802371,
+  "ordereddate": 1756802802371
+}
+Filtering data for cart (cart): {
+  "productid": 8,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1756803945500,
+  "modifieddate": 1756803945500
+}
+Filtering data for transaction (transaction): {
+  "transactionid": "TXN_1756804031359_4PCTPC",
+  "merchanttransactionid": "TXN_1756804031359_4PCTPC",
+  "userid": 24,
+  "amount": 698,
+  "mobilenumber": 9994824573,
+  "name": "User",
+  "productid": [
+    8
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "COD_ORDER_CREATED",
+    "mode": "cod",
+    "originalPayload": {
+      "transaction": {
+        "name": "User",
+        "amount": 698,
+        "mobilenumber": "9994824573",
+        "userId": 24,
+        "productid": [
+          8
+        ],
+        "transactionfor": "product"
+      },
+      "order": [
+        {
+          "productid": 8,
+          "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+          "productcategory": "wellness",
+          "userid": 24,
+          "addressid": 20,
+          "productamount": 850,
+          "discountamount": 152,
+          "orderamount": 698,
+          "quantity": 1,
+          "cartId": 302
+        }
+      ],
+      "mode": "cod"
+    },
+    "paymentRequest": {
+      "merchantTransactionId": "TXN_1756804031359_4PCTPC",
+      "amount": 698,
+      "name": "User",
+      "mobileNumber": "9994824573",
+      "userId": 24,
+      "productIds": [
+        8
+      ],
+      "transactionFor": "product"
+    },
+    "initiatedAt": "2025-09-02T09:07:11.360Z",
+    "phonePeResponses": null,
+    "codData": {
+      "timestamp": "2025-09-02T09:07:11.360Z",
+      "status": "COD_ORDER_CREATED",
+      "message": "Cash on Delivery order created successfully"
+    }
+  },
+  "createddate": 1756804031362,
+  "modifieddate": 1756804031362
+}
+Filtering data for orders (orders): {
+  "userid": 24,
+  "orderamount": 698,
+  "orderid": "ORDER_TXN_1756804031359_4PCTPC_1756804034068",
+  "orderstatus": "payment_completed",
+  "quantity": 1,
+  "transactionid": "NIVAANA-TRAN-00069",
+  "productamount": 698,
+  "discountamount": 0,
+  "ispaymentsucceed": true,
+  "merchanttransactionid": "TXN_1756804031359_4PCTPC",
+  "productid": [
+    8
+  ],
+  "mode": "cod",
+  "createddate": 1756804034068,
+  "modifieddate": 1756804034068,
+  "orderItems": [
+    {
+      "cartId": 302,
+      "userid": 24,
+      "quantity": 1,
+      "addressid": 20,
+      "productid": 8,
+      "orderamount": 698,
+      "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+      "productamount": 850,
+      "discountamount": 152,
+      "productcategory": "wellness"
+    }
+  ]
+}
+Filtering data for orderline (orderline): {
+  "orderid": 35,
+  "productid": 8,
+  "userid": 24,
+  "addressid": 20,
+  "productamount": 850,
+  "discountamount": 152,
+  "orderamount": 698,
+  "quantity": 1,
+  "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+  "productcategory": "wellness",
+  "orderstatus": "payment_completed",
+  "uniqueordderid": "NIVAANA-0000000035",
+  "createddate": 1756804034068,
+  "modifieddate": 1756804034068,
+  "ordereddate": 1756804034068
+}
+Filtering data for cart (cart): {
+  "productid": 12,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1756804405805,
+  "modifieddate": 1756804405805
+}
+Filtering data for cart (cart): {
+  "productid": 12,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1756804423359,
+  "modifieddate": 1756804423359
+}
+Filtering data for cart (cart): {
+  "productid": 12,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1756804424460,
+  "modifieddate": 1756804424460
+}
+Filtering data for cart (cart): {
+  "productid": 12,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1756804449848,
+  "modifieddate": 1756804449848
+}
+Filtering data for cart (cart): {
+  "productid": 12,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1756804450116,
+  "modifieddate": 1756804450116
+}
+Filtering data for cart (cart): {
+  "productid": 12,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1756804452695,
+  "modifieddate": 1756804452695
+}
+Filtering data for stock (stock): {
+  "puc": "es-we-0000000003",
+  "rfid": "101523544540",
+  "serialnumber": "rs-oil-0003215",
+  "manufacturedyear": 1756771200,
+  "ecompublish": true,
+  "releaseyear": 1756771200,
+  "location": "warehouse-a",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtering data for product (product): {
+  "quantity": 2,
+  "availablequantity": 2,
+  "soldquantity": 0,
+  "ecompublishedquantity": 2,
+  "productstatus": "low_stock",
+  "modifieddate": 1756805164964
+}
+Filtering data for stock (stock): {
+  "puc": "es-we-0000000003",
+  "rfid": "35426352567",
+  "serialnumber": "rs-oil-00325",
+  "manufacturedyear": 1756771200,
+  "ecompublish": true,
+  "releaseyear": 1756771200,
+  "location": "warehouse-a",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtering data for product (product): {
+  "quantity": 3,
+  "availablequantity": 3,
+  "soldquantity": 0,
+  "ecompublishedquantity": 3,
+  "productstatus": "low_stock",
+  "modifieddate": 1756808142933
+}
+Filtering data for stock (stock): {
+  "puc": "es-we-0000000003",
+  "rfid": "1010101010",
+  "serialnumber": "rs-oil-00321",
+  "manufacturedyear": 1756771200,
+  "ecompublish": true,
+  "releaseyear": 1756771200,
+  "location": "",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtering data for product (product): {
+  "quantity": 4,
+  "availablequantity": 4,
+  "soldquantity": 0,
+  "ecompublishedquantity": 4,
+  "productstatus": "low_stock",
+  "modifieddate": 1756808247028
+}
+Filtering data for stock (stock): {
+  "puc": "es-we-0000000003",
+  "rfid": "1010101010",
+  "serialnumber": "rs-oil-00321",
+  "manufacturedyear": 1756771200,
+  "ecompublish": true,
+  "releaseyear": 1756771200,
+  "location": "warehouse-a"
+}
+Filtering data for product (product): {
+  "quantity": 4,
+  "availablequantity": 4,
+  "soldquantity": 0,
+  "ecompublishedquantity": 4,
+  "productstatus": "low_stock",
+  "modifieddate": 1756808270287
+}
+Filtering data for stock (stock): {
+  "puc": "es-we-0000000003",
+  "rfid": "4513251421",
+  "serialnumber": "rs-oil-0035",
+  "manufacturedyear": 1756771200,
+  "ecompublish": true,
+  "releaseyear": 1756771200,
+  "location": "warehouse-a",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtering data for product (product): {
+  "quantity": 5,
+  "availablequantity": 5,
+  "soldquantity": 0,
+  "ecompublishedquantity": 5,
+  "productstatus": "low_stock",
+  "modifieddate": 1756809689632
+}
+Filtering data for stock (stock): {
+  "puc": "es-we-0000000003",
+  "rfid": "3423124325",
+  "serialnumber": "WISHCARE-0002",
+  "manufacturedyear": 1756771200,
+  "ecompublish": true,
+  "releaseyear": 1756771200,
+  "location": "",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtering data for product (product): {
+  "quantity": 6,
+  "availablequantity": 6,
+  "soldquantity": 0,
+  "ecompublishedquantity": 6,
+  "productstatus": "in_stock",
+  "modifieddate": 1756810511771
+}
+Filtering data for stock (stock): {
+  "puc": "es-we-0000000003",
+  "rfid": "21212121",
+  "serialnumber": "WISHCARE-0003",
+  "manufacturedyear": 1756771200,
+  "ecompublish": true,
+  "releaseyear": 1756771200,
+  "location": "warehouse-a",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtering data for product (product): {
+  "quantity": 7,
+  "availablequantity": 6,
+  "soldquantity": 0,
+  "ecompublishedquantity": 7,
+  "productstatus": "in_stock",
+  "modifieddate": 1756810577039
+}
+Filtering data for stock (stock): {
+  "puc": "es-we-0000000003",
+  "rfid": "43125",
+  "serialnumber": "WISHCARE-0004",
+  "manufacturedyear": 1756771200,
+  "ecompublish": false,
+  "releaseyear": 1756771200,
+  "location": "warehouse-a",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtering data for product (product): {
+  "quantity": 8,
+  "availablequantity": 6,
+  "soldquantity": 0,
+  "ecompublishedquantity": 7,
+  "productstatus": "in_stock",
+  "modifieddate": 1756810680154
+}
+Filtering data for cart (cart): {
+  "productid": 12,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": false,
+  "iswishlist": true,
+  "createddate": 1756811724995,
+  "modifieddate": 1756811724995
+}
+Filtering data for cart (cart): {
+  "productid": 12,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": false,
+  "iswishlist": true,
+  "createddate": 1756811726437,
+  "modifieddate": 1756811726437
+}
+Filtering data for cart (cart): {
+  "productid": 12,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": false,
+  "iswishlist": true,
+  "createddate": 1756811726765,
+  "modifieddate": 1756811726765
+}
+Filtering data for cart (cart): {
+  "productid": 12,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": false,
+  "iswishlist": true,
+  "createddate": 1756811727475,
+  "modifieddate": 1756811727475
+}
+Filtering data for cart (cart): {
+  "productid": 12,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": false,
+  "iswishlist": true,
+  "createddate": 1756811727478,
+  "modifieddate": 1756811727478
+}
+Filtering data for cart (cart): {
+  "productid": 12,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": false,
+  "iswishlist": true,
+  "createddate": 1756811727811,
+  "modifieddate": 1756811727811
+}
+Filtering data for cart (cart): {
+  "productid": 8,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1756812517786,
+  "modifieddate": 1756812517786
+}
+Filtering data for transaction (transaction): {
+  "transactionid": "TXN_1756812534563_IUYXEX",
+  "merchanttransactionid": "TXN_1756812534563_IUYXEX",
+  "userid": 24,
+  "amount": 698,
+  "mobilenumber": 9994824573,
+  "name": "User",
+  "productid": [
+    8
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "COD_ORDER_CREATED",
+    "mode": "cod",
+    "originalPayload": {
+      "transaction": {
+        "name": "User",
+        "amount": 698,
+        "mobilenumber": "9994824573",
+        "userId": 24,
+        "productid": [
+          8
+        ],
+        "transactionfor": "product"
+      },
+      "order": [
+        {
+          "productid": 8,
+          "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+          "productcategory": "wellness",
+          "userid": 24,
+          "addressid": 20,
+          "productamount": 850,
+          "discountamount": 152,
+          "orderamount": 698,
+          "quantity": 1,
+          "cartId": 319
+        }
+      ],
+      "mode": "cod"
+    },
+    "paymentRequest": {
+      "merchantTransactionId": "TXN_1756812534563_IUYXEX",
+      "amount": 698,
+      "name": "User",
+      "mobileNumber": "9994824573",
+      "userId": 24,
+      "productIds": [
+        8
+      ],
+      "transactionFor": "product"
+    },
+    "initiatedAt": "2025-09-02T11:28:54.564Z",
+    "phonePeResponses": null,
+    "codData": {
+      "timestamp": "2025-09-02T11:28:54.564Z",
+      "status": "COD_ORDER_CREATED",
+      "message": "Cash on Delivery order created successfully"
+    }
+  },
+  "createddate": 1756812534565,
+  "modifieddate": 1756812534565
+}
+Filtering data for orders (orders): {
+  "userid": 24,
+  "orderamount": 698,
+  "orderid": "ORDER_TXN_1756812534563_IUYXEX_1756812537410",
+  "orderstatus": "payment_completed",
+  "quantity": 1,
+  "transactionid": "NIVAANA-TRAN-00070",
+  "productamount": 698,
+  "discountamount": 0,
+  "ispaymentsucceed": true,
+  "merchanttransactionid": "TXN_1756812534563_IUYXEX",
+  "productid": [
+    8
+  ],
+  "mode": "cod",
+  "createddate": 1756812537410,
+  "modifieddate": 1756812537410,
+  "orderItems": [
+    {
+      "cartId": 319,
+      "userid": 24,
+      "quantity": 1,
+      "addressid": 20,
+      "productid": 8,
+      "orderamount": 698,
+      "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+      "productamount": 850,
+      "discountamount": 152,
+      "productcategory": "wellness"
+    }
+  ]
+}
+Filtering data for orderline (orderline): {
+  "orderid": 36,
+  "productid": 8,
+  "userid": 24,
+  "addressid": 20,
+  "productamount": 850,
+  "discountamount": 152,
+  "orderamount": 698,
+  "quantity": 1,
+  "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+  "productcategory": "wellness",
+  "orderstatus": "payment_completed",
+  "uniqueordderid": "NIVAANA-0000000036",
+  "createddate": 1756812537410,
+  "modifieddate": 1756812537410,
+  "ordereddate": 1756812537410
+}
