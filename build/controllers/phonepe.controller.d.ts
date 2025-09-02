@@ -38,6 +38,11 @@ export declare class PhonePeController {
      */
     generateTransactionId: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     /**
+     * Manually update product quantities for an existing order
+     * This is useful for fixing orders where quantity updates failed
+     */
+    updateOrderQuantities: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    /**
      * Health check for PhonePe service
      */
     healthCheck: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
@@ -69,5 +74,14 @@ export declare class PhonePeController {
      * Store transaction data in database
      */
     private storeTransactionData;
+    /**
+     * Update product quantities and status after successful order creation
+     * This method updates orderedquantity, availablequantity, and productstatus for each product in the order
+     * Product status rules:
+     * - availablequantity <= 0: "out_of_stock"
+     * - availablequantity 1-5: "low_stock"
+     * - availablequantity > 5: "in_stock"
+     */
+    private updateProductQuantitiesAfterOrder;
 }
 //# sourceMappingURL=phonepe.controller.d.ts.map

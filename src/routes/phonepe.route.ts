@@ -1089,18 +1089,18 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
       }
     }
   }, async (request, reply) => {
-    const { orderId } = request.params as { orderId: string };
+    const { orderId } = request.params as { orderId: Number };
     
-    logger.info({ orderId }, 'Manual quantity update request received');
+    // logger.info({ orderId }, 'Manual quantity update request received');
     
     try {
       const result = await phonePeController.updateOrderQuantities(request, reply);
       return result;
     } catch (error: any) {
-      logger.error({ 
-        error: error.message, 
-        orderId 
-      }, 'Error in manual quantity update route');
+      // logger.error({ 
+      //   error: error.message, 
+      //   orderId 
+      // }, 'Error in manual quantity update route');
       
       return reply.code(500).send({
         success: false,

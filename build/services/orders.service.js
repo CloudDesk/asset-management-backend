@@ -29,7 +29,7 @@ export class OrdersService {
     async findById(id) {
         try {
             logger.debug({ orderId: id }, 'Starting dynamic orders findById operation');
-            const order = await dynamicFindUnique('orders', { id: parseInt(id) });
+            const order = await dynamicFindUnique('orders', { id: id });
             if (!order) {
                 throw new Error('Order not found');
             }
@@ -330,7 +330,7 @@ export class OrdersService {
     async update(id, data) {
         try {
             // Check if order exists
-            await this.findById(id);
+            await this.findById(Number(id));
             logger.debug({ originalData: data, orderId: id }, 'Starting dynamic orders update operation');
             // Auto-set modified date
             const updateData = {
@@ -355,7 +355,7 @@ export class OrdersService {
     async delete(id) {
         try {
             // Check if order exists
-            await this.findById(id);
+            await this.findById(Number(id));
             logger.debug({ orderId: id }, 'Starting dynamic orders delete operation');
             const success = await dynamicDelete('orders', { id: parseInt(id) });
             if (!success) {

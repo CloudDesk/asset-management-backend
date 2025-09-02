@@ -27,7 +27,7 @@ export class OrdersController {
     });
     getOrder = asyncHandler(async (request, reply) => {
         const { id } = ordersParamsSchema.parse(request.params);
-        const order = await this.ordersService.findById(id);
+        const order = await this.ordersService.findById(Number(id));
         const response = createSuccessResponse('Order retrieved successfully', formatEntitiesForAPI([order], 'orders')[0]);
         return reply.code(200).send(response);
     });

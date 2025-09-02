@@ -3,7 +3,7 @@ import { PaginationResult } from '../utils/pagination.js';
 import { FilterOptions } from '../utils/filterBuilder.js';
 export declare class OrdersService {
     findMany(filters: FilterOptions, page: number, limit: number): Promise<PaginationResult<any>>;
-    findById(id: string): Promise<any>;
+    findById(id: Number): Promise<any>;
     findByOrderId(orderid: string): Promise<any>;
     create(data: CreateOrdersInput & Record<string, any>): Promise<any>;
     createFromCartItems(cartItems: any[]): Promise<any>;

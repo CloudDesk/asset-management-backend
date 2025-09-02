@@ -51,11 +51,11 @@ export class OrdersService {
     }
   }
 
-  async findById(id: string) {
+  async findById(id: Number) {
     try {
       logger.debug({ orderId: id }, 'Starting dynamic orders findById operation');
 
-      const order = await dynamicFindUnique('orders', { id: parseInt(id) });
+      const order = await dynamicFindUnique('orders', { id: id });
 
       if (!order) {
         throw new Error('Order not found');
@@ -429,7 +429,7 @@ export class OrdersService {
   async update(id: string, data: UpdateOrdersInput & Record<string, any>) {
     try {
       // Check if order exists
-      await this.findById(id);
+      await this.findById(Number(id));
 
       logger.debug({ originalData: data, orderId: id }, 'Starting dynamic orders update operation');
 
@@ -460,7 +460,7 @@ export class OrdersService {
   async delete(id: string) {
     try {
       // Check if order exists
-      await this.findById(id);
+      await this.findById(Number(id));
 
       logger.debug({ orderId: id }, 'Starting dynamic orders delete operation');
 

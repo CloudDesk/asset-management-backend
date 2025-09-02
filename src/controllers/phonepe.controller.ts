@@ -703,7 +703,7 @@ console.log(request.body,"request body")
    * This is useful for fixing orders where quantity updates failed
    */
   updateOrderQuantities = asyncHandler(async (request: FastifyRequest<{
-    Params: { orderId: string };
+    Params: { orderId: Number };
   }>, reply: FastifyReply) => {
     try {
       const { orderId } = request.params;
@@ -723,7 +723,7 @@ console.log(request.body,"request body")
 
       // Get orderlines for this order
       const orderlines = await prisma.orderline.findMany({
-        where: { orderid: orderId },
+        where: { orderid: Number(orderId) },
         select: {
           id: true,
           productid: true,
@@ -757,7 +757,7 @@ console.log(request.body,"request body")
       const response = createSuccessResponse(
         'Product quantities updated successfully',
         {
-          orderId: parseInt(orderId),
+          orderId: orderId,
           orderlines: orderlines.length,
           quantityUpdateResult
         }

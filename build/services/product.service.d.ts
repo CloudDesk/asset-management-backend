@@ -8,7 +8,11 @@ export declare class ProductService {
     update(id: string, data: UpdateProductInput & Record<string, any>): Promise<any>;
     delete(id: string): Promise<void>;
     upsert(data: UpsertProductInput & Record<string, any>): Promise<any>;
-    updateStockTotals(productIdentifier: string): Promise<{
+    updateStockTotals(productIdentifier: string, insertedStock?: {
+        ecompublish?: boolean;
+        stockstatus?: string;
+        quantity?: number;
+    }): Promise<{
         totalQuantity: number;
         totalAvailable: number;
         totalSold: number;
@@ -16,7 +20,7 @@ export declare class ProductService {
     } | {
         updatedProduct: any;
         totalQuantity: number;
-        totalAvailable: number;
+        totalAvailable: any;
         totalSold: number;
         totalEcomPublished: number;
     }>;

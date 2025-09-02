@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { env } from '../config/env.js';
 
 declare global {
@@ -20,6 +20,7 @@ const prisma = globalThis.__prisma || new PrismaClient({
 });
 
 // Add connection error handling and retry logic
+// @ts-ignore - Prisma middleware types are not fully compatible with strict mode
 prisma.$use(async (params, next) => {
   const maxRetries = 3;
   let retries = 0;
