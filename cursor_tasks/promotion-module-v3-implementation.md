@@ -158,7 +158,7 @@ model promotions {
   discount_type             String?  @db.VarChar(50)
   discount_value            Decimal? @db.Decimal(10, 2)
   conditions                Json?
-  
+  actions                   Json?
   // ... existing relations ...
   redemptions promotion_redemptions[]
 }

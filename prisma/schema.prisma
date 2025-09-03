@@ -629,142 +629,81 @@ model users {
   @@map("users")
 }
 
-model promotional_assets {
-  id             Int                @id @default(autoincrement())
-  type           String             @db.VarChar(50)
-  placement      String             @db.VarChar(100)
-  title          String             @db.VarChar(255)
-  content        Json?
-  priority       Int                @default(0)
-  is_active      Boolean            @default(true)
-  schedule_start DateTime?          @db.Timestamptz(6)
-  schedule_end   DateTime?          @db.Timestamptz(6)
-  createddate    BigInt?
-  modifieddate   BigInt?
-  version        Int                @default(1)
-  audit_logs     asset_audit_logs[]
 
-  @@index([content], map: "idx_promotional_assets_content", type: Gin)
-  @@index([is_active], map: "idx_promotional_assets_is_active")
-  @@index([placement], map: "idx_promotional_assets_placement")
-  @@index([schedule_start, schedule_end], map: "idx_promotional_assets_schedule")
-  @@index([type], map: "idx_promotional_assets_type")
-  @@map("promotional_assets")
-}
 
-model asset_audit_logs {
-  id          Int                @id @default(autoincrement())
-  asset_id    Int
-  action      String             @db.VarChar(50)
-  changed_by  String             @db.VarChar(255)
-  changes     Json
-  createddate BigInt?
-  asset       promotional_assets @relation(fields: [asset_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@map("asset_audit_logs")
-}
 
 model promotions {
   id              Int       @id @default(autoincrement())
   name            String?   @db.Text
-  type            String?   @db.Text
-  code            String?   @db.Text
+  description     String?   @db.Text
+  type            String?   @db.Text // PERCENT_OFF_ITEM, FIXED_AMOUNT_OFF_ITEM, BOGO, PERCENT_OFF_CART, FIXED_AMOUNT_OFF_CART, FREE_SHIPPING
+  code            String?   @db.Text // Coupon code (NULL for automatic promotions, populated for coupon-based promotions)
   auto_apply      Boolean?
   start_date      DateTime? @db.Date
   end_date        DateTime? @db.Date
   status          String?   @db.Text
   priority        Int?
   visibility      String?   @db.Text
-  max_redemptions Int?
-  per_user_limit  Int?
+  max_redemptions Int?     // Total usage limit (replaces total_usage_limit from coupons)
+  per_user_limit  Int?     // Usage limit per user (replaces usage_limit_per_user from coupons)
   stackable       Boolean?
+  budget          Decimal?  @db.Decimal(10, 2)
+  timezone        String?   @db.VarChar(50)
+  evaluation_expiry_minutes Int? @default(15)
+  discount_type   String?   @db.VarChar(50)
+  discount_value  Decimal?  @db.Decimal(10, 2)
+  conditions      Json?     // Array of condition objects: [{ "attribute": "cart.total_value", "operator": "GTE", "value": 500 }]
+  actions         Json?     // Array of action objects: [{ "type": "PERCENT_OFF", "value": 15 }]
   createddate     BigInt?
   modifieddate    BigInt?
 
   // Relations
-  promotion_rules       promotion_rules[]
-  promotion_actions     promotion_actions[]
-  promotion_target_link promotion_target_link[]
-  promotion_usage_log   promotion_usage_log[]
+  redemptions           promotion_redemptions[]
 
   @@map("promotions")
 }
 
-model promotion_rules {
-  id            Int      @id @default(autoincrement())
-  promotion_id  Int?
-  rule_type     String?  @db.Text
-  condition_key String?  @db.Text
-  operator      String?  @db.Text
-  value         String?  @db.Text
-  value_type    String?  @db.Text
-  logic_group   String?  @db.Text
-  priority      Int?
-  exclude       Boolean?
-  is_active     Boolean?
-  notes         String?  @db.Text
-  createddate   BigInt?
-  modifieddate  BigInt?
-
-  // Relations
-  promotion promotions? @relation(fields: [promotion_id], references: [id], onDelete: Cascade)
-
-  @@map("promotion_rules")
-}
-
-model promotion_actions {
-  id                   Int      @id @default(autoincrement())
-  promotion_id         Int?
-  action_type          String?  @db.Text
-  target               String?  @db.Text
-  value_type           String?  @db.Text
-  value                Decimal? @db.Decimal(10, 2)
-  reward_product_id    Int?
-  min_combo_size       Int?
-  apply_to_product_ids Int[]
-  max_discount_cap     Decimal? @db.Decimal(10, 2)
-  check_inventory      Boolean?
-  execution_group      String?  @db.Text
-  action_order         Int?
+model promotion_evaluations {
+  evaluation_id        String   @id @db.VarChar(36)
+  user_id              String?  @db.Text
+  cart_data            Json?
+  original_total       Decimal? @db.Decimal(10, 2)
+  discounted_total     Decimal? @db.Decimal(10, 2)
+  applied_promotions   Json?
+  ineligible_coupons   Json?
+  context              Json? // channel, geo, payment_method
+  created_at           DateTime @default(now())
+  expires_at           DateTime
+  status               String?  @default("active") @db.VarChar(50)
   createddate          BigInt?
   modifieddate         BigInt?
-
-  // Relations
-  promotion promotions? @relation(fields: [promotion_id], references: [id], onDelete: Cascade)
-
-  @@map("promotion_actions")
+  
+  redemptions promotion_redemptions[]
+  
+  @@index([user_id, created_at])
+  @@index([expires_at])
+  @@map("promotion_evaluations")
 }
 
-model promotion_target_link {
-  id           Int      @id @default(autoincrement())
-  promotion_id Int?
-  target_type  String?  @db.Text
-  target_id    String?  @db.Text
-  target_label String?  @db.Text
-  apply_scope  String?  @db.Text
-  is_active    Boolean?
-  createddate  BigInt?
-  modifieddate BigInt?
-
-  // Relations
-  promotion promotions? @relation(fields: [promotion_id], references: [id], onDelete: Cascade)
-
-  @@map("promotion_target_link")
+model promotion_redemptions {
+  id              String   @id @db.VarChar(36)
+  evaluation_id   String   @db.VarChar(36)
+  order_id        String?  @db.Text
+  user_id         String?  @db.Text
+  promotion_id    Int?
+  discount_amount Decimal? @db.Decimal(10, 2)
+  redeemed_at     DateTime @default(now())
+  redemption_data Json?
+  createddate     BigInt?
+  modifieddate    BigInt?
+  
+  evaluation promotion_evaluations @relation(fields: [evaluation_id], references: [evaluation_id])
+  promotion  promotions?            @relation(fields: [promotion_id], references: [id])
+  
+  @@index([evaluation_id])
+  @@index([order_id])
+  @@map("promotion_redemptions")
 }
 
-model promotion_usage_log {
-  id               Int       @id @default(autoincrement())
-  promotion_id     Int?
-  user_id          String?   @db.Text
-  order_id         String?   @db.Text
-  redemption_date  DateTime? @default(now())
-  discount_applied Decimal?  @db.Decimal(10, 2)
-  platform         String?   @db.Text
-  createddate      BigInt?
-  modifieddate     BigInt?
 
-  // Relations
-  promotion promotions? @relation(fields: [promotion_id], references: [id], onDelete: Cascade)
-
-  @@map("promotion_usage_log")
-}
