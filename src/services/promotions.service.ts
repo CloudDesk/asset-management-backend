@@ -1,7 +1,6 @@
 import { 
   CreatePromotionsInput, 
-  UpdatePromotionsInput, 
-  UpsertPromotionsInput
+  UpdatePromotionsInput
 } from '../schemas/promotions.schema.js';
 import { PaginationResult, createPaginationResult, getPrismaSkipTake } from '../utils/pagination.js';
 import { FilterOptions } from '../utils/filterBuilder.js';
@@ -15,6 +14,78 @@ import {
 import { logger } from '../config/logger.js';
 
 export class PromotionsService {
+  
+  // Get public promotions for guest users
+  async getPublicPromotions(options: { channel: string; geo: string; limit: number }): Promise<any[]> {
+    try {
+      logger.info({ options }, 'Getting public promotions for guest users');
+
+      // Get attractive public promotions that are:
+      // 1. Active and currently running
+      // 2. Public visibility (not private)
+      // 3. Auto-apply or general promotions (not user-specific)
+      // 4. Ordered by priority and discount value
+      const filters: FilterOptions = {
+        is_active: 'true',
+        status: 'active',
+        visibility: 'public',
+        auto_apply: 'true' // Show auto-apply promotions to guests
+      };
+
+      const { data: promotions } = await dynamicFindManyWithFilters('promotions', filters, {
+        skip: 0,
+        take: options.limit,
+        useAllColumns: true
+      });
+
+      // Filter and format promotions for guest users
+      const publicPromotions = promotions
+        .filter((promo: any) => {
+          // Additional filtering for guest-appropriate promotions
+          const now = new Date();
+          const startDate = promo.start_date ? new Date(promo.start_date) : null;
+          const endDate = promo.end_date ? new Date(promo.end_date) : null;
+          
+          // Check if promotion is currently active
+          if (startDate && startDate > now) return false;
+          if (endDate && endDate < now) return false;
+          
+          return true;
+        })
+        .map((promo: any) => ({
+          id: promo.id,
+          name: promo.name,
+          description: promo.description,
+          type: promo.type,
+          discount_value: promo.discount_value,
+          discount_type: promo.discount_type,
+          start_date: promo.start_date,
+          end_date: promo.end_date,
+          priority: promo.priority,
+          is_active: promo.is_active,
+          // Don't expose sensitive fields like budget, max_redemptions, etc.
+        }))
+        .sort((a: any, b: any) => {
+          // Sort by priority (lower number = higher priority) then by discount value
+          if (a.priority !== b.priority) {
+            return (a.priority || 999) - (b.priority || 999);
+          }
+          return (b.discount_value || 0) - (a.discount_value || 0);
+        });
+
+      logger.info({ 
+        totalPromotions: promotions.length,
+        publicPromotions: publicPromotions.length,
+        channel: options.channel,
+        geo: options.geo
+      }, 'Public promotions retrieved for guest users');
+
+      return publicPromotions;
+    } catch (error) {
+      logger.error({ error, options }, 'Error getting public promotions for guest users');
+      throw error;
+    }
+  }
   async findMany(
     filters: FilterOptions,
     page: number,
@@ -145,22 +216,5 @@ export class PromotionsService {
     }
   }
 
-  async upsert(data: UpsertPromotionsInput & Record<string, any>) {
-    try {
-      const { id, ...updateData } = data;
 
-      if (id) {
-        // Update existing promotion
-        logger.debug({ promotionId: id, data: updateData }, 'Upserting existing promotion');
-        return this.update(id.toString(), updateData);
-      } else {
-        // Create new promotion
-        logger.debug({ data: updateData }, 'Upserting new promotion');
-        return this.create(updateData);
-      }
-    } catch (error) {
-      logger.error({ error, data }, 'Error in promotion upsert operation');
-      throw error;
-    }
-  }
 } 

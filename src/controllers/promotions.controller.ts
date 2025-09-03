@@ -1,31 +1,33 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { PromotionsService } from '../services/promotions.service.js';
-import { PromotionEvaluationService } from '../services/promotion-evaluation.service.js';
 import { 
   createPromotionsSchema, 
-  updatePromotionsSchema, 
-  upsertPromotionsSchema,
-  promotionEligibilitySchema,
-  promotionEligibilityQuerySchema,
+  updatePromotionsSchema,
   CreatePromotionsInput,
-  UpdatePromotionsInput,
-  UpsertPromotionsInput,
-  PromotionEligibilityInput,
-  PromotionEligibilityQueryInput
+  UpdatePromotionsInput
 } from '../schemas/promotions.schema.js';
 import { getPaginationParams } from '../utils/pagination.js';
 import { 
   createSuccessResponse,
-  asyncHandler,
-  ValidationError,
-  DatabaseError
+  asyncHandler
 } from '../utils/errorHandler.js';
-import { logger } from '../config/logger.js';
-import { ZodError, ZodIssue } from 'zod';
 
 export class PromotionsController {
   public promotionsService = new PromotionsService();
-  public promotionEvaluationService = new PromotionEvaluationService();
+
+  // Get public promotions for guest users (no authentication required)
+  getPublicPromotions = asyncHandler(async (request: FastifyRequest<{ Querystring: { channel?: string; geo?: string; limit?: string } }>, reply: FastifyReply) => {
+    const { channel = 'web', geo = 'IN', limit = '10' } = request.query;
+    
+    // Get attractive public promotions for guest users
+    const promotions = await this.promotionsService.getPublicPromotions({
+      channel,
+      geo,
+      limit: parseInt(limit)
+    });
+    
+    return promotions;
+  });
 
   getPromotions = asyncHandler(async (request: FastifyRequest<{ Querystring: Record<string, any> }>, reply: FastifyReply) => {
     // Get all query parameters as filters
@@ -86,98 +88,5 @@ export class PromotionsController {
     return reply.code(200).send(response);
   });
 
-  upsertPromotion = asyncHandler(async (request: FastifyRequest<{ Body: UpsertPromotionsInput }>, reply: FastifyReply) => {
-    const data = upsertPromotionsSchema.parse(request.body);
-    
-    const promotion = await this.promotionsService.upsert(data);
-    
-    const message = data.id ? 'Promotion updated successfully' : 'Promotion created successfully';
-    const response = createSuccessResponse(message, promotion);
-    return reply.code(200).send(response);
-  });
 
-  evaluateEligibility = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
-      // Log the incoming request
-      logger.info({ 
-        body: request.body,
-        query: request.query,
-        method: request.method,
-        url: request.url
-      }, 'Processing promotion eligibility request');
-
-      let data: PromotionEligibilityInput;
-
-      // Handle GET requests
-      if (request.method === 'GET') {
-        const queryParams = promotionEligibilityQuerySchema.parse(request.query);
-        data = {
-          user_id: queryParams.user_id,
-          platform: queryParams.platform,
-          code: queryParams.code
-        };
-      } 
-      // Handle POST requests
-      else {
-        data = promotionEligibilitySchema.parse(request.body);
-      }
-      
-      // Evaluate eligibility
-      const result = await this.promotionEvaluationService.evaluateEligibility(data);
-      
-      // Log successful response
-      logger.info({
-        eligible_count: result.eligible_promotions?.length || 0,
-        user_id: data.user_id,
-        method: request.method
-      }, 'Successfully evaluated promotion eligibility');
-      
-      const response = createSuccessResponse('Promotion eligibility evaluated successfully', result);
-      return reply.code(200).send(response);
-      
-    } catch (error: any) {
-      // Log the error with full context
-      logger.error({
-        error: {
-          name: error.name,
-          message: error.message,
-          code: error.code,
-          details: error.details
-        },
-        request: {
-          body: request.body,
-          query: request.query,
-          method: request.method,
-          url: request.url
-        }
-      }, 'Error evaluating promotion eligibility');
-
-      // Handle specific error types
-      if (error instanceof ZodError) {
-        throw new ValidationError(
-          'Invalid promotion eligibility request data',
-          error.errors.map((e: ZodIssue) => `${e.path.join('.')}: ${e.message}`).join(', ')
-        );
-      }
-      
-      if (error.code === 'P2025') {
-        throw new DatabaseError(
-          'Referenced promotion or rule not found',
-          'One or more promotions or rules referenced in the request do not exist',
-          404
-        );
-      }
-      
-      if (error.code === 'P2003') {
-        throw new DatabaseError(
-          'Invalid promotion reference',
-          'One or more promotion references are invalid',
-          400
-        );
-      }
-      
-      // Re-throw other errors to be handled by the global error handler
-      throw error;
-    }
-  });
 } 

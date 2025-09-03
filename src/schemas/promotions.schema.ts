@@ -7,7 +7,8 @@ export const promotionTypeEnum = z.enum([
   'BOGO',
   'PERCENT_OFF_CART',
   'FIXED_AMOUNT_OFF_CART',
-  'FREE_SHIPPING'
+  'FREE_SHIPPING',
+  'FREE_PRODUCT'
 ]);
 
 // Condition object schema
@@ -19,8 +20,8 @@ export const conditionSchema = z.object({
 
 // Action object schema
 export const actionSchema = z.object({
-  type: z.enum(['PERCENT_OFF', 'FIXED_AMOUNT_OFF', 'FREE_SHIPPING', 'BOGO']),
-  value: z.union([z.number(), z.boolean()])
+  type: z.enum(['PERCENT_OFF', 'FIXED_AMOUNT_OFF', 'FREE_SHIPPING', 'BOGO', 'FREE_PRODUCT']),
+  value: z.union([z.number(), z.boolean(), z.string()]) // string for product_id in FREE_PRODUCT
 });
 
 // Validation schema for creating a promotion
@@ -30,6 +31,7 @@ export const createPromotionsSchema = z.object({
   type: promotionTypeEnum.optional(),
   code: z.string().optional(), // Coupon code (NULL for automatic promotions)
   auto_apply: z.boolean().optional(),
+  is_active: z.boolean().optional(),
   start_date: z.string().datetime().optional(),
   end_date: z.string().datetime().optional(),
   status: z.enum(['active', 'inactive']).optional(),
@@ -54,6 +56,7 @@ export const updatePromotionsSchema = z.object({
   type: promotionTypeEnum.optional(),
   code: z.string().optional(),
   auto_apply: z.boolean().optional(),
+  is_active: z.boolean().optional(),
   start_date: z.string().datetime().optional(),
   end_date: z.string().datetime().optional(),
   status: z.enum(['active', 'inactive']).optional(),
@@ -79,6 +82,7 @@ export const upsertPromotionsSchema = z.object({
   type: promotionTypeEnum.optional(),
   code: z.string().optional(),
   auto_apply: z.boolean().optional(),
+  is_active: z.boolean().optional(),
   start_date: z.string().datetime().optional(),
   end_date: z.string().datetime().optional(),
   status: z.enum(['active', 'inactive']).optional(),
@@ -112,6 +116,7 @@ export const promotionsQuerySchema = z.object({
   type: z.string().optional(),
   code: z.string().optional(),
   auto_apply: z.string().optional(),
+  is_active: z.string().optional(),
   status: z.string().optional(),
   priority: z.string().optional(),
   visibility: z.string().optional(),

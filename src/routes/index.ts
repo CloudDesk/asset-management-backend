@@ -85,7 +85,7 @@ export async function routes(fastify: FastifyInstance) {
     await fastify.register(orderlineRoutes, { prefix: '/orderlines' });
     await fastify.register(transactionRoutes, { prefix: '/transactions' });
     await fastify.register(phonePeRoutes, { prefix: '/phonepe' });    
-    // Promotion system routes
+    // Promotion system routes (public for guest users)
     await fastify.register(promotionsRoutes, { prefix: '/promotions' });
     await fastify.register(ratingRoutes, { prefix: '/ratings' });
 

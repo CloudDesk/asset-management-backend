@@ -637,9 +637,10 @@ model promotions {
   id              Int       @id @default(autoincrement())
   name            String?   @db.Text
   description     String?   @db.Text
-  type            String?   @db.Text // PERCENT_OFF_ITEM, FIXED_AMOUNT_OFF_ITEM, BOGO, PERCENT_OFF_CART, FIXED_AMOUNT_OFF_CART, FREE_SHIPPING
+  type            String?   @db.Text // PERCENT_OFF_ITEM, FIXED_AMOUNT_OFF_ITEM, BOGO, PERCENT_OFF_CART, FIXED_AMOUNT_OFF_CART, FREE_SHIPPING,FREE_PRODUCT
   code            String?   @db.Text // Coupon code (NULL for automatic promotions, populated for coupon-based promotions)
   auto_apply      Boolean?
+  is_active       Boolean?
   start_date      DateTime? @db.Date
   end_date        DateTime? @db.Date
   status          String?   @db.Text
