@@ -1,6 +1,6 @@
-import { CreateRatingInput, UpdateRatingInput, UpsertRatingInput } from '../schemas/rating.schema.js';
-import { PaginationResult } from '../utils/pagination.js';
-import { FilterOptions } from '../utils/filterBuilder.js';
+import { CreateRatingInput, UpdateRatingInput, UpsertRatingInput } from "../schemas/rating.schema.js";
+import { PaginationResult } from "../utils/pagination.js";
+import { FilterOptions } from "../utils/filterBuilder.js";
 export declare class RatingService {
     findMany(filters: FilterOptions, page: number, limit: number): Promise<PaginationResult<any>>;
     findById(id: string): Promise<any>;

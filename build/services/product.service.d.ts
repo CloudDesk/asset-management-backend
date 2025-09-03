@@ -1,6 +1,6 @@
-import { CreateProductInput, UpdateProductInput, UpsertProductInput } from '../schemas/product.schema.js';
-import { PaginationResult } from '../utils/pagination.js';
-import { FilterOptions } from '../utils/filterBuilder.js';
+import { CreateProductInput, UpdateProductInput, UpsertProductInput } from "../schemas/product.schema.js";
+import { PaginationResult } from "../utils/pagination.js";
+import { FilterOptions } from "../utils/filterBuilder.js";
 export declare class ProductService {
     findMany(filters: FilterOptions, page: number, limit: number): Promise<PaginationResult<any>>;
     findById(id: string): Promise<any>;
@@ -44,6 +44,13 @@ export declare class ProductService {
      * Helper method to check if two arrays contain the same elements (order doesn't matter)
      */
     private arraysContainSameElements;
+    /**
+     * Update product's average rating based on all ratings for the product
+     */
+    updateAverageRating(productId: number): Promise<{
+        averageRating: number;
+        totalRatings: number;
+    }>;
     /**
      * Delete specific URLs from product image arrays
      */

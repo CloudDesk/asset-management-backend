@@ -111,4 +111,4 @@ export const picklistTypes = {
   QUALITY_GRADE: 'QUALITY_GRADE'
 } as const;
 
-export type PicklistType = typeof picklistTypes[keyof typeof picklistTypes]; 
+export type PicklistType = typeof picklistTypes[keyof typeof picklistTypes];

@@ -1,60 +1,60 @@
-import { createPaginationResult, getPrismaSkipTake } from '../utils/pagination.js';
-import { dynamicFindMany, dynamicFindUnique, dynamicCreate, dynamicUpdate, dynamicDelete, dynamicFindManyWithFilters } from '../utils/dynamicDbOperations.js';
-import { logger } from '../config/logger.js';
+import { createPaginationResult, getPrismaSkipTake, } from "../utils/pagination.js";
+import { dynamicFindMany, dynamicFindUnique, dynamicCreate, dynamicUpdate, dynamicDelete, dynamicFindManyWithFilters, } from "../utils/dynamicDbOperations.js";
+import { logger } from "../config/logger.js";
 export class ProductService {
     async findMany(filters, page, limit) {
         try {
-            logger.info({ filters, page, limit }, 'Starting dynamic product findMany with filters');
+            logger.info({ filters, page, limit }, "Starting dynamic product findMany with filters");
             const { skip, take } = getPrismaSkipTake(page, limit);
             // Use the new dynamic filtering system
-            const { data: products, total } = await dynamicFindManyWithFilters('product', filters, {
+            const { data: products, total } = await dynamicFindManyWithFilters("product", filters, {
                 skip,
                 take,
-                useAllColumns: true // Get all available columns
+                useAllColumns: true, // Get all available columns
             });
             logger.info({
                 productCount: products.length,
                 total,
                 filtered: Object.keys(filters).length > 0,
                 appliedFilters: Object.keys(filters),
-                availableFields: products.length > 0 ? Object.keys(products[0]) : []
-            }, 'Dynamic product findMany with filters completed');
+                availableFields: products.length > 0 ? Object.keys(products[0]) : [],
+            }, "Dynamic product findMany with filters completed");
             return createPaginationResult(products, total, page, limit);
         }
         catch (error) {
-            logger.error({ error, filters, page, limit }, 'Error in dynamic product findMany operation');
+            logger.error({ error, filters, page, limit }, "Error in dynamic product findMany operation");
             throw error;
         }
     }
     async findById(id) {
         try {
-            logger.debug({ productId: id }, 'Starting dynamic product findById operation');
-            const product = await dynamicFindUnique('product', { id });
+            logger.debug({ productId: id }, "Starting dynamic product findById operation");
+            const product = await dynamicFindUnique("product", { id });
             if (!product) {
-                throw new Error('Product not found');
+                throw new Error("Product not found");
             }
             logger.debug({
                 productId: id,
-                availableFields: Object.keys(product)
-            }, 'Dynamic product findById completed');
+                availableFields: Object.keys(product),
+            }, "Dynamic product findById completed");
             return product;
         }
         catch (error) {
-            logger.error({ error, productId: id }, 'Error in product findById operation');
+            logger.error({ error, productId: id }, "Error in product findById operation");
             throw error;
         }
     }
     async create(data) {
         try {
-            logger.debug({ originalData: data }, 'Starting dynamic product create operation');
-            const product = await dynamicCreate('product', data);
+            logger.debug({ originalData: data }, "Starting dynamic product create operation");
+            const product = await dynamicCreate("product", data);
             if (!product) {
-                throw new Error('Failed to create product - no valid fields provided');
+                throw new Error("Failed to create product - no valid fields provided");
             }
             logger.info({
                 productId: product.id,
-                availableFields: Object.keys(product)
-            }, 'Dynamic product create completed');
+                availableFields: Object.keys(product),
+            }, "Dynamic product create completed");
             return product;
         }
         catch (error) {
@@ -62,8 +62,8 @@ export class ProductService {
                 error: error.message,
                 errorCode: error.code,
                 errorMeta: error.meta,
-                originalData: data
-            }, 'Error in product create operation');
+                originalData: data,
+            }, "Error in product create operation");
             // Re-throw the original error to preserve specific error details
             throw error;
         }
@@ -72,19 +72,19 @@ export class ProductService {
         try {
             // Check if product exists
             await this.findById(id);
-            logger.debug({ originalData: data, productId: id }, 'Starting dynamic product update operation');
-            const product = await dynamicUpdate('product', { id }, data);
+            logger.debug({ originalData: data, productId: id }, "Starting dynamic product update operation");
+            const product = await dynamicUpdate("product", { id }, data);
             if (!product) {
-                throw new Error('Failed to update product - no valid fields provided');
+                throw new Error("Failed to update product - no valid fields provided");
             }
             logger.info({
                 productId: id,
-                availableFields: Object.keys(product)
-            }, 'Dynamic product update completed');
+                availableFields: Object.keys(product),
+            }, "Dynamic product update completed");
             return product;
         }
         catch (error) {
-            logger.error({ error, data, productId: id }, 'Error in product update operation');
+            logger.error({ error, data, productId: id }, "Error in product update operation");
             throw error;
         }
     }
@@ -92,15 +92,15 @@ export class ProductService {
         try {
             // Check if product exists
             await this.findById(id);
-            logger.debug({ productId: id }, 'Starting dynamic product delete operation');
-            const success = await dynamicDelete('product', { id });
+            logger.debug({ productId: id }, "Starting dynamic product delete operation");
+            const success = await dynamicDelete("product", { id });
             if (!success) {
-                throw new Error('Failed to delete product');
+                throw new Error("Failed to delete product");
             }
-            logger.info({ productId: id }, 'Dynamic product delete completed successfully');
+            logger.info({ productId: id }, "Dynamic product delete completed successfully");
         }
         catch (error) {
-            logger.error({ error, productId: id }, 'Error in product delete operation');
+            logger.error({ error, productId: id }, "Error in product delete operation");
             throw error;
         }
     }
@@ -109,23 +109,23 @@ export class ProductService {
             const { id, ...updateData } = data;
             if (id) {
                 // Update existing product
-                logger.debug({ productId: id, data: updateData }, 'Upserting existing product');
+                logger.debug({ productId: id, data: updateData }, "Upserting existing product");
                 return this.update(id, updateData);
             }
             else {
                 // Create new product
-                logger.debug({ data: updateData }, 'Upserting new product');
+                logger.debug({ data: updateData }, "Upserting new product");
                 return this.create(updateData);
             }
         }
         catch (error) {
-            logger.error({ error, data }, 'Error in product upsert operation');
+            logger.error({ error, data }, "Error in product upsert operation");
             throw error;
         }
     }
     async updateStockTotals(productIdentifier, insertedStock) {
         try {
-            logger.debug({ productIdentifier }, 'Starting comprehensive stock totals update');
+            logger.debug({ productIdentifier }, "Starting comprehensive stock totals update");
             console.log(insertedStock, "insertedStock");
             // First, try to determine if productIdentifier is an ID or PUC and find the product
             let product = null;
@@ -134,99 +134,112 @@ export class ProductService {
             // Try to find product by ID first (if it's numeric)
             if (/^\d+$/.test(productIdentifier)) {
                 try {
-                    product = await dynamicFindUnique('product', { id: productIdentifier });
+                    product = await dynamicFindUnique("product", {
+                        id: productIdentifier,
+                    });
                     if (product && product.puc) {
                         productPuc = product.puc;
                         productId = product.id;
-                        logger.debug({ productIdentifier, productId, productPuc }, 'Found product by ID');
+                        logger.debug({ productIdentifier, productId, productPuc }, "Found product by ID");
                     }
                 }
                 catch (error) {
-                    logger.debug({ productIdentifier }, 'Could not find product by ID, will try by PUC');
+                    logger.debug({ productIdentifier }, "Could not find product by ID, will try by PUC");
                 }
             }
             // If not found by ID or not numeric, try to find by PUC
             if (!product) {
                 try {
-                    const products = await dynamicFindMany('product', {
+                    const products = await dynamicFindMany("product", {
                         where: { puc: productIdentifier },
-                        take: 1
+                        take: 1,
                     });
                     if (products && products.length > 0) {
                         product = products[0];
                         productPuc = product.puc;
                         productId = product.id;
-                        logger.debug({ productIdentifier, productId, productPuc }, 'Found product by PUC');
+                        logger.debug({ productIdentifier, productId, productPuc }, "Found product by PUC");
                     }
                 }
                 catch (error) {
-                    logger.warn({ productIdentifier }, 'Could not find product by PUC either');
+                    logger.warn({ productIdentifier }, "Could not find product by PUC either");
                 }
             }
             if (!product) {
-                logger.warn({ productIdentifier }, 'Product not found, skipping stock totals update');
-                return { totalQuantity: 0, totalAvailable: 0, totalSold: 0, totalEcomPublished: 0 };
+                logger.warn({ productIdentifier }, "Product not found, skipping stock totals update");
+                return {
+                    totalQuantity: 0,
+                    totalAvailable: 0,
+                    totalSold: 0,
+                    totalEcomPublished: 0,
+                };
             }
             // Find stocks by PUC (primary relationship) - only use active stocks
-            const stocks = await dynamicFindMany('stock', {
+            const stocks = await dynamicFindMany("stock", {
                 where: {
                     puc: productPuc,
                     isdeleted: { not: true },
-                    isarchive: { not: true }
+                    isarchive: { not: true },
                 },
             });
             if (!Array.isArray(stocks) || stocks.length === 0) {
-                logger.warn({ productIdentifier, productPuc, productId }, 'No active stocks found for product, setting quantities to zero');
+                logger.warn({ productIdentifier, productPuc, productId }, "No active stocks found for product, setting quantities to zero");
                 // Update product to zero quantities if no stocks found
                 const updateData = {
                     quantity: 0,
                     availablequantity: 0,
                     soldquantity: 0,
                     ecompublishedquantity: 0,
-                    productstatus: 'out_of_stock',
-                    modifieddate: BigInt(Date.now())
+                    productstatus: "out_of_stock",
+                    modifieddate: BigInt(Date.now()),
                 };
-                await dynamicUpdate('product', { id: productId }, updateData);
-                logger.info({ productIdentifier, productId }, 'Updated product quantities to zero (no active stocks found)');
-                return { totalQuantity: 0, totalAvailable: 0, totalSold: 0, totalEcomPublished: 0 };
+                await dynamicUpdate("product", { id: productId }, updateData);
+                logger.info({ productIdentifier, productId }, "Updated product quantities to zero (no active stocks found)");
+                return {
+                    totalQuantity: 0,
+                    totalAvailable: 0,
+                    totalSold: 0,
+                    totalEcomPublished: 0,
+                };
             }
             // Calculate totals based on stock records count (not stock.quantity field)
             let totalQuantity = 0;
             let totalAvailable = 0;
             let totalSold = 0;
             let totalEcomPublished = 0;
-            stocks.forEach(stock => {
+            stocks.forEach((stock) => {
                 // Count each stock record as 1 unit (not using stock.quantity field)
                 totalQuantity += 1;
-                if (stock.stockstatus === 'Available') {
+                if (stock.stockstatus === "Available") {
                     totalAvailable += 1;
                     // Only count e-commerce published if stock is available AND ecompublish is true
                     if (stock.ecompublish === true) {
                         totalEcomPublished += 1;
                     }
                 }
-                else if (stock.stockstatus === 'Sold') {
+                else if (stock.stockstatus === "Sold") {
                     totalSold += 1;
                 }
                 // Note: Damaged stocks are not counted in available or sold
             });
-            // Simple logic for availablequantity: 
+            // Simple logic for availablequantity:
             // If ecompublish=true: availablequantity = existing.availablequantity + inserted_quantity
             // If ecompublish=false: availablequantity = existing.availablequantity (no change)
             let finalAvailableQuantity = product.availablequantity || 0;
             // If we have inserted stock information, apply the special logic
-            if (insertedStock && insertedStock.stockstatus === 'Available') {
+            if (insertedStock && insertedStock.stockstatus === "Available") {
                 if (insertedStock.ecompublish === true) {
                     // Add the inserted quantity to existing available quantity
                     const insertedQuantity = insertedStock.quantity || 1; // Default to 1 if not specified
-                    finalAvailableQuantity = (product.availablequantity || 0) + insertedQuantity;
+                    finalAvailableQuantity =
+                        (product.availablequantity || 0) + insertedQuantity;
                     logger.info({
                         productId,
                         existingAvailableQuantity: product.availablequantity,
                         insertedQuantity,
                         finalAvailableQuantity,
-                        ecompublish: insertedStock.ecompublish
-                    }, 'Added inserted quantity to availablequantity (ecompublish=true)');
+                        ecompublish: insertedStock.ecompublish,
+                    }, "Added inserted quantity to availablequantity (ecompublish=true)");
                 }
                 else {
                     // Keep existing available quantity (no change)
@@ -235,8 +248,8 @@ export class ProductService {
                         productId,
                         existingAvailableQuantity: product.availablequantity,
                         finalAvailableQuantity,
-                        ecompublish: insertedStock.ecompublish
-                    }, 'Kept existing availablequantity (ecompublish=false)');
+                        ecompublish: insertedStock.ecompublish,
+                    }, "Kept existing availablequantity (ecompublish=false)");
                 }
             }
             else {
@@ -244,14 +257,14 @@ export class ProductService {
                 logger.info({
                     productId,
                     existingAvailableQuantity: product.availablequantity,
-                    finalAvailableQuantity
-                }, 'No inserted stock info, using existing availablequantity');
+                    finalAvailableQuantity,
+                }, "No inserted stock info, using existing availablequantity");
             }
             const totals = {
                 totalQuantity,
                 totalAvailable: finalAvailableQuantity, // Use the special logic result
                 totalSold,
-                totalEcomPublished
+                totalEcomPublished,
             };
             logger.info({
                 productIdentifier,
@@ -265,20 +278,20 @@ export class ProductService {
                     finalAvailableCount: finalAvailableQuantity,
                     soldCount: totalSold,
                     ecomPublishedCount: totalEcomPublished,
-                    stockDetails: stocks.map(s => ({
+                    stockDetails: stocks.map((s) => ({
                         id: s.id,
                         status: s.stockstatus,
-                        ecompublish: s.ecompublish
-                    }))
-                }
-            }, 'Calculated stock totals with record-count logic');
+                        ecompublish: s.ecompublish,
+                    })),
+                },
+            }, "Calculated stock totals with record-count logic");
             // Determine product status based on available quantity
-            let productStatus = 'out_of_stock';
+            let productStatus = "out_of_stock";
             if (totals.totalAvailable > 5) {
-                productStatus = 'in_stock';
+                productStatus = "in_stock";
             }
             else if (totals.totalAvailable >= 1) {
-                productStatus = 'low_stock';
+                productStatus = "low_stock";
             }
             // Update product with calculated totals
             const updateData = {
@@ -287,10 +300,10 @@ export class ProductService {
                 soldquantity: totals.totalSold,
                 ecompublishedquantity: totals.totalEcomPublished,
                 productstatus: productStatus,
-                modifieddate: BigInt(Date.now())
+                modifieddate: BigInt(Date.now()),
             };
             console.log(updateData, "updateData");
-            const updatedProduct = await dynamicUpdate('product', { id: productId }, updateData);
+            const updatedProduct = await dynamicUpdate("product", { id: productId }, updateData);
             if (updatedProduct) {
                 logger.info({
                     productIdentifier,
@@ -299,8 +312,8 @@ export class ProductService {
                     totals,
                     productStatus,
                     availableQuantity: totals.totalAvailable,
-                    updatedFields: Object.keys(updateData)
-                }, 'Updated product stock totals and status successfully');
+                    updatedFields: Object.keys(updateData),
+                }, "Updated product stock totals and status successfully");
             }
             else {
                 logger.warn({
@@ -309,16 +322,16 @@ export class ProductService {
                     productPuc,
                     totals,
                     productStatus,
-                    attemptedFields: Object.keys(updateData)
-                }, 'Could not update product - fields may not be available in schema');
+                    attemptedFields: Object.keys(updateData),
+                }, "Could not update product - fields may not be available in schema");
             }
             return {
                 ...totals,
-                updatedProduct: updatedProduct || null
+                updatedProduct: updatedProduct || null,
             };
         }
         catch (error) {
-            logger.error({ error, productIdentifier }, 'Error in updateStockTotals operation');
+            logger.error({ error, productIdentifier }, "Error in updateStockTotals operation");
             throw error;
         }
     }
@@ -332,8 +345,10 @@ export class ProductService {
             const upsertProductData = { ...otherData };
             // If productid is provided, fetch existing product data
             if (productid) {
-                logger.debug({ productId: productid }, 'Fetching existing product for file upsert');
-                existingProductData = await dynamicFindUnique('product', { id: productid });
+                logger.debug({ productId: productid }, "Fetching existing product for file upsert");
+                existingProductData = await dynamicFindUnique("product", {
+                    id: productid,
+                });
                 if (!existingProductData) {
                     throw new Error(`Product with ID ${productid} not found`);
                 }
@@ -345,8 +360,8 @@ export class ProductService {
                     urlData: url,
                     existingLarge: existingProductData?.large,
                     existingMedium: existingProductData?.medium,
-                    existingSmall: existingProductData?.small
-                }, 'Processing image URL data for size arrays');
+                    existingSmall: existingProductData?.small,
+                }, "Processing image URL data for size arrays");
                 // Merge large images
                 if (url.Large && Array.isArray(url.Large)) {
                     upsertProductData.large = existingProductData?.large
@@ -369,44 +384,44 @@ export class ProductService {
                     productId: productid,
                     mergedLarge: upsertProductData.large,
                     mergedMedium: upsertProductData.medium,
-                    mergedSmall: upsertProductData.small
-                }, 'Image URL arrays merged successfully');
+                    mergedSmall: upsertProductData.small,
+                }, "Image URL arrays merged successfully");
             }
             let result;
             if (productid) {
                 // Update existing product
-                logger.debug({ productId: productid, updateData: upsertProductData }, 'Updating existing product with file data');
+                logger.debug({ productId: productid, updateData: upsertProductData }, "Updating existing product with file data");
                 result = await this.update(productid, upsertProductData);
             }
             else {
                 // Create new product
-                logger.debug({ createData: upsertProductData }, 'Creating new product with file data');
+                logger.debug({ createData: upsertProductData }, "Creating new product with file data");
                 result = await this.create(upsertProductData);
             }
             logger.info({
                 productId: productid || result?.id,
-                operation: productid ? 'update' : 'create',
+                operation: productid ? "update" : "create",
                 hasImageData: !!url,
                 imageArraysUpdated: {
                     large: !!upsertProductData.large,
                     medium: !!upsertProductData.medium,
-                    small: !!upsertProductData.small
-                }
-            }, 'Product upsert with file completed successfully');
+                    small: !!upsertProductData.small,
+                },
+            }, "Product upsert with file completed successfully");
             return {
                 result,
                 productid: productid || result?.id,
-                pathurldatas: url || null
+                pathurldatas: url || null,
             };
         }
         catch (error) {
             logger.error({
                 error: error.message,
                 data,
-                productId: data?.productid
-            }, 'Error in product upsert with file operation');
+                productId: data?.productid,
+            }, "Error in product upsert with file operation");
             // Use the project's error handling pattern
-            if (error.message.includes('not found')) {
+            if (error.message.includes("not found")) {
                 throw new Error(`Product with ID ${data?.productid} not found`);
             }
             throw error;
@@ -417,9 +432,11 @@ export class ProductService {
      */
     async rearrangeProductImages(productId, rearrangeData) {
         try {
-            logger.debug({ productId, rearrangeData }, 'Starting product image rearrangement');
+            logger.debug({ productId, rearrangeData }, "Starting product image rearrangement");
             // Fetch existing product to validate
-            const existingProduct = await dynamicFindUnique('product', { id: productId });
+            const existingProduct = await dynamicFindUnique("product", {
+                id: productId,
+            });
             if (!existingProduct) {
                 throw new Error(`Product with ID ${productId} not found`);
             }
@@ -428,26 +445,26 @@ export class ProductService {
             if (rearrangeData.large) {
                 const existingLarge = existingProduct.large || [];
                 if (!this.arraysContainSameElements(rearrangeData.large, existingLarge)) {
-                    throw new Error('Large array rearrangement must contain exactly the same URLs as existing array');
+                    throw new Error("Large array rearrangement must contain exactly the same URLs as existing array");
                 }
                 updateData.large = rearrangeData.large;
             }
             if (rearrangeData.medium) {
                 const existingMedium = existingProduct.medium || [];
                 if (!this.arraysContainSameElements(rearrangeData.medium, existingMedium)) {
-                    throw new Error('Medium array rearrangement must contain exactly the same URLs as existing array');
+                    throw new Error("Medium array rearrangement must contain exactly the same URLs as existing array");
                 }
                 updateData.medium = rearrangeData.medium;
             }
             if (rearrangeData.small) {
                 const existingSmall = existingProduct.small || [];
                 if (!this.arraysContainSameElements(rearrangeData.small, existingSmall)) {
-                    throw new Error('Small array rearrangement must contain exactly the same URLs as existing array');
+                    throw new Error("Small array rearrangement must contain exactly the same URLs as existing array");
                 }
                 updateData.small = rearrangeData.small;
             }
             if (Object.keys(updateData).length === 0) {
-                throw new Error('No valid rearrangement data provided');
+                throw new Error("No valid rearrangement data provided");
             }
             // Update the product with rearranged arrays
             const result = await this.update(productId, updateData);
@@ -457,17 +474,17 @@ export class ProductService {
                 arrayLengths: {
                     large: updateData.large?.length,
                     medium: updateData.medium?.length,
-                    small: updateData.small?.length
-                }
-            }, 'Product image rearrangement completed successfully');
+                    small: updateData.small?.length,
+                },
+            }, "Product image rearrangement completed successfully");
             return result;
         }
         catch (error) {
             logger.error({
                 error: error.message,
                 productId,
-                rearrangeData
-            }, 'Error in product image rearrangement operation');
+                rearrangeData,
+            }, "Error in product image rearrangement operation");
             throw error;
         }
     }
@@ -482,13 +499,45 @@ export class ProductService {
         return sorted1.every((val, index) => val === sorted2[index]);
     }
     /**
+     * Update product's average rating based on all ratings for the product
+     */
+    async updateAverageRating(productId) {
+        try {
+            logger.debug({ productId }, "Starting product average rating update");
+            // Import RatingService dynamically to avoid circular dependencies
+            const { RatingService } = await import("./rating.service.js");
+            const ratingService = new RatingService();
+            // Get the calculated average rating
+            const { averageRating, totalRatings } = await ratingService.getAverageRatingByProductId(productId);
+            // Update the product with the new average rating
+            const updateData = {
+                averagerating: averageRating,
+                modifieddate: Date.now(),
+            };
+            const updatedProduct = await this.update(productId.toString(), updateData);
+            logger.info({
+                productId,
+                averageRating,
+                totalRatings,
+                updatedFields: Object.keys(updateData),
+            }, "Product average rating update completed successfully");
+            return { averageRating, totalRatings };
+        }
+        catch (error) {
+            logger.error({ error, productId }, "Error in product average rating update operation");
+            throw error;
+        }
+    }
+    /**
      * Delete specific URLs from product image arrays
      */
     async deleteProductImageUrls(productId, deleteData) {
         try {
-            logger.debug({ productId, deleteData }, 'Starting product image URL deletion');
+            logger.debug({ productId, deleteData }, "Starting product image URL deletion");
             // Fetch existing product to validate
-            const existingProduct = await dynamicFindUnique('product', { id: productId });
+            const existingProduct = await dynamicFindUnique("product", {
+                id: productId,
+            });
             if (!existingProduct) {
                 throw new Error(`Product with ID ${productId} not found`);
             }
@@ -499,14 +548,14 @@ export class ProductService {
                 const existingLarge = existingProduct.large || [];
                 const filteredLarge = existingLarge.filter((url) => !deleteData.large.includes(url));
                 if (filteredLarge.length === existingLarge.length) {
-                    logger.warn({ productId, urlsToDelete: deleteData.large }, 'No matching URLs found in large array');
+                    logger.warn({ productId, urlsToDelete: deleteData.large }, "No matching URLs found in large array");
                 }
                 else {
                     updateData.large = filteredLarge;
                     deletionSummary.large = {
                         before: existingLarge.length,
                         after: filteredLarge.length,
-                        deleted: existingLarge.length - filteredLarge.length
+                        deleted: existingLarge.length - filteredLarge.length,
                     };
                 }
             }
@@ -515,14 +564,14 @@ export class ProductService {
                 const existingMedium = existingProduct.medium || [];
                 const filteredMedium = existingMedium.filter((url) => !deleteData.medium.includes(url));
                 if (filteredMedium.length === existingMedium.length) {
-                    logger.warn({ productId, urlsToDelete: deleteData.medium }, 'No matching URLs found in medium array');
+                    logger.warn({ productId, urlsToDelete: deleteData.medium }, "No matching URLs found in medium array");
                 }
                 else {
                     updateData.medium = filteredMedium;
                     deletionSummary.medium = {
                         before: existingMedium.length,
                         after: filteredMedium.length,
-                        deleted: existingMedium.length - filteredMedium.length
+                        deleted: existingMedium.length - filteredMedium.length,
                     };
                 }
             }
@@ -531,38 +580,38 @@ export class ProductService {
                 const existingSmall = existingProduct.small || [];
                 const filteredSmall = existingSmall.filter((url) => !deleteData.small.includes(url));
                 if (filteredSmall.length === existingSmall.length) {
-                    logger.warn({ productId, urlsToDelete: deleteData.small }, 'No matching URLs found in small array');
+                    logger.warn({ productId, urlsToDelete: deleteData.small }, "No matching URLs found in small array");
                 }
                 else {
                     updateData.small = filteredSmall;
                     deletionSummary.small = {
                         before: existingSmall.length,
                         after: filteredSmall.length,
-                        deleted: existingSmall.length - filteredSmall.length
+                        deleted: existingSmall.length - filteredSmall.length,
                     };
                 }
             }
             if (Object.keys(updateData).length === 0) {
-                throw new Error('No URLs were found to delete from the specified arrays');
+                throw new Error("No URLs were found to delete from the specified arrays");
             }
             // Update the product with filtered arrays
             const result = await this.update(productId, updateData);
             logger.info({
                 productId,
                 deletionSummary,
-                totalDeleted: Object.values(deletionSummary).reduce((sum, info) => sum + info.deleted, 0)
-            }, 'Product image URL deletion completed successfully');
+                totalDeleted: Object.values(deletionSummary).reduce((sum, info) => sum + info.deleted, 0),
+            }, "Product image URL deletion completed successfully");
             return {
                 product: result,
-                deletionSummary
+                deletionSummary,
             };
         }
         catch (error) {
             logger.error({
                 error: error.message,
                 productId,
-                deleteData
-            }, 'Error in product image URL deletion operation');
+                deleteData,
+            }, "Error in product image URL deletion operation");
             throw error;
         }
     }
