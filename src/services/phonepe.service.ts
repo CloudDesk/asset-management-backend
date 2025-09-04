@@ -18,16 +18,16 @@ const PHONEPE_CONFIG = {
   BASE_URL:
     process.env.PHONEPE_BASE_URL ||
     "https://api-preprod.phonepe.com/apis/pg-sandbox",
-  // REDIRECT_SUCCESS:
-  //   process.env.REDIRECT_URL_SUCCESS || "http://localhost:5600/payment/success",
-  // REDIRECT_FAILURE:
-  //   process.env.REDIRECT_URL_FAILURE || "http://localhost:5600/payment/failure",
-  // REDIRECT_STATUS:
-  //   process.env.REDIRECT_URL_PAYMENT_STATUS || "http://localhost:5600",
+  REDIRECT_SUCCESS:
+    process.env.REDIRECT_URL_SUCCESS || "http://localhost:5600/payment/success",
+  REDIRECT_FAILURE:
+    process.env.REDIRECT_URL_FAILURE || "http://localhost:5600/payment/failure",
+  REDIRECT_STATUS:
+    process.env.REDIRECT_URL_PAYMENT_STATUS || "http://localhost:5600",
 
-  REDIRECT_SUCCESS: "com.Nivaana.app://profile/orders",
-  REDIRECT_FAILURE: "http://localhost:5600/payment/failure",
-  REDIRECT_STATUS: "http://localhost:5600",
+  // REDIRECT_SUCCESS: "com.Nivaana.app://profile/orders",
+  // REDIRECT_FAILURE: "http://localhost:5600/payment/failure",
+  // REDIRECT_STATUS: "http://localhost:5600",
 };
 
 console.log(
