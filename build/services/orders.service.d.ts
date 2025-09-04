@@ -1,6 +1,6 @@
-import { CreateOrdersInput, UpdateOrdersInput, UpsertOrdersInput } from '../schemas/orders.schema.js';
-import { PaginationResult } from '../utils/pagination.js';
-import { FilterOptions } from '../utils/filterBuilder.js';
+import { CreateOrdersInput, UpdateOrdersInput, UpsertOrdersInput } from "../schemas/orders.schema.js";
+import { PaginationResult } from "../utils/pagination.js";
+import { FilterOptions } from "../utils/filterBuilder.js";
 export declare class OrdersService {
     findMany(filters: FilterOptions, page: number, limit: number): Promise<PaginationResult<any>>;
     findById(id: Number): Promise<any>;

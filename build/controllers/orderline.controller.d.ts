@@ -9,6 +9,7 @@ export declare class OrderlineController {
     createOrderline: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     updateOrderline: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     updateOrderlineStatus: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    cancelOrderline: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     bulkUpdateOrderlineStatus: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     deleteOrderline: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     upsertOrderline: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;

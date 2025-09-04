@@ -71,6 +71,18 @@ export class OrderlineController {
         const response = createSuccessResponse('Orderline status updated successfully', formatEntitiesForAPI([orderline], 'orderline')[0]);
         return reply.code(200).send(response);
     });
+    cancelOrderline = asyncHandler(async (request, reply) => {
+        const { id } = orderlineParamsSchema.parse(request.params);
+        const { reason } = request.body || {};
+        const result = await this.orderlineService.cancelOrderline(id, reason);
+        const response = createSuccessResponse(result.message, {
+            orderline: formatEntitiesForAPI([result.orderline], 'orderline')[0],
+            productUpdates: result.productUpdates,
+            orderStatusUpdated: result.orderStatusUpdated,
+            cancellationDetails: result.cancellationDetails
+        });
+        return reply.code(200).send(response);
+    });
     bulkUpdateOrderlineStatus = asyncHandler(async (request, reply) => {
         const { orderlineIds, status, additionalData } = request.body;
         if (!orderlineIds || !Array.isArray(orderlineIds) || orderlineIds.length === 0) {

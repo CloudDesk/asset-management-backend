@@ -22,5 +22,40 @@ export declare class OrderlineService {
         error: string;
         data?: never;
     })[]>;
+    cancelOrderline(id: string, reason?: string): Promise<{
+        success: boolean;
+        message: string;
+        orderline: any;
+        productUpdates: {
+            productId: number;
+            success: boolean;
+            error: string;
+        }[] | {
+            productId: number;
+            success: boolean;
+            productName: string;
+            quantityRestored: number;
+            oldQuantities: {
+                ordered: number;
+                available: number;
+                status: string | null;
+            };
+            newQuantities: {
+                ordered: number;
+                available: number;
+                status: string;
+            };
+        }[];
+        orderStatusUpdated: boolean;
+        cancellationDetails: {
+            orderlineId: string;
+            productId: any;
+            orderId: any;
+            restoredQuantity: any;
+            reason: string | undefined;
+        };
+    }>;
+    private restoreProductQuantities;
+    private checkAndUpdateOrderStatus;
 }
 //# sourceMappingURL=orderline.service.d.ts.map

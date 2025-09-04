@@ -1,139 +1,204 @@
-import { FastifyRequest, FastifyReply } from 'fastify';
-import { OrdersService } from '../services/orders.service.js';
-import { 
-  createOrdersSchema, 
-  updateOrdersSchema, 
+import { FastifyRequest, FastifyReply } from "fastify";
+import { OrdersService } from "../services/orders.service.js";
+import {
+  createOrdersSchema,
+  updateOrdersSchema,
   upsertOrdersSchema,
   ordersParamsSchema,
-  OrdersParams
-} from '../schemas/orders.schema.js';
-import { getPaginationParams } from '../utils/pagination.js';
-import { 
-  createSuccessResponse,
-  asyncHandler
-} from '../utils/errorHandler.js';
-import { formatEntitiesForAPI } from '../utils/dynamicDbOperations.js';
+  OrdersParams,
+} from "../schemas/orders.schema.js";
+import { getPaginationParams } from "../utils/pagination.js";
+import { createSuccessResponse, asyncHandler } from "../utils/errorHandler.js";
+import { formatEntitiesForAPI } from "../utils/dynamicDbOperations.js";
 
 export class OrdersController {
   public ordersService = new OrdersService();
 
-  getOrders = asyncHandler(async (request: FastifyRequest<{ Querystring: Record<string, any> }>, reply: FastifyReply) => {
-    // Get all query parameters as filters (not just schema-validated ones)
-    const allFilters: Record<string, any> = request.query || {};
-    const { page, limit } = getPaginationParams(allFilters);
-    
-    // Remove pagination params from filters
-    const { page: _, limit: __, ...filters } = allFilters;
-    
-    const result = await this.ordersService.findMany(filters, page, limit);
-    
-    // Format all orders in the result
-    const formattedData = formatEntitiesForAPI(result.data, 'orders');
-    
-    const response = createSuccessResponse('Orders retrieved successfully', formattedData);
-    return reply.code(200).send({
-      ...response,
-      pagination: result.pagination,
-      meta: {
-        filters: Object.keys(filters),
-        total: result.pagination.total,
-        filtered: Object.keys(filters).length > 0
-      }
-    });
-  });
+  getOrders = asyncHandler(
+    async (
+      request: FastifyRequest<{ Querystring: Record<string, any> }>,
+      reply: FastifyReply
+    ) => {
+      // Get all query parameters as filters (not just schema-validated ones)
+      const allFilters: Record<string, any> = request.query || {};
+      const { page, limit } = getPaginationParams(allFilters);
 
-  getOrder = asyncHandler(async (request: FastifyRequest<{ Params: OrdersParams }>, reply: FastifyReply) => {
-    const { id } = ordersParamsSchema.parse(request.params);
-    
-    const order = await this.ordersService.findById(Number(id));
-    
-    const response = createSuccessResponse('Order retrieved successfully', formatEntitiesForAPI([order], 'orders')[0]);
-    return reply.code(200).send(response);
-  });
+      // Remove pagination params from filters
+      const { page: _, limit: __, ...filters } = allFilters;
 
-  getOrderByOrderId = asyncHandler(async (request: FastifyRequest<{ Params: { orderid: string } }>, reply: FastifyReply) => {
-    const { orderid } = request.params;
-    
-    const order = await this.ordersService.findByOrderId(orderid);
-    
-    const response = createSuccessResponse('Order retrieved successfully', formatEntitiesForAPI([order], 'orders')[0]);
-    return reply.code(200).send(response);
-  });
+      const result = await this.ordersService.findMany(filters, page, limit);
 
-  createOrder = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
-    const requestBody = request.body;
-    console.log("createOrdercreateOrder",requestBody)
-    // Check if the request body is an array (cart items) or object (single order)
-    if (Array.isArray(requestBody)) {
-      // Handle cart-based order creation
-      if (requestBody.length === 0) {
-        return reply.code(400).send({
-          success: false,
-          message: 'Cart items array cannot be empty',
-          details: 'Please provide at least one cart item',
-          statusCode: 400
-        });
-      }
-      
-      const order = await this.ordersService.createFromCartItems(requestBody);
-      const response = createSuccessResponse('Order created successfully from cart', formatEntitiesForAPI([order], 'orders')[0]);
-      return reply.code(201).send(response);
-    } else {
-      // Handle single order creation
-      const data = createOrdersSchema.parse(requestBody);
-      const order = await this.ordersService.create(data);
-      const response = createSuccessResponse('Order created successfully', formatEntitiesForAPI([order], 'orders')[0]);
-      return reply.code(201).send(response);
-    }
-  });
+      // Format all orders in the result
+      const formattedData = formatEntitiesForAPI(result.data, "orders");
 
-
-
-  updateOrder = asyncHandler(async (request: FastifyRequest<{ Params: OrdersParams }>, reply: FastifyReply) => {
-    const { id } = ordersParamsSchema.parse(request.params);
-    const data = updateOrdersSchema.parse(request.body);
-    
-    const order = await this.ordersService.update(id, data);
-    
-    const response = createSuccessResponse('Order updated successfully', formatEntitiesForAPI([order], 'orders')[0]);
-    return reply.code(200).send(response);
-  });
-
-  updateOrderStatus = asyncHandler(async (request: FastifyRequest<{ Params: OrdersParams; Body: { status: string; additionalData?: Record<string, any> } }>, reply: FastifyReply) => {
-    const { id } = ordersParamsSchema.parse(request.params);
-    const { status, additionalData } = request.body;
-    
-    if (!status) {
-      return reply.code(400).send({
-        success: false,
-        message: 'Status is required',
-        details: 'Please provide a valid status',
-        statusCode: 400
+      const response = createSuccessResponse(
+        "Orders retrieved successfully",
+        formattedData
+      );
+      return reply.code(200).send({
+        ...response,
+        pagination: result.pagination,
+        meta: {
+          filters: Object.keys(filters),
+          total: result.pagination.total,
+          filtered: Object.keys(filters).length > 0,
+        },
       });
     }
-    
-    const order = await this.ordersService.updateOrderStatus(id, status, additionalData);
-    
-    const response = createSuccessResponse('Order status updated successfully', formatEntitiesForAPI([order], 'orders')[0]);
-    return reply.code(200).send(response);
-  });
+  );
 
-  deleteOrder = asyncHandler(async (request: FastifyRequest<{ Params: OrdersParams }>, reply: FastifyReply) => {
-    const { id } = ordersParamsSchema.parse(request.params);
-    
-    await this.ordersService.delete(id);
-    
-    const response = createSuccessResponse('Order deleted successfully', null);
-    return reply.code(200).send(response);
-  });
+  getOrder = asyncHandler(
+    async (
+      request: FastifyRequest<{ Params: OrdersParams }>,
+      reply: FastifyReply
+    ) => {
+      const { id } = ordersParamsSchema.parse(request.params);
 
-  upsertOrder = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
-    const data = upsertOrdersSchema.parse(request.body);
-    
-    const order = await this.ordersService.upsert(data);
-    
-    const message = data.id ? 'Order updated successfully' : 'Order created successfully';
-    const response = createSuccessResponse(message, formatEntitiesForAPI([order], 'orders')[0]);
-    return reply.code(200).send(response);
-  });
-} 
+      const order = await this.ordersService.findById(Number(id));
+
+      const response = createSuccessResponse(
+        "Order retrieved successfully",
+        formatEntitiesForAPI([order], "orders")[0]
+      );
+      return reply.code(200).send(response);
+    }
+  );
+
+  getOrderByOrderId = asyncHandler(
+    async (
+      request: FastifyRequest<{ Params: { orderid: string } }>,
+      reply: FastifyReply
+    ) => {
+      const { orderid } = request.params;
+
+      const order = await this.ordersService.findByOrderId(orderid);
+
+      const response = createSuccessResponse(
+        "Order retrieved successfully",
+        formatEntitiesForAPI([order], "orders")[0]
+      );
+      return reply.code(200).send(response);
+    }
+  );
+
+  createOrder = asyncHandler(
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const requestBody = request.body;
+      console.log("createOrdercreateOrder", requestBody);
+      // Check if the request body is an array (cart items) or object (single order)
+      if (Array.isArray(requestBody)) {
+        // Handle cart-based order creation
+        if (requestBody.length === 0) {
+          return reply.code(400).send({
+            success: false,
+            message: "Cart items array cannot be empty",
+            details: "Please provide at least one cart item",
+            statusCode: 400,
+          });
+        }
+
+        const order = await this.ordersService.createFromCartItems(requestBody);
+        const response = createSuccessResponse(
+          "Order created successfully from cart",
+          formatEntitiesForAPI([order], "orders")[0]
+        );
+        return reply.code(201).send(response);
+      } else {
+        // Handle single order creation
+        const data = createOrdersSchema.parse(requestBody);
+        const order = await this.ordersService.create(data);
+        const response = createSuccessResponse(
+          "Order created successfully",
+          formatEntitiesForAPI([order], "orders")[0]
+        );
+        return reply.code(201).send(response);
+      }
+    }
+  );
+
+  updateOrder = asyncHandler(
+    async (
+      request: FastifyRequest<{ Params: OrdersParams }>,
+      reply: FastifyReply
+    ) => {
+      const { id } = ordersParamsSchema.parse(request.params);
+      const data = updateOrdersSchema.parse(request.body);
+
+      const order = await this.ordersService.update(id, data);
+
+      const response = createSuccessResponse(
+        "Order updated successfully",
+        formatEntitiesForAPI([order], "orders")[0]
+      );
+      return reply.code(200).send(response);
+    }
+  );
+
+  updateOrderStatus = asyncHandler(
+    async (
+      request: FastifyRequest<{
+        Params: OrdersParams;
+        Body: { status: string; additionalData?: Record<string, any> };
+      }>,
+      reply: FastifyReply
+    ) => {
+      const { id } = ordersParamsSchema.parse(request.params);
+      const { status, additionalData } = request.body;
+
+      if (!status) {
+        return reply.code(400).send({
+          success: false,
+          message: "Status is required",
+          details: "Please provide a valid status",
+          statusCode: 400,
+        });
+      }
+
+      const order = await this.ordersService.updateOrderStatus(
+        id,
+        status,
+        additionalData
+      );
+
+      const response = createSuccessResponse(
+        "Order status updated successfully",
+        formatEntitiesForAPI([order], "orders")[0]
+      );
+      return reply.code(200).send(response);
+    }
+  );
+
+  deleteOrder = asyncHandler(
+    async (
+      request: FastifyRequest<{ Params: OrdersParams }>,
+      reply: FastifyReply
+    ) => {
+      const { id } = ordersParamsSchema.parse(request.params);
+
+      await this.ordersService.delete(id);
+
+      const response = createSuccessResponse(
+        "Order deleted successfully",
+        null
+      );
+      return reply.code(200).send(response);
+    }
+  );
+
+  upsertOrder = asyncHandler(
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const data = upsertOrdersSchema.parse(request.body);
+
+      const order = await this.ordersService.upsert(data);
+
+      const message = data.id
+        ? "Order updated successfully"
+        : "Order created successfully";
+      const response = createSuccessResponse(
+        message,
+        formatEntitiesForAPI([order], "orders")[0]
+      );
+      return reply.code(200).send(response);
+    }
+  );
+}

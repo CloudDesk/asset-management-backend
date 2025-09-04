@@ -478,6 +478,112 @@ export async function orderlineRoutes(fastify) {
             },
         },
     }, orderlineController.updateOrderlineStatus.bind(orderlineController));
+    // PATCH /v1/orderlines/:id/cancel - Cancel orderline with product quantity restoration
+    fastify.patch('/:id/cancel', {
+        schema: {
+            description: 'Cancel an orderline and restore product quantities. If all orderlines in the order are cancelled, the order status will be updated to cancelled.',
+            tags: ['Orderlines'],
+            params: {
+                type: 'object',
+                properties: {
+                    id: { type: 'string', description: 'Orderline ID' },
+                },
+                required: ['id'],
+            },
+            body: {
+                type: 'object',
+                properties: {
+                    reason: { type: 'string', description: 'Optional reason for cancellation' }
+                },
+                additionalProperties: true,
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        data: {
+                            type: 'object',
+                            properties: {
+                                orderline: {
+                                    type: 'object',
+                                    additionalProperties: true
+                                },
+                                productUpdates: {
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            productId: { type: 'number' },
+                                            success: { type: 'boolean' },
+                                            productName: { type: 'string' },
+                                            quantityRestored: { type: 'number' },
+                                            oldQuantities: {
+                                                type: 'object',
+                                                properties: {
+                                                    ordered: { type: 'number' },
+                                                    available: { type: 'number' },
+                                                    status: { type: 'string' }
+                                                }
+                                            },
+                                            newQuantities: {
+                                                type: 'object',
+                                                properties: {
+                                                    ordered: { type: 'number' },
+                                                    available: { type: 'number' },
+                                                    status: { type: 'string' }
+                                                }
+                                            },
+                                            error: { type: 'string' }
+                                        }
+                                    }
+                                },
+                                orderStatusUpdated: { type: 'boolean' },
+                                cancellationDetails: {
+                                    type: 'object',
+                                    properties: {
+                                        orderlineId: { type: 'string' },
+                                        productId: { type: 'number' },
+                                        orderId: { type: 'number' },
+                                        restoredQuantity: { type: 'number' },
+                                        reason: { type: 'string' }
+                                    }
+                                }
+                            }
+                        },
+                        message: { type: 'string' },
+                    },
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
+                404: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
+            },
+        },
+    }, orderlineController.cancelOrderline.bind(orderlineController));
     // PATCH /v1/orderlines/bulk-status - Bulk update orderline status
     fastify.patch('/bulk-status', {
         schema: {

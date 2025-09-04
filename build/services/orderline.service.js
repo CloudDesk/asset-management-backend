@@ -1,3 +1,4 @@
+import { prisma } from '../models/prisma.js';
 import { createPaginationResult, getPrismaSkipTake } from '../utils/pagination.js';
 import { dynamicFindUnique, dynamicCreate, dynamicUpdate, dynamicDelete, dynamicFindManyWithFilters } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
@@ -242,6 +243,230 @@ export class OrderlineService {
         catch (error) {
             logger.error({ error, orderlineIds, status }, 'Error in bulk orderline status update operation');
             throw error;
+        }
+    }
+    async cancelOrderline(id, reason) {
+        try {
+            logger.info({ orderlineId: id, reason }, 'Starting orderline cancellation process');
+            // Get the orderline with current status
+            const orderline = await this.findById(id);
+            if (!orderline) {
+                throw new Error('Orderline not found');
+            }
+            // Check if orderline is already cancelled
+            if (orderline.orderstatus === 'cancelled') {
+                logger.warn({ orderlineId: id }, 'Orderline is already cancelled');
+                return {
+                    success: true,
+                    message: 'Orderline is already cancelled',
+                    orderline,
+                    productUpdates: [],
+                    orderStatusUpdated: false,
+                    cancellationDetails: {
+                        orderlineId: id,
+                        productId: orderline.productid,
+                        orderId: orderline.orderid,
+                        restoredQuantity: 0,
+                        reason
+                    }
+                };
+            }
+            // Store original quantities for product restoration
+            const originalQuantity = orderline.quantity || 1;
+            const productId = orderline.productid;
+            const orderId = orderline.orderid;
+            logger.debug({
+                orderlineId: id,
+                productId,
+                orderId,
+                originalQuantity,
+                currentStatus: orderline.orderstatus
+            }, 'Orderline details for cancellation');
+            // Step 1: Update orderline status to cancelled
+            const updateData = {
+                orderstatus: 'cancelled',
+                cancelleddate: Date.now(),
+                modifieddate: Date.now()
+            };
+            if (reason) {
+                updateData.cancellation_reason = reason;
+            }
+            const updatedOrderline = await this.update(id, updateData);
+            logger.info({
+                orderlineId: id,
+                newStatus: 'cancelled',
+                orderlinenumber: updatedOrderline.orderlinenumber
+            }, 'Orderline status updated to cancelled');
+            // Step 2: Restore product quantities
+            const productUpdates = await this.restoreProductQuantities(productId, originalQuantity);
+            // Step 3: Check if all orderlines in the order are cancelled
+            const orderStatusUpdated = await this.checkAndUpdateOrderStatus(orderId);
+            const result = {
+                success: true,
+                message: 'Orderline cancelled successfully',
+                orderline: updatedOrderline,
+                productUpdates,
+                orderStatusUpdated,
+                cancellationDetails: {
+                    orderlineId: id,
+                    productId,
+                    orderId,
+                    restoredQuantity: originalQuantity,
+                    reason
+                }
+            };
+            logger.info({
+                orderlineId: id,
+                productUpdates: productUpdates.length,
+                orderStatusUpdated,
+                result
+            }, 'Orderline cancellation completed successfully');
+            return result;
+        }
+        catch (error) {
+            logger.error({ error, orderlineId: id }, 'Error in orderline cancellation process');
+            throw error;
+        }
+    }
+    async restoreProductQuantities(productId, quantity) {
+        try {
+            logger.debug({ productId, quantity }, 'Starting product quantity restoration');
+            // Get current product data
+            const product = await prisma.product.findUnique({
+                where: { id: BigInt(productId) },
+                select: {
+                    id: true,
+                    name: true,
+                    orderedquantity: true,
+                    availablequantity: true,
+                    productstatus: true,
+                },
+            });
+            if (!product) {
+                logger.warn({ productId }, 'Product not found for quantity restoration');
+                return [{
+                        productId,
+                        success: false,
+                        error: 'Product not found'
+                    }];
+            }
+            // Calculate new quantities
+            const currentOrderedQuantity = product.orderedquantity || 0;
+            const currentAvailableQuantity = product.availablequantity || 0;
+            const newOrderedQuantity = Math.max(0, currentOrderedQuantity - quantity);
+            const newAvailableQuantity = currentAvailableQuantity + quantity;
+            logger.debug({
+                productId,
+                productName: product.name,
+                currentOrderedQuantity,
+                currentAvailableQuantity,
+                quantity,
+                newOrderedQuantity,
+                newAvailableQuantity,
+            }, 'Product quantity calculations for restoration');
+            // Determine new product status based on available quantity
+            let newProductStatus;
+            if (newAvailableQuantity <= 0) {
+                newProductStatus = 'out_of_stock';
+            }
+            else if (newAvailableQuantity >= 1 && newAvailableQuantity <= 5) {
+                newProductStatus = 'low_stock';
+            }
+            else {
+                newProductStatus = 'in_stock';
+            }
+            // Update product quantities and status
+            const updatedProduct = await prisma.product.update({
+                where: { id: BigInt(productId) },
+                data: {
+                    orderedquantity: newOrderedQuantity,
+                    availablequantity: newAvailableQuantity,
+                    productstatus: newProductStatus,
+                    modifieddate: BigInt(Date.now()),
+                },
+            });
+            logger.info({
+                productId,
+                productName: product.name,
+                quantityRestored: quantity,
+                oldOrderedQuantity: currentOrderedQuantity,
+                newOrderedQuantity,
+                oldAvailableQuantity: currentAvailableQuantity,
+                newAvailableQuantity,
+                newProductStatus,
+            }, 'Product quantities restored successfully');
+            return [{
+                    productId,
+                    success: true,
+                    productName: product.name,
+                    quantityRestored: quantity,
+                    oldQuantities: {
+                        ordered: currentOrderedQuantity,
+                        available: currentAvailableQuantity,
+                        status: product.productstatus
+                    },
+                    newQuantities: {
+                        ordered: newOrderedQuantity,
+                        available: newAvailableQuantity,
+                        status: newProductStatus
+                    }
+                }];
+        }
+        catch (error) {
+            logger.error({ error, productId, quantity }, 'Error restoring product quantities');
+            return [{
+                    productId,
+                    success: false,
+                    error: error.message
+                }];
+        }
+    }
+    async checkAndUpdateOrderStatus(orderId) {
+        try {
+            logger.debug({ orderId }, 'Checking if all orderlines are cancelled to update order status');
+            // Get all orderlines for this order
+            const orderlines = await this.findByOrderId(orderId);
+            if (orderlines.length === 0) {
+                logger.warn({ orderId }, 'No orderlines found for order');
+                return false;
+            }
+            // Check if all orderlines are cancelled
+            const allCancelled = orderlines.every(orderline => orderline.orderstatus === 'cancelled');
+            logger.debug({
+                orderId,
+                totalOrderlines: orderlines.length,
+                cancelledOrderlines: orderlines.filter(ol => ol.orderstatus === 'cancelled').length,
+                allCancelled
+            }, 'Orderline status analysis');
+            if (allCancelled) {
+                // Update order status to cancelled
+                const orderUpdateData = {
+                    orderstatus: 'cancelled',
+                    cancelleddate: Date.now(),
+                    modifieddate: Date.now()
+                };
+                const updatedOrder = await dynamicUpdate('orders', { id: orderId }, orderUpdateData);
+                if (updatedOrder) {
+                    logger.info({
+                        orderId,
+                        newStatus: 'cancelled',
+                        orderid: updatedOrder.orderid
+                    }, 'Order status updated to cancelled (all orderlines cancelled)');
+                    return true;
+                }
+                else {
+                    logger.error({ orderId }, 'Failed to update order status to cancelled');
+                    return false;
+                }
+            }
+            else {
+                logger.debug({ orderId }, 'Not all orderlines are cancelled, order status remains unchanged');
+                return false;
+            }
+        }
+        catch (error) {
+            logger.error({ error, orderId }, 'Error checking and updating order status');
+            return false;
         }
     }
 }
