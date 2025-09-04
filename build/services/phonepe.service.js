@@ -10,13 +10,16 @@ const PHONEPE_CONFIG = {
     KEY_INDEX: 1,
     BASE_URL: process.env.PHONEPE_BASE_URL ||
         "https://api-preprod.phonepe.com/apis/pg-sandbox",
-    // REDIRECT_SUCCESS: process.env.REDIRECT_URL_SUCCESS || 'http://localhost:5600/payment/success',
-    // REDIRECT_FAILURE: process.env.REDIRECT_URL_FAILURE || 'http://localhost:5600/payment/failure',
-    // REDIRECT_STATUS: process.env.REDIRECT_URL_PAYMENT_STATUS || 'http://localhost:5600'
-    REDIRECT_SUCCESS: "http://localhost:5600/payment/success",
-    REDIRECT_FAILURE: "http://localhost:5600/payment/failure",
-    REDIRECT_STATUS: "http://localhost:5600",
+    REDIRECT_SUCCESS: process.env.REDIRECT_URL_SUCCESS || "http://localhost:5600/payment/success",
+    REDIRECT_FAILURE: process.env.REDIRECT_URL_FAILURE || "http://localhost:5600/payment/failure",
+    REDIRECT_STATUS: process.env.REDIRECT_URL_PAYMENT_STATUS || "http://localhost:5600",
+    // REDIRECT_SUCCESS: "com.Nivaana.app://profile/orders",
+    // REDIRECT_FAILURE: "http://localhost:5600/payment/failure",
+    // REDIRECT_STATUS: "http://localhost:5600",
 };
+console.log(process.env.REDIRECT_URL_SUCCESS, "REDIRECT_URL_SUCCESS ==>> Test ==> ");
+console.log(process.env.REDIRECT_URL_FAILURE, "REDIRECT_URL_FAILURE ==>> Test ==> ");
+console.log(process.env.REDIRECT_URL_PAYMENT_STATUS, "REDIRECT_URL_PAYMENT_STATUS ==>> Test ==> ");
 export class PhonePeService {
     transactionService = new TransactionService();
     /**

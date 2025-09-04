@@ -145,8 +145,6 @@ export declare const promotionActionsQuerySchema: z.ZodObject<{
     action_order: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     value?: string | undefined;
-    page?: string | undefined;
-    limit?: string | undefined;
     promotion_id?: string | undefined;
     value_type?: string | undefined;
     action_type?: string | undefined;
@@ -157,10 +155,10 @@ export declare const promotionActionsQuerySchema: z.ZodObject<{
     check_inventory?: string | undefined;
     execution_group?: string | undefined;
     action_order?: string | undefined;
+    page?: string | undefined;
+    limit?: string | undefined;
 }, {
     value?: string | undefined;
-    page?: string | undefined;
-    limit?: string | undefined;
     promotion_id?: string | undefined;
     value_type?: string | undefined;
     action_type?: string | undefined;
@@ -171,6 +169,8 @@ export declare const promotionActionsQuerySchema: z.ZodObject<{
     check_inventory?: string | undefined;
     execution_group?: string | undefined;
     action_order?: string | undefined;
+    page?: string | undefined;
+    limit?: string | undefined;
 }>;
 export type CreatePromotionActionsInput = z.infer<typeof createPromotionActionsSchema>;
 export type UpdatePromotionActionsInput = z.infer<typeof updatePromotionActionsSchema>;

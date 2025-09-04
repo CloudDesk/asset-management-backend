@@ -76,13 +76,13 @@ export declare class PhonePeController {
      */
     private storeTransactionData;
     /**
-   * Update product quantities and status after successful order creation
-   * This method updates orderedquantity, availablequantity, and productstatus for each product in the order
-   * Product status rules:
-   * - availablequantity <= 0: "out_of_stock"
-   * - availablequantity 1-5: "low_stock"
-   * - availablequantity > 5: "in_stock"
-   */
+     * Update product quantities and status after successful order creation
+     * This method updates orderedquantity, availablequantity, and productstatus for each product in the order
+     * Product status rules:
+     * - availablequantity <= 0: "out_of_stock"
+     * - availablequantity 1-5: "low_stock"
+     * - availablequantity > 5: "in_stock"
+     */
     updateProductQuantitiesAfterOrder(orderData: any, originalOrderItems: any[], mode: string): Promise<{
         success: boolean;
         totalProducts: number;

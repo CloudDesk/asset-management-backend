@@ -150,11 +150,11 @@ export declare const promotionsQuerySchema: z.ZodObject<{
     status?: string | undefined;
     name?: string | undefined;
     priority?: string | undefined;
-    page?: string | undefined;
-    limit?: string | undefined;
     auto_apply?: string | undefined;
     visibility?: string | undefined;
     stackable?: string | undefined;
+    page?: string | undefined;
+    limit?: string | undefined;
     start_date_after?: string | undefined;
     start_date_before?: string | undefined;
     end_date_after?: string | undefined;
@@ -165,11 +165,11 @@ export declare const promotionsQuerySchema: z.ZodObject<{
     status?: string | undefined;
     name?: string | undefined;
     priority?: string | undefined;
-    page?: string | undefined;
-    limit?: string | undefined;
     auto_apply?: string | undefined;
     visibility?: string | undefined;
     stackable?: string | undefined;
+    page?: string | undefined;
+    limit?: string | undefined;
     start_date_after?: string | undefined;
     start_date_before?: string | undefined;
     end_date_after?: string | undefined;
