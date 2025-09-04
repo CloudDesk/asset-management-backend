@@ -699,3 +699,2455 @@ Update result: [
     "resettokenexpires": null
   }
 ]
+Update result: []
+Update result: [
+  {
+    "id": 93,
+    "transactionid": "NIVAANA-TRAN-00093",
+    "createddate": 1756985720,
+    "modifieddate": 1756985775,
+    "transactiondata": {
+      "mode": "phonepe",
+      "status": "SUCCESS",
+      "codData": null,
+      "updatedAt": "2025-09-04T06:06:13.697Z",
+      "initiatedAt": "2025-09-04T06:05:17.957Z",
+      "paymentRequest": {
+        "name": "pravinsf24@gmail.com",
+        "amount": 240,
+        "userId": 5,
+        "productIds": [
+          11
+        ],
+        "mobileNumber": "8870339850",
+        "transactionFor": "product",
+        "merchantTransactionId": "TXN_1756965917670_9CRXB4"
+      },
+      "originalPayload": {
+        "mode": "phonepe",
+        "order": [
+          {
+            "cartId": 390,
+            "userid": 5,
+            "quantity": 1,
+            "addressid": 22,
+            "productid": 11,
+            "orderamount": 240,
+            "productname": "ARCASA Scented Candles",
+            "productamount": 240,
+            "discountamount": 0,
+            "productcategory": "wellness"
+          }
+        ],
+        "transaction": {
+          "name": "pravinsf24@gmail.com",
+          "amount": 240,
+          "userId": 5,
+          "productid": [
+            11
+          ],
+          "mobilenumber": "8870339850",
+          "transactionfor": "product"
+        }
+      },
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "data": {
+          "state": "COMPLETED",
+          "amount": 24000,
+          "merchantId": "PGTESTPAYUAT86",
+          "responseCode": "SUCCESS",
+          "transactionId": "T2509041135179810202163",
+          "paymentInstrument": {
+            "arn": "12121214455",
+            "brn": "B12345",
+            "type": "CARD",
+            "bankId": null,
+            "cardType": "CREDIT_CARD",
+            "authRefId": "Dummy-auth12345",
+            "bankTransactionId": null
+          },
+          "merchantTransactionId": "TXN_1756965917670_9CRXB4"
+        },
+        "message": "Your payment is successful.",
+        "success": true
+      },
+      "phonePeResponses": {
+        "success": {
+          "status": "SUCCESS",
+          "response": {
+            "code": "PAYMENT_SUCCESS",
+            "data": {
+              "state": "COMPLETED",
+              "amount": 24000,
+              "merchantId": "PGTESTPAYUAT86",
+              "responseCode": "SUCCESS",
+              "transactionId": "T2509041135179810202163",
+              "paymentInstrument": {
+                "arn": "12121214455",
+                "brn": "B12345",
+                "type": "CARD",
+                "bankId": null,
+                "cardType": "CREDIT_CARD",
+                "authRefId": "Dummy-auth12345",
+                "bankTransactionId": null
+              },
+              "merchantTransactionId": "TXN_1756965917670_9CRXB4"
+            },
+            "message": "Your payment is successful.",
+            "success": true
+          },
+          "timestamp": "2025-09-04T06:06:13.697Z"
+        },
+        "initiation": {
+          "status": "INITIATED",
+          "response": {
+            "message": "Payment initiated successfully",
+            "success": true,
+            "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqchCUUhnL4gSu6gfNlCQGr",
+            "transactionId": "TXN_1756965917670_9CRXB4"
+          },
+          "timestamp": "2025-09-04T06:05:17.957Z",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqchCUUhnL4gSu6gfNlCQGr"
+        }
+      },
+      "paymentCompleteAt": "2025-09-04T06:06:13.697Z"
+    },
+    "userid": 5,
+    "productid": [
+      11
+    ],
+    "merchanttransactionid": "TXN_1756965917670_9CRXB4",
+    "name": "pravinsf24@gmail.com",
+    "amount": "240",
+    "mobilenumber": 8870339850,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 93,
+    "transactionid": "NIVAANA-TRAN-00093",
+    "createddate": 1756985720,
+    "modifieddate": 1756985780,
+    "transactiondata": {
+      "mode": "phonepe",
+      "status": "SUCCESS",
+      "codData": null,
+      "updatedAt": "2025-09-04T06:06:19.307Z",
+      "initiatedAt": "2025-09-04T06:05:17.957Z",
+      "paymentRequest": {
+        "name": "pravinsf24@gmail.com",
+        "amount": 240,
+        "userId": 5,
+        "productIds": [
+          11
+        ],
+        "mobileNumber": "8870339850",
+        "transactionFor": "product",
+        "merchantTransactionId": "TXN_1756965917670_9CRXB4"
+      },
+      "originalPayload": {
+        "mode": "phonepe",
+        "order": [
+          {
+            "cartId": 390,
+            "userid": 5,
+            "quantity": 1,
+            "addressid": 22,
+            "productid": 11,
+            "orderamount": 240,
+            "productname": "ARCASA Scented Candles",
+            "productamount": 240,
+            "discountamount": 0,
+            "productcategory": "wellness"
+          }
+        ],
+        "transaction": {
+          "name": "pravinsf24@gmail.com",
+          "amount": 240,
+          "userId": 5,
+          "productid": [
+            11
+          ],
+          "mobilenumber": "8870339850",
+          "transactionfor": "product"
+        }
+      },
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "data": {
+          "state": "COMPLETED",
+          "amount": 24000,
+          "merchantId": "PGTESTPAYUAT86",
+          "responseCode": "SUCCESS",
+          "transactionId": "T2509041135179810202163",
+          "paymentInstrument": {
+            "arn": "12121214455",
+            "brn": "B12345",
+            "type": "CARD",
+            "bankId": null,
+            "cardType": "CREDIT_CARD",
+            "authRefId": "Dummy-auth12345",
+            "bankTransactionId": null
+          },
+          "merchantTransactionId": "TXN_1756965917670_9CRXB4"
+        },
+        "message": "Your payment is successful.",
+        "success": true,
+        "orderCreation": {
+          "error": null,
+          "status": "success",
+          "orderId": 47,
+          "timestamp": "2025-09-04T06:06:19.023Z"
+        },
+        "paymentCompleteAt": "2025-09-04T06:06:19.023Z"
+      },
+      "phonePeResponses": {
+        "success": {
+          "status": "SUCCESS",
+          "response": {
+            "code": "PAYMENT_SUCCESS",
+            "data": {
+              "state": "COMPLETED",
+              "amount": 24000,
+              "merchantId": "PGTESTPAYUAT86",
+              "responseCode": "SUCCESS",
+              "transactionId": "T2509041135179810202163",
+              "paymentInstrument": {
+                "arn": "12121214455",
+                "brn": "B12345",
+                "type": "CARD",
+                "bankId": null,
+                "cardType": "CREDIT_CARD",
+                "authRefId": "Dummy-auth12345",
+                "bankTransactionId": null
+              },
+              "merchantTransactionId": "TXN_1756965917670_9CRXB4"
+            },
+            "message": "Your payment is successful.",
+            "success": true,
+            "orderCreation": {
+              "error": null,
+              "status": "success",
+              "orderId": 47,
+              "timestamp": "2025-09-04T06:06:19.023Z"
+            },
+            "paymentCompleteAt": "2025-09-04T06:06:19.023Z"
+          },
+          "timestamp": "2025-09-04T06:06:19.307Z"
+        },
+        "initiation": {
+          "status": "INITIATED",
+          "response": {
+            "message": "Payment initiated successfully",
+            "success": true,
+            "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqchCUUhnL4gSu6gfNlCQGr",
+            "transactionId": "TXN_1756965917670_9CRXB4"
+          },
+          "timestamp": "2025-09-04T06:05:17.957Z",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqchCUUhnL4gSu6gfNlCQGr"
+        }
+      },
+      "paymentCompleteAt": "2025-09-04T06:06:19.307Z"
+    },
+    "userid": 5,
+    "productid": [
+      11
+    ],
+    "merchanttransactionid": "TXN_1756965917670_9CRXB4",
+    "name": "pravinsf24@gmail.com",
+    "amount": "240",
+    "mobilenumber": 8870339850,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 94,
+    "transactionid": "NIVAANA-TRAN-00094",
+    "createddate": 1756986864,
+    "modifieddate": 1756986909,
+    "transactiondata": {
+      "mode": "phonepe",
+      "status": "SUCCESS",
+      "codData": null,
+      "updatedAt": "2025-09-04T06:25:08.318Z",
+      "initiatedAt": "2025-09-04T06:24:22.494Z",
+      "paymentRequest": {
+        "name": "pravinsf24@gmail.com",
+        "amount": 240,
+        "userId": 5,
+        "productIds": [
+          11
+        ],
+        "mobileNumber": "8870339850",
+        "transactionFor": "product",
+        "merchantTransactionId": "TXN_1756967062172_7Z5N1B"
+      },
+      "originalPayload": {
+        "mode": "phonepe",
+        "order": [
+          {
+            "cartId": 390,
+            "userid": 5,
+            "quantity": 1,
+            "addressid": 22,
+            "productid": 11,
+            "orderamount": 240,
+            "productname": "ARCASA Scented Candles",
+            "productamount": 240,
+            "discountamount": 0,
+            "productcategory": "wellness"
+          }
+        ],
+        "transaction": {
+          "name": "pravinsf24@gmail.com",
+          "amount": 240,
+          "userId": 5,
+          "productid": [
+            11
+          ],
+          "mobilenumber": "8870339850",
+          "transactionfor": "product"
+        }
+      },
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "data": {
+          "state": "COMPLETED",
+          "amount": 24000,
+          "merchantId": "PGTESTPAYUAT86",
+          "responseCode": "SUCCESS",
+          "transactionId": "T2509041154225020202005",
+          "paymentInstrument": {
+            "arn": "12121214455",
+            "brn": "B12345",
+            "type": "CARD",
+            "bankId": null,
+            "cardType": "CREDIT_CARD",
+            "authRefId": "Dummy-auth12345",
+            "bankTransactionId": null
+          },
+          "merchantTransactionId": "TXN_1756967062172_7Z5N1B"
+        },
+        "message": "Your payment is successful.",
+        "success": true
+      },
+      "phonePeResponses": {
+        "success": {
+          "status": "SUCCESS",
+          "response": {
+            "code": "PAYMENT_SUCCESS",
+            "data": {
+              "state": "COMPLETED",
+              "amount": 24000,
+              "merchantId": "PGTESTPAYUAT86",
+              "responseCode": "SUCCESS",
+              "transactionId": "T2509041154225020202005",
+              "paymentInstrument": {
+                "arn": "12121214455",
+                "brn": "B12345",
+                "type": "CARD",
+                "bankId": null,
+                "cardType": "CREDIT_CARD",
+                "authRefId": "Dummy-auth12345",
+                "bankTransactionId": null
+              },
+              "merchantTransactionId": "TXN_1756967062172_7Z5N1B"
+            },
+            "message": "Your payment is successful.",
+            "success": true
+          },
+          "timestamp": "2025-09-04T06:25:08.318Z"
+        },
+        "initiation": {
+          "status": "INITIATED",
+          "response": {
+            "message": "Payment initiated successfully",
+            "success": true,
+            "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqchCH0kSYXHrUWjWplQa9T",
+            "transactionId": "TXN_1756967062172_7Z5N1B"
+          },
+          "timestamp": "2025-09-04T06:24:22.494Z",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqchCH0kSYXHrUWjWplQa9T"
+        }
+      },
+      "paymentCompleteAt": "2025-09-04T06:25:08.318Z"
+    },
+    "userid": 5,
+    "productid": [
+      11
+    ],
+    "merchanttransactionid": "TXN_1756967062172_7Z5N1B",
+    "name": "pravinsf24@gmail.com",
+    "amount": "240",
+    "mobilenumber": 8870339850,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 94,
+    "transactionid": "NIVAANA-TRAN-00094",
+    "createddate": 1756986864,
+    "modifieddate": 1756986915,
+    "transactiondata": {
+      "mode": "phonepe",
+      "status": "SUCCESS",
+      "codData": null,
+      "updatedAt": "2025-09-04T06:25:14.420Z",
+      "initiatedAt": "2025-09-04T06:24:22.494Z",
+      "paymentRequest": {
+        "name": "pravinsf24@gmail.com",
+        "amount": 240,
+        "userId": 5,
+        "productIds": [
+          11
+        ],
+        "mobileNumber": "8870339850",
+        "transactionFor": "product",
+        "merchantTransactionId": "TXN_1756967062172_7Z5N1B"
+      },
+      "originalPayload": {
+        "mode": "phonepe",
+        "order": [
+          {
+            "cartId": 390,
+            "userid": 5,
+            "quantity": 1,
+            "addressid": 22,
+            "productid": 11,
+            "orderamount": 240,
+            "productname": "ARCASA Scented Candles",
+            "productamount": 240,
+            "discountamount": 0,
+            "productcategory": "wellness"
+          }
+        ],
+        "transaction": {
+          "name": "pravinsf24@gmail.com",
+          "amount": 240,
+          "userId": 5,
+          "productid": [
+            11
+          ],
+          "mobilenumber": "8870339850",
+          "transactionfor": "product"
+        }
+      },
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "data": {
+          "state": "COMPLETED",
+          "amount": 24000,
+          "merchantId": "PGTESTPAYUAT86",
+          "responseCode": "SUCCESS",
+          "transactionId": "T2509041154225020202005",
+          "paymentInstrument": {
+            "arn": "12121214455",
+            "brn": "B12345",
+            "type": "CARD",
+            "bankId": null,
+            "cardType": "CREDIT_CARD",
+            "authRefId": "Dummy-auth12345",
+            "bankTransactionId": null
+          },
+          "merchantTransactionId": "TXN_1756967062172_7Z5N1B"
+        },
+        "message": "Your payment is successful.",
+        "success": true,
+        "orderCreation": {
+          "error": null,
+          "status": "success",
+          "orderId": 48,
+          "timestamp": "2025-09-04T06:25:14.132Z"
+        },
+        "paymentCompleteAt": "2025-09-04T06:25:14.132Z"
+      },
+      "phonePeResponses": {
+        "success": {
+          "status": "SUCCESS",
+          "response": {
+            "code": "PAYMENT_SUCCESS",
+            "data": {
+              "state": "COMPLETED",
+              "amount": 24000,
+              "merchantId": "PGTESTPAYUAT86",
+              "responseCode": "SUCCESS",
+              "transactionId": "T2509041154225020202005",
+              "paymentInstrument": {
+                "arn": "12121214455",
+                "brn": "B12345",
+                "type": "CARD",
+                "bankId": null,
+                "cardType": "CREDIT_CARD",
+                "authRefId": "Dummy-auth12345",
+                "bankTransactionId": null
+              },
+              "merchantTransactionId": "TXN_1756967062172_7Z5N1B"
+            },
+            "message": "Your payment is successful.",
+            "success": true,
+            "orderCreation": {
+              "error": null,
+              "status": "success",
+              "orderId": 48,
+              "timestamp": "2025-09-04T06:25:14.132Z"
+            },
+            "paymentCompleteAt": "2025-09-04T06:25:14.132Z"
+          },
+          "timestamp": "2025-09-04T06:25:14.419Z"
+        },
+        "initiation": {
+          "status": "INITIATED",
+          "response": {
+            "message": "Payment initiated successfully",
+            "success": true,
+            "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqchCH0kSYXHrUWjWplQa9T",
+            "transactionId": "TXN_1756967062172_7Z5N1B"
+          },
+          "timestamp": "2025-09-04T06:24:22.494Z",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqchCH0kSYXHrUWjWplQa9T"
+        }
+      },
+      "paymentCompleteAt": "2025-09-04T06:25:14.420Z"
+    },
+    "userid": 5,
+    "productid": [
+      11
+    ],
+    "merchanttransactionid": "TXN_1756967062172_7Z5N1B",
+    "name": "pravinsf24@gmail.com",
+    "amount": "240",
+    "mobilenumber": 8870339850,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 98,
+    "transactionid": "NIVAANA-TRAN-00098",
+    "createddate": 1756987534,
+    "modifieddate": 1756987585,
+    "transactiondata": {
+      "mode": "phonepe",
+      "status": "ERROR",
+      "codData": null,
+      "updatedAt": "2025-09-04T06:36:24.302Z",
+      "initiatedAt": "2025-09-04T06:35:32.041Z",
+      "paymentRequest": {
+        "name": "pravinsf24@gmail.com",
+        "amount": 240,
+        "userId": 5,
+        "productIds": [
+          11
+        ],
+        "mobileNumber": "8870339850",
+        "transactionFor": "product",
+        "merchantTransactionId": "TXN_1756967731791_5X0AIG"
+      },
+      "originalPayload": {
+        "mode": "phonepe",
+        "order": [
+          {
+            "cartId": 390,
+            "userid": 5,
+            "quantity": 1,
+            "addressid": 22,
+            "productid": 11,
+            "orderamount": 240,
+            "productname": "ARCASA Scented Candles",
+            "productamount": 240,
+            "discountamount": 0,
+            "productcategory": "wellness"
+          }
+        ],
+        "transaction": {
+          "name": "pravinsf24@gmail.com",
+          "amount": 240,
+          "userId": 5,
+          "productid": [
+            11
+          ],
+          "mobilenumber": "8870339850",
+          "transactionfor": "product"
+        }
+      },
+      "phonePeResponse": {
+        "error": "Failed to check payment status"
+      },
+      "phonePeResponses": {
+        "error": {
+          "status": "ERROR",
+          "response": {
+            "error": "Failed to check payment status",
+            "stack": "DatabaseError: Failed to check payment status\n    at PhonePeService.checkPaymentStatus (/Users/harish/Documents/Github/Harish-on-cloud/asset-management-backend/src/services/phonepe.service.ts:292:13)\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async Object.<anonymous> (/Users/harish/Documents/Github/Harish-on-cloud/asset-management-backend/src/routes/phonepe.route.ts:235:29)",
+            "errorType": "DatabaseError",
+            "timestamp": "2025-09-04T06:36:21.770Z"
+          },
+          "timestamp": "2025-09-04T06:36:24.302Z"
+        },
+        "initiation": {
+          "status": "INITIATED",
+          "response": {
+            "message": "Payment initiated successfully",
+            "success": true,
+            "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqchCGp8OK5xg5ICjcQpeGM",
+            "transactionId": "TXN_1756967731791_5X0AIG"
+          },
+          "timestamp": "2025-09-04T06:35:32.041Z",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqchCGp8OK5xg5ICjcQpeGM"
+        }
+      },
+      "paymentCompleteAt": "2025-09-04T06:36:24.302Z"
+    },
+    "userid": 5,
+    "productid": [
+      11
+    ],
+    "merchanttransactionid": "TXN_1756967731791_5X0AIG",
+    "name": "pravinsf24@gmail.com",
+    "amount": "240",
+    "mobilenumber": 8870339850,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 99,
+    "transactionid": "NIVAANA-TRAN-00099",
+    "createddate": 1756987661,
+    "modifieddate": 1756987699,
+    "transactiondata": {
+      "mode": "phonepe",
+      "status": "SUCCESS",
+      "codData": null,
+      "updatedAt": "2025-09-04T06:38:17.710Z",
+      "initiatedAt": "2025-09-04T06:37:38.687Z",
+      "paymentRequest": {
+        "name": "pravinsf24@gmail.com",
+        "amount": 240,
+        "userId": 5,
+        "productIds": [
+          11
+        ],
+        "mobileNumber": "8870339850",
+        "transactionFor": "product",
+        "merchantTransactionId": "TXN_1756967858455_6GUNMR"
+      },
+      "originalPayload": {
+        "mode": "phonepe",
+        "order": [
+          {
+            "cartId": 390,
+            "userid": 5,
+            "quantity": 1,
+            "addressid": 22,
+            "productid": 11,
+            "orderamount": 240,
+            "productname": "ARCASA Scented Candles",
+            "productamount": 240,
+            "discountamount": 0,
+            "productcategory": "wellness"
+          }
+        ],
+        "transaction": {
+          "name": "pravinsf24@gmail.com",
+          "amount": 240,
+          "userId": 5,
+          "productid": [
+            11
+          ],
+          "mobilenumber": "8870339850",
+          "transactionfor": "product"
+        }
+      },
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "data": {
+          "state": "COMPLETED",
+          "amount": 24000,
+          "merchantId": "PGTESTPAYUAT86",
+          "responseCode": "SUCCESS",
+          "transactionId": "T2509041207386820202451",
+          "paymentInstrument": {
+            "arn": "12121214455",
+            "brn": "B12345",
+            "type": "CARD",
+            "bankId": null,
+            "cardType": "CREDIT_CARD",
+            "authRefId": "Dummy-auth12345",
+            "bankTransactionId": null
+          },
+          "merchantTransactionId": "TXN_1756967858455_6GUNMR"
+        },
+        "message": "Your payment is successful.",
+        "success": true
+      },
+      "phonePeResponses": {
+        "success": {
+          "status": "SUCCESS",
+          "response": {
+            "code": "PAYMENT_SUCCESS",
+            "data": {
+              "state": "COMPLETED",
+              "amount": 24000,
+              "merchantId": "PGTESTPAYUAT86",
+              "responseCode": "SUCCESS",
+              "transactionId": "T2509041207386820202451",
+              "paymentInstrument": {
+                "arn": "12121214455",
+                "brn": "B12345",
+                "type": "CARD",
+                "bankId": null,
+                "cardType": "CREDIT_CARD",
+                "authRefId": "Dummy-auth12345",
+                "bankTransactionId": null
+              },
+              "merchantTransactionId": "TXN_1756967858455_6GUNMR"
+            },
+            "message": "Your payment is successful.",
+            "success": true
+          },
+          "timestamp": "2025-09-04T06:38:17.710Z"
+        },
+        "initiation": {
+          "status": "INITIATED",
+          "response": {
+            "message": "Payment initiated successfully",
+            "success": true,
+            "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqchCGnQvSCSQAtXT0USs1r",
+            "transactionId": "TXN_1756967858455_6GUNMR"
+          },
+          "timestamp": "2025-09-04T06:37:38.687Z",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqchCGnQvSCSQAtXT0USs1r"
+        }
+      },
+      "paymentCompleteAt": "2025-09-04T06:38:17.710Z"
+    },
+    "userid": 5,
+    "productid": [
+      11
+    ],
+    "merchanttransactionid": "TXN_1756967858455_6GUNMR",
+    "name": "pravinsf24@gmail.com",
+    "amount": "240",
+    "mobilenumber": 8870339850,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 99,
+    "transactionid": "NIVAANA-TRAN-00099",
+    "createddate": 1756987661,
+    "modifieddate": 1756987705,
+    "transactiondata": {
+      "mode": "phonepe",
+      "status": "SUCCESS",
+      "codData": null,
+      "updatedAt": "2025-09-04T06:38:23.969Z",
+      "initiatedAt": "2025-09-04T06:37:38.687Z",
+      "paymentRequest": {
+        "name": "pravinsf24@gmail.com",
+        "amount": 240,
+        "userId": 5,
+        "productIds": [
+          11
+        ],
+        "mobileNumber": "8870339850",
+        "transactionFor": "product",
+        "merchantTransactionId": "TXN_1756967858455_6GUNMR"
+      },
+      "originalPayload": {
+        "mode": "phonepe",
+        "order": [
+          {
+            "cartId": 390,
+            "userid": 5,
+            "quantity": 1,
+            "addressid": 22,
+            "productid": 11,
+            "orderamount": 240,
+            "productname": "ARCASA Scented Candles",
+            "productamount": 240,
+            "discountamount": 0,
+            "productcategory": "wellness"
+          }
+        ],
+        "transaction": {
+          "name": "pravinsf24@gmail.com",
+          "amount": 240,
+          "userId": 5,
+          "productid": [
+            11
+          ],
+          "mobilenumber": "8870339850",
+          "transactionfor": "product"
+        }
+      },
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "data": {
+          "state": "COMPLETED",
+          "amount": 24000,
+          "merchantId": "PGTESTPAYUAT86",
+          "responseCode": "SUCCESS",
+          "transactionId": "T2509041207386820202451",
+          "paymentInstrument": {
+            "arn": "12121214455",
+            "brn": "B12345",
+            "type": "CARD",
+            "bankId": null,
+            "cardType": "CREDIT_CARD",
+            "authRefId": "Dummy-auth12345",
+            "bankTransactionId": null
+          },
+          "merchantTransactionId": "TXN_1756967858455_6GUNMR"
+        },
+        "message": "Your payment is successful.",
+        "success": true,
+        "orderCreation": {
+          "error": null,
+          "status": "success",
+          "orderId": 49,
+          "timestamp": "2025-09-04T06:38:23.371Z"
+        },
+        "paymentCompleteAt": "2025-09-04T06:38:23.371Z"
+      },
+      "phonePeResponses": {
+        "success": {
+          "status": "SUCCESS",
+          "response": {
+            "code": "PAYMENT_SUCCESS",
+            "data": {
+              "state": "COMPLETED",
+              "amount": 24000,
+              "merchantId": "PGTESTPAYUAT86",
+              "responseCode": "SUCCESS",
+              "transactionId": "T2509041207386820202451",
+              "paymentInstrument": {
+                "arn": "12121214455",
+                "brn": "B12345",
+                "type": "CARD",
+                "bankId": null,
+                "cardType": "CREDIT_CARD",
+                "authRefId": "Dummy-auth12345",
+                "bankTransactionId": null
+              },
+              "merchantTransactionId": "TXN_1756967858455_6GUNMR"
+            },
+            "message": "Your payment is successful.",
+            "success": true,
+            "orderCreation": {
+              "error": null,
+              "status": "success",
+              "orderId": 49,
+              "timestamp": "2025-09-04T06:38:23.371Z"
+            },
+            "paymentCompleteAt": "2025-09-04T06:38:23.371Z"
+          },
+          "timestamp": "2025-09-04T06:38:23.969Z"
+        },
+        "initiation": {
+          "status": "INITIATED",
+          "response": {
+            "message": "Payment initiated successfully",
+            "success": true,
+            "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqchCGnQvSCSQAtXT0USs1r",
+            "transactionId": "TXN_1756967858455_6GUNMR"
+          },
+          "timestamp": "2025-09-04T06:37:38.687Z",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqchCGnQvSCSQAtXT0USs1r"
+        }
+      },
+      "paymentCompleteAt": "2025-09-04T06:38:23.969Z"
+    },
+    "userid": 5,
+    "productid": [
+      11
+    ],
+    "merchanttransactionid": "TXN_1756967858455_6GUNMR",
+    "name": "pravinsf24@gmail.com",
+    "amount": "240",
+    "mobilenumber": 8870339850,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 100,
+    "transactionid": "NIVAANA-TRAN-00100",
+    "createddate": 1756987910,
+    "modifieddate": 1756987945,
+    "transactiondata": {
+      "mode": "phonepe",
+      "status": "SUCCESS",
+      "codData": null,
+      "updatedAt": "2025-09-04T06:42:24.280Z",
+      "initiatedAt": "2025-09-04T06:41:48.194Z",
+      "paymentRequest": {
+        "name": "pravinsf24@gmail.com",
+        "amount": 240,
+        "userId": 5,
+        "productIds": [
+          11
+        ],
+        "mobileNumber": "8870339850",
+        "transactionFor": "product",
+        "merchantTransactionId": "TXN_1756968107783_R0FDZY"
+      },
+      "originalPayload": {
+        "mode": "phonepe",
+        "order": [
+          {
+            "cartId": 390,
+            "userid": 5,
+            "quantity": 1,
+            "addressid": 22,
+            "productid": 11,
+            "orderamount": 240,
+            "productname": "ARCASA Scented Candles",
+            "productamount": 240,
+            "discountamount": 0,
+            "productcategory": "wellness"
+          }
+        ],
+        "transaction": {
+          "name": "pravinsf24@gmail.com",
+          "amount": 240,
+          "userId": 5,
+          "productid": [
+            11
+          ],
+          "mobilenumber": "8870339850",
+          "transactionfor": "product"
+        }
+      },
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "data": {
+          "state": "COMPLETED",
+          "amount": 24000,
+          "merchantId": "PGTESTPAYUAT86",
+          "responseCode": "SUCCESS",
+          "transactionId": "T2509041211481760202820",
+          "paymentInstrument": {
+            "arn": "12121214455",
+            "brn": "B12345",
+            "type": "CARD",
+            "bankId": null,
+            "cardType": "CREDIT_CARD",
+            "authRefId": "Dummy-auth12345",
+            "bankTransactionId": null
+          },
+          "merchantTransactionId": "TXN_1756968107783_R0FDZY"
+        },
+        "message": "Your payment is successful.",
+        "success": true
+      },
+      "phonePeResponses": {
+        "success": {
+          "status": "SUCCESS",
+          "response": {
+            "code": "PAYMENT_SUCCESS",
+            "data": {
+              "state": "COMPLETED",
+              "amount": 24000,
+              "merchantId": "PGTESTPAYUAT86",
+              "responseCode": "SUCCESS",
+              "transactionId": "T2509041211481760202820",
+              "paymentInstrument": {
+                "arn": "12121214455",
+                "brn": "B12345",
+                "type": "CARD",
+                "bankId": null,
+                "cardType": "CREDIT_CARD",
+                "authRefId": "Dummy-auth12345",
+                "bankTransactionId": null
+              },
+              "merchantTransactionId": "TXN_1756968107783_R0FDZY"
+            },
+            "message": "Your payment is successful.",
+            "success": true
+          },
+          "timestamp": "2025-09-04T06:42:24.280Z"
+        },
+        "initiation": {
+          "status": "INITIATED",
+          "response": {
+            "message": "Payment initiated successfully",
+            "success": true,
+            "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqchCpIMwPVXLGsB7lRnoRc",
+            "transactionId": "TXN_1756968107783_R0FDZY"
+          },
+          "timestamp": "2025-09-04T06:41:48.194Z",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqchCpIMwPVXLGsB7lRnoRc"
+        }
+      },
+      "paymentCompleteAt": "2025-09-04T06:42:24.280Z"
+    },
+    "userid": 5,
+    "productid": [
+      11
+    ],
+    "merchanttransactionid": "TXN_1756968107783_R0FDZY",
+    "name": "pravinsf24@gmail.com",
+    "amount": "240",
+    "mobilenumber": 8870339850,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 100,
+    "transactionid": "NIVAANA-TRAN-00100",
+    "createddate": 1756987910,
+    "modifieddate": 1756987952,
+    "transactiondata": {
+      "mode": "phonepe",
+      "status": "SUCCESS",
+      "codData": null,
+      "updatedAt": "2025-09-04T06:42:30.771Z",
+      "initiatedAt": "2025-09-04T06:41:48.194Z",
+      "paymentRequest": {
+        "name": "pravinsf24@gmail.com",
+        "amount": 240,
+        "userId": 5,
+        "productIds": [
+          11
+        ],
+        "mobileNumber": "8870339850",
+        "transactionFor": "product",
+        "merchantTransactionId": "TXN_1756968107783_R0FDZY"
+      },
+      "originalPayload": {
+        "mode": "phonepe",
+        "order": [
+          {
+            "cartId": 390,
+            "userid": 5,
+            "quantity": 1,
+            "addressid": 22,
+            "productid": 11,
+            "orderamount": 240,
+            "productname": "ARCASA Scented Candles",
+            "productamount": 240,
+            "discountamount": 0,
+            "productcategory": "wellness"
+          }
+        ],
+        "transaction": {
+          "name": "pravinsf24@gmail.com",
+          "amount": 240,
+          "userId": 5,
+          "productid": [
+            11
+          ],
+          "mobilenumber": "8870339850",
+          "transactionfor": "product"
+        }
+      },
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "data": {
+          "state": "COMPLETED",
+          "amount": 24000,
+          "merchantId": "PGTESTPAYUAT86",
+          "responseCode": "SUCCESS",
+          "transactionId": "T2509041211481760202820",
+          "paymentInstrument": {
+            "arn": "12121214455",
+            "brn": "B12345",
+            "type": "CARD",
+            "bankId": null,
+            "cardType": "CREDIT_CARD",
+            "authRefId": "Dummy-auth12345",
+            "bankTransactionId": null
+          },
+          "merchantTransactionId": "TXN_1756968107783_R0FDZY"
+        },
+        "message": "Your payment is successful.",
+        "success": true,
+        "orderCreation": {
+          "error": null,
+          "status": "success",
+          "orderId": 50,
+          "timestamp": "2025-09-04T06:42:30.464Z"
+        },
+        "paymentCompleteAt": "2025-09-04T06:42:30.464Z"
+      },
+      "phonePeResponses": {
+        "success": {
+          "status": "SUCCESS",
+          "response": {
+            "code": "PAYMENT_SUCCESS",
+            "data": {
+              "state": "COMPLETED",
+              "amount": 24000,
+              "merchantId": "PGTESTPAYUAT86",
+              "responseCode": "SUCCESS",
+              "transactionId": "T2509041211481760202820",
+              "paymentInstrument": {
+                "arn": "12121214455",
+                "brn": "B12345",
+                "type": "CARD",
+                "bankId": null,
+                "cardType": "CREDIT_CARD",
+                "authRefId": "Dummy-auth12345",
+                "bankTransactionId": null
+              },
+              "merchantTransactionId": "TXN_1756968107783_R0FDZY"
+            },
+            "message": "Your payment is successful.",
+            "success": true,
+            "orderCreation": {
+              "error": null,
+              "status": "success",
+              "orderId": 50,
+              "timestamp": "2025-09-04T06:42:30.464Z"
+            },
+            "paymentCompleteAt": "2025-09-04T06:42:30.464Z"
+          },
+          "timestamp": "2025-09-04T06:42:30.770Z"
+        },
+        "initiation": {
+          "status": "INITIATED",
+          "response": {
+            "message": "Payment initiated successfully",
+            "success": true,
+            "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqchCpIMwPVXLGsB7lRnoRc",
+            "transactionId": "TXN_1756968107783_R0FDZY"
+          },
+          "timestamp": "2025-09-04T06:41:48.194Z",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqchCpIMwPVXLGsB7lRnoRc"
+        }
+      },
+      "paymentCompleteAt": "2025-09-04T06:42:30.771Z"
+    },
+    "userid": 5,
+    "productid": [
+      11
+    ],
+    "merchanttransactionid": "TXN_1756968107783_R0FDZY",
+    "name": "pravinsf24@gmail.com",
+    "amount": "240",
+    "mobilenumber": 8870339850,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 101,
+    "transactionid": "NIVAANA-TRAN-00101",
+    "createddate": 1756988286,
+    "modifieddate": 1756988318,
+    "transactiondata": {
+      "mode": "phonepe",
+      "status": "FAILED",
+      "codData": null,
+      "updatedAt": "2025-09-04T06:48:36.651Z",
+      "initiatedAt": "2025-09-04T06:48:04.425Z",
+      "paymentRequest": {
+        "name": "pravinsf24@gmail.com",
+        "amount": 240,
+        "userId": 5,
+        "productIds": [
+          11
+        ],
+        "mobileNumber": "8870339850",
+        "transactionFor": "product",
+        "merchantTransactionId": "TXN_1756968484096_2SW401"
+      },
+      "originalPayload": {
+        "mode": "phonepe",
+        "order": [
+          {
+            "cartId": 390,
+            "userid": 5,
+            "quantity": 1,
+            "addressid": 22,
+            "productid": 11,
+            "orderamount": 240,
+            "productname": "ARCASA Scented Candles",
+            "productamount": 240,
+            "discountamount": 0,
+            "productcategory": "wellness"
+          }
+        ],
+        "transaction": {
+          "name": "pravinsf24@gmail.com",
+          "amount": 240,
+          "userId": 5,
+          "productid": [
+            11
+          ],
+          "mobilenumber": "8870339850",
+          "transactionfor": "product"
+        }
+      },
+      "phonePeResponse": {
+        "error": "Your payment is in pending state."
+      },
+      "phonePeResponses": {
+        "failed": {
+          "status": "FAILED",
+          "response": {
+            "code": "PAYMENT_PENDING",
+            "data": {
+              "state": "PENDING",
+              "amount": 24000,
+              "merchantId": "PGTESTPAYUAT86",
+              "responseCode": null,
+              "transactionId": "T2509041218044110202320",
+              "merchantTransactionId": "TXN_1756968484096_2SW401"
+            },
+            "message": "Your payment is in pending state.",
+            "success": true
+          },
+          "timestamp": "2025-09-04T06:48:36.651Z"
+        },
+        "initiation": {
+          "status": "INITIATED",
+          "response": {
+            "message": "Payment initiated successfully",
+            "success": true,
+            "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqchCpDR2yQ0MiZRbqDihOy",
+            "transactionId": "TXN_1756968484096_2SW401"
+          },
+          "timestamp": "2025-09-04T06:48:04.425Z",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqchCpDR2yQ0MiZRbqDihOy"
+        }
+      },
+      "paymentCompleteAt": "2025-09-04T06:48:36.651Z"
+    },
+    "userid": 5,
+    "productid": [
+      11
+    ],
+    "merchanttransactionid": "TXN_1756968484096_2SW401",
+    "name": "pravinsf24@gmail.com",
+    "amount": "240",
+    "mobilenumber": 8870339850,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 102,
+    "transactionid": "NIVAANA-TRAN-00102",
+    "createddate": 1756988338,
+    "modifieddate": 1756988374,
+    "transactiondata": {
+      "mode": "phonepe",
+      "status": "FAILED",
+      "codData": null,
+      "updatedAt": "2025-09-04T06:49:33.074Z",
+      "initiatedAt": "2025-09-04T06:48:56.976Z",
+      "paymentRequest": {
+        "name": "pravinsf24@gmail.com",
+        "amount": 240,
+        "userId": 5,
+        "productIds": [
+          11
+        ],
+        "mobileNumber": "8870339850",
+        "transactionFor": "product",
+        "merchantTransactionId": "TXN_1756968536782_0NWNR0"
+      },
+      "originalPayload": {
+        "mode": "phonepe",
+        "order": [
+          {
+            "cartId": 390,
+            "userid": 5,
+            "quantity": 1,
+            "addressid": 22,
+            "productid": 11,
+            "orderamount": 240,
+            "productname": "ARCASA Scented Candles",
+            "productamount": 240,
+            "discountamount": 0,
+            "productcategory": "wellness"
+          }
+        ],
+        "transaction": {
+          "name": "pravinsf24@gmail.com",
+          "amount": 240,
+          "userId": 5,
+          "productid": [
+            11
+          ],
+          "mobilenumber": "8870339850",
+          "transactionfor": "product"
+        }
+      },
+      "phonePeResponse": {
+        "error": "Your payment is in pending state."
+      },
+      "phonePeResponses": {
+        "failed": {
+          "status": "FAILED",
+          "response": {
+            "code": "PAYMENT_PENDING",
+            "data": {
+              "state": "PENDING",
+              "amount": 24000,
+              "merchantId": "PGTESTPAYUAT86",
+              "responseCode": null,
+              "transactionId": "T2509041218569800202911",
+              "merchantTransactionId": "TXN_1756968536782_0NWNR0"
+            },
+            "message": "Your payment is in pending state.",
+            "success": true
+          },
+          "timestamp": "2025-09-04T06:49:33.074Z"
+        },
+        "initiation": {
+          "status": "INITIATED",
+          "response": {
+            "message": "Payment initiated successfully",
+            "success": true,
+            "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqchCpBjBdaIpsoJIqPjKlF",
+            "transactionId": "TXN_1756968536782_0NWNR0"
+          },
+          "timestamp": "2025-09-04T06:48:56.976Z",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqchCpBjBdaIpsoJIqPjKlF"
+        }
+      },
+      "paymentCompleteAt": "2025-09-04T06:49:33.074Z"
+    },
+    "userid": 5,
+    "productid": [
+      11
+    ],
+    "merchanttransactionid": "TXN_1756968536782_0NWNR0",
+    "name": "pravinsf24@gmail.com",
+    "amount": "240",
+    "mobilenumber": 8870339850,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 103,
+    "transactionid": "NIVAANA-TRAN-00103",
+    "createddate": 1756988878,
+    "modifieddate": 1756988913,
+    "transactiondata": {
+      "mode": "phonepe",
+      "status": "SUCCESS",
+      "codData": null,
+      "updatedAt": "2025-09-04T06:58:32.121Z",
+      "initiatedAt": "2025-09-04T06:57:55.664Z",
+      "paymentRequest": {
+        "name": "pravinsf24@gmail.com",
+        "amount": 240,
+        "userId": 5,
+        "productIds": [
+          11
+        ],
+        "mobileNumber": "8870339850",
+        "transactionFor": "product",
+        "merchantTransactionId": "TXN_1756969075400_49DG1F"
+      },
+      "originalPayload": {
+        "mode": "phonepe",
+        "order": [
+          {
+            "cartId": 390,
+            "userid": 5,
+            "quantity": 1,
+            "addressid": 22,
+            "productid": 11,
+            "orderamount": 240,
+            "productname": "ARCASA Scented Candles",
+            "productamount": 240,
+            "discountamount": 0,
+            "productcategory": "wellness"
+          }
+        ],
+        "transaction": {
+          "name": "pravinsf24@gmail.com",
+          "amount": 240,
+          "userId": 5,
+          "productid": [
+            11
+          ],
+          "mobilenumber": "8870339850",
+          "transactionfor": "product"
+        }
+      },
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "data": {
+          "state": "COMPLETED",
+          "amount": 24000,
+          "merchantId": "PGTESTPAYUAT86",
+          "responseCode": "SUCCESS",
+          "transactionId": "T2509041227556540202816",
+          "paymentInstrument": {
+            "arn": "12121214455",
+            "brn": "B12345",
+            "type": "CARD",
+            "bankId": null,
+            "cardType": "CREDIT_CARD",
+            "authRefId": "Dummy-auth12345",
+            "bankTransactionId": null
+          },
+          "merchantTransactionId": "TXN_1756969075400_49DG1F"
+        },
+        "message": "Your payment is successful.",
+        "success": true
+      },
+      "phonePeResponses": {
+        "success": {
+          "status": "SUCCESS",
+          "response": {
+            "code": "PAYMENT_SUCCESS",
+            "data": {
+              "state": "COMPLETED",
+              "amount": 24000,
+              "merchantId": "PGTESTPAYUAT86",
+              "responseCode": "SUCCESS",
+              "transactionId": "T2509041227556540202816",
+              "paymentInstrument": {
+                "arn": "12121214455",
+                "brn": "B12345",
+                "type": "CARD",
+                "bankId": null,
+                "cardType": "CREDIT_CARD",
+                "authRefId": "Dummy-auth12345",
+                "bankTransactionId": null
+              },
+              "merchantTransactionId": "TXN_1756969075400_49DG1F"
+            },
+            "message": "Your payment is successful.",
+            "success": true
+          },
+          "timestamp": "2025-09-04T06:58:32.121Z"
+        },
+        "initiation": {
+          "status": "INITIATED",
+          "response": {
+            "message": "Payment initiated successfully",
+            "success": true,
+            "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqchCwBSv19xQw6DY0oA5wl",
+            "transactionId": "TXN_1756969075400_49DG1F"
+          },
+          "timestamp": "2025-09-04T06:57:55.664Z",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqchCwBSv19xQw6DY0oA5wl"
+        }
+      },
+      "paymentCompleteAt": "2025-09-04T06:58:32.121Z"
+    },
+    "userid": 5,
+    "productid": [
+      11
+    ],
+    "merchanttransactionid": "TXN_1756969075400_49DG1F",
+    "name": "pravinsf24@gmail.com",
+    "amount": "240",
+    "mobilenumber": 8870339850,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 103,
+    "transactionid": "NIVAANA-TRAN-00103",
+    "createddate": 1756988878,
+    "modifieddate": 1756988919,
+    "transactiondata": {
+      "mode": "phonepe",
+      "status": "SUCCESS",
+      "codData": null,
+      "updatedAt": "2025-09-04T06:58:38.763Z",
+      "initiatedAt": "2025-09-04T06:57:55.664Z",
+      "paymentRequest": {
+        "name": "pravinsf24@gmail.com",
+        "amount": 240,
+        "userId": 5,
+        "productIds": [
+          11
+        ],
+        "mobileNumber": "8870339850",
+        "transactionFor": "product",
+        "merchantTransactionId": "TXN_1756969075400_49DG1F"
+      },
+      "originalPayload": {
+        "mode": "phonepe",
+        "order": [
+          {
+            "cartId": 390,
+            "userid": 5,
+            "quantity": 1,
+            "addressid": 22,
+            "productid": 11,
+            "orderamount": 240,
+            "productname": "ARCASA Scented Candles",
+            "productamount": 240,
+            "discountamount": 0,
+            "productcategory": "wellness"
+          }
+        ],
+        "transaction": {
+          "name": "pravinsf24@gmail.com",
+          "amount": 240,
+          "userId": 5,
+          "productid": [
+            11
+          ],
+          "mobilenumber": "8870339850",
+          "transactionfor": "product"
+        }
+      },
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "data": {
+          "state": "COMPLETED",
+          "amount": 24000,
+          "merchantId": "PGTESTPAYUAT86",
+          "responseCode": "SUCCESS",
+          "transactionId": "T2509041227556540202816",
+          "paymentInstrument": {
+            "arn": "12121214455",
+            "brn": "B12345",
+            "type": "CARD",
+            "bankId": null,
+            "cardType": "CREDIT_CARD",
+            "authRefId": "Dummy-auth12345",
+            "bankTransactionId": null
+          },
+          "merchantTransactionId": "TXN_1756969075400_49DG1F"
+        },
+        "message": "Your payment is successful.",
+        "success": true,
+        "orderCreation": {
+          "error": null,
+          "status": "success",
+          "orderId": 51,
+          "timestamp": "2025-09-04T06:58:38.484Z"
+        },
+        "paymentCompleteAt": "2025-09-04T06:58:38.484Z"
+      },
+      "phonePeResponses": {
+        "success": {
+          "status": "SUCCESS",
+          "response": {
+            "code": "PAYMENT_SUCCESS",
+            "data": {
+              "state": "COMPLETED",
+              "amount": 24000,
+              "merchantId": "PGTESTPAYUAT86",
+              "responseCode": "SUCCESS",
+              "transactionId": "T2509041227556540202816",
+              "paymentInstrument": {
+                "arn": "12121214455",
+                "brn": "B12345",
+                "type": "CARD",
+                "bankId": null,
+                "cardType": "CREDIT_CARD",
+                "authRefId": "Dummy-auth12345",
+                "bankTransactionId": null
+              },
+              "merchantTransactionId": "TXN_1756969075400_49DG1F"
+            },
+            "message": "Your payment is successful.",
+            "success": true,
+            "orderCreation": {
+              "error": null,
+              "status": "success",
+              "orderId": 51,
+              "timestamp": "2025-09-04T06:58:38.484Z"
+            },
+            "paymentCompleteAt": "2025-09-04T06:58:38.484Z"
+          },
+          "timestamp": "2025-09-04T06:58:38.763Z"
+        },
+        "initiation": {
+          "status": "INITIATED",
+          "response": {
+            "message": "Payment initiated successfully",
+            "success": true,
+            "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqchCwBSv19xQw6DY0oA5wl",
+            "transactionId": "TXN_1756969075400_49DG1F"
+          },
+          "timestamp": "2025-09-04T06:57:55.664Z",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqchCwBSv19xQw6DY0oA5wl"
+        }
+      },
+      "paymentCompleteAt": "2025-09-04T06:58:38.763Z"
+    },
+    "userid": 5,
+    "productid": [
+      11
+    ],
+    "merchanttransactionid": "TXN_1756969075400_49DG1F",
+    "name": "pravinsf24@gmail.com",
+    "amount": "240",
+    "mobilenumber": 8870339850,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 104,
+    "transactionid": "NIVAANA-TRAN-00104",
+    "createddate": 1756990132,
+    "modifieddate": 1756990164,
+    "transactiondata": {
+      "mode": "phonepe",
+      "status": "FAILED",
+      "codData": null,
+      "updatedAt": "2025-09-04T07:19:23.026Z",
+      "initiatedAt": "2025-09-04T07:18:49.624Z",
+      "paymentRequest": {
+        "name": "pravinsf24@gmail.com",
+        "amount": 240,
+        "userId": 5,
+        "productIds": [
+          11
+        ],
+        "mobileNumber": "8870339850",
+        "transactionFor": "product",
+        "merchantTransactionId": "TXN_1756970329296_28DS4W"
+      },
+      "originalPayload": {
+        "mode": "phonepe",
+        "order": [
+          {
+            "cartId": 390,
+            "userid": 5,
+            "quantity": 1,
+            "addressid": 22,
+            "productid": 11,
+            "orderamount": 240,
+            "productname": "ARCASA Scented Candles",
+            "productamount": 240,
+            "discountamount": 0,
+            "productcategory": "wellness"
+          }
+        ],
+        "transaction": {
+          "name": "pravinsf24@gmail.com",
+          "amount": 240,
+          "userId": 5,
+          "productid": [
+            11
+          ],
+          "mobilenumber": "8870339850",
+          "transactionfor": "product"
+        }
+      },
+      "phonePeResponse": {
+        "error": "Your payment is in pending state."
+      },
+      "phonePeResponses": {
+        "failed": {
+          "status": "FAILED",
+          "response": {
+            "code": "PAYMENT_PENDING",
+            "data": {
+              "state": "PENDING",
+              "amount": 24000,
+              "merchantId": "PGTESTPAYUAT86",
+              "responseCode": null,
+              "transactionId": "T2509041227556540202816",
+              "merchantTransactionId": "TXN_1756969075400_49DG1F"
+            },
+            "message": "Your payment is in pending state.",
+            "success": true
+          },
+          "timestamp": "2025-09-04T07:19:23.026Z"
+        },
+        "initiation": {
+          "status": "INITIATED",
+          "response": {
+            "message": "Payment initiated successfully",
+            "success": true,
+            "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqcheH3cwFgTbeLSJ9amdP4",
+            "transactionId": "TXN_1756970329296_28DS4W"
+          },
+          "timestamp": "2025-09-04T07:18:49.624Z",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqcheH3cwFgTbeLSJ9amdP4"
+        }
+      },
+      "paymentCompleteAt": "2025-09-04T07:19:23.026Z"
+    },
+    "userid": 5,
+    "productid": [
+      11
+    ],
+    "merchanttransactionid": "TXN_1756970329296_28DS4W",
+    "name": "pravinsf24@gmail.com",
+    "amount": "240",
+    "mobilenumber": 8870339850,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 104,
+    "transactionid": "NIVAANA-TRAN-00104",
+    "createddate": 1756990132,
+    "modifieddate": 1756990278,
+    "transactiondata": {
+      "mode": "phonepe",
+      "status": "FAILED",
+      "codData": null,
+      "updatedAt": "2025-09-04T07:21:16.715Z",
+      "initiatedAt": "2025-09-04T07:18:49.624Z",
+      "paymentRequest": {
+        "name": "pravinsf24@gmail.com",
+        "amount": 240,
+        "userId": 5,
+        "productIds": [
+          11
+        ],
+        "mobileNumber": "8870339850",
+        "transactionFor": "product",
+        "merchantTransactionId": "TXN_1756970329296_28DS4W"
+      },
+      "originalPayload": {
+        "mode": "phonepe",
+        "order": [
+          {
+            "cartId": 390,
+            "userid": 5,
+            "quantity": 1,
+            "addressid": 22,
+            "productid": 11,
+            "orderamount": 240,
+            "productname": "ARCASA Scented Candles",
+            "productamount": 240,
+            "discountamount": 0,
+            "productcategory": "wellness"
+          }
+        ],
+        "transaction": {
+          "name": "pravinsf24@gmail.com",
+          "amount": 240,
+          "userId": 5,
+          "productid": [
+            11
+          ],
+          "mobilenumber": "8870339850",
+          "transactionfor": "product"
+        }
+      },
+      "phonePeResponse": {
+        "error": "Your payment is in pending state."
+      },
+      "phonePeResponses": {
+        "failed": {
+          "status": "FAILED",
+          "response": {
+            "code": "PAYMENT_PENDING",
+            "data": {
+              "state": "PENDING",
+              "amount": 24000,
+              "merchantId": "PGTESTPAYUAT86",
+              "responseCode": null,
+              "transactionId": "T2509041227556540202816",
+              "merchantTransactionId": "TXN_1756969075400_49DG1F"
+            },
+            "message": "Your payment is in pending state.",
+            "success": true
+          },
+          "timestamp": "2025-09-04T07:21:16.715Z"
+        },
+        "initiation": {
+          "status": "INITIATED",
+          "response": {
+            "message": "Payment initiated successfully",
+            "success": true,
+            "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqcheH3cwFgTbeLSJ9amdP4",
+            "transactionId": "TXN_1756970329296_28DS4W"
+          },
+          "timestamp": "2025-09-04T07:18:49.624Z",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqcheH3cwFgTbeLSJ9amdP4"
+        }
+      },
+      "paymentCompleteAt": "2025-09-04T07:21:16.715Z"
+    },
+    "userid": 5,
+    "productid": [
+      11
+    ],
+    "merchanttransactionid": "TXN_1756970329296_28DS4W",
+    "name": "pravinsf24@gmail.com",
+    "amount": "240",
+    "mobilenumber": 8870339850,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 105,
+    "transactionid": "NIVAANA-TRAN-00105",
+    "createddate": 1756990297,
+    "modifieddate": 1756990310,
+    "transactiondata": {
+      "mode": "phonepe",
+      "status": "FAILED",
+      "codData": null,
+      "updatedAt": "2025-09-04T07:21:49.705Z",
+      "initiatedAt": "2025-09-04T07:21:35.842Z",
+      "paymentRequest": {
+        "name": "pravinsf24@gmail.com",
+        "amount": 240,
+        "userId": 5,
+        "productIds": [
+          11
+        ],
+        "mobileNumber": "8870339850",
+        "transactionFor": "product",
+        "merchantTransactionId": "TXN_1756970495650_MJ50IX"
+      },
+      "originalPayload": {
+        "mode": "phonepe",
+        "order": [
+          {
+            "cartId": 390,
+            "userid": 5,
+            "quantity": 1,
+            "addressid": 22,
+            "productid": 11,
+            "orderamount": 240,
+            "productname": "ARCASA Scented Candles",
+            "productamount": 240,
+            "discountamount": 0,
+            "productcategory": "wellness"
+          }
+        ],
+        "transaction": {
+          "name": "pravinsf24@gmail.com",
+          "amount": 240,
+          "userId": 5,
+          "productid": [
+            11
+          ],
+          "mobilenumber": "8870339850",
+          "transactionfor": "product"
+        }
+      },
+      "phonePeResponse": {
+        "error": "Your payment is in pending state."
+      },
+      "phonePeResponses": {
+        "failed": {
+          "status": "FAILED",
+          "response": {
+            "code": "PAYMENT_PENDING",
+            "data": {
+              "state": "PENDING",
+              "amount": 24000,
+              "merchantId": "PGTESTPAYUAT86",
+              "responseCode": null,
+              "transactionId": "T2509041248496172432340",
+              "merchantTransactionId": "TXN_1756970329296_28DS4W"
+            },
+            "message": "Your payment is in pending state.",
+            "success": true
+          },
+          "timestamp": "2025-09-04T07:21:49.705Z"
+        },
+        "initiation": {
+          "status": "INITIATED",
+          "response": {
+            "message": "Payment initiated successfully",
+            "success": true,
+            "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqcheH1zvjqNSCAgIAm2b57",
+            "transactionId": "TXN_1756970495650_MJ50IX"
+          },
+          "timestamp": "2025-09-04T07:21:35.842Z",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqcheH1zvjqNSCAgIAm2b57"
+        }
+      },
+      "paymentCompleteAt": "2025-09-04T07:21:49.705Z"
+    },
+    "userid": 5,
+    "productid": [
+      11
+    ],
+    "merchanttransactionid": "TXN_1756970495650_MJ50IX",
+    "name": "pravinsf24@gmail.com",
+    "amount": "240",
+    "mobilenumber": 8870339850,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 107,
+    "transactionid": "NIVAANA-TRAN-00107",
+    "createddate": 1756990506,
+    "modifieddate": 1756990551,
+    "transactiondata": {
+      "mode": "phonepe",
+      "status": "SUCCESS",
+      "codData": null,
+      "updatedAt": "2025-09-04T07:25:50.419Z",
+      "initiatedAt": "2025-09-04T07:25:05.175Z",
+      "paymentRequest": {
+        "name": "pravinsf24@gmail.com",
+        "amount": 240,
+        "userId": 5,
+        "productIds": [
+          11
+        ],
+        "mobileNumber": "8870339850",
+        "transactionFor": "product",
+        "merchantTransactionId": "TXN_1756970705008_2PL0K0"
+      },
+      "originalPayload": {
+        "mode": "phonepe",
+        "order": [
+          {
+            "cartId": 390,
+            "userid": 5,
+            "quantity": 1,
+            "addressid": 22,
+            "productid": 11,
+            "orderamount": 240,
+            "productname": "ARCASA Scented Candles",
+            "productamount": 240,
+            "discountamount": 0,
+            "productcategory": "wellness"
+          }
+        ],
+        "transaction": {
+          "name": "pravinsf24@gmail.com",
+          "amount": 240,
+          "userId": 5,
+          "productid": [
+            11
+          ],
+          "mobilenumber": "8870339850",
+          "transactionfor": "product"
+        }
+      },
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "data": {
+          "state": "COMPLETED",
+          "amount": 24000,
+          "merchantId": "PGTESTPAYUAT86",
+          "responseCode": "SUCCESS",
+          "transactionId": "T2509041255051792432941",
+          "paymentInstrument": {
+            "arn": "12121214455",
+            "brn": "B12345",
+            "type": "CARD",
+            "bankId": null,
+            "cardType": "CREDIT_CARD",
+            "authRefId": "Dummy-auth12345",
+            "bankTransactionId": null
+          },
+          "merchantTransactionId": "TXN_1756970705008_2PL0K0"
+        },
+        "message": "Your payment is successful.",
+        "success": true
+      },
+      "phonePeResponses": {
+        "success": {
+          "status": "SUCCESS",
+          "response": {
+            "code": "PAYMENT_SUCCESS",
+            "data": {
+              "state": "COMPLETED",
+              "amount": 24000,
+              "merchantId": "PGTESTPAYUAT86",
+              "responseCode": "SUCCESS",
+              "transactionId": "T2509041255051792432941",
+              "paymentInstrument": {
+                "arn": "12121214455",
+                "brn": "B12345",
+                "type": "CARD",
+                "bankId": null,
+                "cardType": "CREDIT_CARD",
+                "authRefId": "Dummy-auth12345",
+                "bankTransactionId": null
+              },
+              "merchantTransactionId": "TXN_1756970705008_2PL0K0"
+            },
+            "message": "Your payment is successful.",
+            "success": true
+          },
+          "timestamp": "2025-09-04T07:25:50.418Z"
+        },
+        "initiation": {
+          "status": "INITIATED",
+          "response": {
+            "message": "Payment initiated successfully",
+            "success": true,
+            "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqcheGwxzgaD6JYid0lPjmj",
+            "transactionId": "TXN_1756970705008_2PL0K0"
+          },
+          "timestamp": "2025-09-04T07:25:05.175Z",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqcheGwxzgaD6JYid0lPjmj"
+        }
+      },
+      "paymentCompleteAt": "2025-09-04T07:25:50.418Z"
+    },
+    "userid": 5,
+    "productid": [
+      11
+    ],
+    "merchanttransactionid": "TXN_1756970705008_2PL0K0",
+    "name": "pravinsf24@gmail.com",
+    "amount": "240",
+    "mobilenumber": 8870339850,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 107,
+    "transactionid": "NIVAANA-TRAN-00107",
+    "createddate": 1756990506,
+    "modifieddate": 1756990561,
+    "transactiondata": {
+      "mode": "phonepe",
+      "status": "SUCCESS",
+      "codData": null,
+      "updatedAt": "2025-09-04T07:26:00.599Z",
+      "initiatedAt": "2025-09-04T07:25:05.175Z",
+      "paymentRequest": {
+        "name": "pravinsf24@gmail.com",
+        "amount": 240,
+        "userId": 5,
+        "productIds": [
+          11
+        ],
+        "mobileNumber": "8870339850",
+        "transactionFor": "product",
+        "merchantTransactionId": "TXN_1756970705008_2PL0K0"
+      },
+      "originalPayload": {
+        "mode": "phonepe",
+        "order": [
+          {
+            "cartId": 390,
+            "userid": 5,
+            "quantity": 1,
+            "addressid": 22,
+            "productid": 11,
+            "orderamount": 240,
+            "productname": "ARCASA Scented Candles",
+            "productamount": 240,
+            "discountamount": 0,
+            "productcategory": "wellness"
+          }
+        ],
+        "transaction": {
+          "name": "pravinsf24@gmail.com",
+          "amount": 240,
+          "userId": 5,
+          "productid": [
+            11
+          ],
+          "mobilenumber": "8870339850",
+          "transactionfor": "product"
+        }
+      },
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "data": {
+          "state": "COMPLETED",
+          "amount": 24000,
+          "merchantId": "PGTESTPAYUAT86",
+          "responseCode": "SUCCESS",
+          "transactionId": "T2509041255051792432941",
+          "paymentInstrument": {
+            "arn": "12121214455",
+            "brn": "B12345",
+            "type": "CARD",
+            "bankId": null,
+            "cardType": "CREDIT_CARD",
+            "authRefId": "Dummy-auth12345",
+            "bankTransactionId": null
+          },
+          "merchantTransactionId": "TXN_1756970705008_2PL0K0"
+        },
+        "message": "Your payment is successful.",
+        "success": true,
+        "orderCreation": {
+          "error": null,
+          "status": "success",
+          "orderId": 52,
+          "timestamp": "2025-09-04T07:26:00.319Z"
+        },
+        "paymentCompleteAt": "2025-09-04T07:26:00.319Z"
+      },
+      "phonePeResponses": {
+        "success": {
+          "status": "SUCCESS",
+          "response": {
+            "code": "PAYMENT_SUCCESS",
+            "data": {
+              "state": "COMPLETED",
+              "amount": 24000,
+              "merchantId": "PGTESTPAYUAT86",
+              "responseCode": "SUCCESS",
+              "transactionId": "T2509041255051792432941",
+              "paymentInstrument": {
+                "arn": "12121214455",
+                "brn": "B12345",
+                "type": "CARD",
+                "bankId": null,
+                "cardType": "CREDIT_CARD",
+                "authRefId": "Dummy-auth12345",
+                "bankTransactionId": null
+              },
+              "merchantTransactionId": "TXN_1756970705008_2PL0K0"
+            },
+            "message": "Your payment is successful.",
+            "success": true,
+            "orderCreation": {
+              "error": null,
+              "status": "success",
+              "orderId": 52,
+              "timestamp": "2025-09-04T07:26:00.319Z"
+            },
+            "paymentCompleteAt": "2025-09-04T07:26:00.319Z"
+          },
+          "timestamp": "2025-09-04T07:26:00.599Z"
+        },
+        "initiation": {
+          "status": "INITIATED",
+          "response": {
+            "message": "Payment initiated successfully",
+            "success": true,
+            "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqcheGwxzgaD6JYid0lPjmj",
+            "transactionId": "TXN_1756970705008_2PL0K0"
+          },
+          "timestamp": "2025-09-04T07:25:05.175Z",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqcheGwxzgaD6JYid0lPjmj"
+        }
+      },
+      "paymentCompleteAt": "2025-09-04T07:26:00.599Z"
+    },
+    "userid": 5,
+    "productid": [
+      11
+    ],
+    "merchanttransactionid": "TXN_1756970705008_2PL0K0",
+    "name": "pravinsf24@gmail.com",
+    "amount": "240",
+    "mobilenumber": 8870339850,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 397,
+    "productid": 11,
+    "userid": 1,
+    "createddate": 1756990912,
+    "quantity": "2",
+    "iscart": true,
+    "iswishlist": false,
+    "modifieddate": 1756990918
+  }
+]
+Update result: [
+  {
+    "id": 397,
+    "productid": 11,
+    "userid": 1,
+    "createddate": 1756990912,
+    "quantity": "1",
+    "iscart": true,
+    "iswishlist": false,
+    "modifieddate": 1756990921
+  }
+]
+Update result: [
+  {
+    "id": 111,
+    "transactionid": "NIVAANA-TRAN-00111",
+    "createddate": 1756990992,
+    "modifieddate": 1756991021,
+    "transactiondata": {
+      "mode": "phonepe",
+      "status": "SUCCESS",
+      "codData": null,
+      "updatedAt": "2025-09-04T07:33:39.637Z",
+      "initiatedAt": "2025-09-04T07:33:08.935Z",
+      "paymentRequest": {
+        "name": "pravinsf24@gmail.com",
+        "amount": 240,
+        "userId": 5,
+        "productIds": [
+          11
+        ],
+        "mobileNumber": "8870339850",
+        "transactionFor": "product",
+        "merchantTransactionId": "TXN_1756971188737_2P1G2Q"
+      },
+      "originalPayload": {
+        "mode": "phonepe",
+        "order": [
+          {
+            "cartId": 390,
+            "userid": 5,
+            "quantity": 1,
+            "addressid": 22,
+            "productid": 11,
+            "orderamount": 240,
+            "productname": "ARCASA Scented Candles",
+            "productamount": 240,
+            "discountamount": 0,
+            "productcategory": "wellness"
+          }
+        ],
+        "transaction": {
+          "name": "pravinsf24@gmail.com",
+          "amount": 240,
+          "userId": 5,
+          "productid": [
+            11
+          ],
+          "mobilenumber": "8870339850",
+          "transactionfor": "product"
+        }
+      },
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "data": {
+          "state": "COMPLETED",
+          "amount": 24000,
+          "merchantId": "PGTESTPAYUAT86",
+          "responseCode": "SUCCESS",
+          "transactionId": "T2509041303089462432092",
+          "paymentInstrument": {
+            "arn": "12121214455",
+            "brn": "B12345",
+            "type": "CARD",
+            "bankId": null,
+            "cardType": "CREDIT_CARD",
+            "authRefId": "Dummy-auth12345",
+            "bankTransactionId": null
+          },
+          "merchantTransactionId": "TXN_1756971188737_2P1G2Q"
+        },
+        "message": "Your payment is successful.",
+        "success": true
+      },
+      "phonePeResponses": {
+        "success": {
+          "status": "SUCCESS",
+          "response": {
+            "code": "PAYMENT_SUCCESS",
+            "data": {
+              "state": "COMPLETED",
+              "amount": 24000,
+              "merchantId": "PGTESTPAYUAT86",
+              "responseCode": "SUCCESS",
+              "transactionId": "T2509041303089462432092",
+              "paymentInstrument": {
+                "arn": "12121214455",
+                "brn": "B12345",
+                "type": "CARD",
+                "bankId": null,
+                "cardType": "CREDIT_CARD",
+                "authRefId": "Dummy-auth12345",
+                "bankTransactionId": null
+              },
+              "merchantTransactionId": "TXN_1756971188737_2P1G2Q"
+            },
+            "message": "Your payment is successful.",
+            "success": true
+          },
+          "timestamp": "2025-09-04T07:33:39.637Z"
+        },
+        "initiation": {
+          "status": "INITIATED",
+          "response": {
+            "message": "Payment initiated successfully",
+            "success": true,
+            "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqcheNyRZoQKX0UN8aPBrCK",
+            "transactionId": "TXN_1756971188737_2P1G2Q"
+          },
+          "timestamp": "2025-09-04T07:33:08.935Z",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqcheNyRZoQKX0UN8aPBrCK"
+        }
+      },
+      "paymentCompleteAt": "2025-09-04T07:33:39.637Z"
+    },
+    "userid": 5,
+    "productid": [
+      11
+    ],
+    "merchanttransactionid": "TXN_1756971188737_2P1G2Q",
+    "name": "pravinsf24@gmail.com",
+    "amount": "240",
+    "mobilenumber": 8870339850,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 111,
+    "transactionid": "NIVAANA-TRAN-00111",
+    "createddate": 1756990992,
+    "modifieddate": 1756991028,
+    "transactiondata": {
+      "mode": "phonepe",
+      "status": "SUCCESS",
+      "codData": null,
+      "updatedAt": "2025-09-04T07:33:46.568Z",
+      "initiatedAt": "2025-09-04T07:33:08.935Z",
+      "paymentRequest": {
+        "name": "pravinsf24@gmail.com",
+        "amount": 240,
+        "userId": 5,
+        "productIds": [
+          11
+        ],
+        "mobileNumber": "8870339850",
+        "transactionFor": "product",
+        "merchantTransactionId": "TXN_1756971188737_2P1G2Q"
+      },
+      "originalPayload": {
+        "mode": "phonepe",
+        "order": [
+          {
+            "cartId": 390,
+            "userid": 5,
+            "quantity": 1,
+            "addressid": 22,
+            "productid": 11,
+            "orderamount": 240,
+            "productname": "ARCASA Scented Candles",
+            "productamount": 240,
+            "discountamount": 0,
+            "productcategory": "wellness"
+          }
+        ],
+        "transaction": {
+          "name": "pravinsf24@gmail.com",
+          "amount": 240,
+          "userId": 5,
+          "productid": [
+            11
+          ],
+          "mobilenumber": "8870339850",
+          "transactionfor": "product"
+        }
+      },
+      "phonePeResponse": {
+        "code": "PAYMENT_SUCCESS",
+        "data": {
+          "state": "COMPLETED",
+          "amount": 24000,
+          "merchantId": "PGTESTPAYUAT86",
+          "responseCode": "SUCCESS",
+          "transactionId": "T2509041303089462432092",
+          "paymentInstrument": {
+            "arn": "12121214455",
+            "brn": "B12345",
+            "type": "CARD",
+            "bankId": null,
+            "cardType": "CREDIT_CARD",
+            "authRefId": "Dummy-auth12345",
+            "bankTransactionId": null
+          },
+          "merchantTransactionId": "TXN_1756971188737_2P1G2Q"
+        },
+        "message": "Your payment is successful.",
+        "success": true,
+        "orderCreation": {
+          "error": null,
+          "status": "success",
+          "orderId": 53,
+          "timestamp": "2025-09-04T07:33:46.279Z"
+        },
+        "paymentCompleteAt": "2025-09-04T07:33:46.279Z"
+      },
+      "phonePeResponses": {
+        "success": {
+          "status": "SUCCESS",
+          "response": {
+            "code": "PAYMENT_SUCCESS",
+            "data": {
+              "state": "COMPLETED",
+              "amount": 24000,
+              "merchantId": "PGTESTPAYUAT86",
+              "responseCode": "SUCCESS",
+              "transactionId": "T2509041303089462432092",
+              "paymentInstrument": {
+                "arn": "12121214455",
+                "brn": "B12345",
+                "type": "CARD",
+                "bankId": null,
+                "cardType": "CREDIT_CARD",
+                "authRefId": "Dummy-auth12345",
+                "bankTransactionId": null
+              },
+              "merchantTransactionId": "TXN_1756971188737_2P1G2Q"
+            },
+            "message": "Your payment is successful.",
+            "success": true,
+            "orderCreation": {
+              "error": null,
+              "status": "success",
+              "orderId": 53,
+              "timestamp": "2025-09-04T07:33:46.279Z"
+            },
+            "paymentCompleteAt": "2025-09-04T07:33:46.279Z"
+          },
+          "timestamp": "2025-09-04T07:33:46.568Z"
+        },
+        "initiation": {
+          "status": "INITIATED",
+          "response": {
+            "message": "Payment initiated successfully",
+            "success": true,
+            "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqcheNyRZoQKX0UN8aPBrCK",
+            "transactionId": "TXN_1756971188737_2P1G2Q"
+          },
+          "timestamp": "2025-09-04T07:33:08.935Z",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqcheNyRZoQKX0UN8aPBrCK"
+        }
+      },
+      "paymentCompleteAt": "2025-09-04T07:33:46.568Z"
+    },
+    "userid": 5,
+    "productid": [
+      11
+    ],
+    "merchanttransactionid": "TXN_1756971188737_2P1G2Q",
+    "name": "pravinsf24@gmail.com",
+    "amount": "240",
+    "mobilenumber": 8870339850,
+    "transactionfor": "product"
+  }
+]
+Update result: [
+  {
+    "id": 398,
+    "productid": 11,
+    "userid": 1,
+    "createddate": 1756991069,
+    "quantity": "2",
+    "iscart": true,
+    "iswishlist": false,
+    "modifieddate": 1756991075
+  }
+]
+Update result: [
+  {
+    "id": 398,
+    "productid": 11,
+    "userid": 1,
+    "createddate": 1756991069,
+    "quantity": "1",
+    "iscart": true,
+    "iswishlist": false,
+    "modifieddate": 1756991082
+  }
+]

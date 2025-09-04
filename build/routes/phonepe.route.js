@@ -245,6 +245,38 @@ export async function phonePeRoutes(fastify) {
                         orderId: order.id,
                         orderIdString: order.orderid
                     });
+                    // Update product quantities after successful order creation
+                    try {
+                        fastify.log.info(`Starting product quantity updates for transaction: ${transactionId}`);
+                        // Get the original order data from transaction
+                        const transactions = await phonePeController.transactionService.findMany({ merchanttransactionid: transactionId }, 1, 1);
+                        if (transactions.data && transactions.data.length > 0) {
+                            const transaction = transactions.data[0];
+                            const originalOrderItems = transaction.transactiondata?.originalPayload?.order || [];
+                            if (originalOrderItems.length > 0) {
+                                fastify.log.info(`Found ${originalOrderItems.length} order items for quantity update`);
+                                // Call the product quantity update method
+                                const quantityUpdateResult = await phonePeController.updateProductQuantitiesAfterOrder(order, originalOrderItems, 'phonepe');
+                                fastify.log.info(`Product quantity update completed for transaction: ${transactionId}`, {
+                                    quantityUpdateResult
+                                });
+                            }
+                            else {
+                                fastify.log.warn(`No original order items found for transaction: ${transactionId}`);
+                            }
+                        }
+                        else {
+                            fastify.log.warn(`No transaction found for merchantTransactionId: ${transactionId}`);
+                        }
+                    }
+                    catch (quantityUpdateError) {
+                        fastify.log.error(`Error updating product quantities for transaction: ${transactionId}`, {
+                            error: quantityUpdateError.message,
+                            stack: quantityUpdateError.stack
+                        });
+                        // Don't fail the order creation if quantity update fails
+                        // The order is already created successfully
+                    }
                 }
                 catch (orderError) {
                     orderCreationStatus = 'failed';
@@ -323,6 +355,59 @@ export async function phonePeRoutes(fastify) {
             }
             // Redirect to failure page
             return reply.redirect('http://localhost:5600/docs#/');
+        }
+    });
+    // Test endpoint for manual product quantity update
+    fastify.post('/test-update-quantities', {
+        schema: {
+            description: 'Test endpoint for manual product quantity update',
+            tags: ['PhonePe Payment'],
+            summary: 'Manually trigger product quantity update for testing',
+            body: {
+                type: 'object',
+                properties: {
+                    orderData: { type: 'object' },
+                    originalOrderItems: { type: 'array' },
+                    mode: { type: 'string' }
+                },
+                required: ['orderData', 'originalOrderItems', 'mode']
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        data: { type: 'object' }
+                    }
+                }
+            }
+        }
+    }, async (request, reply) => {
+        try {
+            const { orderData, originalOrderItems, mode } = request.body;
+            fastify.log.info('Manual product quantity update test triggered', {
+                orderId: orderData.id,
+                orderItemsCount: originalOrderItems.length,
+                mode
+            });
+            const result = await phonePeController.updateProductQuantitiesAfterOrder(orderData, originalOrderItems, mode);
+            return reply.code(200).send({
+                success: true,
+                message: 'Product quantity update test completed',
+                data: result
+            });
+        }
+        catch (error) {
+            fastify.log.error('Error in manual product quantity update test', {
+                error: error.message,
+                stack: error.stack
+            });
+            return reply.code(500).send({
+                success: false,
+                message: 'Product quantity update test failed',
+                error: error.message
+            });
         }
     });
     // Payment status check endpoint

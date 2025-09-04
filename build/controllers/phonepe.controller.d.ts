@@ -1,8 +1,9 @@
-import { FastifyRequest, FastifyReply } from 'fastify';
-import { PhonePeService } from '../services/phonepe.service.js';
+import { FastifyRequest, FastifyReply } from "fastify";
+import { PhonePeService } from "../services/phonepe.service.js";
+import { TransactionService } from "../services/transaction.service.js";
 export declare class PhonePeController {
     phonePeService: PhonePeService;
-    private transactionService;
+    transactionService: TransactionService;
     private ordersService;
     private orderlineService;
     /**
@@ -75,13 +76,52 @@ export declare class PhonePeController {
      */
     private storeTransactionData;
     /**
-     * Update product quantities and status after successful order creation
-     * This method updates orderedquantity, availablequantity, and productstatus for each product in the order
-     * Product status rules:
-     * - availablequantity <= 0: "out_of_stock"
-     * - availablequantity 1-5: "low_stock"
-     * - availablequantity > 5: "in_stock"
-     */
-    private updateProductQuantitiesAfterOrder;
+   * Update product quantities and status after successful order creation
+   * This method updates orderedquantity, availablequantity, and productstatus for each product in the order
+   * Product status rules:
+   * - availablequantity <= 0: "out_of_stock"
+   * - availablequantity 1-5: "low_stock"
+   * - availablequantity > 5: "in_stock"
+   */
+    updateProductQuantitiesAfterOrder(orderData: any, originalOrderItems: any[], mode: string): Promise<{
+        success: boolean;
+        totalProducts: number;
+        successfulUpdates: number;
+        failedUpdates: number;
+        updateResults: never[];
+        error: string;
+    } | {
+        success: boolean;
+        totalProducts: number;
+        successfulUpdates: number;
+        failedUpdates: number;
+        updateResults: ({
+            productId: any;
+            productName: string;
+            success: boolean;
+            quantityUpdate: {
+                requestedQuantity: any;
+                oldOrderedQuantity: number;
+                newOrderedQuantity: any;
+                oldAvailableQuantity: number;
+                newAvailableQuantity: number;
+                newProductStatus: string;
+            };
+            verification: {
+                actualOrderedQuantity: number | null | undefined;
+                actualAvailableQuantity: number | null | undefined;
+                actualProductStatus: string | null | undefined;
+            };
+            error?: never;
+        } | {
+            productId: any;
+            success: boolean;
+            error: any;
+            productName?: never;
+            quantityUpdate?: never;
+            verification?: never;
+        })[];
+        error?: never;
+    }>;
 }
 //# sourceMappingURL=phonepe.controller.d.ts.map

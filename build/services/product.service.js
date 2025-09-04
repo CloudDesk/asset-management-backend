@@ -12,13 +12,16 @@ export class ProductService {
                 take,
                 useAllColumns: true, // Get all available columns
             });
-            logger.info({
-                productCount: products.length,
-                total,
-                filtered: Object.keys(filters).length > 0,
-                appliedFilters: Object.keys(filters),
-                availableFields: products.length > 0 ? Object.keys(products[0]) : [],
-            }, "Dynamic product findMany with filters completed");
+            // logger.info(
+            //   {
+            //     productCount: products.length,
+            //     total,
+            //     filtered: Object.keys(filters).length > 0,
+            //     appliedFilters: Object.keys(filters),
+            //     availableFields: products.length > 0 ? Object.keys(products[0]) : [],
+            //   },
+            //   "Dynamic product findMany with filters completed"
+            // );
             return createPaginationResult(products, total, page, limit);
         }
         catch (error) {
