@@ -1,8 +1,12 @@
 import { FastifyInstance } from 'fastify';
 import { PromotionsController } from '../controllers/promotions.controller.js';
+import { PromotionEvaluationController } from '../controllers/promotion-evaluation.controller.js';
+import { PromotionRedemptionController } from '../controllers/promotion-redemption.controller.js';
 
 export async function promotionsRoutes(fastify: FastifyInstance) {
   const promotionsController = new PromotionsController();
+  const evaluationController = new PromotionEvaluationController();
+  const redemptionController = new PromotionRedemptionController();
 
   // GET /v1/promotions - Get all promotions with pagination and filtering
   fastify.get('/', {
@@ -632,5 +636,313 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // ========================================
+  // PROMOTION EVALUATION ROUTES
+  // ========================================
+
+  // POST /v1/promotions/evaluate - Evaluate promotion against cart
+  fastify.post('/evaluate', {
+    schema: {
+      description: 'Evaluate promotion against cart data',
+      tags: ['Promotions', 'Evaluation'],
+      body: {
+        type: 'object',
+        properties: {
+          cart_id: { type: 'string', description: 'Cart ID' },
+          user_id: { type: 'string', description: 'User ID (optional for guest users)' },
+          promotion_id: { type: 'number', description: 'Promotion ID to evaluate' },
+          cart_data: {
+            type: 'object',
+            properties: {
+              items: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    product_id: { type: 'string' },
+                    quantity: { type: 'number' },
+                    price: { type: 'number' },
+                    category: { type: 'string' },
+                    subcategory: { type: 'string' },
+                    name: { type: 'string' }
+                  },
+                  required: ['product_id', 'quantity', 'price']
+                }
+              },
+              subtotal: { type: 'number' },
+              shipping_cost: { type: 'number' },
+              tax_amount: { type: 'number' },
+              total: { type: 'number' }
+            },
+            required: ['items', 'subtotal', 'shipping_cost', 'tax_amount']
+          },
+          context: {
+            type: 'object',
+            properties: {
+              channel: { type: 'string', enum: ['web', 'mobile', 'mobile_app'] },
+              geo: { type: 'string' },
+              payment_method: { type: 'string' },
+              user_agent: { type: 'string' },
+              ip_address: { type: 'string' }
+            }
+          }
+        },
+        required: ['promotion_id', 'cart_data']
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            data: {
+              type: 'object',
+              properties: {
+                evaluation_id: { type: 'string' },
+                original_total: { type: 'number' },
+                discounted_total: { type: 'number' },
+                total_discount: { type: 'number' },
+                applied_promotions: { type: 'array' },
+                ineligible_reasons: { type: 'array' },
+                expires_at: { type: 'string' }
+              }
+            },
+            message: { type: 'string' }
+          }
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' }
+          }
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' }
+          }
+        }
+      }
+    }
+  }, evaluationController.evaluatePromotion.bind(evaluationController));
+
+  // GET /v1/promotions/evaluations/:id - Get evaluation details
+  fastify.get('/evaluations/:id', {
+    schema: {
+      description: 'Get evaluation details by ID',
+      tags: ['Promotions', 'Evaluation'],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'Evaluation ID (UUID)' }
+        },
+        required: ['id']
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            data: { type: 'object' },
+            message: { type: 'string' }
+          }
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' }
+          }
+        },
+        404: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' }
+          }
+        }
+      }
+    }
+  }, evaluationController.getEvaluation.bind(evaluationController));
+
+  // ========================================
+  // PROMOTION REDEMPTION ROUTES
+  // ========================================
+
+  // POST /v1/promotions/redeem - Redeem promotion after order placement
+  fastify.post('/redeem', {
+    schema: {
+      description: 'Redeem promotion after successful order placement',
+      tags: ['Promotions', 'Redemption'],
+      body: {
+        type: 'object',
+        properties: {
+          evaluation_id: { type: 'string', format: 'uuid', description: 'Evaluation ID' },
+          order_id: { type: 'string', description: 'Order ID' },
+          user_id: { type: 'string', description: 'User ID' }
+        },
+        required: ['evaluation_id', 'order_id', 'user_id']
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            data: {
+              type: 'object',
+              properties: {
+                redemption_id: { type: 'string' },
+                order_id: { type: 'string' },
+                total_discount_applied: { type: 'number' },
+                redemption_details: { type: 'array' }
+              }
+            },
+            message: { type: 'string' }
+          }
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' }
+          }
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' }
+          }
+        }
+      }
+    }
+  }, redemptionController.redeemPromotion.bind(redemptionController));
+
+  // GET /v1/promotions/redemptions/order/:orderId - Get redemptions for order
+  fastify.get('/redemptions/order/:orderId', {
+    schema: {
+      description: 'Get all redemptions for a specific order',
+      tags: ['Promotions', 'Redemption'],
+      params: {
+        type: 'object',
+        properties: {
+          orderId: { type: 'string', description: 'Order ID' }
+        },
+        required: ['orderId']
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            data: { type: 'array' },
+            message: { type: 'string' }
+          }
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' }
+          }
+        }
+      }
+    }
+  }, redemptionController.getRedemptionsForOrder.bind(redemptionController));
+
+  // GET /v1/promotions/redemptions/:id - Get redemption by ID
+  fastify.get('/redemptions/:id', {
+    schema: {
+      description: 'Get redemption details by ID',
+      tags: ['Promotions', 'Redemption'],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'Redemption ID (UUID)' }
+        },
+        required: ['id']
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            data: { type: 'object' },
+            message: { type: 'string' }
+          }
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' }
+          }
+        },
+        404: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' }
+          }
+        }
+      }
+    }
+  }, redemptionController.getRedemptionById.bind(redemptionController));
+
+  // GET /v1/promotions/redemptions/user/:userId - Get user redemption history
+  fastify.get('/redemptions/user/:userId', {
+    schema: {
+      description: 'Get user redemption history',
+      tags: ['Promotions', 'Redemption'],
+      params: {
+        type: 'object',
+        properties: {
+          userId: { type: 'string', description: 'User ID' }
+        },
+        required: ['userId']
+      },
+      querystring: {
+        type: 'object',
+        properties: {
+          page: { type: 'string', description: 'Page number' },
+          limit: { type: 'string', description: 'Items per page' }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            data: {
+              type: 'object',
+              properties: {
+                redemptions: { type: 'array' },
+                pagination: { type: 'object' }
+              }
+            },
+            message: { type: 'string' }
+          }
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' }
+          }
+        }
+      }
+    }
+  }, redemptionController.getUserRedemptionHistory.bind(redemptionController));
 
 } 

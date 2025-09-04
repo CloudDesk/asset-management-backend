@@ -220,8 +220,10 @@ export class PromotionsService {
 
   // Check if promotion is applicable to user
   private isPromotionApplicableToUser(promotion: any, userSegments: string[]): boolean {
-    if (!promotion.conditions) {
-      return promotion.visibility === 'public';
+    // If no conditions, check if it's public or hhaas user-specific targeting
+    if (!promotion.conditions || promotion.conditions.length === 0) {
+      // For identified users, show both public and private promotions without conditions
+      return true;
     }
 
     const conditions = Array.isArray(promotion.conditions) ? 
@@ -334,7 +336,7 @@ export class PromotionsService {
         const userIdString = Array.isArray(userid) ? (userid[0] || '') : (userid || '');
         const userSegments = await this.getUserSegments(userIdString);
         
-        // Get all active promotions first
+        // Get all active promotions (both public and private)
         const { data: allPromotions } = await dynamicFindManyWithFilters('promotions', baseFilters, {
           skip: 0,
           take: 1000, // Get more to filter by user segments
@@ -344,7 +346,12 @@ export class PromotionsService {
         // Filter promotions based on user segments and visibility
         const personalizedPromotions = allPromotions
           .filter((promo: any) => this.isPromotionCurrentlyActive(promo))
-          .filter((promo: any) => this.isPromotionApplicableToUser(promo, userSegments))
+          .filter((promo: any) => {
+            // For identified users, show:
+            // 1. All promotions (since visibility is mostly null in current data)
+            // 2. Filter by user segments for personalized targeting
+            return this.isPromotionApplicableToUser(promo, userSegments);
+          })
           .map((promo: any) => this.formatPromotionForDisplay(promo))
           .sort((a: any, b: any) => (a.priority || 999) - (b.priority || 999));
 
@@ -358,13 +365,12 @@ export class PromotionsService {
           userSegments
         }, 'Personalized promotions retrieved for identified user');
       } else {
-        // Guest user - get public promotions
+        // Guest user - get ONLY public promotions
         logger.info('Getting public promotions for guest user');
         
         const publicFilters: FilterOptions = {
           ...baseFilters,
-          visibility: 'public',
-          auto_apply: 'true'
+          visibility: 'public'
         };
 
         const { data: promotions, total: promotionTotal } = await dynamicFindManyWithFilters('promotions', publicFilters, {
