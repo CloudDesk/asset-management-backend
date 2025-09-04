@@ -4,76 +4,6 @@ import { PromotionsController } from '../controllers/promotions.controller.js';
 export async function promotionsRoutes(fastify: FastifyInstance) {
   const promotionsController = new PromotionsController();
 
-  // GET /v1/promotions/public - Public promotions for guest users (no auth required)
-  fastify.get('/public', {
-    schema: {
-      description: 'Get public promotions for guest users - No authentication required',
-      tags: ['Promotions - Public'],
-      querystring: {
-        type: 'object',
-        properties: {
-          channel: { type: 'string', description: 'Channel (web, mobile, etc.)', default: 'web' },
-          geo: { type: 'string', description: 'Geographic region', default: 'IN' },
-          limit: { type: 'string', description: 'Number of promotions to return', default: '10' }
-        }
-      },
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            data: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  id: { type: 'number' },
-                  name: { type: 'string' },
-                  description: { type: 'string' },
-                  type: { type: 'string' },
-                  discount_value: { type: 'number' },
-                  discount_type: { type: 'string' },
-                  start_date: { type: 'string' },
-                  end_date: { type: 'string' },
-                  priority: { type: 'number' },
-                  is_active: { type: 'boolean' }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }, async (request: any, reply: any) => {
-    try {
-      const { channel = 'web', geo = 'IN', limit = '10' } = request.query;
-      
-      // Get attractive public promotions for guest users
-      const promotions = await promotionsController.getPublicPromotions(
-        channel,
-        geo
-      );
-      
-      const response = {
-        success: true,
-        message: 'Public promotions retrieved successfully',
-        data: promotions
-      };
-      
-      return reply.code(200).send(response);
-    } catch (error: any) {
-      const errorResponse = {
-        success: false,
-        message: 'Failed to retrieve public promotions',
-        details: error.message,
-        statusCode: 500
-      };
-      
-      return reply.code(500).send(errorResponse);
-    }
-  });
-
   // GET /v1/promotions - Get all promotions with pagination and filtering
   fastify.get('/', {
     schema: {
@@ -84,6 +14,10 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
         properties: {
           page: { type: 'string', description: 'Page number' },
           limit: { type: 'string', description: 'Items per page' },
+          userid: { type: 'string', description: 'Filter by user ID for personalized promotions' },
+          channel: { type: 'string', description: 'Channel (web, mobile, etc.)' },
+          geo: { type: 'string', description: 'Geographic region' },
+          current_date: { type: 'string', format: 'date-time', description: 'Current date for filtering' },
           name: { type: 'string', description: 'Filter by promotion name' },
           type: { type: 'string', description: 'Filter by promotion type' },
           code: { type: 'string', description: 'Filter by promotion code' },
@@ -104,6 +38,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
           end_date_after: { type: 'string', description: 'Filter by end date after' },
           end_date_before: { type: 'string', description: 'Filter by end date before' },
         },
+        additionalProperties: true, // Allow any query parameters for dynamic filtering
       },
       response: {
         200: {
@@ -164,9 +99,24 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
             },
           },
         },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            error: { type: 'string' },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            error: { type: 'string' },
+          },
+        },
       },
     },
   }, promotionsController.getPromotions.bind(promotionsController));
+
 
 
 

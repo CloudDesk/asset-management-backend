@@ -6826,3 +6826,92 @@ Filtering data for orderline (orderline): {
   "modifieddate": 1756812537410,
   "ordereddate": 1756812537410
 }
+Filtering data for cart (cart): {
+  "productid": 14,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1756962919849,
+  "modifieddate": 1756962919849
+}
+Filtering data for transaction (transaction): {
+  "transactionid": "TXN_1756962987667_L7835Z",
+  "merchanttransactionid": "TXN_1756962987667_L7835Z",
+  "userid": 24,
+  "amount": 159,
+  "mobilenumber": 9994824573,
+  "name": "User",
+  "productid": [
+    14
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "INITIATED",
+    "mode": "phonepe",
+    "originalPayload": {
+      "transaction": {
+        "name": "User",
+        "amount": 159,
+        "mobilenumber": "9994824573",
+        "userId": 24,
+        "productid": [
+          14
+        ],
+        "transactionfor": "product"
+      },
+      "order": [
+        {
+          "productid": 14,
+          "productname": "AuraDecor 3-Wick Scented Tin Candle",
+          "productcategory": "wellness",
+          "userid": 24,
+          "addressid": 20,
+          "productamount": 159,
+          "discountamount": 0,
+          "orderamount": 159,
+          "quantity": 1,
+          "cartId": 377
+        }
+      ],
+      "mode": "phonepe"
+    },
+    "paymentRequest": {
+      "merchantTransactionId": "TXN_1756962987667_L7835Z",
+      "amount": 159,
+      "name": "User",
+      "mobileNumber": "9994824573",
+      "userId": 24,
+      "productIds": [
+        14
+      ],
+      "transactionFor": "product"
+    },
+    "initiatedAt": "2025-09-04T05:16:28.014Z",
+    "phonePeResponses": {
+      "initiation": {
+        "timestamp": "2025-09-04T05:16:28.014Z",
+        "response": {
+          "success": true,
+          "message": "Payment initiated successfully",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqchBiSaQBEOpqI5qAsLaIV",
+          "transactionId": "TXN_1756962987667_L7835Z"
+        },
+        "status": "INITIATED",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZBqchBiSaQBEOpqI5qAsLaIV"
+      }
+    },
+    "codData": null
+  },
+  "createddate": 1756962988015,
+  "modifieddate": 1756962988015
+}
+Filtering data for cart (cart): {
+  "productid": 8,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1756963115075,
+  "modifieddate": 1756963115075
+}

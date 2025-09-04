@@ -11,22 +11,21 @@ import {
   createSuccessResponse,
   asyncHandler
 } from '../utils/errorHandler.js';
+import { logger } from '../config/logger.js';
 
 export class PromotionsController {
   public promotionsService = new PromotionsService();
 
-  // Get public promotions for guest users (no authentication required)
-  getPublicPromotions = asyncHandler(async (request: FastifyRequest<{ Querystring: { channel?: string; geo?: string; limit?: string } }>, reply: FastifyReply) => {
-    const { channel = 'web', geo = 'IN', limit = '10' } = request.query;
+  // Get user segments for debugging
+  getUserSegments = asyncHandler(async (request: FastifyRequest<{ 
+    Params: { userId: string } 
+  }>, reply: FastifyReply) => {
+    const { userId } = request.params;
     
-    // Get attractive public promotions for guest users
-    const promotions = await this.promotionsService.getPublicPromotions({
-      channel,
-      geo,
-      limit: parseInt(limit)
-    });
+    const segments = await this.promotionsService.getUserSegments(userId);
     
-    return promotions;
+    const response = createSuccessResponse('User segments retrieved', segments);
+    return reply.code(200).send(response);
   });
 
   getPromotions = asyncHandler(async (request: FastifyRequest<{ Querystring: Record<string, any> }>, reply: FastifyReply) => {
