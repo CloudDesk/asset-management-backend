@@ -6742,3 +6742,21 @@ Filtered data result: {
   "createddate": 1756963115075,
   "modifieddate": 1756963115075
 }
+Filtered data result: {
+  "productid": 8,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1757050191939,
+  "modifieddate": 1757050191939
+}
+Filtered data result: {
+  "productid": 14,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1757050218700,
+  "modifieddate": 1757050218700
+}

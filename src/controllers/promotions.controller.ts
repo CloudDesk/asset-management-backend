@@ -87,35 +87,9 @@ export class PromotionsController {
     return reply.code(200).send(response);
   });
 
-  // Recommend best promotion for user's cart
-  recommendPromotion = asyncHandler(async (request: FastifyRequest<{ 
-    Body: { 
-      userId: string; 
-      cartItems: Array<{ 
-        productId: string; 
-        qty: number; 
-        category: string; 
-        price: number; 
-      }>; 
-      mode: 'phonepe' | 'cod'; 
-    } 
-  }>, reply: FastifyReply) => {
-    const { userId, cartItems, mode } = request.body;
-    
-    logger.info({ userId, cartItemsCount: cartItems.length, mode }, 'Getting promotion recommendation');
-    
-    const recommendation = await this.promotionsService.getBestPromotionRecommendation({
-      userId,
-      cartItems,
-      mode
-    });
-    
-    const response = createSuccessResponse('Best promotion recommendation retrieved', recommendation);
-    return reply.code(200).send(response);
-  });
 
-  // Get eligible and ineligible promotions for user's cart
-  getEligiblePromotions = asyncHandler(async (request: FastifyRequest<{ 
+  // Get unified promotion offers (best recommendation + all eligible/ineligible)
+  getUnifiedPromotionOffers = asyncHandler(async (request: FastifyRequest<{ 
     Body: { 
       userId: string; 
       cartItems: Array<{ 
@@ -129,15 +103,15 @@ export class PromotionsController {
   }>, reply: FastifyReply) => {
     const { userId, cartItems, mode } = request.body;
     
-    logger.info({ userId, cartItemsCount: cartItems.length, mode }, 'Getting eligible promotions');
+    logger.info({ userId, cartItemsCount: cartItems.length, mode }, 'Getting unified promotion offers');
     
-    const eligiblePromotions = await this.promotionsService.getEligiblePromotions({
+    const offers = await this.promotionsService.getUnifiedPromotionOffers({
       userId,
       cartItems,
       mode
     });
     
-    const response = createSuccessResponse('Eligible promotions retrieved', eligiblePromotions);
+    const response = createSuccessResponse('Unified promotion offers retrieved', offers);
     return reply.code(200).send(response);
   });
 
