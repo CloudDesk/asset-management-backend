@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { PurchaseRequestService } from '../services/purchaserequest.service.js';
+import { PurchaseRequestService } from '../services/purchaseRequest.service.js';
 export declare class PurchaseRequestController {
     purchaseRequestService: PurchaseRequestService;
     /**
