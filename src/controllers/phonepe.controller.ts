@@ -48,7 +48,8 @@ export class PhonePeController {
           userId: number;
         };
       };
-
+      console.log("test")
+console.log(request.body,"req body")
       logger.info({
         mode: requestBody.mode,
         evaluation_ids: requestBody.evaluation_ids,
@@ -57,9 +58,11 @@ export class PhonePeController {
         userId: requestBody.transaction.userId,
         productIds: requestBody.transaction.productid
       }, 'Payment initiation request received with new payload structure');
-
+console.log("first")
       // Step 1: Validate evaluations if provided
       const evaluationsToProcess = requestBody.evaluation_ids || [];
+      const validEvaluations = [];
+      const invalidEvaluations = [];
       
       // Validate all evaluations
       if (evaluationsToProcess.length > 0) {
@@ -79,21 +82,37 @@ export class PhonePeController {
               userId: requestBody.transaction.userId,
               reason: validation.reason
             }, 'Evaluation validation failed');
-            
-            return reply.code(400).send({
-              success: false,
-              message: validation.reason,
-              error_code: "EVALUATION_INVALID",
-              action_required: "reapply_coupon",
-              statusCode: 400
-            });
+
+            // Check if it's expired (block order) or limit reached (continue without discount)
+            if (
+              typeof validation.reason === 'string' &&
+              (validation.reason.includes('expired') || validation.reason.includes('cancelled'))
+            ) {
+              // Expired evaluation - block the entire order
+              return reply.code(400).send({
+                success: false,
+                message: `Promotion has expired: ${validation.reason}`,
+                error_code: "EVALUATION_EXPIRED",
+                action_required: "reapply_coupon",
+                statusCode: 400
+              });
+            } else {
+              // Limit reached or other issues - continue without this promotion
+              invalidEvaluations.push({
+                evaluationId: evaluationId,
+                reason: validation.reason
+              });
+            }
+          } else {
+            validEvaluations.push(evaluationId);
           }
         }
         
         logger.info({
-          evaluation_ids: evaluationsToProcess,
+          validEvaluations: validEvaluations,
+          invalidEvaluations: invalidEvaluations,
           userId: requestBody.transaction.userId
-        }, 'All evaluations validation passed');
+        }, 'Evaluation validation completed');
       }
 
 console.log(request.body,"request body")
@@ -160,7 +179,8 @@ console.log(request.body,"request body")
         const transactionData = {
           status: requestBody.mode === 'phonepe' ? 'INITIATED' : 'COD_ORDER_CREATED',
           mode: requestBody.mode,
-          evaluation_ids: evaluationsToProcess,
+          evaluation_ids: validEvaluations, // Only use valid evaluations
+          invalid_evaluations: invalidEvaluations, // Track invalid ones for user info
           originalPayload: requestBody,
           paymentRequest: paymentRequest,
           initiatedAt: new Date().toISOString(),
@@ -277,16 +297,32 @@ console.log(request.body,"request body")
           }
         }
 
-        const response = createSuccessResponse(
-          requestBody.mode === 'phonepe' ? 'Payment initiated successfully' : 'COD order created successfully', 
-          {
+        // Prepare response message based on evaluation status
+        let responseMessage = requestBody.mode === 'phonepe' ? 'Payment initiated successfully' : 'COD order created successfully';
+        let userMessage = requestBody.mode === 'phonepe' ? 'Redirect to PhonePe for payment' : 'Order created for cash on delivery';
+        
+        // Add information about invalid evaluations
+        if (invalidEvaluations.length > 0) {
+          const invalidPromotions = invalidEvaluations.map(evaluation => evaluation.reason).join(', ');
+          responseMessage += ` (Some promotions were not applied: ${invalidPromotions})`;
+          userMessage += ` Note: Some promotions could not be applied due to limits or other restrictions.`;
+        }
 
+        const response = createSuccessResponse(
+          responseMessage, 
+          {
             merchantTransactionId: result.transactionId,
             redirectUrl: result.redirectUrl,
             amount: paymentRequest.amount,
             status: requestBody.mode === 'phonepe' ? 'INITIATED' : 'COD_ORDER_CREATED',
             mode: requestBody.mode,
-            message: requestBody.mode === 'phonepe' ? 'Redirect to PhonePe for payment' : 'Order created for cash on delivery',
+            message: userMessage,
+            promotion_status: {
+              valid_evaluations: validEvaluations,
+              invalid_evaluations: invalidEvaluations,
+              total_applied: validEvaluations.length,
+              total_attempted: evaluationsToProcess.length
+            },
             orderData: requestBody.mode === 'cod' ? {
               orderId: orderData?.id,
               orderid: orderData?.orderid,

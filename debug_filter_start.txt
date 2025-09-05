@@ -7461,3 +7461,83 @@ Filtering data for transaction (transaction): {
   "createddate": 1757069569083,
   "modifieddate": 1757069569083
 }
+Filtering data for transaction (transaction): {
+  "transactionid": "TXN_1757085668446_T1GU01",
+  "merchanttransactionid": "TXN_1757085668446_T1GU01",
+  "userid": 24,
+  "amount": 638,
+  "mobilenumber": 9994824573,
+  "name": "User",
+  "productid": [
+    8
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "INITIATED",
+    "mode": "phonepe",
+    "evaluation_ids": [
+      "eval_1757082387167_iilicjzjh",
+      "eval_1757084924560_yd7lr2kca"
+    ],
+    "invalid_evaluations": [],
+    "originalPayload": {
+      "transaction": {
+        "name": "User",
+        "amount": 638,
+        "mobilenumber": "9994824573",
+        "userId": 24,
+        "productid": [
+          8
+        ],
+        "transactionfor": "product"
+      },
+      "order": [
+        {
+          "productid": 8,
+          "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+          "productcategory": "wellness",
+          "userid": 24,
+          "addressid": 20,
+          "productamount": 850,
+          "discountamount": 152,
+          "orderamount": 698,
+          "quantity": 1,
+          "cartId": 412
+        }
+      ],
+      "mode": "phonepe",
+      "evaluation_ids": [
+        "eval_1757082387167_iilicjzjh",
+        "eval_1757084924560_yd7lr2kca"
+      ]
+    },
+    "paymentRequest": {
+      "merchantTransactionId": "TXN_1757085668446_T1GU01",
+      "amount": 638,
+      "name": "User",
+      "mobileNumber": "9994824573",
+      "userId": 24,
+      "productIds": [
+        8
+      ],
+      "transactionFor": "product"
+    },
+    "initiatedAt": "2025-09-05T15:21:08.636Z",
+    "phonePeResponses": {
+      "initiation": {
+        "timestamp": "2025-09-05T15:21:08.636Z",
+        "response": {
+          "success": true,
+          "message": "Payment initiated successfully",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByCTihAtURmlFt9lR4FsFTc",
+          "transactionId": "TXN_1757085668446_T1GU01"
+        },
+        "status": "INITIATED",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByCTihAtURmlFt9lR4FsFTc"
+      }
+    },
+    "codData": null
+  },
+  "createddate": 1757085668636,
+  "modifieddate": 1757085668636
+}
