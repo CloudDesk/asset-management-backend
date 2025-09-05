@@ -61,8 +61,8 @@ export class PromotionEvaluationController {
 
     const evaluation = await this.evaluationService.evaluateSpecificPromotion({
       user_id,
-      promotion_id,
-      code,
+      ...(promotion_id && { promotion_id }),
+      ...(code && { code }),
       cart_items,
       context
     });
@@ -112,6 +112,50 @@ export class PromotionEvaluationController {
     }
 
     const response = createSuccessResponse('Evaluation retrieved successfully', evaluation);
+    return reply.code(200).send(response);
+  });
+
+  // Evaluate automatic promotions
+  evaluateAutomaticPromotions = asyncHandler(async (request: FastifyRequest<{
+    Body: {
+      user_id: string;
+      cart_items: Array<{
+        cart_record_id: string;
+        product_id: string;
+        quantity: number;
+        price: number;
+        category: string;
+        subcategory?: string;
+        name?: string;
+      }>;
+      context: {
+        channel: 'web' | 'mobile' | 'mobile_app';
+        geo: string;
+        payment_method?: string;
+        user_agent?: string;
+        ip_address?: string;
+      };
+      current_total?: number;
+    }
+  }>, reply: FastifyReply) => {
+    const { user_id, cart_items, context, current_total } = request.body;
+
+    logger.info({
+      user_id,
+      cartItemsCount: cart_items.length,
+      current_total,
+      channel: context.channel,
+      geo: context.geo
+    }, 'Evaluating automatic promotions');
+
+    const result = await this.evaluationService.evaluateAutomaticPromotions({
+      user_id,
+      cart_items,
+      context,
+      ...(current_total && { current_total })
+    });
+
+    const response = createSuccessResponse('Automatic promotions evaluated successfully', result);
     return reply.code(200).send(response);
   });
 

@@ -775,7 +775,7 @@ export class PromotionsService {
             ...this.formatPromotionForDisplay(promotion),
             ineligibleReason: 'Error evaluating promotion',
             ineligibleDetails: {
-              error: error.message
+              error: error instanceof Error ? error.message : 'Unknown error'
             }
           });
         }
@@ -871,7 +871,7 @@ export class PromotionsService {
       logger.warn({ error, promotionId: promotion.id, userId }, 'Error checking user eligibility');
       return {
         isEligible: false,
-        reason: `Error checking user eligibility: ${error.message}`
+        reason: `Error checking user eligibility: ${error instanceof Error ? error.message : 'Unknown error'}`
       };
     }
   }
@@ -925,7 +925,7 @@ export class PromotionsService {
       logger.warn({ error, promotionId: promotion.id }, 'Error checking cart eligibility');
       return {
         isEligible: false,
-        reason: `Error checking cart eligibility: ${error.message}`
+        reason: `Error checking cart eligibility: ${error instanceof Error ? error.message : 'Unknown error'}`
       };
     }
   }

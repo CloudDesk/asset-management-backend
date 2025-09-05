@@ -1164,4 +1164,95 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
     }
   }, promotionsController.getUnifiedPromotionOffers.bind(promotionsController));
 
+  // POST /v1/promotions/evaluate/automatic - Evaluate automatic promotions
+  fastify.post('/evaluate/automatic', {
+    schema: {
+      description: 'Evaluate automatic promotions based on cart total',
+      tags: ['Promotions', 'Automatic'],
+      body: {
+        type: 'object',
+        properties: {
+          user_id: { type: 'string', description: 'User ID' },
+          cart_items: {
+            type: 'array',
+            description: 'User cart items',
+            items: {
+              type: 'object',
+              properties: {
+                cart_record_id: { type: 'string', description: 'Cart record ID' },
+                product_id: { type: 'string', description: 'Product ID' },
+                quantity: { type: 'number', description: 'Quantity' },
+                price: { type: 'number', description: 'Product price' },
+                category: { type: 'string', description: 'Product category' },
+                subcategory: { type: 'string', description: 'Product subcategory' },
+                name: { type: 'string', description: 'Product name' }
+              },
+              required: ['cart_record_id', 'product_id', 'quantity', 'price', 'category']
+            }
+          },
+          context: {
+            type: 'object',
+            properties: {
+              channel: { type: 'string', enum: ['web', 'mobile', 'mobile_app'], description: 'Platform channel' },
+              geo: { type: 'string', description: 'Geographic region' },
+              payment_method: { type: 'string', description: 'Payment method' },
+              user_agent: { type: 'string', description: 'User agent' },
+              ip_address: { type: 'string', description: 'IP address' }
+            },
+            required: ['channel', 'geo']
+          },
+          current_total: { type: 'number', description: 'Current cart total (optional, calculated if not provided)' }
+        },
+        required: ['user_id', 'cart_items', 'context']
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            data: {
+              type: 'object',
+              properties: {
+                evaluations: {
+                  type: 'array',
+                  description: 'Array of automatic promotion evaluations',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      evaluation_id: { type: 'string' },
+                      promotion_id: { type: 'number' },
+                      promotion_name: { type: 'string' },
+                      is_eligible: { type: 'boolean' },
+                      total_discount: { type: 'number' },
+                      expires_at: { type: 'string', format: 'date-time' }
+                    }
+                  }
+                },
+                total_automatic_discount: { type: 'number', description: 'Total discount from all automatic promotions' },
+                cart_total_after_automatic: { type: 'number', description: 'Cart total after applying automatic promotions' }
+              }
+            },
+            message: { type: 'string' }
+          }
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' }
+          }
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' }
+          }
+        }
+      }
+    }
+  }, evaluationController.evaluateAutomaticPromotions.bind(evaluationController));
+
 } 

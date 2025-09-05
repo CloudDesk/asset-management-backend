@@ -19,9 +19,10 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
             // enum: ['phonepe', 'cod'],
             description: 'Payment mode: phonepe for online payment, cod for cash on delivery'
           },
-          evaluation_id: {
-            type: 'string',
-            description: 'Promotion evaluation ID (optional)'
+          evaluation_ids: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Promotion evaluation IDs array (optional)'
           },
           order: {
             type: 'array',

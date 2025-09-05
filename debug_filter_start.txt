@@ -7065,3 +7065,399 @@ Filtering data for cart (cart): {
   "createddate": 1757064107388,
   "modifieddate": 1757064107388
 }
+Filtering data for transaction (transaction): {
+  "transactionid": "TXN_1757067409182_G46XR3",
+  "merchanttransactionid": "TXN_1757067409182_G46XR3",
+  "userid": 24,
+  "amount": 640,
+  "mobilenumber": 9876543210,
+  "name": "Test User",
+  "productid": [
+    14
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "COD_ORDER_CREATED",
+    "mode": "cod",
+    "evaluation_ids": [
+      "eval_1757067393006_rn6tvrrcb",
+      "eval_1757067394229_vq3vg6rsh"
+    ],
+    "originalPayload": {
+      "mode": "cod",
+      "evaluation_ids": [
+        "eval_1757067393006_rn6tvrrcb",
+        "eval_1757067394229_vq3vg6rsh"
+      ],
+      "order": [
+        {
+          "addressid": 1,
+          "cartId": 410,
+          "discountamount": 160,
+          "orderamount": 640,
+          "productamount": 800,
+          "productcategory": "wellness",
+          "productid": 14,
+          "productname": "Wellness Product",
+          "quantity": 1,
+          "userid": 24
+        }
+      ],
+      "transaction": {
+        "amount": 640,
+        "mobilenumber": "9876543210",
+        "name": "Test User",
+        "productid": [
+          14
+        ],
+        "transactionfor": "product",
+        "userId": 24
+      }
+    },
+    "paymentRequest": {
+      "merchantTransactionId": "TXN_1757067409182_G46XR3",
+      "amount": 640,
+      "name": "Test User",
+      "mobileNumber": "9876543210",
+      "userId": 24,
+      "productIds": [
+        14
+      ],
+      "transactionFor": "product"
+    },
+    "initiatedAt": "2025-09-05T10:16:49.182Z",
+    "phonePeResponses": null,
+    "codData": {
+      "timestamp": "2025-09-05T10:16:49.182Z",
+      "status": "COD_ORDER_CREATED",
+      "message": "Cash on Delivery order created successfully"
+    }
+  },
+  "createddate": 1757067409183,
+  "modifieddate": 1757067409183
+}
+Filtering data for orders (orders): {
+  "userid": 24,
+  "orderamount": 640,
+  "orderid": "ORDER_TXN_1757067409182_G46XR3_1757067414713",
+  "orderstatus": "payment_completed",
+  "quantity": 1,
+  "transactionid": "NIVAANA-TRAN-00128",
+  "productamount": 640,
+  "discountamount": 0,
+  "ispaymentsucceed": true,
+  "merchanttransactionid": "TXN_1757067409182_G46XR3",
+  "productid": [
+    14
+  ],
+  "mode": "cod",
+  "createddate": 1757067414713,
+  "modifieddate": 1757067414713,
+  "orderItems": [
+    {
+      "cartId": 410,
+      "userid": 24,
+      "quantity": 1,
+      "addressid": 1,
+      "productid": 14,
+      "orderamount": 640,
+      "productname": "Wellness Product",
+      "productamount": 800,
+      "discountamount": 160,
+      "productcategory": "wellness"
+    }
+  ]
+}
+Filtering data for orderline (orderline): {
+  "orderid": 61,
+  "productid": 14,
+  "userid": 24,
+  "addressid": 1,
+  "productamount": 800,
+  "discountamount": 160,
+  "orderamount": 640,
+  "quantity": 1,
+  "productname": "Wellness Product",
+  "productcategory": "wellness",
+  "orderstatus": "payment_completed",
+  "uniqueordderid": "NIVAANA-0000000061",
+  "createddate": 1757067414713,
+  "modifieddate": 1757067414713,
+  "ordereddate": 1757067414713
+}
+Filtering data for transaction (transaction): {
+  "transactionid": "TXN_1757067949875_M4A20K",
+  "merchanttransactionid": "TXN_1757067949875_M4A20K",
+  "userid": 24,
+  "amount": 800,
+  "mobilenumber": 9876543210,
+  "name": "Test User",
+  "productid": [
+    14
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "COD_ORDER_CREATED",
+    "mode": "cod",
+    "evaluation_ids": [
+      "eval_1757067917707_2izmtehhu"
+    ],
+    "originalPayload": {
+      "mode": "cod",
+      "evaluation_ids": [
+        "eval_1757067917707_2izmtehhu"
+      ],
+      "order": [
+        {
+          "addressid": 1,
+          "cartId": 410,
+          "discountamount": 0,
+          "orderamount": 800,
+          "productamount": 800,
+          "productcategory": "wellness",
+          "productid": 14,
+          "productname": "Wellness Product",
+          "quantity": 1,
+          "userid": 24
+        }
+      ],
+      "transaction": {
+        "amount": 800,
+        "mobilenumber": "9876543210",
+        "name": "Test User",
+        "productid": [
+          14
+        ],
+        "transactionfor": "product",
+        "userId": 24
+      }
+    },
+    "paymentRequest": {
+      "merchantTransactionId": "TXN_1757067949875_M4A20K",
+      "amount": 800,
+      "name": "Test User",
+      "mobileNumber": "9876543210",
+      "userId": 24,
+      "productIds": [
+        14
+      ],
+      "transactionFor": "product"
+    },
+    "initiatedAt": "2025-09-05T10:25:49.875Z",
+    "phonePeResponses": null,
+    "codData": {
+      "timestamp": "2025-09-05T10:25:49.875Z",
+      "status": "COD_ORDER_CREATED",
+      "message": "Cash on Delivery order created successfully"
+    }
+  },
+  "createddate": 1757067949876,
+  "modifieddate": 1757067949876
+}
+Filtering data for orders (orders): {
+  "userid": 24,
+  "orderamount": 800,
+  "orderid": "ORDER_TXN_1757067949875_M4A20K_1757067955143",
+  "orderstatus": "payment_completed",
+  "quantity": 1,
+  "transactionid": "NIVAANA-TRAN-00129",
+  "productamount": 800,
+  "discountamount": 0,
+  "ispaymentsucceed": true,
+  "merchanttransactionid": "TXN_1757067949875_M4A20K",
+  "productid": [
+    14
+  ],
+  "mode": "cod",
+  "createddate": 1757067955143,
+  "modifieddate": 1757067955143,
+  "orderItems": [
+    {
+      "cartId": 410,
+      "userid": 24,
+      "quantity": 1,
+      "addressid": 1,
+      "productid": 14,
+      "orderamount": 800,
+      "productname": "Wellness Product",
+      "productamount": 800,
+      "discountamount": 0,
+      "productcategory": "wellness"
+    }
+  ]
+}
+Filtering data for orderline (orderline): {
+  "orderid": 62,
+  "productid": 14,
+  "userid": 24,
+  "addressid": 1,
+  "productamount": 800,
+  "discountamount": null,
+  "orderamount": 800,
+  "quantity": 1,
+  "productname": "Wellness Product",
+  "productcategory": "wellness",
+  "orderstatus": "payment_completed",
+  "uniqueordderid": "NIVAANA-0000000062",
+  "createddate": 1757067955143,
+  "modifieddate": 1757067955143,
+  "ordereddate": 1757067955143
+}
+Filtering data for transaction (transaction): {
+  "transactionid": "TXN_1757069466192_24TVIF",
+  "merchanttransactionid": "TXN_1757069466192_24TVIF",
+  "userid": 24,
+  "amount": 420,
+  "mobilenumber": 9876543210,
+  "name": "Test User",
+  "productid": [
+    14
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "INITIATED",
+    "mode": "phonepe",
+    "evaluation_ids": [
+      "eval_1757069460283_vi6uc80fy",
+      "eval_1757069462394_wef8fo5i3"
+    ],
+    "originalPayload": {
+      "mode": "phonepe",
+      "evaluation_ids": [
+        "eval_1757069460283_vi6uc80fy",
+        "eval_1757069462394_wef8fo5i3"
+      ],
+      "order": [
+        {
+          "addressid": 1,
+          "cartId": 410,
+          "discountamount": 180,
+          "orderamount": 420,
+          "productamount": 600,
+          "productcategory": "electronics",
+          "productid": 14,
+          "productname": "Electronic Gadget",
+          "quantity": 2,
+          "userid": 24
+        }
+      ],
+      "transaction": {
+        "amount": 420,
+        "mobilenumber": "9876543210",
+        "name": "Test User",
+        "productid": [
+          14
+        ],
+        "transactionfor": "product",
+        "userId": 24
+      }
+    },
+    "paymentRequest": {
+      "merchantTransactionId": "TXN_1757069466192_24TVIF",
+      "amount": 420,
+      "name": "Test User",
+      "mobileNumber": "9876543210",
+      "userId": 24,
+      "productIds": [
+        14
+      ],
+      "transactionFor": "product"
+    },
+    "initiatedAt": "2025-09-05T10:51:06.505Z",
+    "phonePeResponses": {
+      "initiation": {
+        "timestamp": "2025-09-05T10:51:06.505Z",
+        "response": {
+          "success": true,
+          "message": "Payment initiated successfully",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByCYITo2PYJBCDcLVRMIaad",
+          "transactionId": "TXN_1757069466192_24TVIF"
+        },
+        "status": "INITIATED",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByCYITo2PYJBCDcLVRMIaad"
+      }
+    },
+    "codData": null
+  },
+  "createddate": 1757069466507,
+  "modifieddate": 1757069466507
+}
+Filtering data for transaction (transaction): {
+  "transactionid": "TXN_1757069568526_1HFN08",
+  "merchanttransactionid": "TXN_1757069568526_1HFN08",
+  "userid": 24,
+  "amount": 420,
+  "mobilenumber": 9876543210,
+  "name": "Test User",
+  "productid": [
+    14
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "INITIATED",
+    "mode": "phonepe",
+    "evaluation_ids": [
+      "eval_1757069563957_ua13yuah3",
+      "eval_1757069565104_mubei51gx"
+    ],
+    "originalPayload": {
+      "mode": "phonepe",
+      "evaluation_ids": [
+        "eval_1757069563957_ua13yuah3",
+        "eval_1757069565104_mubei51gx"
+      ],
+      "order": [
+        {
+          "addressid": 1,
+          "cartId": 410,
+          "discountamount": 180,
+          "orderamount": 420,
+          "productamount": 600,
+          "productcategory": "electronics",
+          "productid": 14,
+          "productname": "Electronic Gadget",
+          "quantity": 2,
+          "userid": 24
+        }
+      ],
+      "transaction": {
+        "amount": 420,
+        "mobilenumber": "9876543210",
+        "name": "Test User",
+        "productid": [
+          14
+        ],
+        "transactionfor": "product",
+        "userId": 24
+      }
+    },
+    "paymentRequest": {
+      "merchantTransactionId": "TXN_1757069568526_1HFN08",
+      "amount": 420,
+      "name": "Test User",
+      "mobileNumber": "9876543210",
+      "userId": 24,
+      "productIds": [
+        14
+      ],
+      "transactionFor": "product"
+    },
+    "initiatedAt": "2025-09-05T10:52:49.082Z",
+    "phonePeResponses": {
+      "initiation": {
+        "timestamp": "2025-09-05T10:52:49.082Z",
+        "response": {
+          "success": true,
+          "message": "Payment initiated successfully",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByCYITmNM7U5Utmmi3yaH3Z",
+          "transactionId": "TXN_1757069568526_1HFN08"
+        },
+        "status": "INITIATED",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByCYITmNM7U5Utmmi3yaH3Z"
+      }
+    },
+    "codData": null
+  },
+  "createddate": 1757069569083,
+  "modifieddate": 1757069569083
+}

@@ -562,17 +562,25 @@ export class PromotionEvaluationService {
           discounted_total: originalTotal,
           total_discount: 0,
           discount_breakdown: [],
-          ineligible_reason: userEligible.reason,
+          ineligible_reason: userEligible.reasons?.[0]?.reason || 'User not eligible',
           expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString()
         };
       }
 
       // Check cart eligibility
       const cartEligible = this.checkCartEligibility(promotion, {
-        total: originalTotal,
-        categories,
-        itemCount: request.cart_items.reduce((sum, item) => sum + item.quantity, 0),
-        items: request.cart_items
+        subtotal: originalTotal,
+        items: request.cart_items.map(item => ({
+          quantity: item.quantity,
+          price: item.price,
+          product_id: item.product_id,
+          name: item.name,
+          category: item.category,
+          subcategory: item.subcategory
+        })),
+        shipping_cost: 0,
+        tax_amount: 0,
+        total: originalTotal
       });
 
       if (!cartEligible.isEligible) {
@@ -585,7 +593,7 @@ export class PromotionEvaluationService {
           discounted_total: originalTotal,
           total_discount: 0,
           discount_breakdown: [],
-          ineligible_reason: cartEligible.reason,
+          ineligible_reason: cartEligible.reasons?.[0]?.reason || 'Cart not eligible',
           expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString()
         };
       }
@@ -593,7 +601,28 @@ export class PromotionEvaluationService {
       // Calculate discount breakdown
       const discountBreakdown = this.calculateDiscountBreakdown(promotion, request.cart_items);
       const totalDiscount = discountBreakdown.reduce((sum, item) => sum + item.total_discount, 0);
-      const discountedTotal = originalTotal - totalDiscount;
+      
+      // For FREE_SHIPPING promotions, the discount is applied to shipping, not cart total
+      let discountedTotal = originalTotal;
+      let shippingInfo = undefined;
+      
+      if (promotion.type === 'FREE_SHIPPING') {
+        // For free shipping, cart total remains the same, but shipping cost is reduced
+        discountedTotal = originalTotal; // Cart total doesn't change
+        const originalShippingCost = this.calculateShippingCost(request.cart_items);
+        const finalShippingCost = 0; // Free shipping
+        const shippingDiscount = originalShippingCost;
+        
+        shippingInfo = {
+          original_shipping_cost: originalShippingCost,
+          final_shipping_cost: finalShippingCost,
+          shipping_discount: shippingDiscount,
+          is_free_shipping: true
+        };
+      } else {
+        // For other promotions, apply discount to cart total
+        discountedTotal = originalTotal - totalDiscount;
+      }
 
       // Store evaluation for redemption
       await this.storeEvaluation(evaluationId, {
@@ -603,14 +632,17 @@ export class PromotionEvaluationService {
         discounted_total: discountedTotal,
         cart_items: request.cart_items,
         discount_breakdown: discountBreakdown,
-        context: request.context
+        context: request.context,
+        promotion_type: promotion.type,
+        shipping_info: shippingInfo
       });
 
-      logger.info({ 
+      logger.info({
         evaluationId,
         promotionId: promotion.id,
         totalDiscount,
-        discountedTotal
+        discountedTotal,
+        shippingInfo
       }, 'Promotion evaluation completed successfully');
 
       return {
@@ -623,7 +655,9 @@ export class PromotionEvaluationService {
         total_discount: totalDiscount,
         discount_breakdown: discountBreakdown,
         ineligible_reason: null,
-        expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString()
+        expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+        promotion_type: promotion.type,
+        shipping_info: shippingInfo
       };
 
     } catch (error) {
@@ -637,111 +671,7 @@ export class PromotionEvaluationService {
     return `eval_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  // Check user eligibility for specific promotion
-  private async checkUserEligibility(promotion: any, userId: string): Promise<{isEligible: boolean, reason: string}> {
-    if (!promotion.conditions) return { isEligible: true, reason: '' };
 
-    try {
-      const conditions = Array.isArray(promotion.conditions) ? 
-        promotion.conditions : JSON.parse(promotion.conditions);
-
-      for (const condition of conditions) {
-        switch (condition.attribute) {
-          case 'user.segment':
-            const userSegments = await this.getUserSegments(userId);
-            if (!condition.value.some((segment: string) => userSegments.includes(segment))) {
-              return {
-                isEligible: false,
-                reason: `User segment not eligible. Required: ${condition.value.join(', ')}, Current: ${userSegments.join(', ')}`
-              };
-            }
-            break;
-
-          case 'user.created_date':
-            const userCreatedDate = await this.getUserCreatedDate(userId);
-            if (userCreatedDate && !this.evaluateDateCondition(condition, userCreatedDate)) {
-              return {
-                isEligible: false,
-                reason: `User creation date not eligible. Required: ${condition.value}, Current: ${userCreatedDate.toISOString()}`
-              };
-            }
-            break;
-
-          case 'user.order_count':
-            const orderCount = await this.getUserOrderCount(userId);
-            if (!this.evaluateNumericCondition(condition, orderCount)) {
-              return {
-                isEligible: false,
-                reason: `User order count not eligible. Required: ${condition.operator} ${condition.value}, Current: ${orderCount}`
-              };
-            }
-            break;
-        }
-      }
-
-      return { isEligible: true, reason: '' };
-    } catch (error) {
-      logger.warn({ error, promotionId: promotion.id, userId }, 'Error checking user eligibility');
-      return {
-        isEligible: false,
-        reason: `Error checking user eligibility: ${error.message}`
-      };
-    }
-  }
-
-  // Check cart eligibility for specific promotion
-  private checkCartEligibility(promotion: any, cartInfo: {
-    total: number;
-    categories: string[];
-    itemCount: number;
-    items: Array<{ product_id: string; quantity: number; price: number; category: string; }>;
-  }): {isEligible: boolean, reason: string} {
-    if (!promotion.conditions) return { isEligible: true, reason: '' };
-
-    try {
-      const conditions = Array.isArray(promotion.conditions) ? 
-        promotion.conditions : JSON.parse(promotion.conditions);
-
-      for (const condition of conditions) {
-        switch (condition.attribute) {
-          case 'cart.total_value':
-            if (!this.evaluateNumericCondition(condition, cartInfo.total)) {
-              return {
-                isEligible: false,
-                reason: `Cart total value not eligible. Required: ${condition.operator} ${condition.value}, Current: ${cartInfo.total}`
-              };
-            }
-            break;
-
-          case 'cart.item_count':
-            if (!this.evaluateNumericCondition(condition, cartInfo.itemCount)) {
-              return {
-                isEligible: false,
-                reason: `Cart item count not eligible. Required: ${condition.operator} ${condition.value}, Current: ${cartInfo.itemCount}`
-              };
-            }
-            break;
-
-          case 'cart.category':
-            if (!condition.value.some((cat: string) => cartInfo.categories.includes(cat))) {
-              return {
-                isEligible: false,
-                reason: `Cart category not eligible. Required: ${condition.value.join(', ')}, Current: ${cartInfo.categories.join(', ')}`
-              };
-            }
-            break;
-        }
-      }
-
-      return { isEligible: true, reason: '' };
-    } catch (error) {
-      logger.warn({ error, promotionId: promotion.id }, 'Error checking cart eligibility');
-      return {
-        isEligible: false,
-        reason: `Error checking cart eligibility: ${error.message}`
-      };
-    }
-  }
 
   // Calculate detailed discount breakdown per cart item
   private calculateDiscountBreakdown(promotion: any, cartItems: Array<{
@@ -764,6 +694,22 @@ export class PromotionEvaluationService {
     total_discount: number;
   }> {
     const breakdown = [];
+
+    // Handle FREE_SHIPPING promotions differently
+    if (promotion.type === 'FREE_SHIPPING') {
+      const shippingCost = this.calculateShippingCost(cartItems);
+      return [{
+        cart_record_id: 'shipping',
+        product_id: 'shipping',
+        product_name: 'Shipping Cost',
+        category: 'shipping',
+        quantity: 1,
+        original_price: shippingCost,
+        discount_per_item: shippingCost,
+        final_price_per_item: 0,
+        total_discount: shippingCost
+      }];
+    }
 
     for (const item of cartItems) {
       let discountPerItem = 0;
@@ -872,6 +818,17 @@ export class PromotionEvaluationService {
   // Store evaluation for redemption
   private async storeEvaluation(evaluationId: string, evaluationData: any) {
     try {
+      // Calculate discount amount based on promotion type
+      let discountAmount = 0;
+      
+      if (evaluationData.promotion_type === 'FREE_SHIPPING') {
+        // For free shipping, discount amount is the shipping cost saved
+        discountAmount = evaluationData.shipping_info?.shipping_discount || 0;
+      } else {
+        // For other promotions, discount amount is the cart total reduction
+        discountAmount = evaluationData.original_total - evaluationData.discounted_total;
+      }
+
       await this.prisma.promotion_evaluations.create({
         data: {
           evaluation_id: evaluationId,
@@ -881,8 +838,11 @@ export class PromotionEvaluationService {
           discounted_total: evaluationData.discounted_total,
           applied_promotions: [{
             promotion_id: evaluationData.promotion_id,
-            discount_amount: evaluationData.original_total - evaluationData.discounted_total,
-            breakdown: evaluationData.discount_breakdown
+            discount_amount: discountAmount,
+            breakdown: evaluationData.discount_breakdown,
+            is_shipping_discount: evaluationData.promotion_type === 'FREE_SHIPPING' || false,
+            promotion_type: evaluationData.promotion_type || 'UNKNOWN',
+            shipping_info: evaluationData.shipping_info || null
           }],
           context: evaluationData.context,
           expires_at: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
@@ -890,7 +850,12 @@ export class PromotionEvaluationService {
         }
       });
 
-      logger.info({ evaluationId }, 'Evaluation stored successfully');
+      logger.info({ 
+        evaluationId, 
+        promotionType: evaluationData.promotion_type,
+        discountAmount,
+        shippingDiscount: evaluationData.shipping_info?.shipping_discount 
+      }, 'Evaluation stored successfully');
     } catch (error) {
       logger.error({ error, evaluationId }, 'Error storing evaluation');
       throw error;
@@ -987,5 +952,260 @@ export class PromotionEvaluationService {
         reason: 'Error validating evaluation'
       };
     }
+  }
+
+  // Evaluate automatic promotions based on cart total
+  async evaluateAutomaticPromotions(request: {
+    user_id: string;
+    cart_items: Array<{
+      cart_record_id: string;
+      product_id: string;
+      quantity: number;
+      price: number;
+      category: string;
+      subcategory?: string;
+      name?: string;
+    }>;
+    context: {
+      channel: 'web' | 'mobile' | 'mobile_app';
+      geo: string;
+      payment_method?: string;
+      user_agent?: string;
+      ip_address?: string;
+    };
+    current_total?: number; // Optional: if already discounted
+  }) {
+    try {
+      logger.info({
+        userId: request.user_id,
+        cartItemsCount: request.cart_items.length,
+        currentTotal: request.current_total
+      }, 'Evaluating automatic promotions');
+
+      // Calculate cart total
+      const cartTotal = request.current_total || 
+        request.cart_items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+      // Get automatic promotions that are active and auto_apply = true
+      const automaticPromotions = await this.prisma.promotions.findMany({
+        where: {
+          auto_apply: true,
+          is_active: true,
+          status: 'active',
+          start_date: { lte: new Date() },
+          end_date: { gte: new Date() }
+        },
+        orderBy: { priority: 'asc' } // Lower priority number = higher priority
+      });
+
+      logger.info({
+        automaticPromotionsCount: automaticPromotions.length,
+        cartTotal,
+        promotions: automaticPromotions.map(p => ({
+          id: p.id,
+          name: p.name,
+          conditions: p.conditions
+        }))
+      }, 'Found automatic promotions for evaluation');
+
+      logger.info({
+        automaticPromotionsCount: automaticPromotions.length,
+        cartTotal
+      }, 'Found automatic promotions');
+
+      const evaluations = [];
+
+      for (const promotion of automaticPromotions) {
+        try {
+          // Check if promotion conditions are met
+          const isEligible = await this.checkAutomaticPromotionEligibility(
+            promotion, 
+            request.user_id, 
+            cartTotal, 
+            request.cart_items
+          );
+
+          if (isEligible.isEligible) {
+            // Create evaluation for this automatic promotion
+            const evaluation = await this.evaluateSpecificPromotion({
+              user_id: request.user_id,
+              promotion_id: promotion.id,
+              cart_items: request.cart_items,
+              context: request.context
+            });
+
+            // Add shipping info for FREE_SHIPPING promotions
+            if (promotion.type === 'FREE_SHIPPING') {
+              const originalShippingCost = this.calculateShippingCost(request.cart_items);
+              evaluation.shipping_info = {
+                original_shipping_cost: originalShippingCost,
+                final_shipping_cost: 0,
+                shipping_discount: originalShippingCost,
+                is_free_shipping: true
+              };
+            }
+
+            evaluations.push(evaluation);
+            
+            logger.info({
+              promotionId: promotion.id,
+              promotionName: promotion.name,
+              evaluationId: evaluation.evaluation_id,
+              discount: evaluation.total_discount,
+              shippingInfo: evaluation.shipping_info
+            }, 'Automatic promotion evaluated successfully');
+          } else {
+            logger.info({
+              promotionId: promotion.id,
+              promotionName: promotion.name,
+              reason: isEligible.reason
+            }, 'Automatic promotion not eligible');
+          }
+        } catch (error) {
+                      logger.warn({
+              promotionId: promotion.id,
+              promotionName: promotion.name,
+              error: error instanceof Error ? error.message : 'Unknown error'
+            }, 'Error evaluating automatic promotion');
+        }
+      }
+
+      return {
+        evaluations,
+        total_automatic_discount: evaluations.reduce((sum, evaluation) => sum + evaluation.total_discount, 0),
+        cart_total_after_automatic: cartTotal - evaluations.reduce((sum, evaluation) => sum + evaluation.total_discount, 0)
+      };
+
+    } catch (error) {
+      logger.error({ error, request }, 'Error evaluating automatic promotions');
+      throw error;
+    }
+  }
+
+  // Check if automatic promotion conditions are met
+  private async checkAutomaticPromotionEligibility(
+    promotion: any,
+    userId: string,
+    cartTotal: number,
+    cartItems: any[]
+  ) {
+    try {
+      // Parse conditions from JSON
+      const conditions = promotion.conditions ? JSON.parse(JSON.stringify(promotion.conditions)) : [];
+      
+      logger.info({
+        promotionId: promotion.id,
+        promotionName: promotion.name,
+        conditions,
+        cartTotal,
+        userId
+      }, 'Checking automatic promotion eligibility');
+      
+      if (!conditions || conditions.length === 0) {
+        return { isEligible: true, reason: 'No conditions specified' };
+      }
+
+      // Check each condition
+      for (const condition of conditions) {
+        const { attribute, operator, value } = condition;
+        
+        logger.info({
+          promotionId: promotion.id,
+          attribute,
+          operator,
+          value,
+          cartTotal
+        }, 'Evaluating condition');
+        
+        switch (attribute) {
+          case 'cart.total_value':
+            const isConditionMet = this.evaluateCondition(cartTotal, operator, value);
+            logger.info({
+              promotionId: promotion.id,
+              cartTotal,
+              operator,
+              value,
+              isConditionMet
+            }, 'Cart total condition evaluation');
+            
+            if (!isConditionMet) {
+              return { 
+                isEligible: false, 
+                reason: `Cart total ${cartTotal} does not meet condition: ${operator} ${value}` 
+              };
+            }
+            break;
+            
+          case 'cart.item_count':
+            const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+            if (!this.evaluateCondition(itemCount, operator, value)) {
+              return { 
+                isEligible: false, 
+                reason: `Item count ${itemCount} does not meet condition: ${operator} ${value}` 
+              };
+            }
+            break;
+            
+          case 'user.segment':
+            // Check user segments (implement based on your user segmentation logic)
+            const userSegments = await this.getUserSegments(userId);
+            if (!this.evaluateCondition(userSegments, operator, value)) {
+              return { 
+                isEligible: false, 
+                reason: `User segments ${userSegments} do not meet condition: ${operator} ${value}` 
+              };
+            }
+            break;
+            
+          default:
+            logger.warn({ attribute, operator, value }, 'Unknown condition attribute');
+        }
+      }
+
+      return { isEligible: true, reason: 'All conditions met' };
+
+    } catch (error) {
+      logger.error({ error, promotion, userId, cartTotal }, 'Error checking automatic promotion eligibility');
+      return { isEligible: false, reason: 'Error checking conditions' };
+    }
+  }
+
+  // Helper method to evaluate conditions
+  private evaluateCondition(actualValue: any, operator: string, expectedValue: any): boolean {
+    switch (operator) {
+      case 'GTE': return actualValue >= expectedValue;
+      case 'GT': return actualValue > expectedValue;
+      case 'LTE': return actualValue <= expectedValue;
+      case 'LT': return actualValue < expectedValue;
+      case 'EQ': return actualValue === expectedValue;
+      case 'NE': return actualValue !== expectedValue;
+      case 'IN': return Array.isArray(expectedValue) && expectedValue.includes(actualValue);
+      case 'NOT_IN': return Array.isArray(expectedValue) && !expectedValue.includes(actualValue);
+      default: return false;
+    }
+  }
+
+  // Calculate shipping cost based on cart items
+  private calculateShippingCost(cartItems: Array<{
+    cart_record_id: string;
+    product_id: string;
+    quantity: number;
+    price: number;
+    category: string;
+    subcategory?: string;
+    name?: string;
+  }>): number {
+    const cartTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    
+    // Shipping calculation logic based on cart total
+    if (cartTotal >= 1000) return 0;      // Free shipping over ₹1000
+    if (cartTotal >= 500) return 30;      // ₹30 shipping over ₹500
+    return 50;                            // ₹50 default shipping
+    
+    // You can make this more sophisticated by:
+    // - Checking product categories (electronics might have different shipping)
+    // - Checking user location (different zones)
+    // - Checking order weight
+    // - Checking delivery speed (standard vs express)
   }
 }
