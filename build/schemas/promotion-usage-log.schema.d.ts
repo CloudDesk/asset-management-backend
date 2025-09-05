@@ -87,23 +87,23 @@ export declare const promotionUsageLogQuerySchema: z.ZodObject<{
     redemption_date_after: z.ZodOptional<z.ZodString>;
     redemption_date_before: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
+    promotion_id?: string | undefined;
+    user_id?: string | undefined;
+    order_id?: string | undefined;
+    platform?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
-    user_id?: string | undefined;
-    platform?: string | undefined;
-    promotion_id?: string | undefined;
-    order_id?: string | undefined;
     discount_applied_min?: string | undefined;
     discount_applied_max?: string | undefined;
     redemption_date_after?: string | undefined;
     redemption_date_before?: string | undefined;
 }, {
+    promotion_id?: string | undefined;
+    user_id?: string | undefined;
+    order_id?: string | undefined;
+    platform?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
-    user_id?: string | undefined;
-    platform?: string | undefined;
-    promotion_id?: string | undefined;
-    order_id?: string | undefined;
     discount_applied_min?: string | undefined;
     discount_applied_max?: string | undefined;
     redemption_date_after?: string | undefined;

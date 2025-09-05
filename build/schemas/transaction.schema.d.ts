@@ -141,9 +141,9 @@ export declare const transactionQuerySchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     name?: string | undefined;
     userid?: string | undefined;
-    merchanttransactionid?: string | undefined;
     mobilenumber?: string | undefined;
     transactionid?: string | undefined;
+    merchanttransactionid?: string | undefined;
     amount?: string | undefined;
     transactionfor?: string | undefined;
     page?: string | undefined;
@@ -155,9 +155,9 @@ export declare const transactionQuerySchema: z.ZodObject<{
 }, {
     name?: string | undefined;
     userid?: string | undefined;
-    merchanttransactionid?: string | undefined;
     mobilenumber?: string | undefined;
     transactionid?: string | undefined;
+    merchanttransactionid?: string | undefined;
     amount?: string | undefined;
     transactionfor?: string | undefined;
     page?: string | undefined;

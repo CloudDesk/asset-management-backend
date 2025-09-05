@@ -86,22 +86,22 @@ export declare const promotionTargetLinkQuerySchema: z.ZodObject<{
     is_active: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     is_active?: string | undefined;
-    page?: string | undefined;
-    limit?: string | undefined;
     promotion_id?: string | undefined;
     target_type?: string | undefined;
     target_id?: string | undefined;
     target_label?: string | undefined;
     apply_scope?: string | undefined;
+    page?: string | undefined;
+    limit?: string | undefined;
 }, {
     is_active?: string | undefined;
-    page?: string | undefined;
-    limit?: string | undefined;
     promotion_id?: string | undefined;
     target_type?: string | undefined;
     target_id?: string | undefined;
     target_label?: string | undefined;
     apply_scope?: string | undefined;
+    page?: string | undefined;
+    limit?: string | undefined;
 }>;
 export type CreatePromotionTargetLinkInput = z.infer<typeof createPromotionTargetLinkSchema>;
 export type UpdatePromotionTargetLinkInput = z.infer<typeof updatePromotionTargetLinkSchema>;

@@ -1,6 +1,6 @@
-import { CreateOrderlineInput, UpdateOrderlineInput, UpsertOrderlineInput } from '../schemas/orderline.schema.js';
-import { PaginationResult } from '../utils/pagination.js';
-import { FilterOptions } from '../utils/filterBuilder.js';
+import { CreateOrderlineInput, UpdateOrderlineInput, UpsertOrderlineInput } from "../schemas/orderline.schema.js";
+import { PaginationResult } from "../utils/pagination.js";
+import { FilterOptions } from "../utils/filterBuilder.js";
 export declare class OrderlineService {
     findMany(filters: FilterOptions, page: number, limit: number): Promise<PaginationResult<any>>;
     findById(id: string): Promise<any>;
