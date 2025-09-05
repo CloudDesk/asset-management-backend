@@ -87,5 +87,58 @@ export class PromotionsController {
     return reply.code(200).send(response);
   });
 
+  // Recommend best promotion for user's cart
+  recommendPromotion = asyncHandler(async (request: FastifyRequest<{ 
+    Body: { 
+      userId: string; 
+      cartItems: Array<{ 
+        productId: string; 
+        qty: number; 
+        category: string; 
+        price: number; 
+      }>; 
+      mode: 'phonepe' | 'cod'; 
+    } 
+  }>, reply: FastifyReply) => {
+    const { userId, cartItems, mode } = request.body;
+    
+    logger.info({ userId, cartItemsCount: cartItems.length, mode }, 'Getting promotion recommendation');
+    
+    const recommendation = await this.promotionsService.getBestPromotionRecommendation({
+      userId,
+      cartItems,
+      mode
+    });
+    
+    const response = createSuccessResponse('Best promotion recommendation retrieved', recommendation);
+    return reply.code(200).send(response);
+  });
+
+  // Get eligible and ineligible promotions for user's cart
+  getEligiblePromotions = asyncHandler(async (request: FastifyRequest<{ 
+    Body: { 
+      userId: string; 
+      cartItems: Array<{ 
+        productId: string; 
+        qty: number; 
+        category: string; 
+        price: number; 
+      }>; 
+      mode: 'phonepe' | 'cod'; 
+    } 
+  }>, reply: FastifyReply) => {
+    const { userId, cartItems, mode } = request.body;
+    
+    logger.info({ userId, cartItemsCount: cartItems.length, mode }, 'Getting eligible promotions');
+    
+    const eligiblePromotions = await this.promotionsService.getEligiblePromotions({
+      userId,
+      cartItems,
+      mode
+    });
+    
+    const response = createSuccessResponse('Eligible promotions retrieved', eligiblePromotions);
+    return reply.code(200).send(response);
+  });
 
 } 

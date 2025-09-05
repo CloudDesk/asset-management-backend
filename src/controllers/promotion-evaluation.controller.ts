@@ -50,10 +50,4 @@ export class PromotionEvaluationController {
     return reply.code(200).send(response);
   });
 
-  // Get evaluation by ID (helper method)
-  private async getEvaluation(evaluationId: string) {
-    // This would be implemented in the service
-    // For now, return a placeholder
-    return null;
-  }
 }

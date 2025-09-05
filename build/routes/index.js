@@ -18,12 +18,7 @@ import { ordersRoutes } from './orders.route.js';
 import { orderlineRoutes } from './orderline.route.js';
 import { transactionRoutes } from './transaction.route.js';
 import { phonePeRoutes } from './phonepe.route.js';
-import { promotionalAssetsRoutes } from './promotional-assets.route.js';
 import { promotionsRoutes } from './promotions.route.js';
-import { promotionRulesRoutes } from './promotion-rules.route.js';
-import { promotionActionsRoutes } from './promotion-actions.route.js';
-import { promotionTargetLinkRoutes } from './promotion-target-link.route.js';
-import { promotionUsageLogRoutes } from './promotion-usage-log.route.js';
 import { ratingRoutes } from './rating.route.js';
 import { requireAuthentication } from '../middleware/auth.middleware.js';
 import { createSuccessResponse } from '../utils/errorHandler.js';
@@ -85,13 +80,8 @@ export async function routes(fastify) {
         await fastify.register(orderlineRoutes, { prefix: '/orderlines' });
         await fastify.register(transactionRoutes, { prefix: '/transactions' });
         await fastify.register(phonePeRoutes, { prefix: '/phonepe' });
-        await fastify.register(promotionalAssetsRoutes, { prefix: '/promotional-assets' });
-        // Promotion system routes
+        // Promotion system routes (public for guest users)
         await fastify.register(promotionsRoutes, { prefix: '/promotions' });
-        await fastify.register(promotionRulesRoutes, { prefix: '/promotion-rules' });
-        await fastify.register(promotionActionsRoutes, { prefix: '/promotion-actions' });
-        await fastify.register(promotionTargetLinkRoutes, { prefix: '/promotion-target-link' });
-        await fastify.register(promotionUsageLogRoutes, { prefix: '/promotion-usage-log' });
         await fastify.register(ratingRoutes, { prefix: '/ratings' });
         await fastify.register(async function (fastify) {
             // Apply authentication middleware to all routes in this scope

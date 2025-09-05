@@ -56,7 +56,7 @@ export class PromotionRedemptionService {
       // 7. Build response
       const response: RedemptionResponse = {
         success: true,
-        redemption_id: redemptionDetails[0]?.id || '',
+        redemption_id: redemptionDetails[0]?.promotion_id?.toString() || '',
         order_id: request.order_id,
         total_discount_applied: redemptionDetails.reduce((sum, detail) => sum + detail.discount_amount, 0),
         redemption_details: redemptionDetails.map(detail => ({

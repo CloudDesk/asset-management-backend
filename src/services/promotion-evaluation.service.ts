@@ -156,7 +156,7 @@ export class PromotionEvaluationService {
               promotion_id: promotion.id,
               reason: 'User segment not eligible',
               required_value: condition.value,
-              current_value: userSegments
+              current_value: userSegments.length
             });
           }
           break;
@@ -168,7 +168,7 @@ export class PromotionEvaluationService {
               promotion_id: promotion.id,
               reason: 'User creation date not eligible',
               required_value: condition.value,
-              current_value: userCreatedDate
+              current_value: userCreatedDate.getTime()
             });
           }
           break;
@@ -237,7 +237,7 @@ export class PromotionEvaluationService {
               promotion_id: promotion.id,
               reason: 'Cart category not eligible',
               required_value: condition.value,
-              current_value: categories
+              current_value: categories.length
             });
           }
           break;
@@ -435,5 +435,19 @@ export class PromotionEvaluationService {
       ineligible_reasons: reasons,
       expires_at: new Date().toISOString()
     };
+  }
+
+  // Get evaluation by ID
+  async getEvaluation(evaluationId: string) {
+    try {
+      const evaluation = await this.prisma.promotion_evaluations.findUnique({
+        where: { evaluation_id: evaluationId }
+      });
+      
+      return evaluation;
+    } catch (error) {
+      logger.error({ error, evaluationId }, 'Error getting evaluation');
+      throw error;
+    }
   }
 }
