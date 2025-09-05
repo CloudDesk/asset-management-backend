@@ -19,7 +19,7 @@
     "in-build": "docker build -t nivaana .",
     "in-tag": "docker tag nivaana gcr.io/cloud-desk-447206/nivaana",
     "in-push": "docker push gcr.io/cloud-desk-447206/nivaana",
-    "in-deploy": "gcloud run deploy nivaana --image gcr.io/cloud-desk-447206/nivaana:latest --platform managed --region us-central1 --allow-unauthenticated --port 3000 --execution-environment gen2 --set-env-vars=\"DATABASE_URL=postgresql://postgres:sKYxITEORpgqlalQbnQXbAGjIfRWNBoW@monorail.proxy.rlwy.net:16601/assetmanagement_dev,NODE_ENV=development,GMAIL_SERVICE=gmail,GMAIL_HOST=smtp.gmail.com,GMAIL_PORT=465,GMAIL_AUTH_USER=pravinsf24@gmail.com,GMAIL_AUTH_PASSWORD=ygdj ijxe tpfo sefn,REDIRECT_URL_PAYMENT_STATUS=https://nivaana-374914445110.us-central1.run.app,REDIRECT_URL_SUCCESS=com.Nivaana.app://profile/orders,REDIRECT_URL_FAILURE=https://nivaana-374914445110.us-central1.run.app/docs\""
+    "in-deploy": "gcloud run deploy nivaana --image gcr.io/cloud-desk-447206/nivaana:latest --platform managed --region us-central1 --allow-unauthenticated --port 3000 --service-account nivaana-dev@cloud-desk-447206.iam.gserviceaccount.com --execution-environment gen2 --set-env-vars=\"DATABASE_URL=postgresql://postgres:sKYxITEORpgqlalQbnQXbAGjIfRWNBoW@monorail.proxy.rlwy.net:16601/assetmanagement_dev,NODE_ENV=development,GMAIL_SERVICE=gmail,GMAIL_HOST=smtp.gmail.com,GMAIL_PORT=465,GMAIL_AUTH_USER=pravinsf24@gmail.com,GMAIL_AUTH_PASSWORD=ygdj ijxe tpfo sefn,REDIRECT_URL_PAYMENT_STATUS=https://nivaana-374914445110.us-central1.run.app,REDIRECT_URL_SUCCESS=com.Nivaana.app://profile/orders,REDIRECT_URL_FAILURE=https://nivaana-374914445110.us-central1.run.app/docs\""
   },
   "repository": {
     "type": "git",

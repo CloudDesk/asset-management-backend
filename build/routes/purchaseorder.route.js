@@ -1,194 +1,365 @@
-import { PurchaseOrderController } from '../controllers/purchaseorder.controller.js';
-import { formatPurchaseOrderForAPI } from '../utils/dynamicDbOperations.js';
+import { PurchaseOrderController } from "../controllers/purchaseorder.controller.js";
+import { formatPurchaseOrderForAPI } from "../utils/dynamicDbOperations.js";
 export async function purchaseOrderRoutes(fastify) {
     const purchaseOrderController = new PurchaseOrderController();
-    fastify.get('/', {
+    fastify.get("/", {
         schema: {
-            description: 'Get all purchase orders with pagination and filtering',
-            tags: ['Purchase Orders'],
+            description: "Get all purchase orders with pagination and filtering",
+            tags: ["Purchase Orders"],
             querystring: {
-                type: 'object',
+                type: "object",
                 properties: {
-                    page: { type: 'string', description: 'Page number' },
-                    limit: { type: 'string', description: 'Items per page' },
+                    page: { type: "string", description: "Page number" },
+                    limit: { type: "string", description: "Items per page" },
                     // Actual database fields for filtering
-                    ponumber: { type: 'string', description: 'Filter by PO number' },
-                    prnumber: { type: 'string', description: 'Filter by PR number' },
-                    companyname: { type: 'string', description: 'Filter by company name' },
-                    companyaddress: { type: 'string', description: 'Filter by company address' },
-                    contactname: { type: 'string', description: 'Filter by contact name' },
-                    gstnumber: { type: 'string', description: 'Filter by GST number' },
-                    supplierid: { type: 'string', description: 'Filter by supplier ID' },
-                    po_status: { type: 'string', description: 'Filter by PO status' },
-                    suppliertype: { type: 'string', description: 'Filter by supplier type' },
-                    suppliercompanyname: { type: 'string', description: 'Filter by supplier company name' },
-                    supplieraddress: { type: 'string', description: 'Filter by supplier address' },
-                    suppliergstnumber: { type: 'string', nullable: true, description: 'Filter by supplier GST number' },
-                    paymentterms: { type: 'string', nullable: true, description: 'Filter by payment terms' },
-                    sameasinvoice: { type: 'string', description: 'Filter by same as invoice flag' },
-                    createddate: { type: 'string', description: 'Filter by creation date (timestamp)' },
-                    modifieddate: { type: 'string', description: 'Filter by modification date (timestamp)' },
+                    ponumber: { type: "string", description: "Filter by PO number" },
+                    prnumber: { type: "string", description: "Filter by PR number" },
+                    companyname: {
+                        type: "string",
+                        description: "Filter by company name",
+                    },
+                    companyaddress: {
+                        type: "string",
+                        description: "Filter by company address",
+                    },
+                    contactname: {
+                        type: "string",
+                        description: "Filter by contact name",
+                    },
+                    gstnumber: { type: "string", description: "Filter by GST number" },
+                    supplierid: {
+                        type: "string",
+                        description: "Filter by supplier ID",
+                    },
+                    po_status: { type: "string", description: "Filter by PO status" },
+                    suppliertype: {
+                        type: "string",
+                        description: "Filter by supplier type",
+                    },
+                    suppliercompanyname: {
+                        type: "string",
+                        description: "Filter by supplier company name",
+                    },
+                    supplieraddress: {
+                        type: "string",
+                        description: "Filter by supplier address",
+                    },
+                    suppliergstnumber: {
+                        type: "string",
+                        nullable: true,
+                        description: "Filter by supplier GST number",
+                    },
+                    paymentterms: {
+                        type: "string",
+                        nullable: true,
+                        description: "Filter by payment terms",
+                    },
+                    sameasinvoice: {
+                        type: "string",
+                        description: "Filter by same as invoice flag",
+                    },
+                    createddate: {
+                        type: "string",
+                        description: "Filter by creation date (timestamp)",
+                    },
+                    modifieddate: {
+                        type: "string",
+                        description: "Filter by modification date (timestamp)",
+                    },
                 },
                 additionalProperties: true,
             },
             response: {
                 200: {
-                    type: 'object',
+                    type: "object",
                     properties: {
-                        success: { type: 'boolean' },
+                        success: { type: "boolean" },
                         data: {
-                            type: 'array',
+                            type: "array",
                             items: {
-                                type: 'object',
+                                type: "object",
                                 properties: {
-                                    id: { type: 'number', description: 'Purchase order ID' },
-                                    ponumber: { type: 'string', description: 'PO number' },
-                                    prnumber: { type: 'string', description: 'PR number' },
-                                    companyname: { type: 'string', description: 'Company name' },
-                                    companyaddress: { type: 'string', description: 'Company address' },
-                                    contactname: { type: 'string', description: 'Contact name' },
-                                    phonenumber: { type: 'number', nullable: true, description: 'Phone number' },
-                                    gstnumber: { type: 'string', description: 'GST number' },
-                                    io_companyname: { type: 'string', description: 'Invoice company name' },
-                                    io_companyaddress: { type: 'string', description: 'Invoice company address' },
-                                    io_contactname: { type: 'string', description: 'Invoice contact name' },
-                                    io_phonenumber: { type: 'number', nullable: true, description: 'Invoice phone number' },
-                                    io_gstnumber: { type: 'string', description: 'Invoice GST number' },
-                                    dt_companyname: { type: 'string', description: 'Delivery company name' },
-                                    dt_companyaddress: { type: 'string', description: 'Delivery company address' },
-                                    dt_contactname: { type: 'string', description: 'Delivery contact name' },
-                                    dt_phonenumber: { type: 'number', nullable: true, description: 'Delivery phone number' },
-                                    dt_gstnumber: { type: 'string', description: 'Delivery GST number' },
-                                    supplierid: { type: 'number', description: 'Supplier ID' },
-                                    subtotal: { type: 'number', nullable: true, description: 'Subtotal amount' },
-                                    discount: { type: 'number', nullable: true, description: 'Discount amount' },
-                                    sgst: { type: 'number', nullable: true, description: 'SGST amount' },
-                                    cgst: { type: 'number', nullable: true, description: 'CGST amount' },
-                                    payabletaxamount: { type: 'number', nullable: true, description: 'Payable tax amount' },
-                                    total: { type: 'number', nullable: true, description: 'Total amount' },
-                                    createddate: { type: 'number', description: 'Creation timestamp' },
-                                    modifieddate: { type: 'number', description: 'Modification timestamp' },
+                                    id: { type: "number", description: "Purchase order ID" },
+                                    ponumber: { type: "string", description: "PO number" },
+                                    prnumber: { type: "string", description: "PR number" },
+                                    companyname: {
+                                        type: "string",
+                                        description: "Company name",
+                                    },
+                                    companyaddress: {
+                                        type: "string",
+                                        description: "Company address",
+                                    },
+                                    contactname: {
+                                        type: "string",
+                                        description: "Contact name",
+                                    },
+                                    phonenumber: {
+                                        type: "number",
+                                        nullable: true,
+                                        description: "Phone number",
+                                    },
+                                    gstnumber: { type: "string", description: "GST number" },
+                                    io_companyname: {
+                                        type: "string",
+                                        description: "Invoice company name",
+                                    },
+                                    io_companyaddress: {
+                                        type: "string",
+                                        description: "Invoice company address",
+                                    },
+                                    io_contactname: {
+                                        type: "string",
+                                        description: "Invoice contact name",
+                                    },
+                                    io_phonenumber: {
+                                        type: "number",
+                                        nullable: true,
+                                        description: "Invoice phone number",
+                                    },
+                                    io_gstnumber: {
+                                        type: "string",
+                                        description: "Invoice GST number",
+                                    },
+                                    dt_companyname: {
+                                        type: "string",
+                                        description: "Delivery company name",
+                                    },
+                                    dt_companyaddress: {
+                                        type: "string",
+                                        description: "Delivery company address",
+                                    },
+                                    dt_contactname: {
+                                        type: "string",
+                                        description: "Delivery contact name",
+                                    },
+                                    dt_phonenumber: {
+                                        type: "number",
+                                        nullable: true,
+                                        description: "Delivery phone number",
+                                    },
+                                    dt_gstnumber: {
+                                        type: "string",
+                                        description: "Delivery GST number",
+                                    },
+                                    supplierid: { type: "number", description: "Supplier ID" },
+                                    subtotal: {
+                                        type: "number",
+                                        nullable: true,
+                                        description: "Subtotal amount",
+                                    },
+                                    discount: {
+                                        type: "number",
+                                        nullable: true,
+                                        description: "Discount amount",
+                                    },
+                                    sgst: {
+                                        type: "number",
+                                        nullable: true,
+                                        description: "SGST amount",
+                                    },
+                                    cgst: {
+                                        type: "number",
+                                        nullable: true,
+                                        description: "CGST amount",
+                                    },
+                                    payabletaxamount: {
+                                        type: "number",
+                                        nullable: true,
+                                        description: "Payable tax amount",
+                                    },
+                                    total: {
+                                        type: "number",
+                                        nullable: true,
+                                        description: "Total amount",
+                                    },
+                                    createddate: {
+                                        type: "number",
+                                        description: "Creation timestamp",
+                                    },
+                                    modifieddate: {
+                                        type: "number",
+                                        description: "Modification timestamp",
+                                    },
                                     product: {
-                                        type: 'object',
-                                        description: 'Purchase order items data',
+                                        type: "object",
+                                        description: "Purchase order items data",
                                         properties: {
                                             items: {
-                                                type: 'array',
+                                                type: "array",
                                                 items: {
-                                                    type: 'object',
+                                                    type: "object",
                                                     properties: {
-                                                        id: { type: 'number', description: 'Item ID' },
-                                                        name: { type: 'string', description: 'Item name' },
-                                                        quantity: { type: 'number', description: 'Item quantity' }
-                                                    }
-                                                }
-                                            }
-                                        }
+                                                        id: { type: "number", description: "Item ID" },
+                                                        name: {
+                                                            type: "string",
+                                                            description: "Item name",
+                                                        },
+                                                        quantity: {
+                                                            type: "number",
+                                                            description: "Item quantity",
+                                                        },
+                                                        unitprice: {
+                                                            type: "number",
+                                                            description: "Unit price of the product",
+                                                        },
+                                                        totalprice: {
+                                                            type: "number",
+                                                            description: "Total price for this item",
+                                                        },
+                                                    },
+                                                },
+                                            },
+                                        },
                                     },
-                                    po_status: { type: 'string', description: 'PO status' },
-                                    supplieraddress: { type: 'string', description: 'Supplier address' },
-                                    suppliercompanyname: { type: 'string', description: 'Supplier company name' },
-                                    supplierphonenumber: { type: 'number', nullable: true, description: 'Supplier phone number' },
-                                    suppliergstnumber: { type: 'string', nullable: true, description: 'Supplier GST number' },
-                                    instructions: { type: 'string', nullable: true, description: 'Instructions' },
-                                    fileurl: { type: 'string', nullable: true, description: 'File URL' },
-                                    invoiceurl: { type: 'string', nullable: true, description: 'Invoice URL' },
-                                    sameasinvoice: { type: 'boolean', description: 'Same as invoice flag' },
-                                    paymentterms: { type: 'string', nullable: true, description: 'Payment terms' },
-                                    overduedate: { type: 'string', nullable: true, description: 'Overdue date' },
-                                    comments: { type: 'string', nullable: true, description: 'Comments' },
-                                    suppliertype: { type: 'string', description: 'Supplier type' },
+                                    po_status: { type: "string", description: "PO status" },
+                                    supplieraddress: {
+                                        type: "string",
+                                        description: "Supplier address",
+                                    },
+                                    suppliercompanyname: {
+                                        type: "string",
+                                        description: "Supplier company name",
+                                    },
+                                    supplierphonenumber: {
+                                        type: "number",
+                                        nullable: true,
+                                        description: "Supplier phone number",
+                                    },
+                                    suppliergstnumber: {
+                                        type: "string",
+                                        nullable: true,
+                                        description: "Supplier GST number",
+                                    },
+                                    instructions: {
+                                        type: "string",
+                                        nullable: true,
+                                        description: "Instructions",
+                                    },
+                                    fileurl: {
+                                        type: "string",
+                                        nullable: true,
+                                        description: "File URL",
+                                    },
+                                    invoiceurl: {
+                                        type: "string",
+                                        nullable: true,
+                                        description: "Invoice URL",
+                                    },
+                                    sameasinvoice: {
+                                        type: "boolean",
+                                        description: "Same as invoice flag",
+                                    },
+                                    paymentterms: {
+                                        type: "string",
+                                        nullable: true,
+                                        description: "Payment terms",
+                                    },
+                                    overduedate: {
+                                        type: "string",
+                                        nullable: true,
+                                        description: "Overdue date",
+                                    },
+                                    comments: {
+                                        type: "string",
+                                        nullable: true,
+                                        description: "Comments",
+                                    },
+                                    suppliertype: {
+                                        type: "string",
+                                        description: "Supplier type",
+                                    },
                                 },
-                                additionalProperties: true // Allow additional dynamic fields
-                            }
+                                additionalProperties: true, // Allow additional dynamic fields
+                            },
                         },
                         pagination: {
-                            type: 'object',
+                            type: "object",
                             properties: {
-                                page: { type: 'number' },
-                                limit: { type: 'number' },
-                                total: { type: 'number' },
-                                totalPages: { type: 'number' },
-                                hasNext: { type: 'boolean' },
-                                hasPrev: { type: 'boolean' },
+                                page: { type: "number" },
+                                limit: { type: "number" },
+                                total: { type: "number" },
+                                totalPages: { type: "number" },
+                                hasNext: { type: "boolean" },
+                                hasPrev: { type: "boolean" },
                             },
                         },
                         meta: {
-                            type: 'object',
+                            type: "object",
                             properties: {
-                                filters: { type: 'array', items: { type: 'string' } },
-                                total: { type: 'number' },
-                                filtered: { type: 'boolean' },
+                                filters: { type: "array", items: { type: "string" } },
+                                total: { type: "number" },
+                                filtered: { type: "boolean" },
                             },
                         },
                     },
                 },
                 400: {
-                    type: 'object',
+                    type: "object",
                     properties: {
-                        success: { type: 'boolean' },
-                        error: { type: 'string' },
+                        success: { type: "boolean" },
+                        error: { type: "string" },
                     },
                 },
                 500: {
-                    type: 'object',
+                    type: "object",
                     properties: {
-                        success: { type: 'boolean' },
-                        error: { type: 'string' },
+                        success: { type: "boolean" },
+                        error: { type: "string" },
                     },
                 },
             },
         },
     }, purchaseOrderController.getPurchaseOrders.bind(purchaseOrderController));
     // GET /v1/purchaseorders/:id - Get purchase order by ID
-    fastify.get('/:id', {
+    fastify.get("/:id", {
         schema: {
-            description: 'Get purchase order by ID',
-            tags: ['Purchase Orders'],
+            description: "Get purchase order by ID",
+            tags: ["Purchase Orders"],
             params: {
-                type: 'object',
+                type: "object",
                 properties: {
-                    id: { type: 'string', description: 'Purchase order ID' },
+                    id: { type: "string", description: "Purchase order ID" },
                 },
-                required: ['id'],
+                required: ["id"],
             },
             response: {
                 200: {
-                    type: 'object',
+                    type: "object",
                     properties: {
-                        success: { type: 'boolean' },
+                        success: { type: "boolean" },
                         data: {
-                            type: 'object',
-                            additionalProperties: true // Allow any fields in purchase order object
+                            type: "object",
+                            additionalProperties: true, // Allow any fields in purchase order object
                         },
-                        message: { type: 'string' },
+                        message: { type: "string" },
                     },
                 },
                 400: {
-                    type: 'object',
+                    type: "object",
                     properties: {
-                        success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        details: { type: 'string' },
-                        statusCode: { type: 'number' },
+                        success: { type: "boolean" },
+                        message: { type: "string" },
+                        details: { type: "string" },
+                        statusCode: { type: "number" },
                     },
                 },
                 404: {
-                    type: 'object',
+                    type: "object",
                     properties: {
-                        success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        details: { type: 'string' },
-                        statusCode: { type: 'number' },
+                        success: { type: "boolean" },
+                        message: { type: "string" },
+                        details: { type: "string" },
+                        statusCode: { type: "number" },
                     },
                 },
                 500: {
-                    type: 'object',
+                    type: "object",
                     properties: {
-                        success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        details: { type: 'string' },
-                        statusCode: { type: 'number' },
+                        success: { type: "boolean" },
+                        message: { type: "string" },
+                        details: { type: "string" },
+                        statusCode: { type: "number" },
                     },
                 },
             },
@@ -200,9 +371,9 @@ export async function purchaseOrderRoutes(fastify) {
             if (!/^\d+$/.test(id)) {
                 const errorResponse = {
                     success: false,
-                    message: 'Invalid ID format. ID must be an integer.',
+                    message: "Invalid ID format. ID must be an integer.",
                     details: `The provided ID '${id}' is not a valid integer format.`,
-                    statusCode: 400
+                    statusCode: 400,
                 };
                 return reply.code(400).send(errorResponse);
             }
@@ -210,309 +381,333 @@ export async function purchaseOrderRoutes(fastify) {
             const purchaseOrder = await purchaseOrderController.purchaseOrderService.findById(id);
             const response = {
                 success: true,
-                message: 'Purchase order retrieved successfully',
-                data: formatPurchaseOrderForAPI(purchaseOrder)
+                message: "Purchase order retrieved successfully",
+                data: formatPurchaseOrderForAPI(purchaseOrder),
             };
             return reply.code(200).send(response);
         }
         catch (error) {
-            console.log('=== PURCHASE ORDER GET ERROR:', error.message);
-            if (error.message.includes('not found')) {
+            console.log("=== PURCHASE ORDER GET ERROR:", error.message);
+            if (error.message.includes("not found")) {
                 const errorResponse = {
                     success: false,
                     message: `Purchase order with ID ${request.params.id} not found`,
-                    details: 'The requested resource could not be found',
-                    statusCode: 404
+                    details: "The requested resource could not be found",
+                    statusCode: 404,
                 };
                 return reply.code(404).send(errorResponse);
             }
             // Default error response
             const errorResponse = {
                 success: false,
-                message: 'Internal server error',
-                details: 'Something went wrong on the server',
-                statusCode: 500
+                message: "Internal server error",
+                details: "Something went wrong on the server",
+                statusCode: 500,
             };
             return reply.code(500).send(errorResponse);
         }
     });
     // POST /v1/purchaseorders - Create new purchase order
-    fastify.post('/', {
+    fastify.post("/", {
         schema: {
-            description: 'Create a new purchase order',
-            tags: ['Purchase Orders'],
+            description: "Create a new purchase order",
+            tags: ["Purchase Orders"],
             body: {
-                type: 'object',
+                type: "object",
                 properties: {
                     ponumber: {
-                        type: 'string',
-                        description: 'Purchase order number (e.g., FREAU-TEQIT-PO-0000000016)'
+                        type: "string",
+                        description: "Purchase order number (e.g., FREAU-TEQIT-PO-0000000016)",
                     },
                     prnumber: {
-                        type: 'string',
-                        description: 'Purchase requisition number'
+                        type: "string",
+                        description: "Purchase requisition number",
                     },
                     companyname: {
-                        type: 'string',
-                        description: 'Company name'
+                        type: "string",
+                        description: "Company name",
                     },
                     companyaddress: {
-                        type: 'string',
-                        description: 'Company address'
+                        type: "string",
+                        description: "Company address",
                     },
                     contactname: {
-                        type: 'string',
-                        description: 'Contact person name'
+                        type: "string",
+                        description: "Contact person name",
                     },
                     phonenumber: {
-                        type: 'number',
-                        description: 'Phone number'
+                        type: "number",
+                        description: "Phone number",
                     },
                     gstnumber: {
-                        type: 'string',
-                        description: 'GST number'
+                        type: "string",
+                        description: "GST number",
                     },
                     io_companyname: {
-                        type: 'string',
-                        description: 'Invoice company name'
+                        type: "string",
+                        description: "Invoice company name",
                     },
                     io_companyaddress: {
-                        type: 'string',
-                        description: 'Invoice company address'
+                        type: "string",
+                        description: "Invoice company address",
                     },
                     io_contactname: {
-                        type: 'string',
-                        description: 'Invoice contact name'
+                        type: "string",
+                        description: "Invoice contact name",
                     },
                     io_phonenumber: {
-                        type: 'number',
+                        type: "number",
                         nullable: true,
-                        description: 'Invoice phone number'
+                        description: "Invoice phone number",
                     },
                     io_gstnumber: {
-                        type: 'string',
-                        description: 'Invoice GST number'
+                        type: "string",
+                        description: "Invoice GST number",
                     },
                     dt_companyname: {
-                        type: 'string',
-                        description: 'Delivery company name (optional)'
+                        type: "string",
+                        description: "Delivery company name (optional)",
                     },
                     dt_companyaddress: {
-                        type: 'string',
-                        description: 'Delivery company address (optional)'
+                        type: "string",
+                        description: "Delivery company address (optional)",
                     },
                     dt_contactname: {
-                        type: 'string',
-                        description: 'Delivery contact name (optional)'
+                        type: "string",
+                        description: "Delivery contact name (optional)",
                     },
                     dt_phonenumber: {
-                        type: 'number',
+                        type: "number",
                         nullable: true,
-                        description: 'Delivery phone number (optional)'
+                        description: "Delivery phone number (optional)",
                     },
                     dt_gstnumber: {
-                        type: 'string',
-                        description: 'Delivery GST number (optional)'
+                        type: "string",
+                        description: "Delivery GST number (optional)",
                     },
                     supplierid: {
-                        type: 'number',
-                        description: 'Supplier ID (must exist in supplier table)'
+                        type: "number",
+                        description: "Supplier ID (must exist in supplier table)",
                     },
                     subtotal: {
-                        type: 'number',
-                        description: 'Subtotal amount before taxes'
+                        type: "number",
+                        description: "Subtotal amount before taxes",
                     },
                     discount: {
-                        type: 'number',
-                        description: 'Discount amount'
+                        type: "number",
+                        description: "Discount amount",
                     },
                     sgst: {
-                        type: 'number',
-                        description: 'State GST amount'
+                        type: "number",
+                        description: "State GST amount",
                     },
                     cgst: {
-                        type: 'number',
-                        description: 'Central GST amount'
+                        type: "number",
+                        description: "Central GST amount",
                     },
                     payabletaxamount: {
-                        type: 'number',
-                        description: 'Total payable tax amount'
+                        type: "number",
+                        description: "Total payable tax amount",
                     },
                     total: {
-                        type: 'number',
-                        description: 'Total purchase order amount'
+                        type: "number",
+                        description: "Total purchase order amount",
                     },
                     product: {
-                        type: 'object',
-                        description: 'Product items in the purchase order',
+                        type: "object",
+                        description: "Product items in the purchase order",
                         properties: {
                             items: {
-                                type: 'array',
+                                type: "array",
                                 items: {
-                                    type: 'object',
+                                    type: "object",
                                     properties: {
-                                        id: { type: 'number', description: 'Product item ID' },
-                                        name: { type: 'string', description: 'Product name' },
-                                        quantity: { type: 'number', description: 'Quantity ordered' }
+                                        id: { type: "number", description: "Product item ID" },
+                                        name: { type: "string", description: "Product name" },
+                                        quantity: {
+                                            type: "number",
+                                            description: "Quantity ordered",
+                                        },
+                                        unitprice: {
+                                            type: "number",
+                                            description: "Unit price of the product",
+                                        },
+                                        totalprice: {
+                                            type: "number",
+                                            description: "Total price for this item (quantity * unit price)",
+                                        },
                                     },
-                                    required: ['id', 'name', 'quantity']
-                                }
-                            }
+                                    required: [
+                                        "id",
+                                        "name",
+                                        "quantity",
+                                        "unitprice",
+                                        "totalprice",
+                                    ],
+                                },
+                            },
                         },
-                        required: ['items']
+                        required: ["items"],
                     },
                     po_status: {
-                        type: 'string',
-                        enum: ['in_progress', 'partially_fulfilled', 'fulfilled', 'cancelled', 'void', ''],
-                        description: 'Purchase order status'
+                        type: "string",
+                        enum: [
+                            "in_progress",
+                            "partially_fulfilled",
+                            "fulfilled",
+                            "cancelled",
+                            "void",
+                            "",
+                        ],
+                        description: "Purchase order status",
                     },
                     supplieraddress: {
-                        type: 'string',
-                        description: 'Supplier address'
+                        type: "string",
+                        description: "Supplier address",
                     },
                     suppliercompanyname: {
-                        type: 'string',
-                        description: 'Supplier company name'
+                        type: "string",
+                        description: "Supplier company name",
                     },
                     supplierphonenumber: {
-                        type: 'number',
+                        type: "number",
                         nullable: true,
-                        description: 'Supplier phone number'
+                        description: "Supplier phone number",
                     },
                     suppliergstnumber: {
-                        type: 'string',
+                        type: "string",
                         nullable: true,
-                        description: 'Supplier GST number'
+                        description: "Supplier GST number",
                     },
                     instructions: {
-                        type: 'string',
+                        type: "string",
                         nullable: true,
-                        description: 'Special delivery instructions'
+                        description: "Special delivery instructions",
                     },
                     fileurl: {
-                        type: 'string',
+                        type: "string",
                         nullable: true,
-                        description: 'Attached file URL'
+                        description: "Attached file URL",
                     },
                     invoiceurl: {
-                        type: 'array',
-                        items: { type: 'string' },
-                        description: 'Invoice file URLs'
+                        type: "array",
+                        items: { type: "string" },
+                        description: "Invoice file URLs",
                     },
                     sameasinvoice: {
-                        type: 'boolean',
-                        description: 'Whether delivery address is same as invoice address'
+                        type: "boolean",
+                        description: "Whether delivery address is same as invoice address",
                     },
                     paymentterms: {
-                        type: 'string',
+                        type: "string",
                         nullable: true,
-                        description: 'Payment terms in days'
+                        description: "Payment terms in days",
                     },
                     overduedate: {
-                        type: 'string',
+                        type: "string",
                         nullable: true,
-                        description: 'Overdue date'
+                        description: "Overdue date",
                     },
                     comments: {
-                        type: 'string',
+                        type: "string",
                         nullable: true,
-                        description: 'Additional comments'
+                        description: "Additional comments",
                     },
                     suppliertype: {
-                        type: 'string',
-                        enum: ['local', 'international'],
-                        description: 'Type of supplier'
-                    }
+                        type: "string",
+                        enum: ["local", "international"],
+                        description: "Type of supplier",
+                    },
                 },
                 required: [],
-                additionalProperties: true
+                additionalProperties: true,
             },
             response: {
                 201: {
-                    type: 'object',
+                    type: "object",
                     properties: {
-                        success: { type: 'boolean' },
+                        success: { type: "boolean" },
                         data: {
-                            type: 'object',
-                            additionalProperties: true // Allow any fields in purchase order object
+                            type: "object",
+                            additionalProperties: true, // Allow any fields in purchase order object
                         },
-                        message: { type: 'string' },
+                        message: { type: "string" },
                     },
                 },
                 400: {
-                    type: 'object',
+                    type: "object",
                     properties: {
-                        success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        details: { type: 'string' },
-                        statusCode: { type: 'number' },
+                        success: { type: "boolean" },
+                        message: { type: "string" },
+                        details: { type: "string" },
+                        statusCode: { type: "number" },
                     },
                 },
                 500: {
-                    type: 'object',
+                    type: "object",
                     properties: {
-                        success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        details: { type: 'string' },
-                        statusCode: { type: 'number' },
+                        success: { type: "boolean" },
+                        message: { type: "string" },
+                        details: { type: "string" },
+                        statusCode: { type: "number" },
                     },
                 },
             },
         },
     }, purchaseOrderController.createPurchaseOrder.bind(purchaseOrderController));
     // PUT /v1/purchaseorders/:id - Update purchase order
-    fastify.put('/:id', {
+    fastify.put("/:id", {
         schema: {
-            description: 'Update purchase order by ID',
-            tags: ['Purchase Orders'],
+            description: "Update purchase order by ID",
+            tags: ["Purchase Orders"],
             params: {
-                type: 'object',
+                type: "object",
                 properties: {
-                    id: { type: 'string', description: 'Purchase order ID' },
+                    id: { type: "string", description: "Purchase order ID" },
                 },
-                required: ['id'],
+                required: ["id"],
             },
             body: {
-                type: 'object',
+                type: "object",
                 additionalProperties: true, // Allow any fields for dynamic updates
             },
             response: {
                 200: {
-                    type: 'object',
+                    type: "object",
                     properties: {
-                        success: { type: 'boolean' },
+                        success: { type: "boolean" },
                         data: {
-                            type: 'object',
-                            additionalProperties: true // Allow any fields in purchase order object
+                            type: "object",
+                            additionalProperties: true, // Allow any fields in purchase order object
                         },
-                        message: { type: 'string' },
+                        message: { type: "string" },
                     },
                 },
                 400: {
-                    type: 'object',
+                    type: "object",
                     properties: {
-                        success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        details: { type: 'string' },
-                        statusCode: { type: 'number' },
+                        success: { type: "boolean" },
+                        message: { type: "string" },
+                        details: { type: "string" },
+                        statusCode: { type: "number" },
                     },
                 },
                 404: {
-                    type: 'object',
+                    type: "object",
                     properties: {
-                        success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        details: { type: 'string' },
-                        statusCode: { type: 'number' },
+                        success: { type: "boolean" },
+                        message: { type: "string" },
+                        details: { type: "string" },
+                        statusCode: { type: "number" },
                     },
                 },
                 500: {
-                    type: 'object',
+                    type: "object",
                     properties: {
-                        success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        details: { type: 'string' },
-                        statusCode: { type: 'number' },
+                        success: { type: "boolean" },
+                        message: { type: "string" },
+                        details: { type: "string" },
+                        statusCode: { type: "number" },
                     },
                 },
             },
@@ -524,9 +719,9 @@ export async function purchaseOrderRoutes(fastify) {
             if (!/^\d+$/.test(id)) {
                 const errorResponse = {
                     success: false,
-                    message: 'Invalid ID format. ID must be an integer.',
+                    message: "Invalid ID format. ID must be an integer.",
                     details: `The provided ID '${id}' is not a valid integer format.`,
-                    statusCode: 400
+                    statusCode: 400,
                 };
                 return reply.code(400).send(errorResponse);
             }
@@ -534,77 +729,77 @@ export async function purchaseOrderRoutes(fastify) {
             const purchaseOrder = await purchaseOrderController.purchaseOrderService.update(id, request.body);
             const response = {
                 success: true,
-                message: 'Purchase order updated successfully',
-                data: purchaseOrder
+                message: "Purchase order updated successfully",
+                data: purchaseOrder,
             };
             return reply.code(200).send(response);
         }
         catch (error) {
-            console.log('=== PURCHASE ORDER PUT ERROR:', error.message);
-            if (error.message.includes('not found')) {
+            console.log("=== PURCHASE ORDER PUT ERROR:", error.message);
+            if (error.message.includes("not found")) {
                 const errorResponse = {
                     success: false,
                     message: `Purchase order with ID ${request.params.id} not found`,
-                    details: 'The requested resource could not be found',
-                    statusCode: 404
+                    details: "The requested resource could not be found",
+                    statusCode: 404,
                 };
                 return reply.code(404).send(errorResponse);
             }
-            if (error.message.includes('already exists')) {
+            if (error.message.includes("already exists")) {
                 const errorResponse = {
                     success: false,
                     message: error.message,
-                    details: 'Duplicate entry detected',
-                    statusCode: 400
+                    details: "Duplicate entry detected",
+                    statusCode: 400,
                 };
                 return reply.code(400).send(errorResponse);
             }
             // Default error response
             const errorResponse = {
                 success: false,
-                message: 'Internal server error',
-                details: 'Something went wrong on the server',
-                statusCode: 500
+                message: "Internal server error",
+                details: "Something went wrong on the server",
+                statusCode: 500,
             };
             return reply.code(500).send(errorResponse);
         }
     });
     // DELETE /v1/purchaseorders/:id - Delete purchase order
-    fastify.delete('/:id', {
+    fastify.delete("/:id", {
         schema: {
-            description: 'Delete purchase order by ID',
-            tags: ['Purchase Orders'],
+            description: "Delete purchase order by ID",
+            tags: ["Purchase Orders"],
             params: {
-                type: 'object',
+                type: "object",
                 properties: {
-                    id: { type: 'string', description: 'Purchase order ID' },
+                    id: { type: "string", description: "Purchase order ID" },
                 },
-                required: ['id'],
+                required: ["id"],
             },
             response: {
                 200: {
-                    type: 'object',
+                    type: "object",
                     properties: {
-                        success: { type: 'boolean' },
-                        message: { type: 'string' },
+                        success: { type: "boolean" },
+                        message: { type: "string" },
                     },
                 },
                 400: {
-                    type: 'object',
+                    type: "object",
                     properties: {
-                        success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        details: { type: 'string' },
-                        statusCode: { type: 'number' },
+                        success: { type: "boolean" },
+                        message: { type: "string" },
+                        details: { type: "string" },
+                        statusCode: { type: "number" },
                     },
                 },
                 404: {
-                    type: 'object',
+                    type: "object",
                     properties: {
-                        success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        details: { type: 'string' },
-                        statusCode: { type: 'number' },
+                        success: { type: "boolean" },
+                        message: { type: "string" },
+                        details: { type: "string" },
+                        statusCode: { type: "number" },
                     },
                 },
                 409: {
@@ -620,32 +815,44 @@ export async function purchaseOrderRoutes(fastify) {
                             items: {
                                 type: "object",
                                 properties: {
-                                    table: { type: "string", description: "Table name containing the blocking record" },
-                                    recordId: { type: ["string", "number"], description: "ID of the blocking record" },
+                                    table: {
+                                        type: "string",
+                                        description: "Table name containing the blocking record",
+                                    },
+                                    recordId: {
+                                        type: ["string", "number"],
+                                        description: "ID of the blocking record",
+                                    },
                                     details: {
                                         type: "object",
                                         description: "Detailed information about the blocking record",
-                                        additionalProperties: true
-                                    }
-                                }
-                            }
+                                        additionalProperties: true,
+                                    },
+                                },
+                            },
                         },
                         constraintInfo: {
                             type: "object",
                             properties: {
-                                constraintName: { type: "string", description: "Foreign key constraint name" },
-                                referencedTable: { type: "string", description: "Table being referenced" }
-                            }
-                        }
+                                constraintName: {
+                                    type: "string",
+                                    description: "Foreign key constraint name",
+                                },
+                                referencedTable: {
+                                    type: "string",
+                                    description: "Table being referenced",
+                                },
+                            },
+                        },
                     },
                 },
                 500: {
-                    type: 'object',
+                    type: "object",
                     properties: {
-                        success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        details: { type: 'string' },
-                        statusCode: { type: 'number' },
+                        success: { type: "boolean" },
+                        message: { type: "string" },
+                        details: { type: "string" },
+                        statusCode: { type: "number" },
                     },
                 },
             },
@@ -657,9 +864,9 @@ export async function purchaseOrderRoutes(fastify) {
             if (!/^\d+$/.test(id)) {
                 const errorResponse = {
                     success: false,
-                    message: 'Invalid ID format. ID must be an integer.',
+                    message: "Invalid ID format. ID must be an integer.",
                     details: `The provided ID '${id}' is not a valid integer format.`,
-                    statusCode: 400
+                    statusCode: 400,
                 };
                 return reply.code(400).send(errorResponse);
             }
@@ -667,122 +874,122 @@ export async function purchaseOrderRoutes(fastify) {
             await purchaseOrderController.purchaseOrderService.delete(id);
             const response = {
                 success: true,
-                message: 'Purchase order deleted successfully'
+                message: "Purchase order deleted successfully",
             };
             return reply.code(200).send(response);
         }
         catch (error) {
-            const { handleDeleteError } = await import('../utils/dynamicDbOperations.js');
-            return await handleDeleteError(error, 'purchaseorder', request.params.id, reply);
+            const { handleDeleteError } = await import("../utils/dynamicDbOperations.js");
+            return await handleDeleteError(error, "purchaseorder", request.params.id, reply);
         }
     });
     // GET /v1/purchaseorders/supplier/:supplierId - Get purchase orders by supplier
-    fastify.get('/supplier/:supplierId', {
+    fastify.get("/supplier/:supplierId", {
         schema: {
-            description: 'Get purchase orders by supplier ID',
-            tags: ['Purchase Orders'],
+            description: "Get purchase orders by supplier ID",
+            tags: ["Purchase Orders"],
             params: {
-                type: 'object',
+                type: "object",
                 properties: {
-                    supplierId: { type: 'string', description: 'Supplier ID' },
+                    supplierId: { type: "string", description: "Supplier ID" },
                 },
-                required: ['supplierId'],
+                required: ["supplierId"],
             },
             querystring: {
-                type: 'object',
+                type: "object",
                 properties: {
-                    page: { type: 'string', description: 'Page number' },
-                    limit: { type: 'string', description: 'Items per page' },
-                    po_status: { type: 'string', description: 'Filter by PO status' },
+                    page: { type: "string", description: "Page number" },
+                    limit: { type: "string", description: "Items per page" },
+                    po_status: { type: "string", description: "Filter by PO status" },
                 },
                 additionalProperties: true,
             },
             response: {
                 200: {
-                    type: 'object',
+                    type: "object",
                     properties: {
-                        success: { type: 'boolean' },
+                        success: { type: "boolean" },
                         data: {
-                            type: 'array',
+                            type: "array",
                             items: {
-                                type: 'object',
-                                additionalProperties: true // Allow any fields in purchase order objects
-                            }
+                                type: "object",
+                                additionalProperties: true, // Allow any fields in purchase order objects
+                            },
                         },
                         pagination: {
-                            type: 'object',
+                            type: "object",
                             properties: {
-                                page: { type: 'number' },
-                                limit: { type: 'number' },
-                                total: { type: 'number' },
-                                totalPages: { type: 'number' },
-                                hasNext: { type: 'boolean' },
-                                hasPrev: { type: 'boolean' },
+                                page: { type: "number" },
+                                limit: { type: "number" },
+                                total: { type: "number" },
+                                totalPages: { type: "number" },
+                                hasNext: { type: "boolean" },
+                                hasPrev: { type: "boolean" },
                             },
                         },
                     },
                 },
                 400: {
-                    type: 'object',
+                    type: "object",
                     properties: {
-                        success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        details: { type: 'string' },
-                        statusCode: { type: 'number' },
+                        success: { type: "boolean" },
+                        message: { type: "string" },
+                        details: { type: "string" },
+                        statusCode: { type: "number" },
                     },
                 },
                 500: {
-                    type: 'object',
+                    type: "object",
                     properties: {
-                        success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        details: { type: 'string' },
-                        statusCode: { type: 'number' },
+                        success: { type: "boolean" },
+                        message: { type: "string" },
+                        details: { type: "string" },
+                        statusCode: { type: "number" },
                     },
                 },
             },
         },
     }, purchaseOrderController.getPurchaseOrdersBySupplier.bind(purchaseOrderController));
     // PUT /v1/purchaseorders/:id/status - Update purchase order status
-    fastify.put('/:id/status', {
+    fastify.put("/:id/status", {
         schema: {
-            description: 'Update purchase order status',
-            tags: ['Purchase Orders'],
+            description: "Update purchase order status",
+            tags: ["Purchase Orders"],
             params: {
-                type: 'object',
+                type: "object",
                 properties: {
-                    id: { type: 'string', description: 'Purchase order ID' },
+                    id: { type: "string", description: "Purchase order ID" },
                 },
-                required: ['id'],
+                required: ["id"],
             },
             response: {
                 200: {
-                    type: 'object',
+                    type: "object",
                     properties: {
-                        success: { type: 'boolean' },
+                        success: { type: "boolean" },
                         data: {
-                            type: 'object',
-                            additionalProperties: true // Allow any fields in purchase order object
+                            type: "object",
+                            additionalProperties: true, // Allow any fields in purchase order object
                         },
-                        message: { type: 'string' },
+                        message: { type: "string" },
                     },
                 },
                 404: {
-                    type: 'object',
+                    type: "object",
                     properties: {
-                        success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        details: { type: 'string' },
-                        statusCode: { type: 'number' },
+                        success: { type: "boolean" },
+                        message: { type: "string" },
+                        details: { type: "string" },
+                        statusCode: { type: "number" },
                     },
                 },
                 500: {
-                    type: 'object',
+                    type: "object",
                     properties: {
-                        success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        details: { type: 'string' },
-                        statusCode: { type: 'number' },
+                        success: { type: "boolean" },
+                        message: { type: "string" },
+                        details: { type: "string" },
+                        statusCode: { type: "number" },
                     },
                 },
             },

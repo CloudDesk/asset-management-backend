@@ -1,6 +1,0 @@
-Fallback query: 
-        UPDATE "stock" 
-        SET "orderlinenumber" = $2, "stockstatus" = $3, "solddate" = $4, "rfidscannedtime" = $5, "modifieddate" = $6 
-        WHERE "id" = $1 
-        RETURNING id, puc, category, subcategory, brand, model, operatingsystem, operatingsystemversion, ram, storagetype, storagecapacity, colour, graphicscard, processor, createddate, modifieddate, createdby, modifiedby, serialnumber, stockstatus, manufacturedyear, releaseyear, isdeleted, isarchive, removefromrecyclebin, ecompublish, productname, rfid, nfc, orderid, invoiceurl, location, solddate, assetlocation, rfidscannedtime, orderlinenumber, qrcode, barcode, ewaste
-      
