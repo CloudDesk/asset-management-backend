@@ -26,6 +26,7 @@ export class PhonePeController {
     try {
       const requestBody = request.body as {
         mode: 'phonepe' | 'cod';
+        evaluation_id?: string;
         order: Array<{
           addressid: number;
           cartId: number;
@@ -50,11 +51,45 @@ export class PhonePeController {
 
       logger.info({
         mode: requestBody.mode,
+        evaluation_id: requestBody.evaluation_id,
         orderCount: requestBody.order.length,
         transactionAmount: requestBody.transaction.amount,
         userId: requestBody.transaction.userId,
         productIds: requestBody.transaction.productid
       }, 'Payment initiation request received with new payload structure');
+
+      // Step 1: Validate evaluation if provided
+      if (requestBody.evaluation_id) {
+        const { PromotionEvaluationService } = await import('../services/promotion-evaluation.service.js');
+        const evaluationService = new PromotionEvaluationService();
+        
+        const validation = await evaluationService.validateEvaluationForOrder(
+          requestBody.evaluation_id, 
+          requestBody.transaction.userId.toString()
+        );
+        
+        if (!validation.isValid) {
+          logger.warn({
+            evaluation_id: requestBody.evaluation_id,
+            userId: requestBody.transaction.userId,
+            reason: validation.reason
+          }, 'Evaluation validation failed');
+          
+          return reply.code(400).send({
+            success: false,
+            message: validation.reason,
+            error_code: "EVALUATION_INVALID",
+            action_required: "reapply_coupon",
+            statusCode: 400
+          });
+        }
+        
+        logger.info({
+          evaluation_id: requestBody.evaluation_id,
+          userId: requestBody.transaction.userId
+        }, 'Evaluation validation passed');
+      }
+
 console.log(request.body,"request body")
       // Generate unique transaction ID for both modes
       const merchantTransactionId = PhonePeService.generateMerchantTransactionId();
@@ -119,6 +154,7 @@ console.log(request.body,"request body")
         const transactionData = {
           status: requestBody.mode === 'phonepe' ? 'INITIATED' : 'COD_ORDER_CREATED',
           mode: requestBody.mode,
+          evaluation_id: requestBody.evaluation_id,
           originalPayload: requestBody,
           paymentRequest: paymentRequest,
           initiatedAt: new Date().toISOString(),
@@ -152,7 +188,7 @@ console.log(request.body,"request body")
 
             // Create order and orderlines for COD
             // Force mode to "cod" since this is COD order
-            orderData = await this.createOrderAfterPayment(paymentRequest.merchantTransactionId, 'cod');
+            orderData = await this.createOrderAfterPayment(paymentRequest.merchantTransactionId, 'cod', requestBody.evaluation_id);
 
             logger.info({
               merchantTransactionId: paymentRequest.merchantTransactionId,
@@ -898,9 +934,9 @@ console.log(request.body,"request body")
   /**
    * Create order and orderline records after successful payment
    */
-  async createOrderAfterPayment(transactionId: string, forceMode?: string) {
+  async createOrderAfterPayment(transactionId: string, forceMode?: string, evaluationId?: string) {
     try {
-      logger.info({ transactionId }, 'Creating order after successful payment');
+      logger.info({ transactionId, evaluationId }, 'Creating order after successful payment');
       logger.info({ forceMode }, 'forceMode createOrderAfterPayment')
       // Find transaction by merchanttransactionid
       const transactions = await this.transactionService.findMany(
@@ -1048,6 +1084,43 @@ console.log(request.body,"request body")
         invalidProductCount: invalidProductIds.length,
         step: 'order_created_with_automatic_orderlines'
       }, 'Order created successfully with automatic orderline creation');
+
+      // Step: Try to redeem promotion if evaluation provided
+      if (evaluationId) {
+        try {
+          logger.info({
+            transactionId,
+            orderId: order.id,
+            evaluationId
+          }, 'Attempting to redeem promotion');
+
+          const { PromotionRedemptionService } = await import('../services/promotion-redemption.service.js');
+          const redemptionService = new PromotionRedemptionService();
+          
+          await redemptionService.redeemPromotion({
+            evaluation_id: evaluationId,
+            order_id: order.id.toString(),
+            user_id: transaction.userid.toString()
+          });
+
+          logger.info({
+            transactionId,
+            orderId: order.id,
+            evaluationId
+          }, 'Promotion redeemed successfully');
+
+        } catch (error) {
+          logger.warn({
+            transactionId,
+            orderId: order.id,
+            evaluationId,
+            error: error.message
+          }, 'Promotion redemption failed - order created without discount');
+          
+          // Order is still created successfully, just without promotion
+          // This is handled gracefully - user gets order at full price
+        }
+      }
 
       // Check if orderlines were created automatically
       const createdOrderlines = await prisma.orderline.findMany({

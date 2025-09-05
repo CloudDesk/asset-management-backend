@@ -640,54 +640,47 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
   // PROMOTION EVALUATION ROUTES
   // ========================================
 
-  // POST /v1/promotions/evaluate - Evaluate promotion against cart
+  // POST /v1/promotions/evaluate - Evaluate specific promotion against user's cart
   fastify.post('/evaluate', {
     schema: {
-      description: 'Evaluate promotion against cart data',
+      description: 'Evaluate specific promotion against user cart with detailed breakdown',
       tags: ['Promotions', 'Evaluation'],
       body: {
         type: 'object',
         properties: {
-          cart_id: { type: 'string', description: 'Cart ID' },
-          user_id: { type: 'string', description: 'User ID (optional for guest users)' },
-          promotion_id: { type: 'number', description: 'Promotion ID to evaluate' },
-          cart_data: {
-            type: 'object',
-            properties: {
-              items: {
-                type: 'array',
-                items: {
-                  type: 'object',
-                  properties: {
-                    product_id: { type: 'string' },
-                    quantity: { type: 'number' },
-                    price: { type: 'number' },
-                    category: { type: 'string' },
-                    subcategory: { type: 'string' },
-                    name: { type: 'string' }
-                  },
-                  required: ['product_id', 'quantity', 'price']
-                }
+          user_id: { type: 'string', description: 'User ID' },
+          promotion_id: { type: 'number', description: 'Promotion ID to evaluate (optional if code provided)' },
+          code: { type: 'string', description: 'Promotion code to evaluate (optional if promotion_id provided)' },
+          cart_items: {
+            type: 'array',
+            description: 'User cart items (fetched from cart records)',
+            items: {
+              type: 'object',
+              properties: {
+                cart_record_id: { type: 'string', description: 'Cart record ID' },
+                product_id: { type: 'string', description: 'Product ID' },
+                quantity: { type: 'number', description: 'Quantity' },
+                price: { type: 'number', description: 'Product price' },
+                category: { type: 'string', description: 'Product category' },
+                subcategory: { type: 'string', description: 'Product subcategory' },
+                name: { type: 'string', description: 'Product name' }
               },
-              subtotal: { type: 'number' },
-              shipping_cost: { type: 'number' },
-              tax_amount: { type: 'number' },
-              total: { type: 'number' }
-            },
-            required: ['items', 'subtotal', 'shipping_cost', 'tax_amount']
+              required: ['cart_record_id', 'product_id', 'quantity', 'price', 'category']
+            }
           },
           context: {
             type: 'object',
             properties: {
-              channel: { type: 'string', enum: ['web', 'mobile', 'mobile_app'] },
-              geo: { type: 'string' },
-              payment_method: { type: 'string' },
-              user_agent: { type: 'string' },
-              ip_address: { type: 'string' }
-            }
+              channel: { type: 'string', enum: ['web', 'mobile', 'mobile_app'], description: 'Platform channel' },
+              geo: { type: 'string', description: 'Geographic region' },
+              payment_method: { type: 'string', description: 'Payment method' },
+              user_agent: { type: 'string', description: 'User agent' },
+              ip_address: { type: 'string', description: 'IP address' }
+            },
+            required: ['channel', 'geo']
           }
         },
-        required: ['promotion_id', 'cart_data']
+        required: ['user_id', 'cart_items', 'context']
       },
       response: {
         200: {
@@ -697,13 +690,33 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
             data: {
               type: 'object',
               properties: {
-                evaluation_id: { type: 'string' },
-                original_total: { type: 'number' },
-                discounted_total: { type: 'number' },
-                total_discount: { type: 'number' },
-                applied_promotions: { type: 'array' },
-                ineligible_reasons: { type: 'array' },
-                expires_at: { type: 'string' }
+                evaluation_id: { type: 'string', description: 'Unique evaluation ID for redemption' },
+                promotion_id: { type: 'number', description: 'Evaluated promotion ID' },
+                promotion_name: { type: 'string', description: 'Promotion name' },
+                is_eligible: { type: 'boolean', description: 'Whether promotion is applicable' },
+                original_total: { type: 'number', description: 'Original cart total' },
+                discounted_total: { type: 'number', description: 'Total after discount' },
+                total_discount: { type: 'number', description: 'Total discount amount' },
+                discount_breakdown: {
+                  type: 'array',
+                  description: 'Per-item discount breakdown',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      cart_record_id: { type: 'string' },
+                      product_id: { type: 'string' },
+                      product_name: { type: 'string' },
+                      category: { type: 'string' },
+                      quantity: { type: 'number' },
+                      original_price: { type: 'number' },
+                      discount_per_item: { type: 'number' },
+                      final_price_per_item: { type: 'number' },
+                      total_discount: { type: 'number' }
+                    }
+                  }
+                },
+                ineligible_reason: { type: 'string', description: 'Reason if not eligible' },
+                expires_at: { type: 'string', format: 'date-time', description: 'Evaluation expiry time' }
               }
             },
             message: { type: 'string' }
@@ -728,6 +741,39 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
       }
     }
   }, evaluationController.evaluatePromotion.bind(evaluationController));
+
+  // POST /v1/promotions/evaluate/remove - Remove/cancel evaluation
+  fastify.post('/evaluate/remove', {
+    schema: {
+      description: 'Remove/cancel a promotion evaluation',
+      tags: ['Promotions', 'Evaluation'],
+      body: {
+        type: 'object',
+        properties: {
+          evaluation_id: { type: 'string', description: 'Evaluation ID to remove' },
+          user_id: { type: 'string', description: 'User ID' }
+        },
+        required: ['evaluation_id', 'user_id']
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' }
+          }
+        },
+        404: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' }
+          }
+        }
+      }
+    }
+  }, evaluationController.removeEvaluation.bind(evaluationController));
 
   // GET /v1/promotions/evaluations/:id - Get evaluation details
   fastify.get('/evaluations/:id', {

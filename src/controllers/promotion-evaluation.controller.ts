@@ -7,19 +7,84 @@ import { logger } from '../config/logger.js';
 export class PromotionEvaluationController {
   private evaluationService = new PromotionEvaluationService();
 
-  // Evaluate promotion against cart
-  evaluatePromotion = asyncHandler(async (request: FastifyRequest<{ Body: EvaluationRequest }>, reply: FastifyReply) => {
-    const data = evaluationRequestSchema.parse(request.body);
+  // Evaluate specific promotion against user's cart
+  evaluatePromotion = asyncHandler(async (request: FastifyRequest<{
+    Body: {
+      user_id: string;
+      promotion_id?: number;
+      code?: string;
+      cart_items: Array<{
+        cart_record_id: string;
+        product_id: string;
+        quantity: number;
+        price: number;
+        category: string;
+        subcategory?: string;
+        name?: string;
+      }>;
+      context: {
+        channel: 'web' | 'mobile' | 'mobile_app';
+        geo: string;
+        payment_method?: string;
+        user_agent?: string;
+        ip_address?: string;
+      };
+    }
+  }>, reply: FastifyReply) => {
+    const { user_id, promotion_id, code, cart_items, context } = request.body;
+    
+    // Validate that either promotion_id or code is provided
+    if (!promotion_id && !code) {
+      return reply.code(400).send({
+        success: false,
+        message: 'Either promotion_id or code must be provided',
+        details: 'Please provide either a promotion ID or a promotion code to evaluate'
+      });
+    }
 
+    if (promotion_id && code) {
+      return reply.code(400).send({
+        success: false,
+        message: 'Cannot provide both promotion_id and code',
+        details: 'Please provide either promotion_id or code, not both'
+      });
+    }
+    
     logger.info({ 
-      promotionId: data.promotion_id, 
-      userId: data.user_id,
-      cartItems: data.cart_data.items.length 
-    }, 'Evaluating promotion');
+      user_id, 
+      promotion_id, 
+      code,
+      cartItemsCount: cart_items.length,
+      channel: context.channel,
+      geo: context.geo
+    }, 'Evaluating specific promotion against user cart');
 
-    const result = await this.evaluationService.evaluatePromotion(data);
+    const evaluation = await this.evaluationService.evaluateSpecificPromotion({
+      user_id,
+      promotion_id,
+      code,
+      cart_items,
+      context
+    });
 
-    const response = createSuccessResponse('Promotion evaluated successfully', result);
+    const response = createSuccessResponse('Promotion evaluation completed', evaluation);
+    return reply.code(200).send(response);
+  });
+
+  // Remove/cancel evaluation
+  removeEvaluation = asyncHandler(async (request: FastifyRequest<{
+    Body: {
+      evaluation_id: string;
+      user_id: string;
+    }
+  }>, reply: FastifyReply) => {
+    const { evaluation_id, user_id } = request.body;
+    
+    logger.info({ evaluation_id, user_id }, 'Removing evaluation');
+
+    const result = await this.evaluationService.removeEvaluation(evaluation_id, user_id);
+
+    const response = createSuccessResponse('Evaluation removed successfully', result);
     return reply.code(200).send(response);
   });
 
