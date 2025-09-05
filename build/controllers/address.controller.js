@@ -1,0 +1,87 @@
+import { AddressService } from '../services/address.service.js';
+import { createAddressSchema, updateAddressSchema, upsertAddressSchema, addressParamsSchema } from '../schemas/address.schema.js';
+import { getPaginationParams } from '../utils/pagination.js';
+import { createSuccessResponse, asyncHandler } from '../utils/errorHandler.js';
+import { formatAddressForAPI, formatEntitiesForAPI } from '../utils/dynamicDbOperations.js';
+export class AddressController {
+    addressService = new AddressService();
+    getAddresses = asyncHandler(async (request, reply) => {
+        // Get all query parameters as filters (not just schema-validated ones)
+        const allFilters = request.query || {};
+        const { page, limit } = getPaginationParams(allFilters);
+        // Remove pagination params from filters
+        const { page: _, limit: __, ...filters } = allFilters;
+        // Convert boolean filters
+        if (filters.isdefaultaddress !== undefined) {
+            filters.isdefaultaddress = filters.isdefaultaddress === 'true';
+        }
+        const result = await this.addressService.findMany(filters, page, limit);
+        // Format all addresses in the result
+        const formattedData = formatEntitiesForAPI(result.data, 'address');
+        const response = createSuccessResponse('Addresses retrieved successfully', formattedData);
+        return reply.code(200).send({
+            ...response,
+            pagination: result.pagination,
+            meta: {
+                filters: Object.keys(filters),
+                total: result.pagination.total,
+                filtered: Object.keys(filters).length > 0
+            }
+        });
+    });
+    getAddress = asyncHandler(async (request, reply) => {
+        const { id } = addressParamsSchema.parse(request.params);
+        const address = await this.addressService.findById(id);
+        const response = createSuccessResponse('Address retrieved successfully', formatAddressForAPI(address));
+        return reply.code(200).send(response);
+    });
+    createAddress = asyncHandler(async (request, reply) => {
+        const data = createAddressSchema.parse(request.body);
+        const address = await this.addressService.create(data);
+        const response = createSuccessResponse('Address created successfully', formatAddressForAPI(address));
+        return reply.code(201).send(response);
+    });
+    updateAddress = asyncHandler(async (request, reply) => {
+        const { id } = addressParamsSchema.parse(request.params);
+        const data = updateAddressSchema.parse(request.body);
+        const address = await this.addressService.update(id, data);
+        const response = createSuccessResponse('Address updated successfully', formatAddressForAPI(address));
+        return reply.code(200).send(response);
+    });
+    deleteAddress = asyncHandler(async (request, reply) => {
+        const { id } = addressParamsSchema.parse(request.params);
+        await this.addressService.delete(id);
+        const response = createSuccessResponse('Address deleted successfully', null);
+        return reply.code(200).send(response);
+    });
+    upsertAddress = asyncHandler(async (request, reply) => {
+        const data = upsertAddressSchema.parse(request.body);
+        const address = await this.addressService.upsert(data);
+        const message = data.id ? 'Address updated successfully' : 'Address created successfully';
+        const response = createSuccessResponse(message, formatAddressForAPI(address));
+        return reply.code(200).send(response);
+    });
+    getDefaultAddress = asyncHandler(async (request, reply) => {
+        const userId = parseInt(request.params.userId);
+        if (isNaN(userId)) {
+            return reply.code(400).send({
+                success: false,
+                message: 'Invalid user ID',
+                details: 'User ID must be a valid number',
+                statusCode: 400,
+            });
+        }
+        const address = await this.addressService.getDefaultAddress(userId);
+        if (!address) {
+            return reply.code(404).send({
+                success: false,
+                message: 'Default address not found',
+                details: 'No default address set for this user',
+                statusCode: 404,
+            });
+        }
+        const response = createSuccessResponse('Default address retrieved successfully', formatAddressForAPI(address));
+        return reply.code(200).send(response);
+    });
+}
+//# sourceMappingURL=address.controller.js.map
