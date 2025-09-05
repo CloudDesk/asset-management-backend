@@ -968,6 +968,46 @@ export class PromotionEvaluationService {
     }
   }
 
+  // Get user's active evaluations
+  async getUserActiveEvaluations(userId: string) {
+    try {
+      logger.info({ userId }, 'Getting user active evaluations');
+
+      const evaluations = await this.prisma.promotion_evaluations.findMany({
+        where: {
+          user_id: userId,
+          status: 'active'
+        },
+        orderBy: {
+          created_at: 'desc'
+        }
+      });
+
+      logger.info({ 
+        userId, 
+        evaluationCount: evaluations.length 
+      }, 'User active evaluations retrieved');
+
+      return {
+        evaluations: evaluations.map(evaluation => ({
+          evaluation_id: evaluation.evaluation_id,
+          user_id: evaluation.user_id,
+          original_total: evaluation.original_total,
+          discounted_total: evaluation.discounted_total,
+          applied_promotions: evaluation.applied_promotions,
+          status: evaluation.status,
+          created_at: evaluation.created_at,
+          expires_at: evaluation.expires_at
+        })),
+        total_count: evaluations.length
+      };
+
+    } catch (error) {
+      logger.error({ error, userId }, 'Error getting user active evaluations');
+      throw error;
+    }
+  }
+
   // Evaluate automatic promotions based on cart total
   async evaluateAutomaticPromotions(request: {
     user_id: string;

@@ -159,4 +159,19 @@ export class PromotionEvaluationController {
     return reply.code(200).send(response);
   });
 
+  // Get user's active evaluations
+  getUserActiveEvaluations = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    const { user_id } = request.query as { user_id: string };
+
+    if (!user_id) {
+      const errorResponse = createErrorResponse('User ID is required', 'USER_ID_REQUIRED');
+      return reply.code(400).send(errorResponse);
+    }
+
+    const result = await this.evaluationService.getUserActiveEvaluations(user_id);
+
+    const response = createSuccessResponse('User active evaluations retrieved successfully', result);
+    return reply.code(200).send(response);
+  });
+
 }

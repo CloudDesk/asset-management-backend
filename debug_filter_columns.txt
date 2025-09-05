@@ -394,3 +394,6 @@ Available columns for orderline: ["id","orderid","productid","userid","addressid
 Available columns for transaction: ["id","transactionid","createddate","modifieddate","transactiondata","userid","productid","merchanttransactionid","name","amount","mobilenumber","transactionfor"]
 Available columns for transaction: ["id","transactionid","createddate","modifieddate","transactiondata","userid","productid","merchanttransactionid","name","amount","mobilenumber","transactionfor"]
 Available columns for transaction: ["id","transactionid","createddate","modifieddate","transactiondata","userid","productid","merchanttransactionid","name","amount","mobilenumber","transactionfor"]
+Available columns for cart: ["id","productid","userid","createddate","quantity","iscart","iswishlist","modifieddate"]
+Available columns for transaction: ["id","transactionid","createddate","modifieddate","transactiondata","userid","productid","merchanttransactionid","name","amount","mobilenumber","transactionfor"]
+Available columns for cart: ["id","productid","userid","createddate","quantity","iscart","iswishlist","modifieddate"]

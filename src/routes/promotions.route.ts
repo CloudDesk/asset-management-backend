@@ -1255,4 +1255,63 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
     }
   }, evaluationController.evaluateAutomaticPromotions.bind(evaluationController));
 
+  // Get user's active evaluations
+  fastify.get('/evaluations', {
+    schema: {
+      description: 'Get user\'s active evaluations',
+      tags: ['Promotions'],
+      querystring: {
+        type: 'object',
+        properties: {
+          user_id: { 
+            type: 'string', 
+            description: 'User ID to get evaluations for' 
+          }
+        },
+        required: ['user_id'],
+        additionalProperties: false
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {
+              type: 'object',
+              properties: {
+                evaluations: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      evaluation_id: { type: 'string' },
+                      user_id: { type: 'string' },
+                      promotion_id: { type: 'number' },
+                      original_total: { type: 'number' },
+                      discounted_total: { type: 'number' },
+                      applied_promotions: { type: 'array' },
+                      status: { type: 'string' },
+                      created_at: { type: 'string' },
+                      expires_at: { type: 'string' }
+                    }
+                  }
+                },
+                total_count: { type: 'number' }
+              }
+            }
+          }
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' }
+          }
+        }
+      }
+    }
+  }, evaluationController.getUserActiveEvaluations.bind(evaluationController));
+
 } 
