@@ -669,13 +669,14 @@ model promotion_evaluations {
   evaluation_id        String   @id @db.VarChar(36)
   user_id              String?  @db.Text
   cart_data            Json?
+  cart_signature       String? @db.VarChar(255)
   original_total       Decimal? @db.Decimal(10, 2)
   discounted_total     Decimal? @db.Decimal(10, 2)
   applied_promotions   Json?
   ineligible_coupons   Json?
   context              Json? // channel, geo, payment_method
-  created_at           DateTime @default(now())
-  expires_at           DateTime
+  created_at           BigInt @db.BigInt 
+  expires_at           BigInt @db.BigInt 
   status               String?  @default("active") @db.VarChar(50)
   createddate          BigInt?
   modifieddate         BigInt?
@@ -684,6 +685,7 @@ model promotion_evaluations {
   
   @@index([user_id, created_at])
   @@index([expires_at])
+   @@index([cart_signature])
   @@map("promotion_evaluations")
 }
 
@@ -694,7 +696,7 @@ model promotion_redemptions {
   user_id         String?  @db.Text
   promotion_id    Int?
   discount_amount Decimal? @db.Decimal(10, 2)
-  redeemed_at     DateTime @default(now())
+  redeemed_at     BigInt
   redemption_data Json?
   createddate     BigInt?
   modifieddate    BigInt?

@@ -97,10 +97,10 @@ export class PromotionRedemptionService {
   private async createRedemptionRecords(evaluation: any, request: RedemptionRequest): Promise<RedemptionDetail[]> {
     const redemptionDetails: RedemptionDetail[] = [];
     const appliedPromotions = evaluation.applied_promotions as any[];
+    const nowUtc = this.getUtcTimestamp();
 
     for (const promotion of appliedPromotions) {
       const redemptionId = uuidv4();
-      const redeemedAt = new Date();
 
       await this.prisma.promotion_redemptions.create({
         data: {
@@ -110,21 +110,21 @@ export class PromotionRedemptionService {
           user_id: request.user_id,
           promotion_id: promotion.promotion_id,
           discount_amount: promotion.discount_amount,
-          redeemed_at: redeemedAt,
+          redeemed_at: nowUtc,               // UTC timestamp
           redemption_data: {
             promotion_name: promotion.promotion_name,
             evaluation_id: evaluation.evaluation_id,
-            redeemed_at: redeemedAt.toISOString()
+            redeemed_at: new Date(Number(nowUtc)).toISOString() // ISO string for compatibility
           },
-          createddate: BigInt(Date.now()),
-          modifieddate: BigInt(Date.now())
+          createddate: nowUtc,               // UTC timestamp
+          modifieddate: nowUtc               // UTC timestamp
         }
       });
 
       redemptionDetails.push({
         promotion_id: promotion.promotion_id,
         discount_amount: promotion.discount_amount,
-        redeemed_at: redeemedAt.toISOString()
+        redeemed_at: new Date(Number(nowUtc)).toISOString()
       });
     }
 
@@ -293,5 +293,10 @@ export class PromotionRedemptionService {
       logger.error({ error, userId }, 'Error getting user redemption history');
       throw error;
     }
+  }
+
+  // Add helper method
+  private getUtcTimestamp(): bigint {
+    return BigInt(new Date().getTime());
   }
 }

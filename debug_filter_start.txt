@@ -7637,3 +7637,39 @@ Filtering data for cart (cart): {
   "createddate": 1757087238388,
   "modifieddate": 1757087238388
 }
+Filtering data for promotion_evaluations (promotion_evaluations): {
+  "evaluation_id": "eval_1757272938978_u5xe3vomz",
+  "user_id": "24",
+  "cart_signature": "9eaf273a28633a7302574bd2eef88afa",
+  "cart_data": [
+    {
+      "cart_record_id": "8",
+      "product_id": "8",
+      "quantity": 1,
+      "price": 850,
+      "category": "wellness",
+      "name": "WishCare Pure Rosemary Essential Oil - 15 ML"
+    }
+  ],
+  "original_total": 748,
+  "discounted_total": 748,
+  "applied_promotions": [
+    {
+      "promotion_id": 58,
+      "promotion_name": "Free Shipping Over ₹500",
+      "promotion_type": "FREE_SHIPPING",
+      "discount_amount": 0,
+      "is_auto": true
+    }
+  ],
+  "ineligible_coupons": [],
+  "context": {
+    "channel": "mobile_app",
+    "geo": "IN"
+  },
+  "created_at": 1757272939669,
+  "expires_at": 1757273839669,
+  "status": "active",
+  "createddate": 1757272939669,
+  "modifieddate": 1757272939669
+}

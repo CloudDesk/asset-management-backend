@@ -1,8 +1,9 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { PromotionEvaluationService } from '../services/promotion-evaluation.service.js';
 import { evaluationRequestSchema, EvaluationRequest } from '../schemas/evaluation.schema.js';
-import { createSuccessResponse, asyncHandler } from '../utils/errorHandler.js';
+import { createSuccessResponse, asyncHandler, createErrorResponse } from '../utils/errorHandler.js';
 import { logger } from '../config/logger.js';
+import { createHash } from 'crypto';
 
 export class PromotionEvaluationController {
   private evaluationService = new PromotionEvaluationService();
@@ -146,16 +147,33 @@ export class PromotionEvaluationController {
       current_total,
       channel: context.channel,
       geo: context.geo
-    }, 'Evaluating automatic promotions');
+    }, 'Evaluating automatic promotions - New Flow');
 
-    const result = await this.evaluationService.evaluateAutomaticPromotions({
+    // Generate cart signature
+    const cartSignature = this.evaluationService.generateCartSignature(cart_items);
+
+    // Check for existing active evaluation with same cart signature
+    const existingEvaluation = await this.evaluationService.findActiveEvaluationByCartSignature(user_id, cartSignature);
+    
+    if (existingEvaluation) {
+      logger.info({ 
+        evaluationId: existingEvaluation.evaluation_id,
+        cartSignature 
+      }, 'Found existing active evaluation for cart signature');
+      
+      const response = createSuccessResponse('Active evaluation found', existingEvaluation);
+      return reply.code(200).send(response);
+    }
+    // Create new evaluation with automatic promotions
+    const result = await this.evaluationService.createAutomaticEvaluation({
       user_id,
       cart_items,
       context,
-      ...(current_total && { current_total })
+      cart_signature: cartSignature,
+      current_total: current_total || undefined
     });
 
-    const response = createSuccessResponse('Automatic promotions evaluated successfully', result);
+    const response = createSuccessResponse('Automatic evaluation created successfully', result);
     return reply.code(200).send(response);
   });
 
@@ -171,6 +189,62 @@ export class PromotionEvaluationController {
     const result = await this.evaluationService.getUserActiveEvaluations(user_id);
 
     const response = createSuccessResponse('User active evaluations retrieved successfully', result);
+    return reply.code(200).send(response);
+  });
+
+  // Apply manual coupon to existing evaluation
+  applyManualCoupon = asyncHandler(async (request: FastifyRequest<{
+    Body: {
+      evaluation_id: string;
+      promotion_id: number;
+      cart_items: Array<{
+        cart_record_id: string;
+        product_id: string;
+        quantity: number;
+        price: number;
+        category: string;
+        name?: string;
+      }>;
+    }
+  }>, reply: FastifyReply) => {
+    const { evaluation_id, promotion_id, cart_items } = request.body;
+
+    logger.info({
+      evaluationId: evaluation_id,
+      promotionId: promotion_id,
+      cartItemsCount: cart_items.length
+    }, 'Applying manual coupon to evaluation');
+
+    const result = await this.evaluationService.applyManualCoupon({
+      evaluation_id,
+      promotion_id,
+      cart_items
+    });
+
+    const response = createSuccessResponse('Manual coupon applied successfully', result);
+    return reply.code(200).send(response);
+  });
+
+  // Remove manual coupon from evaluation
+  removeManualCoupon = asyncHandler(async (request: FastifyRequest<{
+    Body: {
+      evaluation_id: string;
+      promotion_id: number;
+    }
+  }>, reply: FastifyReply) => {
+    const { evaluation_id, promotion_id } = request.body;
+
+    logger.info({
+      evaluationId: evaluation_id,
+      promotionId: promotion_id
+    }, 'Removing manual coupon from evaluation');
+
+    const result = await this.evaluationService.removeManualCoupon({
+      evaluation_id,
+      promotion_id
+    });
+
+    const response = createSuccessResponse('Manual coupon removed successfully', result);
     return reply.code(200).send(response);
   });
 

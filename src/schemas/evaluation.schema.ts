@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { utcTimestampResponseSchema } from './promotions.schema.js';
 
 // Cart item schema
 export const cartItemSchema = z.object({
@@ -75,7 +76,32 @@ export const evaluationResponseSchema = z.object({
   total_discount: z.number(),
   applied_promotions: z.array(appliedPromotionSchema),
   ineligible_reasons: z.array(ineligibleReasonSchema),
-  expires_at: z.string(),
+  expires_at: utcTimestampResponseSchema,
+});
+
+// Evaluation result schema (around line 218)
+export const evaluationResultSchema = z.object({
+  evaluation_id: z.string(),
+  user_id: z.string().optional(),
+  cart_signature: z.string().optional(),  // Add cart_signature field
+  original_total: z.number(),
+  discounted_total: z.number(),
+  applied_promotions: z.array(appliedPromotionSchema),
+  ineligible_coupons: z.array(ineligibleReasonSchema), // Fixed: was ineligibleCouponSchema
+  expires_at: utcTimestampResponseSchema
+});
+
+// Redemption result schema (around line 240)
+export const redemptionResultSchema = z.object({
+  redemption_id: z.string(),
+  evaluation_id: z.string(),
+  order_id: z.string(),
+  total_discount: z.number(),
+  applied_promotions: z.array(z.object({
+    promotion_id: z.number(),
+    discount_amount: z.number()
+  })),
+  redeemed_at: utcTimestampResponseSchema
 });
 
 // Type exports
@@ -87,3 +113,4 @@ export type DiscountBreakdown = z.infer<typeof discountBreakdownSchema>;
 export type AppliedPromotion = z.infer<typeof appliedPromotionSchema>;
 export type IneligibleReason = z.infer<typeof ineligibleReasonSchema>;
 export type EvaluationResponse = z.infer<typeof evaluationResponseSchema>;
+export type EvaluationResult = z.infer<typeof evaluationResultSchema>;  // Add this type export

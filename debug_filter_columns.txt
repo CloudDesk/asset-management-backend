@@ -397,3 +397,4 @@ Available columns for transaction: ["id","transactionid","createddate","modified
 Available columns for cart: ["id","productid","userid","createddate","quantity","iscart","iswishlist","modifieddate"]
 Available columns for transaction: ["id","transactionid","createddate","modifieddate","transactiondata","userid","productid","merchanttransactionid","name","amount","mobilenumber","transactionfor"]
 Available columns for cart: ["id","productid","userid","createddate","quantity","iscart","iswishlist","modifieddate"]
+Available columns for promotion_evaluations: ["evaluation_id","user_id","cart_signature","cart_data","original_total","discounted_total","applied_promotions","ineligible_coupons","context","created_at","expires_at","status","createddate","modifieddate"]
