@@ -253,8 +253,28 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
         
         try {
           fastify.log.info(`Calling createOrderAfterPayment for transaction: ${transactionId}`);
+          
+          // Get evaluation IDs from transaction data for promotion redemption
+          const transactions = await phonePeController.transactionService.findMany(
+            { merchanttransactionid: transactionId }, 
+            1, 
+            1
+          );
+          
+          let evaluationIds: string[] = [];
+          if (transactions.data && transactions.data.length > 0) {
+            const transaction = transactions.data[0];
+            evaluationIds = transaction.transactiondata?.evaluation_ids || [];
+            
+            fastify.log.info({
+              transactionId,
+              evaluationIds,
+              evaluationCount: evaluationIds.length
+            }, 'Retrieved evaluation IDs from transaction for promotion redemption');
+          }
+          
           // Force mode to "phonepe" since this is PhonePe webhook callback
-          const order = await phonePeController.createOrderAfterPayment(transactionId, 'phonepe');
+          const order = await phonePeController.createOrderAfterPayment(transactionId, 'phonepe', evaluationIds);
           orderId = order.id;
           fastify.log.info(`Order created successfully for transaction: ${transactionId}`, { 
             orderId: order.id,

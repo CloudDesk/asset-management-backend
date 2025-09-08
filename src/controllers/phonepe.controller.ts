@@ -380,6 +380,11 @@ console.log(request.body,"request body")
         headers: request.headers
       }, 'Payment callback received');
 
+      logger.info({
+        merchantTransactionId,
+        step: 'callback_method_started'
+      }, 'DEBUG: Callback method started - about to call PhonePe service');
+
       const result = await this.phonePeService.handlePaymentCallback(merchantTransactionId, token);
 
       // If payment is successful, create order and orderlines
@@ -391,9 +396,45 @@ console.log(request.body,"request body")
             mode: 'phonepe'
           }, 'Payment successful, creating order and orderlines with mode: phonepe');
 
+          logger.info({
+            merchantTransactionId,
+            step: 'about_to_retrieve_evaluation_ids'
+          }, 'DEBUG: About to retrieve evaluation IDs from transaction data');
+
+          // Get evaluation IDs from transaction data for promotion redemption
+          const transactions = await this.transactionService.findMany(
+            { merchanttransactionid: merchantTransactionId }, 
+            1, 
+            1
+          );
+          
+          let evaluationIds: string[] = [];
+          logger.info({
+            merchantTransactionId,
+            transactionDataLength: transactions.data ? transactions.data.length : 0,
+            hasTransactionData: !!(transactions.data && transactions.data.length > 0)
+          }, 'DEBUG: Transaction data retrieval result');
+
+          if (transactions.data && transactions.data.length > 0) {
+            const transaction = transactions.data[0];
+            evaluationIds = transaction.transactiondata?.evaluation_ids || [];
+            
+            logger.info({
+              merchantTransactionId,
+              evaluationIds,
+              evaluationCount: evaluationIds.length,
+              rawTransactionData: transaction.transactiondata ? Object.keys(transaction.transactiondata) : null
+            }, 'Retrieved evaluation IDs from transaction for promotion redemption');
+          } else {
+            logger.warn({
+              merchantTransactionId,
+              transactionDataLength: transactions.data ? transactions.data.length : 0
+            }, 'DEBUG: No transaction data found - evaluation IDs cannot be retrieved');
+          }
+
           // Create order and orderlines for successful PhonePe payment
           // Force mode to "phonepe" since this is PhonePe callback
-          const orderData = await this.createOrderAfterPayment(merchantTransactionId, 'phonepe');
+          const orderData = await this.createOrderAfterPayment(merchantTransactionId, 'phonepe', evaluationIds);
 
           logger.info({
             merchantTransactionId,
@@ -1127,6 +1168,7 @@ console.log(request.body,"request body")
         step: 'order_created_with_automatic_orderlines'
       }, 'Order created successfully with automatic orderline creation');
 
+      console.log(evaluationIds,"evaluationIds after order create")
       // Step: Try to redeem all promotions if evaluations provided
       if (evaluationIds && evaluationIds.length > 0) {
         logger.info({

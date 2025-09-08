@@ -29,7 +29,7 @@ export class PromotionRedemptionService {
         throw new Error('Evaluation is no longer active');
       }
 
-      if (new Date(evaluation.expires_at) < new Date()) {
+      if (new Date(Number(evaluation.expires_at.toString())) < new Date()) {
         throw new Error('Evaluation has expired');
       }
 
@@ -120,29 +120,32 @@ export class PromotionRedemptionService {
     for (const promotion of appliedPromotions) {
       const redemptionId = uuidv4();
 
-      await this.prisma.promotion_redemptions.create({
-        data: {
-          id: redemptionId,
-          evaluation_id: evaluation.evaluation_id,
-          order_id: request.order_id,
-          user_id: request.user_id,
-          promotion_id: promotion.promotion_id,
-          discount_amount: promotion.discount_amount,
-          redeemed_at: nowUtc,               // UTC timestamp
-          redemption_data: {
-            promotion_name: promotion.promotion_name,
+        await this.prisma.promotion_redemptions.create({
+          data: {
+            id: redemptionId,
             evaluation_id: evaluation.evaluation_id,
-            redeemed_at: new Date(Number(nowUtc)).toISOString() // ISO string for compatibility
-          },
-          createddate: nowUtc,               // UTC timestamp
-          modifieddate: nowUtc               // UTC timestamp
-        }
-      });
+            order_id: request.order_id,
+            user_id: request.user_id,
+            promotion_id: promotion.promotion_id,
+            discount_amount: promotion.discount_amount,
+            redeemed_at: nowUtc.toString(),    // UTC timestamp as string
+            redemption_data: {
+              promotion_name: promotion.promotion_name,
+              evaluation_id: evaluation.evaluation_id,
+              redeemed_at: new Date(Number(nowUtc.toString())).toISOString() // ISO string for compatibility
+            },
+            createddate: nowUtc,               // UTC timestamp
+            modifieddate: nowUtc               // UTC timestamp
+          }
+        });
+
+        // Update promotion usage tracking (budget, usage counts)
+        await this.updatePromotionUsageTracking(promotion.promotion_id, promotion.discount_amount);
 
       redemptionDetails.push({
         promotion_id: promotion.promotion_id,
         discount_amount: promotion.discount_amount,
-        redeemed_at: new Date(Number(nowUtc)).toISOString()
+        redeemed_at: new Date(Number(nowUtc.toString())).toISOString()
       });
     }
 
@@ -327,5 +330,115 @@ export class PromotionRedemptionService {
   // Add helper method
   private getUtcTimestamp(): bigint {
     return BigInt(new Date().getTime());
+  }
+
+  /**
+   * Update promotion usage tracking after redemption
+   * This method updates budget consumption and usage counts
+   */
+  private async updatePromotionUsageTracking(promotionId: number, discountAmount: number): Promise<void> {
+    try {
+      logger.info({
+        promotionId,
+        discountAmount
+      }, 'Updating promotion usage tracking');
+
+      // Get current promotion data
+      const promotion = await this.prisma.promotions.findUnique({
+        where: { id: promotionId },
+        select: {
+          id: true,
+          budget: true,
+          used_budget: true,
+          max_redemptions: true,
+          per_user_limit: true,
+          name: true
+        }
+      });
+
+      if (!promotion) {
+        logger.warn({ promotionId }, 'Promotion not found for usage tracking update');
+        return;
+      }
+
+      // Calculate current usage statistics
+      const currentRedemptions = await this.prisma.promotion_redemptions.count({
+        where: { promotion_id: promotionId }
+      });
+
+      // Update used_budget field
+      const currentUsedBudget = Number(promotion.used_budget || 0);
+      const newUsedBudget = currentUsedBudget + discountAmount;
+      
+      const totalBudget = promotion.budget ? Number(promotion.budget) : null;
+      const remainingBudget = totalBudget ? totalBudget - newUsedBudget : null;
+
+      logger.info({
+        promotionId,
+        promotionName: promotion.name,
+        currentRedemptions,
+        currentUsedBudget,
+        newUsedBudget,
+        remainingBudget,
+        maxRedemptions: promotion.max_redemptions,
+        perUserLimit: promotion.per_user_limit,
+        totalBudget: totalBudget
+      }, 'Promotion usage statistics calculated');
+
+      // Check if promotion should be deactivated due to limits
+      let shouldDeactivate = false;
+      let deactivationReason = '';
+
+      if (promotion.max_redemptions && currentRedemptions >= promotion.max_redemptions) {
+        shouldDeactivate = true;
+        deactivationReason = 'Maximum redemptions reached';
+      }
+
+      if (promotion.budget && remainingBudget !== null && remainingBudget <= 0) {
+        shouldDeactivate = true;
+        deactivationReason = 'Budget exhausted';
+      }
+
+      // Update promotion status if needed
+      if (shouldDeactivate) {
+        await this.prisma.promotions.update({
+          where: { id: promotionId },
+          data: {
+            is_active: false,
+            status: 'exhausted',
+            modifieddate: BigInt(Date.now())
+          }
+        });
+
+        logger.warn({
+          promotionId,
+          promotionName: promotion.name,
+          reason: deactivationReason,
+          currentRedemptions,
+          totalBudgetUsed,
+          remainingBudget
+        }, 'Promotion deactivated due to limits reached');
+      }
+
+      logger.info({
+        promotionId,
+        promotionName: promotion.name,
+        discountAmount,
+        currentRedemptions,
+        totalBudgetUsed,
+        remainingBudget,
+        isActive: !shouldDeactivate
+      }, 'Promotion usage tracking updated successfully');
+
+    } catch (error: any) {
+      logger.error({
+        error: error.message,
+        stack: error.stack,
+        promotionId,
+        discountAmount
+      }, 'Error updating promotion usage tracking');
+      
+      // Don't throw error - this is tracking only, shouldn't fail redemption
+    }
   }
 }
