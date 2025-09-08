@@ -1227,7 +1227,8 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                       promotion_name: { type: 'string' },
                       promotion_type: { type: 'string' },
                       discount_amount: { type: 'number' },
-                      is_auto: { type: 'boolean' }
+                      is_auto: { type: 'boolean' },
+                      is_free_shipping: { type: 'boolean', description: 'True if this is a free shipping promotion' }
                     }
                   }
                 },
@@ -1385,7 +1386,9 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                 evaluation_id: { type: 'string' },
                 promotion_id: { type: 'number' },
                 promotion_name: { type: 'string' },
+                promotion_type: { type: 'string' },
                 is_eligible: { type: 'boolean' },
+                is_free_shipping: { type: 'boolean', description: 'True if this is a free shipping promotion' },
                 original_total: { type: 'number' },
                 discounted_total: { type: 'number' },
                 total_discount: { type: 'number' },

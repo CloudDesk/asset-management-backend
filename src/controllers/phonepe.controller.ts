@@ -1129,6 +1129,13 @@ console.log(request.body,"request body")
 
       // Step: Try to redeem all promotions if evaluations provided
       if (evaluationIds && evaluationIds.length > 0) {
+        logger.info({
+          transactionId,
+          orderId: order.id,
+          evaluationIds,
+          evaluationCount: evaluationIds.length
+        }, 'Starting promotion redemption process for multiple evaluations');
+
         const { PromotionRedemptionService } = await import('../services/promotion-redemption.service.js');
         const redemptionService = new PromotionRedemptionService();
         

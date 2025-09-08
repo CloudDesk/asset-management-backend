@@ -99,6 +99,24 @@ export class PromotionRedemptionService {
     const appliedPromotions = evaluation.applied_promotions as any[];
     const nowUtc = this.getUtcTimestamp();
 
+    logger.info({
+      evaluationId: evaluation.evaluation_id,
+      orderId: request.order_id,
+      userId: request.user_id,
+      cartSignature: evaluation.cart_signature,
+      appliedPromotionsCount: appliedPromotions.length,
+      appliedPromotions: appliedPromotions.map(p => ({
+        promotion_id: p.promotion_id,
+        promotion_name: p.promotion_name,
+        promotion_type: p.promotion_type,
+        is_auto: p.is_auto,
+        is_free_shipping: p.is_free_shipping,
+        discount_amount: p.discount_amount
+      })),
+      originalTotal: evaluation.original_total,
+      discountedTotal: evaluation.discounted_total
+    }, 'Creating redemption records for multiple promotions in single evaluation');
+
     for (const promotion of appliedPromotions) {
       const redemptionId = uuidv4();
 
@@ -133,6 +151,12 @@ export class PromotionRedemptionService {
 
   // Update evaluation status
   private async updateEvaluationStatus(evaluationId: string, status: string) {
+    logger.info({
+      evaluationId,
+      newStatus: status,
+      previousStatus: 'active'
+    }, 'Updating evaluation status from active to redeemed');
+
     await this.prisma.promotion_evaluations.update({
       where: { evaluation_id: evaluationId },
       data: { 
@@ -140,6 +164,11 @@ export class PromotionRedemptionService {
         modifieddate: BigInt(Date.now())
       }
     });
+
+    logger.info({
+      evaluationId,
+      status
+    }, 'Evaluation status updated successfully');
   }
 
   // Update promotion usage counters
