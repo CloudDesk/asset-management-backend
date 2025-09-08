@@ -1,1 +1,0 @@
-{"version":3,"file":"db.d.ts","sourceRoot":"","sources":["../../src/plugins/db.ts"],"names":[],"mappings":"AACA,OAAO,EAAE,eAAe,EAAE,MAAM,SAAS,CAAC;AAC1C,OAAO,EAAE,MAAM,EAAE,MAAM,qBAAqB,CAAC;AAG7C,OAAO,QAAQ,SAAS,CAAC;IACvB,UAAU,eAAe;QACvB,MAAM,EAAE,OAAO,MAAM,CAAC;KACvB;CACF;AAED,iBAAe,QAAQ,CAAC,OAAO,EAAE,eAAe,iBA2B/C;;AAED,wBAEG"}
