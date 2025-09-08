@@ -349,7 +349,6 @@ export class PromotionRedemptionService {
         select: {
           id: true,
           budget: true,
-          used_budget: true,
           max_redemptions: true,
           per_user_limit: true,
           name: true
@@ -366,23 +365,23 @@ export class PromotionRedemptionService {
         where: { promotion_id: promotionId }
       });
 
-      // Update used_budget field
-      const currentUsedBudget = Number(promotion.used_budget || 0);
-      const newUsedBudget = currentUsedBudget + discountAmount;
-      
-      const totalBudget = promotion.budget ? Number(promotion.budget) : null;
-      const remainingBudget = totalBudget ? totalBudget - newUsedBudget : null;
+      const currentBudgetUsed = await this.prisma.promotion_redemptions.aggregate({
+        where: { promotion_id: promotionId },
+        _sum: { discount_amount: true }
+      });
+
+      const totalBudgetUsed = Number(currentBudgetUsed._sum.discount_amount || 0);
+      const remainingBudget = promotion.budget ? Number(promotion.budget) - totalBudgetUsed : null;
 
       logger.info({
         promotionId,
         promotionName: promotion.name,
         currentRedemptions,
-        currentUsedBudget,
-        newUsedBudget,
+        totalBudgetUsed,
         remainingBudget,
         maxRedemptions: promotion.max_redemptions,
         perUserLimit: promotion.per_user_limit,
-        totalBudget: totalBudget
+        budget: promotion.budget ? Number(promotion.budget) : null
       }, 'Promotion usage statistics calculated');
 
       // Check if promotion should be deactivated due to limits

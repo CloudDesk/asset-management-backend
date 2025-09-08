@@ -3179,3 +3179,251 @@ Final rawData: {
   },
   "modifieddate": 1757312998028
 }
+Final rawData: {
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "initiatedAt": "2025-09-08T08:30:52.482Z",
+    "evaluation_ids": [
+      "eval_1757320227006_re0qgg8f7"
+    ],
+    "paymentRequest": {
+      "name": "User",
+      "amount": 572.5,
+      "userId": 24,
+      "productIds": [
+        8
+      ],
+      "mobileNumber": "9994824573",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1757320252298_ZAOUVD"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 432,
+          "userid": 24,
+          "quantity": 1,
+          "addressid": 20,
+          "productid": 8,
+          "orderamount": 698,
+          "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+          "productamount": 850,
+          "discountamount": 152,
+          "productcategory": "wellness"
+        }
+      ],
+      "transaction": {
+        "name": "User",
+        "amount": 572.5,
+        "userId": 24,
+        "productid": [
+          8
+        ],
+        "mobilenumber": "9994824573",
+        "transactionfor": "product"
+      },
+      "evaluation_ids": [
+        "eval_1757320227006_re0qgg8f7"
+      ]
+    },
+    "phonePeResponses": {
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEPRfklGoLYEQIszDbguq5",
+          "transactionId": "TXN_1757320252298_ZAOUVD"
+        },
+        "timestamp": "2025-09-08T08:30:52.482Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEPRfklGoLYEQIszDbguq5"
+      },
+      "success": {
+        "timestamp": "2025-09-08T08:34:23.229Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Your payment is successful.",
+          "data": {
+            "merchantId": "PGTESTPAYUAT86",
+            "merchantTransactionId": "TXN_1757320252298_ZAOUVD",
+            "transactionId": "T2509081400524802432920",
+            "amount": 57250,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "CARD",
+              "cardType": "CREDIT_CARD",
+              "bankTransactionId": null,
+              "arn": "12121214455",
+              "authRefId": "Dummy-auth12345",
+              "bankId": null,
+              "brn": "B12345"
+            }
+          }
+        },
+        "status": "SUCCESS"
+      }
+    },
+    "invalid_evaluations": [],
+    "paymentCompleteAt": "2025-09-08T08:34:23.229Z",
+    "updatedAt": "2025-09-08T08:34:23.229Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Your payment is successful.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1757320252298_ZAOUVD",
+        "transactionId": "T2509081400524802432920",
+        "amount": 57250,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "CARD",
+          "cardType": "CREDIT_CARD",
+          "bankTransactionId": null,
+          "arn": "12121214455",
+          "authRefId": "Dummy-auth12345",
+          "bankId": null,
+          "brn": "B12345"
+        }
+      }
+    }
+  },
+  "modifieddate": 1757320463819
+}
+Final rawData: {
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "updatedAt": "2025-09-08T08:35:04.171Z",
+    "initiatedAt": "2025-09-08T08:30:52.482Z",
+    "evaluation_ids": [
+      "eval_1757320227006_re0qgg8f7"
+    ],
+    "paymentRequest": {
+      "name": "User",
+      "amount": 572.5,
+      "userId": 24,
+      "productIds": [
+        8
+      ],
+      "mobileNumber": "9994824573",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1757320252298_ZAOUVD"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 432,
+          "userid": 24,
+          "quantity": 1,
+          "addressid": 20,
+          "productid": 8,
+          "orderamount": 698,
+          "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+          "productamount": 850,
+          "discountamount": 152,
+          "productcategory": "wellness"
+        }
+      ],
+      "transaction": {
+        "name": "User",
+        "amount": 572.5,
+        "userId": 24,
+        "productid": [
+          8
+        ],
+        "mobilenumber": "9994824573",
+        "transactionfor": "product"
+      },
+      "evaluation_ids": [
+        "eval_1757320227006_re0qgg8f7"
+      ]
+    },
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Your payment is successful.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1757320252298_ZAOUVD",
+        "transactionId": "T2509081400524802432920",
+        "amount": 57250,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "CARD",
+          "cardType": "CREDIT_CARD",
+          "bankTransactionId": null,
+          "arn": "12121214455",
+          "authRefId": "Dummy-auth12345",
+          "bankId": null,
+          "brn": "B12345"
+        }
+      },
+      "orderCreation": {
+        "status": "success",
+        "error": null,
+        "orderId": 76,
+        "timestamp": "2025-09-08T08:35:03.635Z"
+      },
+      "paymentCompleteAt": "2025-09-08T08:35:03.635Z"
+    },
+    "phonePeResponses": {
+      "success": {
+        "timestamp": "2025-09-08T08:35:04.171Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Your payment is successful.",
+          "data": {
+            "merchantId": "PGTESTPAYUAT86",
+            "merchantTransactionId": "TXN_1757320252298_ZAOUVD",
+            "transactionId": "T2509081400524802432920",
+            "amount": 57250,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "CARD",
+              "cardType": "CREDIT_CARD",
+              "bankTransactionId": null,
+              "arn": "12121214455",
+              "authRefId": "Dummy-auth12345",
+              "bankId": null,
+              "brn": "B12345"
+            }
+          },
+          "orderCreation": {
+            "status": "success",
+            "error": null,
+            "orderId": 76,
+            "timestamp": "2025-09-08T08:35:03.635Z"
+          },
+          "paymentCompleteAt": "2025-09-08T08:35:03.635Z"
+        },
+        "status": "SUCCESS"
+      },
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEPRfklGoLYEQIszDbguq5",
+          "transactionId": "TXN_1757320252298_ZAOUVD"
+        },
+        "timestamp": "2025-09-08T08:30:52.482Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEPRfklGoLYEQIszDbguq5"
+      }
+    },
+    "paymentCompleteAt": "2025-09-08T08:35:04.171Z",
+    "invalid_evaluations": []
+  },
+  "modifieddate": 1757320504706
+}

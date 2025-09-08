@@ -13655,3 +13655,378 @@ Filtering data for cart (cart): {
   "createddate": 1757315447434,
   "modifieddate": 1757315447434
 }
+Filtering data for transaction (transaction): {
+  "transactionid": "TXN_1757320252298_ZAOUVD",
+  "merchanttransactionid": "TXN_1757320252298_ZAOUVD",
+  "userid": 24,
+  "amount": 572.5,
+  "mobilenumber": 9994824573,
+  "name": "User",
+  "productid": [
+    8
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "INITIATED",
+    "mode": "phonepe",
+    "evaluation_ids": [
+      "eval_1757320227006_re0qgg8f7"
+    ],
+    "invalid_evaluations": [],
+    "originalPayload": {
+      "transaction": {
+        "name": "User",
+        "amount": 572.5,
+        "mobilenumber": "9994824573",
+        "userId": 24,
+        "productid": [
+          8
+        ],
+        "transactionfor": "product"
+      },
+      "order": [
+        {
+          "productid": 8,
+          "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+          "productcategory": "wellness",
+          "userid": 24,
+          "addressid": 20,
+          "productamount": 850,
+          "discountamount": 152,
+          "orderamount": 698,
+          "quantity": 1,
+          "cartId": 432
+        }
+      ],
+      "mode": "phonepe",
+      "evaluation_ids": [
+        "eval_1757320227006_re0qgg8f7"
+      ]
+    },
+    "paymentRequest": {
+      "merchantTransactionId": "TXN_1757320252298_ZAOUVD",
+      "amount": 572.5,
+      "name": "User",
+      "mobileNumber": "9994824573",
+      "userId": 24,
+      "productIds": [
+        8
+      ],
+      "transactionFor": "product"
+    },
+    "initiatedAt": "2025-09-08T08:30:52.482Z",
+    "phonePeResponses": {
+      "initiation": {
+        "timestamp": "2025-09-08T08:30:52.482Z",
+        "response": {
+          "success": true,
+          "message": "Payment initiated successfully",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEPRfklGoLYEQIszDbguq5",
+          "transactionId": "TXN_1757320252298_ZAOUVD"
+        },
+        "status": "INITIATED",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEPRfklGoLYEQIszDbguq5"
+      }
+    },
+    "codData": null
+  },
+  "createddate": 1757320258138,
+  "modifieddate": 1757320258138
+}
+Filtering data for transaction (transaction): {
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "initiatedAt": "2025-09-08T08:30:52.482Z",
+    "evaluation_ids": [
+      "eval_1757320227006_re0qgg8f7"
+    ],
+    "paymentRequest": {
+      "name": "User",
+      "amount": 572.5,
+      "userId": 24,
+      "productIds": [
+        8
+      ],
+      "mobileNumber": "9994824573",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1757320252298_ZAOUVD"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 432,
+          "userid": 24,
+          "quantity": 1,
+          "addressid": 20,
+          "productid": 8,
+          "orderamount": 698,
+          "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+          "productamount": 850,
+          "discountamount": 152,
+          "productcategory": "wellness"
+        }
+      ],
+      "transaction": {
+        "name": "User",
+        "amount": 572.5,
+        "userId": 24,
+        "productid": [
+          8
+        ],
+        "mobilenumber": "9994824573",
+        "transactionfor": "product"
+      },
+      "evaluation_ids": [
+        "eval_1757320227006_re0qgg8f7"
+      ]
+    },
+    "phonePeResponses": {
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEPRfklGoLYEQIszDbguq5",
+          "transactionId": "TXN_1757320252298_ZAOUVD"
+        },
+        "timestamp": "2025-09-08T08:30:52.482Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEPRfklGoLYEQIszDbguq5"
+      },
+      "success": {
+        "timestamp": "2025-09-08T08:34:23.229Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Your payment is successful.",
+          "data": {
+            "merchantId": "PGTESTPAYUAT86",
+            "merchantTransactionId": "TXN_1757320252298_ZAOUVD",
+            "transactionId": "T2509081400524802432920",
+            "amount": 57250,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "CARD",
+              "cardType": "CREDIT_CARD",
+              "bankTransactionId": null,
+              "arn": "12121214455",
+              "authRefId": "Dummy-auth12345",
+              "bankId": null,
+              "brn": "B12345"
+            }
+          }
+        },
+        "status": "SUCCESS"
+      }
+    },
+    "invalid_evaluations": [],
+    "paymentCompleteAt": "2025-09-08T08:34:23.229Z",
+    "updatedAt": "2025-09-08T08:34:23.229Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Your payment is successful.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1757320252298_ZAOUVD",
+        "transactionId": "T2509081400524802432920",
+        "amount": 57250,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "CARD",
+          "cardType": "CREDIT_CARD",
+          "bankTransactionId": null,
+          "arn": "12121214455",
+          "authRefId": "Dummy-auth12345",
+          "bankId": null,
+          "brn": "B12345"
+        }
+      }
+    }
+  },
+  "modifieddate": 1757320463819
+}
+Filtering data for orders (orders): {
+  "userid": 24,
+  "orderamount": 572.5,
+  "orderid": "ORDER_TXN_1757320252298_ZAOUVD_1757320477105",
+  "orderstatus": "payment_completed",
+  "quantity": 1,
+  "transactionid": "NIVAANA-TRAN-00168",
+  "productamount": 572.5,
+  "discountamount": 0,
+  "ispaymentsucceed": true,
+  "merchanttransactionid": "TXN_1757320252298_ZAOUVD",
+  "productid": [
+    8
+  ],
+  "mode": "phonepe",
+  "createddate": 1757320477105,
+  "modifieddate": 1757320477105,
+  "orderItems": [
+    {
+      "cartId": 432,
+      "userid": 24,
+      "quantity": 1,
+      "addressid": 20,
+      "productid": 8,
+      "orderamount": 698,
+      "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+      "productamount": 850,
+      "discountamount": 152,
+      "productcategory": "wellness"
+    }
+  ]
+}
+Filtering data for orderline (orderline): {
+  "orderid": 76,
+  "productid": 8,
+  "userid": 24,
+  "addressid": 20,
+  "productamount": 850,
+  "discountamount": 152,
+  "orderamount": 698,
+  "quantity": 1,
+  "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+  "productcategory": "wellness",
+  "orderstatus": "payment_completed",
+  "uniqueordderid": "NIVAANA-0000000076",
+  "createddate": 1757320479619,
+  "modifieddate": 1757320479619,
+  "ordereddate": 1757320479619
+}
+Filtering data for transaction (transaction): {
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "updatedAt": "2025-09-08T08:35:04.171Z",
+    "initiatedAt": "2025-09-08T08:30:52.482Z",
+    "evaluation_ids": [
+      "eval_1757320227006_re0qgg8f7"
+    ],
+    "paymentRequest": {
+      "name": "User",
+      "amount": 572.5,
+      "userId": 24,
+      "productIds": [
+        8
+      ],
+      "mobileNumber": "9994824573",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1757320252298_ZAOUVD"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 432,
+          "userid": 24,
+          "quantity": 1,
+          "addressid": 20,
+          "productid": 8,
+          "orderamount": 698,
+          "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+          "productamount": 850,
+          "discountamount": 152,
+          "productcategory": "wellness"
+        }
+      ],
+      "transaction": {
+        "name": "User",
+        "amount": 572.5,
+        "userId": 24,
+        "productid": [
+          8
+        ],
+        "mobilenumber": "9994824573",
+        "transactionfor": "product"
+      },
+      "evaluation_ids": [
+        "eval_1757320227006_re0qgg8f7"
+      ]
+    },
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Your payment is successful.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1757320252298_ZAOUVD",
+        "transactionId": "T2509081400524802432920",
+        "amount": 57250,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "CARD",
+          "cardType": "CREDIT_CARD",
+          "bankTransactionId": null,
+          "arn": "12121214455",
+          "authRefId": "Dummy-auth12345",
+          "bankId": null,
+          "brn": "B12345"
+        }
+      },
+      "orderCreation": {
+        "status": "success",
+        "error": null,
+        "orderId": 76,
+        "timestamp": "2025-09-08T08:35:03.635Z"
+      },
+      "paymentCompleteAt": "2025-09-08T08:35:03.635Z"
+    },
+    "phonePeResponses": {
+      "success": {
+        "timestamp": "2025-09-08T08:35:04.171Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Your payment is successful.",
+          "data": {
+            "merchantId": "PGTESTPAYUAT86",
+            "merchantTransactionId": "TXN_1757320252298_ZAOUVD",
+            "transactionId": "T2509081400524802432920",
+            "amount": 57250,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "CARD",
+              "cardType": "CREDIT_CARD",
+              "bankTransactionId": null,
+              "arn": "12121214455",
+              "authRefId": "Dummy-auth12345",
+              "bankId": null,
+              "brn": "B12345"
+            }
+          },
+          "orderCreation": {
+            "status": "success",
+            "error": null,
+            "orderId": 76,
+            "timestamp": "2025-09-08T08:35:03.635Z"
+          },
+          "paymentCompleteAt": "2025-09-08T08:35:03.635Z"
+        },
+        "status": "SUCCESS"
+      },
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEPRfklGoLYEQIszDbguq5",
+          "transactionId": "TXN_1757320252298_ZAOUVD"
+        },
+        "timestamp": "2025-09-08T08:30:52.482Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEPRfklGoLYEQIszDbguq5"
+      }
+    },
+    "paymentCompleteAt": "2025-09-08T08:35:04.171Z",
+    "invalid_evaluations": []
+  },
+  "modifieddate": 1757320504706
+}
