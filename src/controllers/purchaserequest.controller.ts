@@ -30,7 +30,7 @@ export class PurchaseRequestController {
     // Get all query parameters as filters (not just schema-validated ones)
     const allFilters: Record<string, any> = request.query || {};
     const { page, limit } = getPaginationParams(allFilters);
-    
+  
     // Remove pagination params from filters
     const { page: _, limit: __, ...filters } = allFilters;
     
