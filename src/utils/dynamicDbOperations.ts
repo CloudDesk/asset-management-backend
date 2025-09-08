@@ -646,6 +646,8 @@ async function buildDynamicWhereClause(
       /^.*accountnumber$/i, // Account numbers
       /^.*customernumber$/i, // Customer numbers
       /^.*suppliernumber$/i, // Supplier numbers
+      /^.*transactionid$/i, // Transaction IDs like "TXN_1757304945963_QCG0CG"
+      /^merchanttransactionid$/i, // Merchant transaction IDs
     ];
 
     // If it matches any string number pattern, it's NOT numeric

@@ -25,6 +25,7 @@ export class PhonePeController {
   /**
    * Initiate payment with PhonePe
    */
+<<<<<<< HEAD
   initiatePayment = asyncHandler(
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
@@ -50,6 +51,118 @@ export class PhonePeController {
             transactionfor: string;
             userId: number;
           };
+=======
+  initiatePayment = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const requestBody = request.body as {
+        mode: 'phonepe' | 'cod';
+        evaluation_ids?: string[];
+        order: Array<{
+          addressid: number;
+          cartId: number;
+          discountamount: number;
+          orderamount: number;
+          productamount: number;
+          productcategory: string;
+          productid: number;
+          productname: string;
+          quantity: number;
+          userid: number;
+        }>;
+        transaction: {
+          amount: number;
+          mobilenumber: string;
+          name: string;
+          productid: number[];
+          transactionfor: string;
+          userId: number;
+        };
+      };
+      console.log("test")
+console.log(request.body,"req body")
+      logger.info({
+        mode: requestBody.mode,
+        evaluation_ids: requestBody.evaluation_ids,
+        orderCount: requestBody.order.length,
+        transactionAmount: requestBody.transaction.amount,
+        userId: requestBody.transaction.userId,
+        productIds: requestBody.transaction.productid
+      }, 'Payment initiation request received with new payload structure');
+console.log("first")
+      // Step 1: Validate evaluations if provided
+      const evaluationsToProcess = requestBody.evaluation_ids || [];
+      const validEvaluations = [];
+      const invalidEvaluations = [];
+      
+      // Validate all evaluations
+      if (evaluationsToProcess.length > 0) {
+        const { PromotionEvaluationService } = await import('../services/promotion-evaluation.service.js');
+        const evaluationService = new PromotionEvaluationService();
+        
+        // Validate each evaluation
+        for (const evaluationId of evaluationsToProcess) {
+          const validation = await evaluationService.validateEvaluationForOrder(
+            evaluationId, 
+            requestBody.transaction.userId.toString()
+          );
+          
+          if (!validation.isValid) {
+            logger.warn({
+              evaluationId: evaluationId,
+              userId: requestBody.transaction.userId,
+              reason: validation.reason
+            }, 'Evaluation validation failed');
+
+            // Check if it's expired (block order) or limit reached (continue without discount)
+            if (
+              typeof validation.reason === 'string' &&
+              (validation.reason.includes('expired') || validation.reason.includes('cancelled'))
+            ) {
+              // Expired evaluation - block the entire order
+              return reply.code(400).send({
+                success: false,
+                message: `Promotion has expired: ${validation.reason}`,
+                error_code: "EVALUATION_EXPIRED",
+                action_required: "reapply_coupon",
+                statusCode: 400
+              });
+            } else {
+              // Limit reached or other issues - continue without this promotion
+              invalidEvaluations.push({
+                evaluationId: evaluationId,
+                reason: validation.reason
+              });
+            }
+          } else {
+            validEvaluations.push(evaluationId);
+          }
+        }
+        
+        logger.info({
+          validEvaluations: validEvaluations,
+          invalidEvaluations: invalidEvaluations,
+          userId: requestBody.transaction.userId
+        }, 'Evaluation validation completed');
+      }
+
+console.log(request.body,"request body")
+      // Generate unique transaction ID for both modes
+      const merchantTransactionId = PhonePeService.generateMerchantTransactionId();
+      
+      let result: any;
+      let paymentRequest: any;
+      
+      if (requestBody.mode === 'phonepe') {
+        // Create PhonePe payment request
+        paymentRequest = {
+          merchantTransactionId,
+          amount: requestBody.transaction.amount,
+          name: requestBody.transaction.name,
+          mobileNumber: requestBody.transaction.mobilenumber,
+          userId: requestBody.transaction.userId,
+          productIds: requestBody.transaction.productid,
+          transactionFor: requestBody.transaction.transactionfor
+>>>>>>> promotion-v3
         };
 
         logger.info(
@@ -82,8 +195,56 @@ export class PhonePeController {
             transactionFor: requestBody.transaction.transactionfor,
           };
 
+<<<<<<< HEAD
           logger.info(
             {
+=======
+        // Mock successful result for COD
+        result = {
+          success: true,
+          message: 'COD order created successfully',
+          redirectUrl: null, // No redirect for COD
+          transactionId: merchantTransactionId
+        };
+      } else {
+        throw new Error(`Invalid payment mode: ${requestBody.mode}`);
+      }
+
+      if (result.success) {
+        // Store the complete payload in transaction data for later use in order creation
+        const transactionData = {
+          status: requestBody.mode === 'phonepe' ? 'INITIATED' : 'COD_ORDER_CREATED',
+          mode: requestBody.mode,
+          evaluation_ids: validEvaluations, // Only use valid evaluations
+          invalid_evaluations: invalidEvaluations, // Track invalid ones for user info
+          originalPayload: requestBody,
+          paymentRequest: paymentRequest,
+          initiatedAt: new Date().toISOString(),
+          phonePeResponses: requestBody.mode === 'phonepe' ? {
+            initiation: {
+              timestamp: new Date().toISOString(),
+              response: result,
+              status: 'INITIATED',
+              redirectUrl: result.redirectUrl
+            }
+          } : null,
+          codData: requestBody.mode === 'cod' ? {
+            timestamp: new Date().toISOString(),
+            status: 'COD_ORDER_CREATED',
+            message: 'Cash on Delivery order created successfully'
+          } : null
+        };
+
+        console.log(transactionData,"transactionData")
+        // Store transaction with complete data (single transaction record)
+        await this.storeTransactionData(paymentRequest, transactionData);
+
+        // For COD, create order and orderlines immediately
+        let orderData: any = null;
+        if (requestBody.mode === 'cod') {
+          try {
+            logger.info({
+>>>>>>> promotion-v3
               merchantTransactionId: paymentRequest.merchantTransactionId,
               amount: paymentRequest.amount,
               userId: paymentRequest.userId,
@@ -92,6 +253,7 @@ export class PhonePeController {
             "Converted payload to PhonePe payment request"
           );
 
+<<<<<<< HEAD
           // Call PhonePe service for online payment
           result = await this.phonePeService.initiatePayment(paymentRequest);
           console.log(result, "for  phone pe");
@@ -106,6 +268,11 @@ export class PhonePeController {
             productIds: requestBody.transaction.productid,
             transactionFor: requestBody.transaction.transactionfor,
           };
+=======
+            // Create order and orderlines for COD
+            // Force mode to "cod" since this is COD order
+            orderData = await this.createOrderAfterPayment(paymentRequest.merchantTransactionId, 'cod', evaluationsToProcess);
+>>>>>>> promotion-v3
 
           logger.info(
             {
@@ -128,6 +295,7 @@ export class PhonePeController {
           throw new Error(`Invalid payment mode: ${requestBody.mode}`);
         }
 
+<<<<<<< HEAD
         if (result.success) {
           // Store the complete payload in transaction data for later use in order creation
           const transactionData = {
@@ -290,6 +458,39 @@ export class PhonePeController {
               // Even if order creation fails, we still return success for transaction
               // The order can be created later using the stored transaction data
             }
+=======
+        // Prepare response message based on evaluation status
+        let responseMessage = requestBody.mode === 'phonepe' ? 'Payment initiated successfully' : 'COD order created successfully';
+        let userMessage = requestBody.mode === 'phonepe' ? 'Redirect to PhonePe for payment' : 'Order created for cash on delivery';
+        
+        // Add information about invalid evaluations
+        if (invalidEvaluations.length > 0) {
+          const invalidPromotions = invalidEvaluations.map(evaluation => evaluation.reason).join(', ');
+          responseMessage += ` (Some promotions were not applied: ${invalidPromotions})`;
+          userMessage += ` Note: Some promotions could not be applied due to limits or other restrictions.`;
+        }
+
+        const response = createSuccessResponse(
+          responseMessage, 
+          {
+            merchantTransactionId: result.transactionId,
+            redirectUrl: result.redirectUrl,
+            amount: paymentRequest.amount,
+            status: requestBody.mode === 'phonepe' ? 'INITIATED' : 'COD_ORDER_CREATED',
+            mode: requestBody.mode,
+            message: userMessage,
+            promotion_status: {
+              valid_evaluations: validEvaluations,
+              invalid_evaluations: invalidEvaluations,
+              total_applied: validEvaluations.length,
+              total_attempted: evaluationsToProcess.length
+            },
+            orderData: requestBody.mode === 'cod' ? {
+              orderId: orderData?.id,
+              orderid: orderData?.orderid,
+              status: orderData?.orderstatus
+            } : null
+>>>>>>> promotion-v3
           }
 
           const response = createSuccessResponse(
@@ -376,6 +577,7 @@ export class PhonePeController {
         const { merchantTransactionId } = request.params;
         const { token } = request.query;
 
+<<<<<<< HEAD
         console.log("=== PAYMENT CALLBACK START ===");
         console.log("merchantTransactionId:", merchantTransactionId);
         console.log("token:", token);
@@ -384,6 +586,14 @@ export class PhonePeController {
           "request.headers:",
           JSON.stringify(request.headers, null, 2)
         );
+=======
+      logger.info({
+        merchantTransactionId,
+        step: 'callback_method_started'
+      }, 'DEBUG: Callback method started - about to call PhonePe service');
+
+      const result = await this.phonePeService.handlePaymentCallback(merchantTransactionId, token);
+>>>>>>> promotion-v3
 
         console.log("inside Payment Confirmaion ");
         logger.info(
@@ -396,10 +606,52 @@ export class PhonePeController {
           "Payment callback received"
         );
 
+<<<<<<< HEAD
         const result = await this.phonePeService.handlePaymentCallback(
           merchantTransactionId,
           token
         );
+=======
+          logger.info({
+            merchantTransactionId,
+            step: 'about_to_retrieve_evaluation_ids'
+          }, 'DEBUG: About to retrieve evaluation IDs from transaction data');
+
+          // Get evaluation IDs from transaction data for promotion redemption
+          const transactions = await this.transactionService.findMany(
+            { merchanttransactionid: merchantTransactionId }, 
+            1, 
+            1
+          );
+          
+          let evaluationIds: string[] = [];
+          logger.info({
+            merchantTransactionId,
+            transactionDataLength: transactions.data ? transactions.data.length : 0,
+            hasTransactionData: !!(transactions.data && transactions.data.length > 0)
+          }, 'DEBUG: Transaction data retrieval result');
+
+          if (transactions.data && transactions.data.length > 0) {
+            const transaction = transactions.data[0];
+            evaluationIds = transaction.transactiondata?.evaluation_ids || [];
+            
+            logger.info({
+              merchantTransactionId,
+              evaluationIds,
+              evaluationCount: evaluationIds.length,
+              rawTransactionData: transaction.transactiondata ? Object.keys(transaction.transactiondata) : null
+            }, 'Retrieved evaluation IDs from transaction for promotion redemption');
+          } else {
+            logger.warn({
+              merchantTransactionId,
+              transactionDataLength: transactions.data ? transactions.data.length : 0
+            }, 'DEBUG: No transaction data found - evaluation IDs cannot be retrieved');
+          }
+
+          // Create order and orderlines for successful PhonePe payment
+          // Force mode to "phonepe" since this is PhonePe callback
+          const orderData = await this.createOrderAfterPayment(merchantTransactionId, 'phonepe', evaluationIds);
+>>>>>>> promotion-v3
 
         console.log("=== PHONEPE SERVICE RESULT ===");
         console.log("result:", JSON.stringify(result, null, 2));
@@ -1236,14 +1488,19 @@ export class PhonePeController {
   /**
    * Create order and orderline records after successful payment
    */
-  async createOrderAfterPayment(transactionId: string, forceMode?: string) {
+  async createOrderAfterPayment(transactionId: string, forceMode?: string, evaluationIds?: string[]) {
     try {
+<<<<<<< HEAD
       console.log("=== createOrderAfterPayment METHOD CALLED ===");
       console.log("transactionId:", transactionId);
       console.log("forceMode:", forceMode);
 
       logger.info({ transactionId }, "Creating order after successful payment");
       logger.info({ forceMode }, "forceMode createOrderAfterPayment");
+=======
+      logger.info({ transactionId, evaluationIds }, 'Creating order after successful payment');
+      logger.info({ forceMode }, 'forceMode createOrderAfterPayment')
+>>>>>>> promotion-v3
       // Find transaction by merchanttransactionid
       const transactions = await this.transactionService.findMany(
         { merchanttransactionid: transactionId },
@@ -1436,6 +1693,77 @@ export class PhonePeController {
         },
         "Order created successfully with automatic orderline creation"
       );
+
+      console.log(evaluationIds,"evaluationIds after order create")
+      // Step: Try to redeem all promotions if evaluations provided
+      if (evaluationIds && evaluationIds.length > 0) {
+        logger.info({
+          transactionId,
+          orderId: order.id,
+          evaluationIds,
+          evaluationCount: evaluationIds.length
+        }, 'Starting promotion redemption process for multiple evaluations');
+
+        const { PromotionRedemptionService } = await import('../services/promotion-redemption.service.js');
+        const redemptionService = new PromotionRedemptionService();
+        
+        const redemptionResults = [];
+        
+        for (const evaluationId of evaluationIds) {
+          try {
+            logger.info({
+              transactionId,
+              orderId: order.id,
+              evaluationId
+            }, 'Attempting to redeem promotion');
+
+            await redemptionService.redeemPromotion({
+              evaluation_id: evaluationId,
+              order_id: order.id.toString(),
+              user_id: transaction.userid.toString()
+            });
+
+            redemptionResults.push({
+              evaluationId,
+              status: 'success',
+              message: 'Promotion redeemed successfully'
+            });
+
+            logger.info({
+              transactionId,
+              orderId: order.id,
+              evaluationId
+            }, 'Promotion redeemed successfully');
+
+          } catch (error) {
+            redemptionResults.push({
+              evaluationId,
+              status: 'failed',
+              message: error instanceof Error ? error.message : 'Unknown error'
+            });
+
+            logger.warn({
+              transactionId,
+              orderId: order.id,
+              evaluationId,
+              error: error instanceof Error ? error.message : 'Unknown error'
+            }, 'Promotion redemption failed - order created without this discount');
+          }
+        }
+        
+        // Log summary of all redemptions
+        const successCount = redemptionResults.filter(r => r.status === 'success').length;
+        const failureCount = redemptionResults.filter(r => r.status === 'failed').length;
+        
+        logger.info({
+          transactionId,
+          orderId: order.id,
+          totalEvaluations: evaluationIds.length,
+          successCount,
+          failureCount,
+          results: redemptionResults
+        }, 'Promotion redemption summary');
+      }
 
       // Check if orderlines were created automatically
       const createdOrderlines = await prisma.orderline.findMany({

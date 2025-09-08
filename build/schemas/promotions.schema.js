@@ -1,10 +1,33 @@
 import { z } from 'zod';
+// Promotion type enum matching functional specification
+export const promotionTypeEnum = z.enum([
+    'PERCENT_OFF_ITEM',
+    'FIXED_AMOUNT_OFF_ITEM',
+    'BOGO',
+    'PERCENT_OFF_CART',
+    'FIXED_AMOUNT_OFF_CART',
+    'FREE_SHIPPING',
+    'FREE_PRODUCT'
+]);
+// Condition object schema
+export const conditionSchema = z.object({
+    attribute: z.string(), // e.g., "cart.total_value", "user.segment"
+    operator: z.enum(['GTE', 'LTE', 'EQ', 'IN', 'NOT_IN', 'CONTAINS']),
+    value: z.union([z.string(), z.number(), z.array(z.string())])
+});
+// Action object schema
+export const actionSchema = z.object({
+    type: z.enum(['PERCENT_OFF', 'FIXED_AMOUNT_OFF', 'FREE_SHIPPING', 'BOGO', 'FREE_PRODUCT']),
+    value: z.union([z.number(), z.boolean(), z.string()]) // string for product_id in FREE_PRODUCT
+});
 // Validation schema for creating a promotion
 export const createPromotionsSchema = z.object({
     name: z.string().min(1).max(255).optional(),
-    type: z.enum(['coupon', 'automatic', 'waive_fee']).optional(),
-    code: z.string().optional(),
+    description: z.string().optional(),
+    type: promotionTypeEnum.optional(),
+    code: z.string().optional(), // Coupon code (NULL for automatic promotions)
     auto_apply: z.boolean().optional(),
+    is_active: z.boolean().optional(),
     start_date: z.string().datetime().optional(),
     end_date: z.string().datetime().optional(),
     status: z.enum(['active', 'inactive']).optional(),
@@ -13,13 +36,22 @@ export const createPromotionsSchema = z.object({
     max_redemptions: z.number().int().optional(),
     per_user_limit: z.number().int().optional(),
     stackable: z.boolean().optional(),
+    budget: z.number().positive().optional(),
+    timezone: z.string().optional(),
+    evaluation_expiry_minutes: z.number().int().positive().default(15).optional(),
+    discount_type: z.string().optional(),
+    discount_value: z.number().positive().optional(),
+    conditions: z.array(conditionSchema).optional(),
+    actions: z.array(actionSchema).optional(),
 }).strict();
 // Validation schema for updating a promotion
 export const updatePromotionsSchema = z.object({
     name: z.string().min(1).max(255).optional(),
-    type: z.enum(['coupon', 'automatic', 'waive_fee']).optional(),
+    description: z.string().optional(),
+    type: promotionTypeEnum.optional(),
     code: z.string().optional(),
     auto_apply: z.boolean().optional(),
+    is_active: z.boolean().optional(),
     start_date: z.string().datetime().optional(),
     end_date: z.string().datetime().optional(),
     status: z.enum(['active', 'inactive']).optional(),
@@ -28,14 +60,23 @@ export const updatePromotionsSchema = z.object({
     max_redemptions: z.number().int().optional(),
     per_user_limit: z.number().int().optional(),
     stackable: z.boolean().optional(),
+    budget: z.number().positive().optional(),
+    timezone: z.string().optional(),
+    evaluation_expiry_minutes: z.number().int().positive().optional(),
+    discount_type: z.string().optional(),
+    discount_value: z.number().positive().optional(),
+    conditions: z.array(conditionSchema).optional(),
+    actions: z.array(actionSchema).optional(),
 }).strict();
 // Schema for upserting (create or update)
 export const upsertPromotionsSchema = z.object({
     id: z.number().int().optional(),
     name: z.string().min(1).max(255).optional(),
-    type: z.enum(['coupon', 'automatic', 'waive_fee']).optional(),
+    description: z.string().optional(),
+    type: promotionTypeEnum.optional(),
     code: z.string().optional(),
     auto_apply: z.boolean().optional(),
+    is_active: z.boolean().optional(),
     start_date: z.string().datetime().optional(),
     end_date: z.string().datetime().optional(),
     status: z.enum(['active', 'inactive']).optional(),
@@ -44,6 +85,13 @@ export const upsertPromotionsSchema = z.object({
     max_redemptions: z.number().int().optional(),
     per_user_limit: z.number().int().optional(),
     stackable: z.boolean().optional(),
+    budget: z.number().positive().optional(),
+    timezone: z.string().optional(),
+    evaluation_expiry_minutes: z.number().int().positive().optional(),
+    discount_type: z.string().optional(),
+    discount_value: z.number().positive().optional(),
+    conditions: z.array(conditionSchema).optional(),
+    actions: z.array(actionSchema).optional(),
 }).strict();
 // Schema for URL params with ID
 export const promotionsParamsSchema = z.object({
@@ -59,10 +107,17 @@ export const promotionsQuerySchema = z.object({
     type: z.string().optional(),
     code: z.string().optional(),
     auto_apply: z.string().optional(),
+    is_active: z.string().optional(),
     status: z.string().optional(),
     priority: z.string().optional(),
     visibility: z.string().optional(),
     stackable: z.string().optional(),
+    budget_min: z.string().optional(),
+    budget_max: z.string().optional(),
+    timezone: z.string().optional(),
+    discount_type: z.string().optional(),
+    discount_value_min: z.string().optional(),
+    discount_value_max: z.string().optional(),
     start_date_after: z.string().optional(),
     start_date_before: z.string().optional(),
     end_date_after: z.string().optional(),
@@ -87,4 +142,87 @@ export const promotionEligibilityQuerySchema = z.object({
     platform: z.string(),
     code: z.string().optional()
 });
-//# sourceMappingURL=promotions.schema.js.map
+// ===== PROMOTION EVALUATION SCHEMAS =====
+// Line item schema for cart data
+export const lineItemSchema = z.object({
+    id: z.string(),
+    sku: z.string(),
+    quantity: z.number().positive(),
+    price: z.number().positive()
+});
+// User context schema
+export const userContextSchema = z.object({
+    user_id: z.string(),
+    segment_flags: z.array(z.string()).optional()
+});
+// Cart context schema
+export const cartContextSchema = z.object({
+    line_items: z.array(lineItemSchema),
+    applied_coupon_codes: z.array(z.string()).optional()
+});
+// Evaluation context schema
+export const evaluationContextSchema = z.object({
+    context: z.object({
+        channel: z.string(),
+        geo: z.string()
+    }),
+    user: userContextSchema,
+    cart: cartContextSchema,
+    payment_method: z.string().optional()
+});
+// Applied promotion schema
+export const appliedPromotionSchema = z.object({
+    promotion_id: z.number(),
+    promotion_name: z.string(),
+    discount_amount: z.number(),
+    affected_line_item_ids: z.array(z.string())
+});
+// Ineligible coupon schema
+export const ineligibleCouponSchema = z.object({
+    coupon_code: z.string(),
+    reason: z.string()
+});
+// Evaluation result schema
+export const evaluationResultSchema = z.object({
+    evaluation_id: z.string(),
+    original_total: z.number(),
+    discounted_total: z.number(),
+    applied_promotions: z.array(appliedPromotionSchema),
+    ineligible_coupons: z.array(ineligibleCouponSchema),
+    expires_at: z.string().datetime()
+});
+// Create evaluation request schema
+export const createEvaluationSchema = evaluationContextSchema;
+// ===== PROMOTION REDEMPTION SCHEMAS =====
+// Redemption request schema
+export const redemptionRequestSchema = z.object({
+    evaluation_id: z.string(),
+    order_id: z.string()
+});
+// Redemption result schema
+export const redemptionResultSchema = z.object({
+    redemption_id: z.string(),
+    evaluation_id: z.string(),
+    order_id: z.string(),
+    total_discount: z.number(),
+    applied_promotions: z.array(z.object({
+        promotion_id: z.number(),
+        discount_amount: z.number()
+    })),
+    redeemed_at: z.string().datetime()
+});
+// ===== ACTIVE PROMOTIONS SCHEMA =====
+// Active promotions query schema
+export const activePromotionsQuerySchema = z.object({
+    channel: z.string().optional(),
+    geo: z.string().optional(),
+    scope: z.enum(['banner', 'all']).default('banner').optional()
+});
+// Active promotion response schema
+export const activePromotionSchema = z.object({
+    id: z.number(),
+    name: z.string(),
+    description: z.string().optional(),
+    type: promotionTypeEnum,
+    priority: z.number()
+});

@@ -3,13 +3,1678 @@
 > npx tsx watch src/index.ts
 
 🚀 POINVOICE SERVICE LOADED - This should appear when the service is imported
-[04:12:38 UTC] [32mINFO[39m: [36mundefined - Logger plugin registered successfully[39m
+test
+[04:55:52 UTC] [32mINFO[39m: [36mundefined - Logger plugin registered successfully[39m
 ✅ Database connected successfully
 prisma:query SELECT 1
-{"level":30,"time":1750911160878,"pid":66707,"hostname":"MYs-Mac-Pro.local","msg":"Database plugin registered successfully"}
-[04:12:40 UTC] [32mINFO[39m: [36mundefined - ✅ Database connected and tested successfully[39m
+{"level":30,"time":1757307355325,"pid":93920,"hostname":"Jeyakumars-Mac-mini.local","msg":"Database plugin registered successfully"}
 strict mode: use allowUnionTypes to allow union type keyword at "#/properties/productid" (strictTypes)
-{"level":30,"time":1750911162323,"pid":66707,"hostname":"MYs-Mac-Pro.local","msg":"Server listening at http://127.0.0.1:5600"}
-{"level":30,"time":1750911162323,"pid":66707,"hostname":"MYs-Mac-Pro.local","msg":"Server listening at http://192.168.0.102:5600"}
-{"level":30,"time":1750911162323,"pid":66707,"hostname":"MYs-Mac-Pro.local","msg":"🚀 Server running at http://localhost:5600"}
-{"level":30,"time":1750911162323,"pid":66707,"hostname":"MYs-Mac-Pro.local","msg":"📚 API Documentation available at http://localhost:5600/docs"}
+[04:55:55 UTC] [32mINFO[39m: [36mundefined - ✅ Database connected and tested successfully[39m
+{"level":30,"time":1757307355786,"pid":93920,"hostname":"Jeyakumars-Mac-mini.local","msg":"Server listening at http://127.0.0.1:5600"}
+{"level":30,"time":1757307355786,"pid":93920,"hostname":"Jeyakumars-Mac-mini.local","msg":"Server listening at http://192.168.0.110:5600"}
+{"level":30,"time":1757307355786,"pid":93920,"hostname":"Jeyakumars-Mac-mini.local","msg":"🚀 Server running at http://localhost:5600"}
+{"level":30,"time":1757307355786,"pid":93920,"hostname":"Jeyakumars-Mac-mini.local","msg":"📚 API Documentation available at http://localhost:5600/docs"}
+{"level":30,"time":1757307364431,"pid":93920,"hostname":"Jeyakumars-Mac-mini.local","reqId":"req-1","method":"GET","url":"/v1/promotions/evaluations?user_id=24","query":{"user_id":"24"},"userAgent":"axios/1.10.0","msg":"Incoming request"}
+[04:56:04 UTC] [32mINFO[39m: [36mundefined - Getting user active evaluations[39m
+    userId: "24"
+{"level":30,"time":1757307367265,"pid":93920,"hostname":"Jeyakumars-Mac-mini.local","reqId":"req-1","method":"GET","url":"/v1/promotions/evaluations?user_id=24","statusCode":200,"responseTime":2834.2885419996455,"msg":"Request completed - 200 - 2834.2885419996455ms"}
+{"level":30,"time":1757307367271,"pid":93920,"hostname":"Jeyakumars-Mac-mini.local","reqId":"req-2","method":"POST","url":"/v1/phonepe/initiate","query":{},"userAgent":"axios/1.10.0","msg":"Incoming request"}
+test
+{
+  transaction: {
+    name: 'User',
+    amount: 572.5,
+    mobilenumber: '9994824573',
+    userId: 24,
+    productid: [ 8 ],
+    transactionfor: 'product'
+  },
+  order: [
+    {
+      productid: 8,
+      productname: 'WishCare Pure Rosemary Essential Oil - 15 ML',
+      productcategory: 'wellness',
+      userid: 24,
+      addressid: 20,
+      productamount: 850,
+      discountamount: 152,
+      orderamount: 698,
+      quantity: 1,
+      cartId: 416
+    }
+  ],
+  mode: 'phonepe',
+  evaluation_ids: [ 'eval_1757304668750_44ddp4jpp' ]
+} req body
+first
+[04:56:07 UTC] [32mINFO[39m: [36mundefined - User active evaluations retrieved[39m
+    userId: "24"
+    evaluationCount: 1
+[04:56:07 UTC] [32mINFO[39m: [36mundefined - Payment initiation request received with new payload structure[39m
+    mode: "phonepe"
+    evaluation_ids: [
+      "eval_1757304668750_44ddp4jpp"
+    ]
+    orderCount: 1
+    transactionAmount: 572.5
+    userId: 24
+    productIds: [
+      8
+    ]
+{
+  transaction: {
+    name: 'User',
+    amount: 572.5,
+    mobilenumber: '9994824573',
+    userId: 24,
+    productid: [ 8 ],
+    transactionfor: 'product'
+  },
+  order: [
+    {
+      productid: 8,
+      productname: 'WishCare Pure Rosemary Essential Oil - 15 ML',
+      productcategory: 'wellness',
+      userid: 24,
+      addressid: 20,
+      productamount: 850,
+      discountamount: 152,
+      orderamount: 698,
+      quantity: 1,
+      cartId: 416
+    }
+  ],
+  mode: 'phonepe',
+  evaluation_ids: [ 'eval_1757304668750_44ddp4jpp' ]
+} request body
+{
+  success: true,
+  message: 'Payment initiated successfully',
+  redirectUrl: 'https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEQMfjshmj05W2Xc8qnVG4',
+  transactionId: 'TXN_1757307369917_SI25GA'
+} for  phone pe
+{
+  status: 'INITIATED',
+  mode: 'phonepe',
+  evaluation_ids: [ 'eval_1757304668750_44ddp4jpp' ],
+  invalid_evaluations: [],
+  originalPayload: {
+    transaction: {
+      name: 'User',
+      amount: 572.5,
+      mobilenumber: '9994824573',
+      userId: 24,
+      productid: [Array],
+      transactionfor: 'product'
+    },
+    order: [ [Object] ],
+    mode: 'phonepe',
+    evaluation_ids: [ 'eval_1757304668750_44ddp4jpp' ]
+  },
+  paymentRequest: {
+    merchantTransactionId: 'TXN_1757307369917_SI25GA',
+    amount: 572.5,
+    name: 'User',
+    mobileNumber: '9994824573',
+    userId: 24,
+    productIds: [ 8 ],
+    transactionFor: 'product'
+  },
+  initiatedAt: '2025-09-08T04:56:10.219Z',
+  phonePeResponses: {
+    initiation: {
+      timestamp: '2025-09-08T04:56:10.219Z',
+      response: [Object],
+      status: 'INITIATED',
+      redirectUrl: 'https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEQMfjshmj05W2Xc8qnVG4'
+    }
+  },
+  codData: null
+} transactionData
+prisma:query SELECT 1
+[04:56:09 UTC] [32mINFO[39m: [36mundefined - Evaluation validation - expiration check disabled[39m
+    evaluationId: "eval_1757304668750_44ddp4jpp"
+    userId: "24"
+    status: "active"
+    expiresAt: 1757305569357
+    message: "Skipping expiration check for release"
+[04:56:09 UTC] [32mINFO[39m: [36mundefined - Evaluation validation completed[39m
+    validEvaluations: [
+      "eval_1757304668750_44ddp4jpp"
+    ]
+    invalidEvaluations: []
+    userId: 24
+[04:56:09 UTC] [32mINFO[39m: [36mundefined - Converted payload to PhonePe payment request[39m
+    merchantTransactionId: "TXN_1757307369917_SI25GA"
+    amount: 572.5
+    userId: 24
+    productIds: [
+      8
+    ]
+[04:56:09 UTC] [32mINFO[39m: [36mundefined - PhonePe callback URL configured[39m
+    merchantTransactionId: "TXN_1757307369917_SI25GA"
+    callbackUrl: "http://localhost:5600/v1/phonepe/callback/TXN_1757307369917_SI25GA"
+    redirectStatus: "http://localhost:5600"
+    step: "phonepe_callback_url_set"
+[04:56:09 UTC] [32mINFO[39m: [36mundefined - Initiating PhonePe payment[39m
+    merchantTransactionId: "TXN_1757307369917_SI25GA"
+    amount: 572.5
+    userId: 24
+    productIds: [
+      8
+    ]
+[04:56:10 UTC] [32mINFO[39m: [36mundefined - PhonePe payment initiated successfully LatestUpdate[39m
+    merchantTransactionId: "TXN_1757307369917_SI25GA"
+    success: true
+    code: "PAYMENT_INITIATED"
+    phonePeResponse: {
+      "success": true,
+      "code": "PAYMENT_INITIATED",
+      "message": "Payment initiated",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1757307369917_SI25GA",
+        "instrumentResponse": {
+          "type": "PAY_PAGE",
+          "redirectInfo": {
+            "url": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEQMfjshmj05W2Xc8qnVG4",
+            "method": "GET"
+          }
+        }
+      }
+    }
+    callbackUrl: "http://localhost:5600/v1/phonepe/callback/TXN_1757307369917_SI25GA"
+[04:56:10 UTC] [32mINFO[39m: [36mundefined - Storing transaction data[39m
+    merchantTransactionId: "TXN_1757307369917_SI25GA"
+    amount: 572.5
+    userId: 24
+    mode: "phonepe"
+[04:56:10 UTC] [34mDEBUG[39m: [36mundefined - Starting dynamic transaction create operation[39m
+    originalData: {
+      "transactionid": "TXN_1757307369917_SI25GA",
+      "merchanttransactionid": "TXN_1757307369917_SI25GA",
+      "userid": 24,
+      "amount": 572.5,
+      "mobilenumber": 9994824573,
+      "name": "User",
+      "productid": [
+        8
+      ],
+      "transactionfor": "product",
+      "transactiondata": {
+        "status": "INITIATED",
+        "mode": "phonepe",
+        "evaluation_ids": [
+          "eval_1757304668750_44ddp4jpp"
+        ],
+        "invalid_evaluations": [],
+        "originalPayload": {
+          "transaction": {
+            "name": "User",
+            "amount": 572.5,
+            "mobilenumber": "9994824573",
+            "userId": 24,
+            "productid": [
+              8
+            ],
+            "transactionfor": "product"
+          },
+          "order": [
+            {
+              "productid": 8,
+              "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+              "productcategory": "wellness",
+              "userid": 24,
+              "addressid": 20,
+              "productamount": 850,
+              "discountamount": 152,
+              "orderamount": 698,
+              "quantity": 1,
+              "cartId": 416
+            }
+          ],
+          "mode": "phonepe",
+          "evaluation_ids": [
+            "eval_1757304668750_44ddp4jpp"
+          ]
+        },
+        "paymentRequest": {
+          "merchantTransactionId": "TXN_1757307369917_SI25GA",
+          "amount": 572.5,
+          "name": "User",
+          "mobileNumber": "9994824573",
+          "userId": 24,
+          "productIds": [
+            8
+          ],
+          "transactionFor": "product"
+        },
+        "initiatedAt": "2025-09-08T04:56:10.219Z",
+        "phonePeResponses": {
+          "initiation": {
+            "timestamp": "2025-09-08T04:56:10.219Z",
+            "response": {
+              "success": true,
+              "message": "Payment initiated successfully",
+              "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEQMfjshmj05W2Xc8qnVG4",
+              "transactionId": "TXN_1757307369917_SI25GA"
+            },
+            "status": "INITIATED",
+            "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEQMfjshmj05W2Xc8qnVG4"
+          }
+        },
+        "codData": null
+      },
+      "createddate": 1757307370220,
+      "modifieddate": 1757307370220
+    }
+[04:56:10 UTC] [34mDEBUG[39m: [36mundefined - Discovering table columns[39m
+    tableName: "transaction"
+prisma:query 
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = $1
+      AND table_schema = 'public'
+      ORDER BY ordinal_position
+    
+[04:56:11 UTC] [32mINFO[39m: [36mundefined - Discovered 12 columns for table transaction[39m
+    tableName: "transaction"
+    columns: [
+      "id",
+      "transactionid",
+      "createddate",
+      "modifieddate",
+      "transactiondata",
+      "userid",
+      "productid",
+      "merchanttransactionid",
+      "name",
+      "amount",
+      "mobilenumber",
+      "transactionfor"
+    ]
+prisma:query 
+    SELECT column_name, data_type 
+    FROM information_schema.columns 
+    WHERE table_name = $1 AND table_schema = 'public'
+    ORDER BY ordinal_position
+  
+[04:56:11 UTC] [34mDEBUG[39m: [36mundefined - Safe columns cached for table[39m
+    tableName: "transaction"
+    totalColumns: 12
+    safeColumns: 12
+    excludedColumns: 0
+[04:56:11 UTC] [34mDEBUG[39m: [36mundefined - Executing dynamic create query[39m
+    modelName: "transaction"
+    tableName: "transaction"
+    columns: [
+      "transactionid",
+      "merchanttransactionid",
+      "userid",
+      "amount",
+      "mobilenumber",
+      "name",
+      "productid",
+      "transactionfor",
+      "transactiondata",
+      "createddate",
+      "modifieddate"
+    ]
+    query: "\n      INSERT INTO \"transaction\" (\"transactionid\", \"merchanttransactionid\", \"userid\", \"amount\", \"mobilenumber\", \"name\", \"productid\", \"transactionfor\", \"transactiondata\", \"createddate\", \"modifieddate\") \n      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) \n      RETURNING id, transactionid, createddate, modifieddate, transactiondata, userid, productid, merchanttransactionid, name, amount, mobilenumber, transactionfor\n    "
+    hasItems: false
+    itemsDataType: "undefined"
+    hasPaymentData: false
+    paymentDataType: "undefined"
+prisma:query 
+      INSERT INTO "transaction" ("transactionid", "merchanttransactionid", "userid", "amount", "mobilenumber", "name", "productid", "transactionfor", "transactiondata", "createddate", "modifieddate") 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
+      RETURNING id, transactionid, createddate, modifieddate, transactiondata, userid, productid, merchanttransactionid, name, amount, mobilenumber, transactionfor
+    
+{
+  success: true,
+  message: 'Payment initiated successfully',
+  data: {
+    merchantTransactionId: 'TXN_1757307369917_SI25GA',
+    redirectUrl: 'https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEQMfjshmj05W2Xc8qnVG4',
+    amount: 572.5,
+    status: 'INITIATED',
+    mode: 'phonepe',
+    message: 'Redirect to PhonePe for payment',
+    promotion_status: {
+      valid_evaluations: [Array],
+      invalid_evaluations: [],
+      total_applied: 1,
+      total_attempted: 1
+    },
+    orderData: null
+  }
+} response FInal 
+{"level":30,"time":1757307372265,"pid":93920,"hostname":"Jeyakumars-Mac-mini.local","reqId":"req-2","method":"POST","url":"/v1/phonepe/initiate","statusCode":200,"responseTime":4993.910000000149,"msg":"Request completed - 200 - 4993.910000000149ms"}
+[04:56:12 UTC] [32mINFO[39m: [36mundefined - Dynamic create completed successfully[39m
+    modelName: "transaction"
+    createdId: 153
+    fieldsUsed: [
+      "transactionid",
+      "merchanttransactionid",
+      "userid",
+      "amount",
+      "mobilenumber",
+      "name",
+      "productid",
+      "transactionfor",
+      "transactiondata",
+      "createddate",
+      "modifieddate"
+    ]
+[04:56:12 UTC] [32mINFO[39m: [36mundefined - Dynamic transaction create completed[39m
+    transactionId: "NIVAANA-TRAN-00153"
+    availableFields: [
+      "id",
+      "transactionid",
+      "createddate",
+      "modifieddate",
+      "transactiondata",
+      "userid",
+      "productid",
+      "merchanttransactionid",
+      "name",
+      "amount",
+      "mobilenumber",
+      "transactionfor"
+    ]
+[04:56:12 UTC] [32mINFO[39m: [36mundefined - Transaction data stored successfully[39m
+    merchantTransactionId: "TXN_1757307369917_SI25GA"
+    transactionId: 153
+{"level":30,"time":1757307374282,"pid":93920,"hostname":"Jeyakumars-Mac-mini.local","reqId":"req-3","method":"POST","url":"/v1/phonepe/callback/TXN_1757307369917_SI25GA","query":{},"userAgent":"axios/1.10.0","msg":"Incoming request"}
+TXN_1757307369917_SI25GA Payment callback received for transaction:
+{"level":30,"time":1757307374285,"pid":93920,"hostname":"Jeyakumars-Mac-mini.local","msg":"Payment callback received for transaction: TXN_1757307369917_SI25GA"}
+{"level":40,"time":1757307374370,"pid":93920,"hostname":"Jeyakumars-Mac-mini.local","msg":"Payment failed for transaction: TXN_1757307369917_SI25GA"}
+[04:56:14 UTC] [32mINFO[39m: [36mundefined - Checking PhonePe payment status[39m
+    merchantTransactionId: "TXN_1757307369917_SI25GA"
+[04:56:14 UTC] [32mINFO[39m: [36mundefined - PhonePe payment status checked[39m
+    merchantTransactionId: "TXN_1757307369917_SI25GA"
+    status: "PAYMENT_PENDING"
+    success: true
+[04:56:14 UTC] [32mINFO[39m: [36mundefined - Updating transaction status[39m
+    transactionId: "TXN_1757307369917_SI25GA"
+    status: "FAILED"
+[04:56:14 UTC] [32mINFO[39m: [36mundefined - Starting dynamic transaction findMany with filters[39m
+    filters: {
+      "merchanttransactionid": "TXN_1757307369917_SI25GA"
+    }
+    page: 1
+    limit: 1
+[04:56:14 UTC] [34mDEBUG[39m: [36mundefined - Built dynamic WHERE clause[39m
+    tableName: "transaction"
+    filters: [
+      "merchanttransactionid"
+    ]
+    whereClause: "WHERE LOWER(\"merchanttransactionid\") = LOWER($1)"
+    valueCount: 1
+    availableColumns: 12
+[04:56:14 UTC] [34mDEBUG[39m: [36mundefined - Executing dynamic filtered queries[39m
+    dataQuery: "\n      SELECT id, transactionid, createddate, modifieddate, transactiondata, userid, productid, merchanttransactionid, name, amount, mobilenumber, transactionfor \n      FROM transaction \n      WHERE LOWER(\"merchanttransactionid\") = LOWER($1)\n      ORDER BY COALESCE(modifieddate, createddate, id) DESC \n      LIMIT 1 OFFSET 0\n    "
+    countQuery: "\n      SELECT COUNT(*) as count \n      FROM transaction \n      WHERE LOWER(\"merchanttransactionid\") = LOWER($1)\n    "
+    values: [
+      "TXN_1757307369917_SI25GA"
+    ]
+    tableName: "transaction"
+    filters: [
+      "merchanttransactionid"
+    ]
+prisma:query 
+      SELECT id, transactionid, createddate, modifieddate, transactiondata, userid, productid, merchanttransactionid, name, amount, mobilenumber, transactionfor 
+      FROM transaction 
+      WHERE LOWER("merchanttransactionid") = LOWER($1)
+      ORDER BY COALESCE(modifieddate, createddate, id) DESC 
+      LIMIT 1 OFFSET 0
+    
+prisma:query 
+      SELECT COUNT(*) as count 
+      FROM transaction 
+      WHERE LOWER("merchanttransactionid") = LOWER($1)
+    
+[04:56:16 UTC] [32mINFO[39m: [36mundefined - Dynamic filtered findMany completed[39m
+    modelName: "transaction"
+    filters: [
+      "merchanttransactionid"
+    ]
+    total: 1
+    returned: 1
+    filtered: true
+[04:56:16 UTC] [32mINFO[39m: [36mundefined - Dynamic transaction findMany with filters completed[39m
+    transactionCount: 1
+    total: 1
+    filtered: true
+    appliedFilters: [
+      "merchanttransactionid"
+    ]
+    availableFields: [
+      "id",
+      "transactionid",
+      "createddate",
+      "modifieddate",
+      "transactiondata",
+      "userid",
+      "productid",
+      "merchanttransactionid",
+      "name",
+      "amount",
+      "mobilenumber",
+      "transactionfor"
+    ]
+[04:56:16 UTC] [34mDEBUG[39m: [36mundefined - Starting dynamic transaction findById operation[39m
+    transactionId: "153"
+prisma:query SELECT "id", "transactionid", "createddate", "modifieddate", "transactiondata", "userid", "productid", "merchanttransactionid", "name", "amount", "mobilenumber", "transactionfor" FROM transaction WHERE id = $1 LIMIT 1
+[04:56:17 UTC] [34mDEBUG[39m: [36mundefined - Raw SQL findUnique completed successfully[39m
+    modelName: "transaction"
+    foundId: 153
+    method: "raw_sql"
+[04:56:17 UTC] [34mDEBUG[39m: [36mundefined - Dynamic transaction findById completed[39m
+    transactionId: "153"
+    availableFields: [
+      "id",
+      "transactionid",
+      "createddate",
+      "modifieddate",
+      "transactiondata",
+      "userid",
+      "productid",
+      "merchanttransactionid",
+      "name",
+      "amount",
+      "mobilenumber",
+      "transactionfor"
+    ]
+[04:56:17 UTC] [34mDEBUG[39m: [36mundefined - Starting dynamic transaction update operation[39m
+    originalData: {
+      "transactiondata": {
+        "mode": "phonepe",
+        "status": "FAILED",
+        "codData": null,
+        "initiatedAt": "2025-09-08T04:56:10.219Z",
+        "evaluation_ids": [
+          "eval_1757304668750_44ddp4jpp"
+        ],
+        "paymentRequest": {
+          "name": "User",
+          "amount": 572.5,
+          "userId": 24,
+          "productIds": [
+            8
+          ],
+          "mobileNumber": "9994824573",
+          "transactionFor": "product",
+          "merchantTransactionId": "TXN_1757307369917_SI25GA"
+        },
+        "originalPayload": {
+          "mode": "phonepe",
+          "order": [
+            {
+              "cartId": 416,
+              "userid": 24,
+              "quantity": 1,
+              "addressid": 20,
+              "productid": 8,
+              "orderamount": 698,
+              "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+              "productamount": 850,
+              "discountamount": 152,
+              "productcategory": "wellness"
+            }
+          ],
+          "transaction": {
+            "name": "User",
+            "amount": 572.5,
+            "userId": 24,
+            "productid": [
+              8
+            ],
+            "mobilenumber": "9994824573",
+            "transactionfor": "product"
+          },
+          "evaluation_ids": [
+            "eval_1757304668750_44ddp4jpp"
+          ]
+        },
+        "phonePeResponses": {
+          "initiation": {
+            "status": "INITIATED",
+            "response": {
+              "message": "Payment initiated successfully",
+              "success": true,
+              "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEQMfjshmj05W2Xc8qnVG4",
+              "transactionId": "TXN_1757307369917_SI25GA"
+            },
+            "timestamp": "2025-09-08T04:56:10.219Z",
+            "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEQMfjshmj05W2Xc8qnVG4"
+          },
+          "failed": {
+            "timestamp": "2025-09-08T04:56:16.840Z",
+            "response": {
+              "success": true,
+              "code": "PAYMENT_PENDING",
+              "message": "Your payment is in pending state.",
+              "data": {
+                "merchantId": "PGTESTPAYUAT86",
+                "merchantTransactionId": "TXN_1757307369917_SI25GA",
+                "transactionId": "T2509081026102032432582",
+                "amount": 57250,
+                "state": "PENDING",
+                "responseCode": null
+              }
+            },
+            "status": "FAILED"
+          }
+        },
+        "invalid_evaluations": [],
+        "paymentCompleteAt": "2025-09-08T04:56:16.840Z",
+        "updatedAt": "2025-09-08T04:56:16.840Z",
+        "phonePeResponse": {
+          "error": "Your payment is in pending state."
+        }
+      },
+      "modifieddate": 1757307376840
+    }
+    transactionId: "153"
+[04:56:17 UTC] [34mDEBUG[39m: [36mundefined - Executing dynamic update query[39m
+    modelName: "transaction"
+    tableName: "transaction"
+    updateQuery: "\n        UPDATE \"transaction\" \n        SET \"transactiondata\" = $2, \"modifieddate\" = $3 \n        WHERE \"id\" = $1 \n        RETURNING id, transactionid, createddate, modifieddate, transactiondata, userid, productid, merchanttransactionid, name, amount, mobilenumber, transactionfor\n      "
+    values: 3
+    fields: [
+      "transactiondata",
+      "modifieddate"
+    ]
+prisma:query 
+        UPDATE "transaction" 
+        SET "transactiondata" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, transactionid, createddate, modifieddate, transactiondata, userid, productid, merchanttransactionid, name, amount, mobilenumber, transactionfor
+      
+{"level":30,"time":1757307378010,"pid":93920,"hostname":"Jeyakumars-Mac-mini.local","reqId":"req-3","method":"POST","url":"/v1/phonepe/callback/TXN_1757307369917_SI25GA","statusCode":302,"responseTime":3728.0011670002714,"msg":"Request completed - 302 - 3728.0011670002714ms"}
+[04:56:18 UTC] [32mINFO[39m: [36mundefined - Raw SQL update completed successfully[39m
+    modelName: "transaction"
+    updatedId: 153
+    fieldsUsed: [
+      "transactiondata",
+      "modifieddate"
+    ]
+[04:56:18 UTC] [32mINFO[39m: [36mundefined - Dynamic transaction update completed[39m
+    transactionId: "153"
+    availableFields: [
+      "id",
+      "transactionid",
+      "createddate",
+      "modifieddate",
+      "transactiondata",
+      "userid",
+      "productid",
+      "merchanttransactionid",
+      "name",
+      "amount",
+      "mobilenumber",
+      "transactionfor"
+    ]
+[04:56:18 UTC] [32mINFO[39m: [36mundefined - Transaction status updated successfully with enhanced data structure[39m
+    transactionId: "TXN_1757307369917_SI25GA"
+    status: "FAILED"
+    statusKey: "failed"
+    hasExistingData: true
+    responseCount: 2
+{"level":30,"time":1757307381014,"pid":93920,"hostname":"Jeyakumars-Mac-mini.local","reqId":"req-4","method":"GET","url":"/v1/promotions/evaluations?user_id=24","query":{"user_id":"24"},"userAgent":"axios/1.10.0","msg":"Incoming request"}
+{"level":30,"time":1757307381383,"pid":93920,"hostname":"Jeyakumars-Mac-mini.local","reqId":"req-4","method":"GET","url":"/v1/promotions/evaluations?user_id=24","statusCode":200,"responseTime":369.02854200080037,"msg":"Request completed - 200 - 369.02854200080037ms"}
+{"level":30,"time":1757307381387,"pid":93920,"hostname":"Jeyakumars-Mac-mini.local","reqId":"req-5","method":"GET","url":"/v1/orders?userid=24&limit=1","query":{"userid":"24","limit":"1"},"userAgent":"axios/1.10.0","msg":"Incoming request"}
+[04:56:21 UTC] [32mINFO[39m: [36mundefined - Getting user active evaluations[39m
+    userId: "24"
+[04:56:21 UTC] [32mINFO[39m: [36mundefined - User active evaluations retrieved[39m
+    userId: "24"
+    evaluationCount: 1
+[04:56:21 UTC] [32mINFO[39m: [36mundefined - Starting dynamic orders findMany with filters[39m
+    filters: {
+      "userid": "24"
+    }
+    page: 1
+    limit: 1
+[04:56:21 UTC] [34mDEBUG[39m: [36mundefined - Discovering table columns[39m
+    tableName: "orders"
+prisma:query 
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = $1
+      AND table_schema = 'public'
+      ORDER BY ordinal_position
+    
+[04:56:21 UTC] [32mINFO[39m: [36mundefined - Discovered 25 columns for table orders[39m
+    tableName: "orders"
+    columns: [
+      "id",
+      "userid",
+      "addressid",
+      "createddate",
+      "modifieddate",
+      "orderamount",
+      "orderid",
+      "orderstatus",
+      "delivereddate",
+      "cancelleddate",
+      "returneddate",
+      "quantity",
+      "transactionid",
+      "readytodispatchdate",
+      "dispatcheddate",
+      "productamount",
+      "discountamount",
+      "deliveryfrom",
+      "orderprocessingtime",
+      "ispaymentsucceed",
+      "merchanttransactionid",
+      "productid",
+      "paymentfaileddate",
+      "searchtext",
+      "mode"
+    ]
+[04:56:21 UTC] [34mDEBUG[39m: [36mundefined - Built dynamic WHERE clause[39m
+    tableName: "orders"
+    filters: [
+      "userid"
+    ]
+    whereClause: "WHERE \"userid\" = $1"
+    valueCount: 1
+    availableColumns: 25
+prisma:query 
+    SELECT column_name, data_type 
+    FROM information_schema.columns 
+    WHERE table_name = $1 AND table_schema = 'public'
+    ORDER BY ordinal_position
+  
+[04:56:22 UTC] [34mDEBUG[39m: [36mundefined - Safe columns cached for table[39m
+    tableName: "orders"
+    totalColumns: 25
+    safeColumns: 24
+    excludedColumns: 1
+[04:56:22 UTC] [34mDEBUG[39m: [36mundefined - Executing dynamic filtered queries[39m
+    dataQuery: "\n      SELECT id, userid, addressid, createddate, modifieddate, orderamount, orderid, orderstatus, delivereddate, cancelleddate, returneddate, quantity, transactionid, readytodispatchdate, dispatcheddate, productamount, discountamount, deliveryfrom, orderprocessingtime, ispaymentsucceed, merchanttransactionid, productid, paymentfaileddate, mode \n      FROM orders \n      WHERE \"userid\" = $1\n      ORDER BY COALESCE(modifieddate, createddate, id) DESC \n      LIMIT 1 OFFSET 0\n    "
+    countQuery: "\n      SELECT COUNT(*) as count \n      FROM orders \n      WHERE \"userid\" = $1\n    "
+    values: [
+      24
+    ]
+    tableName: "orders"
+    filters: [
+      "userid"
+    ]
+prisma:query 
+      SELECT COUNT(*) as count 
+      FROM orders 
+      WHERE "userid" = $1
+    
+prisma:query 
+      SELECT id, userid, addressid, createddate, modifieddate, orderamount, orderid, orderstatus, delivereddate, cancelleddate, returneddate, quantity, transactionid, readytodispatchdate, dispatcheddate, productamount, discountamount, deliveryfrom, orderprocessingtime, ispaymentsucceed, merchanttransactionid, productid, paymentfaileddate, mode 
+      FROM orders 
+      WHERE "userid" = $1
+      ORDER BY COALESCE(modifieddate, createddate, id) DESC 
+      LIMIT 1 OFFSET 0
+    
+{"level":30,"time":1757307383105,"pid":93920,"hostname":"Jeyakumars-Mac-mini.local","reqId":"req-5","method":"GET","url":"/v1/orders?userid=24&limit=1","statusCode":200,"responseTime":1718.8003329997882,"msg":"Request completed - 200 - 1718.8003329997882ms"}
+[04:56:23 UTC] [32mINFO[39m: [36mundefined - Dynamic filtered findMany completed[39m
+    modelName: "orders"
+    filters: [
+      "userid"
+    ]
+    total: 32
+    returned: 1
+    filtered: true
+[04:56:23 UTC] [32mINFO[39m: [36mundefined - Dynamic orders findMany with filters completed[39m
+    orderCount: 1
+    total: 32
+    filtered: true
+    appliedFilters: [
+      "userid"
+    ]
+    availableFields: [
+      "id",
+      "userid",
+      "addressid",
+      "createddate",
+      "modifieddate",
+      "orderamount",
+      "orderid",
+      "orderstatus",
+      "delivereddate",
+      "cancelleddate",
+      "returneddate",
+      "quantity",
+      "transactionid",
+      "readytodispatchdate",
+      "dispatcheddate",
+      "productamount",
+      "discountamount",
+      "deliveryfrom",
+      "orderprocessingtime",
+      "ispaymentsucceed",
+      "merchanttransactionid",
+      "productid",
+      "paymentfaileddate",
+      "mode"
+    ]
+10:26:46 AM [tsx] change in ./src/services/promotion-redemption.service.ts Restarting...
+Received SIGTERM, gracefully shutting down Prisma client...
+{"level":30,"time":1757307406363,"pid":93920,"hostname":"Jeyakumars-Mac-mini.local","msg":"Received SIGTERM, shutting down gracefully..."}
+[04:56:46 UTC] [32mINFO[39m: [36mundefined - Disconnecting from database...[39m
+c🚀 POINVOICE SERVICE LOADED - This should appear when the service is imported
+test
+[04:56:47 UTC] [32mINFO[39m: [36mundefined - Logger plugin registered successfully[39m
+✅ Database connected successfully
+prisma:query SELECT 1
+{"level":30,"time":1757307409669,"pid":96411,"hostname":"Jeyakumars-Mac-mini.local","msg":"Database plugin registered successfully"}
+strict mode: use allowUnionTypes to allow union type keyword at "#/properties/productid" (strictTypes)
+{"level":30,"time":1757307410088,"pid":96411,"hostname":"Jeyakumars-Mac-mini.local","msg":"Server listening at http://127.0.0.1:5600"}
+{"level":30,"time":1757307410088,"pid":96411,"hostname":"Jeyakumars-Mac-mini.local","msg":"Server listening at http://192.168.0.110:5600"}
+{"level":30,"time":1757307410088,"pid":96411,"hostname":"Jeyakumars-Mac-mini.local","msg":"🚀 Server running at http://localhost:5600"}
+{"level":30,"time":1757307410088,"pid":96411,"hostname":"Jeyakumars-Mac-mini.local","msg":"📚 API Documentation available at http://localhost:5600/docs"}
+[04:56:49 UTC] [32mINFO[39m: [36mundefined - ✅ Database connected and tested successfully[39m
+{"level":30,"time":1757307416591,"pid":96411,"hostname":"Jeyakumars-Mac-mini.local","reqId":"req-1","method":"GET","url":"/v1/promotions/evaluations?user_id=24","query":{"user_id":"24"},"userAgent":"axios/1.10.0","msg":"Incoming request"}
+[04:56:56 UTC] [32mINFO[39m: [36mundefined - Getting user active evaluations[39m
+    userId: "24"
+{"level":30,"time":1757307419553,"pid":96411,"hostname":"Jeyakumars-Mac-mini.local","reqId":"req-1","method":"GET","url":"/v1/promotions/evaluations?user_id=24","statusCode":200,"responseTime":2961.311416000128,"msg":"Request completed - 200 - 2961.311416000128ms"}
+{"level":30,"time":1757307419560,"pid":96411,"hostname":"Jeyakumars-Mac-mini.local","reqId":"req-2","method":"POST","url":"/v1/phonepe/initiate","query":{},"userAgent":"axios/1.10.0","msg":"Incoming request"}
+test
+{
+  transaction: {
+    name: 'User',
+    amount: 572.5,
+    mobilenumber: '9994824573',
+    userId: 24,
+    productid: [ 8 ],
+    transactionfor: 'product'
+  },
+  order: [
+    {
+      productid: 8,
+      productname: 'WishCare Pure Rosemary Essential Oil - 15 ML',
+      productcategory: 'wellness',
+      userid: 24,
+      addressid: 20,
+      productamount: 850,
+      discountamount: 152,
+      orderamount: 698,
+      quantity: 1,
+      cartId: 416
+    }
+  ],
+  mode: 'phonepe',
+  evaluation_ids: [ 'eval_1757304668750_44ddp4jpp' ]
+} req body
+first
+[04:56:59 UTC] [32mINFO[39m: [36mundefined - User active evaluations retrieved[39m
+    userId: "24"
+    evaluationCount: 1
+[04:56:59 UTC] [32mINFO[39m: [36mundefined - Payment initiation request received with new payload structure[39m
+    mode: "phonepe"
+    evaluation_ids: [
+      "eval_1757304668750_44ddp4jpp"
+    ]
+    orderCount: 1
+    transactionAmount: 572.5
+    userId: 24
+    productIds: [
+      8
+    ]
+{
+  transaction: {
+    name: 'User',
+    amount: 572.5,
+    mobilenumber: '9994824573',
+    userId: 24,
+    productid: [ 8 ],
+    transactionfor: 'product'
+  },
+  order: [
+    {
+      productid: 8,
+      productname: 'WishCare Pure Rosemary Essential Oil - 15 ML',
+      productcategory: 'wellness',
+      userid: 24,
+      addressid: 20,
+      productamount: 850,
+      discountamount: 152,
+      orderamount: 698,
+      quantity: 1,
+      cartId: 416
+    }
+  ],
+  mode: 'phonepe',
+  evaluation_ids: [ 'eval_1757304668750_44ddp4jpp' ]
+} request body
+[04:57:02 UTC] [32mINFO[39m: [36mundefined - Evaluation validation - expiration check disabled[39m
+    evaluationId: "eval_1757304668750_44ddp4jpp"
+    userId: "24"
+    status: "active"
+    expiresAt: 1757305569357
+    message: "Skipping expiration check for release"
+[04:57:02 UTC] [32mINFO[39m: [36mundefined - Evaluation validation completed[39m
+    validEvaluations: [
+      "eval_1757304668750_44ddp4jpp"
+    ]
+    invalidEvaluations: []
+    userId: 24
+[04:57:02 UTC] [32mINFO[39m: [36mundefined - Converted payload to PhonePe payment request[39m
+    merchantTransactionId: "TXN_1757307422281_6H0PNO"
+    amount: 572.5
+    userId: 24
+    productIds: [
+      8
+    ]
+[04:57:02 UTC] [32mINFO[39m: [36mundefined - PhonePe callback URL configured[39m
+    merchantTransactionId: "TXN_1757307422281_6H0PNO"
+    callbackUrl: "http://localhost:5600/v1/phonepe/callback/TXN_1757307422281_6H0PNO"
+    redirectStatus: "http://localhost:5600"
+    step: "phonepe_callback_url_set"
+[04:57:02 UTC] [32mINFO[39m: [36mundefined - Initiating PhonePe payment[39m
+    merchantTransactionId: "TXN_1757307422281_6H0PNO"
+    amount: 572.5
+    userId: 24
+    productIds: [
+      8
+    ]
+{
+  success: true,
+  message: 'Payment initiated successfully',
+  redirectUrl: 'https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEQMfiFHplcgW3OGCxgduA',
+  transactionId: 'TXN_1757307422281_6H0PNO'
+} for  phone pe
+{
+  status: 'INITIATED',
+  mode: 'phonepe',
+  evaluation_ids: [ 'eval_1757304668750_44ddp4jpp' ],
+  invalid_evaluations: [],
+  originalPayload: {
+    transaction: {
+      name: 'User',
+      amount: 572.5,
+      mobilenumber: '9994824573',
+      userId: 24,
+      productid: [Array],
+      transactionfor: 'product'
+    },
+    order: [ [Object] ],
+    mode: 'phonepe',
+    evaluation_ids: [ 'eval_1757304668750_44ddp4jpp' ]
+  },
+  paymentRequest: {
+    merchantTransactionId: 'TXN_1757307422281_6H0PNO',
+    amount: 572.5,
+    name: 'User',
+    mobileNumber: '9994824573',
+    userId: 24,
+    productIds: [ 8 ],
+    transactionFor: 'product'
+  },
+  initiatedAt: '2025-09-08T04:57:02.503Z',
+  phonePeResponses: {
+    initiation: {
+      timestamp: '2025-09-08T04:57:02.503Z',
+      response: [Object],
+      status: 'INITIATED',
+      redirectUrl: 'https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEQMfiFHplcgW3OGCxgduA'
+    }
+  },
+  codData: null
+} transactionData
+[04:57:02 UTC] [32mINFO[39m: [36mundefined - PhonePe payment initiated successfully LatestUpdate[39m
+    merchantTransactionId: "TXN_1757307422281_6H0PNO"
+    success: true
+    code: "PAYMENT_INITIATED"
+    phonePeResponse: {
+      "success": true,
+      "code": "PAYMENT_INITIATED",
+      "message": "Payment initiated",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1757307422281_6H0PNO",
+        "instrumentResponse": {
+          "type": "PAY_PAGE",
+          "redirectInfo": {
+            "url": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEQMfiFHplcgW3OGCxgduA",
+            "method": "GET"
+          }
+        }
+      }
+    }
+    callbackUrl: "http://localhost:5600/v1/phonepe/callback/TXN_1757307422281_6H0PNO"
+[04:57:02 UTC] [32mINFO[39m: [36mundefined - Storing transaction data[39m
+    merchantTransactionId: "TXN_1757307422281_6H0PNO"
+    amount: 572.5
+    userId: 24
+    mode: "phonepe"
+[04:57:02 UTC] [34mDEBUG[39m: [36mundefined - Starting dynamic transaction create operation[39m
+    originalData: {
+      "transactionid": "TXN_1757307422281_6H0PNO",
+      "merchanttransactionid": "TXN_1757307422281_6H0PNO",
+      "userid": 24,
+      "amount": 572.5,
+      "mobilenumber": 9994824573,
+      "name": "User",
+      "productid": [
+        8
+      ],
+      "transactionfor": "product",
+      "transactiondata": {
+        "status": "INITIATED",
+        "mode": "phonepe",
+        "evaluation_ids": [
+          "eval_1757304668750_44ddp4jpp"
+        ],
+        "invalid_evaluations": [],
+        "originalPayload": {
+          "transaction": {
+            "name": "User",
+            "amount": 572.5,
+            "mobilenumber": "9994824573",
+            "userId": 24,
+            "productid": [
+              8
+            ],
+            "transactionfor": "product"
+          },
+          "order": [
+            {
+              "productid": 8,
+              "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+              "productcategory": "wellness",
+              "userid": 24,
+              "addressid": 20,
+              "productamount": 850,
+              "discountamount": 152,
+              "orderamount": 698,
+              "quantity": 1,
+              "cartId": 416
+            }
+          ],
+          "mode": "phonepe",
+          "evaluation_ids": [
+            "eval_1757304668750_44ddp4jpp"
+          ]
+        },
+        "paymentRequest": {
+          "merchantTransactionId": "TXN_1757307422281_6H0PNO",
+          "amount": 572.5,
+          "name": "User",
+          "mobileNumber": "9994824573",
+          "userId": 24,
+          "productIds": [
+            8
+          ],
+          "transactionFor": "product"
+        },
+        "initiatedAt": "2025-09-08T04:57:02.503Z",
+        "phonePeResponses": {
+          "initiation": {
+            "timestamp": "2025-09-08T04:57:02.503Z",
+            "response": {
+              "success": true,
+              "message": "Payment initiated successfully",
+              "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEQMfiFHplcgW3OGCxgduA",
+              "transactionId": "TXN_1757307422281_6H0PNO"
+            },
+            "status": "INITIATED",
+            "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEQMfiFHplcgW3OGCxgduA"
+          }
+        },
+        "codData": null
+      },
+      "createddate": 1757307422503,
+      "modifieddate": 1757307422503
+    }
+[04:57:02 UTC] [34mDEBUG[39m: [36mundefined - Discovering table columns[39m
+    tableName: "transaction"
+prisma:query 
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = $1
+      AND table_schema = 'public'
+      ORDER BY ordinal_position
+    
+[04:57:03 UTC] [32mINFO[39m: [36mundefined - Discovered 12 columns for table transaction[39m
+    tableName: "transaction"
+    columns: [
+      "id",
+      "transactionid",
+      "createddate",
+      "modifieddate",
+      "transactiondata",
+      "userid",
+      "productid",
+      "merchanttransactionid",
+      "name",
+      "amount",
+      "mobilenumber",
+      "transactionfor"
+    ]
+prisma:query 
+    SELECT column_name, data_type 
+    FROM information_schema.columns 
+    WHERE table_name = $1 AND table_schema = 'public'
+    ORDER BY ordinal_position
+  
+[04:57:03 UTC] [34mDEBUG[39m: [36mundefined - Safe columns cached for table[39m
+    tableName: "transaction"
+    totalColumns: 12
+    safeColumns: 12
+    excludedColumns: 0
+[04:57:03 UTC] [34mDEBUG[39m: [36mundefined - Executing dynamic create query[39m
+    modelName: "transaction"
+    tableName: "transaction"
+    columns: [
+      "transactionid",
+      "merchanttransactionid",
+      "userid",
+      "amount",
+      "mobilenumber",
+      "name",
+      "productid",
+      "transactionfor",
+      "transactiondata",
+      "createddate",
+      "modifieddate"
+    ]
+    query: "\n      INSERT INTO \"transaction\" (\"transactionid\", \"merchanttransactionid\", \"userid\", \"amount\", \"mobilenumber\", \"name\", \"productid\", \"transactionfor\", \"transactiondata\", \"createddate\", \"modifieddate\") \n      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) \n      RETURNING id, transactionid, createddate, modifieddate, transactiondata, userid, productid, merchanttransactionid, name, amount, mobilenumber, transactionfor\n    "
+    hasItems: false
+    itemsDataType: "undefined"
+    hasPaymentData: false
+    paymentDataType: "undefined"
+prisma:query 
+      INSERT INTO "transaction" ("transactionid", "merchanttransactionid", "userid", "amount", "mobilenumber", "name", "productid", "transactionfor", "transactiondata", "createddate", "modifieddate") 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
+      RETURNING id, transactionid, createddate, modifieddate, transactiondata, userid, productid, merchanttransactionid, name, amount, mobilenumber, transactionfor
+    
+{
+  success: true,
+  message: 'Payment initiated successfully',
+  data: {
+    merchantTransactionId: 'TXN_1757307422281_6H0PNO',
+    redirectUrl: 'https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEQMfiFHplcgW3OGCxgduA',
+    amount: 572.5,
+    status: 'INITIATED',
+    mode: 'phonepe',
+    message: 'Redirect to PhonePe for payment',
+    promotion_status: {
+      valid_evaluations: [Array],
+      invalid_evaluations: [],
+      total_applied: 1,
+      total_attempted: 1
+    },
+    orderData: null
+  }
+} response FInal 
+{"level":30,"time":1757307424123,"pid":96411,"hostname":"Jeyakumars-Mac-mini.local","reqId":"req-2","method":"POST","url":"/v1/phonepe/initiate","statusCode":200,"responseTime":4562.956625000574,"msg":"Request completed - 200 - 4562.956625000574ms"}
+[04:57:04 UTC] [32mINFO[39m: [36mundefined - Dynamic create completed successfully[39m
+    modelName: "transaction"
+    createdId: 154
+    fieldsUsed: [
+      "transactionid",
+      "merchanttransactionid",
+      "userid",
+      "amount",
+      "mobilenumber",
+      "name",
+      "productid",
+      "transactionfor",
+      "transactiondata",
+      "createddate",
+      "modifieddate"
+    ]
+[04:57:04 UTC] [32mINFO[39m: [36mundefined - Dynamic transaction create completed[39m
+    transactionId: "NIVAANA-TRAN-00154"
+    availableFields: [
+      "id",
+      "transactionid",
+      "createddate",
+      "modifieddate",
+      "transactiondata",
+      "userid",
+      "productid",
+      "merchanttransactionid",
+      "name",
+      "amount",
+      "mobilenumber",
+      "transactionfor"
+    ]
+[04:57:04 UTC] [32mINFO[39m: [36mundefined - Transaction data stored successfully[39m
+    merchantTransactionId: "TXN_1757307422281_6H0PNO"
+    transactionId: 154
+{"level":30,"time":1757307426126,"pid":96411,"hostname":"Jeyakumars-Mac-mini.local","reqId":"req-3","method":"POST","url":"/v1/phonepe/callback/TXN_1757307422281_6H0PNO","query":{},"userAgent":"axios/1.10.0","msg":"Incoming request"}
+TXN_1757307422281_6H0PNO Payment callback received for transaction:
+{"level":30,"time":1757307426126,"pid":96411,"hostname":"Jeyakumars-Mac-mini.local","msg":"Payment callback received for transaction: TXN_1757307422281_6H0PNO"}
+[04:57:06 UTC] [32mINFO[39m: [36mundefined - Checking PhonePe payment status[39m
+    merchantTransactionId: "TXN_1757307422281_6H0PNO"
+{"level":40,"time":1757307426191,"pid":96411,"hostname":"Jeyakumars-Mac-mini.local","msg":"Payment failed for transaction: TXN_1757307422281_6H0PNO"}
+[04:57:06 UTC] [32mINFO[39m: [36mundefined - PhonePe payment status checked[39m
+    merchantTransactionId: "TXN_1757307422281_6H0PNO"
+    status: "PAYMENT_PENDING"
+    success: true
+[04:57:06 UTC] [32mINFO[39m: [36mundefined - Updating transaction status[39m
+    transactionId: "TXN_1757307422281_6H0PNO"
+    status: "FAILED"
+[04:57:06 UTC] [32mINFO[39m: [36mundefined - Starting dynamic transaction findMany with filters[39m
+    filters: {
+      "merchanttransactionid": "TXN_1757307422281_6H0PNO"
+    }
+    page: 1
+    limit: 1
+[04:57:06 UTC] [34mDEBUG[39m: [36mundefined - Built dynamic WHERE clause[39m
+    tableName: "transaction"
+    filters: [
+      "merchanttransactionid"
+    ]
+    whereClause: "WHERE LOWER(\"merchanttransactionid\") = LOWER($1)"
+    valueCount: 1
+    availableColumns: 12
+[04:57:06 UTC] [34mDEBUG[39m: [36mundefined - Executing dynamic filtered queries[39m
+    dataQuery: "\n      SELECT id, transactionid, createddate, modifieddate, transactiondata, userid, productid, merchanttransactionid, name, amount, mobilenumber, transactionfor \n      FROM transaction \n      WHERE LOWER(\"merchanttransactionid\") = LOWER($1)\n      ORDER BY COALESCE(modifieddate, createddate, id) DESC \n      LIMIT 1 OFFSET 0\n    "
+    countQuery: "\n      SELECT COUNT(*) as count \n      FROM transaction \n      WHERE LOWER(\"merchanttransactionid\") = LOWER($1)\n    "
+    values: [
+      "TXN_1757307422281_6H0PNO"
+    ]
+    tableName: "transaction"
+    filters: [
+      "merchanttransactionid"
+    ]
+prisma:query SELECT 1
+prisma:query 
+      SELECT COUNT(*) as count 
+      FROM transaction 
+      WHERE LOWER("merchanttransactionid") = LOWER($1)
+    
+prisma:query 
+      SELECT id, transactionid, createddate, modifieddate, transactiondata, userid, productid, merchanttransactionid, name, amount, mobilenumber, transactionfor 
+      FROM transaction 
+      WHERE LOWER("merchanttransactionid") = LOWER($1)
+      ORDER BY COALESCE(modifieddate, createddate, id) DESC 
+      LIMIT 1 OFFSET 0
+    
+prisma:query SELECT "id", "transactionid", "createddate", "modifieddate", "transactiondata", "userid", "productid", "merchanttransactionid", "name", "amount", "mobilenumber", "transactionfor" FROM transaction WHERE id = $1 LIMIT 1
+[04:57:08 UTC] [32mINFO[39m: [36mundefined - Dynamic filtered findMany completed[39m
+    modelName: "transaction"
+    filters: [
+      "merchanttransactionid"
+    ]
+    total: 1
+    returned: 1
+    filtered: true
+[04:57:08 UTC] [32mINFO[39m: [36mundefined - Dynamic transaction findMany with filters completed[39m
+    transactionCount: 1
+    total: 1
+    filtered: true
+    appliedFilters: [
+      "merchanttransactionid"
+    ]
+    availableFields: [
+      "id",
+      "transactionid",
+      "createddate",
+      "modifieddate",
+      "transactiondata",
+      "userid",
+      "productid",
+      "merchanttransactionid",
+      "name",
+      "amount",
+      "mobilenumber",
+      "transactionfor"
+    ]
+[04:57:08 UTC] [34mDEBUG[39m: [36mundefined - Starting dynamic transaction findById operation[39m
+    transactionId: "154"
+[04:57:09 UTC] [34mDEBUG[39m: [36mundefined - Raw SQL findUnique completed successfully[39m
+    modelName: "transaction"
+    foundId: 154
+    method: "raw_sql"
+[04:57:09 UTC] [34mDEBUG[39m: [36mundefined - Dynamic transaction findById completed[39m
+    transactionId: "154"
+    availableFields: [
+      "id",
+      "transactionid",
+      "createddate",
+      "modifieddate",
+      "transactiondata",
+      "userid",
+      "productid",
+      "merchanttransactionid",
+      "name",
+      "amount",
+      "mobilenumber",
+      "transactionfor"
+    ]
+[04:57:09 UTC] [34mDEBUG[39m: [36mundefined - Starting dynamic transaction update operation[39m
+    originalData: {
+      "transactiondata": {
+        "mode": "phonepe",
+        "status": "FAILED",
+        "codData": null,
+        "initiatedAt": "2025-09-08T04:57:02.503Z",
+        "evaluation_ids": [
+          "eval_1757304668750_44ddp4jpp"
+        ],
+        "paymentRequest": {
+          "name": "User",
+          "amount": 572.5,
+          "userId": 24,
+          "productIds": [
+            8
+          ],
+          "mobileNumber": "9994824573",
+          "transactionFor": "product",
+          "merchantTransactionId": "TXN_1757307422281_6H0PNO"
+        },
+        "originalPayload": {
+          "mode": "phonepe",
+          "order": [
+            {
+              "cartId": 416,
+              "userid": 24,
+              "quantity": 1,
+              "addressid": 20,
+              "productid": 8,
+              "orderamount": 698,
+              "productname": "WishCare Pure Rosemary Essential Oil - 15 ML",
+              "productamount": 850,
+              "discountamount": 152,
+              "productcategory": "wellness"
+            }
+          ],
+          "transaction": {
+            "name": "User",
+            "amount": 572.5,
+            "userId": 24,
+            "productid": [
+              8
+            ],
+            "mobilenumber": "9994824573",
+            "transactionfor": "product"
+          },
+          "evaluation_ids": [
+            "eval_1757304668750_44ddp4jpp"
+          ]
+        },
+        "phonePeResponses": {
+          "initiation": {
+            "status": "INITIATED",
+            "response": {
+              "message": "Payment initiated successfully",
+              "success": true,
+              "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEQMfiFHplcgW3OGCxgduA",
+              "transactionId": "TXN_1757307422281_6H0PNO"
+            },
+            "timestamp": "2025-09-08T04:57:02.503Z",
+            "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEQMfiFHplcgW3OGCxgduA"
+          },
+          "failed": {
+            "timestamp": "2025-09-08T04:57:08.695Z",
+            "response": {
+              "success": true,
+              "code": "PAYMENT_PENDING",
+              "message": "Your payment is in pending state.",
+              "data": {
+                "merchantId": "PGTESTPAYUAT86",
+                "merchantTransactionId": "TXN_1757307422281_6H0PNO",
+                "transactionId": "T2509081027024902432190",
+                "amount": 57250,
+                "state": "PENDING",
+                "responseCode": null
+              }
+            },
+            "status": "FAILED"
+          }
+        },
+        "invalid_evaluations": [],
+        "paymentCompleteAt": "2025-09-08T04:57:08.695Z",
+        "updatedAt": "2025-09-08T04:57:08.695Z",
+        "phonePeResponse": {
+          "error": "Your payment is in pending state."
+        }
+      },
+      "modifieddate": 1757307428695
+    }
+    transactionId: "154"
+[04:57:09 UTC] [34mDEBUG[39m: [36mundefined - Executing dynamic update query[39m
+    modelName: "transaction"
+    tableName: "transaction"
+    updateQuery: "\n        UPDATE \"transaction\" \n        SET \"transactiondata\" = $2, \"modifieddate\" = $3 \n        WHERE \"id\" = $1 \n        RETURNING id, transactionid, createddate, modifieddate, transactiondata, userid, productid, merchanttransactionid, name, amount, mobilenumber, transactionfor\n      "
+    values: 3
+    fields: [
+      "transactiondata",
+      "modifieddate"
+    ]
+prisma:query 
+        UPDATE "transaction" 
+        SET "transactiondata" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, transactionid, createddate, modifieddate, transactiondata, userid, productid, merchanttransactionid, name, amount, mobilenumber, transactionfor
+      
+{"level":30,"time":1757307429838,"pid":96411,"hostname":"Jeyakumars-Mac-mini.local","reqId":"req-3","method":"POST","url":"/v1/phonepe/callback/TXN_1757307422281_6H0PNO","statusCode":302,"responseTime":3712.337375000119,"msg":"Request completed - 302 - 3712.337375000119ms"}
+[04:57:09 UTC] [32mINFO[39m: [36mundefined - Raw SQL update completed successfully[39m
+    modelName: "transaction"
+    updatedId: 154
+    fieldsUsed: [
+      "transactiondata",
+      "modifieddate"
+    ]
+[04:57:09 UTC] [32mINFO[39m: [36mundefined - Dynamic transaction update completed[39m
+    transactionId: "154"
+    availableFields: [
+      "id",
+      "transactionid",
+      "createddate",
+      "modifieddate",
+      "transactiondata",
+      "userid",
+      "productid",
+      "merchanttransactionid",
+      "name",
+      "amount",
+      "mobilenumber",
+      "transactionfor"
+    ]
+[04:57:09 UTC] [32mINFO[39m: [36mundefined - Transaction status updated successfully with enhanced data structure[39m
+    transactionId: "TXN_1757307422281_6H0PNO"
+    status: "FAILED"
+    statusKey: "failed"
+    hasExistingData: true
+    responseCount: 2
+{"level":30,"time":1757307432843,"pid":96411,"hostname":"Jeyakumars-Mac-mini.local","reqId":"req-4","method":"GET","url":"/v1/promotions/evaluations?user_id=24","query":{"user_id":"24"},"userAgent":"axios/1.10.0","msg":"Incoming request"}
+{"level":30,"time":1757307433118,"pid":96411,"hostname":"Jeyakumars-Mac-mini.local","reqId":"req-4","method":"GET","url":"/v1/promotions/evaluations?user_id=24","statusCode":200,"responseTime":274.950916999951,"msg":"Request completed - 200 - 274.950916999951ms"}
+{"level":30,"time":1757307433122,"pid":96411,"hostname":"Jeyakumars-Mac-mini.local","reqId":"req-5","method":"GET","url":"/v1/orders?userid=24&limit=1","query":{"userid":"24","limit":"1"},"userAgent":"axios/1.10.0","msg":"Incoming request"}
+[04:57:12 UTC] [32mINFO[39m: [36mundefined - Getting user active evaluations[39m
+    userId: "24"
+[04:57:13 UTC] [32mINFO[39m: [36mundefined - User active evaluations retrieved[39m
+    userId: "24"
+    evaluationCount: 1
+[04:57:13 UTC] [32mINFO[39m: [36mundefined - Starting dynamic orders findMany with filters[39m
+    filters: {
+      "userid": "24"
+    }
+    page: 1
+    limit: 1
+[04:57:13 UTC] [34mDEBUG[39m: [36mundefined - Discovering table columns[39m
+    tableName: "orders"
+prisma:query 
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = $1
+      AND table_schema = 'public'
+      ORDER BY ordinal_position
+    
+[04:57:13 UTC] [32mINFO[39m: [36mundefined - Discovered 25 columns for table orders[39m
+    tableName: "orders"
+    columns: [
+      "id",
+      "userid",
+      "addressid",
+      "createddate",
+      "modifieddate",
+      "orderamount",
+      "orderid",
+      "orderstatus",
+      "delivereddate",
+      "cancelleddate",
+      "returneddate",
+      "quantity",
+      "transactionid",
+      "readytodispatchdate",
+      "dispatcheddate",
+      "productamount",
+      "discountamount",
+      "deliveryfrom",
+      "orderprocessingtime",
+      "ispaymentsucceed",
+      "merchanttransactionid",
+      "productid",
+      "paymentfaileddate",
+      "searchtext",
+      "mode"
+    ]
+[04:57:13 UTC] [34mDEBUG[39m: [36mundefined - Built dynamic WHERE clause[39m
+    tableName: "orders"
+    filters: [
+      "userid"
+    ]
+    whereClause: "WHERE \"userid\" = $1"
+    valueCount: 1
+    availableColumns: 25
+prisma:query 
+    SELECT column_name, data_type 
+    FROM information_schema.columns 
+    WHERE table_name = $1 AND table_schema = 'public'
+    ORDER BY ordinal_position
+  
+[04:57:14 UTC] [34mDEBUG[39m: [36mundefined - Safe columns cached for table[39m
+    tableName: "orders"
+    totalColumns: 25
+    safeColumns: 24
+    excludedColumns: 1
+[04:57:14 UTC] [34mDEBUG[39m: [36mundefined - Executing dynamic filtered queries[39m
+    dataQuery: "\n      SELECT id, userid, addressid, createddate, modifieddate, orderamount, orderid, orderstatus, delivereddate, cancelleddate, returneddate, quantity, transactionid, readytodispatchdate, dispatcheddate, productamount, discountamount, deliveryfrom, orderprocessingtime, ispaymentsucceed, merchanttransactionid, productid, paymentfaileddate, mode \n      FROM orders \n      WHERE \"userid\" = $1\n      ORDER BY COALESCE(modifieddate, createddate, id) DESC \n      LIMIT 1 OFFSET 0\n    "
+    countQuery: "\n      SELECT COUNT(*) as count \n      FROM orders \n      WHERE \"userid\" = $1\n    "
+    values: [
+      24
+    ]
+    tableName: "orders"
+    filters: [
+      "userid"
+    ]
+prisma:query 
+      SELECT COUNT(*) as count 
+      FROM orders 
+      WHERE "userid" = $1
+    
+prisma:query 
+      SELECT id, userid, addressid, createddate, modifieddate, orderamount, orderid, orderstatus, delivereddate, cancelleddate, returneddate, quantity, transactionid, readytodispatchdate, dispatcheddate, productamount, discountamount, deliveryfrom, orderprocessingtime, ispaymentsucceed, merchanttransactionid, productid, paymentfaileddate, mode 
+      FROM orders 
+      WHERE "userid" = $1
+      ORDER BY COALESCE(modifieddate, createddate, id) DESC 
+      LIMIT 1 OFFSET 0
+    
+{"level":30,"time":1757307435008,"pid":96411,"hostname":"Jeyakumars-Mac-mini.local","reqId":"req-5","method":"GET","url":"/v1/orders?userid=24&limit=1","statusCode":200,"responseTime":1885.7024170001969,"msg":"Request completed - 200 - 1885.7024170001969ms"}
+[04:57:15 UTC] [32mINFO[39m: [36mundefined - Dynamic filtered findMany completed[39m
+    modelName: "orders"
+    filters: [
+      "userid"
+    ]
+    total: 32
+    returned: 1
+    filtered: true
+[04:57:15 UTC] [32mINFO[39m: [36mundefined - Dynamic orders findMany with filters completed[39m
+    orderCount: 1
+    total: 32
+    filtered: true
+    appliedFilters: [
+      "userid"
+    ]
+    availableFields: [
+      "id",
+      "userid",
+      "addressid",
+      "createddate",
+      "modifieddate",
+      "orderamount",
+      "orderid",
+      "orderstatus",
+      "delivereddate",
+      "cancelleddate",
+      "returneddate",
+      "quantity",
+      "transactionid",
+      "readytodispatchdate",
+      "dispatcheddate",
+      "productamount",
+      "discountamount",
+      "deliveryfrom",
+      "orderprocessingtime",
+      "ispaymentsucceed",
+      "merchanttransactionid",
+      "productid",
+      "paymentfaileddate",
+      "mode"
+    ]
+10:28:27 AM [tsx] change in ./src/services/promotion-redemption.service.ts Restarting...
+Received SIGTERM, gracefully shutting down Prisma client...
+{"level":30,"time":1757307507523,"pid":96411,"hostname":"Jeyakumars-Mac-mini.local","msg":"Received SIGTERM, shutting down gracefully..."}
+[04:58:27 UTC] [32mINFO[39m: [36mundefined - Disconnecting from database...[39m
+c🚀 POINVOICE SERVICE LOADED - This should appear when the service is imported
+test
+[04:58:28 UTC] [32mINFO[39m: [36mundefined - Logger plugin registered successfully[39m
+✅ Database connected successfully
+prisma:query SELECT 1
+{"level":30,"time":1757307511167,"pid":2821,"hostname":"Jeyakumars-Mac-mini.local","msg":"Database plugin registered successfully"}
+strict mode: use allowUnionTypes to allow union type keyword at "#/properties/productid" (strictTypes)
+{"level":30,"time":1757307511597,"pid":2821,"hostname":"Jeyakumars-Mac-mini.local","msg":"Server listening at http://127.0.0.1:5600"}
+{"level":30,"time":1757307511597,"pid":2821,"hostname":"Jeyakumars-Mac-mini.local","msg":"Server listening at http://192.168.0.110:5600"}
+{"level":30,"time":1757307511597,"pid":2821,"hostname":"Jeyakumars-Mac-mini.local","msg":"🚀 Server running at http://localhost:5600"}
+{"level":30,"time":1757307511597,"pid":2821,"hostname":"Jeyakumars-Mac-mini.local","msg":"📚 API Documentation available at http://localhost:5600/docs"}
+[04:58:31 UTC] [32mINFO[39m: [36mundefined - ✅ Database connected and tested successfully[39m
+{"level":30,"time":1757307642408,"pid":2821,"hostname":"Jeyakumars-Mac-mini.local","reqId":"req-1","method":"POST","url":"/v1/promotions/redeem","query":{},"userAgent":"curl/8.7.1","msg":"Incoming request"}
+=== ERROR DEBUG ===
+Error name: Error
+Error constructor: Error
+Is NotFoundError? false
+Error statusCode: 400
+Error message: body/evaluation_id must match format "uuid"
+=== MATCHED: Custom statusCode property
+=== FINAL RESULT ===
+Final statusCode: 400
+Final message: body/evaluation_id must match format "uuid"
+Final details: body/evaluation_id must match format "uuid"
+{"level":30,"time":1757307642413,"pid":2821,"hostname":"Jeyakumars-Mac-mini.local","reqId":"req-1","method":"POST","url":"/v1/promotions/redeem","statusCode":400,"responseTime":5.663124999962747,"msg":"Request completed - 400 - 5.663124999962747ms"}
+[05:00:42 UTC] [31mERROR[39m: [36mundefined - Error occurred: body/evaluation_id must match format "uuid"[39m
+    request: {
+      "method": "POST",
+      "url": "/v1/promotions/redeem",
+      "query": {},
+      "params": {},
+      "body": {
+        "evaluation_id": "eval_1757304668750_44ddp4jpp",
+        "order_id": "67",
+        "user_id": "24"
+      },
+      "userAgent": "curl/8.7.1",
+      "ip": "127.0.0.1"
+    }
+    error: {
+      "name": "Error",
+      "message": "body/evaluation_id must match format \"uuid\"",
+      "stack":
+          Error: body/evaluation_id must match format "uuid"
+              at defaultSchemaErrorFormatter (/Users/jeyakumarn/Documents/GitHub/Suresh-on-cloud/asset-management-backend/node_modules/fastify/lib/context.js:92:10)
+              at wrapValidationError (/Users/jeyakumarn/Documents/GitHub/Suresh-on-cloud/asset-management-backend/node_modules/fastify/lib/validation.js:249:17)
+              at validate (/Users/jeyakumarn/Documents/GitHub/Suresh-on-cloud/asset-management-backend/node_modules/fastify/lib/validation.js:167:16)
+              at preValidationCallback (/Users/jeyakumarn/Documents/GitHub/Suresh-on-cloud/asset-management-backend/node_modules/fastify/lib/handleRequest.js:89:25)
+              at handler (/Users/jeyakumarn/Documents/GitHub/Suresh-on-cloud/asset-management-backend/node_modules/fastify/lib/handleRequest.js:73:7)
+              at /Users/jeyakumarn/Documents/GitHub/Suresh-on-cloud/asset-management-backend/node_modules/fastify/lib/contentTypeParser.js:214:9
+              at AsyncResource.runInAsyncScope (node:async_hooks:214:14)
+              at done (/Users/jeyakumarn/Documents/GitHub/Suresh-on-cloud/asset-management-backend/node_modules/fastify/lib/contentTypeParser.js:207:14)
+              at Parser.defaultJsonParser [as fn] (/Users/jeyakumarn/Documents/GitHub/Suresh-on-cloud/asset-management-backend/node_modules/fastify/lib/contentTypeParser.js:312:7)
+              at IncomingMessage.onEnd (/Users/jeyakumarn/Documents/GitHub/Suresh-on-cloud/asset-management-backend/node_modules/fastify/lib/contentTypeParser.js:296:27)
+      "code": "FST_ERR_VALIDATION",
+      "statusCode": 400
+    }
+{"level":30,"time":1757307665123,"pid":2821,"hostname":"Jeyakumars-Mac-mini.local","reqId":"req-2","method":"GET","url":"/v1/promotions/evaluations?user_id=24","query":{"user_id":"24"},"userAgent":"curl/8.7.1","msg":"Incoming request"}
+[05:01:05 UTC] [32mINFO[39m: [36mundefined - Getting user active evaluations[39m
+    userId: "24"
+{"level":30,"time":1757307667699,"pid":2821,"hostname":"Jeyakumars-Mac-mini.local","reqId":"req-2","method":"GET","url":"/v1/promotions/evaluations?user_id=24","statusCode":200,"responseTime":2575.9563749991357,"msg":"Request completed - 200 - 2575.9563749991357ms"}
+[05:01:07 UTC] [32mINFO[39m: [36mundefined - User active evaluations retrieved[39m
+    userId: "24"
+    evaluationCount: 1
+10:32:52 AM [tsx] change in ./src/services/promotion-redemption.service.ts Restarting...
+Received SIGTERM, gracefully shutting down Prisma client...
+{"level":30,"time":1757307772018,"pid":2821,"hostname":"Jeyakumars-Mac-mini.local","msg":"Received SIGTERM, shutting down gracefully..."}
+[05:02:52 UTC] [32mINFO[39m: [36mundefined - Disconnecting from database...[39m
+c🚀 POINVOICE SERVICE LOADED - This should appear when the service is imported
+test
+[05:02:52 UTC] [32mINFO[39m: [36mundefined - Logger plugin registered successfully[39m
+✅ Database connected successfully
+prisma:query SELECT 1
+{"level":30,"time":1757307775229,"pid":17423,"hostname":"Jeyakumars-Mac-mini.local","msg":"Database plugin registered successfully"}
+strict mode: use allowUnionTypes to allow union type keyword at "#/properties/productid" (strictTypes)
+{"level":30,"time":1757307775683,"pid":17423,"hostname":"Jeyakumars-Mac-mini.local","msg":"Server listening at http://127.0.0.1:5600"}
+{"level":30,"time":1757307775683,"pid":17423,"hostname":"Jeyakumars-Mac-mini.local","msg":"Server listening at http://192.168.0.110:5600"}
+{"level":30,"time":1757307775683,"pid":17423,"hostname":"Jeyakumars-Mac-mini.local","msg":"🚀 Server running at http://localhost:5600"}
+{"level":30,"time":1757307775683,"pid":17423,"hostname":"Jeyakumars-Mac-mini.local","msg":"📚 API Documentation available at http://localhost:5600/docs"}
+[05:02:55 UTC] [32mINFO[39m: [36mundefined - ✅ Database connected and tested successfully[39m
+10:32:59 AM [tsx] change in ./src/services/promotion-redemption.service.ts Restarting...
+Received SIGTERM, gracefully shutting down Prisma client...
+{"level":30,"time":1757307779854,"pid":17423,"hostname":"Jeyakumars-Mac-mini.local","msg":"Received SIGTERM, shutting down gracefully..."}
+[05:02:59 UTC] [32mINFO[39m: [36mundefined - Disconnecting from database...[39m
+c🚀 POINVOICE SERVICE LOADED - This should appear when the service is imported
+test
+[05:03:00 UTC] [32mINFO[39m: [36mundefined - Logger plugin registered successfully[39m
+✅ Database connected successfully
+prisma:query SELECT 1
+{"level":30,"time":1757307782839,"pid":17766,"hostname":"Jeyakumars-Mac-mini.local","msg":"Database plugin registered successfully"}
+strict mode: use allowUnionTypes to allow union type keyword at "#/properties/productid" (strictTypes)
+{"level":30,"time":1757307783250,"pid":17766,"hostname":"Jeyakumars-Mac-mini.local","msg":"Server listening at http://127.0.0.1:5600"}
+{"level":30,"time":1757307783250,"pid":17766,"hostname":"Jeyakumars-Mac-mini.local","msg":"Server listening at http://192.168.0.110:5600"}
+{"level":30,"time":1757307783250,"pid":17766,"hostname":"Jeyakumars-Mac-mini.local","msg":"🚀 Server running at http://localhost:5600"}
+{"level":30,"time":1757307783250,"pid":17766,"hostname":"Jeyakumars-Mac-mini.local","msg":"📚 API Documentation available at http://localhost:5600/docs"}
+[05:03:02 UTC] [32mINFO[39m: [36mundefined - ✅ Database connected and tested successfully[39m
+10:33:20 AM [tsx] change in ./src/services/promotion-redemption.service.ts Restarting...
+Received SIGTERM, gracefully shutting down Prisma client...
+{"level":30,"time":1757307800830,"pid":17766,"hostname":"Jeyakumars-Mac-mini.local","msg":"Received SIGTERM, shutting down gracefully..."}
+[05:03:20 UTC] [32mINFO[39m: [36mundefined - Disconnecting from database...[39m
+c🚀 POINVOICE SERVICE LOADED - This should appear when the service is imported
+test
+[05:03:21 UTC] [32mINFO[39m: [36mundefined - Logger plugin registered successfully[39m
+✅ Database connected successfully
+prisma:query SELECT 1
+{"level":30,"time":1757307804552,"pid":18714,"hostname":"Jeyakumars-Mac-mini.local","msg":"Database plugin registered successfully"}
+strict mode: use allowUnionTypes to allow union type keyword at "#/properties/productid" (strictTypes)
+{"level":30,"time":1757307804990,"pid":18714,"hostname":"Jeyakumars-Mac-mini.local","msg":"Server listening at http://127.0.0.1:5600"}
+{"level":30,"time":1757307804990,"pid":18714,"hostname":"Jeyakumars-Mac-mini.local","msg":"Server listening at http://192.168.0.110:5600"}
+{"level":30,"time":1757307804990,"pid":18714,"hostname":"Jeyakumars-Mac-mini.local","msg":"🚀 Server running at http://localhost:5600"}
+{"level":30,"time":1757307804990,"pid":18714,"hostname":"Jeyakumars-Mac-mini.local","msg":"📚 API Documentation available at http://localhost:5600/docs"}
+[05:03:24 UTC] [32mINFO[39m: [36mundefined - ✅ Database connected and tested successfully[39m
+{"level":30,"time":1757307846133,"pid":18714,"hostname":"Jeyakumars-Mac-mini.local","reqId":"req-1","method":"GET","url":"/v1/promotions/evaluations?user_id=24","query":{"user_id":"24"},"userAgent":"curl/8.7.1","msg":"Incoming request"}
+[05:04:06 UTC] [32mINFO[39m: [36mundefined - Getting user active evaluations[39m
+    userId: "24"
+{"level":30,"time":1757307848603,"pid":18714,"hostname":"Jeyakumars-Mac-mini.local","reqId":"req-1","method":"GET","url":"/v1/promotions/evaluations?user_id=24","statusCode":200,"responseTime":2470.295250000432,"msg":"Request completed - 200 - 2470.295250000432ms"}
+[05:04:08 UTC] [32mINFO[39m: [36mundefined - User active evaluations retrieved[39m
+    userId: "24"
+    evaluationCount: 0
+{"level":30,"time":1757307856111,"pid":18714,"hostname":"Jeyakumars-Mac-mini.local","reqId":"req-2","method":"GET","url":"/v1/promotions/evaluations?user_id=24","query":{"user_id":"24"},"userAgent":"curl/8.7.1","msg":"Incoming request"}
+[05:04:16 UTC] [32mINFO[39m: [36mundefined - Getting user active evaluations[39m
+    userId: "24"
+{"level":30,"time":1757307856382,"pid":18714,"hostname":"Jeyakumars-Mac-mini.local","reqId":"req-2","method":"GET","url":"/v1/promotions/evaluations?user_id=24","statusCode":200,"responseTime":270.8711660001427,"msg":"Request completed - 200 - 270.8711660001427ms"}
+[05:04:16 UTC] [32mINFO[39m: [36mundefined - User active evaluations retrieved[39m
+    userId: "24"
+    evaluationCount: 0
+10:34:33 AM [tsx] change in ./src/services/promotion-redemption.service.ts Restarting...
+Received SIGTERM, gracefully shutting down Prisma client...
+{"level":30,"time":1757307873259,"pid":18714,"hostname":"Jeyakumars-Mac-mini.local","msg":"Received SIGTERM, shutting down gracefully..."}
+[05:04:33 UTC] [32mINFO[39m: [36mundefined - Disconnecting from database...[39m
+c🚀 POINVOICE SERVICE LOADED - This should appear when the service is imported
+test
+[05:04:34 UTC] [32mINFO[39m: [36mundefined - Logger plugin registered successfully[39m
+✅ Database connected successfully
+prisma:query SELECT 1
+{"level":30,"time":1757307876456,"pid":22448,"hostname":"Jeyakumars-Mac-mini.local","msg":"Database plugin registered successfully"}
+strict mode: use allowUnionTypes to allow union type keyword at "#/properties/productid" (strictTypes)
+{"level":30,"time":1757307876902,"pid":22448,"hostname":"Jeyakumars-Mac-mini.local","msg":"Server listening at http://127.0.0.1:5600"}
+{"level":30,"time":1757307876902,"pid":22448,"hostname":"Jeyakumars-Mac-mini.local","msg":"Server listening at http://192.168.0.110:5600"}
+{"level":30,"time":1757307876902,"pid":22448,"hostname":"Jeyakumars-Mac-mini.local","msg":"🚀 Server running at http://localhost:5600"}
+{"level":30,"time":1757307876902,"pid":22448,"hostname":"Jeyakumars-Mac-mini.local","msg":"📚 API Documentation available at http://localhost:5600/docs"}
+[05:04:36 UTC] [32mINFO[39m: [36mundefined - ✅ Database connected and tested successfully[39m
+10:34:46 AM [tsx] change in ./src/routes/phonepe.route.ts Restarting...
+Received SIGTERM, gracefully shutting down Prisma client...
+{"level":30,"time":1757307886689,"pid":22448,"hostname":"Jeyakumars-Mac-mini.local","msg":"Received SIGTERM, shutting down gracefully..."}
+[05:04:46 UTC] [32mINFO[39m: [36mundefined - Disconnecting from database...[39m
+c🚀 POINVOICE SERVICE LOADED - This should appear when the service is imported
+test
+[05:04:47 UTC] [32mINFO[39m: [36mundefined - Logger plugin registered successfully[39m
+✅ Database connected successfully
+prisma:query SELECT 1
+{"level":30,"time":1757307890280,"pid":23060,"hostname":"Jeyakumars-Mac-mini.local","msg":"Database plugin registered successfully"}
+strict mode: use allowUnionTypes to allow union type keyword at "#/properties/productid" (strictTypes)
+[05:04:50 UTC] [32mINFO[39m: [36mundefined - ✅ Database connected and tested successfully[39m
+{"level":30,"time":1757307890699,"pid":23060,"hostname":"Jeyakumars-Mac-mini.local","msg":"Server listening at http://127.0.0.1:5600"}
+{"level":30,"time":1757307890699,"pid":23060,"hostname":"Jeyakumars-Mac-mini.local","msg":"Server listening at http://192.168.0.110:5600"}
+{"level":30,"time":1757307890700,"pid":23060,"hostname":"Jeyakumars-Mac-mini.local","msg":"🚀 Server running at http://localhost:5600"}
+{"level":30,"time":1757307890700,"pid":23060,"hostname":"Jeyakumars-Mac-mini.local","msg":"📚 API Documentation available at http://localhost:5600/docs"}

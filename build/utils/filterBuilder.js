@@ -572,4 +572,3 @@ export function buildPurchaseRequestFilters(filters) {
     // Multiple conditions - combine with AND
     return { AND: conditions };
 }
-//# sourceMappingURL=filterBuilder.js.map

@@ -6,6 +6,7 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
   const phonePeController = new PhonePeController();
 
   // Payment initiation endpoint
+<<<<<<< HEAD
   fastify.post(
     "/initiate",
     {
@@ -148,6 +149,84 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
                 "userId",
               ],
               additionalProperties: false,
+=======
+  fastify.post('/initiate', {
+    schema: {
+      description: 'Initiate payment with PhonePe or create COD order',
+      tags: ['PhonePe Payment'],
+      summary: 'Start a payment transaction with PhonePe gateway or create Cash on Delivery order',
+      body: {
+        type: 'object',
+        properties: {
+          mode: { 
+            type: 'string', 
+            // enum: ['phonepe', 'cod'],
+            description: 'Payment mode: phonepe for online payment, cod for cash on delivery'
+          },
+          evaluation_ids: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Promotion evaluation IDs array (optional)'
+          },
+          order: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                addressid: { 
+                  type: 'number', 
+                  minimum: 1, 
+                  description: 'Address ID from address table'
+                },
+                cartId: { 
+                  type: 'number', 
+                  minimum: 1, 
+                  description: 'Shopping cart ID'
+                },
+                discountamount: { 
+                  type: 'number', 
+                  minimum: 0, 
+                  description: 'Discount amount in INR'
+                },
+                orderamount: { 
+                  type: 'number', 
+                  minimum: 0.01, 
+                  description: 'Total order amount in INR'
+                },
+                productamount: { 
+                  type: 'number', 
+                  minimum: 0.01, 
+                  description: 'Product price in INR'
+                },
+                productcategory: { 
+                  type: 'string', 
+                  minLength: 1, 
+                  description: 'Product category'
+                },
+                productid: { 
+                  type: 'number', 
+                  minimum: 1, 
+                  description: 'Product ID from product table'
+                },
+                productname: { 
+                  type: 'string', 
+                  minLength: 1, 
+                  description: 'Product name'
+                },
+                quantity: { 
+                  type: 'number', 
+                  minimum: 1, 
+                  description: 'Quantity of product'
+                },
+                userid: { 
+                  type: 'number', 
+                  minimum: 1, 
+                  description: 'User ID from users table'
+                }
+              },
+              required: ['addressid', 'cartId', 'discountamount', 'orderamount', 'productamount', 'productcategory', 'productid', 'productname', 'quantity', 'userid'],
+              additionalProperties: false
+>>>>>>> promotion-v3
             },
           },
           required: ["mode", "order", "transaction"],
@@ -217,11 +296,114 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
         params: {
           type: "object",
           properties: {
+<<<<<<< HEAD
             transactionId: {
               type: "string",
               minLength: 1,
               maxLength: 500,
               description: "Transaction ID",
+=======
+            statusCode: { type: 'number' },
+            message: { type: 'string' }
+          }
+        },
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: { type: 'object' }
+          }
+        }
+      }
+    }
+  }, async (request, reply) => {
+    const { transactionId } = request.params as { transactionId: string };
+    console.log(transactionId,"Payment callback received for transaction:")
+    try {
+      fastify.log.info(`Payment callback received for transaction: ${transactionId}`);
+      
+      // Get payment status from PhonePe
+      const paymentStatus = await phonePeController.phonePeService.checkPaymentStatus(transactionId);
+      
+      if (paymentStatus.success && paymentStatus.code === 'PAYMENT_SUCCESS') {
+        fastify.log.info(`Payment successful for transaction: ${transactionId}`);
+        
+        // Update transaction status to success first
+        await phonePeController.updateTransactionStatus(transactionId, 'SUCCESS', paymentStatus);
+        fastify.log.info(`Transaction status updated to SUCCESS for: ${transactionId}`);
+        
+        // Create order and orderline records with improved error handling
+        let orderCreationStatus = 'success';
+        let orderCreationError = null;
+        let orderId = null;
+        
+        try {
+          fastify.log.info(`Calling createOrderAfterPayment for transaction: ${transactionId}`);
+          
+          // Get evaluation IDs from transaction data for promotion redemption
+          const transactions = await phonePeController.transactionService.findMany(
+            { merchanttransactionid: transactionId }, 
+            1, 
+            1
+          );
+          
+          let evaluationIds: string[] = [];
+          if (transactions.data && transactions.data.length > 0) {
+            const transaction = transactions.data[0];
+            evaluationIds = transaction.transactiondata?.evaluation_ids || [];
+            
+            fastify.log.info({
+              transactionId,
+              evaluationIds,
+              evaluationCount: evaluationIds.length
+            }, 'Retrieved evaluation IDs from transaction for promotion redemption');
+          }
+          
+          // Force mode to "phonepe" since this is PhonePe webhook callback
+          const order = await phonePeController.createOrderAfterPayment(transactionId, 'phonepe', evaluationIds);
+          orderId = order.id;
+          fastify.log.info(`Order created successfully for transaction: ${transactionId}`, { 
+            orderId: order.id,
+            orderIdString: order.orderid
+          });
+        } catch (orderError: any) {
+          orderCreationStatus = 'failed';
+          orderCreationError = orderError.message;
+          
+          fastify.log.error(`Error creating order for transaction: ${transactionId}`, {
+            error: orderError.message,
+            stack: orderError.stack,
+            errorType: orderError.constructor.name
+          });
+          
+          // Update transaction with order creation error details
+          try {
+            await phonePeController.updateTransactionStatus(transactionId, 'SUCCESS', {
+              ...paymentStatus,
+              orderCreation: {
+                status: 'failed',
+                error: orderError.message,
+                timestamp: new Date().toISOString()
+              }
+            });
+          } catch (updateError: any) {
+            fastify.log.error(`Failed to update transaction with order creation error for ${transactionId}`, {
+              updateError: updateError.message
+            });
+          }
+        }
+        
+        // Update final transaction status with order creation results
+        try {
+          await phonePeController.updateTransactionStatus(transactionId, 'SUCCESS', {
+            ...paymentStatus,
+            orderCreation: {
+              status: orderCreationStatus,
+              error: orderCreationError,
+              orderId: orderId,
+              timestamp: new Date().toISOString()
+>>>>>>> promotion-v3
             },
           },
           required: ["transactionId"],

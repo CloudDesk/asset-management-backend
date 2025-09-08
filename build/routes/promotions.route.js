@@ -1,6 +1,10 @@
 import { PromotionsController } from '../controllers/promotions.controller.js';
+import { PromotionEvaluationController } from '../controllers/promotion-evaluation.controller.js';
+import { PromotionRedemptionController } from '../controllers/promotion-redemption.controller.js';
 export async function promotionsRoutes(fastify) {
     const promotionsController = new PromotionsController();
+    const evaluationController = new PromotionEvaluationController();
+    const redemptionController = new PromotionRedemptionController();
     // GET /v1/promotions - Get all promotions with pagination and filtering
     fastify.get('/', {
         schema: {
@@ -11,19 +15,31 @@ export async function promotionsRoutes(fastify) {
                 properties: {
                     page: { type: 'string', description: 'Page number' },
                     limit: { type: 'string', description: 'Items per page' },
+                    userid: { type: 'string', description: 'Filter by user ID for personalized promotions' },
+                    channel: { type: 'string', description: 'Channel (web, mobile, etc.)' },
+                    geo: { type: 'string', description: 'Geographic region' },
+                    current_date: { type: 'string', format: 'date-time', description: 'Current date for filtering' },
                     name: { type: 'string', description: 'Filter by promotion name' },
                     type: { type: 'string', description: 'Filter by promotion type' },
                     code: { type: 'string', description: 'Filter by promotion code' },
                     auto_apply: { type: 'string', description: 'Filter by auto-apply status (true/false)' },
+                    is_active: { type: 'string', description: 'Filter by active status (true/false)' },
                     status: { type: 'string', description: 'Filter by promotion status' },
                     priority: { type: 'string', description: 'Filter by priority' },
                     visibility: { type: 'string', description: 'Filter by visibility' },
                     stackable: { type: 'string', description: 'Filter by stackable status (true/false)' },
+                    budget_min: { type: 'string', description: 'Filter by minimum budget' },
+                    budget_max: { type: 'string', description: 'Filter by maximum budget' },
+                    timezone: { type: 'string', description: 'Filter by timezone' },
+                    discount_type: { type: 'string', description: 'Filter by discount type' },
+                    discount_value_min: { type: 'string', description: 'Filter by minimum discount value' },
+                    discount_value_max: { type: 'string', description: 'Filter by maximum discount value' },
                     start_date_after: { type: 'string', description: 'Filter by start date after' },
                     start_date_before: { type: 'string', description: 'Filter by start date before' },
                     end_date_after: { type: 'string', description: 'Filter by end date after' },
                     end_date_before: { type: 'string', description: 'Filter by end date before' },
                 },
+                additionalProperties: true, // Allow any query parameters for dynamic filtering
             },
             response: {
                 200: {
@@ -37,9 +53,11 @@ export async function promotionsRoutes(fastify) {
                                 properties: {
                                     id: { type: 'number', description: 'Promotion ID' },
                                     name: { type: 'string', nullable: true, description: 'Promotion name' },
+                                    description: { type: 'string', nullable: true, description: 'Promotion description' },
                                     type: { type: 'string', nullable: true, description: 'Promotion type' },
                                     code: { type: 'string', nullable: true, description: 'Promotion code' },
                                     auto_apply: { type: 'boolean', nullable: true, description: 'Auto-apply status' },
+                                    is_active: { type: 'boolean', nullable: true, description: 'Active status' },
                                     start_date: { type: 'string', nullable: true, description: 'Start date' },
                                     end_date: { type: 'string', nullable: true, description: 'End date' },
                                     status: { type: 'string', nullable: true, description: 'Promotion status' },
@@ -48,6 +66,13 @@ export async function promotionsRoutes(fastify) {
                                     max_redemptions: { type: 'number', nullable: true, description: 'Maximum redemptions' },
                                     per_user_limit: { type: 'number', nullable: true, description: 'Per user limit' },
                                     stackable: { type: 'boolean', nullable: true, description: 'Stackable status' },
+                                    budget: { type: 'number', nullable: true, description: 'Promotion budget' },
+                                    timezone: { type: 'string', nullable: true, description: 'Timezone' },
+                                    evaluation_expiry_minutes: { type: 'number', nullable: true, description: 'Evaluation expiry minutes' },
+                                    discount_type: { type: 'string', nullable: true, description: 'Discount type' },
+                                    discount_value: { type: 'number', nullable: true, description: 'Discount value' },
+                                    conditions: { type: 'array', nullable: true, description: 'Promotion conditions' },
+                                    actions: { type: 'array', nullable: true, description: 'Promotion actions' },
                                     createddate: { type: 'number', description: 'Creation timestamp' },
                                     modifieddate: { type: 'number', description: 'Modification timestamp' },
                                 },
@@ -75,63 +100,23 @@ export async function promotionsRoutes(fastify) {
                         },
                     },
                 },
-            },
-        },
-    }, promotionsController.getPromotions.bind(promotionsController));
-    // GET /v1/promotions/eligible - Evaluate promotion eligibility (GET version)
-    fastify.get('/eligible', {
-        schema: {
-            description: 'Evaluate promotion eligibility for a user and cart (GET version)',
-            tags: ['Promotions'],
-            querystring: {
-                type: 'object',
-                properties: {
-                    user_id: { type: 'string', description: 'User ID' },
-                    platform: { type: 'string', description: 'Platform (web, mobile, etc.)' },
-                    code: { type: 'string', description: 'Promotion code' }
-                },
-                required: ['user_id', 'platform']
-            },
-            response: {
-                200: {
+                400: {
                     type: 'object',
                     properties: {
                         success: { type: 'boolean' },
-                        data: {
-                            type: 'object',
-                            properties: {
-                                eligible_promotions: {
-                                    type: 'array',
-                                    items: {
-                                        type: 'object',
-                                        properties: {
-                                            promotion_id: { type: 'number' },
-                                            name: { type: 'string' },
-                                            type: { type: 'string' },
-                                            description: { type: 'string' },
-                                            stackable: { type: 'boolean' },
-                                            actions: {
-                                                type: 'array',
-                                                items: {
-                                                    type: 'object',
-                                                    properties: {
-                                                        type: { type: 'string' },
-                                                        target: { type: 'string' },
-                                                        value: { type: ['number', 'string'] }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        message: { type: 'string' }
-                    }
-                }
-            }
-        }
-    }, promotionsController.evaluateEligibility.bind(promotionsController));
+                        error: { type: 'string' },
+                    },
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        error: { type: 'string' },
+                    },
+                },
+            },
+        },
+    }, promotionsController.getPromotions.bind(promotionsController));
     // GET /v1/promotions/:id - Get promotion by ID
     fastify.get('/:id', {
         schema: {
@@ -237,17 +222,51 @@ export async function promotionsRoutes(fastify) {
                 type: 'object',
                 properties: {
                     name: { type: 'string', maxLength: 255, description: 'Promotion name' },
-                    type: { type: 'string', maxLength: 100, description: 'Promotion type' },
-                    code: { type: 'string', maxLength: 50, description: 'Promotion code' },
+                    description: { type: 'string', description: 'Promotion description' },
+                    type: {
+                        type: 'string',
+                        enum: ['PERCENT_OFF_ITEM', 'FIXED_AMOUNT_OFF_ITEM', 'BOGO', 'PERCENT_OFF_CART', 'FIXED_AMOUNT_OFF_CART', 'FREE_SHIPPING', 'FREE_PRODUCT'],
+                        description: 'Promotion type'
+                    },
+                    code: { type: 'string', description: 'Promotion code' },
                     auto_apply: { type: 'boolean', description: 'Auto-apply status' },
+                    is_active: { type: 'boolean', description: 'Active status' },
                     start_date: { type: 'string', format: 'date-time', description: 'Start date' },
                     end_date: { type: 'string', format: 'date-time', description: 'End date' },
-                    status: { type: 'string', maxLength: 50, description: 'Promotion status' },
+                    status: { type: 'string', enum: ['active', 'inactive'], description: 'Promotion status' },
                     priority: { type: 'number', description: 'Priority' },
-                    visibility: { type: 'string', maxLength: 50, description: 'Visibility' },
+                    visibility: { type: 'string', enum: ['public', 'private'], description: 'Visibility' },
                     max_redemptions: { type: 'number', description: 'Maximum redemptions' },
                     per_user_limit: { type: 'number', description: 'Per user limit' },
                     stackable: { type: 'boolean', description: 'Stackable status' },
+                    budget: { type: 'number', description: 'Promotion budget' },
+                    timezone: { type: 'string', description: 'Timezone' },
+                    evaluation_expiry_minutes: { type: 'number', description: 'Evaluation expiry minutes' },
+                    discount_type: { type: 'string', description: 'Discount type' },
+                    discount_value: { type: 'number', description: 'Discount value' },
+                    conditions: {
+                        type: 'array',
+                        description: 'Promotion conditions',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                attribute: { type: 'string' },
+                                operator: { type: 'string', enum: ['GTE', 'LTE', 'EQ', 'IN', 'NOT_IN', 'CONTAINS'] },
+                                value: { oneOf: [{ type: 'string' }, { type: 'number' }, { type: 'array', items: { type: 'string' } }] }
+                            }
+                        }
+                    },
+                    actions: {
+                        type: 'array',
+                        description: 'Promotion actions',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                type: { type: 'string', enum: ['PERCENT_OFF', 'FIXED_AMOUNT_OFF', 'FREE_SHIPPING', 'BOGO'] },
+                                value: { oneOf: [{ type: 'number' }, { type: 'boolean' }] }
+                            }
+                        }
+                    },
                 },
                 additionalProperties: true
             },
@@ -347,17 +366,51 @@ export async function promotionsRoutes(fastify) {
                 type: 'object',
                 properties: {
                     name: { type: 'string', maxLength: 255, description: 'Promotion name' },
-                    type: { type: 'string', maxLength: 100, description: 'Promotion type' },
-                    code: { type: 'string', maxLength: 50, description: 'Promotion code' },
+                    description: { type: 'string', description: 'Promotion description' },
+                    type: {
+                        type: 'string',
+                        enum: ['PERCENT_OFF_ITEM', 'FIXED_AMOUNT_OFF_ITEM', 'BOGO', 'PERCENT_OFF_CART', 'FIXED_AMOUNT_OFF_CART', 'FREE_SHIPPING', 'FREE_PRODUCT'],
+                        description: 'Promotion type'
+                    },
+                    code: { type: 'string', description: 'Promotion code' },
                     auto_apply: { type: 'boolean', description: 'Auto-apply status' },
+                    is_active: { type: 'boolean', description: 'Active status' },
                     start_date: { type: 'string', format: 'date-time', description: 'Start date' },
                     end_date: { type: 'string', format: 'date-time', description: 'End date' },
-                    status: { type: 'string', maxLength: 50, description: 'Promotion status' },
+                    status: { type: 'string', enum: ['active', 'inactive'], description: 'Promotion status' },
                     priority: { type: 'number', description: 'Priority' },
-                    visibility: { type: 'string', maxLength: 50, description: 'Visibility' },
+                    visibility: { type: 'string', enum: ['public', 'private'], description: 'Visibility' },
                     max_redemptions: { type: 'number', description: 'Maximum redemptions' },
                     per_user_limit: { type: 'number', description: 'Per user limit' },
                     stackable: { type: 'boolean', description: 'Stackable status' },
+                    budget: { type: 'number', description: 'Promotion budget' },
+                    timezone: { type: 'string', description: 'Timezone' },
+                    evaluation_expiry_minutes: { type: 'number', description: 'Evaluation expiry minutes' },
+                    discount_type: { type: 'string', description: 'Discount type' },
+                    discount_value: { type: 'number', description: 'Discount value' },
+                    conditions: {
+                        type: 'array',
+                        description: 'Promotion conditions',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                attribute: { type: 'string' },
+                                operator: { type: 'string', enum: ['GTE', 'LTE', 'EQ', 'IN', 'NOT_IN', 'CONTAINS'] },
+                                value: { oneOf: [{ type: 'string' }, { type: 'number' }, { type: 'array', items: { type: 'string' } }] }
+                            }
+                        }
+                    },
+                    actions: {
+                        type: 'array',
+                        description: 'Promotion actions',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                type: { type: 'string', enum: ['PERCENT_OFF', 'FIXED_AMOUNT_OFF', 'FREE_SHIPPING', 'BOGO'] },
+                                value: { oneOf: [{ type: 'number' }, { type: 'boolean' }] }
+                            }
+                        }
+                    },
                 },
                 additionalProperties: true
             },
@@ -553,68 +606,57 @@ export async function promotionsRoutes(fastify) {
             return reply.code(500).send(errorResponse);
         }
     });
-    // POST /v1/promotions/upsert - Create or update promotion
-    fastify.post('/upsert', {
+    // ========================================
+    // PROMOTION EVALUATION ROUTES
+    // ========================================
+    // POST /v1/promotions/evaluate - Evaluate promotion against cart
+    fastify.post('/evaluate', {
         schema: {
-            description: 'Create or update promotion (upsert)',
-            tags: ['Promotions'],
+            description: 'Evaluate promotion against cart data',
+            tags: ['Promotions', 'Evaluation'],
             body: {
                 type: 'object',
                 properties: {
-                    id: { type: 'number', description: 'Promotion ID (for update)' },
-                    name: { type: 'string', description: 'Promotion name' },
-                    type: { type: 'string', description: 'Promotion type' },
-                    code: { type: 'string', description: 'Promotion code' },
-                    auto_apply: { type: 'boolean', description: 'Auto-apply status' },
-                    start_date: { type: 'string', format: 'date-time', description: 'Start date' },
-                    end_date: { type: 'string', format: 'date-time', description: 'End date' },
-                    status: { type: 'string', description: 'Promotion status' },
-                    priority: { type: 'number', description: 'Priority' },
-                    visibility: { type: 'string', description: 'Visibility' },
-                    max_redemptions: { type: 'number', description: 'Maximum redemptions' },
-                    per_user_limit: { type: 'number', description: 'Per user limit' },
-                    stackable: { type: 'boolean', description: 'Stackable status' },
-                },
-                additionalProperties: true
-            },
-            response: {
-                200: {
-                    type: 'object',
-                    properties: {
-                        success: { type: 'boolean' },
-                        data: { type: 'object', additionalProperties: true },
-                        message: { type: 'string' },
-                    },
-                },
-            },
-        },
-    }, promotionsController.upsertPromotion.bind(promotionsController));
-    // POST /v1/promotions/eligible - Evaluate promotion eligibility
-    fastify.post('/eligible', {
-        schema: {
-            description: 'Evaluate promotion eligibility for a user and cart',
-            tags: ['Promotions'],
-            body: {
-                type: 'object',
-                properties: {
-                    user_id: { type: 'string', description: 'User ID' },
-                    platform: { type: 'string', description: 'Platform (web, mobile, etc.)' },
-                    cart: {
-                        type: 'array',
-                        items: {
-                            type: 'object',
-                            properties: {
-                                product_id: { type: 'string', description: 'Product ID' },
-                                quantity: { type: 'number', description: 'Quantity' },
-                                price: { type: 'number', description: 'Price' }
+                    cart_id: { type: 'string', description: 'Cart ID' },
+                    user_id: { type: 'string', description: 'User ID (optional for guest users)' },
+                    promotion_id: { type: 'number', description: 'Promotion ID to evaluate' },
+                    cart_data: {
+                        type: 'object',
+                        properties: {
+                            items: {
+                                type: 'array',
+                                items: {
+                                    type: 'object',
+                                    properties: {
+                                        product_id: { type: 'string' },
+                                        quantity: { type: 'number' },
+                                        price: { type: 'number' },
+                                        category: { type: 'string' },
+                                        subcategory: { type: 'string' },
+                                        name: { type: 'string' }
+                                    },
+                                    required: ['product_id', 'quantity', 'price']
+                                }
                             },
-                            required: ['product_id', 'quantity', 'price']
+                            subtotal: { type: 'number' },
+                            shipping_cost: { type: 'number' },
+                            tax_amount: { type: 'number' },
+                            total: { type: 'number' }
                         },
-                        description: 'Cart items'
+                        required: ['items', 'subtotal', 'shipping_cost', 'tax_amount']
                     },
-                    code: { type: 'string', description: 'Promotion code' }
+                    context: {
+                        type: 'object',
+                        properties: {
+                            channel: { type: 'string', enum: ['web', 'mobile', 'mobile_app'] },
+                            geo: { type: 'string' },
+                            payment_method: { type: 'string' },
+                            user_agent: { type: 'string' },
+                            ip_address: { type: 'string' }
+                        }
+                    }
                 },
-                required: ['user_id', 'platform']
+                required: ['promotion_id', 'cart_data']
             },
             response: {
                 200: {
@@ -624,37 +666,355 @@ export async function promotionsRoutes(fastify) {
                         data: {
                             type: 'object',
                             properties: {
-                                eligible_promotions: {
-                                    type: 'array',
-                                    items: {
-                                        type: 'object',
-                                        properties: {
-                                            promotion_id: { type: 'number' },
-                                            name: { type: 'string' },
-                                            type: { type: 'string' },
-                                            description: { type: 'string' },
-                                            stackable: { type: 'boolean' },
-                                            actions: {
-                                                type: 'array',
-                                                items: {
-                                                    type: 'object',
-                                                    properties: {
-                                                        type: { type: 'string' },
-                                                        target: { type: 'string' },
-                                                        value: { type: ['number', 'string'] }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
+                                evaluation_id: { type: 'string' },
+                                original_total: { type: 'number' },
+                                discounted_total: { type: 'number' },
+                                total_discount: { type: 'number' },
+                                applied_promotions: { type: 'array' },
+                                ineligible_reasons: { type: 'array' },
+                                expires_at: { type: 'string' }
                             }
                         },
                         message: { type: 'string' }
                     }
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' }
+                    }
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' }
+                    }
                 }
             }
         }
-    }, promotionsController.evaluateEligibility.bind(promotionsController));
+    }, evaluationController.evaluatePromotion.bind(evaluationController));
+    // GET /v1/promotions/evaluations/:id - Get evaluation details
+    fastify.get('/evaluations/:id', {
+        schema: {
+            description: 'Get evaluation details by ID',
+            tags: ['Promotions', 'Evaluation'],
+            params: {
+                type: 'object',
+                properties: {
+                    id: { type: 'string', description: 'Evaluation ID (UUID)' }
+                },
+                required: ['id']
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        data: { type: 'object' },
+                        message: { type: 'string' }
+                    }
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' }
+                    }
+                },
+                404: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' }
+                    }
+                }
+            }
+        }
+    }, evaluationController.getEvaluation.bind(evaluationController));
+    // ========================================
+    // PROMOTION REDEMPTION ROUTES
+    // ========================================
+    // POST /v1/promotions/redeem - Redeem promotion after order placement
+    fastify.post('/redeem', {
+        schema: {
+            description: 'Redeem promotion after successful order placement',
+            tags: ['Promotions', 'Redemption'],
+            body: {
+                type: 'object',
+                properties: {
+                    evaluation_id: { type: 'string', format: 'uuid', description: 'Evaluation ID' },
+                    order_id: { type: 'string', description: 'Order ID' },
+                    user_id: { type: 'string', description: 'User ID' }
+                },
+                required: ['evaluation_id', 'order_id', 'user_id']
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        data: {
+                            type: 'object',
+                            properties: {
+                                redemption_id: { type: 'string' },
+                                order_id: { type: 'string' },
+                                total_discount_applied: { type: 'number' },
+                                redemption_details: { type: 'array' }
+                            }
+                        },
+                        message: { type: 'string' }
+                    }
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' }
+                    }
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' }
+                    }
+                }
+            }
+        }
+    }, redemptionController.redeemPromotion.bind(redemptionController));
+    // GET /v1/promotions/redemptions/order/:orderId - Get redemptions for order
+    fastify.get('/redemptions/order/:orderId', {
+        schema: {
+            description: 'Get all redemptions for a specific order',
+            tags: ['Promotions', 'Redemption'],
+            params: {
+                type: 'object',
+                properties: {
+                    orderId: { type: 'string', description: 'Order ID' }
+                },
+                required: ['orderId']
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        data: { type: 'array' },
+                        message: { type: 'string' }
+                    }
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' }
+                    }
+                }
+            }
+        }
+    }, redemptionController.getRedemptionsForOrder.bind(redemptionController));
+    // GET /v1/promotions/redemptions/:id - Get redemption by ID
+    fastify.get('/redemptions/:id', {
+        schema: {
+            description: 'Get redemption details by ID',
+            tags: ['Promotions', 'Redemption'],
+            params: {
+                type: 'object',
+                properties: {
+                    id: { type: 'string', description: 'Redemption ID (UUID)' }
+                },
+                required: ['id']
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        data: { type: 'object' },
+                        message: { type: 'string' }
+                    }
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' }
+                    }
+                },
+                404: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' }
+                    }
+                }
+            }
+        }
+    }, redemptionController.getRedemptionById.bind(redemptionController));
+    // GET /v1/promotions/redemptions/user/:userId - Get user redemption history
+    fastify.get('/redemptions/user/:userId', {
+        schema: {
+            description: 'Get user redemption history',
+            tags: ['Promotions', 'Redemption'],
+            params: {
+                type: 'object',
+                properties: {
+                    userId: { type: 'string', description: 'User ID' }
+                },
+                required: ['userId']
+            },
+            querystring: {
+                type: 'object',
+                properties: {
+                    page: { type: 'string', description: 'Page number' },
+                    limit: { type: 'string', description: 'Items per page' }
+                }
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        data: {
+                            type: 'object',
+                            properties: {
+                                redemptions: { type: 'array' },
+                                pagination: { type: 'object' }
+                            }
+                        },
+                        message: { type: 'string' }
+                    }
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' }
+                    }
+                }
+            }
+        }
+    }, redemptionController.getUserRedemptionHistory.bind(redemptionController));
+    // ========================================
+    // PROMOTION RECOMMENDATION ROUTES
+    // ========================================
+    // POST /v1/promotions/recommend - Get best promotion recommendation for cart
+    fastify.post('/recommend', {
+        schema: {
+            description: 'Get best promotion recommendation for user cart (like Flipkart/Amazon payment page)',
+            tags: ['Promotions', 'Recommendation'],
+            body: {
+                type: 'object',
+                properties: {
+                    userId: { type: 'string', description: 'User ID' },
+                    cartItems: {
+                        type: 'array',
+                        description: 'Cart items',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                productId: { type: 'string', description: 'Product ID' },
+                                qty: { type: 'number', description: 'Quantity' },
+                                category: { type: 'string', description: 'Product category' },
+                                price: { type: 'number', description: 'Product price' }
+                            },
+                            required: ['productId', 'qty', 'category', 'price']
+                        }
+                    },
+                    mode: {
+                        type: 'string',
+                        enum: ['phonepe', 'cod'],
+                        description: 'Payment mode'
+                    }
+                },
+                required: ['userId', 'cartItems', 'mode']
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        data: {
+                            type: 'object',
+                            properties: {
+                                recommendation: {
+                                    type: 'object',
+                                    nullable: true,
+                                    properties: {
+                                        promotion: {
+                                            type: 'object',
+                                            properties: {
+                                                id: { type: 'number' },
+                                                name: { type: 'string' },
+                                                description: { type: 'string' },
+                                                type: { type: 'string' },
+                                                code: { type: 'string' },
+                                                discount_value: { type: 'number' },
+                                                discount_type: { type: 'string' },
+                                                priority: { type: 'number' },
+                                                start_date: { type: 'string' },
+                                                end_date: { type: 'string' }
+                                            }
+                                        },
+                                        discountInfo: {
+                                            type: 'object',
+                                            properties: {
+                                                originalTotal: { type: 'number' },
+                                                discountAmount: { type: 'number' },
+                                                discountedTotal: { type: 'number' },
+                                                discountPercentage: { type: 'number' },
+                                                savingsAmount: { type: 'number' }
+                                            }
+                                        },
+                                        cartInfo: {
+                                            type: 'object',
+                                            properties: {
+                                                totalItems: { type: 'number' },
+                                                categories: { type: 'array', items: { type: 'string' } },
+                                                totalValue: { type: 'number' }
+                                            }
+                                        },
+                                        mode: { type: 'string' },
+                                        expiresAt: { type: 'string' }
+                                    }
+                                },
+                                message: { type: 'string' },
+                                eligibleCount: { type: 'number' },
+                                cartTotal: { type: 'number' }
+                            }
+                        },
+                        message: { type: 'string' }
+                    }
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' }
+                    }
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' }
+                    }
+                }
+            }
+        }
+    }, promotionsController.recommendPromotion.bind(promotionsController));
 }
-//# sourceMappingURL=promotions.route.js.map

@@ -2794,4 +2794,3 @@ export async function handleDeleteError(error, modelName, id, reply) {
     };
     return reply.code(500).send(errorResponse);
 }
-//# sourceMappingURL=dynamicDbOperations.js.map

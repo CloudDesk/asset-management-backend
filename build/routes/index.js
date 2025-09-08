@@ -27,94 +27,104 @@ import { promotionUsageLogRoutes } from "./promotion-usage-log.route.js";
 import { ratingRoutes } from "./rating.route.js";
 import { createSuccessResponse } from "../utils/errorHandler.js";
 export async function routes(fastify) {
-    // Health check endpoint (public)
-    fastify.get("/health", {
-        schema: {
-            description: "Health check endpoint - No authentication required",
-            tags: ["Health"],
-            response: {
-                200: {
-                    type: "object",
-                    properties: {
-                        success: { type: "boolean" },
-                        message: { type: "string" },
-                        data: {
-                            type: "object",
-                            properties: {
-                                status: { type: "string" },
-                                timestamp: { type: "string" },
-                                uptime: { type: "number" },
-                                environment: { type: "string" },
-                            },
-                        },
-                        errors: { type: "null" },
-                    },
+  // Health check endpoint (public)
+  fastify.get(
+    "/health",
+    {
+      schema: {
+        description: "Health check endpoint - No authentication required",
+        tags: ["Health"],
+        response: {
+          200: {
+            type: "object",
+            properties: {
+              success: { type: "boolean" },
+              message: { type: "string" },
+              data: {
+                type: "object",
+                properties: {
+                  status: { type: "string" },
+                  timestamp: { type: "string" },
+                  uptime: { type: "number" },
+                  environment: { type: "string" },
                 },
+              },
+              errors: { type: "null" },
             },
+          },
         },
-    }, async (_request, reply) => {
-        const healthData = {
-            status: "ok",
-            timestamp: new Date().toISOString(),
-            uptime: process.uptime(),
-            environment: process.env.NODE_ENV || "development",
-        };
-        const response = createSuccessResponse("Health check successful", healthData);
-        return reply.code(200).send(response);
-    });
-    // API v1 routes
-    await fastify.register(async function (fastify) {
-        await fastify.register(authRoutes, { prefix: "/auth" });
-        await fastify.register(mobileAuthRoutes, { prefix: "/mobile-auth" });
-        await fastify.register(productRoutes, { prefix: "/products" });
-        await fastify.register(stockRoutes, { prefix: "/stocks" });
-        await fastify.register(picklistRoutes, { prefix: "/picklists" });
-        await fastify.register(supplierRoutes, { prefix: "/suppliers" });
-        await fastify.register(purchaseOrderRoutes, {
-            prefix: "/purchaseorders",
-        });
-        await fastify.register(purchaseRequestRoutes, {
-            prefix: "/purchaserequests",
-        });
-        await fastify.register(quotesRoutes, { prefix: "/quotes" });
-        await fastify.register(notesRoutes, { prefix: "/notes" });
-        await fastify.register(usersRoutes, { prefix: "/users" });
-        await fastify.register(inventoryUsersRoutes, {
-            prefix: "/inventoryusers",
-        });
-        await fastify.register(poinvoiceRoutes, { prefix: "/poinvoices" });
-        await fastify.register(addressRoutes, { prefix: "/addresses" });
-        await fastify.register(samplePurchaseRequestRoutes, {
-            prefix: "/samplepurchaserequests",
-        });
-        await fastify.register(cartRoutes, { prefix: "/carts" });
-        await fastify.register(ordersRoutes, { prefix: "/orders" });
-        await fastify.register(orderlineRoutes, { prefix: "/orderlines" });
-        await fastify.register(transactionRoutes, { prefix: "/transactions" });
-        await fastify.register(phonePeRoutes, { prefix: "/phonepe" });
-        await fastify.register(promotionalAssetsRoutes, {
-            prefix: "/promotional-assets",
-        });
-        // Promotion system routes
-        await fastify.register(promotionsRoutes, { prefix: "/promotions" });
-        await fastify.register(promotionRulesRoutes, {
-            prefix: "/promotion-rules",
-        });
-        await fastify.register(promotionActionsRoutes, {
-            prefix: "/promotion-actions",
-        });
-        await fastify.register(promotionTargetLinkRoutes, {
-            prefix: "/promotion-target-link",
-        });
-        await fastify.register(promotionUsageLogRoutes, {
-            prefix: "/promotion-usage-log",
-        });
-        await fastify.register(ratingRoutes, { prefix: "/ratings" });
-        await fastify.register(async function (fastify) {
-            // Apply authentication middleware to all routes in this scope
-            // fastify.addHook('preHandler', requireAuthentication);
-            // Register protected routes
-        });
-    }, { prefix: "/v1" });
+      },
+    },
+    async (_request, reply) => {
+      const healthData = {
+        status: "ok",
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        environment: process.env.NODE_ENV || "development",
+      };
+      const response = createSuccessResponse(
+        "Health check successful",
+        healthData
+      );
+      return reply.code(200).send(response);
+    }
+  );
+  // API v1 routes
+  await fastify.register(
+    async function (fastify) {
+      await fastify.register(authRoutes, { prefix: "/auth" });
+      await fastify.register(mobileAuthRoutes, { prefix: "/mobile-auth" });
+      await fastify.register(productRoutes, { prefix: "/products" });
+      await fastify.register(stockRoutes, { prefix: "/stocks" });
+      await fastify.register(picklistRoutes, { prefix: "/picklists" });
+      await fastify.register(supplierRoutes, { prefix: "/suppliers" });
+      await fastify.register(purchaseOrderRoutes, {
+        prefix: "/purchaseorders",
+      });
+      await fastify.register(purchaseRequestRoutes, {
+        prefix: "/purchaserequests",
+      });
+      await fastify.register(quotesRoutes, { prefix: "/quotes" });
+      await fastify.register(notesRoutes, { prefix: "/notes" });
+      await fastify.register(usersRoutes, { prefix: "/users" });
+      await fastify.register(inventoryUsersRoutes, {
+        prefix: "/inventoryusers",
+      });
+      await fastify.register(poinvoiceRoutes, { prefix: "/poinvoices" });
+      await fastify.register(addressRoutes, { prefix: "/addresses" });
+      await fastify.register(samplePurchaseRequestRoutes, {
+        prefix: "/samplepurchaserequests",
+      });
+      await fastify.register(cartRoutes, { prefix: "/carts" });
+      await fastify.register(ordersRoutes, { prefix: "/orders" });
+      await fastify.register(orderlineRoutes, { prefix: "/orderlines" });
+      await fastify.register(transactionRoutes, { prefix: "/transactions" });
+      await fastify.register(phonePeRoutes, { prefix: "/phonepe" });
+      await fastify.register(promotionalAssetsRoutes, {
+        prefix: "/promotional-assets",
+      });
+      // Promotion system routes
+      await fastify.register(promotionsRoutes, { prefix: "/promotions" });
+      await fastify.register(promotionRulesRoutes, {
+        prefix: "/promotion-rules",
+      });
+      await fastify.register(promotionActionsRoutes, {
+        prefix: "/promotion-actions",
+      });
+      await fastify.register(promotionTargetLinkRoutes, {
+        prefix: "/promotion-target-link",
+      });
+      await fastify.register(promotionUsageLogRoutes, {
+        prefix: "/promotion-usage-log",
+      });
+      await fastify.register(ratingRoutes, { prefix: "/ratings" });
+      await fastify.register(async function (fastify) {
+        // Apply authentication middleware to all routes in this scope
+        // fastify.addHook('preHandler', requireAuthentication);
+        // Register protected routes
+      });
+    },
+    { prefix: "/v1" }
+  );
 }
 //# sourceMappingURL=index.js.map

@@ -1,31 +1,32 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { PromotionsService } from '../services/promotions.service.js';
-import { PromotionEvaluationService } from '../services/promotion-evaluation.service.js';
 import { 
   createPromotionsSchema, 
-  updatePromotionsSchema, 
-  upsertPromotionsSchema,
-  promotionEligibilitySchema,
-  promotionEligibilityQuerySchema,
+  updatePromotionsSchema,
   CreatePromotionsInput,
-  UpdatePromotionsInput,
-  UpsertPromotionsInput,
-  PromotionEligibilityInput,
-  PromotionEligibilityQueryInput
+  UpdatePromotionsInput
 } from '../schemas/promotions.schema.js';
 import { getPaginationParams } from '../utils/pagination.js';
 import { 
   createSuccessResponse,
-  asyncHandler,
-  ValidationError,
-  DatabaseError
+  asyncHandler
 } from '../utils/errorHandler.js';
 import { logger } from '../config/logger.js';
-import { ZodError, ZodIssue } from 'zod';
 
 export class PromotionsController {
   public promotionsService = new PromotionsService();
-  public promotionEvaluationService = new PromotionEvaluationService();
+
+  // Get user segments for debugging
+  getUserSegments = asyncHandler(async (request: FastifyRequest<{ 
+    Params: { userId: string } 
+  }>, reply: FastifyReply) => {
+    const { userId } = request.params;
+    
+    const segments = await this.promotionsService.getUserSegments(userId);
+    
+    const response = createSuccessResponse('User segments retrieved', segments);
+    return reply.code(200).send(response);
+  });
 
   getPromotions = asyncHandler(async (request: FastifyRequest<{ Querystring: Record<string, any> }>, reply: FastifyReply) => {
     // Get all query parameters as filters
@@ -86,16 +87,35 @@ export class PromotionsController {
     return reply.code(200).send(response);
   });
 
-  upsertPromotion = asyncHandler(async (request: FastifyRequest<{ Body: UpsertPromotionsInput }>, reply: FastifyReply) => {
-    const data = upsertPromotionsSchema.parse(request.body);
+
+  // Get unified promotion offers (best recommendation + all eligible/ineligible)
+  getUnifiedPromotionOffers = asyncHandler(async (request: FastifyRequest<{ 
+    Body: { 
+      userId: string; 
+      cartItems: Array<{ 
+        productId: string; 
+        qty: number; 
+        category: string; 
+        price: number; 
+      }>; 
+      mode: 'phonepe' | 'cod'; 
+    } 
+  }>, reply: FastifyReply) => {
+    const { userId, cartItems, mode } = request.body;
     
-    const promotion = await this.promotionsService.upsert(data);
+    logger.info({ userId, cartItemsCount: cartItems.length, mode }, 'Getting unified promotion offers');
     
-    const message = data.id ? 'Promotion updated successfully' : 'Promotion created successfully';
-    const response = createSuccessResponse(message, promotion);
+    const offers = await this.promotionsService.getUnifiedPromotionOffers({
+      userId,
+      cartItems,
+      mode
+    });
+    
+    const response = createSuccessResponse('Unified promotion offers retrieved', offers);
     return reply.code(200).send(response);
   });
 
+<<<<<<< HEAD
   evaluateEligibility = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       // Log the incoming request
@@ -181,3 +201,6 @@ export class PromotionsController {
     }
   });
 } 
+=======
+} 
+>>>>>>> promotion-v3
