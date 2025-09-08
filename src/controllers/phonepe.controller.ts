@@ -15,9 +15,9 @@ import { logger } from '../config/logger.js';
 
 export class PhonePeController {
   public phonePeService = new PhonePeService();
-  private transactionService = new TransactionService();
+  public transactionService = new TransactionService();
   private ordersService = new OrdersService();
-  private orderlineService = new OrderlineService();
+  public orderlineService = new OrderlineService();
 
   /**
    * Initiate payment with PhonePe
@@ -1678,7 +1678,7 @@ console.log(request.body,"request body")
    * - availablequantity 1-5: "low_stock" 
    * - availablequantity > 5: "in_stock"
    */
-  private async updateProductQuantitiesAfterOrder(
+  public async updateProductQuantitiesAfterOrder(
     orderData: any, 
     originalOrderItems: any[], 
     mode: string

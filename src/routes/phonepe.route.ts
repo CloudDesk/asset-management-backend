@@ -280,6 +280,49 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
             orderId: order.id,
             orderIdString: order.orderid
           });
+
+          // Update product quantities after successful order creation
+          try {
+            fastify.log.info(`Starting product quantity updates for PhonePe order: ${transactionId}`);
+            
+            // Get orderlines for quantity update
+            const orderlines = await phonePeController.orderlineService.findMany(
+              { orderid: order.id }, 
+              1, 
+              100
+            );
+            
+            if (orderlines.data && orderlines.data.length > 0) {
+              // Convert orderlines to the format expected by updateProductQuantitiesAfterOrder
+              const orderItems = orderlines.data.map(orderline => ({
+                productid: Number(orderline.productid),
+                quantity: orderline.quantity || 1,
+                productname: orderline.productname || null
+              }));
+
+              // Update product quantities
+              const quantityUpdateResult = await phonePeController.updateProductQuantitiesAfterOrder(
+                order,
+                orderItems,
+                'phonepe'
+              );
+              
+              fastify.log.info(`Product quantities updated successfully for order: ${order.id}`, {
+                orderId: order.id,
+                updatedProducts: quantityUpdateResult.updateResults?.length || 0,
+                results: quantityUpdateResult
+              });
+            } else {
+              fastify.log.warn(`No orderlines found for order: ${order.id} - skipping quantity update`);
+            }
+          } catch (quantityError: any) {
+            fastify.log.error(`Error updating product quantities for order: ${order.id}`, {
+              error: quantityError.message,
+              stack: quantityError.stack,
+              orderId: order.id
+            });
+            // Don't fail the entire callback for quantity update errors
+          }
         } catch (orderError: any) {
           orderCreationStatus = 'failed';
           orderCreationError = orderError.message;

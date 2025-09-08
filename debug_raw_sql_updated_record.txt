@@ -3968,3 +3968,547 @@ Updated record: {
   "mobilenumber": 9994824573,
   "transactionfor": "product"
 }
+Updated record: {
+  "id": 179,
+  "transactionid": "NIVAANA-TRAN-00179",
+  "createddate": 1757348825,
+  "modifieddate": 1757348860,
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "updatedAt": "2025-09-08T10:57:38.639Z",
+    "initiatedAt": "2025-09-08T10:57:03.137Z",
+    "evaluation_ids": [
+      "eval_1757328997594_aq5s3de4o"
+    ],
+    "paymentRequest": {
+      "name": "User",
+      "amount": 446,
+      "userId": 24,
+      "productIds": [
+        7
+      ],
+      "mobileNumber": "9994824573",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1757329022487_KGQIAZ"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 445,
+          "userid": 24,
+          "quantity": 1,
+          "addressid": 20,
+          "productid": 7,
+          "orderamount": 508,
+          "productname": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+          "productamount": 520,
+          "discountamount": 12,
+          "productcategory": "wellness"
+        }
+      ],
+      "transaction": {
+        "name": "User",
+        "amount": 446,
+        "userId": 24,
+        "productid": [
+          7
+        ],
+        "mobilenumber": "9994824573",
+        "transactionfor": "product"
+      },
+      "evaluation_ids": [
+        "eval_1757328997594_aq5s3de4o"
+      ]
+    },
+    "phonePeResponse": {
+      "code": "PAYMENT_SUCCESS",
+      "data": {
+        "state": "COMPLETED",
+        "amount": 44600,
+        "merchantId": "PGTESTPAYUAT86",
+        "responseCode": "SUCCESS",
+        "transactionId": "T2509081627031272432580",
+        "paymentInstrument": {
+          "arn": "12121214455",
+          "brn": "B12345",
+          "type": "CARD",
+          "bankId": null,
+          "cardType": "CREDIT_CARD",
+          "authRefId": "Dummy-auth12345",
+          "bankTransactionId": null
+        },
+        "merchantTransactionId": "TXN_1757329022487_KGQIAZ"
+      },
+      "message": "Your payment is successful.",
+      "success": true
+    },
+    "phonePeResponses": {
+      "success": {
+        "status": "SUCCESS",
+        "response": {
+          "code": "PAYMENT_SUCCESS",
+          "data": {
+            "state": "COMPLETED",
+            "amount": 44600,
+            "merchantId": "PGTESTPAYUAT86",
+            "responseCode": "SUCCESS",
+            "transactionId": "T2509081627031272432580",
+            "paymentInstrument": {
+              "arn": "12121214455",
+              "brn": "B12345",
+              "type": "CARD",
+              "bankId": null,
+              "cardType": "CREDIT_CARD",
+              "authRefId": "Dummy-auth12345",
+              "bankTransactionId": null
+            },
+            "merchantTransactionId": "TXN_1757329022487_KGQIAZ"
+          },
+          "message": "Your payment is successful.",
+          "success": true
+        },
+        "timestamp": "2025-09-08T10:57:38.639Z"
+      },
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEPSfZDRnoLGUcItgnQ1sh",
+          "transactionId": "TXN_1757329022487_KGQIAZ"
+        },
+        "timestamp": "2025-09-08T10:57:03.137Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEPSfZDRnoLGUcItgnQ1sh"
+      }
+    },
+    "paymentCompleteAt": "2025-09-08T10:57:38.639Z",
+    "invalid_evaluations": []
+  },
+  "userid": 24,
+  "productid": [
+    7
+  ],
+  "merchanttransactionid": "TXN_1757329022487_KGQIAZ",
+  "name": "User",
+  "amount": "446",
+  "mobilenumber": 9994824573,
+  "transactionfor": "product"
+}
+Updated record: {
+  "id": 179,
+  "transactionid": "NIVAANA-TRAN-00179",
+  "createddate": 1757348825,
+  "modifieddate": 1757348872,
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "updatedAt": "2025-09-08T10:57:51.076Z",
+    "initiatedAt": "2025-09-08T10:57:03.137Z",
+    "evaluation_ids": [
+      "eval_1757328997594_aq5s3de4o"
+    ],
+    "paymentRequest": {
+      "name": "User",
+      "amount": 446,
+      "userId": 24,
+      "productIds": [
+        7
+      ],
+      "mobileNumber": "9994824573",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1757329022487_KGQIAZ"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 445,
+          "userid": 24,
+          "quantity": 1,
+          "addressid": 20,
+          "productid": 7,
+          "orderamount": 508,
+          "productname": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+          "productamount": 520,
+          "discountamount": 12,
+          "productcategory": "wellness"
+        }
+      ],
+      "transaction": {
+        "name": "User",
+        "amount": 446,
+        "userId": 24,
+        "productid": [
+          7
+        ],
+        "mobilenumber": "9994824573",
+        "transactionfor": "product"
+      },
+      "evaluation_ids": [
+        "eval_1757328997594_aq5s3de4o"
+      ]
+    },
+    "phonePeResponse": {
+      "code": "PAYMENT_SUCCESS",
+      "data": {
+        "state": "COMPLETED",
+        "amount": 44600,
+        "merchantId": "PGTESTPAYUAT86",
+        "responseCode": "SUCCESS",
+        "transactionId": "T2509081627031272432580",
+        "paymentInstrument": {
+          "arn": "12121214455",
+          "brn": "B12345",
+          "type": "CARD",
+          "bankId": null,
+          "cardType": "CREDIT_CARD",
+          "authRefId": "Dummy-auth12345",
+          "bankTransactionId": null
+        },
+        "merchantTransactionId": "TXN_1757329022487_KGQIAZ"
+      },
+      "message": "Your payment is successful.",
+      "success": true,
+      "orderCreation": {
+        "error": null,
+        "status": "success",
+        "orderId": 82,
+        "timestamp": "2025-09-08T10:57:50.788Z"
+      },
+      "paymentCompleteAt": "2025-09-08T10:57:50.788Z"
+    },
+    "phonePeResponses": {
+      "success": {
+        "status": "SUCCESS",
+        "response": {
+          "code": "PAYMENT_SUCCESS",
+          "data": {
+            "state": "COMPLETED",
+            "amount": 44600,
+            "merchantId": "PGTESTPAYUAT86",
+            "responseCode": "SUCCESS",
+            "transactionId": "T2509081627031272432580",
+            "paymentInstrument": {
+              "arn": "12121214455",
+              "brn": "B12345",
+              "type": "CARD",
+              "bankId": null,
+              "cardType": "CREDIT_CARD",
+              "authRefId": "Dummy-auth12345",
+              "bankTransactionId": null
+            },
+            "merchantTransactionId": "TXN_1757329022487_KGQIAZ"
+          },
+          "message": "Your payment is successful.",
+          "success": true,
+          "orderCreation": {
+            "error": null,
+            "status": "success",
+            "orderId": 82,
+            "timestamp": "2025-09-08T10:57:50.788Z"
+          },
+          "paymentCompleteAt": "2025-09-08T10:57:50.788Z"
+        },
+        "timestamp": "2025-09-08T10:57:51.076Z"
+      },
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEPSfZDRnoLGUcItgnQ1sh",
+          "transactionId": "TXN_1757329022487_KGQIAZ"
+        },
+        "timestamp": "2025-09-08T10:57:03.137Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEPSfZDRnoLGUcItgnQ1sh"
+      }
+    },
+    "paymentCompleteAt": "2025-09-08T10:57:51.076Z",
+    "invalid_evaluations": []
+  },
+  "userid": 24,
+  "productid": [
+    7
+  ],
+  "merchanttransactionid": "TXN_1757329022487_KGQIAZ",
+  "name": "User",
+  "amount": "446",
+  "mobilenumber": 9994824573,
+  "transactionfor": "product"
+}
+Updated record: {
+  "id": 180,
+  "transactionid": "NIVAANA-TRAN-00180",
+  "createddate": 1757349633,
+  "modifieddate": 1757349669,
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "updatedAt": "2025-09-08T11:11:08.222Z",
+    "initiatedAt": "2025-09-08T11:10:31.540Z",
+    "evaluation_ids": [
+      "eval_1757329808684_2yqdocqp0"
+    ],
+    "paymentRequest": {
+      "name": "User",
+      "amount": 446,
+      "userId": 24,
+      "productIds": [
+        7
+      ],
+      "mobileNumber": "9994824573",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1757329831370_PZ70KT"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 447,
+          "userid": 24,
+          "quantity": 1,
+          "addressid": 20,
+          "productid": 7,
+          "orderamount": 508,
+          "productname": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+          "productamount": 520,
+          "discountamount": 12,
+          "productcategory": "wellness"
+        }
+      ],
+      "transaction": {
+        "name": "User",
+        "amount": 446,
+        "userId": 24,
+        "productid": [
+          7
+        ],
+        "mobilenumber": "9994824573",
+        "transactionfor": "product"
+      },
+      "evaluation_ids": [
+        "eval_1757329808684_2yqdocqp0"
+      ]
+    },
+    "phonePeResponse": {
+      "code": "PAYMENT_SUCCESS",
+      "data": {
+        "state": "COMPLETED",
+        "amount": 44600,
+        "merchantId": "PGTESTPAYUAT86",
+        "responseCode": "SUCCESS",
+        "transactionId": "T2509081640316032432436",
+        "paymentInstrument": {
+          "arn": "12121214455",
+          "brn": "B12345",
+          "type": "CARD",
+          "bankId": null,
+          "cardType": "CREDIT_CARD",
+          "authRefId": "Dummy-auth12345",
+          "bankTransactionId": null
+        },
+        "merchantTransactionId": "TXN_1757329831370_PZ70KT"
+      },
+      "message": "Your payment is successful.",
+      "success": true
+    },
+    "phonePeResponses": {
+      "success": {
+        "status": "SUCCESS",
+        "response": {
+          "code": "PAYMENT_SUCCESS",
+          "data": {
+            "state": "COMPLETED",
+            "amount": 44600,
+            "merchantId": "PGTESTPAYUAT86",
+            "responseCode": "SUCCESS",
+            "transactionId": "T2509081640316032432436",
+            "paymentInstrument": {
+              "arn": "12121214455",
+              "brn": "B12345",
+              "type": "CARD",
+              "bankId": null,
+              "cardType": "CREDIT_CARD",
+              "authRefId": "Dummy-auth12345",
+              "bankTransactionId": null
+            },
+            "merchantTransactionId": "TXN_1757329831370_PZ70KT"
+          },
+          "message": "Your payment is successful.",
+          "success": true
+        },
+        "timestamp": "2025-09-08T11:11:08.222Z"
+      },
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEPSfLujITS8DPD46j5kSb",
+          "transactionId": "TXN_1757329831370_PZ70KT"
+        },
+        "timestamp": "2025-09-08T11:10:31.540Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEPSfLujITS8DPD46j5kSb"
+      }
+    },
+    "paymentCompleteAt": "2025-09-08T11:11:08.222Z",
+    "invalid_evaluations": []
+  },
+  "userid": 24,
+  "productid": [
+    7
+  ],
+  "merchanttransactionid": "TXN_1757329831370_PZ70KT",
+  "name": "User",
+  "amount": "446",
+  "mobilenumber": 9994824573,
+  "transactionfor": "product"
+}
+Updated record: {
+  "id": 180,
+  "transactionid": "NIVAANA-TRAN-00180",
+  "createddate": 1757349633,
+  "modifieddate": 1757349683,
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "updatedAt": "2025-09-08T11:11:21.877Z",
+    "initiatedAt": "2025-09-08T11:10:31.540Z",
+    "evaluation_ids": [
+      "eval_1757329808684_2yqdocqp0"
+    ],
+    "paymentRequest": {
+      "name": "User",
+      "amount": 446,
+      "userId": 24,
+      "productIds": [
+        7
+      ],
+      "mobileNumber": "9994824573",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1757329831370_PZ70KT"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 447,
+          "userid": 24,
+          "quantity": 1,
+          "addressid": 20,
+          "productid": 7,
+          "orderamount": 508,
+          "productname": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+          "productamount": 520,
+          "discountamount": 12,
+          "productcategory": "wellness"
+        }
+      ],
+      "transaction": {
+        "name": "User",
+        "amount": 446,
+        "userId": 24,
+        "productid": [
+          7
+        ],
+        "mobilenumber": "9994824573",
+        "transactionfor": "product"
+      },
+      "evaluation_ids": [
+        "eval_1757329808684_2yqdocqp0"
+      ]
+    },
+    "phonePeResponse": {
+      "code": "PAYMENT_SUCCESS",
+      "data": {
+        "state": "COMPLETED",
+        "amount": 44600,
+        "merchantId": "PGTESTPAYUAT86",
+        "responseCode": "SUCCESS",
+        "transactionId": "T2509081640316032432436",
+        "paymentInstrument": {
+          "arn": "12121214455",
+          "brn": "B12345",
+          "type": "CARD",
+          "bankId": null,
+          "cardType": "CREDIT_CARD",
+          "authRefId": "Dummy-auth12345",
+          "bankTransactionId": null
+        },
+        "merchantTransactionId": "TXN_1757329831370_PZ70KT"
+      },
+      "message": "Your payment is successful.",
+      "success": true,
+      "orderCreation": {
+        "error": null,
+        "status": "success",
+        "orderId": 83,
+        "timestamp": "2025-09-08T11:11:21.587Z"
+      },
+      "paymentCompleteAt": "2025-09-08T11:11:21.587Z"
+    },
+    "phonePeResponses": {
+      "success": {
+        "status": "SUCCESS",
+        "response": {
+          "code": "PAYMENT_SUCCESS",
+          "data": {
+            "state": "COMPLETED",
+            "amount": 44600,
+            "merchantId": "PGTESTPAYUAT86",
+            "responseCode": "SUCCESS",
+            "transactionId": "T2509081640316032432436",
+            "paymentInstrument": {
+              "arn": "12121214455",
+              "brn": "B12345",
+              "type": "CARD",
+              "bankId": null,
+              "cardType": "CREDIT_CARD",
+              "authRefId": "Dummy-auth12345",
+              "bankTransactionId": null
+            },
+            "merchantTransactionId": "TXN_1757329831370_PZ70KT"
+          },
+          "message": "Your payment is successful.",
+          "success": true,
+          "orderCreation": {
+            "error": null,
+            "status": "success",
+            "orderId": 83,
+            "timestamp": "2025-09-08T11:11:21.587Z"
+          },
+          "paymentCompleteAt": "2025-09-08T11:11:21.587Z"
+        },
+        "timestamp": "2025-09-08T11:11:21.877Z"
+      },
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEPSfLujITS8DPD46j5kSb",
+          "transactionId": "TXN_1757329831370_PZ70KT"
+        },
+        "timestamp": "2025-09-08T11:10:31.540Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByEPSfLujITS8DPD46j5kSb"
+      }
+    },
+    "paymentCompleteAt": "2025-09-08T11:11:21.877Z",
+    "invalid_evaluations": []
+  },
+  "userid": 24,
+  "productid": [
+    7
+  ],
+  "merchanttransactionid": "TXN_1757329831370_PZ70KT",
+  "name": "User",
+  "amount": "446",
+  "mobilenumber": 9994824573,
+  "transactionfor": "product"
+}
