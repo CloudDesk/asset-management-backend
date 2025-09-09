@@ -14645,3 +14645,40 @@ Filtered data result: {
   "modifieddate": 1757397500907,
   "cancelleddate": 1757397500907
 }
+Filtered data result: {
+  "orderstatus": "cancelled",
+  "modifieddate": 1757398989569,
+  "cancelleddate": 1757398989569
+}
+Filtered data result: {
+  "orderedquantity": 6,
+  "availablequantity": 2,
+  "productstatus": "low_stock",
+  "modifieddate": 1757398992688
+}
+Filtered data result: {
+  "orderstatus": "order_processing",
+  "modifieddate": 1757399539872
+}
+Filtered data result: {
+  "orderstatus": "cancelled",
+  "modifieddate": 1757399559710,
+  "cancelleddate": 1757399559710
+}
+Filtered data result: {
+  "orderedquantity": 5,
+  "availablequantity": 3,
+  "productstatus": "low_stock",
+  "modifieddate": 1757399561091
+}
+Filtered data result: {
+  "orderstatus": "cancelled",
+  "modifieddate": 1757399565949,
+  "cancelleddate": 1757399565949
+}
+Filtered data result: {
+  "orderedquantity": 4,
+  "availablequantity": 4,
+  "productstatus": "low_stock",
+  "modifieddate": 1757399566789
+}

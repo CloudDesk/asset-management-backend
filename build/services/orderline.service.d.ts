@@ -11,6 +11,12 @@ export declare class OrderlineService {
     delete(id: string): Promise<void>;
     upsert(data: UpsertOrderlineInput & Record<string, any>): Promise<any>;
     updateOrderlineStatus(id: string, status: string, additionalData?: Record<string, any>): Promise<any>;
+    /**
+     * Adjust product quantities when an orderline is cancelled or returned
+     * - Decrease orderedquantity by the cancelled quantity
+     * - Increase availablequantity by the cancelled quantity
+     */
+    private adjustProductQuantitiesOnCancellation;
     bulkUpdateStatus(orderlineIds: string[], status: string, additionalData?: Record<string, any>): Promise<({
         success: boolean;
         id: string;

@@ -178,6 +178,11 @@ export class OrderlineService {
     async updateOrderlineStatus(id, status, additionalData) {
         try {
             logger.debug({ orderlineId: id, status, additionalData }, 'Starting orderline status update operation');
+            // Get the current orderline to check if we need to adjust quantities
+            const currentOrderline = await this.findById(id);
+            if (!currentOrderline) {
+                throw new Error(`Orderline with ID ${id} not found`);
+            }
             const updateData = {
                 orderstatus: status,
                 modifieddate: Date.now(),
@@ -191,9 +196,13 @@ export class OrderlineService {
                     break;
                 case 'cancelled':
                     updateData.cancelleddate = currentTimestamp;
+                    // Adjust product quantities when cancelling
+                    await this.adjustProductQuantitiesOnCancellation(currentOrderline);
                     break;
                 case 'returned':
                     updateData.returneddate = currentTimestamp;
+                    // Adjust product quantities when returning (similar to cancellation)
+                    await this.adjustProductQuantitiesOnCancellation(currentOrderline);
                     break;
                 case 'dispatched':
                     updateData.dispatcheddate = currentTimestamp;
@@ -216,6 +225,81 @@ export class OrderlineService {
         catch (error) {
             logger.error({ error, orderlineId: id, status }, 'Error in orderline status update operation');
             throw error;
+        }
+    }
+    /**
+     * Adjust product quantities when an orderline is cancelled or returned
+     * - Decrease orderedquantity by the cancelled quantity
+     * - Increase availablequantity by the cancelled quantity
+     */
+    async adjustProductQuantitiesOnCancellation(orderline) {
+        try {
+            const productId = orderline.productid;
+            const cancelledQuantity = orderline.quantity || 1;
+            if (!productId) {
+                logger.warn({ orderlineId: orderline.id }, 'No product ID found in orderline, skipping quantity adjustment');
+                return;
+            }
+            logger.debug({
+                orderlineId: orderline.id,
+                productId,
+                cancelledQuantity
+            }, 'Starting product quantity adjustment for cancellation');
+            // Get current product quantities
+            const product = await dynamicFindUnique('product', {
+                id: parseInt(productId.toString())
+            });
+            if (!product) {
+                logger.warn({ productId, orderlineId: orderline.id }, 'Product not found, skipping quantity adjustment');
+                return;
+            }
+            const currentOrderedQuantity = product.orderedquantity || 0;
+            const currentAvailableQuantity = product.availablequantity || 0;
+            // Calculate new quantities
+            const newOrderedQuantity = Math.max(0, currentOrderedQuantity - cancelledQuantity);
+            const newAvailableQuantity = currentAvailableQuantity + cancelledQuantity;
+            // Determine new product status based on available quantity
+            let newProductStatus;
+            if (newAvailableQuantity <= 0) {
+                newProductStatus = "out_of_stock";
+            }
+            else if (newAvailableQuantity >= 1 && newAvailableQuantity <= 5) {
+                newProductStatus = "low_stock";
+            }
+            else {
+                newProductStatus = "in_stock";
+            }
+            // Update product quantities and status
+            const updatedProduct = await dynamicUpdate('product', { id: parseInt(productId.toString()) }, {
+                orderedquantity: newOrderedQuantity,
+                availablequantity: newAvailableQuantity,
+                productstatus: newProductStatus,
+                modifieddate: Date.now()
+            });
+            logger.info({
+                orderlineId: orderline.id,
+                productId,
+                productName: product.name,
+                quantityAdjustment: {
+                    cancelledQuantity,
+                    oldOrderedQuantity: currentOrderedQuantity,
+                    newOrderedQuantity,
+                    oldAvailableQuantity: currentAvailableQuantity,
+                    newAvailableQuantity,
+                    oldProductStatus: product.productstatus,
+                    newProductStatus
+                }
+            }, 'Product quantities adjusted successfully for orderline cancellation');
+            return updatedProduct;
+        }
+        catch (error) {
+            logger.error({
+                error,
+                orderlineId: orderline.id,
+                productId: orderline.productid
+            }, 'Error adjusting product quantities on cancellation');
+            // Don't throw error to avoid breaking the orderline cancellation
+            // Just log the error and continue
         }
     }
     async bulkUpdateStatus(orderlineIds, status, additionalData) {

@@ -15072,3 +15072,43 @@ Filtering data for orderline (orderline): {
   "modifieddate": 1757397500907,
   "cancelleddate": 1757397500907
 }
+Filtering data for orderline (orderline): {
+  "orderstatus": "cancelled",
+  "modifieddate": 1757398989569,
+  "cancellation_reason": "Testing quantity reversal",
+  "cancelleddate": 1757398989569
+}
+Filtering data for product (product): {
+  "orderedquantity": 6,
+  "availablequantity": 2,
+  "productstatus": "low_stock",
+  "modifieddate": 1757398992688
+}
+Filtering data for orderline (orderline): {
+  "orderstatus": "order_processing",
+  "modifieddate": 1757399539872
+}
+Filtering data for orderline (orderline): {
+  "orderstatus": "cancelled",
+  "modifieddate": 1757399559710,
+  "cancellation_reason": "Testing quantity adjustment",
+  "cancelleddate": 1757399559710
+}
+Filtering data for product (product): {
+  "orderedquantity": 5,
+  "availablequantity": 3,
+  "productstatus": "low_stock",
+  "modifieddate": 1757399561091
+}
+Filtering data for orderline (orderline): {
+  "orderstatus": "cancelled",
+  "modifieddate": 1757399565949,
+  "cancellation_reason": "Testing quantity adjustment",
+  "cancelleddate": 1757399565949
+}
+Filtering data for product (product): {
+  "orderedquantity": 4,
+  "availablequantity": 4,
+  "productstatus": "low_stock",
+  "modifieddate": 1757399566789
+}
