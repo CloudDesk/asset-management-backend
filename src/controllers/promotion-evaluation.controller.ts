@@ -18,6 +18,8 @@ export class PromotionEvaluationController {
         cart_record_id: string;
         product_id: string;
         quantity: number;
+        base_price: number;
+        product_discount: number;
         price: number;
         category: string;
         subcategory?: string;
@@ -124,6 +126,8 @@ export class PromotionEvaluationController {
         cart_record_id: string;
         product_id: string;
         quantity: number;
+        base_price: number;
+        product_discount: number;
         price: number;
         category: string;
         subcategory?: string;
@@ -169,8 +173,7 @@ export class PromotionEvaluationController {
       user_id,
       cart_items,
       context,
-      cart_signature: cartSignature,
-      current_total: current_total ?? 0
+      cart_signature: cartSignature
     });
 
     const response = createSuccessResponse('Automatic evaluation created successfully', result);
@@ -201,6 +204,8 @@ export class PromotionEvaluationController {
         cart_record_id: string;
         product_id: string;
         quantity: number;
+        base_price: number;
+        product_discount: number;
         price: number;
         category: string;
         name?: string;

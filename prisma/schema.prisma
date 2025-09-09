@@ -333,6 +333,12 @@ model orderline {
   modifieddate    BigInt?
   userid          Int?
   addressid       Int?
+  evaluation_id   String?   @db.VarChar(36)
+  original_price  Decimal?  @db.Decimal(10,2)
+  product_discount_amount  Decimal? @db.Decimal(10,2) @default(0)
+  promotion_discount_amount Decimal? @db.Decimal(10,2) @default(0)
+  shipping_cost  @db.Decimal(10,2) @default(0)
+
   status          String?   @db.VarChar(500)
   ordertype       String?   @db.VarChar(500)
   address         address?  @relation(fields: [addressid], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -369,6 +375,11 @@ model orders {
   ispaymentsucceed      Boolean?                 @default(false)
   merchanttransactionid String?                  @db.VarChar(250)
   productid             Int[]
+  evaluation_id         String?                   @db.VarChar(36) @unique
+  promotion_discount_total    Decimal?            @db.Decimal(10,2) @default(0) // order-level + item-level promo discounts
+  original_total        Decimal?                  @db.Decimal(10,2)   // subtotal of items before any discount
+  shipping_cost         Decimal?                  @db.Decimal(10,2) @default(0)
+  tax_amount            Decimal?                  @db.Decimal(10,2) @default(0)
   paymentfaileddate     BigInt?
   searchtext            Unsupported("tsvector")?
   orderline             orderline[]
@@ -675,6 +686,7 @@ model promotion_evaluations {
   applied_promotions   Json?
   ineligible_coupons   Json?
   context              Json? // channel, geo, payment_method
+   order_id             Int?    @unique              // FK -> orders.id (nullable until redeemed)
   created_at           BigInt @db.BigInt 
   expires_at           BigInt @db.BigInt 
   status               String?  @default("active") @db.VarChar(50)

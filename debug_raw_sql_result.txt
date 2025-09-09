@@ -4862,3 +4862,27 @@ Update result: [
     "paymentfaileddate": null
   }
 ]
+Update result: [
+  {
+    "id": 463,
+    "productid": 7,
+    "userid": 24,
+    "createddate": 1757431741,
+    "quantity": "2",
+    "iscart": true,
+    "iswishlist": false,
+    "modifieddate": 1757432172
+  }
+]
+Update result: [
+  {
+    "id": 463,
+    "productid": 7,
+    "userid": 24,
+    "createddate": 1757431741,
+    "quantity": "1",
+    "iscart": true,
+    "iswishlist": false,
+    "modifieddate": 1757432311
+  }
+]

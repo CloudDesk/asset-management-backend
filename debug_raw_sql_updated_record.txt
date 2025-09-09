@@ -4744,3 +4744,23 @@ Updated record: {
   "ordereddate": 1757392595135,
   "paymentfaileddate": null
 }
+Updated record: {
+  "id": 463,
+  "productid": 7,
+  "userid": 24,
+  "createddate": 1757431741,
+  "quantity": "2",
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1757432172
+}
+Updated record: {
+  "id": 463,
+  "productid": 7,
+  "userid": 24,
+  "createddate": 1757431741,
+  "quantity": "1",
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1757432311
+}

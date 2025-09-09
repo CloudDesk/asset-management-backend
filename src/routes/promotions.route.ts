@@ -660,7 +660,9 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                 cart_record_id: { type: 'string', description: 'Cart record ID' },
                 product_id: { type: 'string', description: 'Product ID' },
                 quantity: { type: 'number', description: 'Quantity' },
-                price: { type: 'number', description: 'Product price' },
+                base_price: { type: 'number', description: 'Original product price' },
+                product_discount: { type: 'number', description: 'Product-level discount' },
+                price: { type: 'number', description: 'Final price after product discount only' },
                 category: { type: 'string', description: 'Product category' },
                 subcategory: { type: 'string', description: 'Product subcategory' },
                 name: { type: 'string', description: 'Product name' }
@@ -1182,7 +1184,9 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                 cart_record_id: { type: 'string', description: 'Cart record ID' },
                 product_id: { type: 'string', description: 'Product ID' },
                 quantity: { type: 'number', description: 'Quantity' },
-                price: { type: 'number', description: 'Product price' },
+                base_price: { type: 'number', description: 'Original product price' },
+                product_discount: { type: 'number', description: 'Product-level discount' },
+                price: { type: 'number', description: 'Final price after product discount only' },
                 category: { type: 'string', description: 'Product category' },
                 subcategory: { type: 'string', description: 'Product subcategory' },
                 name: { type: 'string', description: 'Product name' }
@@ -1200,8 +1204,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
               ip_address: { type: 'string', description: 'IP address' }
             },
             required: ['channel', 'geo']
-          },
-          current_total: { type: 'number', description: 'Current cart total (optional, calculated if not provided)' }
+          }
         },
         required: ['user_id', 'cart_items', 'context']
       },
@@ -1343,7 +1346,9 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                 cart_record_id: { type: 'string', description: 'Cart record ID' },
                 product_id: { type: 'string', description: 'Product ID' },
                 quantity: { type: 'number', description: 'Quantity' },
-                price: { type: 'number', description: 'Product price' },
+                base_price: { type: 'number', description: 'Original product price' },
+                product_discount: { type: 'number', description: 'Product-level discount' },
+                price: { type: 'number', description: 'Final price after product discount only' },
                 category: { type: 'string', description: 'Product category' },
                 subcategory: { type: 'string', description: 'Product subcategory' },
                 name: { type: 'string', description: 'Product name' }

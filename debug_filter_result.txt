@@ -14682,3 +14682,55 @@ Filtered data result: {
   "productstatus": "low_stock",
   "modifieddate": 1757399566789
 }
+Filtered data result: {
+  "productid": 12,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1757407448242,
+  "modifieddate": 1757407448242
+}
+Filtered data result: {
+  "productid": 11,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1757411932825,
+  "modifieddate": 1757411932825
+}
+Filtered data result: {
+  "productid": 7,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1757411940501,
+  "modifieddate": 1757411940501
+}
+Filtered data result: {
+  "productid": 7,
+  "userid": 24,
+  "quantity": 2,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1757412371782
+}
+Filtered data result: {
+  "productid": 7,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1757412510800
+}
+Filtered data result: {
+  "productid": 12,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1757413150002,
+  "modifieddate": 1757413150002
+}
