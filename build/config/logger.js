@@ -24,3 +24,4 @@ const developmentConfig = env.NODE_ENV === 'development' ? {
     },
 } : loggerConfig;
 export const logger = pino(developmentConfig);
+//# sourceMappingURL=logger.js.map

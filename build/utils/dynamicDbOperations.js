@@ -387,6 +387,8 @@ async function buildDynamicWhereClause(tableName, filters) {
             /^.*accountnumber$/i, // Account numbers
             /^.*customernumber$/i, // Customer numbers
             /^.*suppliernumber$/i, // Supplier numbers
+            /^.*transactionid$/i, // Transaction IDs like "TXN_1757304945963_QCG0CG"
+            /^merchanttransactionid$/i, // Merchant transaction IDs
         ];
         // If it matches any string number pattern, it's NOT numeric
         if (stringNumberFields.some(pattern => pattern.test(fieldName))) {
@@ -2563,3 +2565,4 @@ export async function handleDeleteError(error, modelName, id, reply) {
     };
     return reply.code(500).send(errorResponse);
 }
+//# sourceMappingURL=dynamicDbOperations.js.map

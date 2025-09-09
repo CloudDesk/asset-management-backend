@@ -1029,7 +1029,7 @@ export class PromotionEvaluationService {
       }, 'User active evaluations retrieved');
 
       return {
-        evaluations: evaluations.map(evaluation => ({
+        evaluations: evaluations.map((evaluation: any) => ({
           evaluation_id: evaluation.evaluation_id,
           user_id: evaluation.user_id,
           original_total: evaluation.original_total,
@@ -1095,7 +1095,7 @@ export class PromotionEvaluationService {
       logger.info({
         automaticPromotionsCount: automaticPromotions.length,
         cartTotal,
-        promotions: automaticPromotions.map(p => ({
+        promotions: automaticPromotions.map((p: any) => ({
           id: p.id,
           name: p.name,
           conditions: p.conditions
@@ -1874,7 +1874,7 @@ export class PromotionEvaluationService {
       });
 
       // Re-run automatic promotions to ensure consistency
-      const automaticPromotions = await this.getEligibleAutomaticPromotions(evaluation.user_id, cartTotal, request.cart_items);
+      const automaticPromotions = await this.getEligibleAutomaticPromotions(evaluation.user_id || '', cartTotal, request.cart_items);
       
       // Add/update automatic promotions
       for (const autoPromo of automaticPromotions) {
@@ -1971,7 +1971,7 @@ export class PromotionEvaluationService {
       // Re-run automatic promotions
       const cartItems = evaluation.cart_data as any[];
       const cartTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-      const automaticPromotions = await this.getEligibleAutomaticPromotions(evaluation.user_id, cartTotal, cartItems);
+      const automaticPromotions = await this.getEligibleAutomaticPromotions(evaluation.user_id || '', cartTotal, cartItems);
       
       // Rebuild applied promotions with manual promotions + fresh automatic promotions
       const manualPromotions = filteredPromotions.filter(p => !p.is_auto);

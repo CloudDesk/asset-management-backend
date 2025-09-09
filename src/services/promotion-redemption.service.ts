@@ -128,7 +128,7 @@ export class PromotionRedemptionService {
             user_id: request.user_id,
             promotion_id: promotion.promotion_id,
             discount_amount: promotion.discount_amount,
-            redeemed_at: nowUtc.toString(),    // UTC timestamp as string
+            redeemed_at: nowUtc,    // UTC timestamp as bigint
             redemption_data: {
               promotion_name: promotion.promotion_name,
               evaluation_id: evaluation.evaluation_id,
@@ -207,7 +207,7 @@ export class PromotionRedemptionService {
         orderBy: { redeemed_at: 'desc' }
       });
 
-      return redemptions.map(redemption => ({
+      return redemptions.map((redemption: any) => ({
         id: redemption.id,
         promotion_id: redemption.promotion_id,
         promotion_name: redemption.promotion?.name,
@@ -301,7 +301,7 @@ export class PromotionRedemptionService {
       ]);
 
       return {
-        redemptions: redemptions.map(redemption => ({
+        redemptions: redemptions.map((redemption: any) => ({
           id: redemption.id,
           promotion_id: redemption.promotion_id,
           promotion_name: redemption.promotion?.name,

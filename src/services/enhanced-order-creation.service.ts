@@ -239,16 +239,16 @@ export class EnhancedOrderCreationService {
             select: {
               id: true,
               productid: true,
-              productname: true,
+              // productname: true, // This field doesn't exist in the schema
               quantity: true,
-              original_price: true,
-              product_discount: true,
-              promotion_discount: true,
-              applied_promotions: true,
-              evaluation_id: true,
-              productamount: true,
-              discountamount: true,
-              orderamount: true
+              // original_price: true, // This field doesn't exist in the schema
+              // product_discount: true, // This field doesn't exist in the schema
+              // promotion_discount: true, // This field doesn't exist in the schema
+              // applied_promotions: true, // This field doesn't exist in the schema
+              // evaluation_id: true, // This field doesn't exist in the schema
+              // productamount: true, // This field doesn't exist in the schema
+              // discountamount: true, // This field doesn't exist in the schema
+              // orderamount: true // This field doesn't exist in the schema
             }
           }
         }
@@ -260,9 +260,9 @@ export class EnhancedOrderCreationService {
 
       // Get evaluation data if available
       let evaluation = null;
-      if (order.evaluation_id) {
+      if ((order as any).evaluation_id) {
         evaluation = await this.prisma.promotion_evaluations.findUnique({
-          where: { evaluation_id: order.evaluation_id },
+          where: { evaluation_id: (order as any).evaluation_id },
           select: {
             evaluation_id: true,
             original_total: true,
@@ -278,10 +278,10 @@ export class EnhancedOrderCreationService {
         order,
         evaluation,
         promotionSummary: {
-          totalPromotionDiscount: order.promotion_discount_total,
-          originalTotal: order.original_total,
-          finalTotal: order.final_total,
-          promotionBreakdown: order.promotion_breakdown
+          totalPromotionDiscount: (order as any).promotion_discount_total || 0,
+          originalTotal: (order as any).original_total || 0,
+          finalTotal: (order as any).final_total || 0,
+          promotionBreakdown: (order as any).promotion_breakdown || null
         }
       };
 

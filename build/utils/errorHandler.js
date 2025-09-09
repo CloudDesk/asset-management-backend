@@ -21,10 +21,12 @@ export function createErrorResponse(message, details, statusCode = 400) {
 }
 // Custom error classes for better error handling
 export class ValidationError extends Error {
+    statusCode = 400;
+    code = 'VALIDATION_ERROR';
+    details;
+    fields;
     constructor(message, details, fields) {
         super(message);
-        this.statusCode = 400;
-        this.code = 'VALIDATION_ERROR';
         this.name = 'ValidationError';
         if (details !== undefined) {
             this.details = details;
@@ -35,10 +37,11 @@ export class ValidationError extends Error {
     }
 }
 export class DatabaseError extends Error {
+    statusCode = 400;
+    code = 'DATABASE_ERROR';
+    details;
     constructor(message, details, statusCode = 400) {
         super(message);
-        this.statusCode = 400;
-        this.code = 'DATABASE_ERROR';
         this.name = 'DatabaseError';
         if (details !== undefined) {
             this.details = details;
@@ -47,19 +50,20 @@ export class DatabaseError extends Error {
     }
 }
 export class NotFoundError extends Error {
+    statusCode = 404;
+    code = 'NOT_FOUND';
     constructor(message = 'Resource not found') {
         super(message);
-        this.statusCode = 404;
-        this.code = 'NOT_FOUND';
         this.name = 'NotFoundError';
     }
 }
 export class InvalidFieldError extends Error {
+    statusCode = 400;
+    code = 'INVALID_FIELD';
+    invalidFields;
     constructor(invalidFields) {
         const message = `Invalid field${invalidFields.length > 1 ? 's' : ''}: ${invalidFields.join(', ')}`;
         super(message);
-        this.statusCode = 400;
-        this.code = 'INVALID_FIELD';
         this.name = 'InvalidFieldError';
         this.invalidFields = invalidFields;
     }
@@ -565,3 +569,4 @@ export function validateRouteId(id, resourceName) {
     }
     return { isValid: true };
 }
+//# sourceMappingURL=errorHandler.js.map

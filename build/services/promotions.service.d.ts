@@ -24,7 +24,14 @@ export declare class PromotionsService {
     create(data: CreatePromotionsInput & Record<string, any>): Promise<any>;
     update(id: string, data: UpdatePromotionsInput & Record<string, any>): Promise<any>;
     delete(id: string): Promise<true>;
-    getBestPromotionRecommendation(request: {
+    private calculatePotentialDiscount;
+    private isItemEligibleForRecommendation;
+    private evaluateNumericCondition;
+    private evaluateDateCondition;
+    private getUserCreatedDate;
+    private getUserOrderCount;
+    private formatPromotionForDisplay;
+    getUnifiedPromotionOffers(request: {
         userId: string;
         cartItems: Array<{
             productId: string;
@@ -34,53 +41,19 @@ export declare class PromotionsService {
         }>;
         mode: 'phonepe' | 'cod';
     }): Promise<{
-        recommendation: null;
-        message: string;
-        cartTotal: number;
-        eligiblePromotions: never[];
-        eligibleCount?: never;
-    } | {
-        recommendation: {
-            promotion: {
-                id: any;
-                name: any;
-                description: any;
-                type: any;
-                code: any;
-                discount_value: any;
-                discount_type: any;
-                priority: any;
-                start_date: any;
-                end_date: any;
-            };
-            discountInfo: {
-                originalTotal: number;
-                discountAmount: any;
-                discountedTotal: number;
-                discountPercentage: any;
-                savingsAmount: any;
-            };
-            cartInfo: {
-                totalItems: number;
-                categories: string[];
-                totalValue: number;
-            };
-            mode: "phonepe" | "cod";
-            expiresAt: any;
+        bestCoupon: any;
+        eligibleCoupons: any[];
+        ineligibleCoupons: any[];
+        summary: {
+            totalPromotions: number;
+            eligibleCount: number;
+            ineligibleCount: number;
+            cartTotal: number;
+            cartItems: number;
+            categories: string[];
         };
-        message: string;
-        eligibleCount: number;
-        cartTotal: number;
-        eligiblePromotions?: never;
     }>;
-    private checkUserEligibilityForRecommendation;
-    private checkCartEligibilityForRecommendation;
-    private calculatePotentialDiscount;
-    private isItemEligibleForRecommendation;
-    private evaluateNumericCondition;
-    private evaluateDateCondition;
-    private getUserCreatedDate;
-    private getUserOrderCount;
-    private formatPromotionForDisplay;
+    private checkUserEligibilityForEligible;
+    private checkCartEligibilityForEligible;
 }
 //# sourceMappingURL=promotions.service.d.ts.map

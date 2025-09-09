@@ -67,3 +67,4 @@ if (env.NODE_ENV === 'development') {
     globalThis.__prisma = prisma;
 }
 export { prisma };
+//# sourceMappingURL=prisma.js.map

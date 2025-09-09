@@ -30,3 +30,4 @@ export function getPrismaSkipTake(page, limit) {
         take: limit,
     };
 }
+//# sourceMappingURL=pagination.js.map

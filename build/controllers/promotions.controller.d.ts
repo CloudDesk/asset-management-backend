@@ -8,6 +8,6 @@ export declare class PromotionsController {
     createPromotion: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     updatePromotion: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     deletePromotion: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
-    recommendPromotion: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    getUnifiedPromotionOffers: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
 }
 //# sourceMappingURL=promotions.controller.d.ts.map

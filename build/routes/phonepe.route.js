@@ -15,6 +15,11 @@ export async function phonePeRoutes(fastify) {
                         // enum: ['phonepe', 'cod'],
                         description: 'Payment mode: phonepe for online payment, cod for cash on delivery'
                     },
+                    evaluation_ids: {
+                        type: 'array',
+                        items: { type: 'string' },
+                        description: 'Promotion evaluation IDs array (optional)'
+                    },
                     order: {
                         type: 'array',
                         items: {
@@ -238,13 +243,57 @@ export async function phonePeRoutes(fastify) {
                 let orderId = null;
                 try {
                     fastify.log.info(`Calling createOrderAfterPayment for transaction: ${transactionId}`);
+                    // Get evaluation IDs from transaction data for promotion redemption
+                    const transactions = await phonePeController.transactionService.findMany({ merchanttransactionid: transactionId }, 1, 1);
+                    let evaluationIds = [];
+                    if (transactions.data && transactions.data.length > 0) {
+                        const transaction = transactions.data[0];
+                        evaluationIds = transaction.transactiondata?.evaluation_ids || [];
+                        fastify.log.info({
+                            transactionId,
+                            evaluationIds,
+                            evaluationCount: evaluationIds.length
+                        }, 'Retrieved evaluation IDs from transaction for promotion redemption');
+                    }
                     // Force mode to "phonepe" since this is PhonePe webhook callback
-                    const order = await phonePeController.createOrderAfterPayment(transactionId, 'phonepe');
+                    const order = await phonePeController.createOrderAfterPayment(transactionId, 'phonepe', evaluationIds);
                     orderId = order.id;
                     fastify.log.info(`Order created successfully for transaction: ${transactionId}`, {
                         orderId: order.id,
                         orderIdString: order.orderid
                     });
+                    // Update product quantities after successful order creation
+                    try {
+                        fastify.log.info(`Starting product quantity updates for PhonePe order: ${transactionId}`);
+                        // Get orderlines for quantity update
+                        const orderlines = await phonePeController.orderlineService.findMany({ orderid: order.id }, 1, 100);
+                        if (orderlines.data && orderlines.data.length > 0) {
+                            // Convert orderlines to the format expected by updateProductQuantitiesAfterOrder
+                            const orderItems = orderlines.data.map(orderline => ({
+                                productid: Number(orderline.productid),
+                                quantity: orderline.quantity || 1,
+                                productname: orderline.productname || null
+                            }));
+                            // Update product quantities
+                            const quantityUpdateResult = await phonePeController.updateProductQuantitiesAfterOrder(order, orderItems, 'phonepe');
+                            fastify.log.info(`Product quantities updated successfully for order: ${order.id}`, {
+                                orderId: order.id,
+                                updatedProducts: quantityUpdateResult.updateResults?.length || 0,
+                                results: quantityUpdateResult
+                            });
+                        }
+                        else {
+                            fastify.log.warn(`No orderlines found for order: ${order.id} - skipping quantity update`);
+                        }
+                    }
+                    catch (quantityError) {
+                        fastify.log.error(`Error updating product quantities for order: ${order.id}`, {
+                            error: quantityError.message,
+                            stack: quantityError.stack,
+                            orderId: order.id
+                        });
+                        // Don't fail the entire callback for quantity update errors
+                    }
                 }
                 catch (orderError) {
                     orderCreationStatus = 'failed';

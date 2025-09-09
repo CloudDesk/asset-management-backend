@@ -1,4 +1,6 @@
 import { z } from 'zod';
+export declare const utcTimestampSchema: z.ZodUnion<[z.ZodBigInt, z.ZodEffects<z.ZodNumber, bigint, number>, z.ZodEffects<z.ZodString, bigint, string>]>;
+export declare const utcTimestampResponseSchema: z.ZodUnion<[z.ZodEffects<z.ZodBigInt, string, bigint>, z.ZodString, z.ZodEffects<z.ZodNumber, string, number>]>;
 export declare const promotionTypeEnum: z.ZodEnum<["PERCENT_OFF_ITEM", "FIXED_AMOUNT_OFF_ITEM", "BOGO", "PERCENT_OFF_CART", "FIXED_AMOUNT_OFF_CART", "FREE_SHIPPING", "FREE_PRODUCT"]>;
 export declare const conditionSchema: z.ZodObject<{
     attribute: z.ZodString;
@@ -674,7 +676,7 @@ export declare const evaluationResultSchema: z.ZodObject<{
         reason: string;
         coupon_code: string;
     }>, "many">;
-    expires_at: z.ZodString;
+    expires_at: z.ZodUnion<[z.ZodEffects<z.ZodBigInt, string, bigint>, z.ZodString, z.ZodEffects<z.ZodNumber, string, number>]>;
 }, "strip", z.ZodTypeAny, {
     evaluation_id: string;
     original_total: number;
@@ -704,7 +706,7 @@ export declare const evaluationResultSchema: z.ZodObject<{
         reason: string;
         coupon_code: string;
     }[];
-    expires_at: string;
+    expires_at: string | number | bigint;
 }>;
 export declare const createEvaluationSchema: z.ZodObject<{
     context: z.ZodObject<{
@@ -827,7 +829,7 @@ export declare const redemptionResultSchema: z.ZodObject<{
         promotion_id: number;
         discount_amount: number;
     }>, "many">;
-    redeemed_at: z.ZodString;
+    redeemed_at: z.ZodUnion<[z.ZodEffects<z.ZodBigInt, string, bigint>, z.ZodString, z.ZodEffects<z.ZodNumber, string, number>]>;
 }, "strip", z.ZodTypeAny, {
     evaluation_id: string;
     order_id: string;
@@ -841,7 +843,7 @@ export declare const redemptionResultSchema: z.ZodObject<{
 }, {
     evaluation_id: string;
     order_id: string;
-    redeemed_at: string;
+    redeemed_at: string | number | bigint;
     applied_promotions: {
         promotion_id: number;
         discount_amount: number;

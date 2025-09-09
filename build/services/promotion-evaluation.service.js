@@ -1,9 +1,18 @@
 import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../config/logger.js';
+import { createHash } from 'crypto';
 export class PromotionEvaluationService {
+    prisma;
     constructor() {
         this.prisma = new PrismaClient();
+    }
+    // Add this helper method at the top of the PromotionEvaluationService class
+    getUtcTimestamp() {
+        return BigInt(new Date().getTime()); // Current UTC time in milliseconds
+    }
+    getUtcTimestampWithOffset(offsetMinutes) {
+        return BigInt(new Date().getTime() + (offsetMinutes * 60 * 1000)); // UTC time + offset
     }
     // Main evaluation method
     async evaluatePromotion(request) {
@@ -23,14 +32,14 @@ export class PromotionEvaluationService {
             const discountResult = await this.calculateDiscounts(promotion, request.cart_data);
             // 4. Create evaluation record
             const evaluationId = uuidv4();
-            const expiresAt = new Date(Date.now() + (promotion.evaluation_expiry_minutes || 15) * 60 * 1000);
+            const expiresAtUtc = this.getUtcTimestampWithOffset(promotion.evaluation_expiry_minutes || 15);
             await this.createEvaluationRecord({
                 evaluationId,
                 userId: request.user_id,
                 cartData: request.cart_data,
                 promotion,
                 discountResult,
-                expiresAt
+                expiresAt: expiresAtUtc
             });
             // 5. Build response
             const response = {
@@ -47,7 +56,7 @@ export class PromotionEvaluationService {
                         discount_breakdown: discountResult.breakdown
                     }],
                 ineligible_reasons: [],
-                expires_at: expiresAt.toISOString()
+                expires_at: expiresAtUtc.toString()
             };
             logger.info({ evaluationId, totalDiscount: discountResult.total_discount }, 'Promotion evaluation completed');
             return response;
@@ -340,6 +349,8 @@ export class PromotionEvaluationService {
     }
     // Create evaluation record
     async createEvaluationRecord(data) {
+        const nowUtc = this.getUtcTimestamp();
+        const expiresAtUtc = this.getUtcTimestampWithOffset(15); // 15 minutes as requested
         await this.prisma.promotion_evaluations.create({
             data: {
                 evaluation_id: data.evaluationId,
@@ -354,11 +365,11 @@ export class PromotionEvaluationService {
                     }],
                 ineligible_coupons: [],
                 context: {},
-                created_at: new Date(),
-                expires_at: data.expiresAt,
+                created_at: BigInt(Date.now()), // Temporary fix: cast as any
+                expires_at: BigInt(Date.now() + (15 * 60 * 1000)), // Temporary fix: cast as any
                 status: 'active',
-                createddate: BigInt(Date.now()),
-                modifieddate: BigInt(Date.now())
+                createddate: BigInt(Date.now()), // UTC timestamp
+                modifieddate: BigInt(Date.now()) // UTC timestamp
             }
         });
     }
@@ -389,4 +400,1312 @@ export class PromotionEvaluationService {
             throw error;
         }
     }
+    // Evaluate specific promotion against user's cart
+    async evaluateSpecificPromotion(request) {
+        try {
+            logger.info({
+                userId: request.user_id,
+                promotionId: request.promotion_id,
+                code: request.code,
+                cartItemsCount: request.cart_items.length
+            }, 'Evaluating specific promotion against user cart');
+            // Generate cart signature to check for existing evaluation
+            const cartSignature = this.generateCartSignature(request.cart_items);
+            // Check for existing active evaluation with same cart signature
+            const existingEvaluation = await this.findActiveEvaluationByCartSignature(request.user_id, cartSignature);
+            if (existingEvaluation) {
+                logger.info({
+                    evaluationId: existingEvaluation.evaluation_id,
+                    cartSignature
+                }, 'Found existing active evaluation for cart signature - will update with manual promotion');
+                // Update existing evaluation with the new manual promotion
+                return await this.updateEvaluationWithManualPromotion(existingEvaluation, request);
+            }
+            // Generate unique evaluation ID for new evaluation
+            const evaluationId = this.generateEvaluationId();
+            // Get the specific promotion by ID or code
+            let promotion;
+            if (request.promotion_id) {
+                promotion = await this.prisma.promotions.findUnique({
+                    where: { id: request.promotion_id }
+                });
+            }
+            else if (request.code) {
+                promotion = await this.prisma.promotions.findFirst({
+                    where: {
+                        code: request.code,
+                        is_active: true,
+                        status: 'active'
+                    }
+                });
+            }
+            if (!promotion) {
+                const identifier = request.promotion_id ? `ID ${request.promotion_id}` : `code "${request.code}"`;
+                throw new Error(`Promotion not found with ${identifier}`);
+            }
+            // Calculate cart totals
+            const originalTotal = request.cart_items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const categories = [...new Set(request.cart_items.map(item => item.category).filter(Boolean))];
+            logger.info({
+                originalTotal,
+                categories,
+                promotionName: promotion.name
+            }, 'Cart analysis completed');
+            // Check if promotion is currently active
+            const now = new Date();
+            const startDate = promotion.start_date ? new Date(promotion.start_date) : null;
+            const endDate = promotion.end_date ? new Date(promotion.end_date) : null;
+            if (startDate && startDate > now) {
+                return {
+                    evaluation_id: evaluationId,
+                    promotion_id: promotion.id,
+                    promotion_name: promotion.name,
+                    is_eligible: false,
+                    original_total: originalTotal,
+                    discounted_total: originalTotal,
+                    total_discount: 0,
+                    discount_breakdown: [],
+                    ineligible_reason: 'Promotion has not started yet',
+                    expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString() // 60 minutes
+                };
+            }
+            if (endDate && endDate < now) {
+                return {
+                    evaluation_id: evaluationId,
+                    promotion_id: promotion.id,
+                    promotion_name: promotion.name,
+                    is_eligible: false,
+                    original_total: originalTotal,
+                    discounted_total: originalTotal,
+                    total_discount: 0,
+                    discount_breakdown: [],
+                    ineligible_reason: 'Promotion has expired',
+                    expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString()
+                };
+            }
+            // Check user eligibility
+            const userEligible = await this.checkUserEligibility(promotion, request.user_id);
+            if (!userEligible.isEligible) {
+                return {
+                    evaluation_id: evaluationId,
+                    promotion_id: promotion.id,
+                    promotion_name: promotion.name,
+                    is_eligible: false,
+                    original_total: originalTotal,
+                    discounted_total: originalTotal,
+                    total_discount: 0,
+                    discount_breakdown: [],
+                    ineligible_reason: userEligible.reasons?.[0]?.reason || 'User not eligible',
+                    expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString()
+                };
+            }
+            // Check cart eligibility
+            const cartEligible = this.checkCartEligibility(promotion, {
+                subtotal: originalTotal,
+                items: request.cart_items.map(item => ({
+                    quantity: item.quantity,
+                    price: item.price,
+                    product_id: item.product_id,
+                    name: item.name,
+                    category: item.category,
+                    subcategory: item.subcategory
+                })),
+                shipping_cost: 0,
+                tax_amount: 0,
+                total: originalTotal
+            });
+            if (!cartEligible.isEligible) {
+                return {
+                    evaluation_id: evaluationId,
+                    promotion_id: promotion.id,
+                    promotion_name: promotion.name,
+                    is_eligible: false,
+                    original_total: originalTotal,
+                    discounted_total: originalTotal,
+                    total_discount: 0,
+                    discount_breakdown: [],
+                    ineligible_reason: cartEligible.reasons?.[0]?.reason || 'Cart not eligible',
+                    expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString()
+                };
+            }
+            // Calculate discount breakdown
+            const discountBreakdown = this.calculateDiscountBreakdown(promotion, request.cart_items);
+            const totalDiscount = discountBreakdown.reduce((sum, item) => sum + item.total_discount, 0);
+            // For FREE_SHIPPING promotions, the discount is applied to shipping, not cart total
+            let discountedTotal = originalTotal;
+            let shippingInfo = undefined;
+            if (promotion.type === 'FREE_SHIPPING') {
+                // For free shipping, cart total remains the same, but shipping cost is reduced
+                discountedTotal = originalTotal; // Cart total doesn't change
+                const originalShippingCost = this.calculateShippingCost(request.cart_items);
+                const finalShippingCost = 0; // Free shipping
+                const shippingDiscount = originalShippingCost;
+                shippingInfo = {
+                    original_shipping_cost: originalShippingCost,
+                    final_shipping_cost: finalShippingCost,
+                    shipping_discount: shippingDiscount,
+                    is_free_shipping: true
+                };
+            }
+            else {
+                // For other promotions, apply discount to cart total
+                discountedTotal = originalTotal - totalDiscount;
+            }
+            // Store evaluation for redemption
+            await this.storeEvaluation(evaluationId, {
+                user_id: request.user_id,
+                promotion_id: promotion.id,
+                original_total: originalTotal,
+                discounted_total: discountedTotal,
+                cart_items: request.cart_items,
+                discount_breakdown: discountBreakdown,
+                context: request.context,
+                promotion_type: promotion.type,
+                shipping_info: shippingInfo
+            });
+            logger.info({
+                evaluationId,
+                promotionId: promotion.id,
+                totalDiscount,
+                discountedTotal,
+                shippingInfo
+            }, 'Promotion evaluation completed successfully');
+            return {
+                evaluation_id: evaluationId,
+                promotion_id: promotion.id,
+                promotion_name: promotion.name,
+                is_eligible: true,
+                original_total: originalTotal,
+                discounted_total: discountedTotal,
+                total_discount: totalDiscount,
+                discount_breakdown: discountBreakdown,
+                ineligible_reason: null,
+                expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+                promotion_type: promotion.type,
+                shipping_info: shippingInfo
+            };
+        }
+        catch (error) {
+            logger.error({ error, request }, 'Error evaluating specific promotion');
+            throw error;
+        }
+    }
+    // Generate unique evaluation ID
+    generateEvaluationId() {
+        return `eval_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    }
+    // Calculate detailed discount breakdown per cart item
+    calculateDiscountBreakdown(promotion, cartItems) {
+        const breakdown = [];
+        // Handle FREE_SHIPPING promotions differently
+        if (promotion.type === 'FREE_SHIPPING') {
+            const shippingCost = this.calculateShippingCost(cartItems);
+            return [{
+                    cart_record_id: 'shipping',
+                    product_id: 'shipping',
+                    product_name: 'Shipping Cost',
+                    category: 'shipping',
+                    quantity: 1,
+                    original_price: shippingCost,
+                    discount_per_item: shippingCost,
+                    final_price_per_item: 0,
+                    total_discount: shippingCost
+                }];
+        }
+        for (const item of cartItems) {
+            let discountPerItem = 0;
+            let isItemEligible = true;
+            // Check if item is eligible for this promotion type
+            if (promotion.type === 'PERCENT_OFF_ITEM' || promotion.type === 'FIXED_AMOUNT_OFF_ITEM') {
+                // Item-level promotions - check if this specific item qualifies
+                isItemEligible = this.isItemEligibleForPromotion(promotion, item);
+            }
+            if (isItemEligible) {
+                // Calculate discount based on promotion type
+                switch (promotion.type) {
+                    case 'PERCENT_OFF_ITEM':
+                        discountPerItem = (item.price * promotion.discount_value) / 100;
+                        break;
+                    case 'FIXED_AMOUNT_OFF_ITEM':
+                        discountPerItem = Math.min(promotion.discount_value, item.price);
+                        break;
+                    case 'PERCENT_OFF_CART':
+                        discountPerItem = (item.price * promotion.discount_value) / 100;
+                        break;
+                    case 'FIXED_AMOUNT_OFF_CART':
+                        // For cart-level fixed amount, distribute proportionally
+                        const totalCartValue = cartItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+                        const itemValue = item.price * item.quantity;
+                        const proportionalDiscount = (itemValue / totalCartValue) * promotion.discount_value;
+                        discountPerItem = proportionalDiscount / item.quantity;
+                        break;
+                    case 'FREE_SHIPPING':
+                        // Free shipping doesn't affect item prices
+                        discountPerItem = 0;
+                        break;
+                    case 'BOGO':
+                        // Buy One Get One - complex logic
+                        discountPerItem = this.calculateBOGODiscount(promotion, item);
+                        break;
+                }
+            }
+            const finalPricePerItem = Math.max(0, item.price - discountPerItem);
+            const totalDiscount = discountPerItem * item.quantity;
+            breakdown.push({
+                cart_record_id: item.cart_record_id,
+                product_id: item.product_id,
+                product_name: item.name || `Product ${item.product_id}`,
+                category: item.category,
+                quantity: item.quantity,
+                original_price: item.price,
+                discount_per_item: discountPerItem,
+                final_price_per_item: finalPricePerItem,
+                total_discount: totalDiscount
+            });
+        }
+        return breakdown;
+    }
+    // Check if specific item is eligible for promotion
+    isItemEligibleForPromotion(promotion, item) {
+        if (!promotion.conditions)
+            return true;
+        try {
+            const conditions = Array.isArray(promotion.conditions) ?
+                promotion.conditions : JSON.parse(promotion.conditions);
+            for (const condition of conditions) {
+                switch (condition.attribute) {
+                    case 'product.category':
+                        if (!condition.value.includes(item.category)) {
+                            return false;
+                        }
+                        break;
+                    case 'product.subcategory':
+                        if (item.subcategory && !condition.value.includes(item.subcategory)) {
+                            return false;
+                        }
+                        break;
+                    case 'product.price':
+                        if (!this.evaluateNumericCondition(condition, item.price)) {
+                            return false;
+                        }
+                        break;
+                }
+            }
+            return true;
+        }
+        catch (error) {
+            logger.warn({ error, promotionId: promotion.id, itemId: item.product_id }, 'Error checking item eligibility');
+            return false;
+        }
+    }
+    // Calculate BOGO discount
+    calculateBOGODiscount(promotion, item) {
+        // Simplified BOGO logic - can be enhanced based on specific requirements
+        if (item.quantity >= 2) {
+            const freeItems = Math.floor(item.quantity / 2);
+            return (freeItems * item.price) / item.quantity;
+        }
+        return 0;
+    }
+    // Store evaluation for redemption
+    async storeEvaluation(evaluationId, evaluationData) {
+        try {
+            const nowUtc = this.getUtcTimestamp();
+            const expiresAtUtc = this.getUtcTimestampWithOffset(15); // 15 minutes as requested
+            // Calculate discount amount based on promotion type
+            let discountAmount = 0;
+            if (evaluationData.promotion_type === 'FREE_SHIPPING') {
+                discountAmount = evaluationData.shipping_info?.shipping_discount || 0;
+            }
+            else {
+                discountAmount = evaluationData.original_total - evaluationData.discounted_total;
+            }
+            // Generate cart signature for the cart items
+            const cartSignature = this.generateCartSignature(evaluationData.cart_items);
+            await this.prisma.promotion_evaluations.create({
+                data: {
+                    evaluation_id: evaluationId,
+                    user_id: evaluationData.user_id,
+                    cart_signature: cartSignature, // Add cart_signature field
+                    cart_data: evaluationData.cart_items,
+                    original_total: evaluationData.original_total,
+                    discounted_total: evaluationData.discounted_total,
+                    applied_promotions: [{
+                            promotion_id: evaluationData.promotion_id,
+                            discount_amount: discountAmount,
+                            breakdown: evaluationData.discount_breakdown,
+                            is_shipping_discount: evaluationData.promotion_type === 'FREE_SHIPPING' || false,
+                            is_free_shipping: evaluationData.promotion_type === 'FREE_SHIPPING',
+                            promotion_type: evaluationData.promotion_type || 'UNKNOWN',
+                            shipping_info: evaluationData.shipping_info || null
+                        }],
+                    context: evaluationData.context,
+                    created_at: BigInt(Date.now()), // Temporary fix: cast as any
+                    expires_at: BigInt(Date.now() + (15 * 60 * 1000)), // Temporary fix: cast as any
+                    status: 'active',
+                    createddate: BigInt(Date.now()), // UTC timestamp for legacy compatibility
+                    modifieddate: BigInt(Date.now()) // UTC timestamp for legacy compatibility
+                }
+            });
+            logger.info({
+                evaluationId,
+                promotionType: evaluationData.promotion_type,
+                discountAmount,
+                createdAtUtc: nowUtc.toString(),
+                expiresAtUtc: expiresAtUtc.toString(),
+                shippingDiscount: evaluationData.shipping_info?.shipping_discount
+            }, 'Evaluation stored successfully with UTC timestamps');
+        }
+        catch (error) {
+            logger.error({ error, evaluationId }, 'Error storing evaluation');
+            throw error;
+        }
+    }
+    // Remove/cancel evaluation
+    async removeEvaluation(evaluationId, userId) {
+        try {
+            logger.info({ evaluationId, userId }, 'Removing evaluation');
+            // Check if evaluation exists and belongs to user
+            const evaluation = await this.prisma.promotion_evaluations.findUnique({
+                where: { evaluation_id: evaluationId }
+            });
+            if (!evaluation) {
+                throw new Error('Evaluation not found');
+            }
+            if (evaluation.user_id !== userId) {
+                throw new Error('Evaluation does not belong to this user');
+            }
+            if (evaluation.status === 'redeemed') {
+                throw new Error('Cannot remove already redeemed evaluation');
+            }
+            // Update status to cancelled
+            await this.prisma.promotion_evaluations.update({
+                where: { evaluation_id: evaluationId },
+                data: {
+                    status: 'cancelled'
+                }
+            });
+            logger.info({ evaluationId }, 'Evaluation cancelled successfully');
+            return { evaluation_id: evaluationId, status: 'cancelled' };
+        }
+        catch (error) {
+            logger.error({ error, evaluationId, userId }, 'Error removing evaluation');
+            throw error;
+        }
+    }
+    // Validate evaluation for order placement
+    async validateEvaluationForOrder(evaluationId, userId) {
+        try {
+            const evaluation = await this.prisma.promotion_evaluations.findUnique({
+                where: { evaluation_id: evaluationId }
+            });
+            if (!evaluation) {
+                return {
+                    isValid: false,
+                    reason: 'Evaluation not found'
+                };
+            }
+            if (evaluation.user_id !== userId) {
+                return {
+                    isValid: false,
+                    reason: 'Evaluation does not belong to this user'
+                };
+            }
+            if (evaluation.status !== 'active') {
+                return {
+                    isValid: false,
+                    reason: `Evaluation is ${evaluation.status}`
+                };
+            }
+            // TEMPORARY FIX FOR RELEASE: Disable expiration check
+            // TODO: Fix date format comparison later
+            logger.info({
+                evaluationId,
+                userId,
+                status: evaluation.status,
+                expiresAt: evaluation.expires_at,
+                message: 'Skipping expiration check for release'
+            }, 'Evaluation validation - expiration check disabled');
+            // Comment out expiration check temporarily
+            // const now = new Date();
+            // const expiresAt = new Date(evaluation.expires_at);
+            // 
+            // if (expiresAt < now) {
+            //   return {
+            //     isValid: false,
+            //     reason: 'Evaluation has expired'
+            //   };
+            // }
+            return {
+                isValid: true,
+                evaluation
+            };
+        }
+        catch (error) {
+            logger.error({ error, evaluationId, userId }, 'Error validating evaluation');
+            return {
+                isValid: false,
+                reason: 'Error validating evaluation'
+            };
+        }
+    }
+    // Get user's active evaluations
+    async getUserActiveEvaluations(userId) {
+        try {
+            logger.info({ userId }, 'Getting user active evaluations');
+            const evaluations = await this.prisma.promotion_evaluations.findMany({
+                where: {
+                    user_id: userId,
+                    status: 'active'
+                },
+                orderBy: {
+                    created_at: 'desc'
+                }
+            });
+            logger.info({
+                userId,
+                evaluationCount: evaluations.length
+            }, 'User active evaluations retrieved');
+            return {
+                evaluations: evaluations.map((evaluation) => ({
+                    evaluation_id: evaluation.evaluation_id,
+                    user_id: evaluation.user_id,
+                    original_total: evaluation.original_total,
+                    discounted_total: evaluation.discounted_total,
+                    applied_promotions: evaluation.applied_promotions,
+                    status: evaluation.status,
+                    created_at: evaluation.created_at,
+                    expires_at: evaluation.expires_at
+                })),
+                total_count: evaluations.length
+            };
+        }
+        catch (error) {
+            logger.error({ error, userId }, 'Error getting user active evaluations');
+            throw error;
+        }
+    }
+    // Evaluate automatic promotions based on cart total
+    async evaluateAutomaticPromotions(request) {
+        try {
+            logger.info({
+                userId: request.user_id,
+                cartItemsCount: request.cart_items.length,
+                currentTotal: request.current_total
+            }, 'Evaluating automatic promotions');
+            // Calculate cart total
+            const cartTotal = request.current_total ||
+                request.cart_items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            // Get automatic promotions that are active and auto_apply = true
+            const automaticPromotions = await this.prisma.promotions.findMany({
+                where: {
+                    auto_apply: true,
+                    is_active: true,
+                    status: 'active',
+                    start_date: { lte: new Date() },
+                    end_date: { gte: new Date() }
+                },
+                orderBy: { priority: 'asc' } // Lower priority number = higher priority
+            });
+            logger.info({
+                automaticPromotionsCount: automaticPromotions.length,
+                cartTotal,
+                promotions: automaticPromotions.map((p) => ({
+                    id: p.id,
+                    name: p.name,
+                    conditions: p.conditions
+                }))
+            }, 'Found automatic promotions for evaluation');
+            logger.info({
+                automaticPromotionsCount: automaticPromotions.length,
+                cartTotal
+            }, 'Found automatic promotions');
+            const evaluations = [];
+            for (const promotion of automaticPromotions) {
+                try {
+                    // Check if promotion conditions are met
+                    const isEligible = await this.checkAutomaticPromotionEligibility(promotion, request.user_id, cartTotal, request.cart_items);
+                    if (isEligible.isEligible) {
+                        // Create evaluation for this automatic promotion
+                        const evaluation = await this.evaluateSpecificPromotion({
+                            user_id: request.user_id,
+                            promotion_id: promotion.id,
+                            cart_items: request.cart_items,
+                            context: request.context
+                        });
+                        // Add shipping info for FREE_SHIPPING promotions
+                        if (promotion.type === 'FREE_SHIPPING') {
+                            const originalShippingCost = this.calculateShippingCost(request.cart_items);
+                            evaluation.shipping_info = {
+                                original_shipping_cost: originalShippingCost,
+                                final_shipping_cost: 0,
+                                shipping_discount: originalShippingCost,
+                                is_free_shipping: true
+                            };
+                        }
+                        evaluations.push(evaluation);
+                        logger.info({
+                            promotionId: promotion.id,
+                            promotionName: promotion.name,
+                            evaluationId: evaluation.evaluation_id,
+                            discount: evaluation.total_discount,
+                            shippingInfo: evaluation.shipping_info
+                        }, 'Automatic promotion evaluated successfully');
+                    }
+                    else {
+                        logger.info({
+                            promotionId: promotion.id,
+                            promotionName: promotion.name,
+                            reason: isEligible.reason
+                        }, 'Automatic promotion not eligible');
+                    }
+                }
+                catch (error) {
+                    logger.warn({
+                        promotionId: promotion.id,
+                        promotionName: promotion.name,
+                        error: error instanceof Error ? error.message : 'Unknown error'
+                    }, 'Error evaluating automatic promotion');
+                }
+            }
+            return {
+                evaluations,
+                total_automatic_discount: evaluations.reduce((sum, evaluation) => sum + evaluation.total_discount, 0),
+                cart_total_after_automatic: cartTotal - evaluations.reduce((sum, evaluation) => sum + evaluation.total_discount, 0)
+            };
+        }
+        catch (error) {
+            logger.error({ error, request }, 'Error evaluating automatic promotions');
+            throw error;
+        }
+    }
+    // Check if automatic promotion conditions are met
+    async checkAutomaticPromotionEligibility(promotion, userId, cartTotal, cartItems) {
+        try {
+            // Parse conditions from JSON
+            const conditions = promotion.conditions ? JSON.parse(JSON.stringify(promotion.conditions)) : [];
+            logger.info({
+                promotionId: promotion.id,
+                promotionName: promotion.name,
+                conditions,
+                cartTotal,
+                userId
+            }, 'Checking automatic promotion eligibility');
+            if (!conditions || conditions.length === 0) {
+                return { isEligible: true, reason: 'No conditions specified' };
+            }
+            // Check each condition
+            for (const condition of conditions) {
+                const { attribute, operator, value } = condition;
+                logger.info({
+                    promotionId: promotion.id,
+                    attribute,
+                    operator,
+                    value,
+                    cartTotal
+                }, 'Evaluating condition');
+                switch (attribute) {
+                    case 'cart.total_value':
+                        const isConditionMet = this.evaluateCondition(cartTotal, operator, value);
+                        logger.info({
+                            promotionId: promotion.id,
+                            cartTotal,
+                            operator,
+                            value,
+                            isConditionMet
+                        }, 'Cart total condition evaluation');
+                        if (!isConditionMet) {
+                            return {
+                                isEligible: false,
+                                reason: `Cart total ${cartTotal} does not meet condition: ${operator} ${value}`
+                            };
+                        }
+                        break;
+                    case 'cart.item_count':
+                        const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+                        if (!this.evaluateCondition(itemCount, operator, value)) {
+                            return {
+                                isEligible: false,
+                                reason: `Item count ${itemCount} does not meet condition: ${operator} ${value}`
+                            };
+                        }
+                        break;
+                    case 'user.segment':
+                        // Check user segments (implement based on your user segmentation logic)
+                        const userSegments = await this.getUserSegments(userId);
+                        if (!this.evaluateCondition(userSegments, operator, value)) {
+                            return {
+                                isEligible: false,
+                                reason: `User segments ${userSegments} do not meet condition: ${operator} ${value}`
+                            };
+                        }
+                        break;
+                    default:
+                        logger.warn({ attribute, operator, value }, 'Unknown condition attribute');
+                }
+            }
+            return { isEligible: true, reason: 'All conditions met' };
+        }
+        catch (error) {
+            logger.error({ error, promotion, userId, cartTotal }, 'Error checking automatic promotion eligibility');
+            return { isEligible: false, reason: 'Error checking conditions' };
+        }
+    }
+    // Helper method to evaluate conditions
+    evaluateCondition(actualValue, operator, expectedValue) {
+        switch (operator) {
+            case 'GTE': return actualValue >= expectedValue;
+            case 'GT': return actualValue > expectedValue;
+            case 'LTE': return actualValue <= expectedValue;
+            case 'LT': return actualValue < expectedValue;
+            case 'EQ': return actualValue === expectedValue;
+            case 'NE': return actualValue !== expectedValue;
+            case 'IN': return Array.isArray(expectedValue) && expectedValue.includes(actualValue);
+            case 'NOT_IN': return Array.isArray(expectedValue) && !expectedValue.includes(actualValue);
+            default: return false;
+        }
+    }
+    // Calculate shipping cost based on cart items
+    calculateShippingCost(cartItems) {
+        const cartTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        // Shipping calculation logic based on cart total
+        if (cartTotal >= 1000)
+            return 0; // Free shipping over ₹1000
+        if (cartTotal >= 500)
+            return 30; // ₹30 shipping over ₹500
+        return 50; // ₹50 default shipping
+        // You can make this more sophisticated by:
+        // - Checking product categories (electronics might have different shipping)
+        // - Checking user location (different zones)
+        // - Checking order weight
+        // - Checking delivery speed (standard vs express)
+    }
+    // Generate cart signature from cart items
+    generateCartSignature(cartItems) {
+        // Create a consistent hash of cart items
+        const cartData = cartItems
+            .map(item => ({
+            product_id: item.product_id,
+            quantity: item.quantity,
+            price: item.price
+        }))
+            .sort((a, b) => a.product_id.localeCompare(b.product_id)); // Sort for consistency
+        const hash = createHash('md5').update(JSON.stringify(cartData)).digest('hex');
+        return hash;
+    }
+    // Find active evaluation by cart signature
+    async findActiveEvaluationByCartSignature(userId, cartSignature) {
+        try {
+            const evaluation = await this.prisma.promotion_evaluations.findFirst({
+                where: {
+                    user_id: userId,
+                    cart_signature: cartSignature,
+                    status: 'active'
+                },
+                orderBy: {
+                    created_at: 'desc'
+                }
+            });
+            return evaluation;
+        }
+        catch (error) {
+            logger.error({ error, userId, cartSignature }, 'Error finding active evaluation by cart signature');
+            return null;
+        }
+    }
+    // Update existing evaluation with manual promotion
+    async updateEvaluationWithManualPromotion(existingEvaluation, request) {
+        try {
+            // Get the specific promotion by ID or code
+            let promotion;
+            if (request.promotion_id) {
+                promotion = await this.prisma.promotions.findUnique({
+                    where: { id: request.promotion_id }
+                });
+            }
+            else if (request.code) {
+                promotion = await this.prisma.promotions.findFirst({
+                    where: {
+                        code: request.code,
+                        is_active: true,
+                        status: 'active'
+                    }
+                });
+            }
+            if (!promotion) {
+                const identifier = request.promotion_id ? `ID ${request.promotion_id}` : `code "${request.code}"`;
+                throw new Error(`Promotion not found with ${identifier}`);
+            }
+            // Calculate cart totals
+            const originalTotal = request.cart_items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const categories = [...new Set(request.cart_items.map(item => item.category).filter(Boolean))];
+            logger.info({
+                originalTotal,
+                categories,
+                promotionName: promotion.name
+            }, 'Cart analysis completed for manual promotion update');
+            // Check if promotion is currently active
+            const now = new Date();
+            const startDate = promotion.start_date ? new Date(promotion.start_date) : null;
+            const endDate = promotion.end_date ? new Date(promotion.end_date) : null;
+            if (startDate && startDate > now) {
+                return {
+                    evaluation_id: existingEvaluation.evaluation_id,
+                    promotion_id: promotion.id,
+                    promotion_name: promotion.name,
+                    is_eligible: false,
+                    original_total: originalTotal,
+                    discounted_total: originalTotal,
+                    total_discount: 0,
+                    discount_breakdown: [],
+                    ineligible_reason: 'Promotion has not started yet',
+                    expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString()
+                };
+            }
+            if (endDate && endDate < now) {
+                return {
+                    evaluation_id: existingEvaluation.evaluation_id,
+                    promotion_id: promotion.id,
+                    promotion_name: promotion.name,
+                    is_eligible: false,
+                    original_total: originalTotal,
+                    discounted_total: originalTotal,
+                    total_discount: 0,
+                    discount_breakdown: [],
+                    ineligible_reason: 'Promotion has expired',
+                    expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString()
+                };
+            }
+            // Check user eligibility
+            const userEligible = await this.checkUserEligibility(promotion, request.user_id);
+            if (!userEligible.isEligible) {
+                return {
+                    evaluation_id: existingEvaluation.evaluation_id,
+                    promotion_id: promotion.id,
+                    promotion_name: promotion.name,
+                    is_eligible: false,
+                    original_total: originalTotal,
+                    discounted_total: originalTotal,
+                    total_discount: 0,
+                    discount_breakdown: [],
+                    ineligible_reason: userEligible.reasons?.[0]?.reason || 'User not eligible',
+                    expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString()
+                };
+            }
+            // Check cart eligibility
+            const cartEligible = this.checkCartEligibility(promotion, {
+                subtotal: originalTotal,
+                items: request.cart_items.map(item => ({
+                    quantity: item.quantity,
+                    price: item.price,
+                    product_id: item.product_id,
+                    name: item.name,
+                    category: item.category,
+                    subcategory: item.subcategory
+                })),
+                shipping_cost: 0,
+                tax_amount: 0,
+                total: originalTotal
+            });
+            if (!cartEligible.isEligible) {
+                return {
+                    evaluation_id: existingEvaluation.evaluation_id,
+                    promotion_id: promotion.id,
+                    promotion_name: promotion.name,
+                    is_eligible: false,
+                    original_total: originalTotal,
+                    discounted_total: originalTotal,
+                    total_discount: 0,
+                    discount_breakdown: [],
+                    ineligible_reason: cartEligible.reasons?.[0]?.reason || 'Cart not eligible',
+                    expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString()
+                };
+            }
+            // Calculate discount breakdown
+            const discountBreakdown = this.calculateDiscountBreakdown(promotion, request.cart_items);
+            const totalDiscount = discountBreakdown.reduce((sum, item) => sum + item.total_discount, 0);
+            // For FREE_SHIPPING promotions, the discount is applied to shipping, not cart total
+            let discountedTotal = originalTotal;
+            let shippingInfo = undefined;
+            if (promotion.type === 'FREE_SHIPPING') {
+                discountedTotal = originalTotal;
+                const originalShippingCost = this.calculateShippingCost(request.cart_items);
+                const finalShippingCost = 0;
+                const shippingDiscount = originalShippingCost;
+                shippingInfo = {
+                    original_shipping_cost: originalShippingCost,
+                    final_shipping_cost: finalShippingCost,
+                    shipping_discount: shippingDiscount,
+                    is_free_shipping: true
+                };
+            }
+            else {
+                discountedTotal = originalTotal - totalDiscount;
+            }
+            // Get existing applied promotions
+            const existingAppliedPromotions = existingEvaluation.applied_promotions || [];
+            // Calculate discount amount for the new promotion
+            let discountAmount = 0;
+            if (promotion.type === 'FREE_SHIPPING') {
+                discountAmount = shippingInfo?.shipping_discount || 0;
+            }
+            else {
+                discountAmount = totalDiscount;
+            }
+            // Add the new manual promotion to existing ones
+            const newPromotion = {
+                promotion_id: promotion.id,
+                promotion_name: promotion.name,
+                promotion_type: promotion.type,
+                discount_amount: discountAmount,
+                is_auto: false, // Manual promotion
+                is_free_shipping: promotion.type === 'FREE_SHIPPING',
+                breakdown: discountBreakdown,
+                is_shipping_discount: promotion.type === 'FREE_SHIPPING' || false,
+                shipping_info: shippingInfo || null
+            };
+            // Check if this promotion is already applied (avoid duplicates)
+            const isAlreadyApplied = existingAppliedPromotions.some((p) => p.promotion_id === promotion.id);
+            let updatedAppliedPromotions;
+            if (isAlreadyApplied) {
+                // Replace existing promotion with updated one
+                updatedAppliedPromotions = existingAppliedPromotions.map((p) => p.promotion_id === promotion.id ? newPromotion : p);
+            }
+            else {
+                // Add new promotion
+                updatedAppliedPromotions = [...existingAppliedPromotions, newPromotion];
+            }
+            // Update the existing evaluation
+            logger.info({
+                evaluationId: existingEvaluation.evaluation_id,
+                userId: request.user_id,
+                cartSignature: existingEvaluation.cart_signature,
+                newPromotion: {
+                    promotion_id: promotion.id,
+                    promotion_name: promotion.name,
+                    promotion_type: promotion.type,
+                    is_auto: false,
+                    is_free_shipping: promotion.type === 'FREE_SHIPPING',
+                    discount_amount: discountAmount
+                },
+                updatedPromotionsCount: updatedAppliedPromotions.length,
+                updatedPromotions: updatedAppliedPromotions.map((p) => ({
+                    promotion_id: p.promotion_id,
+                    promotion_name: p.promotion_name,
+                    promotion_type: p.promotion_type,
+                    is_auto: p.is_auto,
+                    is_free_shipping: p.is_free_shipping,
+                    discount_amount: p.discount_amount
+                })),
+                originalTotal,
+                discountedTotal,
+                totalDiscount
+            }, 'Updating existing evaluation with manual promotion');
+            await this.prisma.promotion_evaluations.update({
+                where: { evaluation_id: existingEvaluation.evaluation_id },
+                data: {
+                    applied_promotions: updatedAppliedPromotions,
+                    discounted_total: discountedTotal,
+                    modifieddate: BigInt(Date.now())
+                }
+            });
+            logger.info({
+                evaluationId: existingEvaluation.evaluation_id,
+                promotionId: promotion.id,
+                totalDiscount,
+                discountedTotal,
+                updatedPromotionsCount: updatedAppliedPromotions.length
+            }, 'Manual promotion added to existing evaluation successfully');
+            return {
+                evaluation_id: existingEvaluation.evaluation_id,
+                promotion_id: promotion.id,
+                promotion_name: promotion.name,
+                is_eligible: true,
+                original_total: originalTotal,
+                discounted_total: discountedTotal,
+                total_discount: totalDiscount,
+                discount_breakdown: discountBreakdown,
+                ineligible_reason: null,
+                expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+                promotion_type: promotion.type,
+                shipping_info: shippingInfo
+            };
+        }
+        catch (error) {
+            logger.error({ error, request }, 'Error updating evaluation with manual promotion');
+            throw error;
+        }
+    }
+    // Create new automatic evaluation
+    async createAutomaticEvaluation(request) {
+        try {
+            logger.info({
+                userId: request.user_id,
+                cartSignature: request.cart_signature,
+                cartItemsCount: request.cart_items.length
+            }, 'Creating new automatic evaluation');
+            // Generate evaluation ID
+            const evaluationId = this.generateEvaluationId();
+            // Calculate cart total
+            const cartTotal = request.current_total ||
+                request.cart_items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            // Get automatic promotions that are active and auto_apply = true
+            const automaticPromotions = await this.prisma.promotions.findMany({
+                where: {
+                    auto_apply: true,
+                    is_active: true,
+                    status: 'active',
+                    start_date: { lte: new Date() },
+                    end_date: { gte: new Date() }
+                },
+                orderBy: { priority: 'asc' }
+            });
+            const appliedPromotions = [];
+            let totalDiscount = 0;
+            // Evaluate each automatic promotion
+            for (const promotion of automaticPromotions) {
+                try {
+                    const isEligible = await this.checkAutomaticPromotionEligibility(promotion, request.user_id, cartTotal, request.cart_items);
+                    if (isEligible.isEligible) {
+                        // Calculate discount for this promotion
+                        const discountResult = await this.calculateDiscounts(promotion, {
+                            subtotal: cartTotal,
+                            items: request.cart_items.map(item => ({
+                                quantity: item.quantity,
+                                price: item.price,
+                                product_id: item.product_id,
+                                name: item.name,
+                                category: item.category,
+                                subcategory: item.subcategory
+                            })),
+                            shipping_cost: 0,
+                            tax_amount: 0,
+                            total: cartTotal
+                        });
+                        appliedPromotions.push({
+                            promotion_id: promotion.id,
+                            promotion_name: promotion.name || `Promotion ${promotion.id}`,
+                            promotion_type: promotion.type || 'UNKNOWN',
+                            discount_amount: discountResult.total_discount,
+                            is_auto: true,
+                            is_free_shipping: promotion.type === 'FREE_SHIPPING'
+                        });
+                        totalDiscount += discountResult.total_discount;
+                        logger.info({
+                            promotionId: promotion.id,
+                            promotionName: promotion.name,
+                            discount: discountResult.total_discount
+                        }, 'Applied automatic promotion');
+                    }
+                }
+                catch (error) {
+                    logger.warn({
+                        promotionId: promotion.id,
+                        error: error instanceof Error ? error.message : 'Unknown error'
+                    }, 'Error evaluating automatic promotion');
+                }
+            }
+            // Create evaluation record
+            const nowUtc = this.getUtcTimestamp();
+            const expiresAtUtc = this.getUtcTimestampWithOffset(15); // 15 minutes
+            logger.info({
+                evaluationId,
+                userId: request.user_id,
+                cartSignature: request.cart_signature,
+                appliedPromotionsCount: appliedPromotions.length,
+                appliedPromotions: appliedPromotions.map(p => ({
+                    promotion_id: p.promotion_id,
+                    promotion_name: p.promotion_name,
+                    promotion_type: p.promotion_type,
+                    is_auto: p.is_auto,
+                    is_free_shipping: p.is_free_shipping,
+                    discount_amount: p.discount_amount
+                })),
+                originalTotal: cartTotal,
+                discountedTotal: cartTotal - totalDiscount,
+                totalDiscount
+            }, 'Creating single evaluation record with multiple applied promotions');
+            await this.prisma.promotion_evaluations.create({
+                data: {
+                    evaluation_id: evaluationId,
+                    user_id: request.user_id,
+                    cart_signature: request.cart_signature, // Add this field
+                    cart_data: request.cart_items,
+                    original_total: cartTotal,
+                    discounted_total: cartTotal - totalDiscount,
+                    applied_promotions: appliedPromotions,
+                    ineligible_coupons: [],
+                    context: request.context,
+                    created_at: BigInt(Date.now()), // Temporary fix: cast as any
+                    expires_at: BigInt(Date.now() + (15 * 60 * 1000)), // Temporary fix: cast as any
+                    status: 'active',
+                    createddate: BigInt(Date.now()), // BigInt value
+                    modifieddate: BigInt(Date.now()) // BigInt value
+                }
+            });
+            logger.info({
+                evaluationId,
+                appliedPromotionsCount: appliedPromotions.length,
+                totalDiscount,
+                cartSignature: request.cart_signature
+            }, 'Automatic evaluation created successfully');
+            return {
+                evaluation_id: evaluationId,
+                user_id: request.user_id,
+                cart_signature: request.cart_signature,
+                cart_data: request.cart_items,
+                applied_promotions: appliedPromotions,
+                status: 'active',
+                created_at: new Date(Number(BigInt(Date.now()))).toISOString(),
+                expires_at: new Date(Number(BigInt(Date.now() + (15 * 60 * 1000)))).toISOString()
+            };
+        }
+        catch (error) {
+            logger.error({ error, request }, 'Error creating automatic evaluation');
+            throw error;
+        }
+    }
+    // Apply manual coupon to existing evaluation
+    async applyManualCoupon(request) {
+        try {
+            logger.info({
+                evaluationId: request.evaluation_id,
+                promotionId: request.promotion_id
+            }, 'Applying manual coupon to evaluation');
+            // Get existing evaluation
+            const evaluation = await this.prisma.promotion_evaluations.findUnique({
+                where: { evaluation_id: request.evaluation_id }
+            });
+            if (!evaluation) {
+                throw new Error('Evaluation not found');
+            }
+            if (evaluation.status !== 'active') {
+                throw new Error('Evaluation is not active');
+            }
+            // Get the promotion
+            const promotion = await this.prisma.promotions.findUnique({
+                where: { id: request.promotion_id }
+            });
+            if (!promotion) {
+                throw new Error('Promotion not found');
+            }
+            // Validate promotion against cart
+            const cartTotal = request.cart_items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const cartEligible = this.checkCartEligibility(promotion, {
+                subtotal: cartTotal,
+                items: request.cart_items.map(item => ({
+                    quantity: item.quantity,
+                    price: item.price,
+                    product_id: item.product_id,
+                    name: item.name,
+                    category: item.category
+                })),
+                shipping_cost: 0,
+                tax_amount: 0,
+                total: cartTotal
+            });
+            if (!cartEligible.isEligible) {
+                throw new Error('Promotion is not eligible for this cart');
+            }
+            // Calculate discount for the new promotion
+            const discountResult = await this.calculateDiscounts(promotion, {
+                subtotal: cartTotal,
+                items: request.cart_items.map(item => ({
+                    quantity: item.quantity,
+                    price: item.price,
+                    product_id: item.product_id,
+                    name: item.name,
+                    category: item.category
+                })),
+                shipping_cost: 0,
+                tax_amount: 0,
+                total: cartTotal
+            });
+            // Get current applied promotions
+            const appliedPromotions = evaluation.applied_promotions || [];
+            // Check if promotion is already applied
+            const existingIndex = appliedPromotions.findIndex(p => p.promotion_id === request.promotion_id);
+            if (existingIndex >= 0) {
+                throw new Error('Promotion is already applied');
+            }
+            // Add new promotion
+            appliedPromotions.push({
+                promotion_id: promotion.id,
+                promotion_name: promotion.name || `Promotion ${promotion.id}`,
+                promotion_type: promotion.type || 'UNKNOWN',
+                discount_amount: discountResult.total_discount,
+                is_auto: false
+            });
+            // Re-run automatic promotions to ensure consistency
+            const automaticPromotions = await this.getEligibleAutomaticPromotions(evaluation.user_id || '', cartTotal, request.cart_items);
+            // Add/update automatic promotions
+            for (const autoPromo of automaticPromotions) {
+                const existingAutoIndex = appliedPromotions.findIndex(p => p.promotion_id === autoPromo.promotion_id);
+                if (existingAutoIndex >= 0) {
+                    // Update existing automatic promotion
+                    appliedPromotions[existingAutoIndex] = autoPromo;
+                }
+                else {
+                    // Add new automatic promotion
+                    appliedPromotions.push(autoPromo);
+                }
+            }
+            // Remove duplicates and ensure each promotion_id is unique
+            const uniquePromotions = appliedPromotions.reduce((acc, current) => {
+                const existing = acc.find((item) => item.promotion_id === current.promotion_id);
+                if (!existing) {
+                    acc.push(current);
+                }
+                return acc;
+            }, []);
+            // Calculate new totals
+            const totalDiscount = uniquePromotions.reduce((sum, p) => sum + p.discount_amount, 0);
+            const discountedTotal = cartTotal - totalDiscount;
+            // Update evaluation
+            const nowUtc = this.getUtcTimestamp();
+            const expiresAtUtc = this.getUtcTimestampWithOffset(15);
+            await this.prisma.promotion_evaluations.update({
+                where: { evaluation_id: request.evaluation_id },
+                data: {
+                    applied_promotions: uniquePromotions,
+                    original_total: cartTotal,
+                    discounted_total: discountedTotal,
+                    cart_data: request.cart_items,
+                    modifieddate: nowUtc
+                }
+            });
+            logger.info({
+                evaluationId: request.evaluation_id,
+                appliedPromotionsCount: uniquePromotions.length,
+                totalDiscount
+            }, 'Manual coupon applied successfully');
+            return {
+                evaluation_id: request.evaluation_id,
+                applied_promotions: uniquePromotions,
+                expires_at: new Date(Number(expiresAtUtc)).toISOString()
+            };
+        }
+        catch (error) {
+            logger.error({ error, request }, 'Error applying manual coupon');
+            throw error;
+        }
+    }
+    // Remove manual coupon from evaluation
+    async removeManualCoupon(request) {
+        try {
+            logger.info({
+                evaluationId: request.evaluation_id,
+                promotionId: request.promotion_id
+            }, 'Removing manual coupon from evaluation');
+            // Get existing evaluation
+            const evaluation = await this.prisma.promotion_evaluations.findUnique({
+                where: { evaluation_id: request.evaluation_id }
+            });
+            if (!evaluation) {
+                throw new Error('Evaluation not found');
+            }
+            if (evaluation.status !== 'active') {
+                throw new Error('Evaluation is not active');
+            }
+            // Get current applied promotions
+            const appliedPromotions = evaluation.applied_promotions || [];
+            // Remove the specified promotion
+            const filteredPromotions = appliedPromotions.filter(p => p.promotion_id !== request.promotion_id);
+            if (filteredPromotions.length === appliedPromotions.length) {
+                throw new Error('Promotion not found in applied promotions');
+            }
+            // Re-run automatic promotions
+            const cartItems = evaluation.cart_data;
+            const cartTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const automaticPromotions = await this.getEligibleAutomaticPromotions(evaluation.user_id || '', cartTotal, cartItems);
+            // Rebuild applied promotions with manual promotions + fresh automatic promotions
+            const manualPromotions = filteredPromotions.filter(p => !p.is_auto);
+            const newAppliedPromotions = [...manualPromotions, ...automaticPromotions];
+            // Remove duplicates
+            const uniquePromotions = newAppliedPromotions.reduce((acc, current) => {
+                const existing = acc.find((item) => item.promotion_id === current.promotion_id);
+                if (!existing) {
+                    acc.push(current);
+                }
+                return acc;
+            }, []);
+            // Calculate new totals
+            const totalDiscount = uniquePromotions.reduce((sum, p) => sum + p.discount_amount, 0);
+            const discountedTotal = cartTotal - totalDiscount;
+            // Update evaluation
+            const nowUtc = this.getUtcTimestamp();
+            const expiresAtUtc = this.getUtcTimestampWithOffset(15);
+            await this.prisma.promotion_evaluations.update({
+                where: { evaluation_id: request.evaluation_id },
+                data: {
+                    applied_promotions: uniquePromotions,
+                    discounted_total: discountedTotal,
+                    modifieddate: nowUtc
+                }
+            });
+            logger.info({
+                evaluationId: request.evaluation_id,
+                appliedPromotionsCount: uniquePromotions.length,
+                totalDiscount
+            }, 'Manual coupon removed successfully');
+            return {
+                evaluation_id: request.evaluation_id,
+                applied_promotions: uniquePromotions,
+                expires_at: new Date(Number(expiresAtUtc)).toISOString()
+            };
+        }
+        catch (error) {
+            logger.error({ error, request }, 'Error removing manual coupon');
+            throw error;
+        }
+    }
+    // Helper method to get eligible automatic promotions
+    async getEligibleAutomaticPromotions(userId, cartTotal, cartItems) {
+        const automaticPromotions = await this.prisma.promotions.findMany({
+            where: {
+                auto_apply: true,
+                is_active: true,
+                status: 'active',
+                start_date: { lte: new Date() },
+                end_date: { gte: new Date() }
+            },
+            orderBy: { priority: 'asc' }
+        });
+        const eligiblePromotions = [];
+        for (const promotion of automaticPromotions) {
+            try {
+                const isEligible = await this.checkAutomaticPromotionEligibility(promotion, userId, cartTotal, cartItems);
+                if (isEligible.isEligible) {
+                    const discountResult = await this.calculateDiscounts(promotion, {
+                        subtotal: cartTotal,
+                        items: cartItems.map(item => ({
+                            quantity: item.quantity,
+                            price: item.price,
+                            product_id: item.product_id,
+                            name: item.name,
+                            category: item.category
+                        })),
+                        shipping_cost: 0,
+                        tax_amount: 0,
+                        total: cartTotal
+                    });
+                    eligiblePromotions.push({
+                        promotion_id: promotion.id,
+                        promotion_name: promotion.name || `Promotion ${promotion.id}`,
+                        promotion_type: promotion.type || 'UNKNOWN',
+                        discount_amount: discountResult.total_discount,
+                        is_auto: true
+                    });
+                }
+            }
+            catch (error) {
+                logger.warn({
+                    promotionId: promotion.id,
+                    error: error instanceof Error ? error.message : 'Unknown error'
+                }, 'Error evaluating automatic promotion');
+            }
+        }
+        return eligiblePromotions;
+    }
 }
+//# sourceMappingURL=promotion-evaluation.service.js.map

@@ -170,7 +170,7 @@ export class PromotionEvaluationController {
       cart_items,
       context,
       cart_signature: cartSignature,
-      current_total: current_total || undefined
+      current_total: current_total ?? 0
     });
 
     const response = createSuccessResponse('Automatic evaluation created successfully', result);

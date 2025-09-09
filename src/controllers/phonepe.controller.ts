@@ -860,7 +860,7 @@ console.log(request.body,"request body")
       }
 
       // Convert orderlines to the format expected by updateProductQuantitiesAfterOrder
-      const orderItems = orderlines.map(orderline => ({
+      const orderItems = orderlines.map((orderline: any) => ({
         productid: Number(orderline.productid),
         quantity: orderline.quantity || 1,
         productname: null // We'll get the product name from the product table if needed
@@ -1249,19 +1249,19 @@ console.log(request.body,"request body")
         transactionId,
         orderId: order.id,
         automaticOrderlines: createdOrderlines.length,
-        orderlineIds: createdOrderlines.map(ol => ol.id),
+        orderlineIds: createdOrderlines.map((ol: any) => ol.id),
         step: 'automatic_orderlines_verified'
       }, 'Automatic orderline creation completed and verified');
 
       // Use the automatically created orderlines
-      const orderlineResults = createdOrderlines.map(ol => ({
+      const orderlineResults = createdOrderlines.map((ol: any) => ({
         success: true,
         productId: Number(ol.productid),
         orderline: ol
       }));
 
-      const successfulOrderlines = orderlineResults.filter(result => result.success);
-      const failedOrderlines : any = orderlineResults.filter(result => !result.success);
+      const successfulOrderlines = orderlineResults.filter((result: any) => result.success);
+      const failedOrderlines : any = orderlineResults.filter((result: any) => !result.success);
 
       logger.info({ 
         transactionId, 
@@ -1269,7 +1269,7 @@ console.log(request.body,"request body")
         totalOrderlines: orderlineResults.length,
         successfulCount: successfulOrderlines.length,
         failedCount: failedOrderlines.length,
-        successfulOrderlineIds: successfulOrderlines.map(r => r.orderline?.id).filter(Boolean),
+        successfulOrderlineIds: successfulOrderlines.map((r: any) => r.orderline?.id).filter(Boolean),
         failedProductIds: failedOrderlines.map((r : any) => r.productId),
         invalidProductsSkipped: invalidProductIds
       }, 'Orderline creation completed');
@@ -1339,10 +1339,10 @@ console.log(request.body,"request body")
         }
       });
       
-      const formattedProducts = products.map(p => ({
+      const formattedProducts = products.map((p: any) => ({
         id: Number(p.id),
         name: p.name || undefined
-      })).filter(p => p.id && !isNaN(p.id)) as Array<{ id: number, name?: string }>;
+      })).filter((p: any) => p.id && !isNaN(p.id)) as Array<{ id: number, name?: string }>;
       
       logger.debug({ 
         requestedIds: productIds,

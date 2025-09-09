@@ -1,10 +1,12 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { PhonePeService } from '../services/phonepe.service.js';
+import { TransactionService } from '../services/transaction.service.js';
+import { OrderlineService } from '../services/orderline.service.js';
 export declare class PhonePeController {
     phonePeService: PhonePeService;
-    private transactionService;
+    transactionService: TransactionService;
     private ordersService;
-    private orderlineService;
+    orderlineService: OrderlineService;
     /**
      * Initiate payment with PhonePe
      */
@@ -53,7 +55,7 @@ export declare class PhonePeController {
     /**
      * Create order and orderline records after successful payment
      */
-    createOrderAfterPayment(transactionId: string, forceMode?: string): Promise<any>;
+    createOrderAfterPayment(transactionId: string, forceMode?: string, evaluationIds?: string[]): Promise<any>;
     /**
      * Validate products in batch using Prisma
      */
@@ -82,6 +84,45 @@ export declare class PhonePeController {
      * - availablequantity 1-5: "low_stock"
      * - availablequantity > 5: "in_stock"
      */
-    private updateProductQuantitiesAfterOrder;
+    updateProductQuantitiesAfterOrder(orderData: any, originalOrderItems: any[], mode: string): Promise<{
+        success: boolean;
+        totalProducts: number;
+        successfulUpdates: number;
+        failedUpdates: number;
+        updateResults: never[];
+        error: string;
+    } | {
+        success: boolean;
+        totalProducts: number;
+        successfulUpdates: number;
+        failedUpdates: number;
+        updateResults: ({
+            productId: any;
+            productName: string;
+            success: boolean;
+            quantityUpdate: {
+                requestedQuantity: any;
+                oldOrderedQuantity: number;
+                newOrderedQuantity: any;
+                oldAvailableQuantity: number;
+                newAvailableQuantity: number;
+                newProductStatus: string;
+            };
+            verification: {
+                actualOrderedQuantity: number | null | undefined;
+                actualAvailableQuantity: number | null | undefined;
+                actualProductStatus: string | null | undefined;
+            };
+            error?: never;
+        } | {
+            productId: any;
+            success: boolean;
+            error: any;
+            productName?: never;
+            quantityUpdate?: never;
+            verification?: never;
+        })[];
+        error?: never;
+    }>;
 }
 //# sourceMappingURL=phonepe.controller.d.ts.map

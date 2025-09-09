@@ -1,4 +1,15 @@
 import { z } from 'zod';
+// UTC Timestamp helper schemas for BigInt database fields
+export const utcTimestampSchema = z.union([
+    z.bigint(),
+    z.number().int().positive().transform(val => BigInt(val)),
+    z.string().transform(val => BigInt(new Date(val).getTime()))
+]);
+export const utcTimestampResponseSchema = z.union([
+    z.bigint().transform(val => new Date(Number(val)).toISOString()),
+    z.string(),
+    z.number().transform(val => new Date(val).toISOString())
+]);
 // Promotion type enum matching functional specification
 export const promotionTypeEnum = z.enum([
     'PERCENT_OFF_ITEM',
@@ -189,7 +200,7 @@ export const evaluationResultSchema = z.object({
     discounted_total: z.number(),
     applied_promotions: z.array(appliedPromotionSchema),
     ineligible_coupons: z.array(ineligibleCouponSchema),
-    expires_at: z.string().datetime()
+    expires_at: utcTimestampResponseSchema
 });
 // Create evaluation request schema
 export const createEvaluationSchema = evaluationContextSchema;
@@ -209,7 +220,7 @@ export const redemptionResultSchema = z.object({
         promotion_id: z.number(),
         discount_amount: z.number()
     })),
-    redeemed_at: z.string().datetime()
+    redeemed_at: utcTimestampResponseSchema
 });
 // ===== ACTIVE PROMOTIONS SCHEMA =====
 // Active promotions query schema
@@ -226,3 +237,4 @@ export const activePromotionSchema = z.object({
     type: promotionTypeEnum,
     priority: z.number()
 });
+//# sourceMappingURL=promotions.schema.js.map
