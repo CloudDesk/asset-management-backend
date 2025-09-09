@@ -15050,3 +15050,25 @@ Filtering data for transaction (transaction): {
   },
   "modifieddate": 1757329882451
 }
+Filtering data for orderline (orderline): {
+  "orderstatus": "cancelled",
+  "modifieddate": 1757397287860,
+  "cancellation_reason": "Test cancellation",
+  "cancelleddate": 1757397287860
+}
+Filtering data for orderline (orderline): {
+  "orderstatus": "cancelled",
+  "modifieddate": 1757397298866,
+  "cancelleddate": 1757397298866
+}
+Filtering data for orderline (orderline): {
+  "orderstatus": "cancelled",
+  "modifieddate": 1757397303876,
+  "reason": "Test via status endpoint",
+  "cancelleddate": 1757397303876
+}
+Filtering data for orderline (orderline): {
+  "orderstatus": "cancelled",
+  "modifieddate": 1757397500907,
+  "cancelleddate": 1757397500907
+}

@@ -1,4 +1,4 @@
-import { PurchaseRequestService } from '../services/purchaseRequest.service.js';
+import { PurchaseRequestService } from '../services/purchaseRequest.Service.js';
 import { createPurchaseRequestSchema, updatePurchaseRequestSchema, upsertPurchaseRequestSchema, purchaseRequestParamsSchema } from '../schemas/purchaserequest.schema.js';
 import { getPaginationParams } from '../utils/pagination.js';
 import { createSuccessResponse, asyncHandler, ValidationError } from '../utils/errorHandler.js';

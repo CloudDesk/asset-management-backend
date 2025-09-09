@@ -12,5 +12,6 @@ export declare class OrderlineController {
     bulkUpdateOrderlineStatus: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     deleteOrderline: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     upsertOrderline: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    cancelOrderline: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
 }
 //# sourceMappingURL=orderline.controller.d.ts.map

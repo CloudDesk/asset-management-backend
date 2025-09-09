@@ -9,6 +9,7 @@ export class PurchaseRequestService {
     async findMany(filters, page, limit) {
         try {
             logger.info({ filters, page, limit }, 'Starting dynamic purchase request findMany with filters');
+            console.log('test');
             const { skip, take } = getPrismaSkipTake(page, limit);
             // Use the dynamic filtering system that adapts to any database schema
             const { data: purchaseRequests, total } = await dynamicFindManyWithFilters('purchaserequest', filters, {
@@ -259,4 +260,4 @@ export class PurchaseRequestService {
         }
     }
 }
-//# sourceMappingURL=purchaseRequest.service.js.map
+//# sourceMappingURL=purchaseRequest.Service.js.map

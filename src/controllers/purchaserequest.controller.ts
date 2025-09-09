@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { PurchaseRequestService } from '../services/purchaseRequest.service.js';
+import { PurchaseRequestService } from '../services/purchaseRequest.Service.js';
 import { 
   createPurchaseRequestSchema, 
   updatePurchaseRequestSchema, 
