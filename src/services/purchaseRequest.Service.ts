@@ -30,7 +30,7 @@ export class PurchaseRequestService {
   ): Promise<PaginationResult<any>> {
     try {
       logger.info({ filters, page, limit }, 'Starting dynamic purchase request findMany with filters');
-
+console.log('test');
       const { skip, take } = getPrismaSkipTake(page, limit);
 
       // Use the dynamic filtering system that adapts to any database schema

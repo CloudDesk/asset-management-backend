@@ -193,7 +193,7 @@ export class QuotesService {
                 throw error;
             }
             // Import the purchase request service dynamically to avoid circular dependency
-            const { PurchaseRequestService } = await import('./purchaserequest.service.js');
+            const { PurchaseRequestService } = await import('./purchaseRequest.service.js');
             const purchaseRequestService = new PurchaseRequestService();
             // Upsert the quote
             const quote = await this.upsert(data);

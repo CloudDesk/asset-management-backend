@@ -45,4 +45,4 @@ export declare class PurchaseRequestService {
      */
     reject(id: string, rejectedBy: string, notes?: string): Promise<any>;
 }
-//# sourceMappingURL=purchaserequest.service.d.ts.map
+//# sourceMappingURL=purchaseRequest.service.d.ts.map
