@@ -337,8 +337,7 @@ model orderline {
   original_price  Decimal?  @db.Decimal(10,2)
   product_discount_amount  Decimal? @db.Decimal(10,2) @default(0)
   promotion_discount_amount Decimal? @db.Decimal(10,2) @default(0)
-  shipping_cost  @db.Decimal(10,2) @default(0)
-
+  shipping_cost            Decimal? @db.Decimal(10,2) @default(0)
   status          String?   @db.VarChar(500)
   ordertype       String?   @db.VarChar(500)
   address         address?  @relation(fields: [addressid], references: [id], onDelete: NoAction, onUpdate: NoAction)

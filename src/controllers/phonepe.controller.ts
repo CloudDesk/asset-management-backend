@@ -1104,13 +1104,122 @@ console.log(request.body,"request body")
       // Get original order data from transaction for detailed orderline creation
       const originalOrderData = transaction.transactiondata?.originalPayload?.order || [];
       
+      // Extract evaluation IDs from transaction data for primary evaluation
+      const transactionEvaluationIds = transaction.transactiondata?.evaluation_ids || [];
+      const primaryEvaluationId = evaluationIds?.[0] || transactionEvaluationIds?.[0] || null;
+      
+      // Initialize promotion-related values
+      let evaluationData = null;
+      let promotionDiscountTotal = 0;
+      let originalTotal = 0;
+      let productDiscountTotal = 0; // Add product discount total
+      let shippingCost = 0;
+      let taxAmount = 0;
+      
+      // Calculate original total and product discounts from cart items in original payload
+      const cartItems = transaction.transactiondata?.originalPayload?.cartItems || [];
+      
+      // Calculate original total (base_price * quantity for all items)
+      originalTotal = cartItems.reduce((total: number, item: any) => {
+        const basePrice = parseFloat(item.base_price?.toString() || '0');
+        const quantity = parseInt(item.quantity?.toString() || '1');
+        return total + (basePrice * quantity);
+      }, 0);
+      
+      // Calculate product discount total using product_discount field from cart_data
+      productDiscountTotal = cartItems.reduce((total: number, item: any) => {
+        const productDiscount = parseFloat(item.product_discount?.toString() || '0');
+        const quantity = parseInt(item.quantity?.toString() || '1');
+        const itemDiscount = productDiscount * quantity;
+        return total + itemDiscount;
+      }, 0);
+      
+      // If no cart items in originalPayload, calculate from order data
+      if (originalTotal === 0 && originalOrderData.length > 0) {
+        originalTotal = originalOrderData.reduce((total: number, item: any) => {
+          return total + parseFloat(item.productamount?.toString() || '0');
+        }, 0);
+        // For order data, we might not have product discount info, so keep it 0
+        productDiscountTotal = 0;
+      }
+      
+      // Get shipping and tax from original payload
+      shippingCost = parseFloat(transaction.transactiondata?.originalPayload?.shippingCost?.toString() || '0');
+      taxAmount = parseFloat(transaction.transactiondata?.originalPayload?.taxAmount?.toString() || '0');
+      
+      // If primary evaluation ID exists, fetch evaluation data for promotion discounts
+      if (primaryEvaluationId) {
+        try {
+          const { PromotionEvaluationService } = await import('../services/promotion-evaluation.service.js');
+          const evaluationService = new PromotionEvaluationService();
+          evaluationData = await evaluationService.getEvaluation(primaryEvaluationId);
+          
+          if (evaluationData) {
+            // Use cart_data from evaluation if available (more accurate)
+            const evaluationCartData = evaluationData.cart_data || [];
+            if (evaluationCartData.length > 0) {
+              // Recalculate using evaluation's cart_data
+              originalTotal = evaluationCartData.reduce((total: number, item: any) => {
+                const basePrice = parseFloat(item.base_price?.toString() || '0');
+                const quantity = parseInt(item.quantity?.toString() || '1');
+                return total + (basePrice * quantity);
+              }, 0);
+              
+              // Calculate product discount total using product_discount field from evaluation cart_data
+              productDiscountTotal = evaluationCartData.reduce((total: number, item: any) => {
+                const productDiscount = parseFloat(item.product_discount?.toString() || '0');
+                const quantity = parseInt(item.quantity?.toString() || '1');
+                const itemDiscount = productDiscount * quantity;
+                return total + itemDiscount;
+              }, 0);
+            }
+            
+            // Calculate promotion discount total from applied promotions
+            const appliedPromotions = evaluationData.applied_promotions || [];
+            promotionDiscountTotal = appliedPromotions.reduce((total: number, promo: any) => {
+              return total + parseFloat(promo.discount_amount?.toString() || '0');
+            }, 0);
+            
+            logger.info({
+              transactionId,
+              evaluationId: primaryEvaluationId,
+              promotionDiscountTotal,
+              productDiscountTotal,
+              originalTotal: evaluationData.original_total,
+              discountedTotal: evaluationData.discounted_total,
+              cartItemsCount: cartItems.length,
+              evaluationCartDataCount: evaluationCartData.length,
+              evaluationCartData: evaluationCartData // Log the cart data for debugging
+            }, 'Evaluation data retrieved for order creation');
+          }
+        } catch (error) {
+          logger.warn({
+            transactionId,
+            evaluationId: primaryEvaluationId,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          }, 'Failed to fetch evaluation data - continuing without promotion data');
+        }
+      }
+      
+      // Calculate product amount (after product discounts, before promotion discounts)
+      const productAmount = originalTotal - productDiscountTotal;
+      
       logger.info({ 
         transactionId,
         mode: mode,
         originalOrderData: originalOrderData.length,
         validProductIds,
+        promotionFields: {
+          evaluation_id: primaryEvaluationId,
+          original_total: originalTotal,
+          product_discount_total: productDiscountTotal,
+          promotion_discount_total: promotionDiscountTotal,
+          shipping_cost: shippingCost,
+          tax_amount: taxAmount,
+          productamount: productAmount
+        },
         step: 'preparing_order_with_detailed_items'
-      }, 'Preparing order creation with detailed product information');
+      }, 'Preparing order creation with detailed product and promotion information');
       
       // Create order record with productid to enable automatic orderline creation
       const orderData = {
@@ -1120,20 +1229,27 @@ console.log(request.body,"request body")
         orderstatus: 'payment_completed',
         quantity: validProductIds.length, // Use valid product count
         transactionid: transaction.transactionid,
-        productamount: parseFloat(transaction.amount?.toString() || '0'),
-        discountamount: 0,
+        productamount: productAmount > 0 ? productAmount : parseFloat(transaction.amount?.toString() || '0'),
+        discountamount: productDiscountTotal + promotionDiscountTotal, // Total discounts (product + promotion)
         ispaymentsucceed: true,
         merchanttransactionid: transaction.merchanttransactionid,
         productid: validProductIds, // Include product IDs for automatic orderline creation
         mode: mode, // Add mode field: 'phonepe' or 'cod'
         createddate: currentTime,
         modifieddate: currentTime,
+        // Add new promotion-related fields
+        evaluation_id: primaryEvaluationId,
+        promotion_discount_total: promotionDiscountTotal, // Coupon/promotion discounts
+        original_total: originalTotal,
+        shipping_cost: shippingCost,
+        tax_amount: taxAmount,
         // Add original order items for detailed orderline creation
         orderItems: originalOrderData.filter((item: any) => 
           validProductIds.includes(item.productid)
         )
       };
 
+      console.log(orderData,"orderData-final")
       // Log the orderData being sent to OrdersService
       logger.info({
         transactionId,
