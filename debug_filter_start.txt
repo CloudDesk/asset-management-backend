@@ -16217,3 +16217,1998 @@ Filtering data for transaction (transaction): {
   },
   "modifieddate": 1757492196544
 }
+Filtering data for cart (cart): {
+  "productid": 7,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1757499459213,
+  "modifieddate": 1757499459213
+}
+Filtering data for cart (cart): {
+  "productid": 11,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1757499460672,
+  "modifieddate": 1757499460672
+}
+Filtering data for transaction (transaction): {
+  "transactionid": "TXN_1757499507124_QYZU5E",
+  "merchanttransactionid": "TXN_1757499507124_QYZU5E",
+  "userid": 24,
+  "amount": 561,
+  "mobilenumber": 9994824573,
+  "name": "User",
+  "productid": [
+    11,
+    7
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "INITIATED",
+    "mode": "phonepe",
+    "evaluation_ids": [
+      "eval_1757499471193_9tqlcaczc"
+    ],
+    "invalid_evaluations": [],
+    "originalPayload": {
+      "transaction": {
+        "name": "User",
+        "amount": 561,
+        "mobilenumber": "9994824573",
+        "userId": 24,
+        "productid": [
+          11,
+          7
+        ],
+        "transactionfor": "product"
+      },
+      "order": [
+        {
+          "productid": 11,
+          "productname": "ARCASA Scented Candles",
+          "productcategory": "wellness",
+          "userid": 24,
+          "addressid": 20,
+          "productamount": 240,
+          "discountamount": 0,
+          "orderamount": 240,
+          "quantity": 1,
+          "cartId": 475
+        },
+        {
+          "productid": 7,
+          "productname": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+          "productcategory": "wellness",
+          "userid": 24,
+          "addressid": 20,
+          "productamount": 520,
+          "discountamount": 12,
+          "orderamount": 508,
+          "quantity": 1,
+          "cartId": 474
+        }
+      ],
+      "mode": "phonepe",
+      "evaluation_ids": [
+        "eval_1757499471193_9tqlcaczc"
+      ]
+    },
+    "paymentRequest": {
+      "merchantTransactionId": "TXN_1757499507124_QYZU5E",
+      "amount": 561,
+      "name": "User",
+      "mobileNumber": "9994824573",
+      "userId": 24,
+      "productIds": [
+        11,
+        7
+      ],
+      "transactionFor": "product"
+    },
+    "initiatedAt": "2025-09-10T10:18:27.553Z",
+    "phonePeResponses": {
+      "initiation": {
+        "timestamp": "2025-09-10T10:18:27.553Z",
+        "response": {
+          "success": true,
+          "message": "Payment initiated successfully",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByK29ZNoFe6dvZtFh6NvLJ6",
+          "transactionId": "TXN_1757499507124_QYZU5E"
+        },
+        "status": "INITIATED",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByK29ZNoFe6dvZtFh6NvLJ6"
+      }
+    },
+    "codData": null
+  },
+  "createddate": 1757499507554,
+  "modifieddate": 1757499507554
+}
+Filtering data for transaction (transaction): {
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "initiatedAt": "2025-09-10T10:18:27.553Z",
+    "evaluation_ids": [
+      "eval_1757499471193_9tqlcaczc"
+    ],
+    "paymentRequest": {
+      "name": "User",
+      "amount": 561,
+      "userId": 24,
+      "productIds": [
+        11,
+        7
+      ],
+      "mobileNumber": "9994824573",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1757499507124_QYZU5E"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 475,
+          "userid": 24,
+          "quantity": 1,
+          "addressid": 20,
+          "productid": 11,
+          "orderamount": 240,
+          "productname": "ARCASA Scented Candles",
+          "productamount": 240,
+          "discountamount": 0,
+          "productcategory": "wellness"
+        },
+        {
+          "cartId": 474,
+          "userid": 24,
+          "quantity": 1,
+          "addressid": 20,
+          "productid": 7,
+          "orderamount": 508,
+          "productname": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+          "productamount": 520,
+          "discountamount": 12,
+          "productcategory": "wellness"
+        }
+      ],
+      "transaction": {
+        "name": "User",
+        "amount": 561,
+        "userId": 24,
+        "productid": [
+          11,
+          7
+        ],
+        "mobilenumber": "9994824573",
+        "transactionfor": "product"
+      },
+      "evaluation_ids": [
+        "eval_1757499471193_9tqlcaczc"
+      ]
+    },
+    "phonePeResponses": {
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByK29ZNoFe6dvZtFh6NvLJ6",
+          "transactionId": "TXN_1757499507124_QYZU5E"
+        },
+        "timestamp": "2025-09-10T10:18:27.553Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByK29ZNoFe6dvZtFh6NvLJ6"
+      },
+      "success": {
+        "timestamp": "2025-09-10T10:19:01.262Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Your payment is successful.",
+          "data": {
+            "merchantId": "PGTESTPAYUAT86",
+            "merchantTransactionId": "TXN_1757499507124_QYZU5E",
+            "transactionId": "T2509101548275662939177",
+            "amount": 56100,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "CARD",
+              "cardType": "CREDIT_CARD",
+              "bankTransactionId": null,
+              "arn": "12121214455",
+              "authRefId": "Dummy-auth12345",
+              "bankId": null,
+              "brn": "B12345"
+            }
+          }
+        },
+        "status": "SUCCESS"
+      }
+    },
+    "invalid_evaluations": [],
+    "paymentCompleteAt": "2025-09-10T10:19:01.262Z",
+    "updatedAt": "2025-09-10T10:19:01.262Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Your payment is successful.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1757499507124_QYZU5E",
+        "transactionId": "T2509101548275662939177",
+        "amount": 56100,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "CARD",
+          "cardType": "CREDIT_CARD",
+          "bankTransactionId": null,
+          "arn": "12121214455",
+          "authRefId": "Dummy-auth12345",
+          "bankId": null,
+          "brn": "B12345"
+        }
+      }
+    }
+  },
+  "modifieddate": 1757499541888
+}
+Filtering data for orders (orders): {
+  "userid": 24,
+  "orderamount": 561,
+  "orderid": "ORDER_TXN_1757499507124_QYZU5E_1757499544356",
+  "orderstatus": "payment_completed",
+  "quantity": 2,
+  "transactionid": "NIVAANA-TRAN-00193",
+  "productamount": 748,
+  "discountamount": 199,
+  "ispaymentsucceed": true,
+  "merchanttransactionid": "TXN_1757499507124_QYZU5E",
+  "productid": [
+    7,
+    11
+  ],
+  "mode": "phonepe",
+  "createddate": 1757499544356,
+  "modifieddate": 1757499544356,
+  "evaluation_id": "eval_1757499471193_9tqlcaczc",
+  "promotion_discount_total": 187,
+  "original_total": 760,
+  "shipping_cost": 0,
+  "tax_amount": 0,
+  "orderItems": [
+    {
+      "cartId": 475,
+      "userid": 24,
+      "quantity": 1,
+      "addressid": 20,
+      "productid": 11,
+      "orderamount": 240,
+      "productname": "ARCASA Scented Candles",
+      "productamount": 240,
+      "discountamount": 0,
+      "productcategory": "wellness"
+    },
+    {
+      "cartId": 474,
+      "userid": 24,
+      "quantity": 1,
+      "addressid": 20,
+      "productid": 7,
+      "orderamount": 508,
+      "productname": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+      "productamount": 520,
+      "discountamount": 12,
+      "productcategory": "wellness"
+    }
+  ]
+}
+Filtering data for orderline (orderline): {
+  "orderid": 92,
+  "productid": 11,
+  "userid": 24,
+  "addressid": 20,
+  "productamount": 240,
+  "discountamount": null,
+  "orderamount": 240,
+  "quantity": 1,
+  "productname": "ARCASA Scented Candles",
+  "productcategory": "wellness",
+  "orderstatus": "payment_completed",
+  "uniqueordderid": "NIVAANA-0000000092",
+  "createddate": 1757499547331,
+  "modifieddate": 1757499547331,
+  "ordereddate": 1757499547331
+}
+Filtering data for orderline (orderline): {
+  "orderid": 92,
+  "productid": 7,
+  "userid": 24,
+  "addressid": 20,
+  "productamount": 520,
+  "discountamount": 12,
+  "orderamount": 508,
+  "quantity": 1,
+  "productname": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+  "productcategory": "wellness",
+  "orderstatus": "payment_completed",
+  "uniqueordderid": "NIVAANA-0000000092",
+  "createddate": 1757499547331,
+  "modifieddate": 1757499547331,
+  "ordereddate": 1757499547331
+}
+Filtering data for transaction (transaction): {
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "updatedAt": "2025-09-10T10:19:23.516Z",
+    "initiatedAt": "2025-09-10T10:18:27.553Z",
+    "evaluation_ids": [
+      "eval_1757499471193_9tqlcaczc"
+    ],
+    "paymentRequest": {
+      "name": "User",
+      "amount": 561,
+      "userId": 24,
+      "productIds": [
+        11,
+        7
+      ],
+      "mobileNumber": "9994824573",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1757499507124_QYZU5E"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 475,
+          "userid": 24,
+          "quantity": 1,
+          "addressid": 20,
+          "productid": 11,
+          "orderamount": 240,
+          "productname": "ARCASA Scented Candles",
+          "productamount": 240,
+          "discountamount": 0,
+          "productcategory": "wellness"
+        },
+        {
+          "cartId": 474,
+          "userid": 24,
+          "quantity": 1,
+          "addressid": 20,
+          "productid": 7,
+          "orderamount": 508,
+          "productname": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+          "productamount": 520,
+          "discountamount": 12,
+          "productcategory": "wellness"
+        }
+      ],
+      "transaction": {
+        "name": "User",
+        "amount": 561,
+        "userId": 24,
+        "productid": [
+          11,
+          7
+        ],
+        "mobilenumber": "9994824573",
+        "transactionfor": "product"
+      },
+      "evaluation_ids": [
+        "eval_1757499471193_9tqlcaczc"
+      ]
+    },
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Your payment is successful.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1757499507124_QYZU5E",
+        "transactionId": "T2509101548275662939177",
+        "amount": 56100,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "CARD",
+          "cardType": "CREDIT_CARD",
+          "bankTransactionId": null,
+          "arn": "12121214455",
+          "authRefId": "Dummy-auth12345",
+          "bankId": null,
+          "brn": "B12345"
+        }
+      },
+      "orderCreation": {
+        "status": "success",
+        "error": null,
+        "orderId": 92,
+        "timestamp": "2025-09-10T10:19:23.192Z"
+      },
+      "paymentCompleteAt": "2025-09-10T10:19:23.192Z"
+    },
+    "phonePeResponses": {
+      "success": {
+        "timestamp": "2025-09-10T10:19:23.516Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Your payment is successful.",
+          "data": {
+            "merchantId": "PGTESTPAYUAT86",
+            "merchantTransactionId": "TXN_1757499507124_QYZU5E",
+            "transactionId": "T2509101548275662939177",
+            "amount": 56100,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "CARD",
+              "cardType": "CREDIT_CARD",
+              "bankTransactionId": null,
+              "arn": "12121214455",
+              "authRefId": "Dummy-auth12345",
+              "bankId": null,
+              "brn": "B12345"
+            }
+          },
+          "orderCreation": {
+            "status": "success",
+            "error": null,
+            "orderId": 92,
+            "timestamp": "2025-09-10T10:19:23.192Z"
+          },
+          "paymentCompleteAt": "2025-09-10T10:19:23.192Z"
+        },
+        "status": "SUCCESS"
+      },
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByK29ZNoFe6dvZtFh6NvLJ6",
+          "transactionId": "TXN_1757499507124_QYZU5E"
+        },
+        "timestamp": "2025-09-10T10:18:27.553Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByK29ZNoFe6dvZtFh6NvLJ6"
+      }
+    },
+    "paymentCompleteAt": "2025-09-10T10:19:23.516Z",
+    "invalid_evaluations": []
+  },
+  "modifieddate": 1757499563820
+}
+Filtering data for cart (cart): {
+  "productid": 7,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1757499874525,
+  "modifieddate": 1757499874525
+}
+Filtering data for cart (cart): {
+  "productid": 11,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1757499877152,
+  "modifieddate": 1757499877152
+}
+Filtering data for transaction (transaction): {
+  "transactionid": "TXN_1757500177179_5PBGEH",
+  "merchanttransactionid": "TXN_1757500177179_5PBGEH",
+  "userid": 24,
+  "amount": 561,
+  "mobilenumber": 9994824573,
+  "name": "User",
+  "productid": [
+    11,
+    7
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "INITIATED",
+    "mode": "phonepe",
+    "evaluation_ids": [
+      "eval_1757500154423_297vdjbt5"
+    ],
+    "invalid_evaluations": [],
+    "originalPayload": {
+      "transaction": {
+        "name": "User",
+        "amount": 561,
+        "mobilenumber": "9994824573",
+        "userId": 24,
+        "productid": [
+          11,
+          7
+        ],
+        "transactionfor": "product"
+      },
+      "order": [
+        {
+          "productid": 11,
+          "productname": "ARCASA Scented Candles",
+          "productcategory": "wellness",
+          "userid": 24,
+          "addressid": 20,
+          "productamount": 240,
+          "discountamount": 0,
+          "orderamount": 240,
+          "quantity": 1,
+          "cartId": 477
+        },
+        {
+          "productid": 7,
+          "productname": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+          "productcategory": "wellness",
+          "userid": 24,
+          "addressid": 20,
+          "productamount": 520,
+          "discountamount": 12,
+          "orderamount": 508,
+          "quantity": 1,
+          "cartId": 476
+        }
+      ],
+      "mode": "phonepe",
+      "evaluation_ids": [
+        "eval_1757500154423_297vdjbt5"
+      ]
+    },
+    "paymentRequest": {
+      "merchantTransactionId": "TXN_1757500177179_5PBGEH",
+      "amount": 561,
+      "name": "User",
+      "mobileNumber": "9994824573",
+      "userId": 24,
+      "productIds": [
+        11,
+        7
+      ],
+      "transactionFor": "product"
+    },
+    "initiatedAt": "2025-09-10T10:29:37.494Z",
+    "phonePeResponses": {
+      "initiation": {
+        "timestamp": "2025-09-10T10:29:37.494Z",
+        "response": {
+          "success": true,
+          "message": "Payment initiated successfully",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByICLODRvOKq9OfEkbZP8qH",
+          "transactionId": "TXN_1757500177179_5PBGEH"
+        },
+        "status": "INITIATED",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByICLODRvOKq9OfEkbZP8qH"
+      }
+    },
+    "codData": null
+  },
+  "createddate": 1757500177495,
+  "modifieddate": 1757500177495
+}
+Filtering data for transaction (transaction): {
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "initiatedAt": "2025-09-10T10:29:37.494Z",
+    "evaluation_ids": [
+      "eval_1757500154423_297vdjbt5"
+    ],
+    "paymentRequest": {
+      "name": "User",
+      "amount": 561,
+      "userId": 24,
+      "productIds": [
+        11,
+        7
+      ],
+      "mobileNumber": "9994824573",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1757500177179_5PBGEH"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 477,
+          "userid": 24,
+          "quantity": 1,
+          "addressid": 20,
+          "productid": 11,
+          "orderamount": 240,
+          "productname": "ARCASA Scented Candles",
+          "productamount": 240,
+          "discountamount": 0,
+          "productcategory": "wellness"
+        },
+        {
+          "cartId": 476,
+          "userid": 24,
+          "quantity": 1,
+          "addressid": 20,
+          "productid": 7,
+          "orderamount": 508,
+          "productname": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+          "productamount": 520,
+          "discountamount": 12,
+          "productcategory": "wellness"
+        }
+      ],
+      "transaction": {
+        "name": "User",
+        "amount": 561,
+        "userId": 24,
+        "productid": [
+          11,
+          7
+        ],
+        "mobilenumber": "9994824573",
+        "transactionfor": "product"
+      },
+      "evaluation_ids": [
+        "eval_1757500154423_297vdjbt5"
+      ]
+    },
+    "phonePeResponses": {
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByICLODRvOKq9OfEkbZP8qH",
+          "transactionId": "TXN_1757500177179_5PBGEH"
+        },
+        "timestamp": "2025-09-10T10:29:37.494Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByICLODRvOKq9OfEkbZP8qH"
+      },
+      "success": {
+        "timestamp": "2025-09-10T10:30:10.591Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Your payment is successful.",
+          "data": {
+            "merchantId": "PGTESTPAYUAT86",
+            "merchantTransactionId": "TXN_1757500177179_5PBGEH",
+            "transactionId": "T2509101559375612939840",
+            "amount": 56100,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "CARD",
+              "cardType": "CREDIT_CARD",
+              "bankTransactionId": null,
+              "arn": "12121214455",
+              "authRefId": "Dummy-auth12345",
+              "bankId": null,
+              "brn": "B12345"
+            }
+          }
+        },
+        "status": "SUCCESS"
+      }
+    },
+    "invalid_evaluations": [],
+    "paymentCompleteAt": "2025-09-10T10:30:10.591Z",
+    "updatedAt": "2025-09-10T10:30:10.591Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Your payment is successful.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1757500177179_5PBGEH",
+        "transactionId": "T2509101559375612939840",
+        "amount": 56100,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "CARD",
+          "cardType": "CREDIT_CARD",
+          "bankTransactionId": null,
+          "arn": "12121214455",
+          "authRefId": "Dummy-auth12345",
+          "bankId": null,
+          "brn": "B12345"
+        }
+      }
+    }
+  },
+  "modifieddate": 1757500211230
+}
+Filtering data for orders (orders): {
+  "userid": 24,
+  "orderamount": 561,
+  "orderid": "ORDER_TXN_1757500177179_5PBGEH_1757500213705",
+  "orderstatus": "payment_completed",
+  "quantity": 2,
+  "transactionid": "NIVAANA-TRAN-00194",
+  "productamount": 748,
+  "discountamount": 199,
+  "ispaymentsucceed": true,
+  "merchanttransactionid": "TXN_1757500177179_5PBGEH",
+  "productid": [
+    11,
+    7
+  ],
+  "mode": "phonepe",
+  "createddate": 1757500213705,
+  "modifieddate": 1757500213705,
+  "evaluation_id": "eval_1757500154423_297vdjbt5",
+  "promotion_discount_total": 187,
+  "original_total": 760,
+  "shipping_cost": 0,
+  "tax_amount": 0,
+  "orderItems": [
+    {
+      "cartId": 477,
+      "userid": 24,
+      "quantity": 1,
+      "addressid": 20,
+      "productid": 11,
+      "orderamount": 240,
+      "productname": "ARCASA Scented Candles",
+      "productamount": 240,
+      "discountamount": 0,
+      "productcategory": "wellness"
+    },
+    {
+      "cartId": 476,
+      "userid": 24,
+      "quantity": 1,
+      "addressid": 20,
+      "productid": 7,
+      "orderamount": 508,
+      "productname": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+      "productamount": 520,
+      "discountamount": 12,
+      "productcategory": "wellness"
+    }
+  ]
+}
+Filtering data for orderline (orderline): {
+  "orderid": 93,
+  "productid": 11,
+  "userid": 24,
+  "addressid": 20,
+  "productamount": 240,
+  "discountamount": null,
+  "orderamount": 240,
+  "quantity": 1,
+  "productname": "ARCASA Scented Candles",
+  "productcategory": "wellness",
+  "orderstatus": "payment_completed",
+  "uniqueordderid": "NIVAANA-0000000093",
+  "createddate": 1757500216774,
+  "modifieddate": 1757500216774,
+  "ordereddate": 1757500216774
+}
+Filtering data for orderline (orderline): {
+  "orderid": 93,
+  "productid": 7,
+  "userid": 24,
+  "addressid": 20,
+  "productamount": 520,
+  "discountamount": 12,
+  "orderamount": 508,
+  "quantity": 1,
+  "productname": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+  "productcategory": "wellness",
+  "orderstatus": "payment_completed",
+  "uniqueordderid": "NIVAANA-0000000093",
+  "createddate": 1757500216774,
+  "modifieddate": 1757500216774,
+  "ordereddate": 1757500216774
+}
+Filtering data for transaction (transaction): {
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "updatedAt": "2025-09-10T10:30:33.399Z",
+    "initiatedAt": "2025-09-10T10:29:37.494Z",
+    "evaluation_ids": [
+      "eval_1757500154423_297vdjbt5"
+    ],
+    "paymentRequest": {
+      "name": "User",
+      "amount": 561,
+      "userId": 24,
+      "productIds": [
+        11,
+        7
+      ],
+      "mobileNumber": "9994824573",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1757500177179_5PBGEH"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 477,
+          "userid": 24,
+          "quantity": 1,
+          "addressid": 20,
+          "productid": 11,
+          "orderamount": 240,
+          "productname": "ARCASA Scented Candles",
+          "productamount": 240,
+          "discountamount": 0,
+          "productcategory": "wellness"
+        },
+        {
+          "cartId": 476,
+          "userid": 24,
+          "quantity": 1,
+          "addressid": 20,
+          "productid": 7,
+          "orderamount": 508,
+          "productname": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+          "productamount": 520,
+          "discountamount": 12,
+          "productcategory": "wellness"
+        }
+      ],
+      "transaction": {
+        "name": "User",
+        "amount": 561,
+        "userId": 24,
+        "productid": [
+          11,
+          7
+        ],
+        "mobilenumber": "9994824573",
+        "transactionfor": "product"
+      },
+      "evaluation_ids": [
+        "eval_1757500154423_297vdjbt5"
+      ]
+    },
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Your payment is successful.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1757500177179_5PBGEH",
+        "transactionId": "T2509101559375612939840",
+        "amount": 56100,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "CARD",
+          "cardType": "CREDIT_CARD",
+          "bankTransactionId": null,
+          "arn": "12121214455",
+          "authRefId": "Dummy-auth12345",
+          "bankId": null,
+          "brn": "B12345"
+        }
+      },
+      "orderCreation": {
+        "status": "success",
+        "error": null,
+        "orderId": 93,
+        "timestamp": "2025-09-10T10:30:32.773Z"
+      },
+      "paymentCompleteAt": "2025-09-10T10:30:32.773Z"
+    },
+    "phonePeResponses": {
+      "success": {
+        "timestamp": "2025-09-10T10:30:33.399Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Your payment is successful.",
+          "data": {
+            "merchantId": "PGTESTPAYUAT86",
+            "merchantTransactionId": "TXN_1757500177179_5PBGEH",
+            "transactionId": "T2509101559375612939840",
+            "amount": 56100,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "CARD",
+              "cardType": "CREDIT_CARD",
+              "bankTransactionId": null,
+              "arn": "12121214455",
+              "authRefId": "Dummy-auth12345",
+              "bankId": null,
+              "brn": "B12345"
+            }
+          },
+          "orderCreation": {
+            "status": "success",
+            "error": null,
+            "orderId": 93,
+            "timestamp": "2025-09-10T10:30:32.773Z"
+          },
+          "paymentCompleteAt": "2025-09-10T10:30:32.773Z"
+        },
+        "status": "SUCCESS"
+      },
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByICLODRvOKq9OfEkbZP8qH",
+          "transactionId": "TXN_1757500177179_5PBGEH"
+        },
+        "timestamp": "2025-09-10T10:29:37.494Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByICLODRvOKq9OfEkbZP8qH"
+      }
+    },
+    "paymentCompleteAt": "2025-09-10T10:30:33.399Z",
+    "invalid_evaluations": []
+  },
+  "modifieddate": 1757500234083
+}
+Filtering data for cart (cart): {
+  "productid": 11,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1757502012382,
+  "modifieddate": 1757502012382
+}
+Filtering data for cart (cart): {
+  "productid": 7,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1757502028129,
+  "modifieddate": 1757502028129
+}
+Filtering data for transaction (transaction): {
+  "transactionid": "TXN_1757502205279_4HH586",
+  "merchanttransactionid": "TXN_1757502205279_4HH586",
+  "userid": 24,
+  "amount": 561,
+  "mobilenumber": 9994824573,
+  "name": "User",
+  "productid": [
+    7,
+    11
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "INITIATED",
+    "mode": "phonepe",
+    "evaluation_ids": [
+      "eval_1757502066001_80epoajkt"
+    ],
+    "invalid_evaluations": [],
+    "originalPayload": {
+      "transaction": {
+        "name": "User",
+        "amount": 561,
+        "mobilenumber": "9994824573",
+        "userId": 24,
+        "productid": [
+          7,
+          11
+        ],
+        "transactionfor": "product"
+      },
+      "order": [
+        {
+          "productid": 7,
+          "productname": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+          "productcategory": "wellness",
+          "userid": 24,
+          "addressid": 20,
+          "productamount": 520,
+          "discountamount": 12,
+          "orderamount": 508,
+          "quantity": 1,
+          "cartId": 479
+        },
+        {
+          "productid": 11,
+          "productname": "ARCASA Scented Candles",
+          "productcategory": "wellness",
+          "userid": 24,
+          "addressid": 20,
+          "productamount": 240,
+          "discountamount": 0,
+          "orderamount": 240,
+          "quantity": 1,
+          "cartId": 478
+        }
+      ],
+      "mode": "phonepe",
+      "evaluation_ids": [
+        "eval_1757502066001_80epoajkt"
+      ]
+    },
+    "paymentRequest": {
+      "merchantTransactionId": "TXN_1757502205279_4HH586",
+      "amount": 561,
+      "name": "User",
+      "mobileNumber": "9994824573",
+      "userId": 24,
+      "productIds": [
+        7,
+        11
+      ],
+      "transactionFor": "product"
+    },
+    "initiatedAt": "2025-09-10T11:03:25.947Z",
+    "phonePeResponses": {
+      "initiation": {
+        "timestamp": "2025-09-10T11:03:25.947Z",
+        "response": {
+          "success": true,
+          "message": "Payment initiated successfully",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByICLAStoLrDBqYqzUiCTPD",
+          "transactionId": "TXN_1757502205279_4HH586"
+        },
+        "status": "INITIATED",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByICLAStoLrDBqYqzUiCTPD"
+      }
+    },
+    "codData": null
+  },
+  "createddate": 1757502205947,
+  "modifieddate": 1757502205947
+}
+Filtering data for cart (cart): {
+  "productid": 7,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1757502405477,
+  "modifieddate": 1757502405477
+}
+Filtering data for cart (cart): {
+  "productid": 11,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1757502405872,
+  "modifieddate": 1757502405872
+}
+Filtering data for transaction (transaction): {
+  "transactionid": "TXN_1757502571020_JJHJCV",
+  "merchanttransactionid": "TXN_1757502571020_JJHJCV",
+  "userid": 24,
+  "amount": 561,
+  "mobilenumber": 9994824573,
+  "name": "User",
+  "productid": [
+    11,
+    7
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "INITIATED",
+    "mode": "phonepe",
+    "evaluation_ids": [
+      "eval_1757502508891_3zlrgwao8"
+    ],
+    "invalid_evaluations": [],
+    "originalPayload": {
+      "transaction": {
+        "name": "User",
+        "amount": 561,
+        "mobilenumber": "9994824573",
+        "userId": 24,
+        "productid": [
+          11,
+          7
+        ],
+        "transactionfor": "product"
+      },
+      "order": [
+        {
+          "productid": 11,
+          "productname": "ARCASA Scented Candles",
+          "productcategory": "wellness",
+          "userid": 24,
+          "addressid": 20,
+          "productamount": 240,
+          "discountamount": 0,
+          "orderamount": 240,
+          "quantity": 1,
+          "cartId": 480
+        },
+        {
+          "productid": 7,
+          "productname": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+          "productcategory": "wellness",
+          "userid": 24,
+          "addressid": 20,
+          "productamount": 520,
+          "discountamount": 12,
+          "orderamount": 508,
+          "quantity": 1,
+          "cartId": 481
+        }
+      ],
+      "mode": "phonepe",
+      "evaluation_ids": [
+        "eval_1757502508891_3zlrgwao8"
+      ]
+    },
+    "paymentRequest": {
+      "merchantTransactionId": "TXN_1757502571020_JJHJCV",
+      "amount": 561,
+      "name": "User",
+      "mobileNumber": "9994824573",
+      "userId": 24,
+      "productIds": [
+        11,
+        7
+      ],
+      "transactionFor": "product"
+    },
+    "initiatedAt": "2025-09-10T11:09:31.718Z",
+    "phonePeResponses": {
+      "initiation": {
+        "timestamp": "2025-09-10T11:09:31.718Z",
+        "response": {
+          "success": true,
+          "message": "Payment initiated successfully",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByICLANtTj8zgy3gmVa6vOh",
+          "transactionId": "TXN_1757502571020_JJHJCV"
+        },
+        "status": "INITIATED",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByICLANtTj8zgy3gmVa6vOh"
+      }
+    },
+    "codData": null
+  },
+  "createddate": 1757502571718,
+  "modifieddate": 1757502571718
+}
+Filtering data for transaction (transaction): {
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "initiatedAt": "2025-09-10T11:09:31.718Z",
+    "evaluation_ids": [
+      "eval_1757502508891_3zlrgwao8"
+    ],
+    "paymentRequest": {
+      "name": "User",
+      "amount": 561,
+      "userId": 24,
+      "productIds": [
+        11,
+        7
+      ],
+      "mobileNumber": "9994824573",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1757502571020_JJHJCV"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 480,
+          "userid": 24,
+          "quantity": 1,
+          "addressid": 20,
+          "productid": 11,
+          "orderamount": 240,
+          "productname": "ARCASA Scented Candles",
+          "productamount": 240,
+          "discountamount": 0,
+          "productcategory": "wellness"
+        },
+        {
+          "cartId": 481,
+          "userid": 24,
+          "quantity": 1,
+          "addressid": 20,
+          "productid": 7,
+          "orderamount": 508,
+          "productname": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+          "productamount": 520,
+          "discountamount": 12,
+          "productcategory": "wellness"
+        }
+      ],
+      "transaction": {
+        "name": "User",
+        "amount": 561,
+        "userId": 24,
+        "productid": [
+          11,
+          7
+        ],
+        "mobilenumber": "9994824573",
+        "transactionfor": "product"
+      },
+      "evaluation_ids": [
+        "eval_1757502508891_3zlrgwao8"
+      ]
+    },
+    "phonePeResponses": {
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByICLANtTj8zgy3gmVa6vOh",
+          "transactionId": "TXN_1757502571020_JJHJCV"
+        },
+        "timestamp": "2025-09-10T11:09:31.718Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByICLANtTj8zgy3gmVa6vOh"
+      },
+      "success": {
+        "timestamp": "2025-09-10T11:10:04.984Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Your payment is successful.",
+          "data": {
+            "merchantId": "PGTESTPAYUAT86",
+            "merchantTransactionId": "TXN_1757502571020_JJHJCV",
+            "transactionId": "T2509101639318512939691",
+            "amount": 56100,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "CARD",
+              "cardType": "CREDIT_CARD",
+              "bankTransactionId": null,
+              "arn": "12121214455",
+              "authRefId": "Dummy-auth12345",
+              "bankId": null,
+              "brn": "B12345"
+            }
+          }
+        },
+        "status": "SUCCESS"
+      }
+    },
+    "invalid_evaluations": [],
+    "paymentCompleteAt": "2025-09-10T11:10:04.984Z",
+    "updatedAt": "2025-09-10T11:10:04.984Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Your payment is successful.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1757502571020_JJHJCV",
+        "transactionId": "T2509101639318512939691",
+        "amount": 56100,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "CARD",
+          "cardType": "CREDIT_CARD",
+          "bankTransactionId": null,
+          "arn": "12121214455",
+          "authRefId": "Dummy-auth12345",
+          "bankId": null,
+          "brn": "B12345"
+        }
+      }
+    }
+  },
+  "modifieddate": 1757502605905
+}
+Filtering data for orders (orders): {
+  "userid": 24,
+  "orderamount": 561,
+  "orderid": "ORDER_TXN_1757502571020_JJHJCV_1757502611652",
+  "orderstatus": "payment_completed",
+  "quantity": 2,
+  "transactionid": "NIVAANA-TRAN-00196",
+  "productamount": 748,
+  "discountamount": 199,
+  "ispaymentsucceed": true,
+  "merchanttransactionid": "TXN_1757502571020_JJHJCV",
+  "productid": [
+    7,
+    11
+  ],
+  "mode": "phonepe",
+  "createddate": 1757502611652,
+  "modifieddate": 1757502611652,
+  "evaluation_id": "eval_1757502508891_3zlrgwao8",
+  "promotion_discount_total": 187,
+  "original_total": 760,
+  "shipping_cost": 0,
+  "tax_amount": 0,
+  "orderItems": [
+    {
+      "cartId": 480,
+      "userid": 24,
+      "quantity": 1,
+      "addressid": 20,
+      "productid": 11,
+      "orderamount": 240,
+      "productname": "ARCASA Scented Candles",
+      "productamount": 240,
+      "discountamount": 0,
+      "productcategory": "wellness"
+    },
+    {
+      "cartId": 481,
+      "userid": 24,
+      "quantity": 1,
+      "addressid": 20,
+      "productid": 7,
+      "orderamount": 508,
+      "productname": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+      "productamount": 520,
+      "discountamount": 12,
+      "productcategory": "wellness"
+    }
+  ]
+}
+Filtering data for orderline (orderline): {
+  "orderid": 94,
+  "productid": 11,
+  "userid": 24,
+  "addressid": 20,
+  "productamount": 240,
+  "discountamount": null,
+  "orderamount": 240,
+  "quantity": 1,
+  "productname": "ARCASA Scented Candles",
+  "productcategory": "wellness",
+  "orderstatus": "payment_completed",
+  "uniqueordderid": "NIVAANA-0000000094",
+  "createddate": 1757502614854,
+  "modifieddate": 1757502614854,
+  "ordereddate": 1757502614854
+}
+Filtering data for orderline (orderline): {
+  "orderid": 94,
+  "productid": 7,
+  "userid": 24,
+  "addressid": 20,
+  "productamount": 520,
+  "discountamount": 12,
+  "orderamount": 508,
+  "quantity": 1,
+  "productname": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+  "productcategory": "wellness",
+  "orderstatus": "payment_completed",
+  "uniqueordderid": "NIVAANA-0000000094",
+  "createddate": 1757502614854,
+  "modifieddate": 1757502614854,
+  "ordereddate": 1757502614854
+}
+Filtering data for transaction (transaction): {
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "updatedAt": "2025-09-10T11:10:37.364Z",
+    "initiatedAt": "2025-09-10T11:09:31.718Z",
+    "evaluation_ids": [
+      "eval_1757502508891_3zlrgwao8"
+    ],
+    "paymentRequest": {
+      "name": "User",
+      "amount": 561,
+      "userId": 24,
+      "productIds": [
+        11,
+        7
+      ],
+      "mobileNumber": "9994824573",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1757502571020_JJHJCV"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 480,
+          "userid": 24,
+          "quantity": 1,
+          "addressid": 20,
+          "productid": 11,
+          "orderamount": 240,
+          "productname": "ARCASA Scented Candles",
+          "productamount": 240,
+          "discountamount": 0,
+          "productcategory": "wellness"
+        },
+        {
+          "cartId": 481,
+          "userid": 24,
+          "quantity": 1,
+          "addressid": 20,
+          "productid": 7,
+          "orderamount": 508,
+          "productname": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+          "productamount": 520,
+          "discountamount": 12,
+          "productcategory": "wellness"
+        }
+      ],
+      "transaction": {
+        "name": "User",
+        "amount": 561,
+        "userId": 24,
+        "productid": [
+          11,
+          7
+        ],
+        "mobilenumber": "9994824573",
+        "transactionfor": "product"
+      },
+      "evaluation_ids": [
+        "eval_1757502508891_3zlrgwao8"
+      ]
+    },
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Your payment is successful.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1757502571020_JJHJCV",
+        "transactionId": "T2509101639318512939691",
+        "amount": 56100,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "CARD",
+          "cardType": "CREDIT_CARD",
+          "bankTransactionId": null,
+          "arn": "12121214455",
+          "authRefId": "Dummy-auth12345",
+          "bankId": null,
+          "brn": "B12345"
+        }
+      },
+      "orderCreation": {
+        "status": "success",
+        "error": null,
+        "orderId": 94,
+        "timestamp": "2025-09-10T11:10:36.609Z"
+      },
+      "paymentCompleteAt": "2025-09-10T11:10:36.609Z"
+    },
+    "phonePeResponses": {
+      "success": {
+        "timestamp": "2025-09-10T11:10:37.364Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Your payment is successful.",
+          "data": {
+            "merchantId": "PGTESTPAYUAT86",
+            "merchantTransactionId": "TXN_1757502571020_JJHJCV",
+            "transactionId": "T2509101639318512939691",
+            "amount": 56100,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "CARD",
+              "cardType": "CREDIT_CARD",
+              "bankTransactionId": null,
+              "arn": "12121214455",
+              "authRefId": "Dummy-auth12345",
+              "bankId": null,
+              "brn": "B12345"
+            }
+          },
+          "orderCreation": {
+            "status": "success",
+            "error": null,
+            "orderId": 94,
+            "timestamp": "2025-09-10T11:10:36.609Z"
+          },
+          "paymentCompleteAt": "2025-09-10T11:10:36.609Z"
+        },
+        "status": "SUCCESS"
+      },
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByICLANtTj8zgy3gmVa6vOh",
+          "transactionId": "TXN_1757502571020_JJHJCV"
+        },
+        "timestamp": "2025-09-10T11:09:31.718Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByICLANtTj8zgy3gmVa6vOh"
+      }
+    },
+    "paymentCompleteAt": "2025-09-10T11:10:37.364Z",
+    "invalid_evaluations": []
+  },
+  "modifieddate": 1757502638210
+}
+Filtering data for cart (cart): {
+  "productid": 7,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1757504861227,
+  "modifieddate": 1757504861227
+}
+Filtering data for cart (cart): {
+  "productid": 11,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1757504914627,
+  "modifieddate": 1757504914627
+}
+Filtering data for transaction (transaction): {
+  "transactionid": "TXN_1757505066030_6N2TOP",
+  "merchanttransactionid": "TXN_1757505066030_6N2TOP",
+  "userid": 24,
+  "amount": 561,
+  "mobilenumber": 9994824573,
+  "name": "User",
+  "productid": [
+    11,
+    7
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "INITIATED",
+    "mode": "phonepe",
+    "evaluation_ids": [
+      "eval_1757504949960_d1xp9da2p"
+    ],
+    "invalid_evaluations": [],
+    "originalPayload": {
+      "transaction": {
+        "name": "User",
+        "amount": 561,
+        "mobilenumber": "9994824573",
+        "userId": 24,
+        "productid": [
+          11,
+          7
+        ],
+        "transactionfor": "product"
+      },
+      "order": [
+        {
+          "productid": 11,
+          "productname": "ARCASA Scented Candles",
+          "productcategory": "wellness",
+          "userid": 24,
+          "addressid": 20,
+          "productamount": 240,
+          "discountamount": 0,
+          "orderamount": 240,
+          "quantity": 1,
+          "cartId": 483
+        },
+        {
+          "productid": 7,
+          "productname": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+          "productcategory": "wellness",
+          "userid": 24,
+          "addressid": 20,
+          "productamount": 520,
+          "discountamount": 12,
+          "orderamount": 508,
+          "quantity": 1,
+          "cartId": 482
+        }
+      ],
+      "mode": "phonepe",
+      "evaluation_ids": [
+        "eval_1757504949960_d1xp9da2p"
+      ]
+    },
+    "paymentRequest": {
+      "merchantTransactionId": "TXN_1757505066030_6N2TOP",
+      "amount": 561,
+      "name": "User",
+      "mobileNumber": "9994824573",
+      "userId": 24,
+      "productIds": [
+        11,
+        7
+      ],
+      "transactionFor": "product"
+    },
+    "initiatedAt": "2025-09-10T11:51:06.687Z",
+    "phonePeResponses": {
+      "initiation": {
+        "timestamp": "2025-09-10T11:51:06.687Z",
+        "response": {
+          "success": true,
+          "message": "Payment initiated successfully",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByICLwYO50cpZ0djd6tGKDZ",
+          "transactionId": "TXN_1757505066030_6N2TOP"
+        },
+        "status": "INITIATED",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByICLwYO50cpZ0djd6tGKDZ"
+      }
+    },
+    "codData": null
+  },
+  "createddate": 1757505066688,
+  "modifieddate": 1757505066688
+}
+Filtering data for transaction (transaction): {
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "initiatedAt": "2025-09-10T11:51:06.687Z",
+    "evaluation_ids": [
+      "eval_1757504949960_d1xp9da2p"
+    ],
+    "paymentRequest": {
+      "name": "User",
+      "amount": 561,
+      "userId": 24,
+      "productIds": [
+        11,
+        7
+      ],
+      "mobileNumber": "9994824573",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1757505066030_6N2TOP"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 483,
+          "userid": 24,
+          "quantity": 1,
+          "addressid": 20,
+          "productid": 11,
+          "orderamount": 240,
+          "productname": "ARCASA Scented Candles",
+          "productamount": 240,
+          "discountamount": 0,
+          "productcategory": "wellness"
+        },
+        {
+          "cartId": 482,
+          "userid": 24,
+          "quantity": 1,
+          "addressid": 20,
+          "productid": 7,
+          "orderamount": 508,
+          "productname": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+          "productamount": 520,
+          "discountamount": 12,
+          "productcategory": "wellness"
+        }
+      ],
+      "transaction": {
+        "name": "User",
+        "amount": 561,
+        "userId": 24,
+        "productid": [
+          11,
+          7
+        ],
+        "mobilenumber": "9994824573",
+        "transactionfor": "product"
+      },
+      "evaluation_ids": [
+        "eval_1757504949960_d1xp9da2p"
+      ]
+    },
+    "phonePeResponses": {
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByICLwYO50cpZ0djd6tGKDZ",
+          "transactionId": "TXN_1757505066030_6N2TOP"
+        },
+        "timestamp": "2025-09-10T11:51:06.687Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByICLwYO50cpZ0djd6tGKDZ"
+      },
+      "success": {
+        "timestamp": "2025-09-10T11:51:45.269Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Your payment is successful.",
+          "data": {
+            "merchantId": "PGTESTPAYUAT86",
+            "merchantTransactionId": "TXN_1757505066030_6N2TOP",
+            "transactionId": "T2509101721067192939173",
+            "amount": 56100,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "CARD",
+              "cardType": "CREDIT_CARD",
+              "bankTransactionId": null,
+              "arn": "12121214455",
+              "authRefId": "Dummy-auth12345",
+              "bankId": null,
+              "brn": "B12345"
+            }
+          }
+        },
+        "status": "SUCCESS"
+      }
+    },
+    "invalid_evaluations": [],
+    "paymentCompleteAt": "2025-09-10T11:51:45.269Z",
+    "updatedAt": "2025-09-10T11:51:45.269Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Your payment is successful.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1757505066030_6N2TOP",
+        "transactionId": "T2509101721067192939173",
+        "amount": 56100,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "CARD",
+          "cardType": "CREDIT_CARD",
+          "bankTransactionId": null,
+          "arn": "12121214455",
+          "authRefId": "Dummy-auth12345",
+          "bankId": null,
+          "brn": "B12345"
+        }
+      }
+    }
+  },
+  "modifieddate": 1757505105864
+}
+Filtering data for orders (orders): {
+  "userid": 24,
+  "orderamount": 561,
+  "orderid": "ORDER_TXN_1757505066030_6N2TOP_1757505108330",
+  "orderstatus": "payment_completed",
+  "quantity": 2,
+  "transactionid": "NIVAANA-TRAN-00197",
+  "productamount": 748,
+  "discountamount": 199,
+  "ispaymentsucceed": true,
+  "merchanttransactionid": "TXN_1757505066030_6N2TOP",
+  "productid": [
+    7,
+    11
+  ],
+  "mode": "phonepe",
+  "createddate": 1757505108330,
+  "modifieddate": 1757505108330,
+  "evaluation_id": "eval_1757504949960_d1xp9da2p",
+  "promotion_discount_total": 187,
+  "original_total": 760,
+  "shipping_cost": 0,
+  "tax_amount": 0,
+  "orderItems": [
+    {
+      "cartId": 483,
+      "userid": 24,
+      "quantity": 1,
+      "addressid": 20,
+      "productid": 11,
+      "orderamount": 240,
+      "productname": "ARCASA Scented Candles",
+      "productamount": 240,
+      "discountamount": 0,
+      "productcategory": "wellness"
+    },
+    {
+      "cartId": 482,
+      "userid": 24,
+      "quantity": 1,
+      "addressid": 20,
+      "productid": 7,
+      "orderamount": 508,
+      "productname": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+      "productamount": 520,
+      "discountamount": 12,
+      "productcategory": "wellness"
+    }
+  ]
+}
+Filtering data for orderline (orderline): {
+  "orderid": 95,
+  "productid": 11,
+  "userid": 24,
+  "addressid": 20,
+  "productamount": 240,
+  "discountamount": null,
+  "orderamount": 240,
+  "quantity": 1,
+  "productname": "ARCASA Scented Candles",
+  "productcategory": "wellness",
+  "orderstatus": "payment_completed",
+  "uniqueordderid": "NIVAANA-0000000095",
+  "createddate": 1757505111207,
+  "modifieddate": 1757505111207,
+  "ordereddate": 1757505111207
+}
+Filtering data for orderline (orderline): {
+  "orderid": 95,
+  "productid": 7,
+  "userid": 24,
+  "addressid": 20,
+  "productamount": 520,
+  "discountamount": 12,
+  "orderamount": 508,
+  "quantity": 1,
+  "productname": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+  "productcategory": "wellness",
+  "orderstatus": "payment_completed",
+  "uniqueordderid": "NIVAANA-0000000095",
+  "createddate": 1757505111207,
+  "modifieddate": 1757505111207,
+  "ordereddate": 1757505111207
+}
+Filtering data for transaction (transaction): {
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "updatedAt": "2025-09-10T11:52:08.523Z",
+    "initiatedAt": "2025-09-10T11:51:06.687Z",
+    "evaluation_ids": [
+      "eval_1757504949960_d1xp9da2p"
+    ],
+    "paymentRequest": {
+      "name": "User",
+      "amount": 561,
+      "userId": 24,
+      "productIds": [
+        11,
+        7
+      ],
+      "mobileNumber": "9994824573",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1757505066030_6N2TOP"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 483,
+          "userid": 24,
+          "quantity": 1,
+          "addressid": 20,
+          "productid": 11,
+          "orderamount": 240,
+          "productname": "ARCASA Scented Candles",
+          "productamount": 240,
+          "discountamount": 0,
+          "productcategory": "wellness"
+        },
+        {
+          "cartId": 482,
+          "userid": 24,
+          "quantity": 1,
+          "addressid": 20,
+          "productid": 7,
+          "orderamount": 508,
+          "productname": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+          "productamount": 520,
+          "discountamount": 12,
+          "productcategory": "wellness"
+        }
+      ],
+      "transaction": {
+        "name": "User",
+        "amount": 561,
+        "userId": 24,
+        "productid": [
+          11,
+          7
+        ],
+        "mobilenumber": "9994824573",
+        "transactionfor": "product"
+      },
+      "evaluation_ids": [
+        "eval_1757504949960_d1xp9da2p"
+      ]
+    },
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Your payment is successful.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1757505066030_6N2TOP",
+        "transactionId": "T2509101721067192939173",
+        "amount": 56100,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "CARD",
+          "cardType": "CREDIT_CARD",
+          "bankTransactionId": null,
+          "arn": "12121214455",
+          "authRefId": "Dummy-auth12345",
+          "bankId": null,
+          "brn": "B12345"
+        }
+      },
+      "orderCreation": {
+        "status": "success",
+        "error": null,
+        "orderId": 95,
+        "timestamp": "2025-09-10T11:52:07.811Z"
+      },
+      "paymentCompleteAt": "2025-09-10T11:52:07.811Z"
+    },
+    "phonePeResponses": {
+      "success": {
+        "timestamp": "2025-09-10T11:52:08.523Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Your payment is successful.",
+          "data": {
+            "merchantId": "PGTESTPAYUAT86",
+            "merchantTransactionId": "TXN_1757505066030_6N2TOP",
+            "transactionId": "T2509101721067192939173",
+            "amount": 56100,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "CARD",
+              "cardType": "CREDIT_CARD",
+              "bankTransactionId": null,
+              "arn": "12121214455",
+              "authRefId": "Dummy-auth12345",
+              "bankId": null,
+              "brn": "B12345"
+            }
+          },
+          "orderCreation": {
+            "status": "success",
+            "error": null,
+            "orderId": 95,
+            "timestamp": "2025-09-10T11:52:07.811Z"
+          },
+          "paymentCompleteAt": "2025-09-10T11:52:07.811Z"
+        },
+        "status": "SUCCESS"
+      },
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByICLwYO50cpZ0djd6tGKDZ",
+          "transactionId": "TXN_1757505066030_6N2TOP"
+        },
+        "timestamp": "2025-09-10T11:51:06.687Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBZByICLwYO50cpZ0djd6tGKDZ"
+      }
+    },
+    "paymentCompleteAt": "2025-09-10T11:52:08.523Z",
+    "invalid_evaluations": []
+  },
+  "modifieddate": 1757505129113
+}

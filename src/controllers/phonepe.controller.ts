@@ -1156,7 +1156,7 @@ console.log(request.body,"request body")
           
           if (evaluationData) {
             // Use cart_data from evaluation if available (more accurate)
-            const evaluationCartData = evaluationData.cart_data || [];
+            const evaluationCartData = (evaluationData.cart_data as any[]) || [];
             if (evaluationCartData.length > 0) {
               // Recalculate using evaluation's cart_data
               originalTotal = evaluationCartData.reduce((total: number, item: any) => {
@@ -1175,7 +1175,7 @@ console.log(request.body,"request body")
             }
             
             // Calculate promotion discount total from applied promotions
-            const appliedPromotions = evaluationData.applied_promotions || [];
+            const appliedPromotions = (evaluationData.applied_promotions as any[]) || [];
             promotionDiscountTotal = appliedPromotions.reduce((total: number, promo: any) => {
               return total + parseFloat(promo.discount_amount?.toString() || '0');
             }, 0);
@@ -1368,6 +1368,102 @@ console.log(request.body,"request body")
         orderlineIds: createdOrderlines.map((ol: any) => ol.id),
         step: 'automatic_orderlines_verified'
       }, 'Automatic orderline creation completed and verified');
+
+      // Update orderlines with promotion data if evaluation data is available
+      if (evaluationData && createdOrderlines.length > 0) {
+        try {
+          const evaluationCartData = (evaluationData.cart_data as any[]) || [];
+          const appliedPromotions = (evaluationData.applied_promotions as any[]) || [];
+          
+          // Create maps for promotion data
+          const originalPriceMap = new Map<number, number>();
+          const productDiscountMap = new Map<number, number>();
+          const promotionDiscountMap = new Map<number, number>();
+          
+          // Map product data from evaluation cart data
+          evaluationCartData.forEach((cartItem: any) => {
+            const productId = parseInt(cartItem.product_id?.toString() || '0');
+            if (productId > 0) {
+              const basePrice = parseFloat(cartItem.base_price?.toString() || '0');
+              const productDiscount = parseFloat(cartItem.product_discount?.toString() || '0');
+              const quantity = parseInt(cartItem.quantity?.toString() || '1');
+              
+              originalPriceMap.set(productId, basePrice);
+              productDiscountMap.set(productId, productDiscount * quantity);
+            }
+          });
+          
+          // Map promotion discounts from applied promotions breakdown
+          appliedPromotions.forEach((promotion: any) => {
+            if (promotion.breakdown && Array.isArray(promotion.breakdown)) {
+              promotion.breakdown.forEach((item: any) => {
+                const productId = parseInt(item.product_id?.toString() || '0');
+                if (productId > 0) {
+                  const discountAmount = parseFloat(item.total_discount?.toString() || '0');
+                  promotionDiscountMap.set(productId, discountAmount);
+                }
+              });
+            }
+          });
+          
+          // Calculate shipping cost per item
+          const totalShippingCost = parseFloat(transaction.transactiondata?.originalPayload?.shippingCost?.toString() || '0');
+          const shippingCostPerItem = createdOrderlines.length > 0 ? totalShippingCost / createdOrderlines.length : 0;
+          
+          logger.info({
+            transactionId,
+            orderId: order.id,
+            originalPriceMap: Object.fromEntries(originalPriceMap),
+            productDiscountMap: Object.fromEntries(productDiscountMap),
+            promotionDiscountMap: Object.fromEntries(promotionDiscountMap),
+            shippingCostPerItem,
+            orderlinesCount: createdOrderlines.length
+          }, 'Orderline promotion data mapping completed');
+          
+          // Update each orderline with promotion data using Prisma
+          for (const orderline of createdOrderlines) {
+            const productId = Number(orderline.productid);
+            const originalPrice = originalPriceMap.get(productId) || 0;
+            const productDiscountAmount = productDiscountMap.get(productId) || 0;
+            const promotionDiscountAmount = promotionDiscountMap.get(productId) || 0;
+            
+            // Calculate final values for this orderline
+            const finalPricePerItem = originalPrice - productDiscountAmount - promotionDiscountAmount;
+            const totalDiscountForLine = productDiscountAmount + promotionDiscountAmount;
+            const productAmountOnly = originalPrice - productDiscountAmount; // Only product discount, no promotion discount
+            
+            // Use Prisma to update the orderline
+            await prisma.orderline.update({
+              where: { id: orderline.id },
+              data: {
+                evaluation_id: primaryEvaluationId,
+                original_price: originalPrice,
+                product_discount_amount: productDiscountAmount,
+                promotion_discount_amount: promotionDiscountAmount,
+                shipping_cost: 0, // Will be distributed later if needed
+                productamount: productAmountOnly,  // original_price - product_discount_amount only
+                discountamount: totalDiscountForLine,  // total discount for this line
+                orderamount: finalPricePerItem,  // final amount for this line (after all discounts)
+                modifieddate: BigInt(currentTime)
+              }
+            });
+          }
+          
+        } catch (updateError: any) {
+          logger.warn({
+            transactionId,
+            orderId: order.id,
+            error: updateError.message
+          }, 'Failed to update orderlines with promotion data - orderlines created without promotion details');
+        }
+      } else {
+        logger.warn({
+          transactionId,
+          orderId: order.id,
+          hasEvaluationData: !!evaluationData,
+          orderlinesCount: createdOrderlines.length
+        }, 'Cannot update orderlines - missing evaluation data or no orderlines created');
+      }
 
       // Use the automatically created orderlines
       const orderlineResults = createdOrderlines.map((ol: any) => ({
@@ -1589,27 +1685,73 @@ console.log(request.body,"request body")
     transaction: any,
     orderid: string,
     currentTime: number,
-    transactionId: string
+    transactionId: string,
+    evaluationData?: any, // Add evaluation data parameter
+    primaryEvaluationId?: string // Add evaluation ID parameter
   ): Promise<Array<{ success: boolean; productId: number; orderline?: any; error?: string }>> {
     const results: Array<{ success: boolean; productId: number; orderline?: any; error?: string }> = [];
     
     // Get original order data from transaction to retrieve individual product amounts
     const originalOrderData = transaction.transactiondata?.originalPayload?.order || [];
     
-    // Create a map of product amounts from original order data
+    // Get cart data from evaluation if available
+    const evaluationCartData = evaluationData ? (evaluationData.cart_data as any[]) || [] : [];
+    const appliedPromotions = evaluationData ? (evaluationData.applied_promotions as any[]) || [] : [];
+    
+    // Create maps for product data
     const productAmountMap = new Map<number, number>();
+    const productDiscountMap = new Map<number, number>();
+    const originalPriceMap = new Map<number, number>();
+    const promotionDiscountMap = new Map<number, number>();
+    
+    // Map product data from original order data
     originalOrderData.forEach((orderItem: any) => {
       if (orderItem.productid && orderItem.productamount !== undefined) {
         productAmountMap.set(orderItem.productid, parseFloat(orderItem.productamount.toString()) || 0);
       }
     });
     
+    // Map product data from evaluation cart data (more accurate)
+    evaluationCartData.forEach((cartItem: any) => {
+      const productId = parseInt(cartItem.product_id?.toString() || '0');
+      if (productId > 0) {
+        const basePrice = parseFloat(cartItem.base_price?.toString() || '0');
+        const productDiscount = parseFloat(cartItem.product_discount?.toString() || '0');
+        const quantity = parseInt(cartItem.quantity?.toString() || '1');
+        
+        originalPriceMap.set(productId, basePrice);
+        productDiscountMap.set(productId, productDiscount * quantity); // product_discount * quantity
+      }
+    });
+    
+    // Map promotion discounts from applied promotions breakdown
+    appliedPromotions.forEach((promotion: any) => {
+      if (promotion.breakdown && Array.isArray(promotion.breakdown)) {
+        promotion.breakdown.forEach((item: any) => {
+          const productId = parseInt(item.product_id?.toString() || '0');
+          if (productId > 0) {
+            const discountAmount = parseFloat(item.total_discount?.toString() || '0');
+            promotionDiscountMap.set(productId, discountAmount); // total_discount directly
+          }
+        });
+      }
+    });
+    
+    // Calculate shipping cost per item
+    const totalShippingCost = parseFloat(transaction.transactiondata?.originalPayload?.shippingCost?.toString() || '0');
+    const shippingCostPerItem = validProducts.length > 0 ? totalShippingCost / validProducts.length : 0;
+    
     logger.debug({ 
       transactionId,
       originalOrderData: originalOrderData.length,
+      evaluationCartData: evaluationCartData.length,
       productAmountMap: Object.fromEntries(productAmountMap),
+      productDiscountMap: Object.fromEntries(productDiscountMap),
+      originalPriceMap: Object.fromEntries(originalPriceMap),
+      promotionDiscountMap: Object.fromEntries(promotionDiscountMap),
+      shippingCostPerItem,
       validProductIds: validProducts.map(p => p.id)
-    }, 'Product amount mapping from original order data');
+    }, 'Product data mapping for orderline creation');
 
     for (let index = 0; index < validProducts.length; index++) {
       const product = validProducts[index];
@@ -1620,39 +1762,24 @@ console.log(request.body,"request body")
       }
       
       try {
-        // Get individual product amount from the original order data
-        const individualProductAmount = productAmountMap.get(product.id);
-        
-        if (individualProductAmount === undefined) {
-          logger.warn({ 
-            transactionId, 
-            productId: product.id,
-            availableAmounts: Object.fromEntries(productAmountMap)
-          }, 'Product amount not found in original order data, using fallback calculation');
-          
-          // Fallback to equal division if individual amount not found
-          const totalAmount = parseFloat(transaction.amount?.toString() || '0');
-          const fallbackAmount = validProducts.length > 0 ? totalAmount / validProducts.length : 0;
-          
-          logger.warn({ 
-            transactionId,
-            productId: product.id,
-            fallbackAmount,
-            totalAmount,
-            validProductsCount: validProducts.length
-          }, 'Using fallback equal division for product amount');
-        }
-        
-        const productAmountToUse = individualProductAmount ?? 
+        // Get individual product data
+        const individualProductAmount = productAmountMap.get(product.id) ?? 
           (validProducts.length > 0 ? parseFloat(transaction.amount?.toString() || '0') / validProducts.length : 0);
+        
+        const originalPrice = originalPriceMap.get(product.id) || 0;
+        const productDiscountAmount = productDiscountMap.get(product.id) || 0;
+        const promotionDiscountAmount = promotionDiscountMap.get(product.id) || 0;
+        
+        // Calculate final order amount for this line
+        const finalOrderAmount = originalPrice - productDiscountAmount - promotionDiscountAmount;
         
         const orderlineData = {
           orderid: orderId, // Int - correct
           productid: product.id, // Int - correct (not BigInt)
           userid: transaction.userid, // Int - correct
-          productamount: Number(productAmountToUse),
-          discountamount: 0,
-          orderamount: Number(productAmountToUse),
+          productamount: Number(individualProductAmount),
+          discountamount: productDiscountAmount + promotionDiscountAmount, // Total discounts for this line
+          orderamount: Number(finalOrderAmount),
           quantity: 1, // Int - correct
           merchanttransactionid: transaction.merchanttransactionid,
           orderstatus: 'payment_completed',
@@ -1660,7 +1787,13 @@ console.log(request.body,"request body")
           productname: product.name || null,
           ordereddate: BigInt(currentTime), // BigInt - correct for date fields
           createddate: BigInt(currentTime), // BigInt - correct for date fields
-          modifieddate: BigInt(currentTime) // BigInt - correct for date fields
+          modifieddate: BigInt(currentTime), // BigInt - correct for date fields
+          // Add new promotion-related fields
+          evaluation_id: primaryEvaluationId,
+          original_price: originalPrice,
+          product_discount_amount: productDiscountAmount,
+          promotion_discount_amount: promotionDiscountAmount,
+          shipping_cost: shippingCostPerItem
         };
 
         // Validate orderline data before creation
@@ -1673,13 +1806,16 @@ console.log(request.body,"request body")
           transactionId,
           productId: product.id,
           individualAmount: individualProductAmount,
-          amountUsed: productAmountToUse,
+          originalPrice,
+          productDiscountAmount,
+          promotionDiscountAmount,
+          finalOrderAmount,
+          shippingCostPerItem,
           orderlineData: {
             ...validation.cleanedData,
-            // Don't log the full productname to keep logs clean
             productname: product.name ? '***' : null
           }
-        }, 'Creating orderline with individual product amount');
+        }, 'Creating orderline with promotion data');
 
         const orderline = await this.orderlineService.create(validation.cleanedData!);
         
@@ -1688,8 +1824,12 @@ console.log(request.body,"request body")
           productId: product.id,
           orderlineId: orderline.id,
           orderlinenumber: orderline.orderlinenumber,
-          productAmount: productAmountToUse
-        }, 'Orderline created successfully with individual product amount');
+          originalPrice,
+          productDiscountAmount,
+          promotionDiscountAmount,
+          finalOrderAmount,
+          shippingCostPerItem
+        }, 'Orderline created successfully with promotion data');
         
         results.push({ 
           success: true, 

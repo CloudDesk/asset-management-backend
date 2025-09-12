@@ -328,18 +328,33 @@ model orderline {
   orderlinenumber String?   @unique(map: "unique_orderlinenumber") @db.VarChar(500)
   productid       BigInt?
   quantity        Int?
-  price           Decimal?  @db.Decimal
   createddate     BigInt?
   modifieddate    BigInt?
   userid          Int?
   addressid       Int?
+  productamount   Decimal?  @db.Decimal(10,2)
+  discountamount  Decimal?  @db.Decimal(10,2)
+  orderamount     Decimal?  @db.Decimal(10,2)
+  merchanttransactionid String? @db.VarChar(500)
+  productname     String?   @db.VarChar(500)
+  productcategory String?   @db.VarChar(500)
+  productcolour   String?   @db.VarChar(500)
+  readytodispatchdate BigInt?
+  delivereddate   BigInt?
+  cancelleddate   BigInt?
+  returneddate    BigInt?
+  orderstatus     String?   @db.VarChar(500)
+  uniqueordderid  String?   @db.VarChar(500)
+  deliveryfrom    String?   @db.VarChar(500)
+  location        String?   @db.VarChar(500)
+  dispatcheddate  BigInt?
+  ordereddate     BigInt?
+  paymentfaileddate BigInt?
   evaluation_id   String?   @db.VarChar(36)
   original_price  Decimal?  @db.Decimal(10,2)
   product_discount_amount  Decimal? @db.Decimal(10,2) @default(0)
   promotion_discount_amount Decimal? @db.Decimal(10,2) @default(0)
   shipping_cost            Decimal? @db.Decimal(10,2) @default(0)
-  status          String?   @db.VarChar(500)
-  ordertype       String?   @db.VarChar(500)
   address         address?  @relation(fields: [addressid], references: [id], onDelete: NoAction, onUpdate: NoAction)
   product         Product?  @relation(fields: [productid], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users           users?    @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
