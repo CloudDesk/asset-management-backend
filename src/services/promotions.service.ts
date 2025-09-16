@@ -337,19 +337,7 @@ export class PromotionsService {
         // Filter and format promotions for guest users
         finalPromotions = promotions
           .filter((promo: any) => this.isPromotionCurrentlyActive(promo))
-          .map((promo: any) => ({
-            id: promo.id,
-            name: promo.name,
-            description: promo.description,
-            type: promo.type,
-            discount_value: promo.discount_value,
-            discount_type: promo.discount_type,
-            start_date: promo.start_date,
-            end_date: promo.end_date,
-            priority: promo.priority,
-            is_active: promo.is_active,
-            // Don't expose sensitive fields like budget, max_redemptions, etc.
-          }))
+          .map((promo: any) => this.formatPromotionForDisplay(promo)) // Use the same formatting method
           .sort((a: any, b: any) => {
             // Sort by priority (lower number = higher priority) then by discount value
             if (a.priority !== b.priority) {
@@ -613,19 +601,30 @@ export class PromotionsService {
   // Format promotion for display
   private formatPromotionForDisplay(promotion: any): any {
     return {
-      promotion_id: promotion.id,
+      id: promotion.id,
       name: promotion.name,
       description: promotion.description,
       type: promotion.type,
       code: promotion.code,
       auto_apply: promotion.auto_apply,
-      discount_type: promotion.discount_type,
-      discount_value: promotion.discount_value,
+      is_active: promotion.is_active,
       start_date: promotion.start_date,
       end_date: promotion.end_date,
+      status: promotion.status,
       priority: promotion.priority,
-      is_active: promotion.is_active,
-      // Don't expose sensitive fields like budget, conditions, actions
+      visibility: promotion.visibility,
+      max_redemptions: promotion.max_redemptions,
+      per_user_limit: promotion.per_user_limit,
+      stackable: promotion.stackable,
+      budget: promotion.budget,
+      timezone: promotion.timezone,
+      evaluation_expiry_minutes: promotion.evaluation_expiry_minutes,
+      discount_type: promotion.discount_type,
+      discount_value: promotion.discount_value,
+      conditions: promotion.conditions,
+      actions: promotion.actions,
+      createddate: promotion.createddate,
+      modifieddate: promotion.modifieddate
     };
   }
 
