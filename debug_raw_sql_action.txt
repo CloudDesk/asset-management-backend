@@ -1,0 +1,1 @@
+Converted action: {"0":{"value":500,"operator":"GTE","attribute":"cart.total_value"},"1":{"value":["wellness","health","natural"],"operator":"IN","attribute":"cart.items.category"},"type":"PERCENT_OFF","value":20,"max_discount":500}

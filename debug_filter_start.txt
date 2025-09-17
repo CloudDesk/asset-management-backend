@@ -19213,3 +19213,252 @@ Filtering data for product (product): {
   "productstatus": "low_stock",
   "modifieddate": 1758094644462
 }
+Filtering data for cart (cart): {
+  "productid": 7,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1758104317898,
+  "modifieddate": 1758104317898
+}
+Filtering data for cart (cart): {
+  "productid": 11,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1758104318206,
+  "modifieddate": 1758104318206
+}
+Filtering data for promotions (promotions): {
+  "name": "20% OFF on Wellness Products",
+  "description": "",
+  "type": "PERCENT_OFF_ITEM",
+  "code": "",
+  "auto_apply": false,
+  "start_date": 1735689,
+  "end_date": 1767225,
+  "status": "active",
+  "priority": 2,
+  "visibility": "public",
+  "max_redemptions": 5000,
+  "per_user_limit": 3,
+  "stackable": false,
+  "budget": 500000,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "discount_type": "PERCENT_OFF",
+  "conditions": [
+    {
+      "value": "500",
+      "operator": "GTE",
+      "attribute": "cart.total_value"
+    },
+    {
+      "value": [
+        "wellness",
+        "health",
+        "natural"
+      ],
+      "operator": "IN",
+      "attribute": "cart.items.category"
+    }
+  ],
+  "action": {
+    "0": {
+      "value": 500,
+      "operator": "GTE",
+      "attribute": "cart.total_value"
+    },
+    "1": {
+      "value": [
+        "wellness",
+        "health",
+        "natural"
+      ],
+      "operator": "IN",
+      "attribute": "cart.items.category"
+    },
+    "type": "PERCENT_OFF",
+    "value": 20,
+    "max_discount": 500
+  },
+  "id": 56,
+  "createddate": 1756981502,
+  "modifieddate": 1758106042477
+}
+Filtering data for promotions (promotions): {
+  "start_date": 1755514765,
+  "end_date": 1760698765,
+  "modifieddate": 1758106774592
+}
+Filtering data for transaction (transaction): {
+  "transactionid": "TXN_1758116469454_4RVJYV",
+  "merchanttransactionid": "TXN_1758116469454_4RVJYV",
+  "userid": 24,
+  "amount": 561,
+  "mobilenumber": 9994824573,
+  "name": "User",
+  "productid": [
+    11,
+    7
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "COD_ORDER_CREATED",
+    "mode": "cod",
+    "evaluation_ids": [
+      "eval_1758116239095_8kgxmv8x4"
+    ],
+    "invalid_evaluations": [],
+    "originalPayload": {
+      "transaction": {
+        "name": "User",
+        "amount": 561,
+        "mobilenumber": "9994824573",
+        "userId": 24,
+        "productid": [
+          11,
+          7
+        ],
+        "transactionfor": "product"
+      },
+      "order": [
+        {
+          "productid": 11,
+          "productname": "ARCASA Scented Candles",
+          "productcategory": "wellness",
+          "userid": 24,
+          "addressid": 20,
+          "productamount": 240,
+          "discountamount": 0,
+          "orderamount": 240,
+          "quantity": 1,
+          "cartId": 489
+        },
+        {
+          "productid": 7,
+          "productname": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+          "productcategory": "wellness",
+          "userid": 24,
+          "addressid": 20,
+          "productamount": 520,
+          "discountamount": 12,
+          "orderamount": 508,
+          "quantity": 1,
+          "cartId": 490
+        }
+      ],
+      "mode": "cod",
+      "evaluation_ids": [
+        "eval_1758116239095_8kgxmv8x4"
+      ]
+    },
+    "paymentRequest": {
+      "merchantTransactionId": "TXN_1758116469454_4RVJYV",
+      "amount": 561,
+      "name": "User",
+      "mobileNumber": "9994824573",
+      "userId": 24,
+      "productIds": [
+        11,
+        7
+      ],
+      "transactionFor": "product"
+    },
+    "initiatedAt": "2025-09-17T13:41:09.454Z",
+    "phonePeResponses": null,
+    "codData": {
+      "timestamp": "2025-09-17T13:41:09.454Z",
+      "status": "COD_ORDER_CREATED",
+      "message": "Cash on Delivery order created successfully"
+    }
+  },
+  "createddate": 1758116469456,
+  "modifieddate": 1758116469456
+}
+Filtering data for orders (orders): {
+  "userid": 24,
+  "orderamount": 561,
+  "orderid": "ORDER_TXN_1758116469454_4RVJYV_1758116475810",
+  "orderstatus": "payment_completed",
+  "quantity": 2,
+  "transactionid": "NIVAANA-TRAN-00198",
+  "productamount": 748,
+  "discountamount": 199,
+  "ispaymentsucceed": true,
+  "merchanttransactionid": "TXN_1758116469454_4RVJYV",
+  "productid": [
+    7,
+    11
+  ],
+  "mode": "cod",
+  "createddate": 1758116475810,
+  "modifieddate": 1758116475810,
+  "evaluation_id": "eval_1758116239095_8kgxmv8x4",
+  "promotion_discount_total": 187,
+  "original_total": 760,
+  "shipping_cost": 0,
+  "tax_amount": 0,
+  "orderItems": [
+    {
+      "cartId": 489,
+      "userid": 24,
+      "quantity": 1,
+      "addressid": 20,
+      "productid": 11,
+      "orderamount": 240,
+      "productname": "ARCASA Scented Candles",
+      "productamount": 240,
+      "discountamount": 0,
+      "productcategory": "wellness"
+    },
+    {
+      "cartId": 490,
+      "userid": 24,
+      "quantity": 1,
+      "addressid": 20,
+      "productid": 7,
+      "orderamount": 508,
+      "productname": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+      "productamount": 520,
+      "discountamount": 12,
+      "productcategory": "wellness"
+    }
+  ]
+}
+Filtering data for orderline (orderline): {
+  "orderid": 96,
+  "productid": 11,
+  "userid": 24,
+  "addressid": 20,
+  "productamount": 240,
+  "discountamount": null,
+  "orderamount": 240,
+  "quantity": 1,
+  "productname": "ARCASA Scented Candles",
+  "productcategory": "wellness",
+  "orderstatus": "payment_completed",
+  "uniqueordderid": "NIVAANA-0000000096",
+  "createddate": 1758116478851,
+  "modifieddate": 1758116478851,
+  "ordereddate": 1758116478851
+}
+Filtering data for orderline (orderline): {
+  "orderid": 96,
+  "productid": 7,
+  "userid": 24,
+  "addressid": 20,
+  "productamount": 520,
+  "discountamount": 12,
+  "orderamount": 508,
+  "quantity": 1,
+  "productname": "Aravi Organic Pure Peppermint Essential Oil - 15 ml",
+  "productcategory": "wellness",
+  "orderstatus": "payment_completed",
+  "uniqueordderid": "NIVAANA-0000000096",
+  "createddate": 1758116478851,
+  "modifieddate": 1758116478851,
+  "ordereddate": 1758116478851
+}

@@ -628,17 +628,34 @@ export class PromotionsService {
     let discountPercentage = 0;
     let savingsAmount = 0;
 
+    // Get discount value from either discount_value field or action object
+    const getDiscountValue = () => {
+      if (promotion.discount_value !== null && promotion.discount_value !== undefined) {
+        return promotion.discount_value;
+      }
+      if (promotion.action && promotion.action.value !== null && promotion.action.value !== undefined) {
+        return promotion.action.value;
+      }
+      return 0;
+    };
+
+    const discountValue = getDiscountValue();
+
     switch (promotion.type) {
       case 'FIXED_AMOUNT_OFF_CART':
-        discountAmount = Math.min(promotion.discount_value || 0, cartInfo.total);
+        discountAmount = Math.min(discountValue, cartInfo.total);
         discountPercentage = cartInfo.total > 0 ? (discountAmount / cartInfo.total) * 100 : 0;
         savingsAmount = discountAmount;
         break;
 
       case 'PERCENT_OFF_CART':
-        const percentage = (promotion.discount_value || 0) / 100;
+        const percentage = discountValue / 100;
         discountAmount = cartInfo.total * percentage;
-        discountPercentage = promotion.discount_value || 0;
+        // Apply max_discount cap if specified in action
+        if (promotion.action && promotion.action.max_discount) {
+          discountAmount = Math.min(discountAmount, promotion.action.max_discount);
+        }
+        discountPercentage = discountValue;
         savingsAmount = discountAmount;
         break;
 
@@ -654,7 +671,7 @@ export class PromotionsService {
         // Apply to eligible items
         for (const item of cartInfo.items) {
           if (this.isItemEligibleForRecommendation(item, promotion)) {
-            const itemDiscount = Math.min(promotion.discount_value || 0, item.price * item.qty);
+            const itemDiscount = Math.min(discountValue, item.price * item.qty);
             discountAmount += itemDiscount;
           }
         }
@@ -666,12 +683,16 @@ export class PromotionsService {
         // Apply percentage to eligible items
         for (const item of cartInfo.items) {
           if (this.isItemEligibleForRecommendation(item, promotion)) {
-            const percentage = (promotion.discount_value || 0) / 100;
-            const itemDiscount = (item.price * item.qty) * percentage;
+            const percentage = discountValue / 100;
+            let itemDiscount = (item.price * item.qty) * percentage;
+            // Apply max_discount cap if specified in action
+            if (promotion.action && promotion.action.max_discount) {
+              itemDiscount = Math.min(itemDiscount, promotion.action.max_discount);
+            }
             discountAmount += itemDiscount;
           }
         }
-        discountPercentage = promotion.discount_value || 0;
+        discountPercentage = discountValue;
         savingsAmount = discountAmount;
         break;
 
@@ -698,19 +719,70 @@ export class PromotionsService {
 
   // Check if item is eligible for recommendation
   private isItemEligibleForRecommendation(item: { productId: string; qty: number; category: string; price: number }, promotion: any): boolean {
-    // Simple eligibility check - can be extended based on promotion conditions
-    return true;
+    // Check promotion conditions to determine if item is eligible
+    if (!promotion.conditions) return true;
+
+    try {
+      const conditions = Array.isArray(promotion.conditions) ? 
+        promotion.conditions : JSON.parse(promotion.conditions);
+
+      for (const condition of conditions) {
+        switch (condition.attribute) {
+          case 'cart.items.category':
+            if (condition.operator === 'IN') {
+              if (!condition.value.includes(item.category)) {
+                return false;
+              }
+            }
+            break;
+          
+          case 'cart.category':
+            if (condition.operator === 'IN') {
+              if (!condition.value.includes(item.category)) {
+                return false;
+              }
+            }
+            break;
+
+          case 'product.id':
+            if (condition.operator === 'IN') {
+              if (!condition.value.includes(item.productId)) {
+                return false;
+              }
+            }
+            break;
+
+          // Add more item-level conditions as needed
+        }
+      }
+
+      return true;
+    } catch (error) {
+      logger.warn({ error, promotionId: promotion.id }, 'Error checking item eligibility for recommendation');
+      return false;
+    }
   }
 
   // Helper methods for condition evaluation
   private evaluateNumericCondition(condition: any, value: number): boolean {
+    // Convert condition value to number if it's a string
+    const conditionValue = typeof condition.value === 'string' ? 
+      parseFloat(condition.value) : condition.value;
+    
+    if (isNaN(conditionValue)) {
+      logger.warn({ condition, value }, 'Invalid numeric condition value');
+      return false;
+    }
+
     switch (condition.operator) {
-      case 'GTE': return value >= condition.value;
-      case 'LTE': return value <= condition.value;
-      case 'EQ': return value === condition.value;
-      case 'GT': return value > condition.value;
-      case 'LT': return value < condition.value;
-      default: return false;
+      case 'GTE': return value >= conditionValue;
+      case 'LTE': return value <= conditionValue;
+      case 'EQ': return value === conditionValue;
+      case 'GT': return value > conditionValue;
+      case 'LT': return value < conditionValue;
+      default: 
+        logger.warn({ operator: condition.operator }, 'Unknown numeric condition operator');
+        return false;
     }
   }
 
@@ -823,8 +895,10 @@ export class PromotionsService {
           const endDate = this.convertUnixTimestampToDate(promotion.end_date);
           
           if (startDate && startDate > now) {
+            const promotionData = this.formatPromotionForDisplay(promotion);
             ineligibleCoupons.push({
-              ...this.formatPromotionForDisplay(promotion),
+              ...promotionData,
+              promotion_id: promotionData.id,  // Add promotion_id for API schema compatibility
               ineligibleReason: 'Promotion has not started yet',
               ineligibleDetails: {
                 startDate: startDate ? startDate.toISOString() : null,
@@ -835,8 +909,10 @@ export class PromotionsService {
           }
           
           if (endDate && endDate < now) {
+            const promotionData = this.formatPromotionForDisplay(promotion);
             ineligibleCoupons.push({
-              ...this.formatPromotionForDisplay(promotion),
+              ...promotionData,
+              promotion_id: promotionData.id,  // Add promotion_id for API schema compatibility
               ineligibleReason: 'Promotion has expired',
               ineligibleDetails: {
                 endDate: endDate ? endDate.toISOString() : null,
@@ -865,8 +941,10 @@ export class PromotionsService {
 
           // If either user or cart is ineligible, add to ineligible
           if (!userEligible || !cartEligibilityResult.isEligible) {
+            const promotionData = this.formatPromotionForDisplay(promotion);
             ineligibleCoupons.push({
-              ...this.formatPromotionForDisplay(promotion),
+              ...promotionData,
+              promotion_id: promotionData.id,  // Add promotion_id for API schema compatibility
               ineligibleReason: userIneligibleReason || cartEligibilityResult.reason,
               ineligibleDetails: {
                 userEligible,
@@ -886,8 +964,10 @@ export class PromotionsService {
           });
 
           if (discountInfo.discountAmount > 0) {
+            const promotionData = this.formatPromotionForDisplay(promotion);
             eligibleCoupons.push({
-              ...this.formatPromotionForDisplay(promotion),
+              ...promotionData,
+              promotion_id: promotionData.id,  // Add promotion_id for API schema compatibility
               discountInfo: {
                 originalTotal: cartTotal,
                 discountAmount: discountInfo.discountAmount,
@@ -904,8 +984,10 @@ export class PromotionsService {
               expiresAt: promotion.end_date ? this.convertUnixTimestampToDateString(promotion.end_date) : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
             });
           } else {
+            const promotionData = this.formatPromotionForDisplay(promotion);
             ineligibleCoupons.push({
-              ...this.formatPromotionForDisplay(promotion),
+              ...promotionData,
+              promotion_id: promotionData.id,  // Add promotion_id for API schema compatibility
               ineligibleReason: 'No discount applicable to current cart',
               ineligibleDetails: {
                 cartTotal,
@@ -915,8 +997,10 @@ export class PromotionsService {
           }
         } catch (error) {
           logger.warn({ error, promotionId: promotion.id }, 'Error evaluating promotion for eligibility');
+          const promotionData = this.formatPromotionForDisplay(promotion);
           ineligibleCoupons.push({
-            ...this.formatPromotionForDisplay(promotion),
+            ...promotionData,
+            promotion_id: promotionData.id,  // Add promotion_id for API schema compatibility
             ineligibleReason: 'Error evaluating promotion',
             ineligibleDetails: {
               error: error instanceof Error ? error.message : 'Unknown error'
@@ -939,34 +1023,38 @@ export class PromotionsService {
         return b.discountInfo.discountPercentage - a.discountInfo.discountPercentage;
       });
 
-      // Get the best coupon (first in sorted eligible coupons)
-      const bestCoupon = eligibleCoupons.length > 0 ? eligibleCoupons[0] : null;
+      // Separate auto-applied promotions (already active) FIRST
+      const autoAppliedPromotions = eligibleCoupons.filter(promo => promo.auto_apply === true);
+      const autoAppliedIds = autoAppliedPromotions.map(promo => promo.id);
+      
+      // Remove auto-applied promotions from eligible coupons (they shouldn't be offered as choices)
+      const manualEligibleCoupons = eligibleCoupons.filter(promo => promo.auto_apply !== true);
+      
+      // Get the best coupon from manual coupons only (auto-applied are already applied)
+      const bestCoupon = manualEligibleCoupons.length > 0 ? manualEligibleCoupons[0] : null;
+
+      // Stackable promotions that user can ADD (exclude auto-applied ones)
+      const stackablePromotions = manualEligibleCoupons.filter(promo => 
+        promo.stackable === true
+      );
 
       logger.info({ 
-        eligibleCount: eligibleCoupons.length,
+        totalEligibleCount: eligibleCoupons.length,
+        manualEligibleCount: manualEligibleCoupons.length,
+        autoAppliedCount: autoAppliedPromotions.length,
         ineligibleCount: ineligibleCoupons.length,
         hasBestCoupon: !!bestCoupon
       }, 'Unified promotion offers evaluation completed');
 
-      // Separate auto-applied promotions (already active)e
-      const autoAppliedPromotions = eligibleCoupons.filter(promo => promo.auto_apply === true);
-      const autoAppliedIds = autoAppliedPromotions.map(promo => promo.id);
-      
-      // Stackable promotions that user can ADD (exclude already applied ones)
-      const stackablePromotions = eligibleCoupons.filter(promo => 
-        promo.stackable === true && 
-        !autoAppliedIds.includes(promo.id)  // ✅ Hide already applied promotions
-      );
-
       return {
         bestCoupon,
-        eligibleCoupons,
+        eligibleCoupons: manualEligibleCoupons,  // ✅ Only manual coupons, not auto-applied
         ineligibleCoupons,
         stackablePromotions,
-        autoAppliedPromotions,  // ✅ Add auto-applied promotions for frontend
+        autoAppliedPromotions,  // ✅ Auto-applied promotions separate
         summary: {
           totalPromotions: allPromotions.length,
-          eligibleCount: eligibleCoupons.length,
+          eligibleCount: manualEligibleCoupons.length,  // ✅ Count manual coupons only
           ineligibleCount: ineligibleCoupons.length,
           stackableCount: stackablePromotions.length,
           autoAppliedCount: autoAppliedPromotions.length,
@@ -1073,6 +1161,30 @@ export class PromotionsService {
                 isEligible: false,
                 reason: `Cart category not eligible. Required: ${condition.value.join(', ')}, Current: ${cartInfo.categories.join(', ')}`
               };
+            }
+            break;
+
+          case 'cart.items.category':
+            // Handle cart.items.category condition for individual item category matching
+            if (condition.operator === 'IN') {
+              // Check if any cart item has a category that matches the condition values
+              const hasMatchingCategory = cartInfo.items.some(item => 
+                condition.value.includes(item.category)
+              );
+              if (!hasMatchingCategory) {
+                return {
+                  isEligible: false,
+                  reason: `Cart items category not eligible. Required: ${condition.value.join(', ')}, Current items: ${cartInfo.items.map(item => `${item.productId}(${item.category})`).join(', ')}`
+                };
+              }
+            } else {
+              // For other operators, use the aggregated categories approach
+              if (!condition.value.some((cat: string) => cartInfo.categories.includes(cat))) {
+                return {
+                  isEligible: false,
+                  reason: `Cart items category not eligible. Required: ${condition.value.join(', ')}, Current: ${cartInfo.categories.join(', ')}`
+                };
+              }
             }
             break;
         }

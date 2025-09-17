@@ -1,0 +1,328 @@
+# Promotion Action Logic Documentation
+
+## Overview
+
+This document outlines the action logic for different promotion types in the PromotionForm component. Each promotion type has specific action configurations that determine how the discount is applied.
+
+## Action Object Structure
+
+```typescript
+interface PromotionAction {
+  type: "PERCENT_OFF" | "FIXED_AMOUNT_OFF" | "FREE_SHIPPING" | "BOGO" | "FREE_PRODUCT";
+  value: number | boolean | string;
+d
+}
+```
+
+## Promotion Type Mappings
+
+```typescript
+const PROMOTION_TYPE_TO_DISCOUNT_TYPE = {
+  "PERCENT_OFF_ITEM": "PERCENT_OFF",
+  "FIXED_AMOUNT_OFF_ITEM": "FIXED_AMOUNT_OFF",
+  "PERCENT_OFF_CART": "PERCENT_OFF",
+  "FIXED_AMOUNT_OFF_CART": "FIXED_AMOUNT_OFF",
+  "BOGO": "BOGO",
+  "FREE_SHIPPING": "FREE_SHIPPING",
+  "FREE_PRODUCT": "FREE_PRODUCT",
+};
+```
+
+## Action Logic by Promotion Type
+
+### 1. PERCENT_OFF (Item/Cart)
+
+**Promotion Types**: `PERCENT_OFF_ITEM`, `PERCENT_OFF_CART`
+
+**Action Configuration**:
+```typescript
+{
+  type: "PERCENT_OFF",
+  value: 25,              // Percentage (0-100)
+  max_discount: 500       // Optional: Maximum discount cap in ₹
+}
+```
+
+**Fields Captured**:
+- ✅ **Action Value**: Percentage discount (0-100%)
+- ✅ **Maximum Discount Amount**: Optional cap to prevent excessive discounts
+  - Example: 20% off up to ₹500 maximum discount
+  - Cart ₹1000 → 20% = ₹200 discount ✅
+  - Cart ₹5000 → 20% = ₹1000, but capped at ₹500 ✅
+
+**UI Elements**:
+- Number input for percentage (0-100% with validation)
+- Number input for max discount (optional, ₹ currency)
+- Real-time validation with error messages
+- Preview: "25% off (max ₹500)"
+
+**Business Logic**:
+- Auto Apply: `false` (manual coupon)
+- Stackable: `false` (exclusive discount)
+
+---
+
+### 2. FIXED_AMOUNT_OFF (Item/Cart)
+
+**Promotion Types**: `FIXED_AMOUNT_OFF_ITEM`, `FIXED_AMOUNT_OFF_CART`
+
+**Action Configuration**:
+```typescript
+{
+  type: "FIXED_AMOUNT_OFF",
+  value: 150              // Fixed amount in ₹ (0-10000)
+}
+```
+
+**Fields Captured**:
+- ✅ **Action Value**: Fixed discount amount in ₹ (0-10000)
+
+**UI Elements**:
+- Number input for fixed amount (₹ currency, 0-10000 range)
+- Real-time validation with error messages
+- Preview: "₹150 off"
+
+**Business Logic**:
+- Auto Apply: `false` (manual coupon)
+- Stackable: `false` (exclusive discount)
+
+---
+
+### 3. BOGO (Buy One Get One)
+
+**Promotion Type**: `BOGO`
+
+**Action Configuration**:
+```typescript
+{
+  type: "BOGO",
+  value: 1,                    // Number of free items (0-10)
+  buy_quantity: 2,             // How many to buy
+  get_quantity: 1,             // How many free
+  product_ids: ["PROD001"],    // Applicable products
+  max_free_items: 3            // Total free items limit per order
+}
+```
+
+**Fields Captured**:
+- ✅ **Action Value**: Number of free items (0-10)
+- ✅ **Buy Quantity**: How many items customer must buy (min: 1)
+- ✅ **Get Quantity**: How many items customer gets free (min: 1)
+- ✅ **Product Selection**: Which products the offer applies to
+  - Uses ProductLookup component with search functionality
+  - Shows product details (name, price, stock)
+- ✅ **Maximum Free Items**: Total free items limit per order (prevents abuse)
+
+**UI Elements**:
+- Number inputs for buy/get quantities
+- ProductLookup component for product selection
+- Number input for max free items
+- Product preview with stock information
+- Preview: "🎁 Buy 2 Get 1 Free"
+
+**Business Logic**:
+- Auto Apply: `false` (manual offer)
+- Stackable: `false` (usually exclusive)
+
+**Example Scenarios**:
+```
+Setup: Buy 2 Get 1 Free, max 3 free items
+- Buy 2 → Get 1 free ✅
+- Buy 4 → Get 2 free ✅  
+- Buy 6 → Get 3 free ✅ (capped at max_free_items)
+- Buy 8 → Get 3 free ✅ (still capped, not 4 free)
+```
+
+---
+
+### 4. FREE_SHIPPING
+
+**Promotion Type**: `FREE_SHIPPING`
+
+**Action Configuration**:
+```typescript
+{
+  type: "FREE_SHIPPING",
+  value: 0                // Always 0 for free shipping
+}
+```
+
+**Fields Captured**:
+- ✅ **Action Value**: Auto-set to 0 (read-only)
+- ❌ **Minimum Order Value**: Removed from action (handled in conditions)
+
+**UI Elements**:
+- Read-only action value field showing "0 (Auto-set)"
+- No minimum order value field (handled in conditions section)
+- Preview: "🚚 Free Shipping"
+
+**Business Logic**:
+- Auto Apply: `true` (automatic background benefit)
+- Stackable: `true` (can stack with other offers)
+
+**Note**: Minimum order value is configured in the Conditions section using:
+- Attribute: `cart.total_value`
+- Operator: `≥ Greater than or equal`
+- Value: `500` (or desired minimum amount)
+
+---
+
+### 5. FREE_PRODUCT
+
+**Promotion Type**: `FREE_PRODUCT`
+
+**Action Configuration**:
+```typescript
+{
+  type: "FREE_PRODUCT",
+  value: 0,                      // Always 0 for free product
+  free_product_id: "PROD002",    // Which product is free
+  min_purchase: 200,             // Minimum purchase required
+  max_free_items: 1              // Limits abuse
+}
+```
+
+**Fields Captured**:
+- ✅ **Action Value**: Auto-set to 0 (read-only)
+- ✅ **Free Product Selection**: Which product customer gets free
+  - Uses ProductLookup component with search functionality
+  - Shows product details (name, price, stock)
+- ✅ **Minimum Purchase Required**: Minimum cart value to qualify (₹)
+- ✅ **Maximum Free Items**: Total free items limit per order (prevents abuse)
+
+**UI Elements**:
+- Read-only action value field showing "0 (Auto-set)"
+- ProductLookup component for free product selection
+- Number input for minimum purchase amount
+- Number input for max free items
+- Product preview with stock information
+- Preview: "🆓 Free Product (Min ₹200)"
+
+**Business Logic**:
+- Auto Apply: `false` (manual gift)
+- Stackable: `true` (can stack with discounts)
+
+---
+
+## Auto-Configuration Logic
+
+### When Promotion Type Changes:
+
+1. **Discount Type Mapping**: Automatically sets `action.type` based on promotion type
+2. **Default Values**: Sets appropriate default values for action fields
+3. **Auto Apply & Stackable**: Auto-configures based on business rules
+4. **Field Initialization**: Initializes type-specific fields
+
+```typescript
+// Example: When user selects "BOGO"
+newData.action = {
+  type: "BOGO",
+  value: 0,
+  buy_quantity: 1,
+  get_quantity: 1,
+  product_ids: [],
+  max_free_items: 1
+};
+```
+
+### Value Constraints:
+
+```typescript
+const DISCOUNT_VALUE_CONSTRAINTS = {
+  "PERCENT_OFF": { min: 0, max: 100, step: 0.01 },
+  "FIXED_AMOUNT_OFF": { min: 0, max: 10000, step: 0.01 },
+  "FREE_SHIPPING": { min: 0, max: 0, step: 1 },
+  "BOGO": { min: 0, max: 10, step: 1 },
+  "FREE_PRODUCT": { min: 0, max: 0, step: 1 },
+};
+```
+
+## Validation Rules
+
+### Action Value Validation:
+- **PERCENT_OFF**: 0-100%
+- **FIXED_AMOUNT_OFF**: 0-10000 ₹
+- **BOGO**: 0-10 items
+- **FREE_SHIPPING/FREE_PRODUCT**: Always 0
+
+### Type-Specific Validation:
+
+#### PERCENT_OFF:
+- `max_discount` cannot be negative
+
+#### BOGO:
+- `buy_quantity` required, min: 1
+- `get_quantity` required, min: 1
+- `product_ids` must have at least one product
+- `max_free_items` required, min: 1
+
+#### FREE_PRODUCT:
+- `free_product_id` required
+- `min_purchase` cannot be negative
+- `max_free_items` required, min: 1
+
+## UI Components Used
+
+### ProductLookup Component:
+- **Search functionality**: Search by name, ID, or SKU
+- **Product details**: Shows name, price, stock availability
+- **Validation**: Ensures selected product exists
+- **Stock info**: Displays available quantity
+- **Clear selection**: Remove selected product
+
+### Action Preview:
+- **Real-time preview**: Shows how the action will appear
+- **Type-specific formatting**: Different display for each type
+- **Product information**: Shows selected products for BOGO/Free Product
+- **Validation feedback**: Visual indicators for errors
+
+## Backend Integration
+
+### Data Structure Sent:
+```typescript
+{
+  // ... other promotion fields
+  action: {
+    type: "PERCENT_OFF",
+    value: 25,
+    max_discount: 500
+  }
+}
+```
+
+### Legacy Compatibility:
+- Still includes `discount_type` and `discount_value` fields for backward compatibility
+- Action object is the primary data structure
+- Service layer handles both old and new formats
+
+## Error Handling
+
+### Real-time Validation:
+- Input constraints enforced on field level
+- Visual feedback with red borders and error messages
+- Type-specific error messages
+
+### Form Submission:
+- Comprehensive validation before submission
+- Prevents submission with invalid action data
+- Clear error messages for each validation failure
+
+### Product Selection:
+- Validates product existence
+- Checks stock availability
+- Handles product not found scenarios
+
+---
+
+## Summary
+
+The action logic provides a flexible and comprehensive system for configuring different types of promotions:
+
+1. **Type-Specific Fields**: Each promotion type has relevant fields
+2. **Auto-Configuration**: Smart defaults and business rule enforcement
+3. **Validation**: Comprehensive client-side validation
+4. **User Experience**: Intuitive UI with real-time feedback
+5. **Backend Integration**: Clean data structure for API consumption
+6. **Extensibility**: Easy to add new promotion types and fields
+
+This system ensures that users can create complex promotion scenarios while maintaining data integrity and providing excellent user experience.

@@ -1156,11 +1156,9 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                     description: { type: 'string' },
                     type: { type: 'string' },
                     code: { type: 'string' },
-                    discount_value: { type: 'number' },
-                    discount_type: { type: 'string' },
                     priority: { type: 'number' },
-                    start_date: { type: 'string' },
-                    end_date: { type: 'string' },
+                    start_date: { type: 'integer' },
+                    end_date: { type: 'integer' },
                     discountInfo: {
                       type: 'object',
                       properties: {
@@ -1193,11 +1191,9 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                       description: { type: 'string' },
                       type: { type: 'string' },
                       code: { type: 'string' },
-                      discount_value: { type: 'number' },
-                      discount_type: { type: 'string' },
                       priority: { type: 'number' },
-                      start_date: { type: 'string' },
-                      end_date: { type: 'string' },
+                      start_date: { type: 'integer' },
+                      end_date: { type: 'integer' },
                       discountInfo: {
                         type: 'object',
                         properties: {
@@ -1231,11 +1227,9 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                       description: { type: 'string' },
                       type: { type: 'string' },
                       code: { type: 'string' },
-                      discount_value: { type: 'number' },
-                      discount_type: { type: 'string' },
                       priority: { type: 'number' },
-                      start_date: { type: 'string' },
-                      end_date: { type: 'string' },
+                      start_date: { type: 'integer' },
+                      end_date: { type: 'integer' },
                       ineligibleReason: { type: 'string' },
                       ineligibleDetails: { type: 'object' }
                     }
@@ -1252,11 +1246,9 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                       description: { type: 'string' },
                       type: { type: 'string' },
                       code: { type: 'string' },
-                      discount_value: { type: 'number' },
-                      discount_type: { type: 'string' },
                       priority: { type: 'number' },
-                      start_date: { type: 'string' },
-                      end_date: { type: 'string' },
+                      start_date: { type: 'integer' },
+                      end_date: { type: 'integer' },
                       action: { 
                         type: 'object', 
                         nullable: true, 
@@ -1309,11 +1301,9 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                       description: { type: 'string' },
                       type: { type: 'string' },
                       code: { type: 'string' },
-                      discount_value: { type: 'number' },
-                      discount_type: { type: 'string' },
                       priority: { type: 'number' },
-                      start_date: { type: 'string' },
-                      end_date: { type: 'string' },
+                      start_date: { type: 'integer' },
+                      end_date: { type: 'integer' },
                       action: { 
                         type: 'object', 
                         nullable: true, 
@@ -1616,18 +1606,48 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
               type: 'object',
               properties: {
                 evaluation_id: { type: 'string' },
-                promotion_id: { type: 'number' },
-                promotion_name: { type: 'string' },
-                promotion_type: { type: 'string' },
+                promotion_id: { type: 'number', nullable: true },
+                promotion_name: { type: 'string', nullable: true },
+                promotion_type: { type: 'string', nullable: true },
                 is_eligible: { type: 'boolean' },
-                is_free_shipping: { type: 'boolean', description: 'True if this is a free shipping promotion' },
-                original_total: { type: 'number' },
-                discounted_total: { type: 'number' },
-                total_discount: { type: 'number' },
-                discount_breakdown: { type: 'array' },
-                applied_promotions: { type: 'array' },
-                ineligible_reason: { type: 'string' },
-                expires_at: { type: 'string', format: 'date-time' }
+                original_total: { type: 'number', nullable: true },
+                discounted_total: { type: 'number', nullable: true },
+                total_discount: { type: 'number', nullable: true },
+                discount_breakdown: { 
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      cart_record_id: { type: 'string' },
+                      product_id: { type: 'string' },
+                      product_name: { type: 'string' },
+                      category: { type: 'string' },
+                      quantity: { type: 'number' },
+                      original_price: { type: 'number', nullable: true },
+                      discount_per_item: { type: 'number', nullable: true },
+                      final_price_per_item: { type: 'number', nullable: true },
+                      total_discount: { type: 'number', nullable: true }
+                    },
+                    additionalProperties: true
+                  }
+                },
+                applied_promotions: { 
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      promotion_id: { type: 'number', nullable: true },
+                      promotion_name: { type: 'string', nullable: true },
+                      promotion_type: { type: 'string', nullable: true },
+                      is_auto: { type: 'boolean' },
+                      is_free_shipping: { type: 'boolean' },
+                      discount_amount: { type: 'number', nullable: true }
+                    },
+                    additionalProperties: true
+                  }
+                },
+                ineligible_reason: { type: 'string', nullable: true },
+                expires_at: { type: 'string', format: 'date-time', nullable: true }
               }
             },
             message: { type: 'string' }

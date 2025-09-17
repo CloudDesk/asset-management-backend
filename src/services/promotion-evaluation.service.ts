@@ -15,6 +15,74 @@ import { createHash } from 'crypto';
 export class PromotionEvaluationService {
   private prisma: PrismaClient;
 
+  // Helper function to get discount value from either old or new format
+  private getDiscountValue(promotion: any): number {
+    if (promotion.discount_value !== null && promotion.discount_value !== undefined) {
+      return promotion.discount_value;
+    }
+    if (promotion.action && promotion.action.value !== null && promotion.action.value !== undefined) {
+      return promotion.action.value;
+    }
+    return 0;
+  }
+
+  // Enhanced helper to calculate discount with action object logic
+  private calculateDiscountWithAction(promotion: any, itemPrice: number, itemQuantity: number, totalCartValue?: number): number {
+    if (!promotion.action) {
+      // Fallback to old logic
+      return this.getDiscountValue(promotion);
+    }
+
+    const action = promotion.action;
+    let discount = 0;
+
+    // Ensure action.value exists and is a valid number
+    const actionValue = action.value || 0;
+
+    switch (action.type) {
+      case 'PERCENT_OFF':
+        discount = (itemPrice * itemQuantity * actionValue) / 100;
+        // Apply max_discount cap if specified (optional field)
+        if (action.max_discount && typeof action.max_discount === 'number' && discount > action.max_discount) {
+          discount = action.max_discount;
+        }
+        break;
+
+      case 'FIXED_AMOUNT_OFF':
+        discount = Math.min(actionValue, itemPrice * itemQuantity);
+        break;
+
+      case 'FREE_SHIPPING':
+        discount = 0; // Free shipping doesn't affect item prices
+        break;
+
+      case 'BOGO':
+        // BOGO logic - all fields are optional with defaults
+        const buyQuantity = action.buy_quantity || 1;
+        const getQuantity = action.get_quantity || 1;
+        
+        if (itemQuantity >= buyQuantity) {
+          const freeItems = Math.floor(itemQuantity / buyQuantity) * getQuantity;
+          // max_free_items is optional - if not specified, no limit
+          const maxFreeItems = action.max_free_items || freeItems;
+          const actualFreeItems = Math.min(freeItems, maxFreeItems);
+          discount = actualFreeItems * itemPrice;
+        }
+        break;
+
+      case 'FREE_PRODUCT':
+        // Free product logic - minimum purchase check should be done at cart level
+        // min_purchase and free_product_id are optional fields
+        discount = 0; // Free product doesn't reduce existing item prices
+        break;
+
+      default:
+        discount = this.getDiscountValue(promotion);
+    }
+
+    return discount;
+  }
+
   constructor() {
     this.prisma = new PrismaClient();
   }
@@ -285,13 +353,22 @@ export class PromotionEvaluationService {
 
     switch (promotion.type) {
       case 'FIXED_AMOUNT_OFF_CART':
-        totalDiscount = Math.min(promotion.discount_value || 0, totalValue);
+        totalDiscount = Math.min(this.getDiscountValue(promotion), totalValue);
         discountedTotal = totalValue - totalDiscount;
         break;
 
       case 'PERCENT_OFF_CART':
-        const percentage = (promotion.discount_value || 0) / 100;
+        const percentage = this.getDiscountValue(promotion) / 100;
         totalDiscount = totalValue * percentage;
+        
+        // Apply max_discount cap if specified in action (optional field)
+        if (promotion.action && 
+            promotion.action.max_discount && 
+            typeof promotion.action.max_discount === 'number' && 
+            totalDiscount > promotion.action.max_discount) {
+          totalDiscount = promotion.action.max_discount;
+        }
+        
         discountedTotal = totalValue - totalDiscount;
         break;
 
@@ -304,7 +381,7 @@ export class PromotionEvaluationService {
         // Apply to specific items based on conditions
         for (const item of cartData.items) {
           if (this.isItemEligible(item, promotion)) {
-            const itemDiscount = Math.min(promotion.discount_value || 0, item.price * item.quantity);
+            const itemDiscount = Math.min(this.getDiscountValue(promotion), item.price * item.quantity);
             totalDiscount += itemDiscount;
             affectedItems.push(item.product_id);
             itemDiscounts.push({
@@ -322,7 +399,7 @@ export class PromotionEvaluationService {
         // Apply percentage to specific items
         for (const item of cartData.items) {
           if (this.isItemEligible(item, promotion)) {
-            const percentage = (promotion.discount_value || 0) / 100;
+            const percentage = this.getDiscountValue(promotion) / 100;
             const itemDiscount = (item.price * item.quantity) * percentage;
             totalDiscount += itemDiscount;
             affectedItems.push(item.product_id);
@@ -358,7 +435,7 @@ export class PromotionEvaluationService {
 
       case 'FREE_PRODUCT':
         // Free product logic (simplified)
-        totalDiscount = promotion.discount_value || 0;
+        totalDiscount = this.getDiscountValue(promotion);
         discountedTotal = totalValue - totalDiscount;
         break;
     }
@@ -771,32 +848,35 @@ export class PromotionEvaluationService {
       }
 
       if (isItemEligible) {
-        // Calculate discount based on promotion type
-        switch (promotion.type) {
-          case 'PERCENT_OFF_ITEM':
-            discountPerItem = (item.price * promotion.discount_value) / 100;
-            break;
-          case 'FIXED_AMOUNT_OFF_ITEM':
-            discountPerItem = Math.min(promotion.discount_value, item.price);
-            break;
-          case 'PERCENT_OFF_CART':
-            discountPerItem = (item.price * promotion.discount_value) / 100;
-            break;
-          case 'FIXED_AMOUNT_OFF_CART':
-            // For cart-level fixed amount, distribute proportionally
-            const totalCartValue = cartItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
-            const itemValue = item.price * item.quantity;
-            const proportionalDiscount = (itemValue / totalCartValue) * promotion.discount_value;
-            discountPerItem = proportionalDiscount / item.quantity;
-            break;
-          case 'FREE_SHIPPING':
-            // Free shipping doesn't affect item prices
-            discountPerItem = 0;
-            break;
-          case 'BOGO':
-            // Buy One Get One - complex logic
-            discountPerItem = this.calculateBOGODiscount(promotion, item);
-            break;
+        // Use enhanced action-based calculation
+        if (promotion.type === 'FIXED_AMOUNT_OFF_CART' || promotion.type === 'PERCENT_OFF_CART') {
+          // For cart-level promotions, calculate total discount first, then distribute proportionally
+          const totalCartValue = cartItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+          const itemValue = item.price * item.quantity;
+          
+          // Calculate total cart discount with proper capping
+          let totalCartDiscount = 0;
+          if (promotion.type === 'PERCENT_OFF_CART') {
+            const percentage = this.getDiscountValue(promotion) / 100;
+            totalCartDiscount = totalCartValue * percentage;
+            // Apply max_discount cap at cart level (optional field)
+            if (promotion.action && 
+                promotion.action.max_discount && 
+                typeof promotion.action.max_discount === 'number' && 
+                totalCartDiscount > promotion.action.max_discount) {
+              totalCartDiscount = promotion.action.max_discount;
+            }
+          } else {
+            totalCartDiscount = Math.min(this.getDiscountValue(promotion), totalCartValue);
+          }
+          
+          // Distribute proportionally to this item
+          const proportionalDiscount = (itemValue / totalCartValue) * totalCartDiscount;
+          discountPerItem = proportionalDiscount / item.quantity;
+        } else {
+          // For item-level promotions, calculate per item
+          const itemTotalDiscount = this.calculateDiscountWithAction(promotion, item.price, item.quantity);
+          discountPerItem = itemTotalDiscount / item.quantity;
         }
       }
 

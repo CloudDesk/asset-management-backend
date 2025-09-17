@@ -5732,3 +5732,33 @@ Values: [
   true,
   1758013252
 ]
+Values: [
+  56,
+  "20% OFF on Wellness Products",
+  "",
+  "PERCENT_OFF_ITEM",
+  "",
+  false,
+  1735689,
+  1767225,
+  "active",
+  2,
+  "public",
+  5000,
+  3,
+  false,
+  500000,
+  "Asia/Kolkata",
+  15,
+  "[{\"value\":\"500\",\"operator\":\"GTE\",\"attribute\":\"cart.total_value\"},{\"value\":[\"wellness\",\"health\",\"natural\"],\"operator\":\"IN\",\"attribute\":\"cart.items.category\"}]",
+  "{\"0\":{\"value\":500,\"operator\":\"GTE\",\"attribute\":\"cart.total_value\"},\"1\":{\"value\":[\"wellness\",\"health\",\"natural\"],\"operator\":\"IN\",\"attribute\":\"cart.items.category\"},\"type\":\"PERCENT_OFF\",\"value\":20,\"max_discount\":500}",
+  56,
+  1756981502,
+  1758106042
+]
+Values: [
+  56,
+  1755514765,
+  1760698765,
+  1758106774
+]

@@ -5650,3 +5650,31 @@ Final rawData: {
   "is_active": true,
   "modifieddate": 1758013252456
 }
+Final rawData: {
+  "name": "20% OFF on Wellness Products",
+  "description": "",
+  "type": "PERCENT_OFF_ITEM",
+  "code": "",
+  "auto_apply": false,
+  "start_date": 1735689,
+  "end_date": 1767225,
+  "status": "active",
+  "priority": 2,
+  "visibility": "public",
+  "max_redemptions": 5000,
+  "per_user_limit": 3,
+  "stackable": false,
+  "budget": 500000,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "conditions": "[{\"value\":\"500\",\"operator\":\"GTE\",\"attribute\":\"cart.total_value\"},{\"value\":[\"wellness\",\"health\",\"natural\"],\"operator\":\"IN\",\"attribute\":\"cart.items.category\"}]",
+  "action": "{\"0\":{\"value\":500,\"operator\":\"GTE\",\"attribute\":\"cart.total_value\"},\"1\":{\"value\":[\"wellness\",\"health\",\"natural\"],\"operator\":\"IN\",\"attribute\":\"cart.items.category\"},\"type\":\"PERCENT_OFF\",\"value\":20,\"max_discount\":500}",
+  "id": 56,
+  "createddate": 1756981502,
+  "modifieddate": 1758106042477
+}
+Final rawData: {
+  "start_date": 1755514765,
+  "end_date": 1760698765,
+  "modifieddate": 1758106774592
+}
