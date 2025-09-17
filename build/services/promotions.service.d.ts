@@ -3,6 +3,10 @@ import { PaginationResult } from '../utils/pagination.js';
 import { FilterOptions } from '../utils/filterBuilder.js';
 export declare class PromotionsService {
     private prisma;
+    private convertDateToUnixTimestamp;
+    private convertUnixTimestampToDateString;
+    private convertUnixTimestampToDate;
+    private transformFrontendDataToBackend;
     getPublicPromotions(options: {
         channel: string;
         geo: string;
@@ -19,7 +23,7 @@ export declare class PromotionsService {
     private isPromotionCurrentlyActive;
     private isPromotionApplicableToUser;
     private evaluateCondition;
-    findMany(filters: FilterOptions, page: number, limit: number): Promise<PaginationResult<any>>;
+    findMany(filters: FilterOptions, page: number, limit: number, adminMode?: boolean): Promise<PaginationResult<any>>;
     findById(id: string): Promise<any>;
     create(data: CreatePromotionsInput & Record<string, any>): Promise<any>;
     update(id: string, data: UpdatePromotionsInput & Record<string, any>): Promise<any>;

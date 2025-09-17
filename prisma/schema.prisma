@@ -666,8 +666,8 @@ model promotions {
   code            String?   @db.Text // Coupon code (NULL for automatic promotions, populated for coupon-based promotions)
   auto_apply      Boolean?
   is_active       Boolean?
-  start_date      DateTime? @db.Date
-  end_date        DateTime? @db.Date
+  start_date      BigInt?   // Unix timestamp (seconds since epoch)
+  end_date        BigInt?   // Unix timestamp (seconds since epoch)
   status          String?   @db.Text
   priority        Int?
   visibility      String?   @db.Text
@@ -677,10 +677,8 @@ model promotions {
   budget          Decimal?  @db.Decimal(10, 2)
   timezone        String?   @db.VarChar(50)
   evaluation_expiry_minutes Int? @default(15)
-  discount_type   String?   @db.VarChar(50)
-  discount_value  Decimal?  @db.Decimal(10, 2)
   conditions      Json?     // Array of condition objects: [{ "attribute": "cart.total_value", "operator": "GTE", "value": 500 }]
-  actions         Json?     // Array of action objects: [{ "type": "PERCENT_OFF", "value": 15 }]
+  action          Json?     // Single action object: { "type": "PERCENT_OFF", "value": 15, "max_discount": 500 }
   createddate     BigInt?
   modifieddate    BigInt?
 

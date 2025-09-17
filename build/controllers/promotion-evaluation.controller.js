@@ -96,8 +96,7 @@ export class PromotionEvaluationController {
             user_id,
             cart_items,
             context,
-            cart_signature: cartSignature,
-            current_total: current_total ?? 0
+            cart_signature: cartSignature
         });
         const response = createSuccessResponse('Automatic evaluation created successfully', result);
         return reply.code(200).send(response);

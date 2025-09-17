@@ -17626,3 +17626,747 @@ Filtered data result: {
   },
   "modifieddate": 1757505129113
 }
+Filtered data result: {
+  "is_active": false,
+  "modifieddate": 1757999232477
+}
+Filtered data result: {
+  "is_active": true,
+  "modifieddate": 1757999235634
+}
+Filtered data result: {
+  "is_active": false,
+  "modifieddate": 1758013239773
+}
+Filtered data result: {
+  "is_active": true,
+  "modifieddate": 1758013252456
+}
+Filtered data result: {
+  "name": "TEST",
+  "description": "",
+  "type": "PERCENT_OFF_ITEM",
+  "code": "",
+  "auto_apply": false,
+  "is_active": true,
+  "start_date": "2025-08-31T18:30:00.000Z",
+  "end_date": "2025-12-31T18:29:00.000Z",
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "stackable": false,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "discount_type": "PERCENT_OFF",
+  "discount_value": 10,
+  "conditions": [
+    {
+      "attribute": "cart.total_value",
+      "operator": "GTE",
+      "value": "1000"
+    }
+  ],
+  "actions": [
+    {
+      "type": "PERCENT_OFF",
+      "value": 10
+    }
+  ],
+  "createddate": 1758016115930,
+  "modifieddate": 1758016115930
+}
+Filtered data result: {
+  "name": "TEST",
+  "description": "",
+  "type": "PERCENT_OFF_ITEM",
+  "code": "",
+  "auto_apply": false,
+  "is_active": true,
+  "start_date": "2025-08-31T18:30:00.000Z",
+  "end_date": "2025-12-31T18:29:00.000Z",
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "stackable": false,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "discount_type": "PERCENT_OFF",
+  "discount_value": 10,
+  "conditions": [
+    {
+      "attribute": "cart.total_value",
+      "operator": "GTE",
+      "value": "1000"
+    }
+  ],
+  "actions": [
+    {
+      "type": "PERCENT_OFF",
+      "value": 10
+    }
+  ],
+  "createddate": 1758016143456,
+  "modifieddate": 1758016143456
+}
+Filtered data result: {
+  "name": "TEST",
+  "description": "",
+  "type": "PERCENT_OFF_ITEM",
+  "code": "",
+  "auto_apply": false,
+  "is_active": true,
+  "start_date": "2025-08-31T18:30:00.000Z",
+  "end_date": "2025-12-31T18:29:00.000Z",
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "stackable": false,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "discount_type": "PERCENT_OFF",
+  "discount_value": 10,
+  "conditions": [
+    {
+      "attribute": "cart.total_value",
+      "operator": "GTE",
+      "value": "1000"
+    }
+  ],
+  "actions": [
+    {
+      "type": "PERCENT_OFF",
+      "value": 10
+    }
+  ],
+  "createddate": 1758016174643,
+  "modifieddate": 1758016174643
+}
+Filtered data result: {
+  "name": "SIMPLE TEST",
+  "type": "PERCENT_OFF_ITEM",
+  "is_active": true,
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "timezone": "Asia/Kolkata",
+  "discount_type": "PERCENT_OFF",
+  "discount_value": 10,
+  "createddate": 1758016189718,
+  "modifieddate": 1758016189718
+}
+Filtered data result: {
+  "name": "TEST WITH CONDITIONS",
+  "type": "PERCENT_OFF_ITEM",
+  "is_active": true,
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "timezone": "Asia/Kolkata",
+  "discount_type": "PERCENT_OFF",
+  "discount_value": 10,
+  "conditions": [
+    {
+      "attribute": "cart.total_value",
+      "operator": "GTE",
+      "value": "1000"
+    }
+  ],
+  "createddate": 1758016197112,
+  "modifieddate": 1758016197112
+}
+Filtered data result: {
+  "name": "TEST",
+  "description": "",
+  "type": "PERCENT_OFF_ITEM",
+  "code": "",
+  "auto_apply": false,
+  "is_active": true,
+  "start_date": "2025-08-31T18:30:00.000Z",
+  "end_date": "2025-12-31T18:29:00.000Z",
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "stackable": false,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "discount_type": "PERCENT_OFF",
+  "discount_value": 10,
+  "conditions": [
+    {
+      "attribute": "cart.total_value",
+      "operator": "GTE",
+      "value": "1000"
+    }
+  ],
+  "actions": [
+    {
+      "type": "PERCENT_OFF",
+      "value": 10
+    }
+  ],
+  "createddate": 1758016308789,
+  "modifieddate": 1758016308789
+}
+Filtered data result: {
+  "name": "TEST WITH CONDITIONS",
+  "type": "PERCENT_OFF_ITEM",
+  "is_active": true,
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "timezone": "Asia/Kolkata",
+  "discount_type": "PERCENT_OFF",
+  "discount_value": 10,
+  "conditions": [
+    {
+      "attribute": "cart.total_value",
+      "operator": "GTE",
+      "value": "1000"
+    }
+  ],
+  "createddate": 1758016343086,
+  "modifieddate": 1758016343086
+}
+Filtered data result: {
+  "name": "TEST WITH CONDITIONS AND ACTIONS",
+  "type": "PERCENT_OFF_ITEM",
+  "is_active": true,
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "timezone": "Asia/Kolkata",
+  "discount_type": "PERCENT_OFF",
+  "discount_value": 10,
+  "conditions": [
+    {
+      "attribute": "cart.total_value",
+      "operator": "GTE",
+      "value": "1000"
+    }
+  ],
+  "actions": [
+    {
+      "type": "PERCENT_OFF",
+      "value": 10
+    }
+  ],
+  "createddate": 1758016354016,
+  "modifieddate": 1758016354016
+}
+Filtered data result: {
+  "name": "TEST",
+  "description": "",
+  "type": "PERCENT_OFF_ITEM",
+  "code": "",
+  "auto_apply": false,
+  "is_active": true,
+  "start_date": "2025-08-31T18:30:00.000Z",
+  "end_date": "2025-12-31T18:29:00.000Z",
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "stackable": false,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "discount_type": "PERCENT_OFF",
+  "discount_value": 10,
+  "conditions": [
+    {
+      "attribute": "cart.total_value",
+      "operator": "GTE",
+      "value": "1000"
+    }
+  ],
+  "actions": [
+    {
+      "type": "PERCENT_OFF",
+      "value": 10
+    }
+  ],
+  "createddate": 1758016363266,
+  "modifieddate": 1758016363266
+}
+Filtered data result: {
+  "name": "TEST",
+  "description": "",
+  "type": "PERCENT_OFF_ITEM",
+  "code": "",
+  "auto_apply": false,
+  "is_active": true,
+  "start_date": "2025-08-31T18:30:00.000Z",
+  "end_date": "2025-12-31T18:29:00.000Z",
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "stackable": false,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "discount_type": "PERCENT_OFF",
+  "discount_value": 10,
+  "createddate": 1758016373308,
+  "modifieddate": 1758016373308
+}
+Filtered data result: {
+  "name": "TEST",
+  "description": "",
+  "type": "PERCENT_OFF_ITEM",
+  "code": "",
+  "auto_apply": false,
+  "is_active": true,
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "stackable": false,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "discount_type": "PERCENT_OFF",
+  "discount_value": 10,
+  "createddate": 1758016382408,
+  "modifieddate": 1758016382408
+}
+Filtered data result: {
+  "name": "TEST",
+  "description": "",
+  "type": "PERCENT_OFF_ITEM",
+  "code": "",
+  "auto_apply": false,
+  "is_active": true,
+  "start_date": "2025-09-01",
+  "end_date": "2025-12-31",
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "stackable": false,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "discount_type": "PERCENT_OFF",
+  "discount_value": 10,
+  "conditions": [
+    {
+      "attribute": "cart.total_value",
+      "operator": "GTE",
+      "value": "1000"
+    }
+  ],
+  "actions": [
+    {
+      "type": "PERCENT_OFF",
+      "value": 10
+    }
+  ],
+  "createddate": 1758016745972,
+  "modifieddate": 1758016745972
+}
+Filtered data result: {
+  "name": "TEST",
+  "description": "",
+  "type": "PERCENT_OFF_ITEM",
+  "code": "",
+  "auto_apply": false,
+  "is_active": true,
+  "start_date": "2025-09-01",
+  "end_date": "2025-12-31",
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "stackable": false,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "discount_type": "PERCENT_OFF",
+  "discount_value": 10,
+  "conditions": [
+    {
+      "attribute": "cart.total_value",
+      "operator": "GTE",
+      "value": "1000"
+    }
+  ],
+  "actions": [
+    {
+      "type": "PERCENT_OFF",
+      "value": 10
+    }
+  ],
+  "createddate": 1758017028185,
+  "modifieddate": 1758017028185
+}
+Filtered data result: {
+  "name": "TEST WITH TIMESTAMPS",
+  "description": "",
+  "type": "PERCENT_OFF_ITEM",
+  "code": "",
+  "auto_apply": false,
+  "is_active": true,
+  "start_date": 1756684800,
+  "end_date": 1767205799,
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "stackable": false,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "discount_type": "PERCENT_OFF",
+  "discount_value": 10,
+  "conditions": [
+    {
+      "attribute": "cart.total_value",
+      "operator": "GTE",
+      "value": "1000"
+    }
+  ],
+  "actions": [
+    {
+      "type": "PERCENT_OFF",
+      "value": 10
+    }
+  ],
+  "createddate": 1758017298014,
+  "modifieddate": 1758017298014
+}
+Filtered data result: {
+  "name": "TEST WITH TIMESTAMPS",
+  "type": "PERCENT_OFF_ITEM",
+  "is_active": true,
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "timezone": "Asia/Kolkata",
+  "discount_type": "PERCENT_OFF",
+  "discount_value": 10,
+  "start_date": 1756684800,
+  "end_date": 1767205799,
+  "createddate": 1758017330387,
+  "modifieddate": 1758017330387
+}
+Filtered data result: {
+  "name": "TEST WITHOUT DATES",
+  "type": "PERCENT_OFF_ITEM",
+  "is_active": true,
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "timezone": "Asia/Kolkata",
+  "discount_type": "PERCENT_OFF",
+  "discount_value": 10,
+  "createddate": 1758017375190,
+  "modifieddate": 1758017375190
+}
+Filtered data result: {
+  "name": "TEST UTC TIMESTAMPS",
+  "type": "PERCENT_OFF_ITEM",
+  "is_active": true,
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "timezone": "Asia/Kolkata",
+  "discount_type": "PERCENT_OFF",
+  "discount_value": 10,
+  "start_date": 1756944000,
+  "end_date": 1757030399,
+  "createddate": 1758018750201,
+  "modifieddate": 1758018750201
+}
+Filtered data result: {
+  "name": "TEST",
+  "description": "",
+  "type": "PERCENT_OFF_ITEM",
+  "code": "",
+  "auto_apply": false,
+  "is_active": true,
+  "start_date": 1756665000,
+  "end_date": 1767205740,
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "stackable": false,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "discount_type": "PERCENT_OFF",
+  "discount_value": 10,
+  "conditions": [
+    {
+      "attribute": "cart.total_value",
+      "operator": "GTE",
+      "value": "1000"
+    }
+  ],
+  "actions": [
+    {
+      "type": "PERCENT_OFF",
+      "value": 10
+    }
+  ],
+  "createddate": 1758019212445,
+  "modifieddate": 1758019212445
+}
+Filtered data result: {
+  "category": "wellness",
+  "subcategory": "scented-candles",
+  "supplierid": 1,
+  "suppliername": "KS OIls",
+  "name": "ARCASA Scented Candles",
+  "shortdescription": "SAFE SOY CANDLES：Our scented candles are made of natural soy wax and fragrance, non-toxic, without any additives, and the burning time of a 7-oz candle can last for 40 hours. they ensure a clean and sustainable experience.",
+  "fulldescription": "ARCASA AROMATHERAPY CANDLES：Discover relaxation with scented candles. Perfect for creating a soothing ambiance during yoga and meditation sessions, our lavender candle is ideal for both men and women.\nPERFECT FALL SCENTED CANDLES: Embrace the season with our fall scented candles. The calming Cented Rose scent adds warmth and comfort to any space, making it perfect for home use.\nENHANCE YOUR HOME ENVIRONMENT: Our aromatherapy candles are designed to relieve anxiety and create a peaceful atmosphere. Ideal for setting the mood and enhancing relaxation for you and your guests.\nIDEAL GIFT FOR ANY OCCASION: candles come beautifully packaged, making them perfect gifts for birthdays, holidays, and special occasions. A thoughtful choice for anyone who appreciates quality and elegance.",
+  "price": 240,
+  "discount": 0,
+  "isdealoftheday": false,
+  "orderedquantity": 11,
+  "availablequantity": 0,
+  "soldquantity": 0,
+  "ecompublishedquantity": 11,
+  "quantity": 11,
+  "productstatus": "out_of_stock",
+  "wax_type": "soy",
+  "burn_time": "40 hrs",
+  "scent_profile": "Cented Rose 7oz",
+  "container_material": "glass",
+  "candle_dimensions": ""
+}
+Filtered data result: {
+  "name": "Test Frontend Integration",
+  "type": "PERCENT_OFF_CART",
+  "start_date": 1704067200,
+  "end_date": 1756684800,
+  "conditions": [
+    {
+      "attribute": "cart.total_value",
+      "operator": "GTE",
+      "value": "1000"
+    }
+  ],
+  "budget": 10000,
+  "actions": [
+    {
+      "type": "PERCENT_OFF",
+      "value": 20,
+      "max_discount": 500
+    }
+  ],
+  "createddate": 1758021295507,
+  "modifieddate": 1758021295507
+}
+Filtered data result: {
+  "name": "BOGO Test Frontend",
+  "type": "BOGO",
+  "start_date": 1704067200,
+  "end_date": 1756684800,
+  "conditions": [
+    {
+      "attribute": "cart.total_value",
+      "operator": "GTE",
+      "value": "500"
+    }
+  ],
+  "actions": [
+    {
+      "type": "BOGO",
+      "value": 1,
+      "buy_quantity": 2,
+      "get_quantity": 1,
+      "product_ids": [
+        "PROD001",
+        "PROD002"
+      ],
+      "max_free_items": 5
+    }
+  ],
+  "createddate": 1758021308900,
+  "modifieddate": 1758021308900
+}
+Filtered data result: {
+  "name": "Free Product Test",
+  "type": "FREE_PRODUCT",
+  "start_date": 1704067200,
+  "end_date": 1756684800,
+  "conditions": [
+    {
+      "attribute": "cart.total_value",
+      "operator": "GTE",
+      "value": "200"
+    }
+  ],
+  "actions": [
+    {
+      "type": "FREE_PRODUCT",
+      "value": 0,
+      "free_product_id": "PROD999",
+      "min_purchase": 200,
+      "max_free_items": 1
+    }
+  ],
+  "createddate": 1758021322831,
+  "modifieddate": 1758021322831
+}
+Filtered data result: {
+  "name": "Test Clean Structure",
+  "description": "Testing new single action structure",
+  "type": "PERCENT_OFF_CART",
+  "code": "TEST20",
+  "auto_apply": false,
+  "is_active": true,
+  "start_date": 1704067200,
+  "end_date": 1756684800,
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "stackable": false,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "conditions": [
+    {
+      "attribute": "cart.total_value",
+      "operator": "GTE",
+      "value": "1000"
+    }
+  ],
+  "actions": [
+    {
+      "type": "PERCENT_OFF",
+      "value": 20,
+      "max_discount": 500
+    }
+  ],
+  "createddate": 1758023116874,
+  "modifieddate": 1758023116874
+}
+Filtered data result: {
+  "name": "Test New Structure",
+  "description": "Testing single action object",
+  "type": "PERCENT_OFF_CART",
+  "code": "TEST20",
+  "auto_apply": false,
+  "is_active": true,
+  "start_date": 1704067200,
+  "end_date": 1756684800,
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "stackable": false,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "conditions": [
+    {
+      "attribute": "cart.total_value",
+      "operator": "GTE",
+      "value": "1000"
+    }
+  ],
+  "createddate": 1758023126246,
+  "modifieddate": 1758023126246
+}
+Filtered data result: {
+  "name": "Test New Structure",
+  "description": "Testing single action object",
+  "type": "PERCENT_OFF_CART",
+  "code": "TEST20",
+  "auto_apply": false,
+  "is_active": true,
+  "start_date": 1704067200,
+  "end_date": 1756684800,
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "stackable": false,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "conditions": [
+    {
+      "attribute": "cart.total_value",
+      "operator": "GTE",
+      "value": "1000"
+    }
+  ],
+  "action": {
+    "type": "PERCENT_OFF",
+    "value": 20,
+    "max_discount": 500
+  },
+  "createddate": 1758023244526,
+  "modifieddate": 1758023244526
+}
+Filtered data result: {
+  "name": "BOGO Test",
+  "description": "Buy 2 Get 1 Free",
+  "type": "BOGO",
+  "code": "BOGO21",
+  "auto_apply": false,
+  "is_active": true,
+  "start_date": 1704067200,
+  "end_date": 1756684800,
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "stackable": false,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "conditions": [
+    {
+      "attribute": "cart.total_value",
+      "operator": "GTE",
+      "value": "500"
+    }
+  ],
+  "action": {
+    "type": "BOGO",
+    "value": 0,
+    "buy_quantity": 2,
+    "get_quantity": 1,
+    "product_ids": [
+      "PROD101",
+      "PROD102"
+    ],
+    "max_free_items": 5
+  },
+  "createddate": 1758023264168,
+  "modifieddate": 1758023264168
+}
+Filtered data result: {
+  "name": "TEST",
+  "description": "",
+  "type": "PERCENT_OFF_CART",
+  "code": "",
+  "auto_apply": false,
+  "is_active": true,
+  "start_date": 1756665000,
+  "end_date": 1767205740,
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "max_redemptions": 100,
+  "per_user_limit": 10,
+  "stackable": false,
+  "budget": 10000,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "conditions": [
+    {
+      "attribute": "cart.total_value",
+      "operator": "GTE",
+      "value": "1000"
+    }
+  ],
+  "action": {
+    "type": "PERCENT_OFF",
+    "value": 0
+  },
+  "createddate": 1758028173161,
+  "modifieddate": 1758028173161
+}
+Filtered data result: {
+  "name": "Test Frontend Fields",
+  "description": "Testing frontend field transformation",
+  "type": "PERCENT_OFF_CART",
+  "start_date": 1756665000,
+  "end_date": 1767205740,
+  "is_active": true,
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "action": {
+    "type": "PERCENT_OFF",
+    "value": 20,
+    "max_discount": 100
+  },
+  "createddate": 1758029477693,
+  "modifieddate": 1758029477693
+}

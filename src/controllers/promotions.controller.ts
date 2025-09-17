@@ -32,11 +32,16 @@ export class PromotionsController {
     // Get all query parameters as filters
     const allFilters: Record<string, any> = request.query || {};
     const { page, limit } = getPaginationParams(allFilters);
+    console.log(page,limit,"getpromotions page and limit")
+    console.log(request.query,"ALLFILTERS")
+    // Check for admin mode flag
+    const { admin_mode, ...filtersWithoutAdmin } = allFilters;
+    const adminMode = admin_mode === 'true' || admin_mode === true;
     
     // Remove pagination params from filters
-    const { page: _, limit: __, ...filters } = allFilters;
+    const { page: _, limit: __, ...filters } = filtersWithoutAdmin;
     
-    const result = await this.promotionsService.findMany(filters, page, limit);
+    const result = await this.promotionsService.findMany(filters, page, limit, adminMode);
     
     const response = createSuccessResponse('Promotions retrieved successfully', result.data);
     return reply.code(200).send({
@@ -45,7 +50,8 @@ export class PromotionsController {
       meta: {
         filters: Object.keys(filters),
         total: result.pagination.total,
-        filtered: Object.keys(filters).length > 0
+        filtered: Object.keys(filters).length > 0,
+        adminMode: adminMode
       }
     });
   });

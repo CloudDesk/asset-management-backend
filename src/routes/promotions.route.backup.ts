@@ -41,7 +41,6 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
           start_date_before: { type: 'string', description: 'Filter by start date before' },
           end_date_after: { type: 'string', description: 'Filter by end date after' },
           end_date_before: { type: 'string', description: 'Filter by end date before' },
-          admin_mode: { type: 'string', description: 'Admin mode flag to bypass default filters' },
         },
         additionalProperties: true, // Allow any query parameters for dynamic filtering
       },
@@ -76,24 +75,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                   discount_type: { type: 'string', nullable: true, description: 'Discount type' },
                   discount_value: { type: 'number', nullable: true, description: 'Discount value' },
                   conditions: { type: 'array', nullable: true, description: 'Promotion conditions' },
-                  action: { 
-                    type: 'object', 
-                    nullable: true, 
-                    description: 'Promotion action object',
-                    properties: {
-                      type: { type: 'string' },
-                      value: { anyOf: [{ type: 'number' }, { type: 'boolean' }] },
-                      max_discount: { type: 'number' },
-                      buy_quantity: { type: 'number' },
-                      get_quantity: { type: 'number' },
-                      product_ids: { type: 'array', items: { type: 'string' } },
-                      free_product_id: { type: 'string' },
-                      min_purchase: { type: 'number' },
-                      max_free_items: { type: 'number' },
-                      min_order_value: { type: 'number' }
-                    },
-                    additionalProperties: true
-                  },
+                  action: { type: 'object', nullable: true, description: 'Promotion action object' },
                   createddate: { type: 'number', description: 'Creation timestamp' },
                   modifieddate: { type: 'number', description: 'Modification timestamp' },
                 },
@@ -117,7 +99,6 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                 filters: { type: 'array', items: { type: 'string' } },
                 total: { type: 'number' },
                 filtered: { type: 'boolean' },
-                adminMode: { type: 'boolean' },
               },
             },
           },
@@ -273,18 +254,8 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
           budget: { type: 'number', description: 'Promotion budget' },
           timezone: { type: 'string', description: 'Timezone' },
           evaluation_expiry_minutes: { type: 'number', description: 'Evaluation expiry minutes' },
-          // Frontend-specific fields (for backward compatibility)
-          discount_type: { type: 'string', description: 'Discount type (auto-mapped from promotion type)' },
+          discount_type: { type: 'string', description: 'Discount type' },
           discount_value: { type: 'number', description: 'Discount value' },
-          max_discount_cap: { type: 'number', description: 'Maximum discount cap (for percentage discounts)' },
-          buy_quantity: { type: 'number', description: 'Buy quantity (for BOGO)' },
-          get_quantity: { type: 'number', description: 'Get quantity (for BOGO)' },
-          product_ids: { type: 'array', items: { type: 'string' }, description: 'Product IDs (for BOGO)' },
-          free_product_id: { type: 'string', description: 'Free product ID (for FREE_PRODUCT)' },
-          minimum_purchase: { type: 'number', description: 'Minimum purchase amount (for FREE_PRODUCT)' },
-          max_free_items: { type: 'number', description: 'Maximum free items per order' },
-          minimum_order_value: { type: 'number', description: 'Minimum order value (for FREE_SHIPPING)' },
-          product_price: { type: 'number', description: 'Product price (for budget calculations)' },
           conditions: { 
             type: 'array', 
             description: 'Promotion conditions',
@@ -305,33 +276,9 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
               }
             }
           },
-          // New single action object (recommended format)
-          action: { 
-            type: 'object', 
-            description: 'Single promotion action object',
-            properties: {
-              type: { type: 'string', enum: ['PERCENT_OFF', 'FIXED_AMOUNT_OFF', 'FREE_SHIPPING', 'BOGO', 'FREE_PRODUCT'] },
-              value: { 
-                description: 'Action value - can be number or boolean',
-                anyOf: [
-                  { type: 'number' }, 
-                  { type: 'boolean' }
-                ]
-              },
-              max_discount: { type: 'number', description: 'Maximum discount cap (for PERCENT_OFF)' },
-              buy_quantity: { type: 'number', description: 'Buy quantity (for BOGO)' },
-              get_quantity: { type: 'number', description: 'Get quantity (for BOGO)' },
-              product_ids: { type: 'array', items: { type: 'string' }, description: 'Product IDs (for BOGO)' },
-              free_product_id: { type: 'string', description: 'Free product ID (for FREE_PRODUCT)' },
-              min_purchase: { type: 'number', description: 'Minimum purchase amount (for FREE_PRODUCT)' },
-              max_free_items: { type: 'number', description: 'Maximum free items per order' },
-              min_order_value: { type: 'number', description: 'Minimum order value (for FREE_SHIPPING)' }
-            }
-          },
-          // Legacy actions array (deprecated but still supported)
           actions: { 
             type: 'array', 
-            description: 'Legacy promotion actions array (deprecated - use action object instead)',
+            description: 'Promotion actions',
             items: {
               type: 'object',
               properties: {
@@ -471,18 +418,8 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
           budget: { type: 'number', description: 'Promotion budget' },
           timezone: { type: 'string', description: 'Timezone' },
           evaluation_expiry_minutes: { type: 'number', description: 'Evaluation expiry minutes' },
-          // Frontend-specific fields (for backward compatibility)
-          discount_type: { type: 'string', description: 'Discount type (auto-mapped from promotion type)' },
+          discount_type: { type: 'string', description: 'Discount type' },
           discount_value: { type: 'number', description: 'Discount value' },
-          max_discount_cap: { type: 'number', description: 'Maximum discount cap (for percentage discounts)' },
-          buy_quantity: { type: 'number', description: 'Buy quantity (for BOGO)' },
-          get_quantity: { type: 'number', description: 'Get quantity (for BOGO)' },
-          product_ids: { type: 'array', items: { type: 'string' }, description: 'Product IDs (for BOGO)' },
-          free_product_id: { type: 'string', description: 'Free product ID (for FREE_PRODUCT)' },
-          minimum_purchase: { type: 'number', description: 'Minimum purchase amount (for FREE_PRODUCT)' },
-          max_free_items: { type: 'number', description: 'Maximum free items per order' },
-          minimum_order_value: { type: 'number', description: 'Minimum order value (for FREE_SHIPPING)' },
-          product_price: { type: 'number', description: 'Product price (for budget calculations)' },
           conditions: { 
             type: 'array', 
             description: 'Promotion conditions',
@@ -503,33 +440,9 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
               }
             }
           },
-          // New single action object (recommended format)
-          action: { 
-            type: 'object', 
-            description: 'Single promotion action object',
-            properties: {
-              type: { type: 'string', enum: ['PERCENT_OFF', 'FIXED_AMOUNT_OFF', 'FREE_SHIPPING', 'BOGO', 'FREE_PRODUCT'] },
-              value: { 
-                description: 'Action value - can be number or boolean',
-                anyOf: [
-                  { type: 'number' }, 
-                  { type: 'boolean' }
-                ]
-              },
-              max_discount: { type: 'number', description: 'Maximum discount cap (for PERCENT_OFF)' },
-              buy_quantity: { type: 'number', description: 'Buy quantity (for BOGO)' },
-              get_quantity: { type: 'number', description: 'Get quantity (for BOGO)' },
-              product_ids: { type: 'array', items: { type: 'string' }, description: 'Product IDs (for BOGO)' },
-              free_product_id: { type: 'string', description: 'Free product ID (for FREE_PRODUCT)' },
-              min_purchase: { type: 'number', description: 'Minimum purchase amount (for FREE_PRODUCT)' },
-              max_free_items: { type: 'number', description: 'Maximum free items per order' },
-              min_order_value: { type: 'number', description: 'Minimum order value (for FREE_SHIPPING)' }
-            }
-          },
-          // Legacy actions array (deprecated but still supported)
           actions: { 
             type: 'array', 
-            description: 'Legacy promotion actions array (deprecated - use action object instead)',
+            description: 'Promotion actions',
             items: {
               type: 'object',
               properties: {

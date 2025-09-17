@@ -5634,3 +5634,19 @@ Filtered data: {
   },
   "modifieddate": 1757505129113
 }
+Filtered data: {
+  "is_active": false,
+  "modifieddate": 1757999232477
+}
+Filtered data: {
+  "is_active": true,
+  "modifieddate": 1757999235634
+}
+Filtered data: {
+  "is_active": false,
+  "modifieddate": 1758013239773
+}
+Filtered data: {
+  "is_active": true,
+  "modifieddate": 1758013252456
+}

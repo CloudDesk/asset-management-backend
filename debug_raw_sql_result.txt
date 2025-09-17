@@ -6722,3 +6722,159 @@ Update result: [
     "transactionfor": "product"
   }
 ]
+Update result: [
+  {
+    "id": 55,
+    "name": "₹100 OFF on Orders Above ₹1000",
+    "type": "FIXED_AMOUNT_OFF_CART",
+    "code": null,
+    "auto_apply": false,
+    "start_date": "2025-01-01T00:00:00.000Z",
+    "end_date": "2025-12-31T00:00:00.000Z",
+    "status": "active",
+    "priority": 1,
+    "visibility": "public",
+    "max_redemptions": 10000,
+    "per_user_limit": 5,
+    "stackable": true,
+    "createddate": 1756981501,
+    "modifieddate": 1758019033,
+    "description": null,
+    "budget": "1000000",
+    "timezone": "Asia/Kolkata",
+    "evaluation_expiry_minutes": 15,
+    "discount_type": "FIXED_AMOUNT_OFF",
+    "discount_value": "100",
+    "conditions": [
+      {
+        "value": 1000,
+        "operator": "GTE",
+        "attribute": "cart.total_value"
+      }
+    ],
+    "actions": [
+      {
+        "type": "FIXED_AMOUNT_OFF",
+        "value": 100
+      }
+    ],
+    "is_active": false
+  }
+]
+Update result: [
+  {
+    "id": 55,
+    "name": "₹100 OFF on Orders Above ₹1000",
+    "type": "FIXED_AMOUNT_OFF_CART",
+    "code": null,
+    "auto_apply": false,
+    "start_date": "2025-01-01T00:00:00.000Z",
+    "end_date": "2025-12-31T00:00:00.000Z",
+    "status": "active",
+    "priority": 1,
+    "visibility": "public",
+    "max_redemptions": 10000,
+    "per_user_limit": 5,
+    "stackable": true,
+    "createddate": 1756981501,
+    "modifieddate": 1758019036,
+    "description": null,
+    "budget": "1000000",
+    "timezone": "Asia/Kolkata",
+    "evaluation_expiry_minutes": 15,
+    "discount_type": "FIXED_AMOUNT_OFF",
+    "discount_value": "100",
+    "conditions": [
+      {
+        "value": 1000,
+        "operator": "GTE",
+        "attribute": "cart.total_value"
+      }
+    ],
+    "actions": [
+      {
+        "type": "FIXED_AMOUNT_OFF",
+        "value": 100
+      }
+    ],
+    "is_active": true
+  }
+]
+Update result: [
+  {
+    "id": 55,
+    "name": "₹100 OFF on Orders Above ₹1000",
+    "type": "FIXED_AMOUNT_OFF_CART",
+    "code": null,
+    "auto_apply": false,
+    "start_date": "2025-01-01T00:00:00.000Z",
+    "end_date": "2025-12-31T00:00:00.000Z",
+    "status": "active",
+    "priority": 1,
+    "visibility": "public",
+    "max_redemptions": 10000,
+    "per_user_limit": 5,
+    "stackable": true,
+    "createddate": 1756981501,
+    "modifieddate": 1758033040,
+    "description": null,
+    "budget": "1000000",
+    "timezone": "Asia/Kolkata",
+    "evaluation_expiry_minutes": 15,
+    "discount_type": "FIXED_AMOUNT_OFF",
+    "discount_value": "100",
+    "conditions": [
+      {
+        "value": 1000,
+        "operator": "GTE",
+        "attribute": "cart.total_value"
+      }
+    ],
+    "actions": [
+      {
+        "type": "FIXED_AMOUNT_OFF",
+        "value": 100
+      }
+    ],
+    "is_active": false
+  }
+]
+Update result: [
+  {
+    "id": 55,
+    "name": "₹100 OFF on Orders Above ₹1000",
+    "type": "FIXED_AMOUNT_OFF_CART",
+    "code": null,
+    "auto_apply": false,
+    "start_date": "2025-01-01T00:00:00.000Z",
+    "end_date": "2025-12-31T00:00:00.000Z",
+    "status": "active",
+    "priority": 1,
+    "visibility": "public",
+    "max_redemptions": 10000,
+    "per_user_limit": 5,
+    "stackable": true,
+    "createddate": 1756981501,
+    "modifieddate": 1758033053,
+    "description": null,
+    "budget": "1000000",
+    "timezone": "Asia/Kolkata",
+    "evaluation_expiry_minutes": 15,
+    "discount_type": "FIXED_AMOUNT_OFF",
+    "discount_value": "100",
+    "conditions": [
+      {
+        "value": 1000,
+        "operator": "GTE",
+        "attribute": "cart.total_value"
+      }
+    ],
+    "actions": [
+      {
+        "type": "FIXED_AMOUNT_OFF",
+        "value": 100
+      }
+    ],
+    "is_active": true
+  }
+]

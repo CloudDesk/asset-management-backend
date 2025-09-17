@@ -23,10 +23,11 @@ export declare class PromotionEvaluationService {
         createddate: bigint | null;
         modifieddate: bigint | null;
         evaluation_id: string;
+        original_total: import("@prisma/client/runtime/library").Decimal | null;
+        order_id: number | null;
         user_id: string | null;
         cart_data: import("@prisma/client/runtime/library").JsonValue | null;
         cart_signature: string | null;
-        original_total: import("@prisma/client/runtime/library").Decimal | null;
         discounted_total: import("@prisma/client/runtime/library").Decimal | null;
         applied_promotions: import("@prisma/client/runtime/library").JsonValue | null;
         ineligible_coupons: import("@prisma/client/runtime/library").JsonValue | null;
@@ -42,6 +43,8 @@ export declare class PromotionEvaluationService {
             cart_record_id: string;
             product_id: string;
             quantity: number;
+            base_price: number;
+            product_discount: number;
             price: number;
             category: string;
             subcategory?: string;
@@ -129,6 +132,8 @@ export declare class PromotionEvaluationService {
             cart_record_id: string;
             product_id: string;
             quantity: number;
+            base_price: number;
+            product_discount: number;
             price: number;
             category: string;
             subcategory?: string;
@@ -141,7 +146,6 @@ export declare class PromotionEvaluationService {
             user_agent?: string;
             ip_address?: string;
         };
-        current_total?: number;
     }): Promise<{
         evaluations: ({
             evaluation_id: any;
@@ -195,6 +199,8 @@ export declare class PromotionEvaluationService {
         cart_record_id: string;
         product_id: string;
         quantity: number;
+        base_price: number;
+        product_discount: number;
         price: number;
         category: string;
         subcategory?: string;
@@ -205,10 +211,11 @@ export declare class PromotionEvaluationService {
         createddate: bigint | null;
         modifieddate: bigint | null;
         evaluation_id: string;
+        original_total: import("@prisma/client/runtime/library").Decimal | null;
+        order_id: number | null;
         user_id: string | null;
         cart_data: import("@prisma/client/runtime/library").JsonValue | null;
         cart_signature: string | null;
-        original_total: import("@prisma/client/runtime/library").Decimal | null;
         discounted_total: import("@prisma/client/runtime/library").Decimal | null;
         applied_promotions: import("@prisma/client/runtime/library").JsonValue | null;
         ineligible_coupons: import("@prisma/client/runtime/library").JsonValue | null;
@@ -224,6 +231,8 @@ export declare class PromotionEvaluationService {
             cart_record_id: string;
             product_id: string;
             quantity: number;
+            base_price: number;
+            product_discount: number;
             price: number;
             category: string;
             subcategory?: string;
@@ -284,6 +293,8 @@ export declare class PromotionEvaluationService {
             cart_record_id: string;
             product_id: string;
             quantity: number;
+            base_price: number;
+            product_discount: number;
             price: number;
             category: string;
             subcategory?: string;
@@ -297,7 +308,6 @@ export declare class PromotionEvaluationService {
             ip_address?: string;
         };
         cart_signature: string;
-        current_total?: number;
     }): Promise<{
         evaluation_id: string;
         user_id: string;
@@ -306,6 +316,8 @@ export declare class PromotionEvaluationService {
             cart_record_id: string;
             product_id: string;
             quantity: number;
+            base_price: number;
+            product_discount: number;
             price: number;
             category: string;
             subcategory?: string;
@@ -330,6 +342,8 @@ export declare class PromotionEvaluationService {
             cart_record_id: string;
             product_id: string;
             quantity: number;
+            base_price: number;
+            product_discount: number;
             price: number;
             category: string;
             name?: string;

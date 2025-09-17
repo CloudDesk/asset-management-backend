@@ -234,7 +234,20 @@ export function convertBigIntToNumber(obj: any): any {
     if (obj.constructor === Object || obj.constructor === undefined) {
       const converted: any = {};
       for (const [key, value] of Object.entries(obj)) {
-        converted[key] = convertBigIntToNumber(value);
+        // Special handling for JSONB fields - preserve them as-is if they're already valid JSON
+        if ((key === 'action' || key === 'conditions') && value && typeof value === 'object') {
+          try {
+            // Verify it's valid JSON by stringify/parse
+            const jsonString = JSON.stringify(value);
+            const parsed = JSON.parse(jsonString);
+            converted[key] = parsed; // Use the parsed version directly without further conversion
+          } catch (e) {
+            // If it fails, fall back to normal conversion
+            converted[key] = convertBigIntToNumber(value);
+          }
+        } else {
+          converted[key] = convertBigIntToNumber(value);
+        }
       }
       return converted;
     }
@@ -262,7 +275,20 @@ export function convertBigIntToNumber(obj: any): any {
         // This is likely a valid JSON object that should be preserved
         const converted: any = {};
         for (const key of keys) {
-          converted[key] = convertBigIntToNumber(obj[key]);
+          // Special handling for JSONB fields - preserve them as-is if they're already valid JSON
+          if ((key === 'action' || key === 'conditions') && obj[key] && typeof obj[key] === 'object') {
+            try {
+              // Verify it's valid JSON by stringify/parse
+              const jsonString = JSON.stringify(obj[key]);
+              const parsed = JSON.parse(jsonString);
+              converted[key] = parsed; // Use the parsed version directly without further conversion
+            } catch (e) {
+              // If it fails, fall back to normal conversion
+              converted[key] = convertBigIntToNumber(obj[key]);
+            }
+          } else {
+            converted[key] = convertBigIntToNumber(obj[key]);
+          }
         }
         return converted;
       }
@@ -719,13 +745,23 @@ export async function dynamicFindManyWithFilters(
       prisma.$queryRawUnsafe(countQuery, ...values)
     ]);
     
-    const data = Array.isArray(dataResult) ? convertBigIntToNumber(dataResult) : [];
+    // Convert BigInt but preserve JSONB fields
+    const data = Array.isArray(dataResult) ? dataResult.map(row => {
+      const converted = convertBigIntToNumber(row);
+      // Restore original JSONB fields if they exist
+      if (row.action && typeof row.action === 'object') {
+        converted.action = row.action;
+      }
+      if (row.conditions && typeof row.conditions === 'object') {
+        converted.conditions = row.conditions;
+      }
+      return converted;
+    }) : [];
     const total = Number((countResult as any)[0]?.count || 0);
-    
     logger.info({
       modelName,
       filters: Object.keys(filters),
-      total,
+      total,  
       returned: data.length,
       filtered: whereClause !== ''
     }, 'Dynamic filtered findMany completed');
@@ -801,7 +837,17 @@ export async function dynamicFindMany(
           firstRecord: Array.isArray(result) && result.length > 0 ? Object.keys(result[0]) : 'no records'
         }, 'Optimized raw SQL findMany completed successfully');
 
-        return Array.isArray(result) ? convertBigIntToNumber(result) : [];
+        return Array.isArray(result) ? result.map(row => {
+          const converted = convertBigIntToNumber(row);
+          // Restore original JSONB fields if they exist
+          if (row.action && typeof row.action === 'object') {
+            converted.action = row.action;
+          }
+          if (row.conditions && typeof row.conditions === 'object') {
+            converted.conditions = row.conditions;
+          }
+          return converted;
+        }) : [];
       } catch (sqlError: any) {
         logger.error({ 
           error: sqlError.message, 
@@ -871,7 +917,17 @@ export async function dynamicFindMany(
         LIMIT ${take} OFFSET ${skip}
       `);
       
-      return Array.isArray(result) ? convertBigIntToNumber(result) : [];
+      return Array.isArray(result) ? result.map(row => {
+        const converted = convertBigIntToNumber(row);
+        // Restore original JSONB fields if they exist
+        if (row.action && typeof row.action === 'object') {
+          converted.action = row.action;
+        }
+        if (row.conditions && typeof row.conditions === 'object') {
+          converted.conditions = row.conditions;
+        }
+        return converted;
+      }) : [];
     }
   } catch (error: any) {
     logger.error({ 
@@ -1097,7 +1153,7 @@ export async function dynamicCreate(
     for (const [key, value] of Object.entries(filteredData)) {
       if (availableColumns.includes(key)) {
         // Handle JSON fields properly for PostgreSQL
-        if ((key === 'paymentdata' || key === 'items' || key === 'content') && value !== null && value !== undefined) {
+        if ((key === 'paymentdata' || key === 'items' || key === 'content' || key === 'conditions' || key === 'action') && value !== null && value !== undefined) {
           // For JSONB fields with explicit casting, stringify the JSON
           rawData[key] = typeof value === 'string' ? value : JSON.stringify(value);
         } else {
@@ -1126,7 +1182,7 @@ export async function dynamicCreate(
     
     // Build placeholders with special handling for JSON fields
     const placeholders = columns.map((col, index) => {
-      if (col === 'paymentdata' || col === 'items') {
+      if (col === 'paymentdata' || col === 'items' || col === 'conditions' || col === 'action') {
         return `$${index + 1}::jsonb`;
       }
       return `$${index + 1}`;
@@ -1247,13 +1303,17 @@ export async function dynamicUpdate(
       for (const [key, value] of Object.entries(filteredData)) {
         if (availableColumns.includes(key)) {
           // Handle JSON fields properly for PostgreSQL
-          if ((key === 'paymentdata' || key === 'items') && value !== null && value !== undefined) {
+          if ((key === 'paymentdata' || key === 'items' || key === 'conditions' || key === 'action') && value !== null && value !== undefined) {
             // For JSONB fields with explicit casting, stringify the JSON
             rawData[key] = typeof value === 'string' ? value : JSON.stringify(value);
             if (key === 'paymentdata') {
               writeFileSync('debug_raw_sql_paymentdata.txt', `Converted paymentdata: ${rawData[key]}\n`, { flag: 'a' });
             } else if (key === 'items') {
               writeFileSync('debug_raw_sql_items.txt', `Converted items: ${rawData[key]}\n`, { flag: 'a' });
+            } else if (key === 'conditions') {
+              writeFileSync('debug_raw_sql_conditions.txt', `Converted conditions: ${rawData[key]}\n`, { flag: 'a' });
+            } else if (key === 'action') {
+              writeFileSync('debug_raw_sql_action.txt', `Converted action: ${rawData[key]}\n`, { flag: 'a' });
             }
           } else {
             rawData[key] = value;
@@ -1289,7 +1349,7 @@ export async function dynamicUpdate(
       // Build dynamic UPDATE query
       const setClause = Object.keys(rawData)
         .map((key, index) => {
-          if (key === 'paymentdata' || key === 'items') {
+          if (key === 'paymentdata' || key === 'items' || key === 'conditions' || key === 'action') {
             return `"${key}" = $${index + 2}::jsonb`; // Cast to JSONB for JSON fields
           }
           return `"${key}" = $${index + 2}`;

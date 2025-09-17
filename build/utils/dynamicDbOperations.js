@@ -917,7 +917,7 @@ export async function dynamicCreate(modelName, data, include) {
         for (const [key, value] of Object.entries(filteredData)) {
             if (availableColumns.includes(key)) {
                 // Handle JSON fields properly for PostgreSQL
-                if ((key === 'paymentdata' || key === 'items' || key === 'content') && value !== null && value !== undefined) {
+                if ((key === 'paymentdata' || key === 'items' || key === 'content' || key === 'conditions' || key === 'action') && value !== null && value !== undefined) {
                     // For JSONB fields with explicit casting, stringify the JSON
                     rawData[key] = typeof value === 'string' ? value : JSON.stringify(value);
                 }
@@ -943,7 +943,7 @@ export async function dynamicCreate(modelName, data, include) {
         const values = Object.values(rawData);
         // Build placeholders with special handling for JSON fields
         const placeholders = columns.map((col, index) => {
-            if (col === 'paymentdata' || col === 'items') {
+            if (col === 'paymentdata' || col === 'items' || col === 'conditions' || col === 'action') {
                 return `$${index + 1}::jsonb`;
             }
             return `$${index + 1}`;
@@ -1049,7 +1049,7 @@ export async function dynamicUpdate(modelName, where, data, include) {
             for (const [key, value] of Object.entries(filteredData)) {
                 if (availableColumns.includes(key)) {
                     // Handle JSON fields properly for PostgreSQL
-                    if ((key === 'paymentdata' || key === 'items') && value !== null && value !== undefined) {
+                    if ((key === 'paymentdata' || key === 'items' || key === 'conditions' || key === 'action') && value !== null && value !== undefined) {
                         // For JSONB fields with explicit casting, stringify the JSON
                         rawData[key] = typeof value === 'string' ? value : JSON.stringify(value);
                         if (key === 'paymentdata') {
@@ -1057,6 +1057,12 @@ export async function dynamicUpdate(modelName, where, data, include) {
                         }
                         else if (key === 'items') {
                             writeFileSync('debug_raw_sql_items.txt', `Converted items: ${rawData[key]}\n`, { flag: 'a' });
+                        }
+                        else if (key === 'conditions') {
+                            writeFileSync('debug_raw_sql_conditions.txt', `Converted conditions: ${rawData[key]}\n`, { flag: 'a' });
+                        }
+                        else if (key === 'action') {
+                            writeFileSync('debug_raw_sql_action.txt', `Converted action: ${rawData[key]}\n`, { flag: 'a' });
                         }
                     }
                     else {
@@ -1089,7 +1095,7 @@ export async function dynamicUpdate(modelName, where, data, include) {
             // Build dynamic UPDATE query
             const setClause = Object.keys(rawData)
                 .map((key, index) => {
-                if (key === 'paymentdata' || key === 'items') {
+                if (key === 'paymentdata' || key === 'items' || key === 'conditions' || key === 'action') {
                     return `"${key}" = $${index + 2}::jsonb`; // Cast to JSONB for JSON fields
                 }
                 return `"${key}" = $${index + 2}`;

@@ -443,7 +443,7 @@ export class PromotionEvaluationService {
                 const identifier = request.promotion_id ? `ID ${request.promotion_id}` : `code "${request.code}"`;
                 throw new Error(`Promotion not found with ${identifier}`);
             }
-            // Calculate cart totals
+            // Calculate cart totals using the price field (already after product discount)
             const originalTotal = request.cart_items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             const categories = [...new Set(request.cart_items.map(item => item.category).filter(Boolean))];
             logger.info({
@@ -504,6 +504,8 @@ export class PromotionEvaluationService {
                 subtotal: originalTotal,
                 items: request.cart_items.map(item => ({
                     quantity: item.quantity,
+                    base_price: item.base_price,
+                    product_discount: item.product_discount,
                     price: item.price,
                     product_id: item.product_id,
                     name: item.name,
@@ -727,7 +729,7 @@ export class PromotionEvaluationService {
                     evaluation_id: evaluationId,
                     user_id: evaluationData.user_id,
                     cart_signature: cartSignature, // Add cart_signature field
-                    cart_data: evaluationData.cart_items,
+                    cart_data: evaluationData.cart_items, // Store complete cart_items with base_price and product_discount
                     original_total: evaluationData.original_total,
                     discounted_total: evaluationData.discounted_total,
                     applied_promotions: [{
@@ -890,12 +892,10 @@ export class PromotionEvaluationService {
         try {
             logger.info({
                 userId: request.user_id,
-                cartItemsCount: request.cart_items.length,
-                currentTotal: request.current_total
+                cartItemsCount: request.cart_items.length
             }, 'Evaluating automatic promotions');
-            // Calculate cart total
-            const cartTotal = request.current_total ||
-                request.cart_items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            // Calculate cart total using the price field (already after product discount)
+            const cartTotal = request.cart_items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             // Get automatic promotions that are active and auto_apply = true
             const automaticPromotions = await this.prisma.promotions.findMany({
                 where: {
@@ -1136,7 +1136,7 @@ export class PromotionEvaluationService {
                 const identifier = request.promotion_id ? `ID ${request.promotion_id}` : `code "${request.code}"`;
                 throw new Error(`Promotion not found with ${identifier}`);
             }
-            // Calculate cart totals
+            // Calculate cart totals using the price field (already after product discount)
             const originalTotal = request.cart_items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             const categories = [...new Set(request.cart_items.map(item => item.category).filter(Boolean))];
             logger.info({
@@ -1197,6 +1197,8 @@ export class PromotionEvaluationService {
                 subtotal: originalTotal,
                 items: request.cart_items.map(item => ({
                     quantity: item.quantity,
+                    base_price: item.base_price,
+                    product_discount: item.product_discount,
                     price: item.price,
                     product_id: item.product_id,
                     name: item.name,
@@ -1306,6 +1308,7 @@ export class PromotionEvaluationService {
                 data: {
                     applied_promotions: updatedAppliedPromotions,
                     discounted_total: discountedTotal,
+                    cart_data: request.cart_items, // Store complete cart_items with base_price and product_discount
                     modifieddate: BigInt(Date.now())
                 }
             });
@@ -1344,11 +1347,11 @@ export class PromotionEvaluationService {
                 cartSignature: request.cart_signature,
                 cartItemsCount: request.cart_items.length
             }, 'Creating new automatic evaluation');
+            console.log(request.cart_items, "request cartItems");
             // Generate evaluation ID
             const evaluationId = this.generateEvaluationId();
-            // Calculate cart total
-            const cartTotal = request.current_total ||
-                request.cart_items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            // Calculate cart total using the price field (already after product discount)
+            const cartTotal = request.cart_items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             // Get automatic promotions that are active and auto_apply = true
             const automaticPromotions = await this.prisma.promotions.findMany({
                 where: {
@@ -1372,6 +1375,8 @@ export class PromotionEvaluationService {
                             subtotal: cartTotal,
                             items: request.cart_items.map(item => ({
                                 quantity: item.quantity,
+                                base_price: item.base_price,
+                                product_discount: item.product_discount,
                                 price: item.price,
                                 product_id: item.product_id,
                                 name: item.name,
@@ -1430,7 +1435,7 @@ export class PromotionEvaluationService {
                     evaluation_id: evaluationId,
                     user_id: request.user_id,
                     cart_signature: request.cart_signature, // Add this field
-                    cart_data: request.cart_items,
+                    cart_data: request.cart_items, // Store complete cart_items with base_price and product_discount
                     original_total: cartTotal,
                     discounted_total: cartTotal - totalDiscount,
                     applied_promotions: appliedPromotions,
@@ -1489,12 +1494,14 @@ export class PromotionEvaluationService {
             if (!promotion) {
                 throw new Error('Promotion not found');
             }
-            // Validate promotion against cart
+            // Validate promotion against cart using the price field (already after product discount)
             const cartTotal = request.cart_items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             const cartEligible = this.checkCartEligibility(promotion, {
                 subtotal: cartTotal,
                 items: request.cart_items.map(item => ({
                     quantity: item.quantity,
+                    base_price: item.base_price,
+                    product_discount: item.product_discount,
                     price: item.price,
                     product_id: item.product_id,
                     name: item.name,
@@ -1512,6 +1519,8 @@ export class PromotionEvaluationService {
                 subtotal: cartTotal,
                 items: request.cart_items.map(item => ({
                     quantity: item.quantity,
+                    base_price: item.base_price,
+                    product_discount: item.product_discount,
                     price: item.price,
                     product_id: item.product_id,
                     name: item.name,
@@ -1570,7 +1579,7 @@ export class PromotionEvaluationService {
                     applied_promotions: uniquePromotions,
                     original_total: cartTotal,
                     discounted_total: discountedTotal,
-                    cart_data: request.cart_items,
+                    cart_data: request.cart_items, // Store complete cart_items with base_price and product_discount
                     modifieddate: nowUtc
                 }
             });
@@ -1614,7 +1623,7 @@ export class PromotionEvaluationService {
             if (filteredPromotions.length === appliedPromotions.length) {
                 throw new Error('Promotion not found in applied promotions');
             }
-            // Re-run automatic promotions
+            // Re-run automatic promotions using the price field (already after product discount)
             const cartItems = evaluation.cart_data;
             const cartTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             const automaticPromotions = await this.getEligibleAutomaticPromotions(evaluation.user_id || '', cartTotal, cartItems);
@@ -1640,6 +1649,7 @@ export class PromotionEvaluationService {
                 data: {
                     applied_promotions: uniquePromotions,
                     discounted_total: discountedTotal,
+                    cart_data: cartItems, // Store complete cart_items with base_price and product_discount
                     modifieddate: nowUtc
                 }
             });
@@ -1680,6 +1690,8 @@ export class PromotionEvaluationService {
                         subtotal: cartTotal,
                         items: cartItems.map(item => ({
                             quantity: item.quantity,
+                            base_price: item.base_price,
+                            product_discount: item.product_discount,
                             price: item.price,
                             product_id: item.product_id,
                             name: item.name,

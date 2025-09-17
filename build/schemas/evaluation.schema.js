@@ -4,6 +4,8 @@ import { utcTimestampResponseSchema } from './promotions.schema.js';
 export const cartItemSchema = z.object({
     product_id: z.string(),
     quantity: z.number().positive(),
+    base_price: z.number().positive(),
+    product_discount: z.number().min(0),
     price: z.number().positive(),
     category: z.string().optional(),
     subcategory: z.string().optional(),

@@ -2,6 +2,8 @@ import { z } from 'zod';
 export declare const cartItemSchema: z.ZodObject<{
     product_id: z.ZodString;
     quantity: z.ZodNumber;
+    base_price: z.ZodNumber;
+    product_discount: z.ZodNumber;
     price: z.ZodNumber;
     category: z.ZodOptional<z.ZodString>;
     subcategory: z.ZodOptional<z.ZodString>;
@@ -10,6 +12,8 @@ export declare const cartItemSchema: z.ZodObject<{
     quantity: number;
     price: number;
     product_id: string;
+    base_price: number;
+    product_discount: number;
     name?: string | undefined;
     category?: string | undefined;
     subcategory?: string | undefined;
@@ -17,6 +21,8 @@ export declare const cartItemSchema: z.ZodObject<{
     quantity: number;
     price: number;
     product_id: string;
+    base_price: number;
+    product_discount: number;
     name?: string | undefined;
     category?: string | undefined;
     subcategory?: string | undefined;
@@ -25,6 +31,8 @@ export declare const cartDataSchema: z.ZodObject<{
     items: z.ZodArray<z.ZodObject<{
         product_id: z.ZodString;
         quantity: z.ZodNumber;
+        base_price: z.ZodNumber;
+        product_discount: z.ZodNumber;
         price: z.ZodNumber;
         category: z.ZodOptional<z.ZodString>;
         subcategory: z.ZodOptional<z.ZodString>;
@@ -33,6 +41,8 @@ export declare const cartDataSchema: z.ZodObject<{
         quantity: number;
         price: number;
         product_id: string;
+        base_price: number;
+        product_discount: number;
         name?: string | undefined;
         category?: string | undefined;
         subcategory?: string | undefined;
@@ -40,6 +50,8 @@ export declare const cartDataSchema: z.ZodObject<{
         quantity: number;
         price: number;
         product_id: string;
+        base_price: number;
+        product_discount: number;
         name?: string | undefined;
         category?: string | undefined;
         subcategory?: string | undefined;
@@ -49,30 +61,34 @@ export declare const cartDataSchema: z.ZodObject<{
     tax_amount: z.ZodNumber;
     total: z.ZodOptional<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
+    shipping_cost: number;
     subtotal: number;
+    tax_amount: number;
     items: {
         quantity: number;
         price: number;
         product_id: string;
+        base_price: number;
+        product_discount: number;
         name?: string | undefined;
         category?: string | undefined;
         subcategory?: string | undefined;
     }[];
-    shipping_cost: number;
-    tax_amount: number;
     total?: number | undefined;
 }, {
+    shipping_cost: number;
     subtotal: number;
+    tax_amount: number;
     items: {
         quantity: number;
         price: number;
         product_id: string;
+        base_price: number;
+        product_discount: number;
         name?: string | undefined;
         category?: string | undefined;
         subcategory?: string | undefined;
     }[];
-    shipping_cost: number;
-    tax_amount: number;
     total?: number | undefined;
 }>;
 export declare const contextSchema: z.ZodObject<{
@@ -102,6 +118,8 @@ export declare const evaluationRequestSchema: z.ZodObject<{
         items: z.ZodArray<z.ZodObject<{
             product_id: z.ZodString;
             quantity: z.ZodNumber;
+            base_price: z.ZodNumber;
+            product_discount: z.ZodNumber;
             price: z.ZodNumber;
             category: z.ZodOptional<z.ZodString>;
             subcategory: z.ZodOptional<z.ZodString>;
@@ -110,6 +128,8 @@ export declare const evaluationRequestSchema: z.ZodObject<{
             quantity: number;
             price: number;
             product_id: string;
+            base_price: number;
+            product_discount: number;
             name?: string | undefined;
             category?: string | undefined;
             subcategory?: string | undefined;
@@ -117,6 +137,8 @@ export declare const evaluationRequestSchema: z.ZodObject<{
             quantity: number;
             price: number;
             product_id: string;
+            base_price: number;
+            product_discount: number;
             name?: string | undefined;
             category?: string | undefined;
             subcategory?: string | undefined;
@@ -126,30 +148,34 @@ export declare const evaluationRequestSchema: z.ZodObject<{
         tax_amount: z.ZodNumber;
         total: z.ZodOptional<z.ZodNumber>;
     }, "strip", z.ZodTypeAny, {
+        shipping_cost: number;
         subtotal: number;
+        tax_amount: number;
         items: {
             quantity: number;
             price: number;
             product_id: string;
+            base_price: number;
+            product_discount: number;
             name?: string | undefined;
             category?: string | undefined;
             subcategory?: string | undefined;
         }[];
-        shipping_cost: number;
-        tax_amount: number;
         total?: number | undefined;
     }, {
+        shipping_cost: number;
         subtotal: number;
+        tax_amount: number;
         items: {
             quantity: number;
             price: number;
             product_id: string;
+            base_price: number;
+            product_discount: number;
             name?: string | undefined;
             category?: string | undefined;
             subcategory?: string | undefined;
         }[];
-        shipping_cost: number;
-        tax_amount: number;
         total?: number | undefined;
     }>;
     context: z.ZodOptional<z.ZodObject<{
@@ -174,17 +200,19 @@ export declare const evaluationRequestSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     promotion_id: number;
     cart_data: {
+        shipping_cost: number;
         subtotal: number;
+        tax_amount: number;
         items: {
             quantity: number;
             price: number;
             product_id: string;
+            base_price: number;
+            product_discount: number;
             name?: string | undefined;
             category?: string | undefined;
             subcategory?: string | undefined;
         }[];
-        shipping_cost: number;
-        tax_amount: number;
         total?: number | undefined;
     };
     user_id?: string | undefined;
@@ -199,17 +227,19 @@ export declare const evaluationRequestSchema: z.ZodObject<{
 }, {
     promotion_id: number;
     cart_data: {
+        shipping_cost: number;
         subtotal: number;
+        tax_amount: number;
         items: {
             quantity: number;
             price: number;
             product_id: string;
+            base_price: number;
+            product_discount: number;
             name?: string | undefined;
             category?: string | undefined;
             subcategory?: string | undefined;
         }[];
-        shipping_cost: number;
-        tax_amount: number;
         total?: number | undefined;
     };
     user_id?: string | undefined;
@@ -229,32 +259,32 @@ export declare const discountBreakdownSchema: z.ZodObject<{
         discounted_price: z.ZodNumber;
         discount_amount: z.ZodNumber;
     }, "strip", z.ZodTypeAny, {
+        original_price: number;
         discount_amount: number;
         product_id: string;
-        original_price: number;
         discounted_price: number;
     }, {
+        original_price: number;
         discount_amount: number;
         product_id: string;
-        original_price: number;
         discounted_price: number;
     }>, "many">;
     shipping_discount: z.ZodNumber;
     cart_discount: z.ZodNumber;
 }, "strip", z.ZodTypeAny, {
     item_discounts: {
+        original_price: number;
         discount_amount: number;
         product_id: string;
-        original_price: number;
         discounted_price: number;
     }[];
     shipping_discount: number;
     cart_discount: number;
 }, {
     item_discounts: {
+        original_price: number;
         discount_amount: number;
         product_id: string;
-        original_price: number;
         discounted_price: number;
     }[];
     shipping_discount: number;
@@ -272,32 +302,32 @@ export declare const appliedPromotionSchema: z.ZodObject<{
             discounted_price: z.ZodNumber;
             discount_amount: z.ZodNumber;
         }, "strip", z.ZodTypeAny, {
+            original_price: number;
             discount_amount: number;
             product_id: string;
-            original_price: number;
             discounted_price: number;
         }, {
+            original_price: number;
             discount_amount: number;
             product_id: string;
-            original_price: number;
             discounted_price: number;
         }>, "many">;
         shipping_discount: z.ZodNumber;
         cart_discount: z.ZodNumber;
     }, "strip", z.ZodTypeAny, {
         item_discounts: {
+            original_price: number;
             discount_amount: number;
             product_id: string;
-            original_price: number;
             discounted_price: number;
         }[];
         shipping_discount: number;
         cart_discount: number;
     }, {
         item_discounts: {
+            original_price: number;
             discount_amount: number;
             product_id: string;
-            original_price: number;
             discounted_price: number;
         }[];
         shipping_discount: number;
@@ -310,9 +340,9 @@ export declare const appliedPromotionSchema: z.ZodObject<{
     affected_items: string[];
     discount_breakdown: {
         item_discounts: {
+            original_price: number;
             discount_amount: number;
             product_id: string;
-            original_price: number;
             discounted_price: number;
         }[];
         shipping_discount: number;
@@ -325,9 +355,9 @@ export declare const appliedPromotionSchema: z.ZodObject<{
     affected_items: string[];
     discount_breakdown: {
         item_discounts: {
+            original_price: number;
             discount_amount: number;
             product_id: string;
-            original_price: number;
             discounted_price: number;
         }[];
         shipping_discount: number;
@@ -368,32 +398,32 @@ export declare const evaluationResponseSchema: z.ZodObject<{
                 discounted_price: z.ZodNumber;
                 discount_amount: z.ZodNumber;
             }, "strip", z.ZodTypeAny, {
+                original_price: number;
                 discount_amount: number;
                 product_id: string;
-                original_price: number;
                 discounted_price: number;
             }, {
+                original_price: number;
                 discount_amount: number;
                 product_id: string;
-                original_price: number;
                 discounted_price: number;
             }>, "many">;
             shipping_discount: z.ZodNumber;
             cart_discount: z.ZodNumber;
         }, "strip", z.ZodTypeAny, {
             item_discounts: {
+                original_price: number;
                 discount_amount: number;
                 product_id: string;
-                original_price: number;
                 discounted_price: number;
             }[];
             shipping_discount: number;
             cart_discount: number;
         }, {
             item_discounts: {
+                original_price: number;
                 discount_amount: number;
                 product_id: string;
-                original_price: number;
                 discounted_price: number;
             }[];
             shipping_discount: number;
@@ -406,9 +436,9 @@ export declare const evaluationResponseSchema: z.ZodObject<{
         affected_items: string[];
         discount_breakdown: {
             item_discounts: {
+                original_price: number;
                 discount_amount: number;
                 product_id: string;
-                original_price: number;
                 discounted_price: number;
             }[];
             shipping_discount: number;
@@ -421,9 +451,9 @@ export declare const evaluationResponseSchema: z.ZodObject<{
         affected_items: string[];
         discount_breakdown: {
             item_discounts: {
+                original_price: number;
                 discount_amount: number;
                 product_id: string;
-                original_price: number;
                 discounted_price: number;
             }[];
             shipping_discount: number;
@@ -458,9 +488,9 @@ export declare const evaluationResponseSchema: z.ZodObject<{
         affected_items: string[];
         discount_breakdown: {
             item_discounts: {
+                original_price: number;
                 discount_amount: number;
                 product_id: string;
-                original_price: number;
                 discounted_price: number;
             }[];
             shipping_discount: number;
@@ -487,9 +517,9 @@ export declare const evaluationResponseSchema: z.ZodObject<{
         affected_items: string[];
         discount_breakdown: {
             item_discounts: {
+                original_price: number;
                 discount_amount: number;
                 product_id: string;
-                original_price: number;
                 discounted_price: number;
             }[];
             shipping_discount: number;
@@ -524,32 +554,32 @@ export declare const evaluationResultSchema: z.ZodObject<{
                 discounted_price: z.ZodNumber;
                 discount_amount: z.ZodNumber;
             }, "strip", z.ZodTypeAny, {
+                original_price: number;
                 discount_amount: number;
                 product_id: string;
-                original_price: number;
                 discounted_price: number;
             }, {
+                original_price: number;
                 discount_amount: number;
                 product_id: string;
-                original_price: number;
                 discounted_price: number;
             }>, "many">;
             shipping_discount: z.ZodNumber;
             cart_discount: z.ZodNumber;
         }, "strip", z.ZodTypeAny, {
             item_discounts: {
+                original_price: number;
                 discount_amount: number;
                 product_id: string;
-                original_price: number;
                 discounted_price: number;
             }[];
             shipping_discount: number;
             cart_discount: number;
         }, {
             item_discounts: {
+                original_price: number;
                 discount_amount: number;
                 product_id: string;
-                original_price: number;
                 discounted_price: number;
             }[];
             shipping_discount: number;
@@ -562,9 +592,9 @@ export declare const evaluationResultSchema: z.ZodObject<{
         affected_items: string[];
         discount_breakdown: {
             item_discounts: {
+                original_price: number;
                 discount_amount: number;
                 product_id: string;
-                original_price: number;
                 discounted_price: number;
             }[];
             shipping_discount: number;
@@ -577,9 +607,9 @@ export declare const evaluationResultSchema: z.ZodObject<{
         affected_items: string[];
         discount_breakdown: {
             item_discounts: {
+                original_price: number;
                 discount_amount: number;
                 product_id: string;
-                original_price: number;
                 discounted_price: number;
             }[];
             shipping_discount: number;
@@ -614,9 +644,9 @@ export declare const evaluationResultSchema: z.ZodObject<{
         affected_items: string[];
         discount_breakdown: {
             item_discounts: {
+                original_price: number;
                 discount_amount: number;
                 product_id: string;
-                original_price: number;
                 discounted_price: number;
             }[];
             shipping_discount: number;
@@ -643,9 +673,9 @@ export declare const evaluationResultSchema: z.ZodObject<{
         affected_items: string[];
         discount_breakdown: {
             item_discounts: {
+                original_price: number;
                 discount_amount: number;
                 product_id: string;
-                original_price: number;
                 discounted_price: number;
             }[];
             shipping_discount: number;

@@ -5,6 +5,93 @@ import { getTimezoneFromGeo } from '../utils/geoUtils.js';
 import { logger } from '../config/logger.js';
 export class PromotionsService {
     prisma = new PrismaClient();
+    // Helper function to convert date string to Unix timestamp
+    convertDateToUnixTimestamp(dateString) {
+        if (!dateString)
+            return 0;
+        // If it's already a number, return it
+        if (typeof dateString === 'number')
+            return dateString;
+        // Convert date string to Unix timestamp (seconds since epoch)
+        const date = new Date(dateString);
+        return Math.floor(date.getTime() / 1000);
+    }
+    // Helper function to convert Unix timestamp to readable date string
+    convertUnixTimestampToDateString(timestamp) {
+        if (!timestamp)
+            return null;
+        const numTimestamp = typeof timestamp === 'string' ? parseInt(timestamp) : timestamp;
+        if (isNaN(numTimestamp))
+            return null;
+        // Convert Unix timestamp to ISO string
+        return new Date(numTimestamp * 1000).toISOString();
+    }
+    // Helper function to convert Unix timestamp to Date object
+    convertUnixTimestampToDate(timestamp) {
+        if (!timestamp)
+            return null;
+        const numTimestamp = typeof timestamp === 'string' ? parseInt(timestamp) : timestamp;
+        if (isNaN(numTimestamp))
+            return null;
+        return new Date(numTimestamp * 1000);
+    }
+    // Transform frontend data structure to backend format
+    transformFrontendDataToBackend(data) {
+        const transformed = { ...data };
+        // If frontend sends discount_type and discount_value, create single action object
+        if (data.discount_type && data.discount_value !== undefined) {
+            const action = {
+                type: data.discount_type,
+                value: data.discount_value
+            };
+            // Add type-specific properties based on promotion type
+            if (data.type === 'PERCENT_OFF_CART' || data.type === 'PERCENT_OFF_ITEM') {
+                if (data.max_discount_cap) {
+                    action.max_discount = data.max_discount_cap;
+                }
+            }
+            if (data.type === 'BOGO') {
+                action.buy_quantity = data.buy_quantity || 1;
+                action.get_quantity = data.get_quantity || 1;
+                if (data.product_ids && data.product_ids.length > 0) {
+                    action.product_ids = data.product_ids;
+                }
+                if (data.max_free_items) {
+                    action.max_free_items = data.max_free_items;
+                }
+            }
+            if (data.type === 'FREE_PRODUCT') {
+                if (data.free_product_id) {
+                    action.free_product_id = data.free_product_id;
+                }
+                if (data.minimum_purchase) {
+                    action.min_purchase = data.minimum_purchase;
+                }
+                if (data.max_free_items) {
+                    action.max_free_items = data.max_free_items;
+                }
+            }
+            if (data.type === 'FREE_SHIPPING') {
+                if (data.minimum_order_value) {
+                    action.min_order_value = data.minimum_order_value;
+                }
+            }
+            // Set single action object (new database structure)
+            transformed.action = action;
+            // Remove redundant fields
+            delete transformed.discount_type;
+            delete transformed.discount_value;
+            delete transformed.max_discount_cap;
+            delete transformed.buy_quantity;
+            delete transformed.get_quantity;
+            delete transformed.product_ids;
+            delete transformed.free_product_id;
+            delete transformed.minimum_purchase;
+            delete transformed.max_free_items;
+            delete transformed.minimum_order_value;
+        }
+        return transformed;
+    }
     // Get public promotions for guest users
     async getPublicPromotions(options) {
         try {
@@ -34,8 +121,8 @@ export class PromotionsService {
                 .filter((promo) => {
                 // Additional filtering for guest-appropriate promotions
                 const now = new Date();
-                const startDate = promo.start_date ? new Date(promo.start_date) : null;
-                const endDate = promo.end_date ? new Date(promo.end_date) : null;
+                const startDate = this.convertUnixTimestampToDate(promo.start_date);
+                const endDate = this.convertUnixTimestampToDate(promo.end_date);
                 // Date filtering for active promotions
                 // Check if promotion is currently active
                 if (startDate && startDate > now)
@@ -95,8 +182,10 @@ export class PromotionsService {
             };
             // Add date filtering
             if (currentDate) {
-                filters.start_date_lte = currentDate;
-                filters.end_date_gte = currentDate;
+                // Convert currentDate to Unix timestamp for comparison
+                const currentTimestamp = this.convertDateToUnixTimestamp(currentDate);
+                filters.start_date_lte = currentTimestamp.toString();
+                filters.end_date_gte = currentTimestamp.toString();
             }
             const { data: promotions } = await dynamicFindManyWithFilters('promotions', filters, {
                 skip: 0,
@@ -165,8 +254,8 @@ export class PromotionsService {
     // Check if promotion is currently active
     isPromotionCurrentlyActive(promotion) {
         const now = new Date();
-        const startDate = promotion.start_date ? new Date(promotion.start_date) : null;
-        const endDate = promotion.end_date ? new Date(promotion.end_date) : null;
+        const startDate = this.convertUnixTimestampToDate(promotion.start_date);
+        const endDate = this.convertUnixTimestampToDate(promotion.end_date);
         if (startDate && startDate > now)
             return false;
         if (endDate && endDate < now)
@@ -199,29 +288,73 @@ export class PromotionsService {
                 return true;
         }
     }
-    async findMany(filters, page, limit) {
+    async findMany(filters, page, limit, adminMode = false) {
         try {
-            logger.info({ filters, page, limit }, 'Starting dynamic promotions findMany with filters');
+            logger.info({ filters, page, limit, adminMode }, 'Starting dynamic promotions findMany with filters');
             // Handle userid filtering for personalized promotions
             const { userid, channel = 'web', geo = 'IN', current_date, ...otherFilters } = filters;
             // Convert geo code to timezone
             const geoString = Array.isArray(geo) ? (geo[0] || 'IN') : (geo || 'IN');
             const timezone = getTimezoneFromGeo(geoString);
-            // Build base filters
-            const baseFilters = {
-                is_active: 'true',
-                status: 'active',
-                timezone: timezone,
-                ...otherFilters
-            };
+            let baseFilters;
+            if (adminMode && Object.keys(otherFilters).length === 0) {
+                // Admin mode with no filters - get ALL promotions
+                logger.info('Admin mode: Getting all promotions without default filters');
+                baseFilters = {};
+            }
+            else {
+                // Build base filters (existing behavior for e-commerce app)
+                baseFilters = {
+                    is_active: 'true',
+                    status: 'active',
+                    timezone: timezone,
+                    ...otherFilters
+                };
+            }
             // Add date filtering if current_date provided
             if (current_date) {
-                baseFilters.start_date_lte = current_date;
-                baseFilters.end_date_gte = current_date;
+                // Convert current_date to Unix timestamp for comparison
+                const dateString = Array.isArray(current_date) ? current_date[0] : current_date;
+                if (dateString) {
+                    const currentTimestamp = this.convertDateToUnixTimestamp(dateString);
+                    baseFilters.start_date_lte = currentTimestamp.toString();
+                    baseFilters.end_date_gte = currentTimestamp.toString();
+                }
             }
             let finalPromotions = [];
             let total = 0;
-            if (userid) {
+            if (adminMode && Object.keys(otherFilters).length === 0) {
+                // Admin mode with no filters - get ALL promotions
+                logger.info('Admin mode: Getting all promotions for admin portal');
+                const { data: allPromotions, total: promotionTotal } = await dynamicFindManyWithFilters('promotions', baseFilters, {
+                    skip: (page - 1) * limit,
+                    take: limit,
+                    useAllColumns: true
+                });
+                // Format and sort all promotions (active first, then by priority)
+                finalPromotions = allPromotions
+                    .map((promo) => this.formatPromotionForDisplay(promo))
+                    .sort((a, b) => {
+                    // Active promotions first
+                    if (a.is_active !== b.is_active) {
+                        return b.is_active ? -1 : 1;
+                    }
+                    // Then by status (active first)
+                    if (a.status !== b.status) {
+                        const statusOrder = { 'active': 0, 'draft': 1, 'expired': 2, 'inactive': 3 };
+                        return (statusOrder[a.status] || 999) - (statusOrder[b.status] || 999);
+                    }
+                    // Then by priority
+                    return (a.priority || 999) - (b.priority || 999);
+                });
+                total = promotionTotal;
+                logger.info({
+                    totalPromotions: promotionTotal,
+                    returnedPromotions: finalPromotions.length,
+                    adminMode: true
+                }, 'All promotions retrieved for admin portal');
+            }
+            else if (userid) {
                 // Identified user - get personalized promotions
                 logger.info({ userid }, 'Getting personalized promotions for identified user');
                 // Get user segments for personalization
@@ -268,19 +401,7 @@ export class PromotionsService {
                 // Filter and format promotions for guest users
                 finalPromotions = promotions
                     .filter((promo) => this.isPromotionCurrentlyActive(promo))
-                    .map((promo) => ({
-                    id: promo.id,
-                    name: promo.name,
-                    description: promo.description,
-                    type: promo.type,
-                    discount_value: promo.discount_value,
-                    discount_type: promo.discount_type,
-                    start_date: promo.start_date,
-                    end_date: promo.end_date,
-                    priority: promo.priority,
-                    is_active: promo.is_active,
-                    // Don't expose sensitive fields like budget, max_redemptions, etc.
-                }))
+                    .map((promo) => this.formatPromotionForDisplay(promo)) // Use the same formatting method
                     .sort((a, b) => {
                     // Sort by priority (lower number = higher priority) then by discount value
                     if (a.priority !== b.priority) {
@@ -331,9 +452,11 @@ export class PromotionsService {
     async create(data) {
         try {
             logger.debug({ data }, 'Starting dynamic promotion create operation');
+            // Transform frontend data structure to backend format
+            const transformedData = this.transformFrontendDataToBackend(data);
             // Add timestamps
             const promotionData = {
-                ...data,
+                ...transformedData,
                 createddate: Date.now(),
                 modifieddate: Date.now()
             };
@@ -355,9 +478,11 @@ export class PromotionsService {
     async update(id, data) {
         try {
             logger.debug({ promotionId: id, data }, 'Starting dynamic promotion update operation');
+            // Transform frontend data structure to backend format
+            const transformedData = this.transformFrontendDataToBackend(data);
             // Add modified timestamp
             const updateData = {
-                ...data,
+                ...transformedData,
                 modifieddate: Date.now()
             };
             const promotion = await dynamicUpdate('promotions', { id: parseInt(id) }, updateData);
@@ -505,19 +630,30 @@ export class PromotionsService {
     // Format promotion for display
     formatPromotionForDisplay(promotion) {
         return {
-            promotion_id: promotion.id,
+            id: promotion.id,
             name: promotion.name,
             description: promotion.description,
             type: promotion.type,
             code: promotion.code,
             auto_apply: promotion.auto_apply,
+            is_active: promotion.is_active,
+            start_date: promotion.start_date, // Keep as Unix timestamp for API consistency
+            end_date: promotion.end_date, // Keep as Unix timestamp for API consistency
+            status: promotion.status,
+            priority: promotion.priority,
+            visibility: promotion.visibility,
+            max_redemptions: promotion.max_redemptions,
+            per_user_limit: promotion.per_user_limit,
+            stackable: promotion.stackable,
+            budget: promotion.budget,
+            timezone: promotion.timezone,
+            evaluation_expiry_minutes: promotion.evaluation_expiry_minutes,
             discount_type: promotion.discount_type,
             discount_value: promotion.discount_value,
-            start_date: promotion.start_date,
-            end_date: promotion.end_date,
-            priority: promotion.priority,
-            is_active: promotion.is_active,
-            // Don't expose sensitive fields like budget, conditions, actions
+            conditions: promotion.conditions,
+            actions: promotion.actions,
+            createddate: promotion.createddate,
+            modifieddate: promotion.modifieddate
         };
     }
     // Get unified promotion offers (best recommendation + all eligible/ineligible)
@@ -555,14 +691,14 @@ export class PromotionsService {
             for (const promotion of allPromotions) {
                 try {
                     // Check if promotion is currently active
-                    const startDate = promotion.start_date ? new Date(promotion.start_date) : null;
-                    const endDate = promotion.end_date ? new Date(promotion.end_date) : null;
+                    const startDate = this.convertUnixTimestampToDate(promotion.start_date);
+                    const endDate = this.convertUnixTimestampToDate(promotion.end_date);
                     if (startDate && startDate > now) {
                         ineligibleCoupons.push({
                             ...this.formatPromotionForDisplay(promotion),
                             ineligibleReason: 'Promotion has not started yet',
                             ineligibleDetails: {
-                                startDate: startDate.toISOString(),
+                                startDate: startDate ? startDate.toISOString() : null,
                                 currentDate: now.toISOString()
                             }
                         });
@@ -573,7 +709,7 @@ export class PromotionsService {
                             ...this.formatPromotionForDisplay(promotion),
                             ineligibleReason: 'Promotion has expired',
                             ineligibleDetails: {
-                                endDate: endDate.toISOString(),
+                                endDate: endDate ? endDate.toISOString() : null,
                                 currentDate: now.toISOString()
                             }
                         });
@@ -630,7 +766,7 @@ export class PromotionsService {
                                 totalValue: cartTotal
                             },
                             mode: request.mode,
-                            expiresAt: promotion.end_date || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+                            expiresAt: promotion.end_date ? this.convertUnixTimestampToDateString(promotion.end_date) : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
                         });
                     }
                     else {

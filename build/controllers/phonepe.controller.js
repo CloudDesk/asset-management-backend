@@ -836,13 +836,110 @@ export class PhonePeController {
             }, 'Mode determination for order creation');
             // Get original order data from transaction for detailed orderline creation
             const originalOrderData = transaction.transactiondata?.originalPayload?.order || [];
+            // Extract evaluation IDs from transaction data for primary evaluation
+            const transactionEvaluationIds = transaction.transactiondata?.evaluation_ids || [];
+            const primaryEvaluationId = evaluationIds?.[0] || transactionEvaluationIds?.[0] || null;
+            // Initialize promotion-related values
+            let evaluationData = null;
+            let promotionDiscountTotal = 0;
+            let originalTotal = 0;
+            let productDiscountTotal = 0; // Add product discount total
+            let shippingCost = 0;
+            let taxAmount = 0;
+            // Calculate original total and product discounts from cart items in original payload
+            const cartItems = transaction.transactiondata?.originalPayload?.cartItems || [];
+            // Calculate original total (base_price * quantity for all items)
+            originalTotal = cartItems.reduce((total, item) => {
+                const basePrice = parseFloat(item.base_price?.toString() || '0');
+                const quantity = parseInt(item.quantity?.toString() || '1');
+                return total + (basePrice * quantity);
+            }, 0);
+            // Calculate product discount total using product_discount field from cart_data
+            productDiscountTotal = cartItems.reduce((total, item) => {
+                const productDiscount = parseFloat(item.product_discount?.toString() || '0');
+                const quantity = parseInt(item.quantity?.toString() || '1');
+                const itemDiscount = productDiscount * quantity;
+                return total + itemDiscount;
+            }, 0);
+            // If no cart items in originalPayload, calculate from order data
+            if (originalTotal === 0 && originalOrderData.length > 0) {
+                originalTotal = originalOrderData.reduce((total, item) => {
+                    return total + parseFloat(item.productamount?.toString() || '0');
+                }, 0);
+                // For order data, we might not have product discount info, so keep it 0
+                productDiscountTotal = 0;
+            }
+            // Get shipping and tax from original payload
+            shippingCost = parseFloat(transaction.transactiondata?.originalPayload?.shippingCost?.toString() || '0');
+            taxAmount = parseFloat(transaction.transactiondata?.originalPayload?.taxAmount?.toString() || '0');
+            // If primary evaluation ID exists, fetch evaluation data for promotion discounts
+            if (primaryEvaluationId) {
+                try {
+                    const { PromotionEvaluationService } = await import('../services/promotion-evaluation.service.js');
+                    const evaluationService = new PromotionEvaluationService();
+                    evaluationData = await evaluationService.getEvaluation(primaryEvaluationId);
+                    if (evaluationData) {
+                        // Use cart_data from evaluation if available (more accurate)
+                        const evaluationCartData = evaluationData.cart_data || [];
+                        if (evaluationCartData.length > 0) {
+                            // Recalculate using evaluation's cart_data
+                            originalTotal = evaluationCartData.reduce((total, item) => {
+                                const basePrice = parseFloat(item.base_price?.toString() || '0');
+                                const quantity = parseInt(item.quantity?.toString() || '1');
+                                return total + (basePrice * quantity);
+                            }, 0);
+                            // Calculate product discount total using product_discount field from evaluation cart_data
+                            productDiscountTotal = evaluationCartData.reduce((total, item) => {
+                                const productDiscount = parseFloat(item.product_discount?.toString() || '0');
+                                const quantity = parseInt(item.quantity?.toString() || '1');
+                                const itemDiscount = productDiscount * quantity;
+                                return total + itemDiscount;
+                            }, 0);
+                        }
+                        // Calculate promotion discount total from applied promotions
+                        const appliedPromotions = evaluationData.applied_promotions || [];
+                        promotionDiscountTotal = appliedPromotions.reduce((total, promo) => {
+                            return total + parseFloat(promo.discount_amount?.toString() || '0');
+                        }, 0);
+                        logger.info({
+                            transactionId,
+                            evaluationId: primaryEvaluationId,
+                            promotionDiscountTotal,
+                            productDiscountTotal,
+                            originalTotal: evaluationData.original_total,
+                            discountedTotal: evaluationData.discounted_total,
+                            cartItemsCount: cartItems.length,
+                            evaluationCartDataCount: evaluationCartData.length,
+                            evaluationCartData: evaluationCartData // Log the cart data for debugging
+                        }, 'Evaluation data retrieved for order creation');
+                    }
+                }
+                catch (error) {
+                    logger.warn({
+                        transactionId,
+                        evaluationId: primaryEvaluationId,
+                        error: error instanceof Error ? error.message : 'Unknown error'
+                    }, 'Failed to fetch evaluation data - continuing without promotion data');
+                }
+            }
+            // Calculate product amount (after product discounts, before promotion discounts)
+            const productAmount = originalTotal - productDiscountTotal;
             logger.info({
                 transactionId,
                 mode: mode,
                 originalOrderData: originalOrderData.length,
                 validProductIds,
+                promotionFields: {
+                    evaluation_id: primaryEvaluationId,
+                    original_total: originalTotal,
+                    product_discount_total: productDiscountTotal,
+                    promotion_discount_total: promotionDiscountTotal,
+                    shipping_cost: shippingCost,
+                    tax_amount: taxAmount,
+                    productamount: productAmount
+                },
                 step: 'preparing_order_with_detailed_items'
-            }, 'Preparing order creation with detailed product information');
+            }, 'Preparing order creation with detailed product and promotion information');
             // Create order record with productid to enable automatic orderline creation
             const orderData = {
                 userid: transaction.userid,
@@ -851,17 +948,24 @@ export class PhonePeController {
                 orderstatus: 'payment_completed',
                 quantity: validProductIds.length, // Use valid product count
                 transactionid: transaction.transactionid,
-                productamount: parseFloat(transaction.amount?.toString() || '0'),
-                discountamount: 0,
+                productamount: productAmount > 0 ? productAmount : parseFloat(transaction.amount?.toString() || '0'),
+                discountamount: productDiscountTotal + promotionDiscountTotal, // Total discounts (product + promotion)
                 ispaymentsucceed: true,
                 merchanttransactionid: transaction.merchanttransactionid,
                 productid: validProductIds, // Include product IDs for automatic orderline creation
                 mode: mode, // Add mode field: 'phonepe' or 'cod'
                 createddate: currentTime,
                 modifieddate: currentTime,
+                // Add new promotion-related fields
+                evaluation_id: primaryEvaluationId,
+                promotion_discount_total: promotionDiscountTotal, // Coupon/promotion discounts
+                original_total: originalTotal,
+                shipping_cost: shippingCost,
+                tax_amount: taxAmount,
                 // Add original order items for detailed orderline creation
                 orderItems: originalOrderData.filter((item) => validProductIds.includes(item.productid))
             };
+            console.log(orderData, "orderData-final");
             // Log the orderData being sent to OrdersService
             logger.info({
                 transactionId,
@@ -965,6 +1069,93 @@ export class PhonePeController {
                 orderlineIds: createdOrderlines.map((ol) => ol.id),
                 step: 'automatic_orderlines_verified'
             }, 'Automatic orderline creation completed and verified');
+            // Update orderlines with promotion data if evaluation data is available
+            if (evaluationData && createdOrderlines.length > 0) {
+                try {
+                    const evaluationCartData = evaluationData.cart_data || [];
+                    const appliedPromotions = evaluationData.applied_promotions || [];
+                    // Create maps for promotion data
+                    const originalPriceMap = new Map();
+                    const productDiscountMap = new Map();
+                    const promotionDiscountMap = new Map();
+                    // Map product data from evaluation cart data
+                    evaluationCartData.forEach((cartItem) => {
+                        const productId = parseInt(cartItem.product_id?.toString() || '0');
+                        if (productId > 0) {
+                            const basePrice = parseFloat(cartItem.base_price?.toString() || '0');
+                            const productDiscount = parseFloat(cartItem.product_discount?.toString() || '0');
+                            const quantity = parseInt(cartItem.quantity?.toString() || '1');
+                            originalPriceMap.set(productId, basePrice);
+                            productDiscountMap.set(productId, productDiscount * quantity);
+                        }
+                    });
+                    // Map promotion discounts from applied promotions breakdown
+                    appliedPromotions.forEach((promotion) => {
+                        if (promotion.breakdown && Array.isArray(promotion.breakdown)) {
+                            promotion.breakdown.forEach((item) => {
+                                const productId = parseInt(item.product_id?.toString() || '0');
+                                if (productId > 0) {
+                                    const discountAmount = parseFloat(item.total_discount?.toString() || '0');
+                                    promotionDiscountMap.set(productId, discountAmount);
+                                }
+                            });
+                        }
+                    });
+                    // Calculate shipping cost per item
+                    const totalShippingCost = parseFloat(transaction.transactiondata?.originalPayload?.shippingCost?.toString() || '0');
+                    const shippingCostPerItem = createdOrderlines.length > 0 ? totalShippingCost / createdOrderlines.length : 0;
+                    logger.info({
+                        transactionId,
+                        orderId: order.id,
+                        originalPriceMap: Object.fromEntries(originalPriceMap),
+                        productDiscountMap: Object.fromEntries(productDiscountMap),
+                        promotionDiscountMap: Object.fromEntries(promotionDiscountMap),
+                        shippingCostPerItem,
+                        orderlinesCount: createdOrderlines.length
+                    }, 'Orderline promotion data mapping completed');
+                    // Update each orderline with promotion data using Prisma
+                    for (const orderline of createdOrderlines) {
+                        const productId = Number(orderline.productid);
+                        const originalPrice = originalPriceMap.get(productId) || 0;
+                        const productDiscountAmount = productDiscountMap.get(productId) || 0;
+                        const promotionDiscountAmount = promotionDiscountMap.get(productId) || 0;
+                        // Calculate final values for this orderline
+                        const finalPricePerItem = originalPrice - productDiscountAmount - promotionDiscountAmount;
+                        const totalDiscountForLine = productDiscountAmount + promotionDiscountAmount;
+                        const productAmountOnly = originalPrice - productDiscountAmount; // Only product discount, no promotion discount
+                        // Use Prisma to update the orderline
+                        await prisma.orderline.update({
+                            where: { id: orderline.id },
+                            data: {
+                                evaluation_id: primaryEvaluationId,
+                                original_price: originalPrice,
+                                product_discount_amount: productDiscountAmount,
+                                promotion_discount_amount: promotionDiscountAmount,
+                                shipping_cost: 0, // Will be distributed later if needed
+                                productamount: productAmountOnly, // original_price - product_discount_amount only
+                                discountamount: totalDiscountForLine, // total discount for this line
+                                orderamount: finalPricePerItem, // final amount for this line (after all discounts)
+                                modifieddate: BigInt(currentTime)
+                            }
+                        });
+                    }
+                }
+                catch (updateError) {
+                    logger.warn({
+                        transactionId,
+                        orderId: order.id,
+                        error: updateError.message
+                    }, 'Failed to update orderlines with promotion data - orderlines created without promotion details');
+                }
+            }
+            else {
+                logger.warn({
+                    transactionId,
+                    orderId: order.id,
+                    hasEvaluationData: !!evaluationData,
+                    orderlinesCount: createdOrderlines.length
+                }, 'Cannot update orderlines - missing evaluation data or no orderlines created');
+            }
             // Use the automatically created orderlines
             const orderlineResults = createdOrderlines.map((ol) => ({
                 success: true,
@@ -1160,23 +1351,63 @@ export class PhonePeController {
     /**
      * Create orderlines for validated products
      */
-    async createOrderlinesForProducts(orderId, validProducts, transaction, orderid, currentTime, transactionId) {
+    async createOrderlinesForProducts(orderId, validProducts, transaction, orderid, currentTime, transactionId, evaluationData, // Add evaluation data parameter
+    primaryEvaluationId // Add evaluation ID parameter
+    ) {
         const results = [];
         // Get original order data from transaction to retrieve individual product amounts
         const originalOrderData = transaction.transactiondata?.originalPayload?.order || [];
-        // Create a map of product amounts from original order data
+        // Get cart data from evaluation if available
+        const evaluationCartData = evaluationData ? evaluationData.cart_data || [] : [];
+        const appliedPromotions = evaluationData ? evaluationData.applied_promotions || [] : [];
+        // Create maps for product data
         const productAmountMap = new Map();
+        const productDiscountMap = new Map();
+        const originalPriceMap = new Map();
+        const promotionDiscountMap = new Map();
+        // Map product data from original order data
         originalOrderData.forEach((orderItem) => {
             if (orderItem.productid && orderItem.productamount !== undefined) {
                 productAmountMap.set(orderItem.productid, parseFloat(orderItem.productamount.toString()) || 0);
             }
         });
+        // Map product data from evaluation cart data (more accurate)
+        evaluationCartData.forEach((cartItem) => {
+            const productId = parseInt(cartItem.product_id?.toString() || '0');
+            if (productId > 0) {
+                const basePrice = parseFloat(cartItem.base_price?.toString() || '0');
+                const productDiscount = parseFloat(cartItem.product_discount?.toString() || '0');
+                const quantity = parseInt(cartItem.quantity?.toString() || '1');
+                originalPriceMap.set(productId, basePrice);
+                productDiscountMap.set(productId, productDiscount * quantity); // product_discount * quantity
+            }
+        });
+        // Map promotion discounts from applied promotions breakdown
+        appliedPromotions.forEach((promotion) => {
+            if (promotion.breakdown && Array.isArray(promotion.breakdown)) {
+                promotion.breakdown.forEach((item) => {
+                    const productId = parseInt(item.product_id?.toString() || '0');
+                    if (productId > 0) {
+                        const discountAmount = parseFloat(item.total_discount?.toString() || '0');
+                        promotionDiscountMap.set(productId, discountAmount); // total_discount directly
+                    }
+                });
+            }
+        });
+        // Calculate shipping cost per item
+        const totalShippingCost = parseFloat(transaction.transactiondata?.originalPayload?.shippingCost?.toString() || '0');
+        const shippingCostPerItem = validProducts.length > 0 ? totalShippingCost / validProducts.length : 0;
         logger.debug({
             transactionId,
             originalOrderData: originalOrderData.length,
+            evaluationCartData: evaluationCartData.length,
             productAmountMap: Object.fromEntries(productAmountMap),
+            productDiscountMap: Object.fromEntries(productDiscountMap),
+            originalPriceMap: Object.fromEntries(originalPriceMap),
+            promotionDiscountMap: Object.fromEntries(promotionDiscountMap),
+            shippingCostPerItem,
             validProductIds: validProducts.map(p => p.id)
-        }, 'Product amount mapping from original order data');
+        }, 'Product data mapping for orderline creation');
         for (let index = 0; index < validProducts.length; index++) {
             const product = validProducts[index];
             if (!product) {
@@ -1184,34 +1415,21 @@ export class PhonePeController {
                 continue;
             }
             try {
-                // Get individual product amount from the original order data
-                const individualProductAmount = productAmountMap.get(product.id);
-                if (individualProductAmount === undefined) {
-                    logger.warn({
-                        transactionId,
-                        productId: product.id,
-                        availableAmounts: Object.fromEntries(productAmountMap)
-                    }, 'Product amount not found in original order data, using fallback calculation');
-                    // Fallback to equal division if individual amount not found
-                    const totalAmount = parseFloat(transaction.amount?.toString() || '0');
-                    const fallbackAmount = validProducts.length > 0 ? totalAmount / validProducts.length : 0;
-                    logger.warn({
-                        transactionId,
-                        productId: product.id,
-                        fallbackAmount,
-                        totalAmount,
-                        validProductsCount: validProducts.length
-                    }, 'Using fallback equal division for product amount');
-                }
-                const productAmountToUse = individualProductAmount ??
+                // Get individual product data
+                const individualProductAmount = productAmountMap.get(product.id) ??
                     (validProducts.length > 0 ? parseFloat(transaction.amount?.toString() || '0') / validProducts.length : 0);
+                const originalPrice = originalPriceMap.get(product.id) || 0;
+                const productDiscountAmount = productDiscountMap.get(product.id) || 0;
+                const promotionDiscountAmount = promotionDiscountMap.get(product.id) || 0;
+                // Calculate final order amount for this line
+                const finalOrderAmount = originalPrice - productDiscountAmount - promotionDiscountAmount;
                 const orderlineData = {
                     orderid: orderId, // Int - correct
                     productid: product.id, // Int - correct (not BigInt)
                     userid: transaction.userid, // Int - correct
-                    productamount: Number(productAmountToUse),
-                    discountamount: 0,
-                    orderamount: Number(productAmountToUse),
+                    productamount: Number(individualProductAmount),
+                    discountamount: productDiscountAmount + promotionDiscountAmount, // Total discounts for this line
+                    orderamount: Number(finalOrderAmount),
                     quantity: 1, // Int - correct
                     merchanttransactionid: transaction.merchanttransactionid,
                     orderstatus: 'payment_completed',
@@ -1219,7 +1437,13 @@ export class PhonePeController {
                     productname: product.name || null,
                     ordereddate: BigInt(currentTime), // BigInt - correct for date fields
                     createddate: BigInt(currentTime), // BigInt - correct for date fields
-                    modifieddate: BigInt(currentTime) // BigInt - correct for date fields
+                    modifieddate: BigInt(currentTime), // BigInt - correct for date fields
+                    // Add new promotion-related fields
+                    evaluation_id: primaryEvaluationId,
+                    original_price: originalPrice,
+                    product_discount_amount: productDiscountAmount,
+                    promotion_discount_amount: promotionDiscountAmount,
+                    shipping_cost: shippingCostPerItem
                 };
                 // Validate orderline data before creation
                 const validation = this.validateOrderlineData(orderlineData);
@@ -1230,21 +1454,28 @@ export class PhonePeController {
                     transactionId,
                     productId: product.id,
                     individualAmount: individualProductAmount,
-                    amountUsed: productAmountToUse,
+                    originalPrice,
+                    productDiscountAmount,
+                    promotionDiscountAmount,
+                    finalOrderAmount,
+                    shippingCostPerItem,
                     orderlineData: {
                         ...validation.cleanedData,
-                        // Don't log the full productname to keep logs clean
                         productname: product.name ? '***' : null
                     }
-                }, 'Creating orderline with individual product amount');
+                }, 'Creating orderline with promotion data');
                 const orderline = await this.orderlineService.create(validation.cleanedData);
                 logger.info({
                     transactionId,
                     productId: product.id,
                     orderlineId: orderline.id,
                     orderlinenumber: orderline.orderlinenumber,
-                    productAmount: productAmountToUse
-                }, 'Orderline created successfully with individual product amount');
+                    originalPrice,
+                    productDiscountAmount,
+                    promotionDiscountAmount,
+                    finalOrderAmount,
+                    shippingCostPerItem
+                }, 'Orderline created successfully with promotion data');
                 results.push({
                     success: true,
                     productId: product.id,
