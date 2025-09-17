@@ -18370,3 +18370,251 @@ Filtered data result: {
   "createddate": 1758029477693,
   "modifieddate": 1758029477693
 }
+Filtered data result: {
+  "name": "TEST Draft Promotion",
+  "description": "Testing draft status",
+  "type": "PERCENT_OFF_ITEM",
+  "code": "",
+  "auto_apply": false,
+  "start_date": 1756665000,
+  "end_date": 1767205740,
+  "status": "draft",
+  "priority": 1,
+  "visibility": "public",
+  "stackable": false,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "conditions": [
+    {
+      "attribute": "cart.total_value",
+      "operator": "GTE",
+      "value": "1000"
+    }
+  ],
+  "action": {
+    "type": "PERCENT_OFF",
+    "value": 5,
+    "max_discount": 100
+  },
+  "createddate": 1758093080622,
+  "modifieddate": 1758093080622
+}
+Filtered data result: {
+  "name": "TEST",
+  "description": "",
+  "type": "PERCENT_OFF_ITEM",
+  "code": "",
+  "auto_apply": false,
+  "start_date": 1756665000,
+  "end_date": 1767205740,
+  "status": "draft",
+  "priority": 1,
+  "visibility": "public",
+  "stackable": false,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "conditions": [
+    {
+      "attribute": "cart.total_value",
+      "operator": "GTE",
+      "value": "1000"
+    }
+  ],
+  "action": {
+    "type": "PERCENT_OFF",
+    "value": 5,
+    "max_discount": 100
+  },
+  "createddate": 1758093102787,
+  "modifieddate": 1758093102787
+}
+Filtered data result: {
+  "puc": "sc-we-0000000004",
+  "rfid": "4123543112",
+  "serialnumber": "ARCASA-000312",
+  "manufacturedyear": 1756684800,
+  "ecompublish": true,
+  "releaseyear": 1758067200,
+  "location": "",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 12,
+  "availablequantity": 1,
+  "soldquantity": 0,
+  "ecompublishedquantity": 12,
+  "productstatus": "low_stock",
+  "modifieddate": 1758094467614
+}
+Filtered data result: {
+  "puc": "sc-we-0000000004",
+  "rfid": "6426324346326",
+  "serialnumber": "ARCASA-000312",
+  "manufacturedyear": 1758067200,
+  "ecompublish": true,
+  "releaseyear": 1758067200,
+  "location": "",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "puc": "sc-we-0000000004",
+  "rfid": "6426324346326",
+  "serialnumber": "ARCASA-000310",
+  "manufacturedyear": 1758067200,
+  "ecompublish": true,
+  "releaseyear": 1758067200,
+  "location": "",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 13,
+  "availablequantity": 2,
+  "soldquantity": 0,
+  "ecompublishedquantity": 13,
+  "productstatus": "low_stock",
+  "modifieddate": 1758094494779
+}
+Filtered data result: {
+  "puc": "sc-we-0000000004",
+  "rfid": "53215313512352",
+  "serialnumber": "ARCASA-000311",
+  "manufacturedyear": 1758067200,
+  "ecompublish": true,
+  "releaseyear": 1758067200,
+  "location": "",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 14,
+  "availablequantity": 3,
+  "soldquantity": 0,
+  "ecompublishedquantity": 14,
+  "productstatus": "low_stock",
+  "modifieddate": 1758094510902
+}
+Filtered data result: {
+  "puc": "sc-we-0000000004",
+  "rfid": "124341254",
+  "serialnumber": "ARCASA-000313",
+  "manufacturedyear": 1758067200,
+  "ecompublish": true,
+  "releaseyear": 1758067200,
+  "location": "",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 15,
+  "availablequantity": 4,
+  "soldquantity": 0,
+  "ecompublishedquantity": 15,
+  "productstatus": "low_stock",
+  "modifieddate": 1758094531103
+}
+Filtered data result: {
+  "puc": "es-we-0000000002",
+  "rfid": "32145152521",
+  "serialnumber": "Aravi-0001",
+  "manufacturedyear": 1758067200,
+  "ecompublish": true,
+  "releaseyear": 1758067200,
+  "location": "",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 13,
+  "availablequantity": 1,
+  "soldquantity": 0,
+  "ecompublishedquantity": 12,
+  "productstatus": "low_stock",
+  "modifieddate": 1758094573038
+}
+Filtered data result: {
+  "puc": "es-we-0000000002",
+  "rfid": "342152312",
+  "serialnumber": "ARAVI-0002",
+  "manufacturedyear": 1758067200,
+  "ecompublish": true,
+  "releaseyear": 1758067200,
+  "location": "",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 14,
+  "availablequantity": 2,
+  "soldquantity": 0,
+  "ecompublishedquantity": 13,
+  "productstatus": "low_stock",
+  "modifieddate": 1758094597971
+}
+Filtered data result: {
+  "puc": "es-we-0000000002",
+  "rfid": "1010101010",
+  "serialnumber": "ARAVI-0003",
+  "manufacturedyear": 1758067200,
+  "ecompublish": true,
+  "releaseyear": 1758067200,
+  "location": "",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 15,
+  "availablequantity": 3,
+  "soldquantity": 0,
+  "ecompublishedquantity": 14,
+  "productstatus": "low_stock",
+  "modifieddate": 1758094612369
+}
+Filtered data result: {
+  "puc": "es-we-0000000002",
+  "rfid": "1010101010",
+  "serialnumber": "Aravi-0023",
+  "manufacturedyear": 1758067200,
+  "ecompublish": true,
+  "releaseyear": 1758067200,
+  "location": "",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 16,
+  "availablequantity": 4,
+  "soldquantity": 0,
+  "ecompublishedquantity": 15,
+  "productstatus": "low_stock",
+  "modifieddate": 1758094644462
+}

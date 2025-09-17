@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../config/logger.js';
+import { dynamicFindManyWithFilters } from '../utils/dynamicDbOperations.js';
 import { 
   EvaluationRequest, 
   EvaluationResponse, 
@@ -18,13 +19,24 @@ export class PromotionEvaluationService {
     this.prisma = new PrismaClient();
   }
 
-  // Add this helper method at the top of the PromotionEvaluationService class
+  // Helper methods for date handling with Unix timestamps
   private getUtcTimestamp(): bigint {
     return BigInt(new Date().getTime()); // Current UTC time in milliseconds
   }
 
   private getUtcTimestampWithOffset(offsetMinutes: number): bigint {
     return BigInt(new Date().getTime() + (offsetMinutes * 60 * 1000)); // UTC time + offset
+  }
+
+  // Helper function to convert Unix timestamp to Date object
+  private convertUnixTimestampToDate(timestamp: number | string | bigint | null): Date | null {
+    if (!timestamp) return null;
+    
+    const numTimestamp = typeof timestamp === 'string' ? parseInt(timestamp) : 
+                        typeof timestamp === 'bigint' ? Number(timestamp) : timestamp;
+    if (isNaN(numTimestamp)) return null;
+    
+    return new Date(numTimestamp * 1000); // Convert seconds to milliseconds
   }
 
   // Main evaluation method
@@ -99,7 +111,7 @@ export class PromotionEvaluationService {
     const reasons: IneligibleReason[] = [];
 
     // Check if promotion is active
-    if (!promotion.is_active) {
+    if (promotion.status !== 'active') {
       reasons.push({
         promotion_id: promotion.id,
         reason: 'Promotion is not active'
@@ -108,20 +120,23 @@ export class PromotionEvaluationService {
 
     // Check date range
     const now = new Date();
-    if (promotion.start_date && new Date(promotion.start_date) > now) {
+    const startDate = this.convertUnixTimestampToDate(promotion.start_date);
+    const endDate = this.convertUnixTimestampToDate(promotion.end_date);
+    
+    if (startDate && startDate > now) {
       reasons.push({
         promotion_id: promotion.id,
         reason: 'Promotion has not started yet',
-        required_value: promotion.start_date.getTime(),
+        required_value: startDate ? startDate.getTime() : 0,
         current_value: now.getTime()
       });
     }
 
-    if (promotion.end_date && new Date(promotion.end_date) < now) {
+    if (endDate && endDate < now) {
       reasons.push({
         promotion_id: promotion.id,
         reason: 'Promotion has expired',
-        required_value: promotion.end_date.getTime(),
+        required_value: endDate ? endDate.getTime() : 0,
         current_value: now.getTime()
       });
     }
@@ -525,7 +540,6 @@ export class PromotionEvaluationService {
         promotion = await this.prisma.promotions.findFirst({
           where: { 
             code: request.code,
-            is_active: true,
             status: 'active'
           }
         });
@@ -548,8 +562,8 @@ export class PromotionEvaluationService {
 
       // Check if promotion is currently active
       const now = new Date();
-      const startDate = promotion.start_date ? new Date(promotion.start_date) : null;
-      const endDate = promotion.end_date ? new Date(promotion.end_date) : null;
+      const startDate = this.convertUnixTimestampToDate(promotion.start_date);
+      const endDate = this.convertUnixTimestampToDate(promotion.end_date);
       
       if (startDate && startDate > now) {
         return {
@@ -1086,15 +1100,14 @@ export class PromotionEvaluationService {
       const cartTotal = request.cart_items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
       // Get automatic promotions that are active and auto_apply = true
-      const automaticPromotions = await this.prisma.promotions.findMany({
-        where: {
-          auto_apply: true,
-          is_active: true,
-          status: 'active',
-          start_date: { lte: new Date() },
-          end_date: { gte: new Date() }
-        },
-        orderBy: { priority: 'asc' } // Lower priority number = higher priority
+      // Use dynamic operations for consistency with date filtering
+      const { data: automaticPromotions } = await dynamicFindManyWithFilters('promotions', {
+        auto_apply: 'true',
+        status: 'active'
+      }, {
+        skip: 0,
+        take: 100,
+        useAllColumns: true
       });
 
       logger.info({
@@ -1391,7 +1404,6 @@ export class PromotionEvaluationService {
         promotion = await this.prisma.promotions.findFirst({
           where: { 
             code: request.code,
-            is_active: true,
             status: 'active'
           }
         });
@@ -1414,8 +1426,8 @@ export class PromotionEvaluationService {
 
       // Check if promotion is currently active
       const now = new Date();
-      const startDate = promotion.start_date ? new Date(promotion.start_date) : null;
-      const endDate = promotion.end_date ? new Date(promotion.end_date) : null;
+      const startDate = this.convertUnixTimestampToDate(promotion.start_date);
+      const endDate = this.convertUnixTimestampToDate(promotion.end_date);
       
       if (startDate && startDate > now) {
         return {
@@ -1662,15 +1674,14 @@ console.log(request.cart_items,"request cartItems")
       const cartTotal = request.cart_items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
       // Get automatic promotions that are active and auto_apply = true
-      const automaticPromotions = await this.prisma.promotions.findMany({
-        where: {
-          auto_apply: true,
-          is_active: true,
-          status: 'active',
-          start_date: { lte: new Date() },
-          end_date: { gte: new Date() }
-        },
-        orderBy: { priority: 'asc' }
+      // Use dynamic operations for consistency with date filtering
+      const { data: automaticPromotions } = await dynamicFindManyWithFilters('promotions', {
+        auto_apply: 'true',
+        status: 'active'
+      }, {
+        skip: 0,
+        take: 100,
+        useAllColumns: true
       });
 
       const appliedPromotions = [];
@@ -2046,15 +2057,14 @@ console.log(request.cart_items,"request cartItems")
 
   // Helper method to get eligible automatic promotions
   async getEligibleAutomaticPromotions(userId: string, cartTotal: number, cartItems: any[]) {
-    const automaticPromotions = await this.prisma.promotions.findMany({
-      where: {
-        auto_apply: true,
-        is_active: true,
-        status: 'active',
-        start_date: { lte: new Date() },
-        end_date: { gte: new Date() }
-      },
-      orderBy: { priority: 'asc' }
+    // Use dynamic operations for consistency with date filtering
+    const { data: automaticPromotions } = await dynamicFindManyWithFilters('promotions', {
+      auto_apply: 'true',
+      status: 'active'
+    }, {
+      skip: 0,
+      take: 100,
+      useAllColumns: true
     });
 
     const eligiblePromotions = [];

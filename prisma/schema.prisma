@@ -665,7 +665,6 @@ model promotions {
   type            String?   @db.Text // PERCENT_OFF_ITEM, FIXED_AMOUNT_OFF_ITEM, BOGO, PERCENT_OFF_CART, FIXED_AMOUNT_OFF_CART, FREE_SHIPPING,FREE_PRODUCT
   code            String?   @db.Text // Coupon code (NULL for automatic promotions, populated for coupon-based promotions)
   auto_apply      Boolean?
-  is_active       Boolean?
   start_date      BigInt?   // Unix timestamp (seconds since epoch)
   end_date        BigInt?   // Unix timestamp (seconds since epoch)
   status          String?   @db.Text

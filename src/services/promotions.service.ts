@@ -132,7 +132,6 @@ export class PromotionsService {
       // 3. Auto-apply or general promotions (not user-specific)
       // 4. Ordered by priority and discount value
       const filters: FilterOptions = {
-        is_active: 'true',
         status: 'active',
         visibility: 'public',
         auto_apply: 'true', // Show auto-apply promotions to guests
@@ -171,7 +170,7 @@ export class PromotionsService {
           start_date: promo.start_date,
           end_date: promo.end_date,
           priority: promo.priority,
-          is_active: promo.is_active,
+          status: promo.status,
           // Don't expose sensitive fields like budget, max_redemptions, etc.
         }))
         .sort((a: any, b: any) => {
@@ -218,7 +217,6 @@ export class PromotionsService {
       
       // Build filters with date constraints
       const filters: FilterOptions = {
-        is_active: 'true',
         status: 'active',
         timezone: timezone // Filter by timezone
       };
@@ -377,7 +375,6 @@ export class PromotionsService {
       } else {
         // Build base filters (existing behavior for e-commerce app)
         baseFilters = {
-          is_active: 'true',
           status: 'active',
           timezone: timezone,
           ...otherFilters
@@ -413,10 +410,6 @@ export class PromotionsService {
           .map((promo: any) => this.formatPromotionForDisplay(promo))
           .sort((a: any, b: any) => {
             // Active promotions first
-            if (a.is_active !== b.is_active) {
-              return b.is_active ? -1 : 1;
-            }
-            // Then by status (active first)
             if (a.status !== b.status) {
               const statusOrder: Record<string, number> = { 'active': 0, 'draft': 1, 'expired': 2, 'inactive': 3 };
               return (statusOrder[a.status] || 999) - (statusOrder[b.status] || 999);
@@ -761,7 +754,6 @@ export class PromotionsService {
       type: promotion.type,
       code: promotion.code,
       auto_apply: promotion.auto_apply,
-      is_active: promotion.is_active,
       start_date: promotion.start_date, // Keep as Unix timestamp for API consistency
       end_date: promotion.end_date, // Keep as Unix timestamp for API consistency
       status: promotion.status,
@@ -808,7 +800,6 @@ export class PromotionsService {
 
       // Get all active promotions
       const filters: FilterOptions = {
-        is_active: 'true',
         status: 'active'
       };
 
@@ -957,14 +948,28 @@ export class PromotionsService {
         hasBestCoupon: !!bestCoupon
       }, 'Unified promotion offers evaluation completed');
 
+      // Separate auto-applied promotions (already active)e
+      const autoAppliedPromotions = eligibleCoupons.filter(promo => promo.auto_apply === true);
+      const autoAppliedIds = autoAppliedPromotions.map(promo => promo.id);
+      
+      // Stackable promotions that user can ADD (exclude already applied ones)
+      const stackablePromotions = eligibleCoupons.filter(promo => 
+        promo.stackable === true && 
+        !autoAppliedIds.includes(promo.id)  // ✅ Hide already applied promotions
+      );
+
       return {
         bestCoupon,
         eligibleCoupons,
         ineligibleCoupons,
+        stackablePromotions,
+        autoAppliedPromotions,  // ✅ Add auto-applied promotions for frontend
         summary: {
           totalPromotions: allPromotions.length,
           eligibleCount: eligibleCoupons.length,
           ineligibleCount: ineligibleCoupons.length,
+          stackableCount: stackablePromotions.length,
+          autoAppliedCount: autoAppliedPromotions.length,
           cartTotal,
           cartItems: itemCount,
           categories: categories

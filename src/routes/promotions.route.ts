@@ -26,7 +26,6 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
           type: { type: 'string', description: 'Filter by promotion type' },
           code: { type: 'string', description: 'Filter by promotion code' },
           auto_apply: { type: 'string', description: 'Filter by auto-apply status (true/false)' },
-          is_active: { type: 'string', description: 'Filter by active status (true/false)' },
           status: { type: 'string', description: 'Filter by promotion status' },
           priority: { type: 'string', description: 'Filter by priority' },
           visibility: { type: 'string', description: 'Filter by visibility' },
@@ -61,7 +60,6 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                   type: { type: 'string', nullable: true, description: 'Promotion type' },
                   code: { type: 'string', nullable: true, description: 'Promotion code' },
                   auto_apply: { type: 'boolean', nullable: true, description: 'Auto-apply status' },
-                  is_active: { type: 'boolean', nullable: true, description: 'Active status' },
                   start_date: { type: 'number', nullable: true, description: 'Start date as Unix timestamp' },
                   end_date: { type: 'number', nullable: true, description: 'End date as Unix timestamp' },
                   status: { type: 'string', nullable: true, description: 'Promotion status' },
@@ -261,10 +259,9 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
           },
           code: { type: 'string', description: 'Promotion code' },
           auto_apply: { type: 'boolean', description: 'Auto-apply status' },
-          is_active: { type: 'boolean', description: 'Active status' },
           start_date: { type: 'number', description: 'Start date as Unix timestamp (seconds since epoch)' },
           end_date: { type: 'number', description: 'End date as Unix timestamp (seconds since epoch)' },
-          status: { type: 'string', enum: ['active', 'inactive'], description: 'Promotion status' },
+          status: { type: 'string', enum: ['active', 'inactive', 'draft', 'expired', 'paused', 'scheduled'], description: 'Promotion status' },
           priority: { type: 'number', description: 'Priority' },
           visibility: { type: 'string', enum: ['public', 'private'], description: 'Visibility' },
           max_redemptions: { type: 'number', description: 'Maximum redemptions' },
@@ -459,10 +456,9 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
           },
           code: { type: 'string', description: 'Promotion code' },
           auto_apply: { type: 'boolean', description: 'Auto-apply status' },
-          is_active: { type: 'boolean', description: 'Active status' },
           start_date: { type: 'number', description: 'Start date as Unix timestamp (seconds since epoch)' },
           end_date: { type: 'number', description: 'End date as Unix timestamp (seconds since epoch)' },
-          status: { type: 'string', enum: ['active', 'inactive'], description: 'Promotion status' },
+          status: { type: 'string', enum: ['active', 'inactive', 'draft', 'expired', 'paused', 'scheduled'], description: 'Promotion status' },
           priority: { type: 'number', description: 'Priority' },
           visibility: { type: 'string', enum: ['public', 'private'], description: 'Visibility' },
           max_redemptions: { type: 'number', description: 'Maximum redemptions' },
@@ -1245,12 +1241,128 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                     }
                   }
                 },
+                stackablePromotions: {
+                  type: 'array',
+                  description: 'Stackable promotions user can apply in addition to current promotions',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      promotion_id: { type: 'number' },
+                      name: { type: 'string' },
+                      description: { type: 'string' },
+                      type: { type: 'string' },
+                      code: { type: 'string' },
+                      discount_value: { type: 'number' },
+                      discount_type: { type: 'string' },
+                      priority: { type: 'number' },
+                      start_date: { type: 'string' },
+                      end_date: { type: 'string' },
+                      action: { 
+                        type: 'object', 
+                        nullable: true, 
+                        description: 'Promotion action object',
+                        properties: {
+                          type: { type: 'string' },
+                          value: { anyOf: [{ type: 'number' }, { type: 'boolean' }] },
+                          max_discount: { type: 'number' },
+                          buy_quantity: { type: 'number' },
+                          get_quantity: { type: 'number' },
+                          product_ids: { type: 'array', items: { type: 'string' } },
+                          free_product_id: { type: 'string' },
+                          min_purchase: { type: 'number' },
+                          max_free_items: { type: 'number' },
+                          min_order_value: { type: 'number' }
+                        },
+                        additionalProperties: true
+                      },
+                      discountInfo: {
+                        type: 'object',
+                        properties: {
+                          originalTotal: { type: 'number' },
+                          discountAmount: { type: 'number' },
+                          discountedTotal: { type: 'number' },
+                          discountPercentage: { type: 'number' },
+                          savingsAmount: { type: 'number' }
+                        }
+                      },
+                      cartInfo: {
+                        type: 'object',
+                        properties: {
+                          totalItems: { type: 'number' },
+                          categories: { type: 'array', items: { type: 'string' } },
+                          totalValue: { type: 'number' }
+                        }
+                      },
+                      mode: { type: 'string' },
+                      expiresAt: { type: 'string' }
+                    }
+                  }
+                },
+                autoAppliedPromotions: {
+                  type: 'array',
+                  description: 'Promotions that are automatically applied (already active)',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      promotion_id: { type: 'number' },
+                      name: { type: 'string' },
+                      description: { type: 'string' },
+                      type: { type: 'string' },
+                      code: { type: 'string' },
+                      discount_value: { type: 'number' },
+                      discount_type: { type: 'string' },
+                      priority: { type: 'number' },
+                      start_date: { type: 'string' },
+                      end_date: { type: 'string' },
+                      action: { 
+                        type: 'object', 
+                        nullable: true, 
+                        description: 'Promotion action object',
+                        properties: {
+                          type: { type: 'string' },
+                          value: { anyOf: [{ type: 'number' }, { type: 'boolean' }] },
+                          max_discount: { type: 'number' },
+                          buy_quantity: { type: 'number' },
+                          get_quantity: { type: 'number' },
+                          product_ids: { type: 'array', items: { type: 'string' } },
+                          free_product_id: { type: 'string' },
+                          min_purchase: { type: 'number' },
+                          max_free_items: { type: 'number' },
+                          min_order_value: { type: 'number' }
+                        },
+                        additionalProperties: true
+                      },
+                      discountInfo: {
+                        type: 'object',
+                        properties: {
+                          originalTotal: { type: 'number' },
+                          discountAmount: { type: 'number' },
+                          discountedTotal: { type: 'number' },
+                          discountPercentage: { type: 'number' },
+                          savingsAmount: { type: 'number' }
+                        }
+                      },
+                      cartInfo: {
+                        type: 'object',
+                        properties: {
+                          totalItems: { type: 'number' },
+                          categories: { type: 'array', items: { type: 'string' } },
+                          totalValue: { type: 'number' }
+                        }
+                      },
+                      mode: { type: 'string' },
+                      expiresAt: { type: 'string' }
+                    }
+                  }
+                },
                 summary: {
                   type: 'object',
                   properties: {
                     totalPromotions: { type: 'number' },
                     eligibleCount: { type: 'number' },
                     ineligibleCount: { type: 'number' },
+                    stackableCount: { type: 'number' },
+                    autoAppliedCount: { type: 'number' },
                     cartTotal: { type: 'number' },
                     cartItems: { type: 'number' },
                     categories: { type: 'array', items: { type: 'string' } }
