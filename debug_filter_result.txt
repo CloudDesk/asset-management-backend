@@ -18840,3 +18840,91 @@ Filtered data result: {
   "modifieddate": 1758116478851,
   "ordereddate": 1758116478851
 }
+Filtered data result: {
+  "productid": 7,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1758170149384,
+  "modifieddate": 1758170149384
+}
+Filtered data result: {
+  "name": "Gift Badge ",
+  "description": "",
+  "type": "FREE_PRODUCT",
+  "code": "",
+  "auto_apply": false,
+  "start_date": 1758133800,
+  "end_date": 1758479340,
+  "status": "draft",
+  "priority": 1,
+  "visibility": "public",
+  "max_redemptions": 50000,
+  "per_user_limit": 2,
+  "stackable": true,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "conditions": [],
+  "action": {
+    "type": "FREE_PRODUCT",
+    "value": 0
+  },
+  "createddate": 1758170354433,
+  "modifieddate": 1758170354433
+}
+Filtered data result: {
+  "name": "Gift Badge ",
+  "description": "",
+  "type": "FREE_PRODUCT",
+  "code": "",
+  "auto_apply": false,
+  "start_date": 1758133800,
+  "end_date": 1758479340,
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "stackable": true,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "conditions": [],
+  "action": {
+    "type": "FREE_PRODUCT",
+    "value": 0
+  },
+  "createddate": 1758170455158,
+  "modifieddate": 1758170455158
+}
+Filtered data result: {
+  "name": "Flash Sale - 25% OFF Everything",
+  "description": "Limited time flash sale! Get 25% off on all products. Hurry, offer ends soon!",
+  "type": "PERCENT_OFF_CART",
+  "code": "FLASH25",
+  "auto_apply": false,
+  "start_date": 1735689,
+  "end_date": 1767225,
+  "status": "active",
+  "priority": 1,
+  "visibility": "private",
+  "max_redemptions": 1000,
+  "per_user_limit": 1,
+  "stackable": false,
+  "budget": 250000,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "conditions": [
+    {
+      "value": "1000",
+      "operator": "GTE",
+      "attribute": "cart.total_value"
+    }
+  ],
+  "action": {
+    "type": "PERCENT_OFF",
+    "value": 25,
+    "max_discount": 500
+  },
+  "id": 64,
+  "createddate": 1756981505,
+  "modifieddate": 1758177648916
+}

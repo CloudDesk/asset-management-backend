@@ -350,7 +350,6 @@ export class PromotionRedemptionService {
                 await this.prisma.promotions.update({
                     where: { id: promotionId },
                     data: {
-                        is_active: false,
                         status: 'exhausted',
                         modifieddate: BigInt(Date.now())
                     }

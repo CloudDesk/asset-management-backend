@@ -290,12 +290,74 @@ export declare const discountBreakdownSchema: z.ZodObject<{
     shipping_discount: number;
     cart_discount: number;
 }>;
+export declare const bogoDetailsSchema: z.ZodObject<{
+    buy_quantity: z.ZodNumber;
+    get_quantity: z.ZodNumber;
+    affected_products: z.ZodArray<z.ZodString, "many">;
+    free_items_count: z.ZodNumber;
+}, "strip", z.ZodTypeAny, {
+    buy_quantity: number;
+    get_quantity: number;
+    affected_products: string[];
+    free_items_count: number;
+}, {
+    buy_quantity: number;
+    get_quantity: number;
+    affected_products: string[];
+    free_items_count: number;
+}>;
+export declare const freeProductDetailsSchema: z.ZodObject<{
+    free_product_id: z.ZodString;
+    max_free_items: z.ZodNumber;
+    granted_items_count: z.ZodNumber;
+}, "strip", z.ZodTypeAny, {
+    free_product_id: string;
+    max_free_items: number;
+    granted_items_count: number;
+}, {
+    free_product_id: string;
+    max_free_items: number;
+    granted_items_count: number;
+}>;
 export declare const appliedPromotionSchema: z.ZodObject<{
     promotion_id: z.ZodNumber;
     promotion_name: z.ZodString;
+    promotion_type: z.ZodString;
     discount_amount: z.ZodNumber;
-    affected_items: z.ZodArray<z.ZodString, "many">;
-    discount_breakdown: z.ZodObject<{
+    is_auto: z.ZodBoolean;
+    is_free_shipping: z.ZodBoolean;
+    is_stacked: z.ZodOptional<z.ZodBoolean>;
+    bogo_details: z.ZodOptional<z.ZodObject<{
+        buy_quantity: z.ZodNumber;
+        get_quantity: z.ZodNumber;
+        affected_products: z.ZodArray<z.ZodString, "many">;
+        free_items_count: z.ZodNumber;
+    }, "strip", z.ZodTypeAny, {
+        buy_quantity: number;
+        get_quantity: number;
+        affected_products: string[];
+        free_items_count: number;
+    }, {
+        buy_quantity: number;
+        get_quantity: number;
+        affected_products: string[];
+        free_items_count: number;
+    }>>;
+    free_product_details: z.ZodOptional<z.ZodObject<{
+        free_product_id: z.ZodString;
+        max_free_items: z.ZodNumber;
+        granted_items_count: z.ZodNumber;
+    }, "strip", z.ZodTypeAny, {
+        free_product_id: string;
+        max_free_items: number;
+        granted_items_count: number;
+    }, {
+        free_product_id: string;
+        max_free_items: number;
+        granted_items_count: number;
+    }>>;
+    affected_items: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    discount_breakdown: z.ZodOptional<z.ZodObject<{
         item_discounts: z.ZodArray<z.ZodObject<{
             product_id: z.ZodString;
             original_price: z.ZodNumber;
@@ -332,13 +394,68 @@ export declare const appliedPromotionSchema: z.ZodObject<{
         }[];
         shipping_discount: number;
         cart_discount: number;
-    }>;
+    }>>;
+    breakdown: z.ZodOptional<z.ZodObject<{
+        item_discounts: z.ZodArray<z.ZodObject<{
+            product_id: z.ZodString;
+            original_price: z.ZodNumber;
+            discounted_price: z.ZodNumber;
+            discount_amount: z.ZodNumber;
+        }, "strip", z.ZodTypeAny, {
+            original_price: number;
+            discount_amount: number;
+            product_id: string;
+            discounted_price: number;
+        }, {
+            original_price: number;
+            discount_amount: number;
+            product_id: string;
+            discounted_price: number;
+        }>, "many">;
+        shipping_discount: z.ZodNumber;
+        cart_discount: z.ZodNumber;
+    }, "strip", z.ZodTypeAny, {
+        item_discounts: {
+            original_price: number;
+            discount_amount: number;
+            product_id: string;
+            discounted_price: number;
+        }[];
+        shipping_discount: number;
+        cart_discount: number;
+    }, {
+        item_discounts: {
+            original_price: number;
+            discount_amount: number;
+            product_id: string;
+            discounted_price: number;
+        }[];
+        shipping_discount: number;
+        cart_discount: number;
+    }>>;
+    is_shipping_discount: z.ZodOptional<z.ZodBoolean>;
+    shipping_info: z.ZodOptional<z.ZodAny>;
 }, "strip", z.ZodTypeAny, {
     promotion_id: number;
     discount_amount: number;
     promotion_name: string;
-    affected_items: string[];
-    discount_breakdown: {
+    promotion_type: string;
+    is_auto: boolean;
+    is_free_shipping: boolean;
+    is_stacked?: boolean | undefined;
+    bogo_details?: {
+        buy_quantity: number;
+        get_quantity: number;
+        affected_products: string[];
+        free_items_count: number;
+    } | undefined;
+    free_product_details?: {
+        free_product_id: string;
+        max_free_items: number;
+        granted_items_count: number;
+    } | undefined;
+    affected_items?: string[] | undefined;
+    discount_breakdown?: {
         item_discounts: {
             original_price: number;
             discount_amount: number;
@@ -347,13 +464,40 @@ export declare const appliedPromotionSchema: z.ZodObject<{
         }[];
         shipping_discount: number;
         cart_discount: number;
-    };
+    } | undefined;
+    breakdown?: {
+        item_discounts: {
+            original_price: number;
+            discount_amount: number;
+            product_id: string;
+            discounted_price: number;
+        }[];
+        shipping_discount: number;
+        cart_discount: number;
+    } | undefined;
+    is_shipping_discount?: boolean | undefined;
+    shipping_info?: any;
 }, {
     promotion_id: number;
     discount_amount: number;
     promotion_name: string;
-    affected_items: string[];
-    discount_breakdown: {
+    promotion_type: string;
+    is_auto: boolean;
+    is_free_shipping: boolean;
+    is_stacked?: boolean | undefined;
+    bogo_details?: {
+        buy_quantity: number;
+        get_quantity: number;
+        affected_products: string[];
+        free_items_count: number;
+    } | undefined;
+    free_product_details?: {
+        free_product_id: string;
+        max_free_items: number;
+        granted_items_count: number;
+    } | undefined;
+    affected_items?: string[] | undefined;
+    discount_breakdown?: {
         item_discounts: {
             original_price: number;
             discount_amount: number;
@@ -362,7 +506,19 @@ export declare const appliedPromotionSchema: z.ZodObject<{
         }[];
         shipping_discount: number;
         cart_discount: number;
-    };
+    } | undefined;
+    breakdown?: {
+        item_discounts: {
+            original_price: number;
+            discount_amount: number;
+            product_id: string;
+            discounted_price: number;
+        }[];
+        shipping_discount: number;
+        cart_discount: number;
+    } | undefined;
+    is_shipping_discount?: boolean | undefined;
+    shipping_info?: any;
 }>;
 export declare const ineligibleReasonSchema: z.ZodObject<{
     promotion_id: z.ZodNumber;
@@ -389,9 +545,42 @@ export declare const evaluationResponseSchema: z.ZodObject<{
     applied_promotions: z.ZodArray<z.ZodObject<{
         promotion_id: z.ZodNumber;
         promotion_name: z.ZodString;
+        promotion_type: z.ZodString;
         discount_amount: z.ZodNumber;
-        affected_items: z.ZodArray<z.ZodString, "many">;
-        discount_breakdown: z.ZodObject<{
+        is_auto: z.ZodBoolean;
+        is_free_shipping: z.ZodBoolean;
+        is_stacked: z.ZodOptional<z.ZodBoolean>;
+        bogo_details: z.ZodOptional<z.ZodObject<{
+            buy_quantity: z.ZodNumber;
+            get_quantity: z.ZodNumber;
+            affected_products: z.ZodArray<z.ZodString, "many">;
+            free_items_count: z.ZodNumber;
+        }, "strip", z.ZodTypeAny, {
+            buy_quantity: number;
+            get_quantity: number;
+            affected_products: string[];
+            free_items_count: number;
+        }, {
+            buy_quantity: number;
+            get_quantity: number;
+            affected_products: string[];
+            free_items_count: number;
+        }>>;
+        free_product_details: z.ZodOptional<z.ZodObject<{
+            free_product_id: z.ZodString;
+            max_free_items: z.ZodNumber;
+            granted_items_count: z.ZodNumber;
+        }, "strip", z.ZodTypeAny, {
+            free_product_id: string;
+            max_free_items: number;
+            granted_items_count: number;
+        }, {
+            free_product_id: string;
+            max_free_items: number;
+            granted_items_count: number;
+        }>>;
+        affected_items: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+        discount_breakdown: z.ZodOptional<z.ZodObject<{
             item_discounts: z.ZodArray<z.ZodObject<{
                 product_id: z.ZodString;
                 original_price: z.ZodNumber;
@@ -428,13 +617,68 @@ export declare const evaluationResponseSchema: z.ZodObject<{
             }[];
             shipping_discount: number;
             cart_discount: number;
-        }>;
+        }>>;
+        breakdown: z.ZodOptional<z.ZodObject<{
+            item_discounts: z.ZodArray<z.ZodObject<{
+                product_id: z.ZodString;
+                original_price: z.ZodNumber;
+                discounted_price: z.ZodNumber;
+                discount_amount: z.ZodNumber;
+            }, "strip", z.ZodTypeAny, {
+                original_price: number;
+                discount_amount: number;
+                product_id: string;
+                discounted_price: number;
+            }, {
+                original_price: number;
+                discount_amount: number;
+                product_id: string;
+                discounted_price: number;
+            }>, "many">;
+            shipping_discount: z.ZodNumber;
+            cart_discount: z.ZodNumber;
+        }, "strip", z.ZodTypeAny, {
+            item_discounts: {
+                original_price: number;
+                discount_amount: number;
+                product_id: string;
+                discounted_price: number;
+            }[];
+            shipping_discount: number;
+            cart_discount: number;
+        }, {
+            item_discounts: {
+                original_price: number;
+                discount_amount: number;
+                product_id: string;
+                discounted_price: number;
+            }[];
+            shipping_discount: number;
+            cart_discount: number;
+        }>>;
+        is_shipping_discount: z.ZodOptional<z.ZodBoolean>;
+        shipping_info: z.ZodOptional<z.ZodAny>;
     }, "strip", z.ZodTypeAny, {
         promotion_id: number;
         discount_amount: number;
         promotion_name: string;
-        affected_items: string[];
-        discount_breakdown: {
+        promotion_type: string;
+        is_auto: boolean;
+        is_free_shipping: boolean;
+        is_stacked?: boolean | undefined;
+        bogo_details?: {
+            buy_quantity: number;
+            get_quantity: number;
+            affected_products: string[];
+            free_items_count: number;
+        } | undefined;
+        free_product_details?: {
+            free_product_id: string;
+            max_free_items: number;
+            granted_items_count: number;
+        } | undefined;
+        affected_items?: string[] | undefined;
+        discount_breakdown?: {
             item_discounts: {
                 original_price: number;
                 discount_amount: number;
@@ -443,13 +687,40 @@ export declare const evaluationResponseSchema: z.ZodObject<{
             }[];
             shipping_discount: number;
             cart_discount: number;
-        };
+        } | undefined;
+        breakdown?: {
+            item_discounts: {
+                original_price: number;
+                discount_amount: number;
+                product_id: string;
+                discounted_price: number;
+            }[];
+            shipping_discount: number;
+            cart_discount: number;
+        } | undefined;
+        is_shipping_discount?: boolean | undefined;
+        shipping_info?: any;
     }, {
         promotion_id: number;
         discount_amount: number;
         promotion_name: string;
-        affected_items: string[];
-        discount_breakdown: {
+        promotion_type: string;
+        is_auto: boolean;
+        is_free_shipping: boolean;
+        is_stacked?: boolean | undefined;
+        bogo_details?: {
+            buy_quantity: number;
+            get_quantity: number;
+            affected_products: string[];
+            free_items_count: number;
+        } | undefined;
+        free_product_details?: {
+            free_product_id: string;
+            max_free_items: number;
+            granted_items_count: number;
+        } | undefined;
+        affected_items?: string[] | undefined;
+        discount_breakdown?: {
             item_discounts: {
                 original_price: number;
                 discount_amount: number;
@@ -458,7 +729,19 @@ export declare const evaluationResponseSchema: z.ZodObject<{
             }[];
             shipping_discount: number;
             cart_discount: number;
-        };
+        } | undefined;
+        breakdown?: {
+            item_discounts: {
+                original_price: number;
+                discount_amount: number;
+                product_id: string;
+                discounted_price: number;
+            }[];
+            shipping_discount: number;
+            cart_discount: number;
+        } | undefined;
+        is_shipping_discount?: boolean | undefined;
+        shipping_info?: any;
     }>, "many">;
     ineligible_reasons: z.ZodArray<z.ZodObject<{
         promotion_id: z.ZodNumber;
@@ -485,8 +768,23 @@ export declare const evaluationResponseSchema: z.ZodObject<{
         promotion_id: number;
         discount_amount: number;
         promotion_name: string;
-        affected_items: string[];
-        discount_breakdown: {
+        promotion_type: string;
+        is_auto: boolean;
+        is_free_shipping: boolean;
+        is_stacked?: boolean | undefined;
+        bogo_details?: {
+            buy_quantity: number;
+            get_quantity: number;
+            affected_products: string[];
+            free_items_count: number;
+        } | undefined;
+        free_product_details?: {
+            free_product_id: string;
+            max_free_items: number;
+            granted_items_count: number;
+        } | undefined;
+        affected_items?: string[] | undefined;
+        discount_breakdown?: {
             item_discounts: {
                 original_price: number;
                 discount_amount: number;
@@ -495,7 +793,19 @@ export declare const evaluationResponseSchema: z.ZodObject<{
             }[];
             shipping_discount: number;
             cart_discount: number;
-        };
+        } | undefined;
+        breakdown?: {
+            item_discounts: {
+                original_price: number;
+                discount_amount: number;
+                product_id: string;
+                discounted_price: number;
+            }[];
+            shipping_discount: number;
+            cart_discount: number;
+        } | undefined;
+        is_shipping_discount?: boolean | undefined;
+        shipping_info?: any;
     }[];
     expires_at: string;
     success: boolean;
@@ -514,8 +824,23 @@ export declare const evaluationResponseSchema: z.ZodObject<{
         promotion_id: number;
         discount_amount: number;
         promotion_name: string;
-        affected_items: string[];
-        discount_breakdown: {
+        promotion_type: string;
+        is_auto: boolean;
+        is_free_shipping: boolean;
+        is_stacked?: boolean | undefined;
+        bogo_details?: {
+            buy_quantity: number;
+            get_quantity: number;
+            affected_products: string[];
+            free_items_count: number;
+        } | undefined;
+        free_product_details?: {
+            free_product_id: string;
+            max_free_items: number;
+            granted_items_count: number;
+        } | undefined;
+        affected_items?: string[] | undefined;
+        discount_breakdown?: {
             item_discounts: {
                 original_price: number;
                 discount_amount: number;
@@ -524,7 +849,19 @@ export declare const evaluationResponseSchema: z.ZodObject<{
             }[];
             shipping_discount: number;
             cart_discount: number;
-        };
+        } | undefined;
+        breakdown?: {
+            item_discounts: {
+                original_price: number;
+                discount_amount: number;
+                product_id: string;
+                discounted_price: number;
+            }[];
+            shipping_discount: number;
+            cart_discount: number;
+        } | undefined;
+        is_shipping_discount?: boolean | undefined;
+        shipping_info?: any;
     }[];
     expires_at: string | number | bigint;
     success: boolean;
@@ -545,9 +882,42 @@ export declare const evaluationResultSchema: z.ZodObject<{
     applied_promotions: z.ZodArray<z.ZodObject<{
         promotion_id: z.ZodNumber;
         promotion_name: z.ZodString;
+        promotion_type: z.ZodString;
         discount_amount: z.ZodNumber;
-        affected_items: z.ZodArray<z.ZodString, "many">;
-        discount_breakdown: z.ZodObject<{
+        is_auto: z.ZodBoolean;
+        is_free_shipping: z.ZodBoolean;
+        is_stacked: z.ZodOptional<z.ZodBoolean>;
+        bogo_details: z.ZodOptional<z.ZodObject<{
+            buy_quantity: z.ZodNumber;
+            get_quantity: z.ZodNumber;
+            affected_products: z.ZodArray<z.ZodString, "many">;
+            free_items_count: z.ZodNumber;
+        }, "strip", z.ZodTypeAny, {
+            buy_quantity: number;
+            get_quantity: number;
+            affected_products: string[];
+            free_items_count: number;
+        }, {
+            buy_quantity: number;
+            get_quantity: number;
+            affected_products: string[];
+            free_items_count: number;
+        }>>;
+        free_product_details: z.ZodOptional<z.ZodObject<{
+            free_product_id: z.ZodString;
+            max_free_items: z.ZodNumber;
+            granted_items_count: z.ZodNumber;
+        }, "strip", z.ZodTypeAny, {
+            free_product_id: string;
+            max_free_items: number;
+            granted_items_count: number;
+        }, {
+            free_product_id: string;
+            max_free_items: number;
+            granted_items_count: number;
+        }>>;
+        affected_items: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+        discount_breakdown: z.ZodOptional<z.ZodObject<{
             item_discounts: z.ZodArray<z.ZodObject<{
                 product_id: z.ZodString;
                 original_price: z.ZodNumber;
@@ -584,13 +954,68 @@ export declare const evaluationResultSchema: z.ZodObject<{
             }[];
             shipping_discount: number;
             cart_discount: number;
-        }>;
+        }>>;
+        breakdown: z.ZodOptional<z.ZodObject<{
+            item_discounts: z.ZodArray<z.ZodObject<{
+                product_id: z.ZodString;
+                original_price: z.ZodNumber;
+                discounted_price: z.ZodNumber;
+                discount_amount: z.ZodNumber;
+            }, "strip", z.ZodTypeAny, {
+                original_price: number;
+                discount_amount: number;
+                product_id: string;
+                discounted_price: number;
+            }, {
+                original_price: number;
+                discount_amount: number;
+                product_id: string;
+                discounted_price: number;
+            }>, "many">;
+            shipping_discount: z.ZodNumber;
+            cart_discount: z.ZodNumber;
+        }, "strip", z.ZodTypeAny, {
+            item_discounts: {
+                original_price: number;
+                discount_amount: number;
+                product_id: string;
+                discounted_price: number;
+            }[];
+            shipping_discount: number;
+            cart_discount: number;
+        }, {
+            item_discounts: {
+                original_price: number;
+                discount_amount: number;
+                product_id: string;
+                discounted_price: number;
+            }[];
+            shipping_discount: number;
+            cart_discount: number;
+        }>>;
+        is_shipping_discount: z.ZodOptional<z.ZodBoolean>;
+        shipping_info: z.ZodOptional<z.ZodAny>;
     }, "strip", z.ZodTypeAny, {
         promotion_id: number;
         discount_amount: number;
         promotion_name: string;
-        affected_items: string[];
-        discount_breakdown: {
+        promotion_type: string;
+        is_auto: boolean;
+        is_free_shipping: boolean;
+        is_stacked?: boolean | undefined;
+        bogo_details?: {
+            buy_quantity: number;
+            get_quantity: number;
+            affected_products: string[];
+            free_items_count: number;
+        } | undefined;
+        free_product_details?: {
+            free_product_id: string;
+            max_free_items: number;
+            granted_items_count: number;
+        } | undefined;
+        affected_items?: string[] | undefined;
+        discount_breakdown?: {
             item_discounts: {
                 original_price: number;
                 discount_amount: number;
@@ -599,13 +1024,40 @@ export declare const evaluationResultSchema: z.ZodObject<{
             }[];
             shipping_discount: number;
             cart_discount: number;
-        };
+        } | undefined;
+        breakdown?: {
+            item_discounts: {
+                original_price: number;
+                discount_amount: number;
+                product_id: string;
+                discounted_price: number;
+            }[];
+            shipping_discount: number;
+            cart_discount: number;
+        } | undefined;
+        is_shipping_discount?: boolean | undefined;
+        shipping_info?: any;
     }, {
         promotion_id: number;
         discount_amount: number;
         promotion_name: string;
-        affected_items: string[];
-        discount_breakdown: {
+        promotion_type: string;
+        is_auto: boolean;
+        is_free_shipping: boolean;
+        is_stacked?: boolean | undefined;
+        bogo_details?: {
+            buy_quantity: number;
+            get_quantity: number;
+            affected_products: string[];
+            free_items_count: number;
+        } | undefined;
+        free_product_details?: {
+            free_product_id: string;
+            max_free_items: number;
+            granted_items_count: number;
+        } | undefined;
+        affected_items?: string[] | undefined;
+        discount_breakdown?: {
             item_discounts: {
                 original_price: number;
                 discount_amount: number;
@@ -614,7 +1066,19 @@ export declare const evaluationResultSchema: z.ZodObject<{
             }[];
             shipping_discount: number;
             cart_discount: number;
-        };
+        } | undefined;
+        breakdown?: {
+            item_discounts: {
+                original_price: number;
+                discount_amount: number;
+                product_id: string;
+                discounted_price: number;
+            }[];
+            shipping_discount: number;
+            cart_discount: number;
+        } | undefined;
+        is_shipping_discount?: boolean | undefined;
+        shipping_info?: any;
     }>, "many">;
     ineligible_coupons: z.ZodArray<z.ZodObject<{
         promotion_id: z.ZodNumber;
@@ -641,8 +1105,23 @@ export declare const evaluationResultSchema: z.ZodObject<{
         promotion_id: number;
         discount_amount: number;
         promotion_name: string;
-        affected_items: string[];
-        discount_breakdown: {
+        promotion_type: string;
+        is_auto: boolean;
+        is_free_shipping: boolean;
+        is_stacked?: boolean | undefined;
+        bogo_details?: {
+            buy_quantity: number;
+            get_quantity: number;
+            affected_products: string[];
+            free_items_count: number;
+        } | undefined;
+        free_product_details?: {
+            free_product_id: string;
+            max_free_items: number;
+            granted_items_count: number;
+        } | undefined;
+        affected_items?: string[] | undefined;
+        discount_breakdown?: {
             item_discounts: {
                 original_price: number;
                 discount_amount: number;
@@ -651,7 +1130,19 @@ export declare const evaluationResultSchema: z.ZodObject<{
             }[];
             shipping_discount: number;
             cart_discount: number;
-        };
+        } | undefined;
+        breakdown?: {
+            item_discounts: {
+                original_price: number;
+                discount_amount: number;
+                product_id: string;
+                discounted_price: number;
+            }[];
+            shipping_discount: number;
+            cart_discount: number;
+        } | undefined;
+        is_shipping_discount?: boolean | undefined;
+        shipping_info?: any;
     }[];
     ineligible_coupons: {
         promotion_id: number;
@@ -670,8 +1161,23 @@ export declare const evaluationResultSchema: z.ZodObject<{
         promotion_id: number;
         discount_amount: number;
         promotion_name: string;
-        affected_items: string[];
-        discount_breakdown: {
+        promotion_type: string;
+        is_auto: boolean;
+        is_free_shipping: boolean;
+        is_stacked?: boolean | undefined;
+        bogo_details?: {
+            buy_quantity: number;
+            get_quantity: number;
+            affected_products: string[];
+            free_items_count: number;
+        } | undefined;
+        free_product_details?: {
+            free_product_id: string;
+            max_free_items: number;
+            granted_items_count: number;
+        } | undefined;
+        affected_items?: string[] | undefined;
+        discount_breakdown?: {
             item_discounts: {
                 original_price: number;
                 discount_amount: number;
@@ -680,7 +1186,19 @@ export declare const evaluationResultSchema: z.ZodObject<{
             }[];
             shipping_discount: number;
             cart_discount: number;
-        };
+        } | undefined;
+        breakdown?: {
+            item_discounts: {
+                original_price: number;
+                discount_amount: number;
+                product_id: string;
+                discounted_price: number;
+            }[];
+            shipping_discount: number;
+            cart_discount: number;
+        } | undefined;
+        is_shipping_discount?: boolean | undefined;
+        shipping_info?: any;
     }[];
     ineligible_coupons: {
         promotion_id: number;
@@ -734,6 +1252,8 @@ export type CartData = z.infer<typeof cartDataSchema>;
 export type Context = z.infer<typeof contextSchema>;
 export type EvaluationRequest = z.infer<typeof evaluationRequestSchema>;
 export type DiscountBreakdown = z.infer<typeof discountBreakdownSchema>;
+export type BogoDetails = z.infer<typeof bogoDetailsSchema>;
+export type FreeProductDetails = z.infer<typeof freeProductDetailsSchema>;
 export type AppliedPromotion = z.infer<typeof appliedPromotionSchema>;
 export type IneligibleReason = z.infer<typeof ineligibleReasonSchema>;
 export type EvaluationResponse = z.infer<typeof evaluationResponseSchema>;

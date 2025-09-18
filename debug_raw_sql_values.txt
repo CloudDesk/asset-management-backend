@@ -5762,3 +5762,27 @@ Values: [
   1760698765,
   1758106774
 ]
+Values: [
+  64,
+  "Flash Sale - 25% OFF Everything",
+  "Limited time flash sale! Get 25% off on all products. Hurry, offer ends soon!",
+  "PERCENT_OFF_CART",
+  "FLASH25",
+  false,
+  1735689,
+  1767225,
+  "active",
+  1,
+  "private",
+  1000,
+  1,
+  false,
+  250000,
+  "Asia/Kolkata",
+  15,
+  "[{\"value\":\"1000\",\"operator\":\"GTE\",\"attribute\":\"cart.total_value\"}]",
+  "{\"type\":\"PERCENT_OFF\",\"value\":25,\"max_discount\":500}",
+  64,
+  1756981505,
+  1758177648
+]

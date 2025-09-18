@@ -1,1 +1,2 @@
 Converted conditions: [{"value":"500","operator":"GTE","attribute":"cart.total_value"},{"value":["wellness","health","natural"],"operator":"IN","attribute":"cart.items.category"}]
+Converted conditions: [{"value":"1000","operator":"GTE","attribute":"cart.total_value"}]

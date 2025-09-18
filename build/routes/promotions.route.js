@@ -23,7 +23,6 @@ export async function promotionsRoutes(fastify) {
                     type: { type: 'string', description: 'Filter by promotion type' },
                     code: { type: 'string', description: 'Filter by promotion code' },
                     auto_apply: { type: 'string', description: 'Filter by auto-apply status (true/false)' },
-                    is_active: { type: 'string', description: 'Filter by active status (true/false)' },
                     status: { type: 'string', description: 'Filter by promotion status' },
                     priority: { type: 'string', description: 'Filter by priority' },
                     visibility: { type: 'string', description: 'Filter by visibility' },
@@ -58,7 +57,6 @@ export async function promotionsRoutes(fastify) {
                                     type: { type: 'string', nullable: true, description: 'Promotion type' },
                                     code: { type: 'string', nullable: true, description: 'Promotion code' },
                                     auto_apply: { type: 'boolean', nullable: true, description: 'Auto-apply status' },
-                                    is_active: { type: 'boolean', nullable: true, description: 'Active status' },
                                     start_date: { type: 'number', nullable: true, description: 'Start date as Unix timestamp' },
                                     end_date: { type: 'number', nullable: true, description: 'End date as Unix timestamp' },
                                     status: { type: 'string', nullable: true, description: 'Promotion status' },
@@ -73,7 +71,24 @@ export async function promotionsRoutes(fastify) {
                                     discount_type: { type: 'string', nullable: true, description: 'Discount type' },
                                     discount_value: { type: 'number', nullable: true, description: 'Discount value' },
                                     conditions: { type: 'array', nullable: true, description: 'Promotion conditions' },
-                                    action: { type: 'object', nullable: true, description: 'Promotion action object' },
+                                    action: {
+                                        type: 'object',
+                                        nullable: true,
+                                        description: 'Promotion action object',
+                                        properties: {
+                                            type: { type: 'string' },
+                                            value: { anyOf: [{ type: 'number' }, { type: 'boolean' }] },
+                                            max_discount: { type: 'number' },
+                                            buy_quantity: { type: 'number' },
+                                            get_quantity: { type: 'number' },
+                                            product_ids: { type: 'array', items: { type: 'string' } },
+                                            free_product_id: { type: 'string' },
+                                            min_purchase: { type: 'number' },
+                                            max_free_items: { type: 'number' },
+                                            min_order_value: { type: 'number' }
+                                        },
+                                        additionalProperties: true
+                                    },
                                     createddate: { type: 'number', description: 'Creation timestamp' },
                                     modifieddate: { type: 'number', description: 'Modification timestamp' },
                                 },
@@ -119,6 +134,102 @@ export async function promotionsRoutes(fastify) {
             },
         },
     }, promotionsController.getPromotions.bind(promotionsController));
+    // GET /v1/promotions/:id - Get promotion by ID
+    fastify.get('/:id', {
+        schema: {
+            description: 'Get promotion by ID',
+            tags: ['Promotions'],
+            params: {
+                type: 'object',
+                properties: {
+                    id: { type: 'string', description: 'Promotion ID' },
+                },
+                required: ['id'],
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        data: {
+                            type: 'object',
+                            additionalProperties: true
+                        },
+                        message: { type: 'string' },
+                    },
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
+                404: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
+            },
+        },
+    }, async (request, reply) => {
+        try {
+            const { id } = request.params;
+            // Validate ID format
+            if (!id || id.trim() === '' || !/^\d+$/.test(id)) {
+                const errorResponse = {
+                    success: false,
+                    message: 'Invalid promotion ID format. ID must be an integer.',
+                    details: `The provided ID '${id}' is not a valid integer format.`,
+                    statusCode: 400
+                };
+                return reply.code(400).send(errorResponse);
+            }
+            // Call the service method directly
+            const promotion = await promotionsController.promotionsService.findById(id);
+            const response = {
+                success: true,
+                message: 'Promotion retrieved successfully',
+                data: promotion
+            };
+            return reply.code(200).send(response);
+        }
+        catch (error) {
+            console.log('=== PROMOTION GET ERROR:', error.message);
+            if (error.message.includes('not found')) {
+                const errorResponse = {
+                    success: false,
+                    message: `Promotion with ID ${request.params.id} not found`,
+                    details: 'The requested promotion could not be found',
+                    statusCode: 404
+                };
+                return reply.code(404).send(errorResponse);
+            }
+            // Default error response
+            const errorResponse = {
+                success: false,
+                message: 'Internal server error',
+                details: 'Something went wrong on the server',
+                statusCode: 500
+            };
+            return reply.code(500).send(errorResponse);
+        }
+    });
     // POST /v1/promotions - Create new promotion
     fastify.post('/', {
         schema: {
@@ -136,10 +247,9 @@ export async function promotionsRoutes(fastify) {
                     },
                     code: { type: 'string', description: 'Promotion code' },
                     auto_apply: { type: 'boolean', description: 'Auto-apply status' },
-                    is_active: { type: 'boolean', description: 'Active status' },
                     start_date: { type: 'number', description: 'Start date as Unix timestamp (seconds since epoch)' },
                     end_date: { type: 'number', description: 'End date as Unix timestamp (seconds since epoch)' },
-                    status: { type: 'string', enum: ['active', 'inactive'], description: 'Promotion status' },
+                    status: { type: 'string', enum: ['active', 'inactive', 'draft', 'expired', 'paused', 'scheduled'], description: 'Promotion status' },
                     priority: { type: 'number', description: 'Priority' },
                     visibility: { type: 'string', enum: ['public', 'private'], description: 'Visibility' },
                     max_redemptions: { type: 'number', description: 'Maximum redemptions' },
@@ -328,10 +438,9 @@ export async function promotionsRoutes(fastify) {
                     },
                     code: { type: 'string', description: 'Promotion code' },
                     auto_apply: { type: 'boolean', description: 'Auto-apply status' },
-                    is_active: { type: 'boolean', description: 'Active status' },
                     start_date: { type: 'number', description: 'Start date as Unix timestamp (seconds since epoch)' },
                     end_date: { type: 'number', description: 'End date as Unix timestamp (seconds since epoch)' },
-                    status: { type: 'string', enum: ['active', 'inactive'], description: 'Promotion status' },
+                    status: { type: 'string', enum: ['active', 'inactive', 'draft', 'expired', 'paused', 'scheduled'], description: 'Promotion status' },
                     priority: { type: 'number', description: 'Priority' },
                     visibility: { type: 'string', enum: ['public', 'private'], description: 'Visibility' },
                     max_redemptions: { type: 'number', description: 'Maximum redemptions' },
@@ -516,7 +625,1059 @@ export async function promotionsRoutes(fastify) {
             return reply.code(500).send(errorResponse);
         }
     });
-    // Rest of the routes remain the same...
-    // (GET /:id, DELETE /:id, evaluation routes, redemption routes, etc.)
+    // DELETE /v1/promotions/:id - Delete promotion
+    fastify.delete('/:id', {
+        schema: {
+            description: 'Delete promotion by ID',
+            tags: ['Promotions'],
+            params: {
+                type: 'object',
+                properties: {
+                    id: { type: 'string', description: 'Promotion ID' },
+                },
+                required: ['id'],
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        data: { type: 'null' },
+                        message: { type: 'string' },
+                    },
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
+                404: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
+            },
+        },
+    }, async (request, reply) => {
+        try {
+            const { id } = request.params;
+            // Validate ID format
+            if (!id || id.trim() === '' || !/^\d+$/.test(id)) {
+                const errorResponse = {
+                    success: false,
+                    message: 'Invalid promotion ID format. ID must be an integer.',
+                    details: `The provided ID '${id}' is not a valid integer format.`,
+                    statusCode: 400
+                };
+                return reply.code(400).send(errorResponse);
+            }
+            await promotionsController.promotionsService.delete(id);
+            const response = {
+                success: true,
+                message: 'Promotion deleted successfully',
+                data: null
+            };
+            return reply.code(200).send(response);
+        }
+        catch (error) {
+            console.log('=== PROMOTION DELETE ERROR:', error.message);
+            if (error.message.includes('not found')) {
+                const errorResponse = {
+                    success: false,
+                    message: `Promotion with ID ${request.params.id} not found`,
+                    details: 'The promotion you are trying to delete does not exist',
+                    statusCode: 404
+                };
+                return reply.code(404).send(errorResponse);
+            }
+            // Default error response
+            const errorResponse = {
+                success: false,
+                message: 'Internal server error',
+                details: 'Something went wrong while deleting the promotion',
+                statusCode: 500
+            };
+            return reply.code(500).send(errorResponse);
+        }
+    });
+    // ========================================
+    // PROMOTION EVALUATION ROUTES
+    // ========================================
+    // POST /v1/promotions/evaluate/specific - Evaluate specific promotion against user's cart
+    fastify.post('/evaluate/specific', {
+        schema: {
+            description: 'Evaluate specific promotion against user cart with detailed breakdown',
+            tags: ['Promotions', 'Evaluation'],
+            body: {
+                type: 'object',
+                properties: {
+                    user_id: { type: 'string', description: 'User ID' },
+                    promotion_id: { type: 'number', description: 'Promotion ID to evaluate (optional if code provided)' },
+                    code: { type: 'string', description: 'Promotion code to evaluate (optional if promotion_id provided)' },
+                    cart_items: {
+                        type: 'array',
+                        description: 'User cart items (fetched from cart records)',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                cart_record_id: { type: 'string', description: 'Cart record ID' },
+                                product_id: { type: 'string', description: 'Product ID' },
+                                quantity: { type: 'number', description: 'Quantity' },
+                                base_price: { type: 'number', description: 'Original product price' },
+                                product_discount: { type: 'number', description: 'Product-level discount' },
+                                price: { type: 'number', description: 'Final price after product discount only' },
+                                category: { type: 'string', description: 'Product category' },
+                                subcategory: { type: 'string', description: 'Product subcategory' },
+                                name: { type: 'string', description: 'Product name' }
+                            },
+                            required: ['cart_record_id', 'product_id', 'quantity', 'price', 'category']
+                        }
+                    },
+                    context: {
+                        type: 'object',
+                        properties: {
+                            channel: { type: 'string', enum: ['web', 'mobile', 'mobile_app'], description: 'Platform channel' },
+                            geo: { type: 'string', description: 'Geographic region' },
+                            payment_method: { type: 'string', description: 'Payment method' },
+                            user_agent: { type: 'string', description: 'User agent' },
+                            ip_address: { type: 'string', description: 'IP address' }
+                        },
+                        required: ['channel', 'geo']
+                    }
+                },
+                required: ['user_id', 'cart_items', 'context']
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        data: {
+                            type: 'object',
+                            properties: {
+                                evaluation_id: { type: 'string', description: 'Unique evaluation ID for redemption' },
+                                promotion_id: { type: 'number', description: 'Evaluated promotion ID' },
+                                promotion_name: { type: 'string', description: 'Promotion name' },
+                                is_eligible: { type: 'boolean', description: 'Whether promotion is applicable' },
+                                original_total: { type: 'number', description: 'Original cart total' },
+                                discounted_total: { type: 'number', description: 'Total after discount' },
+                                total_discount: { type: 'number', description: 'Total discount amount' },
+                                discount_breakdown: {
+                                    type: 'array',
+                                    description: 'Per-item discount breakdown',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            cart_record_id: { type: 'string' },
+                                            product_id: { type: 'string' },
+                                            product_name: { type: 'string' },
+                                            category: { type: 'string' },
+                                            quantity: { type: 'number' },
+                                            original_price: { type: 'number' },
+                                            discount_per_item: { type: 'number' },
+                                            final_price_per_item: { type: 'number' },
+                                            total_discount: { type: 'number' }
+                                        }
+                                    }
+                                },
+                                ineligible_reason: { type: 'string', description: 'Reason if not eligible' },
+                                expires_at: { type: 'string', format: 'date-time', description: 'Evaluation expiry time' }
+                            }
+                        },
+                        message: { type: 'string' }
+                    }
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' }
+                    }
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' }
+                    }
+                }
+            }
+        }
+    }, evaluationController.evaluatePromotion.bind(evaluationController));
+    // // POST /v1/promotions/evaluate/remove - Remove/cancel evaluation
+    // fastify.post('/evaluate/remove', {
+    //   schema: {
+    //     description: 'Remove/cancel a promotion evaluation',
+    //     tags: ['Promotions', 'Evaluation'],
+    //     body: {
+    //       type: 'object',
+    //       properties: {
+    //         evaluation_id: { type: 'string', description: 'Evaluation ID to remove' },
+    //         user_id: { type: 'string', description: 'User ID' }
+    //       },
+    //       required: ['evaluation_id', 'user_id']
+    //     },
+    //     response: {
+    //       200: {
+    //         type: 'object',
+    //         properties: {
+    //           success: { type: 'boolean' },
+    //           message: { type: 'string' }
+    //         }
+    //       },
+    //       404: {
+    //         type: 'object',
+    //         properties: {
+    //           success: { type: 'boolean' },
+    //           message: { type: 'string' },
+    //           details: { type: 'string' }
+    //         }
+    //       }
+    //     }
+    //   }
+    // }, evaluationController.removeEvaluation.bind(evaluationController));
+    // GET /v1/promotions/evaluations/:id - Get evaluation details
+    fastify.get('/evaluations/:id', {
+        schema: {
+            description: 'Get evaluation details by ID',
+            tags: ['Promotions', 'Evaluation'],
+            params: {
+                type: 'object',
+                properties: {
+                    id: { type: 'string', description: 'Evaluation ID (UUID)' }
+                },
+                required: ['id']
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        data: { type: 'object' },
+                        message: { type: 'string' }
+                    }
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' }
+                    }
+                },
+                404: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' }
+                    }
+                }
+            }
+        }
+    }, evaluationController.getEvaluation.bind(evaluationController));
+    // ========================================
+    // PROMOTION REDEMPTION ROUTES
+    // ========================================
+    // POST /v1/promotions/redeem - Redeem promotion after order placement
+    fastify.post('/redeem', {
+        schema: {
+            description: 'Redeem promotion after successful order placement',
+            tags: ['Promotions', 'Redemption'],
+            body: {
+                type: 'object',
+                properties: {
+                    evaluation_id: { type: 'string', format: 'uuid', description: 'Evaluation ID' },
+                    order_id: { type: 'string', description: 'Order ID' },
+                    user_id: { type: 'string', description: 'User ID' }
+                },
+                required: ['evaluation_id', 'order_id', 'user_id']
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        data: {
+                            type: 'object',
+                            properties: {
+                                redemption_id: { type: 'string' },
+                                order_id: { type: 'string' },
+                                total_discount_applied: { type: 'number' },
+                                redemption_details: { type: 'array' }
+                            }
+                        },
+                        message: { type: 'string' }
+                    }
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' }
+                    }
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' }
+                    }
+                }
+            }
+        }
+    }, redemptionController.redeemPromotion.bind(redemptionController));
+    // GET /v1/promotions/redemptions/order/:orderId - Get redemptions for order
+    fastify.get('/redemptions/order/:orderId', {
+        schema: {
+            description: 'Get all redemptions for a specific order',
+            tags: ['Promotions', 'Redemption'],
+            params: {
+                type: 'object',
+                properties: {
+                    orderId: { type: 'string', description: 'Order ID' }
+                },
+                required: ['orderId']
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        data: { type: 'array' },
+                        message: { type: 'string' }
+                    }
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' }
+                    }
+                }
+            }
+        }
+    }, redemptionController.getRedemptionsForOrder.bind(redemptionController));
+    // GET /v1/promotions/redemptions/:id - Get redemption by ID
+    fastify.get('/redemptions/:id', {
+        schema: {
+            description: 'Get redemption details by ID',
+            tags: ['Promotions', 'Redemption'],
+            params: {
+                type: 'object',
+                properties: {
+                    id: { type: 'string', description: 'Redemption ID (UUID)' }
+                },
+                required: ['id']
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        data: { type: 'object' },
+                        message: { type: 'string' }
+                    }
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' }
+                    }
+                },
+                404: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' }
+                    }
+                }
+            }
+        }
+    }, redemptionController.getRedemptionById.bind(redemptionController));
+    // GET /v1/promotions/redemptions/user/:userId - Get user redemption history
+    fastify.get('/redemptions/user/:userId', {
+        schema: {
+            description: 'Get user redemption history',
+            tags: ['Promotions', 'Redemption'],
+            params: {
+                type: 'object',
+                properties: {
+                    userId: { type: 'string', description: 'User ID' }
+                },
+                required: ['userId']
+            },
+            querystring: {
+                type: 'object',
+                properties: {
+                    page: { type: 'string', description: 'Page number' },
+                    limit: { type: 'string', description: 'Items per page' }
+                }
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        data: {
+                            type: 'object',
+                            properties: {
+                                redemptions: { type: 'array' },
+                                pagination: { type: 'object' }
+                            }
+                        },
+                        message: { type: 'string' }
+                    }
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' }
+                    }
+                }
+            }
+        }
+    }, redemptionController.getUserRedemptionHistory.bind(redemptionController));
+    // ========================================
+    // PROMOTION OFFERS ROUTES
+    // ========================================
+    // POST /v1/promotions/offers - Get unified promotion offers (best + all eligible/ineligible)
+    fastify.post('/offers', {
+        schema: {
+            description: 'Get unified promotion offers - best recommendation + all eligible/ineligible promotions',
+            tags: ['Promotions', 'Offers'],
+            body: {
+                type: 'object',
+                properties: {
+                    userId: { type: 'string', description: 'User ID' },
+                    cartItems: {
+                        type: 'array',
+                        description: 'Cart items',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                productId: { type: 'string', description: 'Product ID' },
+                                qty: { type: 'number', description: 'Quantity' },
+                                category: { type: 'string', description: 'Product category' },
+                                price: { type: 'number', description: 'Product price' }
+                            },
+                            required: ['productId', 'qty', 'category', 'price']
+                        }
+                    },
+                    mode: {
+                        type: 'string',
+                        enum: ['phonepe', 'cod'],
+                        description: 'Payment mode'
+                    }
+                },
+                required: ['userId', 'cartItems', 'mode']
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        data: {
+                            type: 'object',
+                            properties: {
+                                bestCoupon: {
+                                    type: 'object',
+                                    nullable: true,
+                                    properties: {
+                                        promotion_id: { type: 'number' },
+                                        name: { type: 'string' },
+                                        description: { type: 'string' },
+                                        type: { type: 'string' },
+                                        code: { type: 'string' },
+                                        priority: { type: 'number' },
+                                        start_date: { type: 'integer' },
+                                        end_date: { type: 'integer' },
+                                        discountInfo: {
+                                            type: 'object',
+                                            properties: {
+                                                originalTotal: { type: 'number' },
+                                                discountAmount: { type: 'number' },
+                                                discountedTotal: { type: 'number' },
+                                                discountPercentage: { type: 'number' },
+                                                savingsAmount: { type: 'number' }
+                                            }
+                                        },
+                                        cartInfo: {
+                                            type: 'object',
+                                            properties: {
+                                                totalItems: { type: 'number' },
+                                                categories: { type: 'array', items: { type: 'string' } },
+                                                totalValue: { type: 'number' }
+                                            }
+                                        },
+                                        mode: { type: 'string' },
+                                        expiresAt: { type: 'string' }
+                                    }
+                                },
+                                eligibleCoupons: {
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            promotion_id: { type: 'number' },
+                                            name: { type: 'string' },
+                                            description: { type: 'string' },
+                                            type: { type: 'string' },
+                                            code: { type: 'string' },
+                                            priority: { type: 'number' },
+                                            start_date: { type: 'integer' },
+                                            end_date: { type: 'integer' },
+                                            discountInfo: {
+                                                type: 'object',
+                                                properties: {
+                                                    originalTotal: { type: 'number' },
+                                                    discountAmount: { type: 'number' },
+                                                    discountedTotal: { type: 'number' },
+                                                    discountPercentage: { type: 'number' },
+                                                    savingsAmount: { type: 'number' }
+                                                }
+                                            },
+                                            cartInfo: {
+                                                type: 'object',
+                                                properties: {
+                                                    totalItems: { type: 'number' },
+                                                    categories: { type: 'array', items: { type: 'string' } },
+                                                    totalValue: { type: 'number' }
+                                                }
+                                            },
+                                            mode: { type: 'string' },
+                                            expiresAt: { type: 'string' }
+                                        }
+                                    }
+                                },
+                                ineligibleCoupons: {
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            promotion_id: { type: 'number' },
+                                            name: { type: 'string' },
+                                            description: { type: 'string' },
+                                            type: { type: 'string' },
+                                            code: { type: 'string' },
+                                            priority: { type: 'number' },
+                                            start_date: { type: 'integer' },
+                                            end_date: { type: 'integer' },
+                                            ineligibleReason: { type: 'string' },
+                                            ineligibleDetails: { type: 'object' }
+                                        }
+                                    }
+                                },
+                                stackablePromotions: {
+                                    type: 'array',
+                                    description: 'Stackable promotions user can apply in addition to current promotions',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            promotion_id: { type: 'number' },
+                                            name: { type: 'string' },
+                                            description: { type: 'string' },
+                                            type: { type: 'string' },
+                                            code: { type: 'string' },
+                                            priority: { type: 'number' },
+                                            start_date: { type: 'integer' },
+                                            end_date: { type: 'integer' },
+                                            action: {
+                                                type: 'object',
+                                                nullable: true,
+                                                description: 'Promotion action object',
+                                                properties: {
+                                                    type: { type: 'string' },
+                                                    value: { anyOf: [{ type: 'number' }, { type: 'boolean' }] },
+                                                    max_discount: { type: 'number' },
+                                                    buy_quantity: { type: 'number' },
+                                                    get_quantity: { type: 'number' },
+                                                    product_ids: { type: 'array', items: { type: 'string' } },
+                                                    free_product_id: { type: 'string' },
+                                                    min_purchase: { type: 'number' },
+                                                    max_free_items: { type: 'number' },
+                                                    min_order_value: { type: 'number' }
+                                                },
+                                                additionalProperties: true
+                                            },
+                                            discountInfo: {
+                                                type: 'object',
+                                                properties: {
+                                                    originalTotal: { type: 'number' },
+                                                    discountAmount: { type: 'number' },
+                                                    discountedTotal: { type: 'number' },
+                                                    discountPercentage: { type: 'number' },
+                                                    savingsAmount: { type: 'number' }
+                                                }
+                                            },
+                                            cartInfo: {
+                                                type: 'object',
+                                                properties: {
+                                                    totalItems: { type: 'number' },
+                                                    categories: { type: 'array', items: { type: 'string' } },
+                                                    totalValue: { type: 'number' }
+                                                }
+                                            },
+                                            mode: { type: 'string' },
+                                            expiresAt: { type: 'string' }
+                                        }
+                                    }
+                                },
+                                autoAppliedPromotions: {
+                                    type: 'array',
+                                    description: 'Promotions that are automatically applied (already active)',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            promotion_id: { type: 'number' },
+                                            name: { type: 'string' },
+                                            description: { type: 'string' },
+                                            type: { type: 'string' },
+                                            code: { type: 'string' },
+                                            priority: { type: 'number' },
+                                            start_date: { type: 'integer' },
+                                            end_date: { type: 'integer' },
+                                            action: {
+                                                type: 'object',
+                                                nullable: true,
+                                                description: 'Promotion action object',
+                                                properties: {
+                                                    type: { type: 'string' },
+                                                    value: { anyOf: [{ type: 'number' }, { type: 'boolean' }] },
+                                                    max_discount: { type: 'number' },
+                                                    buy_quantity: { type: 'number' },
+                                                    get_quantity: { type: 'number' },
+                                                    product_ids: { type: 'array', items: { type: 'string' } },
+                                                    free_product_id: { type: 'string' },
+                                                    min_purchase: { type: 'number' },
+                                                    max_free_items: { type: 'number' },
+                                                    min_order_value: { type: 'number' }
+                                                },
+                                                additionalProperties: true
+                                            },
+                                            discountInfo: {
+                                                type: 'object',
+                                                properties: {
+                                                    originalTotal: { type: 'number' },
+                                                    discountAmount: { type: 'number' },
+                                                    discountedTotal: { type: 'number' },
+                                                    discountPercentage: { type: 'number' },
+                                                    savingsAmount: { type: 'number' }
+                                                }
+                                            },
+                                            cartInfo: {
+                                                type: 'object',
+                                                properties: {
+                                                    totalItems: { type: 'number' },
+                                                    categories: { type: 'array', items: { type: 'string' } },
+                                                    totalValue: { type: 'number' }
+                                                }
+                                            },
+                                            mode: { type: 'string' },
+                                            expiresAt: { type: 'string' }
+                                        }
+                                    }
+                                },
+                                summary: {
+                                    type: 'object',
+                                    properties: {
+                                        totalPromotions: { type: 'number' },
+                                        eligibleCount: { type: 'number' },
+                                        ineligibleCount: { type: 'number' },
+                                        stackableCount: { type: 'number' },
+                                        autoAppliedCount: { type: 'number' },
+                                        cartTotal: { type: 'number' },
+                                        cartItems: { type: 'number' },
+                                        categories: { type: 'array', items: { type: 'string' } }
+                                    }
+                                }
+                            }
+                        },
+                        message: { type: 'string' }
+                    }
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' }
+                    }
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' }
+                    }
+                }
+            }
+        }
+    }, promotionsController.getUnifiedPromotionOffers.bind(promotionsController));
+    // POST /v1/promotions/evaluate/automatic - Evaluate automatic promotions
+    fastify.post('/evaluate/automatic', {
+        schema: {
+            description: 'Evaluate automatic promotions based on cart total',
+            tags: ['Promotions', 'Automatic'],
+            body: {
+                type: 'object',
+                properties: {
+                    user_id: { type: 'string', description: 'User ID' },
+                    cart_items: {
+                        type: 'array',
+                        description: 'User cart items',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                cart_record_id: { type: 'string', description: 'Cart record ID' },
+                                product_id: { type: 'string', description: 'Product ID' },
+                                quantity: { type: 'number', description: 'Quantity' },
+                                base_price: { type: 'number', description: 'Original product price' },
+                                product_discount: { type: 'number', description: 'Product-level discount' },
+                                price: { type: 'number', description: 'Final price after product discount only' },
+                                category: { type: 'string', description: 'Product category' },
+                                subcategory: { type: 'string', description: 'Product subcategory' },
+                                name: { type: 'string', description: 'Product name' }
+                            },
+                            required: ['cart_record_id', 'product_id', 'quantity', 'price', 'category']
+                        }
+                    },
+                    context: {
+                        type: 'object',
+                        properties: {
+                            channel: { type: 'string', enum: ['web', 'mobile', 'mobile_app'], description: 'Platform channel' },
+                            geo: { type: 'string', description: 'Geographic region' },
+                            payment_method: { type: 'string', description: 'Payment method' },
+                            user_agent: { type: 'string', description: 'User agent' },
+                            ip_address: { type: 'string', description: 'IP address' }
+                        },
+                        required: ['channel', 'geo']
+                    }
+                },
+                required: ['user_id', 'cart_items', 'context']
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        data: {
+                            type: 'object',
+                            properties: {
+                                evaluation_id: { type: 'string', description: 'Single evaluation ID for the cart session' },
+                                user_id: { type: 'string', description: 'User ID' },
+                                cart_signature: { type: 'string', description: 'Cart signature hash' },
+                                cart_data: { type: 'object', description: 'Cart data' },
+                                applied_promotions: {
+                                    type: 'array',
+                                    description: 'Array of applied automatic promotions',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            promotion_id: { type: 'number' },
+                                            promotion_name: { type: 'string' },
+                                            promotion_type: { type: 'string' },
+                                            discount_amount: { type: 'number' },
+                                            is_auto: { type: 'boolean' },
+                                            is_free_shipping: { type: 'boolean', description: 'True if this is a free shipping promotion' }
+                                        }
+                                    }
+                                },
+                                status: { type: 'string', description: 'Evaluation status' },
+                                created_at: { type: 'string', description: 'UTC timestamp in milliseconds (BigInt)' },
+                                expires_at: { type: 'string', description: 'UTC timestamp in milliseconds (BigInt)' }
+                            }
+                        },
+                        message: { type: 'string' }
+                    }
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' }
+                    }
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' }
+                    }
+                }
+            }
+        }
+    }, evaluationController.evaluateAutomaticPromotions.bind(evaluationController));
+    // Get user's active evaluations
+    fastify.get('/evaluations', {
+        schema: {
+            description: 'Get user\'s active evaluations',
+            tags: ['Promotions'],
+            querystring: {
+                type: 'object',
+                properties: {
+                    user_id: {
+                        type: 'string',
+                        description: 'User ID to get evaluations for'
+                    }
+                },
+                required: ['user_id'],
+                additionalProperties: false
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        data: {
+                            type: 'object',
+                            properties: {
+                                evaluations: {
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            evaluation_id: { type: 'string' },
+                                            user_id: { type: 'string' },
+                                            promotion_id: { type: 'number' },
+                                            original_total: { type: 'number' },
+                                            discounted_total: { type: 'number' },
+                                            applied_promotions: { type: 'array' },
+                                            status: { type: 'string' },
+                                            created_at: { type: 'string' },
+                                            expires_at: { type: 'string' }
+                                        }
+                                    }
+                                },
+                                total_count: { type: 'number' }
+                            }
+                        }
+                    }
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' }
+                    }
+                }
+            }
+        }
+    }, evaluationController.getUserActiveEvaluations.bind(evaluationController));
+    // POST /v1/promotions/evaluate - Evaluate promotion or apply manual coupon
+    fastify.post('/evaluate', {
+        schema: {
+            description: 'Evaluate specific promotion or apply manual coupon to existing evaluation',
+            tags: ['Promotions', 'Evaluation'],
+            body: {
+                type: 'object',
+                properties: {
+                    // Common fields
+                    user_id: { type: 'string', description: 'User ID (required for all operations)' },
+                    promotion_id: { type: 'number', description: 'Promotion ID to evaluate or apply' },
+                    code: { type: 'string', description: 'Promotion code to evaluate (optional if promotion_id provided)' },
+                    application_type: {
+                        type: 'string',
+                        enum: ['manual_coupon', 'stackable_promotion', 'preview_only'],
+                        description: 'Type of promotion application - manual_coupon: apply exclusive discount to evaluation, stackable_promotion: add stackable benefit to evaluation, preview_only: calculate preview without saving'
+                    },
+                    // Optional fields
+                    evaluation_id: { type: 'string', description: 'Existing evaluation ID (optional - backend will auto-detect if not provided)' },
+                    cart_items: {
+                        type: 'array',
+                        description: 'User cart items',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                cart_record_id: { type: 'string', description: 'Cart record ID' },
+                                product_id: { type: 'string', description: 'Product ID' },
+                                quantity: { type: 'number', description: 'Quantity' },
+                                base_price: { type: 'number', description: 'Original product price' },
+                                product_discount: { type: 'number', description: 'Product-level discount' },
+                                price: { type: 'number', description: 'Final price after product discount only' },
+                                category: { type: 'string', description: 'Product category' },
+                                subcategory: { type: 'string', description: 'Product subcategory' },
+                                name: { type: 'string', description: 'Product name' }
+                            },
+                            required: ['cart_record_id', 'product_id', 'quantity', 'price', 'category']
+                        }
+                    },
+                    context: {
+                        type: 'object',
+                        properties: {
+                            channel: { type: 'string', enum: ['web', 'mobile', 'mobile_app'], description: 'Platform channel' },
+                            geo: { type: 'string', description: 'Geographic region' },
+                            payment_method: { type: 'string', description: 'Payment method' },
+                            user_agent: { type: 'string', description: 'User agent' },
+                            ip_address: { type: 'string', description: 'IP address' }
+                        },
+                        required: ['channel', 'geo']
+                    }
+                },
+                // Simplified requirements - user_id is always required, backend auto-detects evaluation
+                anyOf: [
+                    {
+                        // Manual coupon or stackable promotion (backend finds active evaluation)
+                        required: ['user_id', 'cart_items', 'application_type'],
+                        properties: {
+                            application_type: { enum: ['manual_coupon', 'stackable_promotion'] }
+                        }
+                    },
+                    {
+                        // Preview promotion (standalone calculation)
+                        required: ['user_id', 'cart_items', 'context', 'application_type'],
+                        properties: {
+                            application_type: { const: 'preview_only' }
+                        }
+                    }
+                ]
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        data: {
+                            type: 'object',
+                            properties: {
+                                evaluation_id: { type: 'string' },
+                                promotion_id: { type: 'number', nullable: true },
+                                promotion_name: { type: 'string', nullable: true },
+                                promotion_type: { type: 'string', nullable: true },
+                                is_eligible: { type: 'boolean' },
+                                original_total: { type: 'number', nullable: true },
+                                discounted_total: { type: 'number', nullable: true },
+                                total_discount: { type: 'number', nullable: true },
+                                discount_breakdown: {
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            cart_record_id: { type: 'string' },
+                                            product_id: { type: 'string' },
+                                            product_name: { type: 'string' },
+                                            category: { type: 'string' },
+                                            quantity: { type: 'number' },
+                                            original_price: { type: 'number', nullable: true },
+                                            discount_per_item: { type: 'number', nullable: true },
+                                            final_price_per_item: { type: 'number', nullable: true },
+                                            total_discount: { type: 'number', nullable: true }
+                                        },
+                                        additionalProperties: true
+                                    }
+                                },
+                                applied_promotions: {
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            promotion_id: { type: 'number', nullable: true },
+                                            promotion_name: { type: 'string', nullable: true },
+                                            promotion_type: { type: 'string', nullable: true },
+                                            is_auto: { type: 'boolean' },
+                                            is_free_shipping: { type: 'boolean' },
+                                            discount_amount: { type: 'number', nullable: true }
+                                        },
+                                        additionalProperties: true
+                                    }
+                                },
+                                ineligible_reason: { type: 'string', nullable: true },
+                                expires_at: { type: 'string', format: 'date-time', nullable: true }
+                            }
+                        },
+                        message: { type: 'string' }
+                    }
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' }
+                    }
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' }
+                    }
+                }
+            }
+        }
+    }, evaluationController.evaluatePromotion.bind(evaluationController));
+    // POST /v1/promotions/evaluate/remove - Remove coupon from evaluation
+    fastify.post('/evaluate/remove', {
+        schema: {
+            description: 'Remove coupon from evaluation',
+            tags: ['Promotions', 'Manual Coupon'],
+            body: {
+                type: 'object',
+                properties: {
+                    evaluation_id: { type: 'string', description: 'Evaluation ID' },
+                    promotion_id: { type: 'number', description: 'Promotion ID to remove' }
+                },
+                required: ['evaluation_id', 'promotion_id']
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        data: {
+                            type: 'object',
+                            properties: {
+                                evaluation_id: { type: 'string' },
+                                applied_promotions: { type: 'array' },
+                                expires_at: { type: 'string', format: 'date-time' }
+                            }
+                        },
+                        message: { type: 'string' }
+                    }
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' }
+                    }
+                }
+            }
+        }
+    }, evaluationController.removeManualCoupon.bind(evaluationController));
 }
 //# sourceMappingURL=promotions.route.js.map

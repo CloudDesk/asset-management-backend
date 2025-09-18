@@ -3,6 +3,7 @@ import { PaginationResult } from '../utils/pagination.js';
 import { FilterOptions } from '../utils/filterBuilder.js';
 export declare class PromotionsService {
     private prisma;
+    getAutoAppliedPromotionsFromEvaluation(userId: string): Promise<any[]>;
     private convertDateToUnixTimestamp;
     private convertUnixTimestampToDateString;
     private convertUnixTimestampToDate;
@@ -48,10 +49,14 @@ export declare class PromotionsService {
         bestCoupon: any;
         eligibleCoupons: any[];
         ineligibleCoupons: any[];
+        stackablePromotions: any[];
+        autoAppliedPromotions: any[];
         summary: {
             totalPromotions: number;
             eligibleCount: number;
             ineligibleCount: number;
+            stackableCount: number;
+            autoAppliedCount: number;
             cartTotal: number;
             cartItems: number;
             categories: string[];

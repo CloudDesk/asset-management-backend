@@ -1,9 +1,16 @@
 import { EvaluationRequest, EvaluationResponse } from '../schemas/evaluation.schema.js';
 export declare class PromotionEvaluationService {
     private prisma;
+    private getDiscountValue;
+    private calculateDiscountWithAction;
     constructor();
+    private buildAppliedPromotion;
+    private isStackablePromotion;
+    private calculateBogoDetails;
+    private calculateFreeProductDetails;
     private getUtcTimestamp;
     private getUtcTimestampWithOffset;
+    private convertUnixTimestampToDate;
     evaluatePromotion(request: EvaluationRequest): Promise<EvaluationResponse>;
     private getPromotion;
     private validatePromotion;
@@ -113,6 +120,7 @@ export declare class PromotionEvaluationService {
         reason?: string;
         evaluation?: any;
     }>;
+    cancelAllActiveEvaluationsForUser(userId: string): Promise<number>;
     getUserActiveEvaluations(userId: string): Promise<{
         evaluations: {
             evaluation_id: any;
@@ -323,14 +331,7 @@ export declare class PromotionEvaluationService {
             subcategory?: string;
             name?: string;
         }[];
-        applied_promotions: {
-            promotion_id: number;
-            promotion_name: string;
-            promotion_type: string;
-            discount_amount: number;
-            is_auto: boolean;
-            is_free_shipping: boolean;
-        }[];
+        applied_promotions: any[];
         status: string;
         created_at: string;
         expires_at: string;
@@ -362,9 +363,9 @@ export declare class PromotionEvaluationService {
         expires_at: string;
     }>;
     getEligibleAutomaticPromotions(userId: string, cartTotal: number, cartItems: any[]): Promise<{
-        promotion_id: number;
-        promotion_name: string;
-        promotion_type: string;
+        promotion_id: any;
+        promotion_name: any;
+        promotion_type: any;
         discount_amount: number;
         is_auto: boolean;
     }[]>;

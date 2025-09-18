@@ -185,7 +185,22 @@ export function convertBigIntToNumber(obj) {
         if (obj.constructor === Object || obj.constructor === undefined) {
             const converted = {};
             for (const [key, value] of Object.entries(obj)) {
-                converted[key] = convertBigIntToNumber(value);
+                // Special handling for JSONB fields - preserve them as-is if they're already valid JSON
+                if ((key === 'action' || key === 'conditions') && value && typeof value === 'object') {
+                    try {
+                        // Verify it's valid JSON by stringify/parse
+                        const jsonString = JSON.stringify(value);
+                        const parsed = JSON.parse(jsonString);
+                        converted[key] = parsed; // Use the parsed version directly without further conversion
+                    }
+                    catch (e) {
+                        // If it fails, fall back to normal conversion
+                        converted[key] = convertBigIntToNumber(value);
+                    }
+                }
+                else {
+                    converted[key] = convertBigIntToNumber(value);
+                }
             }
             return converted;
         }
@@ -211,7 +226,22 @@ export function convertBigIntToNumber(obj) {
                 // This is likely a valid JSON object that should be preserved
                 const converted = {};
                 for (const key of keys) {
-                    converted[key] = convertBigIntToNumber(obj[key]);
+                    // Special handling for JSONB fields - preserve them as-is if they're already valid JSON
+                    if ((key === 'action' || key === 'conditions') && obj[key] && typeof obj[key] === 'object') {
+                        try {
+                            // Verify it's valid JSON by stringify/parse
+                            const jsonString = JSON.stringify(obj[key]);
+                            const parsed = JSON.parse(jsonString);
+                            converted[key] = parsed; // Use the parsed version directly without further conversion
+                        }
+                        catch (e) {
+                            // If it fails, fall back to normal conversion
+                            converted[key] = convertBigIntToNumber(obj[key]);
+                        }
+                    }
+                    else {
+                        converted[key] = convertBigIntToNumber(obj[key]);
+                    }
                 }
                 return converted;
             }
@@ -598,7 +628,18 @@ export async function dynamicFindManyWithFilters(modelName, filters = {}, option
             prisma.$queryRawUnsafe(dataQuery, ...values),
             prisma.$queryRawUnsafe(countQuery, ...values)
         ]);
-        const data = Array.isArray(dataResult) ? convertBigIntToNumber(dataResult) : [];
+        // Convert BigInt but preserve JSONB fields
+        const data = Array.isArray(dataResult) ? dataResult.map(row => {
+            const converted = convertBigIntToNumber(row);
+            // Restore original JSONB fields if they exist
+            if (row.action && typeof row.action === 'object') {
+                converted.action = row.action;
+            }
+            if (row.conditions && typeof row.conditions === 'object') {
+                converted.conditions = row.conditions;
+            }
+            return converted;
+        }) : [];
         const total = Number(countResult[0]?.count || 0);
         logger.info({
             modelName,
@@ -658,7 +699,17 @@ export async function dynamicFindMany(modelName, options = {}) {
                     resultType: typeof result,
                     firstRecord: Array.isArray(result) && result.length > 0 ? Object.keys(result[0]) : 'no records'
                 }, 'Optimized raw SQL findMany completed successfully');
-                return Array.isArray(result) ? convertBigIntToNumber(result) : [];
+                return Array.isArray(result) ? result.map(row => {
+                    const converted = convertBigIntToNumber(row);
+                    // Restore original JSONB fields if they exist
+                    if (row.action && typeof row.action === 'object') {
+                        converted.action = row.action;
+                    }
+                    if (row.conditions && typeof row.conditions === 'object') {
+                        converted.conditions = row.conditions;
+                    }
+                    return converted;
+                }) : [];
             }
             catch (sqlError) {
                 logger.error({
@@ -733,7 +784,17 @@ export async function dynamicFindMany(modelName, options = {}) {
         ORDER BY ${orderByClause}
         LIMIT ${take} OFFSET ${skip}
       `);
-            return Array.isArray(result) ? convertBigIntToNumber(result) : [];
+            return Array.isArray(result) ? result.map(row => {
+                const converted = convertBigIntToNumber(row);
+                // Restore original JSONB fields if they exist
+                if (row.action && typeof row.action === 'object') {
+                    converted.action = row.action;
+                }
+                if (row.conditions && typeof row.conditions === 'object') {
+                    converted.conditions = row.conditions;
+                }
+                return converted;
+            }) : [];
         }
     }
     catch (error) {

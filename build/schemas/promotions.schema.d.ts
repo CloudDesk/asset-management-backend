@@ -31,7 +31,6 @@ export declare const createPromotionsSchema: z.ZodObject<{
     type: z.ZodOptional<z.ZodEnum<["PERCENT_OFF_ITEM", "FIXED_AMOUNT_OFF_ITEM", "BOGO", "PERCENT_OFF_CART", "FIXED_AMOUNT_OFF_CART", "FREE_SHIPPING", "FREE_PRODUCT"]>>;
     code: z.ZodOptional<z.ZodString>;
     auto_apply: z.ZodOptional<z.ZodBoolean>;
-    is_active: z.ZodOptional<z.ZodBoolean>;
     start_date: z.ZodOptional<z.ZodString>;
     end_date: z.ZodOptional<z.ZodString>;
     status: z.ZodOptional<z.ZodEnum<["active", "inactive"]>>;
@@ -75,7 +74,6 @@ export declare const createPromotionsSchema: z.ZodObject<{
     name?: string | undefined;
     description?: string | undefined;
     auto_apply?: boolean | undefined;
-    is_active?: boolean | undefined;
     start_date?: string | undefined;
     end_date?: string | undefined;
     priority?: number | undefined;
@@ -104,7 +102,6 @@ export declare const createPromotionsSchema: z.ZodObject<{
     name?: string | undefined;
     description?: string | undefined;
     auto_apply?: boolean | undefined;
-    is_active?: boolean | undefined;
     start_date?: string | undefined;
     end_date?: string | undefined;
     priority?: number | undefined;
@@ -133,7 +130,6 @@ export declare const updatePromotionsSchema: z.ZodObject<{
     type: z.ZodOptional<z.ZodEnum<["PERCENT_OFF_ITEM", "FIXED_AMOUNT_OFF_ITEM", "BOGO", "PERCENT_OFF_CART", "FIXED_AMOUNT_OFF_CART", "FREE_SHIPPING", "FREE_PRODUCT"]>>;
     code: z.ZodOptional<z.ZodString>;
     auto_apply: z.ZodOptional<z.ZodBoolean>;
-    is_active: z.ZodOptional<z.ZodBoolean>;
     start_date: z.ZodOptional<z.ZodString>;
     end_date: z.ZodOptional<z.ZodString>;
     status: z.ZodOptional<z.ZodEnum<["active", "inactive"]>>;
@@ -177,7 +173,6 @@ export declare const updatePromotionsSchema: z.ZodObject<{
     name?: string | undefined;
     description?: string | undefined;
     auto_apply?: boolean | undefined;
-    is_active?: boolean | undefined;
     start_date?: string | undefined;
     end_date?: string | undefined;
     priority?: number | undefined;
@@ -206,7 +201,6 @@ export declare const updatePromotionsSchema: z.ZodObject<{
     name?: string | undefined;
     description?: string | undefined;
     auto_apply?: boolean | undefined;
-    is_active?: boolean | undefined;
     start_date?: string | undefined;
     end_date?: string | undefined;
     priority?: number | undefined;
@@ -236,7 +230,6 @@ export declare const upsertPromotionsSchema: z.ZodObject<{
     type: z.ZodOptional<z.ZodEnum<["PERCENT_OFF_ITEM", "FIXED_AMOUNT_OFF_ITEM", "BOGO", "PERCENT_OFF_CART", "FIXED_AMOUNT_OFF_CART", "FREE_SHIPPING", "FREE_PRODUCT"]>>;
     code: z.ZodOptional<z.ZodString>;
     auto_apply: z.ZodOptional<z.ZodBoolean>;
-    is_active: z.ZodOptional<z.ZodBoolean>;
     start_date: z.ZodOptional<z.ZodString>;
     end_date: z.ZodOptional<z.ZodString>;
     status: z.ZodOptional<z.ZodEnum<["active", "inactive"]>>;
@@ -281,7 +274,6 @@ export declare const upsertPromotionsSchema: z.ZodObject<{
     id?: number | undefined;
     description?: string | undefined;
     auto_apply?: boolean | undefined;
-    is_active?: boolean | undefined;
     start_date?: string | undefined;
     end_date?: string | undefined;
     priority?: number | undefined;
@@ -311,7 +303,6 @@ export declare const upsertPromotionsSchema: z.ZodObject<{
     id?: number | undefined;
     description?: string | undefined;
     auto_apply?: boolean | undefined;
-    is_active?: boolean | undefined;
     start_date?: string | undefined;
     end_date?: string | undefined;
     priority?: number | undefined;
@@ -348,7 +339,6 @@ export declare const promotionsQuerySchema: z.ZodObject<{
     type: z.ZodOptional<z.ZodString>;
     code: z.ZodOptional<z.ZodString>;
     auto_apply: z.ZodOptional<z.ZodString>;
-    is_active: z.ZodOptional<z.ZodString>;
     status: z.ZodOptional<z.ZodString>;
     priority: z.ZodOptional<z.ZodString>;
     visibility: z.ZodOptional<z.ZodString>;
@@ -369,7 +359,6 @@ export declare const promotionsQuerySchema: z.ZodObject<{
     status?: string | undefined;
     name?: string | undefined;
     auto_apply?: string | undefined;
-    is_active?: string | undefined;
     priority?: string | undefined;
     visibility?: string | undefined;
     stackable?: string | undefined;
@@ -391,7 +380,6 @@ export declare const promotionsQuerySchema: z.ZodObject<{
     status?: string | undefined;
     name?: string | undefined;
     auto_apply?: string | undefined;
-    is_active?: string | undefined;
     priority?: string | undefined;
     visibility?: string | undefined;
     stackable?: string | undefined;

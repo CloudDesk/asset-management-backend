@@ -18,6 +18,45 @@ import { logger } from '../config/logger.js';
 export class PromotionsService {
   private prisma = new PrismaClient();
 
+  // Get auto-applied promotions from user's active evaluation record
+  async getAutoAppliedPromotionsFromEvaluation(userId: string): Promise<any[]> {
+    try {
+      // Find the user's active evaluation
+      const activeEvaluation = await this.prisma.promotion_evaluations.findFirst({
+        where: {
+          user_id: userId,
+          status: 'active'
+        },
+        orderBy: {
+          created_at: 'desc' // Get most recent active evaluation
+        }
+      });
+
+      if (!activeEvaluation || !activeEvaluation.applied_promotions) {
+        return [];
+      }
+
+      // Parse applied promotions and filter for auto-applied ones
+      const appliedPromotions = Array.isArray(activeEvaluation.applied_promotions) 
+        ? activeEvaluation.applied_promotions 
+        : JSON.parse(activeEvaluation.applied_promotions as string);
+
+      const autoAppliedPromotions = appliedPromotions.filter((promo: any) => promo.is_auto === true);
+
+      logger.info({
+        userId,
+        evaluationId: activeEvaluation.evaluation_id,
+        totalApplied: appliedPromotions.length,
+        autoAppliedCount: autoAppliedPromotions.length
+      }, 'Retrieved auto-applied promotions from active evaluation');
+
+      return autoAppliedPromotions;
+    } catch (error) {
+      logger.error({ error, userId }, 'Error getting auto-applied promotions from evaluation');
+      return [];
+    }
+  }
+
   // Helper function to convert date string to Unix timestamp
   private convertDateToUnixTimestamp(dateString: string): number {
     if (!dateString) return 0;
@@ -708,6 +747,16 @@ export class PromotionsService {
         discountPercentage = cartInfo.total > 0 ? (discountAmount / cartInfo.total) * 100 : 0;
         savingsAmount = discountAmount;
         break;
+
+      case 'FREE_PRODUCT':
+        // Free product logic - free gifts don't reduce cart total
+        // They provide additional value without discounting existing items
+        discountAmount = 0;  // No monetary discount on cart
+        discountPercentage = 0;
+        savingsAmount = 0;
+        // Note: The free product value should be communicated separately to frontend
+        // via action.free_product_id and product lookup
+        break;
     }
 
     return {
@@ -852,6 +901,26 @@ export class PromotionsService {
     cartItems: Array<{ productId: string; qty: number; category: string; price: number }>;
     mode: 'phonepe' | 'cod';
   }) {
+    // Check for existing active evaluation to determine promotion states
+    const activeEvaluation = await this.prisma.promotion_evaluations.findFirst({
+      where: {
+        user_id: request.userId,
+        status: 'active'
+      },
+      orderBy: { created_at: 'desc' }
+    });
+
+    let alreadyAppliedPromotionIds: number[] = [];
+    let appliedPromotionDetails: any[] = [];
+    
+    if (activeEvaluation?.applied_promotions) {
+      const appliedPromotions = Array.isArray(activeEvaluation.applied_promotions) 
+        ? activeEvaluation.applied_promotions 
+        : JSON.parse(activeEvaluation.applied_promotions as string);
+      
+      alreadyAppliedPromotionIds = appliedPromotions.map((p: any) => p.promotion_id);
+      appliedPromotionDetails = appliedPromotions;
+    }
     try {
       logger.info({ 
         userId: request.userId, 
@@ -880,7 +949,7 @@ export class PromotionsService {
         take: 100, // Get more promotions to evaluate
         useAllColumns: true
       });
-
+logger.info(allPromotions,"allPromotions")
       logger.info({ totalPromotions: allPromotions.length }, 'Retrieved active promotions');
 
       // Evaluate each promotion against the cart
@@ -939,6 +1008,15 @@ export class PromotionsService {
             items: request.cartItems
           });
 
+          // Check if promotion is already applied
+          const isAlreadyApplied = alreadyAppliedPromotionIds.includes(promotion.id);
+          
+          if (isAlreadyApplied) {
+            // Skip already applied promotions from regular categorization
+            // They will be handled separately in the response
+            continue;
+          }
+
           // If either user or cart is ineligible, add to ineligible
           if (!userEligible || !cartEligibilityResult.isEligible) {
             const promotionData = this.formatPromotionForDisplay(promotion);
@@ -963,7 +1041,10 @@ export class PromotionsService {
             mode: request.mode
           });
 
-          if (discountInfo.discountAmount > 0) {
+          // FREE_PRODUCT promotions are eligible even with 0 discount (they provide free gifts)
+          const isFreeProduct = promotion.type === 'FREE_PRODUCT';
+          
+          if (discountInfo.discountAmount > 0 || isFreeProduct) {
             const promotionData = this.formatPromotionForDisplay(promotion);
             eligibleCoupons.push({
               ...promotionData,
@@ -1023,18 +1104,97 @@ export class PromotionsService {
         return b.discountInfo.discountPercentage - a.discountInfo.discountPercentage;
       });
 
-      // Separate auto-applied promotions (already active) FIRST
-      const autoAppliedPromotions = eligibleCoupons.filter(promo => promo.auto_apply === true);
-      const autoAppliedIds = autoAppliedPromotions.map(promo => promo.id);
+      // Get auto-applied promotions from user's active evaluation record (not live calculation)
+      const autoAppliedFromEvaluation = await this.getAutoAppliedPromotionsFromEvaluation(request.userId);
+      
+      // Fetch full promotion details for auto-applied promotions
+      const autoAppliedPromotions = [];
+      for (const evalPromo of autoAppliedFromEvaluation) {
+        try {
+          // Get full promotion details from database
+          const fullPromotion = await this.findById(evalPromo.promotion_id.toString());
+          
+          if (fullPromotion) {
+            const promotionData = this.formatPromotionForDisplay(fullPromotion);
+            autoAppliedPromotions.push({
+              ...promotionData,
+              promotion_id: promotionData.id,
+              discountInfo: {
+                originalTotal: cartTotal,
+                discountAmount: evalPromo.discount_amount || 0,
+                discountedTotal: cartTotal - (evalPromo.discount_amount || 0),
+                discountPercentage: cartTotal > 0 ? ((evalPromo.discount_amount || 0) / cartTotal) * 100 : 0,
+                savingsAmount: evalPromo.discount_amount || 0
+              },
+              cartInfo: {
+                totalItems: itemCount,
+                categories: categories,
+                totalValue: cartTotal
+              },
+              mode: request.mode,
+              expiresAt: fullPromotion.end_date ? this.convertUnixTimestampToDateString(fullPromotion.end_date) : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+            });
+          }
+        } catch (error) {
+          logger.warn({ error, promotionId: evalPromo.promotion_id }, 'Error fetching full promotion details for auto-applied promotion');
+        }
+      }
+
+      const autoAppliedIds = autoAppliedPromotions.map(promo => promo.promotion_id);
       
       // Remove auto-applied promotions from eligible coupons (they shouldn't be offered as choices)
-      const manualEligibleCoupons = eligibleCoupons.filter(promo => promo.auto_apply !== true);
+      // Also remove any promotions that are already applied in the evaluation
+      const manualEligibleCoupons = eligibleCoupons.filter(promo => 
+        promo.auto_apply !== true && !autoAppliedIds.includes(promo.id)
+      );
       
       // Get the best coupon from manual coupons only (auto-applied are already applied)
-      const bestCoupon = manualEligibleCoupons.length > 0 ? manualEligibleCoupons[0] : null;
+      // const bestCoupon = manualEligibleCoupons.length > 0 ? manualEligibleCoupons[0] : null;
+      // ✅ FIXED: Create separate lists for UI that include applied promotions with proper states
+      
+      // For bestCoupon: Include all eligible promotions (including applied ones) with state indicators
+      const allEligibleForUI = [...manualEligibleCoupons];
+      
+      // Add applied promotions back with 'applied' state for UI
+      if (activeEvaluation && appliedPromotionDetails.length > 0) {
+        for (const appliedPromo of appliedPromotionDetails) {
+          // Find the original promotion data
+          const originalPromo = allPromotions.find(p => p.id === appliedPromo.promotion_id);
+          if (originalPromo && !appliedPromo.is_auto) {
+            // Add applied manual promotion with state indicator
+            const promotionData = this.formatPromotionForDisplay(originalPromo);
+            allEligibleForUI.push({
+              ...promotionData,
+              promotion_id: promotionData.id,
+              promotionState: 'applied', // ✅ NEW: State indicator for frontend
+              evaluation_id: activeEvaluation.evaluation_id, // ✅ For remove operations
+              applied_discount: appliedPromo.discount_amount
+            });
+          }
+        }
+      }
 
-      // Stackable promotions that user can ADD (exclude auto-applied ones)
-      const stackablePromotions = manualEligibleCoupons.filter(promo => 
+      // Sort by best value for user (prioritize actual savings, then priority)
+      allEligibleForUI.sort((a, b) => {
+        // For applied promotions, use applied_discount; for available ones, use potential discount
+        const aDiscount = a.applied_discount || a.discountInfo?.discountAmount || 0;
+        const bDiscount = b.applied_discount || b.discountInfo?.discountAmount || 0;
+        
+        // Primary sort: by actual discount amount (higher discount = better)
+        if (aDiscount !== bDiscount) {
+          return bDiscount - aDiscount;
+        }
+        
+        // Secondary sort: by priority (lower number = higher priority)
+        return (a.priority || 999) - (b.priority || 999);
+      });
+      
+      const bestCoupon = allEligibleForUI.length > 0 ? allEligibleForUI[0] : null;
+
+        // Stackable promotions that user can ADD (exclude auto-applied ones)
+        // const stackablePromotions = manualEligibleCoupons.filter(promo => 
+      // For stackablePromotions: Include stackable promotions (both available and applied)
+      const stackablePromotions = allEligibleForUI.filter(promo => 
         promo.stackable === true
       );
 
@@ -1052,12 +1212,20 @@ export class PromotionsService {
         ineligibleCoupons,
         stackablePromotions,
         autoAppliedPromotions,  // ✅ Auto-applied promotions separate
+        currentEvaluation: activeEvaluation ? {
+          evaluation_id: activeEvaluation.evaluation_id,
+          original_total: activeEvaluation.original_total,
+          discounted_total: activeEvaluation.discounted_total,
+          applied_promotions: appliedPromotionDetails  // ✅ Enhanced applied promotions with new fields
+        } : null,
         summary: {
           totalPromotions: allPromotions.length,
           eligibleCount: manualEligibleCoupons.length,  // ✅ Count manual coupons only
           ineligibleCount: ineligibleCoupons.length,
           stackableCount: stackablePromotions.length,
           autoAppliedCount: autoAppliedPromotions.length,
+          appliedCount: appliedPromotionDetails.length,  // ✅ Applied promotions count
+          hasActiveEvaluation: !!activeEvaluation,      // ✅ Evaluation state flag
           cartTotal,
           cartItems: itemCount,
           categories: categories

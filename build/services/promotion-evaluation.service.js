@@ -1,18 +1,175 @@
 import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../config/logger.js';
+import { dynamicFindManyWithFilters } from '../utils/dynamicDbOperations.js';
 import { createHash } from 'crypto';
 export class PromotionEvaluationService {
     prisma;
+    // Helper function to get discount value from either old or new format
+    getDiscountValue(promotion) {
+        if (promotion.discount_value !== null && promotion.discount_value !== undefined) {
+            return promotion.discount_value;
+        }
+        if (promotion.action && promotion.action.value !== null && promotion.action.value !== undefined) {
+            return promotion.action.value;
+        }
+        return 0;
+    }
+    // Enhanced helper to calculate discount with action object logic
+    calculateDiscountWithAction(promotion, itemPrice, itemQuantity, totalCartValue) {
+        if (!promotion.action) {
+            // Fallback to old logic
+            return this.getDiscountValue(promotion);
+        }
+        const action = promotion.action;
+        let discount = 0;
+        // Ensure action.value exists and is a valid number
+        const actionValue = action.value || 0;
+        switch (action.type) {
+            case 'PERCENT_OFF':
+                discount = (itemPrice * itemQuantity * actionValue) / 100;
+                // Apply max_discount cap if specified (optional field)
+                if (action.max_discount && typeof action.max_discount === 'number' && discount > action.max_discount) {
+                    discount = action.max_discount;
+                }
+                break;
+            case 'FIXED_AMOUNT_OFF':
+                discount = Math.min(actionValue, itemPrice * itemQuantity);
+                break;
+            case 'FREE_SHIPPING':
+                discount = 0; // Free shipping doesn't affect item prices
+                break;
+            case 'BOGO':
+                // BOGO logic - all fields are optional with defaults
+                const buyQuantity = action.buy_quantity || 1;
+                const getQuantity = action.get_quantity || 1;
+                if (itemQuantity >= buyQuantity) {
+                    const freeItems = Math.floor(itemQuantity / buyQuantity) * getQuantity;
+                    // max_free_items is optional - if not specified, no limit
+                    const maxFreeItems = action.max_free_items || freeItems;
+                    const actualFreeItems = Math.min(freeItems, maxFreeItems);
+                    discount = actualFreeItems * itemPrice;
+                }
+                break;
+            case 'FREE_PRODUCT':
+                // Free product logic - minimum purchase check should be done at cart level
+                // min_purchase and free_product_id are optional fields
+                discount = 0; // Free product doesn't reduce existing item prices
+                break;
+            default:
+                discount = this.getDiscountValue(promotion);
+        }
+        return discount;
+    }
     constructor() {
         this.prisma = new PrismaClient();
     }
-    // Add this helper method at the top of the PromotionEvaluationService class
+    // Helper function to build enhanced applied promotion object with new fields
+    buildAppliedPromotion(promotion, discountAmount, cartItems, isAuto = false) {
+        const basePromotion = {
+            promotion_id: promotion.id,
+            promotion_name: promotion.name || `Promotion ${promotion.id}`,
+            promotion_type: promotion.type || 'UNKNOWN',
+            discount_amount: discountAmount,
+            is_auto: isAuto,
+            is_free_shipping: promotion.type === 'FREE_SHIPPING',
+            is_stacked: this.isStackablePromotion(promotion.type)
+        };
+        // Add BOGO-specific details
+        if (promotion.type === 'BOGO' && promotion.action) {
+            const bogoDetails = this.calculateBogoDetails(promotion, cartItems);
+            if (bogoDetails) {
+                basePromotion.bogo_details = bogoDetails;
+            }
+        }
+        // Add FREE_PRODUCT-specific details
+        if (promotion.type === 'FREE_PRODUCT' && promotion.action) {
+            const freeProductDetails = this.calculateFreeProductDetails(promotion, cartItems);
+            if (freeProductDetails) {
+                basePromotion.free_product_details = freeProductDetails;
+            }
+        }
+        return basePromotion;
+    }
+    // Helper function to determine if a promotion type is stackable
+    isStackablePromotion(promotionType) {
+        const stackableTypes = ['FREE_SHIPPING', 'BOGO', 'FREE_PRODUCT'];
+        return stackableTypes.includes(promotionType);
+    }
+    // Helper function to calculate BOGO details
+    calculateBogoDetails(promotion, cartItems) {
+        if (!promotion.action || promotion.action.type !== 'BOGO') {
+            return null;
+        }
+        const action = promotion.action;
+        const buyQuantity = action.buy_quantity || 1;
+        const getQuantity = action.get_quantity || 1;
+        const maxFreeItems = action.max_free_items;
+        const productIds = action.product_ids || [];
+        let totalFreeItems = 0;
+        const affectedProducts = [];
+        for (const item of cartItems) {
+            // Check if item is eligible (either no product_ids specified or item is in the list)
+            const isEligible = productIds.length === 0 || productIds.includes(item.product_id);
+            if (isEligible && item.quantity >= buyQuantity) {
+                const freeItems = Math.floor(item.quantity / buyQuantity) * getQuantity;
+                let actualFreeItems = freeItems;
+                // Apply max_free_items limit if specified
+                if (maxFreeItems && totalFreeItems + freeItems > maxFreeItems) {
+                    actualFreeItems = Math.max(0, maxFreeItems - totalFreeItems);
+                }
+                if (actualFreeItems > 0) {
+                    totalFreeItems += actualFreeItems;
+                    affectedProducts.push(item.product_id);
+                }
+            }
+        }
+        return {
+            buy_quantity: buyQuantity,
+            get_quantity: getQuantity,
+            affected_products: affectedProducts,
+            free_items_count: totalFreeItems
+        };
+    }
+    // Helper function to calculate FREE_PRODUCT details
+    calculateFreeProductDetails(promotion, cartItems) {
+        if (!promotion.action || promotion.action.type !== 'FREE_PRODUCT') {
+            return null;
+        }
+        const action = promotion.action;
+        const freeProductId = action.free_product_id;
+        const maxFreeItems = action.max_free_items || 1;
+        const minPurchase = action.min_purchase || 0;
+        // Calculate cart total to check minimum purchase requirement
+        const cartTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        // Check if minimum purchase requirement is met
+        if (cartTotal < minPurchase) {
+            return null;
+        }
+        // Grant the free product (default to 1 item, up to max_free_items)
+        const grantedItems = Math.min(1, maxFreeItems);
+        return {
+            free_product_id: freeProductId,
+            max_free_items: maxFreeItems,
+            granted_items_count: grantedItems
+        };
+    }
+    // Helper methods for date handling with Unix timestamps
     getUtcTimestamp() {
         return BigInt(new Date().getTime()); // Current UTC time in milliseconds
     }
     getUtcTimestampWithOffset(offsetMinutes) {
         return BigInt(new Date().getTime() + (offsetMinutes * 60 * 1000)); // UTC time + offset
+    }
+    // Helper function to convert Unix timestamp to Date object
+    convertUnixTimestampToDate(timestamp) {
+        if (!timestamp)
+            return null;
+        const numTimestamp = typeof timestamp === 'string' ? parseInt(timestamp) :
+            typeof timestamp === 'bigint' ? Number(timestamp) : timestamp;
+        if (isNaN(numTimestamp))
+            return null;
+        return new Date(numTimestamp * 1000); // Convert seconds to milliseconds
     }
     // Main evaluation method
     async evaluatePromotion(request) {
@@ -48,13 +205,8 @@ export class PromotionEvaluationService {
                 original_total: request.cart_data.subtotal + request.cart_data.shipping_cost + request.cart_data.tax_amount,
                 discounted_total: discountResult.discounted_total,
                 total_discount: discountResult.total_discount,
-                applied_promotions: [{
-                        promotion_id: promotion.id,
-                        promotion_name: promotion.name || 'Unknown Promotion',
-                        discount_amount: discountResult.total_discount,
-                        affected_items: discountResult.affected_items,
-                        discount_breakdown: discountResult.breakdown
-                    }],
+                applied_promotions: [this.buildAppliedPromotion(promotion, discountResult.total_discount, request.cart_data.items || [], false // is_auto = false (manual evaluation)
+                    )],
                 ineligible_reasons: [],
                 expires_at: expiresAtUtc.toString()
             };
@@ -76,7 +228,7 @@ export class PromotionEvaluationService {
     async validatePromotion(promotion, request) {
         const reasons = [];
         // Check if promotion is active
-        if (!promotion.is_active) {
+        if (promotion.status !== 'active') {
             reasons.push({
                 promotion_id: promotion.id,
                 reason: 'Promotion is not active'
@@ -84,19 +236,21 @@ export class PromotionEvaluationService {
         }
         // Check date range
         const now = new Date();
-        if (promotion.start_date && new Date(promotion.start_date) > now) {
+        const startDate = this.convertUnixTimestampToDate(promotion.start_date);
+        const endDate = this.convertUnixTimestampToDate(promotion.end_date);
+        if (startDate && startDate > now) {
             reasons.push({
                 promotion_id: promotion.id,
                 reason: 'Promotion has not started yet',
-                required_value: promotion.start_date.getTime(),
+                required_value: startDate ? startDate.getTime() : 0,
                 current_value: now.getTime()
             });
         }
-        if (promotion.end_date && new Date(promotion.end_date) < now) {
+        if (endDate && endDate < now) {
             reasons.push({
                 promotion_id: promotion.id,
                 reason: 'Promotion has expired',
-                required_value: promotion.end_date.getTime(),
+                required_value: endDate ? endDate.getTime() : 0,
                 current_value: now.getTime()
             });
         }
@@ -226,12 +380,19 @@ export class PromotionEvaluationService {
         const itemDiscounts = [];
         switch (promotion.type) {
             case 'FIXED_AMOUNT_OFF_CART':
-                totalDiscount = Math.min(promotion.discount_value || 0, totalValue);
+                totalDiscount = Math.min(this.getDiscountValue(promotion), totalValue);
                 discountedTotal = totalValue - totalDiscount;
                 break;
             case 'PERCENT_OFF_CART':
-                const percentage = (promotion.discount_value || 0) / 100;
+                const percentage = this.getDiscountValue(promotion) / 100;
                 totalDiscount = totalValue * percentage;
+                // Apply max_discount cap if specified in action (optional field)
+                if (promotion.action &&
+                    promotion.action.max_discount &&
+                    typeof promotion.action.max_discount === 'number' &&
+                    totalDiscount > promotion.action.max_discount) {
+                    totalDiscount = promotion.action.max_discount;
+                }
                 discountedTotal = totalValue - totalDiscount;
                 break;
             case 'FREE_SHIPPING':
@@ -242,7 +403,7 @@ export class PromotionEvaluationService {
                 // Apply to specific items based on conditions
                 for (const item of cartData.items) {
                     if (this.isItemEligible(item, promotion)) {
-                        const itemDiscount = Math.min(promotion.discount_value || 0, item.price * item.quantity);
+                        const itemDiscount = Math.min(this.getDiscountValue(promotion), item.price * item.quantity);
                         totalDiscount += itemDiscount;
                         affectedItems.push(item.product_id);
                         itemDiscounts.push({
@@ -259,7 +420,7 @@ export class PromotionEvaluationService {
                 // Apply percentage to specific items
                 for (const item of cartData.items) {
                     if (this.isItemEligible(item, promotion)) {
-                        const percentage = (promotion.discount_value || 0) / 100;
+                        const percentage = this.getDiscountValue(promotion) / 100;
                         const itemDiscount = (item.price * item.quantity) * percentage;
                         totalDiscount += itemDiscount;
                         affectedItems.push(item.product_id);
@@ -292,9 +453,9 @@ export class PromotionEvaluationService {
                 discountedTotal = totalValue - totalDiscount;
                 break;
             case 'FREE_PRODUCT':
-                // Free product logic (simplified)
-                totalDiscount = promotion.discount_value || 0;
-                discountedTotal = totalValue - totalDiscount;
+                // Free product logic - doesn't reduce cart total (like FREE_SHIPPING)
+                totalDiscount = 0; // Free products don't discount existing items
+                discountedTotal = totalValue; // Cart total remains unchanged
                 break;
         }
         const breakdown = {
@@ -434,7 +595,6 @@ export class PromotionEvaluationService {
                 promotion = await this.prisma.promotions.findFirst({
                     where: {
                         code: request.code,
-                        is_active: true,
                         status: 'active'
                     }
                 });
@@ -453,8 +613,8 @@ export class PromotionEvaluationService {
             }, 'Cart analysis completed');
             // Check if promotion is currently active
             const now = new Date();
-            const startDate = promotion.start_date ? new Date(promotion.start_date) : null;
-            const endDate = promotion.end_date ? new Date(promotion.end_date) : null;
+            const startDate = this.convertUnixTimestampToDate(promotion.start_date);
+            const endDate = this.convertUnixTimestampToDate(promotion.end_date);
             if (startDate && startDate > now) {
                 return {
                     evaluation_id: evaluationId,
@@ -623,32 +783,35 @@ export class PromotionEvaluationService {
                 isItemEligible = this.isItemEligibleForPromotion(promotion, item);
             }
             if (isItemEligible) {
-                // Calculate discount based on promotion type
-                switch (promotion.type) {
-                    case 'PERCENT_OFF_ITEM':
-                        discountPerItem = (item.price * promotion.discount_value) / 100;
-                        break;
-                    case 'FIXED_AMOUNT_OFF_ITEM':
-                        discountPerItem = Math.min(promotion.discount_value, item.price);
-                        break;
-                    case 'PERCENT_OFF_CART':
-                        discountPerItem = (item.price * promotion.discount_value) / 100;
-                        break;
-                    case 'FIXED_AMOUNT_OFF_CART':
-                        // For cart-level fixed amount, distribute proportionally
-                        const totalCartValue = cartItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
-                        const itemValue = item.price * item.quantity;
-                        const proportionalDiscount = (itemValue / totalCartValue) * promotion.discount_value;
-                        discountPerItem = proportionalDiscount / item.quantity;
-                        break;
-                    case 'FREE_SHIPPING':
-                        // Free shipping doesn't affect item prices
-                        discountPerItem = 0;
-                        break;
-                    case 'BOGO':
-                        // Buy One Get One - complex logic
-                        discountPerItem = this.calculateBOGODiscount(promotion, item);
-                        break;
+                // Use enhanced action-based calculation
+                if (promotion.type === 'FIXED_AMOUNT_OFF_CART' || promotion.type === 'PERCENT_OFF_CART') {
+                    // For cart-level promotions, calculate total discount first, then distribute proportionally
+                    const totalCartValue = cartItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+                    const itemValue = item.price * item.quantity;
+                    // Calculate total cart discount with proper capping
+                    let totalCartDiscount = 0;
+                    if (promotion.type === 'PERCENT_OFF_CART') {
+                        const percentage = this.getDiscountValue(promotion) / 100;
+                        totalCartDiscount = totalCartValue * percentage;
+                        // Apply max_discount cap at cart level (optional field)
+                        if (promotion.action &&
+                            promotion.action.max_discount &&
+                            typeof promotion.action.max_discount === 'number' &&
+                            totalCartDiscount > promotion.action.max_discount) {
+                            totalCartDiscount = promotion.action.max_discount;
+                        }
+                    }
+                    else {
+                        totalCartDiscount = Math.min(this.getDiscountValue(promotion), totalCartValue);
+                    }
+                    // Distribute proportionally to this item
+                    const proportionalDiscount = (itemValue / totalCartValue) * totalCartDiscount;
+                    discountPerItem = proportionalDiscount / item.quantity;
+                }
+                else {
+                    // For item-level promotions, calculate per item
+                    const itemTotalDiscount = this.calculateDiscountWithAction(promotion, item.price, item.quantity);
+                    discountPerItem = itemTotalDiscount / item.quantity;
                 }
             }
             const finalPricePerItem = Math.max(0, item.price - discountPerItem);
@@ -851,6 +1014,31 @@ export class PromotionEvaluationService {
             };
         }
     }
+    // Cancel all active evaluations for a user (before creating new one)
+    async cancelAllActiveEvaluationsForUser(userId) {
+        try {
+            logger.info({ userId }, 'Canceling all active evaluations for user');
+            const result = await this.prisma.promotion_evaluations.updateMany({
+                where: {
+                    user_id: userId,
+                    status: 'active'
+                },
+                data: {
+                    status: 'cancelled',
+                    modifieddate: BigInt(Date.now())
+                }
+            });
+            logger.info({
+                userId,
+                cancelledCount: result.count
+            }, 'Cancelled active evaluations for user');
+            return result.count;
+        }
+        catch (error) {
+            logger.error({ error, userId }, 'Error canceling active evaluations for user');
+            throw error;
+        }
+    }
     // Get user's active evaluations
     async getUserActiveEvaluations(userId) {
         try {
@@ -897,15 +1085,14 @@ export class PromotionEvaluationService {
             // Calculate cart total using the price field (already after product discount)
             const cartTotal = request.cart_items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             // Get automatic promotions that are active and auto_apply = true
-            const automaticPromotions = await this.prisma.promotions.findMany({
-                where: {
-                    auto_apply: true,
-                    is_active: true,
-                    status: 'active',
-                    start_date: { lte: new Date() },
-                    end_date: { gte: new Date() }
-                },
-                orderBy: { priority: 'asc' } // Lower priority number = higher priority
+            // Use dynamic operations for consistency with date filtering
+            const { data: automaticPromotions } = await dynamicFindManyWithFilters('promotions', {
+                auto_apply: 'true',
+                status: 'active'
+            }, {
+                skip: 0,
+                take: 100,
+                useAllColumns: true
             });
             logger.info({
                 automaticPromotionsCount: automaticPromotions.length,
@@ -1127,7 +1314,6 @@ export class PromotionEvaluationService {
                 promotion = await this.prisma.promotions.findFirst({
                     where: {
                         code: request.code,
-                        is_active: true,
                         status: 'active'
                     }
                 });
@@ -1146,8 +1332,8 @@ export class PromotionEvaluationService {
             }, 'Cart analysis completed for manual promotion update');
             // Check if promotion is currently active
             const now = new Date();
-            const startDate = promotion.start_date ? new Date(promotion.start_date) : null;
-            const endDate = promotion.end_date ? new Date(promotion.end_date) : null;
+            const startDate = this.convertUnixTimestampToDate(promotion.start_date);
+            const endDate = this.convertUnixTimestampToDate(promotion.end_date);
             if (startDate && startDate > now) {
                 return {
                     evaluation_id: existingEvaluation.evaluation_id,
@@ -1255,17 +1441,12 @@ export class PromotionEvaluationService {
                 discountAmount = totalDiscount;
             }
             // Add the new manual promotion to existing ones
-            const newPromotion = {
-                promotion_id: promotion.id,
-                promotion_name: promotion.name,
-                promotion_type: promotion.type,
-                discount_amount: discountAmount,
-                is_auto: false, // Manual promotion
-                is_free_shipping: promotion.type === 'FREE_SHIPPING',
-                breakdown: discountBreakdown,
-                is_shipping_discount: promotion.type === 'FREE_SHIPPING' || false,
-                shipping_info: shippingInfo || null
-            };
+            const newPromotion = this.buildAppliedPromotion(promotion, discountAmount, request.cart_items, false // is_auto = false (manual)
+            );
+            // Add backward compatibility fields
+            newPromotion.breakdown = discountBreakdown;
+            newPromotion.is_shipping_discount = promotion.type === 'FREE_SHIPPING' || false;
+            newPromotion.shipping_info = shippingInfo || null;
             // Check if this promotion is already applied (avoid duplicates)
             const isAlreadyApplied = existingAppliedPromotions.some((p) => p.promotion_id === promotion.id);
             let updatedAppliedPromotions;
@@ -1347,21 +1528,28 @@ export class PromotionEvaluationService {
                 cartSignature: request.cart_signature,
                 cartItemsCount: request.cart_items.length
             }, 'Creating new automatic evaluation');
+            // CRITICAL FIX: Cancel all existing active evaluations for this user
+            // This prevents multiple active evaluations and ensures data consistency
+            const cancelledCount = await this.cancelAllActiveEvaluationsForUser(request.user_id);
+            logger.info({
+                userId: request.user_id,
+                cancelledEvaluations: cancelledCount,
+                newCartSignature: request.cart_signature
+            }, 'Cancelled existing evaluations before creating new one');
             console.log(request.cart_items, "request cartItems");
             // Generate evaluation ID
             const evaluationId = this.generateEvaluationId();
             // Calculate cart total using the price field (already after product discount)
             const cartTotal = request.cart_items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             // Get automatic promotions that are active and auto_apply = true
-            const automaticPromotions = await this.prisma.promotions.findMany({
-                where: {
-                    auto_apply: true,
-                    is_active: true,
-                    status: 'active',
-                    start_date: { lte: new Date() },
-                    end_date: { gte: new Date() }
-                },
-                orderBy: { priority: 'asc' }
+            // Use dynamic operations for consistency with date filtering
+            const { data: automaticPromotions } = await dynamicFindManyWithFilters('promotions', {
+                auto_apply: 'true',
+                status: 'active'
+            }, {
+                skip: 0,
+                take: 100,
+                useAllColumns: true
             });
             const appliedPromotions = [];
             let totalDiscount = 0;
@@ -1387,14 +1575,9 @@ export class PromotionEvaluationService {
                             tax_amount: 0,
                             total: cartTotal
                         });
-                        appliedPromotions.push({
-                            promotion_id: promotion.id,
-                            promotion_name: promotion.name || `Promotion ${promotion.id}`,
-                            promotion_type: promotion.type || 'UNKNOWN',
-                            discount_amount: discountResult.total_discount,
-                            is_auto: true,
-                            is_free_shipping: promotion.type === 'FREE_SHIPPING'
-                        });
+                        const enhancedPromotion = this.buildAppliedPromotion(promotion, discountResult.total_discount, request.cart_items, true // is_auto = true
+                        );
+                        appliedPromotions.push(enhancedPromotion);
                         totalDiscount += discountResult.total_discount;
                         logger.info({
                             promotionId: promotion.id,
@@ -1538,13 +1721,9 @@ export class PromotionEvaluationService {
                 throw new Error('Promotion is already applied');
             }
             // Add new promotion
-            appliedPromotions.push({
-                promotion_id: promotion.id,
-                promotion_name: promotion.name || `Promotion ${promotion.id}`,
-                promotion_type: promotion.type || 'UNKNOWN',
-                discount_amount: discountResult.total_discount,
-                is_auto: false
-            });
+            const enhancedPromotion = this.buildAppliedPromotion(promotion, discountResult.total_discount, request.cart_items, false // is_auto = false (manual)
+            );
+            appliedPromotions.push(enhancedPromotion);
             // Re-run automatic promotions to ensure consistency
             const automaticPromotions = await this.getEligibleAutomaticPromotions(evaluation.user_id || '', cartTotal, request.cart_items);
             // Add/update automatic promotions
@@ -1671,15 +1850,14 @@ export class PromotionEvaluationService {
     }
     // Helper method to get eligible automatic promotions
     async getEligibleAutomaticPromotions(userId, cartTotal, cartItems) {
-        const automaticPromotions = await this.prisma.promotions.findMany({
-            where: {
-                auto_apply: true,
-                is_active: true,
-                status: 'active',
-                start_date: { lte: new Date() },
-                end_date: { gte: new Date() }
-            },
-            orderBy: { priority: 'asc' }
+        // Use dynamic operations for consistency with date filtering
+        const { data: automaticPromotions } = await dynamicFindManyWithFilters('promotions', {
+            auto_apply: 'true',
+            status: 'active'
+        }, {
+            skip: 0,
+            take: 100,
+            useAllColumns: true
         });
         const eligiblePromotions = [];
         for (const promotion of automaticPromotions) {

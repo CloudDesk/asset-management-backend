@@ -225,10 +225,7 @@ export function buildPicklistFilters(filters) {
     if (filters.isActive !== undefined) {
         const isActiveValue = filters.isActive === 'true';
         conditions.push({
-            OR: [
-                { isActive: isActiveValue },
-                { is_active: isActiveValue }
-            ]
+            isActive: isActiveValue
         });
     }
     // If no filters, return empty object (select all)

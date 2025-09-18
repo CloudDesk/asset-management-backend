@@ -87,6 +87,115 @@ export class PromotionEvaluationService {
     this.prisma = new PrismaClient();
   }
 
+  // Helper function to build enhanced applied promotion object with new fields
+  private buildAppliedPromotion(promotion: any, discountAmount: number, cartItems: any[], isAuto: boolean = false): any {
+    const basePromotion: any = {
+      promotion_id: promotion.id,
+      promotion_name: promotion.name || `Promotion ${promotion.id}`,
+      promotion_type: promotion.type || 'UNKNOWN',
+      discount_amount: discountAmount,
+      is_auto: isAuto,
+      is_free_shipping: promotion.type === 'FREE_SHIPPING',
+      is_stacked: this.isStackablePromotion(promotion.type)
+    };
+
+    // Add BOGO-specific details
+    if (promotion.type === 'BOGO' && promotion.action) {
+      const bogoDetails = this.calculateBogoDetails(promotion, cartItems);
+      if (bogoDetails) {
+        basePromotion.bogo_details = bogoDetails;
+      }
+    }
+
+    // Add FREE_PRODUCT-specific details
+    if (promotion.type === 'FREE_PRODUCT' && promotion.action) {
+      const freeProductDetails = this.calculateFreeProductDetails(promotion, cartItems);
+      if (freeProductDetails) {
+        basePromotion.free_product_details = freeProductDetails;
+      }
+    }
+
+    return basePromotion;
+  }
+
+  // Helper function to determine if a promotion type is stackable
+  private isStackablePromotion(promotionType: string): boolean {
+    const stackableTypes = ['FREE_SHIPPING', 'BOGO', 'FREE_PRODUCT'];
+    return stackableTypes.includes(promotionType);
+  }
+
+  // Helper function to calculate BOGO details
+  private calculateBogoDetails(promotion: any, cartItems: any[]): any {
+    if (!promotion.action || promotion.action.type !== 'BOGO') {
+      return null;
+    }
+
+    const action = promotion.action;
+    const buyQuantity = action.buy_quantity || 1;
+    const getQuantity = action.get_quantity || 1;
+    const maxFreeItems = action.max_free_items;
+    const productIds = action.product_ids || [];
+
+    let totalFreeItems = 0;
+    const affectedProducts: string[] = [];
+
+    for (const item of cartItems) {
+      // Check if item is eligible (either no product_ids specified or item is in the list)
+      const isEligible = productIds.length === 0 || productIds.includes(item.product_id);
+      
+      if (isEligible && item.quantity >= buyQuantity) {
+        const freeItems = Math.floor(item.quantity / buyQuantity) * getQuantity;
+        let actualFreeItems = freeItems;
+        
+        // Apply max_free_items limit if specified
+        if (maxFreeItems && totalFreeItems + freeItems > maxFreeItems) {
+          actualFreeItems = Math.max(0, maxFreeItems - totalFreeItems);
+        }
+        
+        if (actualFreeItems > 0) {
+          totalFreeItems += actualFreeItems;
+          affectedProducts.push(item.product_id);
+        }
+      }
+    }
+
+    return {
+      buy_quantity: buyQuantity,
+      get_quantity: getQuantity,
+      affected_products: affectedProducts,
+      free_items_count: totalFreeItems
+    };
+  }
+
+  // Helper function to calculate FREE_PRODUCT details
+  private calculateFreeProductDetails(promotion: any, cartItems: any[]): any {
+    if (!promotion.action || promotion.action.type !== 'FREE_PRODUCT') {
+      return null;
+    }
+
+    const action = promotion.action;
+    const freeProductId = action.free_product_id;
+    const maxFreeItems = action.max_free_items || 1;
+    const minPurchase = action.min_purchase || 0;
+
+    // Calculate cart total to check minimum purchase requirement
+    const cartTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    
+    // Check if minimum purchase requirement is met
+    if (cartTotal < minPurchase) {
+      return null;
+    }
+
+    // Grant the free product (default to 1 item, up to max_free_items)
+    const grantedItems = Math.min(1, maxFreeItems);
+
+    return {
+      free_product_id: freeProductId,
+      max_free_items: maxFreeItems,
+      granted_items_count: grantedItems
+    };
+  }
+
   // Helper methods for date handling with Unix timestamps
   private getUtcTimestamp(): bigint {
     return BigInt(new Date().getTime()); // Current UTC time in milliseconds
@@ -147,13 +256,12 @@ export class PromotionEvaluationService {
         original_total: request.cart_data.subtotal + request.cart_data.shipping_cost + request.cart_data.tax_amount,
         discounted_total: discountResult.discounted_total,
         total_discount: discountResult.total_discount,
-        applied_promotions: [{
-          promotion_id: promotion.id,
-          promotion_name: promotion.name || 'Unknown Promotion',
-          discount_amount: discountResult.total_discount,
-          affected_items: discountResult.affected_items,
-          discount_breakdown: discountResult.breakdown
-        }],
+        applied_promotions: [this.buildAppliedPromotion(
+          promotion, 
+          discountResult.total_discount, 
+          request.cart_data.items || [], 
+          false // is_auto = false (manual evaluation)
+        )],
         ineligible_reasons: [],
         expires_at: expiresAtUtc.toString()
       };
@@ -434,9 +542,9 @@ export class PromotionEvaluationService {
         break;
 
       case 'FREE_PRODUCT':
-        // Free product logic (simplified)
-        totalDiscount = this.getDiscountValue(promotion);
-        discountedTotal = totalValue - totalDiscount;
+        // Free product logic - doesn't reduce cart total (like FREE_SHIPPING)
+        totalDiscount = 0;  // Free products don't discount existing items
+        discountedTotal = totalValue; // Cart total remains unchanged
         break;
     }
 
@@ -1108,6 +1216,34 @@ export class PromotionEvaluationService {
     }
   }
 
+  // Cancel all active evaluations for a user (before creating new one)
+  async cancelAllActiveEvaluationsForUser(userId: string): Promise<number> {
+    try {
+      logger.info({ userId }, 'Canceling all active evaluations for user');
+
+      const result = await this.prisma.promotion_evaluations.updateMany({
+        where: {
+          user_id: userId,
+          status: 'active'
+        },
+        data: {
+          status: 'cancelled',
+          modifieddate: BigInt(Date.now())
+        }
+      });
+
+      logger.info({ 
+        userId, 
+        cancelledCount: result.count 
+      }, 'Cancelled active evaluations for user');
+
+      return result.count;
+    } catch (error) {
+      logger.error({ error, userId }, 'Error canceling active evaluations for user');
+      throw error;
+    }
+  }
+
   // Get user's active evaluations
   async getUserActiveEvaluations(userId: string) {
     try {
@@ -1625,17 +1761,17 @@ export class PromotionEvaluationService {
       }
 
       // Add the new manual promotion to existing ones
-      const newPromotion = {
-        promotion_id: promotion.id,
-        promotion_name: promotion.name,
-        promotion_type: promotion.type,
-        discount_amount: discountAmount,
-        is_auto: false, // Manual promotion
-        is_free_shipping: promotion.type === 'FREE_SHIPPING',
-        breakdown: discountBreakdown,
-        is_shipping_discount: promotion.type === 'FREE_SHIPPING' || false,
-        shipping_info: shippingInfo || null
-      };
+      const newPromotion = this.buildAppliedPromotion(
+        promotion, 
+        discountAmount, 
+        request.cart_items, 
+        false // is_auto = false (manual)
+      );
+      
+      // Add backward compatibility fields
+      newPromotion.breakdown = discountBreakdown;
+      newPromotion.is_shipping_discount = promotion.type === 'FREE_SHIPPING' || false;
+      newPromotion.shipping_info = shippingInfo || null;
 
       // Check if this promotion is already applied (avoid duplicates)
       const isAlreadyApplied = existingAppliedPromotions.some((p: any) => p.promotion_id === promotion.id);
@@ -1746,6 +1882,16 @@ export class PromotionEvaluationService {
         cartSignature: request.cart_signature,
         cartItemsCount: request.cart_items.length
       }, 'Creating new automatic evaluation');
+
+      // CRITICAL FIX: Cancel all existing active evaluations for this user
+      // This prevents multiple active evaluations and ensures data consistency
+      const cancelledCount = await this.cancelAllActiveEvaluationsForUser(request.user_id);
+      
+      logger.info({
+        userId: request.user_id,
+        cancelledEvaluations: cancelledCount,
+        newCartSignature: request.cart_signature
+      }, 'Cancelled existing evaluations before creating new one');
 console.log(request.cart_items,"request cartItems")
       // Generate evaluation ID
       const evaluationId = this.generateEvaluationId();
@@ -1796,14 +1942,14 @@ console.log(request.cart_items,"request cartItems")
               total: cartTotal
             });
 
-            appliedPromotions.push({
-              promotion_id: promotion.id,
-              promotion_name: promotion.name || `Promotion ${promotion.id}`,
-              promotion_type: promotion.type || 'UNKNOWN',
-              discount_amount: discountResult.total_discount,
-              is_auto: true,
-              is_free_shipping: promotion.type === 'FREE_SHIPPING'
-            });
+            const enhancedPromotion = this.buildAppliedPromotion(
+              promotion, 
+              discountResult.total_discount, 
+              request.cart_items, 
+              true // is_auto = true
+            );
+            
+            appliedPromotions.push(enhancedPromotion);
 
             totalDiscount += discountResult.total_discount;
 
@@ -1978,13 +2124,14 @@ console.log(request.cart_items,"request cartItems")
       }
 
       // Add new promotion
-      appliedPromotions.push({
-        promotion_id: promotion.id,
-        promotion_name: promotion.name || `Promotion ${promotion.id}`,
-        promotion_type: promotion.type || 'UNKNOWN',
-        discount_amount: discountResult.total_discount,
-        is_auto: false
-      });
+      const enhancedPromotion = this.buildAppliedPromotion(
+        promotion, 
+        discountResult.total_discount, 
+        request.cart_items, 
+        false // is_auto = false (manual)
+      );
+      
+      appliedPromotions.push(enhancedPromotion);
 
       // Re-run automatic promotions to ensure consistency
       const automaticPromotions = await this.getEligibleAutomaticPromotions(evaluation.user_id || '', cartTotal, request.cart_items);

@@ -52,13 +52,41 @@ export const discountBreakdownSchema = z.object({
   cart_discount: z.number().min(0),
 });
 
+// BOGO details schema
+export const bogoDetailsSchema = z.object({
+  buy_quantity: z.number().positive(),
+  get_quantity: z.number().positive(),
+  affected_products: z.array(z.string()),
+  free_items_count: z.number().min(0),
+});
+
+// FREE_PRODUCT details schema
+export const freeProductDetailsSchema = z.object({
+  free_product_id: z.string(),
+  max_free_items: z.number().positive(),
+  granted_items_count: z.number().min(0),
+});
+
 // Applied promotion schema
 export const appliedPromotionSchema = z.object({
   promotion_id: z.number(),
   promotion_name: z.string(),
+  promotion_type: z.string(),
   discount_amount: z.number(),
-  affected_items: z.array(z.string()),
-  discount_breakdown: discountBreakdownSchema,
+  is_auto: z.boolean(),
+  is_free_shipping: z.boolean(),
+  is_stacked: z.boolean().optional(),
+  
+  // Optional details for specific promotion types
+  bogo_details: bogoDetailsSchema.optional(),
+  free_product_details: freeProductDetailsSchema.optional(),
+  
+  // Backward compatibility fields
+  affected_items: z.array(z.string()).optional(),
+  discount_breakdown: discountBreakdownSchema.optional(),
+  breakdown: discountBreakdownSchema.optional(),
+  is_shipping_discount: z.boolean().optional(),
+  shipping_info: z.any().optional(),
 });
 
 // Ineligible reason schema
@@ -112,7 +140,9 @@ export type CartData = z.infer<typeof cartDataSchema>;
 export type Context = z.infer<typeof contextSchema>;
 export type EvaluationRequest = z.infer<typeof evaluationRequestSchema>;
 export type DiscountBreakdown = z.infer<typeof discountBreakdownSchema>;
+export type BogoDetails = z.infer<typeof bogoDetailsSchema>;
+export type FreeProductDetails = z.infer<typeof freeProductDetailsSchema>;
 export type AppliedPromotion = z.infer<typeof appliedPromotionSchema>;
 export type IneligibleReason = z.infer<typeof ineligibleReasonSchema>;
 export type EvaluationResponse = z.infer<typeof evaluationResponseSchema>;
-export type EvaluationResult = z.infer<typeof evaluationResultSchema>;  // Add this type export
+export type EvaluationResult = z.infer<typeof evaluationResultSchema>;

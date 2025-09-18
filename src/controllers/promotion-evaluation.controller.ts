@@ -11,9 +11,11 @@ export class PromotionEvaluationController {
   // Evaluate specific promotion against user's cart
   evaluatePromotion = asyncHandler(async (request: FastifyRequest<{
     Body: {
-      user_id: string;
+      user_id?: string;
+      evaluation_id?: string;
       promotion_id?: number;
       code?: string;
+      application_type?: 'manual_coupon' | 'stackable_promotion' | 'preview_only';
       cart_items: Array<{
         cart_record_id: string;
         product_id: string;
@@ -25,7 +27,7 @@ export class PromotionEvaluationController {
         subcategory?: string;
         name?: string;
       }>;
-      context: {
+      context?: {
         channel: 'web' | 'mobile' | 'mobile_app';
         geo: string;
         payment_method?: string;
@@ -34,7 +36,7 @@ export class PromotionEvaluationController {
       };
     }
   }>, reply: FastifyReply) => {
-    const { user_id, promotion_id, code, cart_items, context } = request.body;
+    const { user_id, evaluation_id, promotion_id, code, application_type, cart_items, context } = request.body;
     
     // Validate that either promotion_id or code is provided
     if (!promotion_id && !code) {
@@ -55,20 +57,70 @@ export class PromotionEvaluationController {
     
     logger.info({ 
       user_id, 
+      evaluation_id,
       promotion_id, 
       code,
+      application_type,
       cartItemsCount: cart_items.length,
-      channel: context.channel,
-      geo: context.geo
-    }, 'Evaluating specific promotion against user cart');
+      channel: context?.channel,
+      geo: context?.geo
+    }, 'Evaluating promotion with application type');
 
-    const evaluation = await this.evaluationService.evaluateSpecificPromotion({
-      user_id,
-      ...(promotion_id && { promotion_id }),
-      ...(code && { code }),
-      cart_items,
-      context
-    });
+    // Handle different application types
+    let evaluation;
+    
+    switch (application_type) {
+      case 'manual_coupon':
+      case 'stackable_promotion':
+        // Auto-detect evaluation_id if not provided
+        let targetEvaluationId = evaluation_id;
+        
+        if (!targetEvaluationId) {
+          // Find user's active evaluation
+          const activeEvaluations = await this.evaluationService.getUserActiveEvaluations(user_id!);
+          if (activeEvaluations.evaluations && activeEvaluations.evaluations.length > 0) {
+            targetEvaluationId = activeEvaluations.evaluations[0].evaluation_id;
+            logger.info({ 
+              userId: user_id, 
+              autoDetectedEvaluationId: targetEvaluationId,
+              applicationType: application_type
+            }, 'Auto-detected evaluation ID for promotion application');
+          } else {
+            return reply.code(400).send({
+              success: false,
+              message: 'No active evaluation found',
+              details: 'Please create an evaluation first by calling /evaluate/automatic or provide evaluation_id'
+            });
+          }
+        }
+
+        // Apply promotion to evaluation
+        evaluation = await this.evaluationService.applyManualCoupon({
+          evaluation_id: targetEvaluationId,
+          promotion_id: promotion_id!,
+          cart_items
+        });
+        break;
+
+      case 'preview_only':
+      default:
+        // Preview promotion calculation (no database changes)
+        if (!user_id || !context) {
+          return reply.code(400).send({
+            success: false,
+            message: 'user_id and context are required for preview_only',
+            details: 'Please provide user_id and context for promotion preview'
+          });
+        }
+        evaluation = await this.evaluationService.evaluateSpecificPromotion({
+          user_id,
+          ...(promotion_id && { promotion_id }),
+          ...(code && { code }),
+          cart_items,
+          context
+        });
+        break;
+    }
 
     const response = createSuccessResponse('Promotion evaluation completed', evaluation);
     return reply.code(200).send(response);
