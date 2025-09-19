@@ -2,9 +2,10 @@
 
 ## 📋 Overview
 
-Successfully implemented two new routes for the stock module:
+Successfully implemented stock export and the two-step bulk import workflow:
 - **GET /v1/stocks/export** - Export stocks to Excel file
-- **POST /v1/stocks/import-bulk** - Placeholder for bulk import (not yet implemented)
+- **POST /v1/stocks/import/preview** - Parse Excel upload, validate rows, and return a structured preview
+- **POST /v1/stocks/import/commit** - Persist previously validated rows after confirmation
 
 ## 🚀 Implementation Details
 
@@ -15,6 +16,8 @@ Successfully implemented two new routes for the stock module:
 
 #### New Files:
 - `src/services/excel.service.ts` - Excel generation service
+- `src/services/stockImport.service.ts` - Excel parsing, validation, and commit preparation
+- `src/schemas/stock-import.schema.ts` - Zod schema for import commit payload
 
 #### Modified Files:
 - `src/controllers/stock.controller.ts` - Added export and import methods
@@ -92,32 +95,34 @@ Comprehensive guide including:
 - Graceful handling of missing/invalid data
 - Returns appropriate HTTP status codes
 
-### 5. Import Route Placeholder
+### 5. Import Workflow
 
-#### Endpoint: `POST /v1/stocks/import-bulk`
+#### Step 1: `POST /v1/stocks/import/preview`
 
-**Current Status**: Placeholder implementation
-- Returns HTTP 501 (Not Implemented)
-- Schema defined for multipart/form-data file upload
-- Ready for future implementation
+- Accepts an Excel file (`multipart/form-data`)
+- Parses the **Bulk Upload** worksheet and normalises values (PUC, RFID, Serial Number, Manufactured/Release Year, etc.)
+- Converts date fields from `YYYY-MM-DD` (or Excel serial/date values) to UTC epoch seconds
+- Validates each row and reports:
+  - **Success** – fully valid rows ready to commit
+  - **Warning** – presently unused but reserved for non-blocking issues
+  - **Error** – missing required data, invalid formats, duplicates, or conflicts with existing DB records
+- Checks uniqueness for both `serialnumber` and `rfid`
+- Returns a detailed payload containing per-row issues, a summary, and the list of valid rows for the next step
 
-**Schema**:
-```json
-{
-  "consumes": ["multipart/form-data"],
-  "body": {
-    "type": "object",
-    "properties": {
-      "file": {
-        "type": "string",
-        "format": "binary",
-        "description": "Excel file to import"
-      }
-    },
-    "required": ["file"]
-  }
-}
-```
+#### Step 2: `POST /v1/stocks/import/commit`
+
+- Accepts JSON body with the array of rows selected for insertion (typically the `validRows` from preview)
+- Re-validates the payload to guard against stale data or race conditions (duplicate checks re-run against the database)
+- Inserts each row using the existing `StockService#create`
+- Responds with summary counts, inserted records (formatted for API), and any rows that failed during insertion
+- Uses HTTP **201** on full success and **207** if any row fails to insert
+
+#### Validation Rules
+
+- `serialnumber` and `rfid` are required and must be unique within the file and existing DB records
+- Date columns accept `YYYY-MM-DD`, Excel date serials, or real Excel date objects; values convert to epoch seconds (UTC)
+- Boolean column `ecompublish` accepts `true/false`, `yes/no`, `1/0` (case insensitive)
+- Optional fields (PUC, location) are trimmed and included when present
 
 ## 🔧 Usage Examples
 
@@ -185,18 +190,14 @@ The implementation follows the existing project patterns:
 
 ✅ **Server starts successfully** with the new implementation
 ✅ **No compilation errors** in TypeScript
-✅ **Routes are properly registered** in Fastify
-✅ **Swagger documentation** includes the new endpoints
+✅ **Preview & commit routes** registered with Fastify and documented in Swagger
+✅ **Validation failures return actionable feedback** (row number, field, message)
 
-## 📝 Next Steps for Import Functionality
+## 📝 Next Steps
 
-When implementing the import-bulk route:
-1. Add file upload handling using `@fastify/multipart`
-2. Parse Excel files using ExcelJS
-3. Validate data against stock schema
-4. Implement bulk insert/update logic
-5. Return detailed success/error report
-6. Add progress tracking for large imports
+- Extend warning handling to capture non-blocking issues (e.g., optional fields left empty)
+- Add automated tests covering preview parsing and commit scenarios
+- Consider issuing preview tokens to avoid resending large payloads during commit (optional enhancement)
 
 ## 🔐 Security Considerations
 

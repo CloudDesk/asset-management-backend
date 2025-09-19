@@ -1,7 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import formbody from '@fastify/formbody';
-import multipart from '@fastify/multipart';
+import multipart, { ajvFilePlugin } from '@fastify/multipart';
 import { env } from './config/env.js';
 import { logger } from './config/logger.js';
 import loggerPlugin from './plugins/logger.js';
@@ -14,6 +14,9 @@ export async function buildServer() {
   const fastify = Fastify({
     logger: true, // Use default logger instead of passing pino instance
     disableRequestLogging: true, // We'll handle this in our logger plugin
+    ajv: {
+      plugins: [ajvFilePlugin],
+    },
   });
   console.log('test');
 
@@ -31,8 +34,10 @@ export async function buildServer() {
   // Register form body parser
   await fastify.register(formbody);
 
-  // Register multipart support
-  await fastify.register(multipart);
+  // Register multipart support and expose files/fields on request.body for schema validation
+  await fastify.register(multipart, {
+    attachFieldsToBody: true,
+  });
 
   // Register database plugin
   await fastify.register(dbPlugin);

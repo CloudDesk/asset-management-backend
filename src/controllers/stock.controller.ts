@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { StockService } from '../services/stock.service.js';
 import { ExcelService } from '../services/excel.service.js';
+import { StockImportService } from '../services/stockImport.service.js';
 import { 
   createStockSchema, 
   updateStockSchema, 
@@ -19,10 +20,13 @@ import {
   ValidationError
 } from '../utils/errorHandler.js';
 import { formatStockForAPI, formatEntitiesForAPI } from '../utils/dynamicDbOperations.js';
+import { stockImportCommitSchema, StockImportCommitInput } from '../schemas/stock-import.schema.js';
+import { logger } from '../config/logger.js';
 
 export class StockController {
   public stockService = new StockService();
   private excelService = new ExcelService();
+  private stockImportService = new StockImportService();
 
   getStocks = asyncHandler(async (request: FastifyRequest<{ Querystring: Record<string, any> }>, reply: FastifyReply) => {
     // Get all query parameters as filters (not just schema-validated ones)
@@ -181,11 +185,220 @@ export class StockController {
   });
 
   /**
-   * Import bulk stocks (placeholder)
+   * Generate preview for stock import file
    */
-  importBulkStocks = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
-    // TODO: Implement bulk import functionality
-    const response = createSuccessResponse('Bulk import functionality not yet implemented', null);
-    return reply.code(501).send(response);
+  /*
+  importPreview = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    const file = await (request as any).file?.();
+
+    if (!file) {
+      throw new ValidationError('No file uploaded', 'Please attach an Excel file to import stocks');
+    }
+
+    const mimeType = file.mimetype;
+    const allowedMimeTypes = [
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-excel',
+    ];
+
+    if (mimeType && !allowedMimeTypes.includes(mimeType)) {
+      throw new ValidationError('Invalid file format', 'Please upload an Excel (.xlsx) file');
+    }
+
+    const fileBuffer = await file.toBuffer();
+    const preview = await this.stockImportService.generatePreview(fileBuffer);
+
+    const response = createSuccessResponse('Import preview generated successfully', preview);
+    return reply.code(200).send(response);
   });
-} 
+*/
+  /**
+   * Commit validated stock import rows
+   */
+  /*
+  importCommit = asyncHandler(async (
+    request: FastifyRequest<{ Body: StockImportCommitInput }>,
+    reply: FastifyReply
+  ) => {
+    const { rows } = stockImportCommitSchema.parse(request.body);
+
+    const validation = await this.stockImportService.validateNormalizedRows(rows);
+
+    if (validation.summary.errors > 0 || validation.summary.warnings > 0) {
+      return reply.code(400).send({
+        success: false,
+        message: 'Import commit validation failed',
+        statusCode: 400,
+        data: validation,
+      });
+    }
+
+    const rowsToInsert = validation.validRows;
+
+    const createdStocks: any[] = [];
+    const failures: Array<{ rowNumber?: number; serialnumber?: string; message: string }> = [];
+
+    for (const row of rowsToInsert) {
+      const { rowNumber, ...payload } = row;
+      try {
+        const created = await this.stockService.create(payload as any);
+        createdStocks.push({
+          rowNumber,
+          data: formatStockForAPI(created),
+        });
+      } catch (error: any) {
+        logger.error({ error: error.message, rowNumber, serialnumber: row.serialnumber }, 'Failed to insert stock during import commit');
+        failures.push({
+          rowNumber,
+          serialnumber: row.serialnumber,
+          message: error.message || 'Failed to insert row',
+        });
+      }
+    }
+
+    const summary = {
+      requested: rows.length,
+      inserted: createdStocks.length,
+      failed: failures.length,
+    };
+
+    const responseData = {
+      summary,
+      inserted: createdStocks,
+      failures,
+    };
+
+    const responseCode = failures.length > 0 ? 207 : 201;
+    const message = failures.length > 0
+      ? 'Import commit completed with partial failures'
+      : 'Import commit completed successfully';
+
+    const response = createSuccessResponse(message, responseData);
+    return reply.code(responseCode).send(response);
+  });*/
+
+  // Import  preview - Parse and validate Excel file
+  importPreview = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      console.log('importBulkPreview started');
+      console.log('Request body:', request.body);
+      console.log('Request headers:', request.headers);
+      
+      // Handle Fastify multipart file upload (with attachFieldsToBody: true)
+      const body = request.body as any;
+      
+      if (!body || !body.file) {
+        return reply.code(400).send({
+          success: false,
+          message: 'No file uploaded',
+          details: 'Please upload an Excel file using multipart/form-data with field name "file"',
+          statusCode: 400
+        });
+      }
+
+      const uploadedFile = body.file;
+      console.log('Uploaded file:', uploadedFile);
+
+      // Validate file type
+      if (!uploadedFile.mimetype.includes('spreadsheet') && !uploadedFile.filename?.endsWith('.xlsx')) {
+        return reply.code(400).send({
+          success: false,
+          message: 'Invalid file type',
+          details: 'Please upload an Excel (.xlsx) file',
+          statusCode: 400
+        });
+      }
+
+      // Get file buffer from Fastify multipart
+      const fileBuffer = await uploadedFile.toBuffer();
+      console.log('File buffer size:', fileBuffer.length);
+      
+      if (fileBuffer.length === 0) {
+        return reply.code(400).send({
+          success: false,
+          message: 'Empty file uploaded',
+          details: 'The uploaded file appears to be empty',
+          statusCode: 400
+        });
+      }
+
+      logger.info({
+        filename: uploadedFile.filename,
+        mimetype: uploadedFile.mimetype,
+        fileSize: fileBuffer.length
+      }, 'Processing stock import file');
+
+      // Parse and validate Excel file using StockImportService
+      const validationResult = await this.stockImportService.parseAndValidateExcel(fileBuffer);
+
+      logger.info({
+        totalRows: validationResult.summary.totalRows,
+        validRows: validationResult.summary.success,
+        errorRows: validationResult.summary.errors,
+        warningRows: validationResult.summary.warnings
+      }, 'Stock import validation completed');
+
+      const message = `Parsed ${validationResult.summary.totalRows} rows. Found ${validationResult.summary.success} valid rows, ${validationResult.summary.warnings} warnings, and ${validationResult.summary.errors} errors.`;
+
+      const response = createSuccessResponse(message, validationResult);
+      return reply.code(200).send(response);
+
+    } catch (error: any) {
+      logger.error({ error: error.message }, 'Error in stock import preview');
+      return reply.code(400).send({
+        success: false,
+        message: 'Failed to process Excel file',
+        details: error.message,
+        statusCode: 400
+      });
+    }
+  });
+
+  // Import commit - Insert validated rows into database
+  importCommit = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { rows } = request.body as { rows: any[] };
+
+      if (!rows || !Array.isArray(rows) || rows.length === 0) {
+        return reply.code(400).send({
+          success: false,
+          message: 'No valid rows provided',
+          details: 'Please provide an array of validated rows for insertion',
+          statusCode: 400
+        });
+      }
+
+      logger.info({
+        rowCount: rows.length
+      }, 'Starting stock import commit process');
+
+      // Insert validated rows using StockImportService
+      const insertResult = await this.stockImportService.insertValidatedRows(rows);
+
+      logger.info({
+        requested: insertResult.summary.requested,
+        inserted: insertResult.summary.inserted,
+        failed: insertResult.summary.failed
+      }, 'Stock import commit completed');
+
+      const message = insertResult.summary.failed > 0
+        ? `Import completed with ${insertResult.summary.failed} failures out of ${insertResult.summary.requested} rows`
+        : `Successfully imported ${insertResult.summary.inserted} stock records`;
+
+      // Return appropriate status code
+      const statusCode = insertResult.summary.failed > 0 ? 207 : 201; // 207 = Multi-Status for partial success
+
+      const response = createSuccessResponse(message, insertResult);
+      return reply.code(statusCode).send(response);
+
+    } catch (error: any) {
+      logger.error({ error: error.message }, 'Error in stock import commit');
+      return reply.code(500).send({
+        success: false,
+        message: 'Failed to commit stock import',
+        details: error.message,
+        statusCode: 500
+      });
+    }
+  });
+}

@@ -24,38 +24,38 @@ export class ExcelService {
   async generateStockExcel(filters: Record<string, any>): Promise<Buffer> {
     try {
       const { page = 1, limit = 500, ...stockFilters } = filters;
-      
+
       logger.info({ filters, page, limit }, 'Starting multi-sheet stock Excel generation');
 
       // Fetch stock data using the existing service
       const stockData = await this.stockService.findMany(stockFilters, page, limit);
-      
+
       // Create workbook
       const workbook = new Workbook();
-      
+
       // Sheet 1: Bulk Upload Template
       this.createBulkUploadSheet(workbook, stockFilters.puc);
-      
+
       // Sheet 2: Stock Data (retrieved data)
       this.createStockDataSheet(workbook, stockData);
-      
+
       // Sheet 3: Instructions
       this.createInstructionsSheet(workbook);
-      
+
       // Convert to buffer
       const buffer = await workbook.xlsx.writeBuffer() as Buffer;
-      
+
       logger.info(
-        { 
-          recordCount: stockData.data.length, 
+        {
+          recordCount: stockData.data.length,
           totalRecords: stockData.pagination.total,
           page,
           limit,
           sheets: ['Bulk Upload', 'Stock Data', 'Instructions']
-        }, 
+        },
         'Multi-sheet stock Excel generation completed'
       );
-      
+
       return buffer;
     } catch (error) {
       logger.error({ error, filters }, 'Error generating stock Excel');
@@ -68,7 +68,7 @@ export class ExcelService {
    */
   private addHeaderRow(worksheet: any, headers: string[]) {
     const headerRow = worksheet.addRow(headers);
-    
+
     // Style the header row
     headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
     headerRow.fill = {
@@ -76,7 +76,7 @@ export class ExcelService {
       pattern: 'solid',
       fgColor: { argb: 'FF4472C4' } // Blue background
     };
-    
+
     // Add borders to header
     headerRow.eachCell(cell => {
       cell.border = {
@@ -105,7 +105,7 @@ export class ExcelService {
         stock.rfid || '',
         stock.location || ''
       ]);
-      
+
       // Add borders to data rows
       row.eachCell(cell => {
         cell.border = {
@@ -125,22 +125,22 @@ export class ExcelService {
    */
   private convertEpochToDate(epochTime: any): string {
     if (!epochTime) return '';
-    
+
     try {
       // Handle both bigint and number types
       const timestamp = typeof epochTime === 'bigint' ? Number(epochTime) : epochTime;
-      
+
       // Check if it's a valid timestamp
       if (isNaN(timestamp) || timestamp <= 0) return '';
-      
+
       // Convert from seconds to milliseconds by multiplying by 1000
       const timestampMs = timestamp * 1000;
-      
+
       const date = new Date(timestampMs);
-      
+
       // Check if date is valid
       if (isNaN(date.getTime())) return '';
-      
+
       // Return formatted date (DD/MM/YYYY)
       return date.toLocaleDateString('en-GB');
     } catch (error) {
@@ -158,7 +158,7 @@ export class ExcelService {
       const headerLength = column.header?.length || 10;
       column.width = Math.max(headerLength + 2, 12);
     });
-    
+
     // Set specific widths for certain columns
     worksheet.getColumn(1).width = 8;  // ID
     worksheet.getColumn(2).width = 15; // PUC
@@ -169,7 +169,7 @@ export class ExcelService {
     worksheet.getColumn(7).width = 18; // E-Commerce Publish
     worksheet.getColumn(8).width = 20; // RFID
     worksheet.getColumn(9).width = 15; // Location
-    
+
     // Freeze the header row
     worksheet.views = [{ state: 'frozen', ySplit: 1 }];
   }
@@ -179,7 +179,7 @@ export class ExcelService {
    */
   private createBulkUploadSheet(workbook: any, puc?: string) {
     const worksheet = workbook.addWorksheet('Bulk Upload');
-    
+
     // Define bulk upload headers as per requirements
     const headers = [
       'PUC',
@@ -190,10 +190,10 @@ export class ExcelService {
       'Release Year',
       'Location'
     ];
-    
+
     // Add headers
     this.addHeaderRow(worksheet, headers);
-    
+
     // Add sample row with PUC pre-filled if provided
     if (puc) {
       const sampleRow = worksheet.addRow([
@@ -205,7 +205,7 @@ export class ExcelService {
         '', // Release Year (YYYY-MM-DD)
         '' // Location (dropdown)
       ]);
-      
+
       // Style sample row with light gray background
       sampleRow.eachCell(cell => {
         cell.fill = {
@@ -221,7 +221,7 @@ export class ExcelService {
         };
       });
     }
-    
+
     // Add data validation for E-Commerce Publish column (column E)
     worksheet.getColumn(5).eachCell({ includeEmpty: true }, (cell, rowNumber) => {
       if (rowNumber > 1) { // Skip header row
@@ -232,7 +232,7 @@ export class ExcelService {
         };
       }
     });
-    
+
     // Add data validation for Location column (column G)
     const locationValues = this.locationOptions.map(opt => opt.value).filter(val => val !== '');
     worksheet.getColumn(7).eachCell({ includeEmpty: true }, (cell, rowNumber) => {
@@ -244,7 +244,7 @@ export class ExcelService {
         };
       }
     });
-    
+
     // Set column widths
     worksheet.getColumn(1).width = 20; // PUC
     worksheet.getColumn(2).width = 20; // RFID
@@ -253,14 +253,16 @@ export class ExcelService {
     worksheet.getColumn(5).width = 20; // E-Commerce Publish
     worksheet.getColumn(6).width = 15; // Release Year
     worksheet.getColumn(7).width = 25; // Location
-    
+
     // Freeze header row
     worksheet.views = [{ state: 'frozen', ySplit: 1 }];
-    
+
+    /*
     // Add note about date format
     worksheet.addRow([]);
     const noteRow = worksheet.addRow(['Note: Date format should be YYYY-MM-DD (e.g., 2025-01-15)']);
     noteRow.getCell(1).font = { italic: true, color: { argb: 'FF666666' } };
+    */
   }
 
   /**
@@ -268,26 +270,26 @@ export class ExcelService {
    */
   private createStockDataSheet(workbook: any, stockData: any) {
     const worksheet = workbook.addWorksheet('Stock Data');
-    
+
     // Define headers for stock data (original format)
     const headers = [
       'ID',
-      'PUC', 
+      'PUC',
       'Serial Number',
       'Stock Status',
       'Manufactured Year',
-      'Release Year', 
+      'Release Year',
       'E-Commerce Publish',
       'RFID',
       'Location'
     ];
-    
+
     // Add headers
     this.addHeaderRow(worksheet, headers);
-    
+
     // Add data rows
     this.bindStockDataToRows(worksheet, stockData.data);
-    
+
     // Apply formatting
     this.formatStockWorksheet(worksheet);
   }
@@ -297,14 +299,14 @@ export class ExcelService {
    */
   private createInstructionsSheet(workbook: any) {
     const worksheet = workbook.addWorksheet('Instructions');
-    
+
     // Title
     const titleRow = worksheet.addRow(['Bulk Stock Upload - Instructions']);
     titleRow.font = { bold: true, size: 16, color: { argb: 'FF4472C4' } };
     titleRow.getCell(1).alignment = { horizontal: 'left' };
-    
+
     worksheet.addRow([]); // Empty row
-    
+
     // Steps
     const steps = [
       { step: 'Step 1:', instruction: 'Download and open this template' },
@@ -314,18 +316,18 @@ export class ExcelService {
       { step: 'Step 5:', instruction: 'Use YYYY-MM-DD format for date fields' },
       { step: 'Step 6:', instruction: 'Save the file and upload it to the system' }
     ];
-    
+
     steps.forEach(({ step, instruction }) => {
       const row = worksheet.addRow([step, instruction]);
       row.getCell(1).font = { bold: true };
     });
-    
+
     worksheet.addRow([]); // Empty row
-    
+
     // Column Guidelines
     const guidelinesRow = worksheet.addRow(['Column Guidelines:']);
     guidelinesRow.font = { bold: true, size: 14 };
-    
+
     const guidelines = [
       { field: 'PUC:', description: 'Product Unique Code - Required' },
       { field: 'RFID:', description: 'RFID tag identifier - Optional' },
@@ -335,22 +337,22 @@ export class ExcelService {
       { field: 'Release Year:', description: 'Date in YYYY-MM-DD format' },
       { field: 'Location:', description: 'Use dropdown to select warehouse/store location' }
     ];
-    
+
     guidelines.forEach(({ field, description }) => {
       const row = worksheet.addRow([field, description]);
       row.getCell(1).font = { bold: true };
     });
-    
+
     worksheet.addRow([]); // Empty row
-    
+
     // Location Options
     const locationRow = worksheet.addRow(['Available Locations:']);
     locationRow.font = { bold: true, size: 14 };
-    
+
     this.locationOptions.slice(1).forEach(option => { // Skip "Select a location"
       worksheet.addRow([option.value, option.label]);
     });
-    
+
     // Set column widths
     worksheet.getColumn(1).width = 25;
     worksheet.getColumn(2).width = 50;

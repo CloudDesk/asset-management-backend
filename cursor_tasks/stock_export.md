@@ -313,3 +313,532 @@ export const generateSimpleExcel = async (puc: string, page = 1, limit = 500) =>
 ```
 
 This covers the basic logic you need: receive parameters, query database, create Excel with headers and data, return buffer to frontend!
+
+## 📤 Upload, Parse & Confirm Flow
+
+### 🔄 Complete Flow Diagram
+
+```
+1. Frontend uploads Excel file
+2. Backend parses Excel → Extract data
+3. Backend validates data → Return validation results
+4. Frontend shows preview with errors/warnings
+5. Frontend confirms → Backend inserts valid data
+```
+
+### Step 1: Upload & Parse API Routes
+
+```typescript
+// routes/excel.routes.ts
+import multer from '@fastify/multipart';
+
+// Upload and parse Excel file (Step 1: Preview)
+fastify.post('/import/preview', async (request, reply) => {
+  try {
+    // Get uploaded file
+    const data = await request.file();
+    if (!data) {
+      return reply.status(400).send({ error: 'No file uploaded' });
+    }
+
+    // Convert stream to buffer
+    const fileBuffer = await data.toBuffer();
+    
+    // Parse Excel file
+    const parsedData = await excelService.parseExcelFile(fileBuffer);
+    
+    // Validate data
+    const validationResult = await excelService.validateData(parsedData);
+    
+    return reply.send({
+      success: true,
+      data: validationResult
+    });
+  } catch (error: any) {
+    return reply.status(400).send({
+      success: false,
+      error: { message: error.message }
+    });
+  }
+});
+
+// Confirm and insert valid data (Step 2: Commit)
+fastify.post('/import/commit', async (request, reply) => {
+  try {
+    const { validRows } = request.body as any;
+    
+    const result = await excelService.confirmAndInsert(validRows);
+    
+    return reply.send({
+      success: true,
+      data: result
+    });
+  } catch (error: any) {
+    return reply.status(400).send({
+      success: false,
+      error: { message: error.message }
+    });
+  }
+});
+```
+
+### Step 2: Parse & Validation Service Methods
+
+```typescript
+// Parse Excel file and extract data
+async parseExcelFile(fileBuffer: Buffer): Promise<IUploadRow[]> {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(fileBuffer);
+  
+  const worksheet = workbook.getWorksheet(1);
+  if (!worksheet) throw new Error('No worksheet found');
+
+  const rows: IUploadRow[] = [];
+  let rowNumber = 2; // Skip header row
+
+  worksheet.eachRow((row, index) => {
+    if (index === 1) return; // Skip header
+
+    const rowData: IUploadRow = {
+      rowNumber,
+      name: this.getCellValue(row, 1),
+      email: this.getCellValue(row, 2),
+      status: this.getCellValue(row, 3),
+    };
+
+    if (rowData.name && rowData.email) {
+      rows.push(rowData);
+    }
+    rowNumber++;
+  });
+
+  return rows;
+}
+
+// Validate parsed data
+async validateData(rows: IUploadRow[]): Promise<IValidationResult> {
+  const validRows: IUploadRow[] = [];
+  const invalidRows: IUploadRow[] = [];
+  const errors: IValidationError[] = [];
+
+  for (const row of rows) {
+    const rowErrors: IValidationError[] = [];
+
+    // Validate required fields
+    if (!row.name?.trim()) {
+      rowErrors.push({
+        rowNumber: row.rowNumber,
+        field: 'name',
+        message: 'Name is required',
+        severity: 'error'
+      });
+    }
+
+    // Validate email format
+    if (!row.email || !this.isValidEmail(row.email)) {
+      rowErrors.push({
+        rowNumber: row.rowNumber,
+        field: 'email',
+        message: 'Invalid email format',
+        severity: 'error'
+      });
+    }
+
+    // Check if email exists in database
+    if (row.email && this.isValidEmail(row.email)) {
+      const exists = await YourModel.findOne({ email: row.email.toLowerCase() });
+      if (exists) {
+        rowErrors.push({
+          rowNumber: row.rowNumber,
+          field: 'email',
+          message: 'Email already exists',
+          severity: 'error'
+        });
+      }
+    }
+
+    // Categorize row
+    const hasErrors = rowErrors.some(e => e.severity === 'error');
+    if (hasErrors) {
+      invalidRows.push(row);
+    } else {
+      validRows.push(row);
+    }
+    errors.push(...rowErrors);
+  }
+
+  return {
+    validRows,
+    invalidRows,
+    errors,
+    summary: {
+      totalRows: rows.length,
+      validRows: validRows.length,
+      invalidRows: invalidRows.length,
+      errors: errors.filter(e => e.severity === 'error').length,
+      warnings: errors.filter(e => e.severity === 'warning').length,
+    }
+  };
+}
+
+// Confirm and insert valid data
+async confirmAndInsert(validRows: IUploadRow[]) {
+  const errors: string[] = [];
+  let inserted = 0;
+
+  for (const row of validRows) {
+    try {
+      await YourModel.create({
+        name: row.name,
+        email: row.email.toLowerCase(),
+        status: row.status || 'active',
+      });
+      inserted++;
+    } catch (error: any) {
+      errors.push(`Row ${row.rowNumber}: ${error.message}`);
+    }
+  }
+
+  return { success: errors.length === 0, inserted, errors };
+}
+```
+
+### Step 3: Frontend Implementation
+
+```javascript
+// Frontend Service
+class ExcelUploadService {
+  
+  async uploadAndParse(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch('/api/import/preview', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!response.ok) throw new Error('Upload failed');
+    return (await response.json()).data;
+  }
+
+  async confirmInsert(validRows) {
+    const response = await fetch('/api/import/commit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ validRows })
+    });
+
+    if (!response.ok) throw new Error('Insert failed');
+    return await response.json();
+  }
+}
+```
+
+## 🔄 Complete Flow Summary
+
+### Phase 1: Upload & Parse
+1. **Frontend**: User selects Excel file
+2. **Frontend**: Uploads to `/import/preview` endpoint  
+3. **Backend**: Parses Excel using ExcelJS
+4. **Backend**: Validates data (required fields, duplicates)
+5. **Backend**: Returns validation results
+
+### Phase 2: Preview & Confirm
+6. **Frontend**: Shows validation summary and errors
+7. **Frontend**: Displays preview of valid data
+8. **Frontend**: User clicks "Confirm & Insert"
+9. **Backend**: Inserts valid rows into database
+10. **Backend**: Returns insertion results
+
+## 🎯 Key Features
+
+- **Parse Excel**: Extract data from uploaded file
+- **Validation**: Required fields, format, duplicates
+- **Preview**: Show valid/invalid data before insert
+- **Error Handling**: Detailed error messages per row
+- **Confirm Insert**: Only insert validated data
+
+This gives you a complete **upload → parse → validate → preview → confirm → insert** flow! 🚀
+
+
+---
+### ref code
+
+  // Parse and validate Excel file
+  fastify.post(
+    '/parse',
+    {
+      onRequest: [authenticate, filesUpload],
+    },
+    async (request, reply) => {
+      try {
+        // Handle Multer file upload
+        const files = (request as any).files;
+        console.log('Files received:', files);
+        console.log('Request keys:', Object.keys(request));
+        
+        if (!files) {
+          return reply.status(400).send({
+            success: false,
+            error: { message: 'No files object found in request' }
+          });
+        }
+        
+        if (!Array.isArray(files) || files.length === 0) {
+          return reply.status(400).send({
+            success: false,
+            error: { message: 'No files uploaded' }
+          });
+        }
+
+        const uploadedFile = files[0]; // Get the first file
+        console.log('Uploaded file:', uploadedFile);
+
+        // Validate file type
+        if (!uploadedFile.mimetype.includes('spreadsheet') && !uploadedFile.originalname.endsWith('.xlsx')) {
+          return reply.status(400).send({
+            success: false,
+            error: { message: 'Invalid file type. Please upload an Excel (.xlsx) file' }
+          });
+        }
+
+        // Read file from disk (Multer saves to disk)
+        const fs = require('fs');
+        
+        // Check if file exists
+        if (!fs.existsSync(uploadedFile.path)) {
+          return reply.status(400).send({
+            success: false,
+            error: { message: 'Uploaded file not found on disk' }
+          });
+        }
+        
+        const fileBuffer = fs.readFileSync(uploadedFile.path);
+        console.log('File buffer size:', fileBuffer.length);
+        console.log('File path:', uploadedFile.path);
+
+        // Parse Excel file
+        const rows = await bulkUploadService.parseExcelFile(fileBuffer);
+        console.log('Parsed rows:', rows.length);
+
+        if (rows.length === 0) {
+          return reply.status(400).send({
+            success: false,
+            error: { message: 'No valid data found in Excel file' }
+          });
+        }
+
+        //only delete the external users from the rows for attenance and shitassignments
+        // attandancerecord.userId
+        //shiftassignment.userId
+
+        
+
+
+        // Get the authenticated user's information for validation
+        const currentUser = request.user as any;
+        const currentUserId = currentUser?._id;
+        const currentUserRole = currentUser?.role;
+
+        // Validate parsed data
+        const validationResult = await bulkUploadService.validateBulkUploadData(
+          rows,
+          currentUserId,
+          currentUserRole
+        );
+        console.log('Validation result:', validationResult.summary);
+
+        // Clean up uploaded file
+        try {
+          fs.unlinkSync(uploadedFile.path);
+          console.log('Cleaned up uploaded file');
+        } catch (cleanupError) {
+          console.warn('Failed to cleanup uploaded file:', cleanupError);
+        }
+
+        return reply.send({
+          success: true,
+          data: validationResult,
+          message: `Parsed ${rows.length} rows. Found ${validationResult.summary.validRows} valid rows and ${validationResult.summary.invalidRows} invalid rows.`
+        });
+
+      } catch (error: any) {
+        console.error('Error in parse route:', error);
+        return reply.status(400).send({
+          success: false,
+          error: { message: error.message }
+        });
+      }
+    }
+  );
+
+  // Confirm and process bulk upload
+  fastify.post(
+    '/confirm',
+    {
+      onRequest: [authenticate],
+      schema: {
+        tags: ['Bulk Attendance Upload'],
+        summary: 'Confirm and process bulk attendance upload',
+        description: 'Confirm the bulk upload and insert shift assignments and attendance records into the database',
+        body: {
+          type: 'object',
+          required: ['validRows'],
+          properties: {
+            validRows: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  rowNumber: { type: 'number' },
+                  userId: { type: 'string' },
+                  userName: { type: 'string' },
+                  shiftCode: { type: 'string' },
+                  shiftName: { type: 'string' },
+                  startDate: { type: 'string' },
+                  endDate: { type: 'string' },
+                  weekendDays: { type: 'string' },
+                  attendanceDate: { type: 'string' },
+                  inTime: { type: 'string' },
+                  outTime: { type: 'string' },
+                  deviceId: { type: 'string' },
+                  location: { type: 'string' }
+                }
+              }
+            }
+          }
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: {
+                  shiftAssignmentsCreated: { type: 'number' },
+                  attendanceRecordsCreated: { type: 'number' },
+                  overtimeRecordsCreated: { type: 'number' },
+                  errors: {
+                    type: 'array',
+                    items: { type: 'string' }
+                  }
+                }
+              },
+              message: { type: 'string' }
+            }
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean', default: false },
+              data: {
+                type: 'object',
+                properties: {
+                  shiftAssignmentsCreated: { type: 'number' },
+                  attendanceRecordsCreated: { type: 'number' },
+                  overtimeRecordsCreated: { type: 'number' },
+                  errors: {
+                    type: 'array',
+                    items: { type: 'string' }
+                  }
+                }
+              },
+              message: { type: 'string' },
+              errorType: { type: 'string', enum: ['VALIDATION_ERROR', 'DUPLICATE_RECORDS'] }
+            }
+          },
+          409: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean', default: false },
+              data: {
+                type: 'object',
+                properties: {
+                  shiftAssignmentsCreated: { type: 'number' },
+                  attendanceRecordsCreated: { type: 'number' },
+                  overtimeRecordsCreated: { type: 'number' },
+                  errors: {
+                    type: 'array',
+                    items: { type: 'string' }
+                  }
+                }
+              },
+              message: { type: 'string' },
+              errorType: { type: 'string', enum: ['DUPLICATE_RECORDS'] }
+            }
+          }
+        }
+      }
+    },
+    async (request, reply) => {
+      try {
+        console.log(request,"request confirm")
+        const { validRows } = request.body as { validRows: any[] };
+console.log(validRows,"Valid Rows")
+console.log("first")
+        if (!validRows || validRows.length === 0) {
+          return reply.status(400).send({
+            success: false,
+            error: { message: 'No valid rows provided for processing' }
+          });
+        }
+
+        // Get the authenticated user's ID
+        const userId = (request.user as any)?._id;
+        if (!userId) {
+          return reply.status(401).send({
+            success: false,
+            error: { message: 'User not authenticated' }
+          });
+        }
+
+        // Get the authenticated user's role
+        const currentUserRole = (request.user as any)?.role;
+
+        // Confirm bulk upload
+        const result = await bulkUploadService.confirmBulkUpload(
+          validRows,
+          new Types.ObjectId(userId),
+          currentUserRole
+        );
+
+        // Return appropriate HTTP status based on result
+        if (result.success) {
+          return reply.status(200).send({
+            success: true,
+            data: result.data,
+            message: result.message
+          });
+        } else {
+          // Check if it's a duplicate key error
+          const hasDuplicateError = result.data.errors.some((error: string) => 
+            error.includes('duplicate key error') || error.includes('E11000')
+          );
+          
+          if (hasDuplicateError) {
+            return reply.status(409).send({
+              success: false,
+              data: result.data,
+              message: 'Duplicate attendance records detected. Please check your data and try again.',
+              errorType: 'DUPLICATE_RECORDS'
+            });
+          } else {
+            return reply.status(400).send({
+              success: false,
+              data: result.data,
+              message: result.message,
+              errorType: 'VALIDATION_ERROR'
+            });
+          }
+        }
+
+      } catch (error: any) {
+        return reply.status(400).send({
+          success: false,
+          error: { message: error.message }
+        });
+      }
+    }
+  );

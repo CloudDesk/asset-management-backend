@@ -910,31 +910,92 @@ export async function stockRoutes(fastify: FastifyInstance) {
       },
     },
   }, stockController.exportStocks.bind(stockController));
-
-  // POST /v1/stocks/import-bulk - Import stocks from Excel (placeholder)
-  fastify.post('/import-bulk', {
+/*
+  // POST /v1/stocks/import/preview - Parse and validate Excel import file
+  fastify.post('/import/preview', {
     schema: {
-      description: 'Import stocks from Excel file (not yet implemented)',
+      description: 'Parse and validate stock import Excel file before commit',
       tags: ['Stocks'],
       consumes: ['multipart/form-data'],
       body: {
         type: 'object',
         properties: {
           file: {
-            type: 'string',
-            format: 'binary',
-            description: 'Excel file to import'
-          }
+            isFile: true,
+            description: 'Excel file to import',
+          },
         },
-        required: ['file']
+        required: ['file'],
       },
       response: {
-        501: {
+        200: {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
             message: { type: 'string' },
-            data: { type: 'null' },
+            data: {
+              type: 'object',
+              properties: {
+                summary: {
+                  type: 'object',
+                  properties: {
+                    totalRows: { type: 'number' },
+                    success: { type: 'number' },
+                    warnings: { type: 'number' },
+                    errors: { type: 'number' },
+                  },
+                  required: ['totalRows', 'success', 'warnings', 'errors'],
+                },
+                rows: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      rowNumber: { type: 'number' },
+                      status: { type: 'string', enum: ['success', 'warning', 'error'] },
+                      normalized: { type: ['object', 'null'], additionalProperties: true },
+                      issues: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            type: { type: 'string', enum: ['error', 'warning'] },
+                            field: { type: ['string', 'null'], nullable: true },
+                            message: { type: 'string' },
+                          },
+                          required: ['type', 'message'],
+                          additionalProperties: false,
+                        },
+                      },
+                      original: { type: ['object', 'null'], additionalProperties: true, nullable: true },
+                    },
+                    required: ['rowNumber', 'status', 'issues'],
+                    additionalProperties: false,
+                  },
+                },
+                validRows: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    additionalProperties: true,
+                  },
+                },
+                warningRows: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    additionalProperties: true,
+                  },
+                },
+                errorRows: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    additionalProperties: true,
+                  },
+                },
+              },
+            },
           },
         },
         400: {
@@ -957,5 +1018,429 @@ export async function stockRoutes(fastify: FastifyInstance) {
         },
       },
     },
-  }, stockController.importBulkStocks.bind(stockController));
-} 
+  }, stockController.importPreview.bind(stockController));
+
+  // POST /v1/stocks/import/commit - Persist validated rows
+  fastify.post('/import/commit', {
+    schema: {
+      description: 'Commit validated stock import rows into the database',
+      tags: ['Stocks'],
+      body: {
+        type: 'object',
+        properties: {
+          rows: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                rowNumber: { type: 'number' },
+                puc: { type: 'string' },
+                rfid: { type: 'string' },
+                serialnumber: { type: 'string' },
+                manufacturedyear: { type: 'number' },
+                releaseyear: { type: 'number' },
+                ecompublish: { type: 'boolean' },
+                location: { type: 'string' },
+              },
+              required: ['rfid', 'serialnumber'],
+              additionalProperties: true,
+            },
+            minItems: 1,
+          },
+        },
+        required: ['rows'],
+      },
+      response: {
+        201: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {
+              type: 'object',
+              properties: {
+                summary: {
+                  type: 'object',
+                  properties: {
+                    requested: { type: 'number' },
+                    inserted: { type: 'number' },
+                    failed: { type: 'number' },
+                  },
+                },
+                inserted: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      rowNumber: { type: 'number', nullable: true },
+                      data: { type: 'object', additionalProperties: true },
+                    },
+                  },
+                },
+                failures: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      rowNumber: { type: 'number', nullable: true },
+                      serialnumber: { type: 'string', nullable: true },
+                      message: { type: 'string' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        207: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {
+              type: 'object',
+              properties: {
+                summary: {
+                  type: 'object',
+                  properties: {
+                    requested: { type: 'number' },
+                    inserted: { type: 'number' },
+                    failed: { type: 'number' },
+                  },
+                },
+                inserted: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      rowNumber: { type: 'number', nullable: true },
+                      data: { type: 'object', additionalProperties: true },
+                    },
+                  },
+                },
+                failures: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      rowNumber: { type: 'number', nullable: true },
+                      serialnumber: { type: 'string', nullable: true },
+                      message: { type: 'string' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            statusCode: { type: 'number' },
+            data: { type: 'object', additionalProperties: true },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+      },
+    },
+  }, stockController.importCommit.bind(stockController));
+  */
+
+  // POST /v1/stocks/import-bulk/preview - Parse and validate Excel import file for stocks
+  fastify.post('/import/preview', {
+    schema: {
+      description: 'Parse and validate stock import Excel file before commit',
+      tags: ['Stocks'],
+      consumes: ['multipart/form-data'],
+      body: {
+        type: 'object',
+        properties: {
+          file: {
+            isFile: true,
+            description: 'Excel file containing stock data to import',
+          },
+        },
+        required: ['file'],
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {
+              type: 'object',
+              properties: {
+                summary: {
+                  type: 'object',
+                  properties: {
+                    totalRows: { type: 'number', description: 'Total rows processed' },
+                    success: { type: 'number', description: 'Valid rows count' },
+                    warnings: { type: 'number', description: 'Rows with warnings' },
+                    errors: { type: 'number', description: 'Rows with errors' },
+                  },
+                  required: ['totalRows', 'success', 'warnings', 'errors'],
+                },
+                rows: {
+                  type: 'array',
+                  description: 'Detailed row-by-row validation results',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      rowNumber: { type: 'number', description: 'Excel row number' },
+                      status: { type: 'string', enum: ['success', 'warning', 'error'], description: 'Row validation status' },
+                      normalized: { 
+                        type: ['object', 'null'], 
+                        additionalProperties: true,
+                        description: 'Normalized stock data ready for insertion'
+                      },
+                      issues: {
+                        type: 'array',
+                        description: 'Validation issues for this row',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            type: { type: 'string', enum: ['error', 'warning'], description: 'Issue severity' },
+                            field: { type: ['string', 'null'], nullable: true, description: 'Field with issue' },
+                            message: { type: 'string', description: 'Issue description' },
+                          },
+                          required: ['type', 'message'],
+                          additionalProperties: false,
+                        },
+                      },
+                      original: { 
+                        type: ['object', 'null'], 
+                        additionalProperties: true, 
+                        nullable: true,
+                        description: 'Original Excel row data'
+                      },
+                    },
+                    required: ['rowNumber', 'status', 'issues'],
+                    additionalProperties: false,
+                  },
+                },
+                validRows: {
+                  type: 'array',
+                  description: 'Rows ready for insertion',
+                  items: {
+                    type: 'object',
+                    additionalProperties: true,
+                  },
+                },
+                warningRows: {
+                  type: 'array',
+                  description: 'Rows with warnings but still valid',
+                  items: {
+                    type: 'object',
+                    additionalProperties: true,
+                  },
+                },
+                errorRows: {
+                  type: 'array',
+                  description: 'Rows with validation errors',
+                  items: {
+                    type: 'object',
+                    additionalProperties: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+      },
+    },
+  }, stockController.importPreview.bind(stockController));
+
+  // POST /v1/stocks/import-bulk/commit - Persist validated stock rows
+  fastify.post('/import/commit', {
+    schema: {
+      description: 'Commit validated stock import rows into the database',
+      tags: ['Stocks'],
+      body: {
+        type: 'object',
+        properties: {
+          rows: {
+            type: 'array',
+            description: 'Validated stock rows to insert',
+            items: {
+              type: 'object',
+              properties: {
+                rowNumber: { type: 'number', description: 'Excel row number' },
+                puc: { type: 'string', description: 'Product unique code' },
+                category: { type: 'string', description: 'Product category' },
+                subcategory: { type: 'string', description: 'Product subcategory' },
+                brand: { type: 'string', description: 'Product brand' },
+                model: { type: 'string', description: 'Product model' },
+                operatingsystem: { type: 'string', description: 'Operating system' },
+                operatingsystemversion: { type: 'string', description: 'OS version' },
+                ram: { type: 'string', description: 'RAM specification' },
+                storagetype: { type: 'string', description: 'Storage type' },
+                storagecapacity: { type: 'string', description: 'Storage capacity' },
+                colour: { type: 'string', description: 'Product color' },
+                graphicscard: { type: 'string', description: 'Graphics card' },
+                processor: { type: 'string', description: 'Processor specification' },
+                serialnumber: { type: 'string', description: 'Serial number (must be unique)' },
+                rfid: { type: 'string', description: 'RFID tag (must be unique)' },
+                stockstatus: { type: 'string', description: 'Stock status' },
+                manufacturedyear: { type: 'number', description: 'Manufactured year (epoch time)' },
+                releaseyear: { type: 'number', description: 'Release year (epoch time)' },
+                isdeleted: { type: 'boolean', description: 'Deletion status' },
+                isarchive: { type: 'boolean', description: 'Archive status' },
+                ecompublish: { type: 'boolean', description: 'E-commerce publish status' },
+                productname: { type: 'string', description: 'Product name' },
+                nfc: { type: 'string', description: 'NFC tag' },
+                orderid: { type: 'string', description: 'Order ID' },
+                invoiceurl: { type: 'string', description: 'Invoice URL' },
+                location: { type: 'string', description: 'Storage location' },
+                solddate: { type: 'number', description: 'Sold date (epoch time)' },
+                assetlocation: { type: 'string', description: 'Asset location' },
+                orderlinenumber: { type: 'string', description: 'Order line number' },
+                qrcode: { type: 'string', description: 'QR code' },
+                barcode: { type: 'string', description: 'Barcode' },
+                ewaste: { type: 'boolean', description: 'E-waste status' },
+              },
+              required: ['serialnumber', 'rfid'],
+              additionalProperties: true,
+            },
+            minItems: 1,
+          },
+        },
+        required: ['rows'],
+      },
+      response: {
+        201: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {
+              type: 'object',
+              properties: {
+                summary: {
+                  type: 'object',
+                  properties: {
+                    requested: { type: 'number', description: 'Total rows requested for insertion' },
+                    inserted: { type: 'number', description: 'Successfully inserted rows' },
+                    failed: { type: 'number', description: 'Failed insertions' },
+                  },
+                },
+                inserted: {
+                  type: 'array',
+                  description: 'Successfully inserted stock records',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      rowNumber: { type: 'number', nullable: true },
+                      data: { type: 'object', additionalProperties: true },
+                    },
+                  },
+                },
+                failures: {
+                  type: 'array',
+                  description: 'Failed insertion attempts',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      rowNumber: { type: 'number', nullable: true },
+                      serialnumber: { type: 'string', nullable: true },
+                      rfid: { type: 'string', nullable: true },
+                      message: { type: 'string' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        207: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {
+              type: 'object',
+              properties: {
+                summary: {
+                  type: 'object',
+                  properties: {
+                    requested: { type: 'number' },
+                    inserted: { type: 'number' },
+                    failed: { type: 'number' },
+                  },
+                },
+                inserted: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      rowNumber: { type: 'number', nullable: true },
+                      data: { type: 'object', additionalProperties: true },
+                    },
+                  },
+                },
+                failures: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      rowNumber: { type: 'number', nullable: true },
+                      serialnumber: { type: 'string', nullable: true },
+                      rfid: { type: 'string', nullable: true },
+                      message: { type: 'string' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            statusCode: { type: 'number' },
+            data: { type: 'object', additionalProperties: true },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+      },
+    },
+  }, stockController.importCommit.bind(stockController));
+}
