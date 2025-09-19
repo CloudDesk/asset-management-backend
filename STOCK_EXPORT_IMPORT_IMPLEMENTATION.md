@@ -34,7 +34,27 @@ Successfully implemented two new routes for the stock module:
 - Content-Type: `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
 - Filename format: `stock_export_YYYY-MM-DDTHH-MM-SS.xlsx`
 
-**Excel Headers** (as requested):
+**Multi-Sheet Excel Structure**:
+
+### **Sheet 1: Bulk Upload Template**
+Headers for bulk data entry:
+1. **PUC** - Product Unique Code (pre-filled if PUC filter used)
+2. **RFID** - RFID tag identifier
+3. **Serial Number** - Device serial number
+4. **Manufactured Year** - Date in YYYY-MM-DD format
+5. **E-Commerce Publish** - Dropdown (TRUE/FALSE)
+6. **Release Year** - Date in YYYY-MM-DD format
+7. **Location** - Dropdown with predefined options
+
+**Features**:
+- PUC pre-filled if specified in query
+- Data validation dropdowns for E-Commerce Publish and Location
+- Sample row with light gray background
+- Date format instructions
+- Frozen header row
+
+### **Sheet 2: Stock Data (Current Data)**
+Headers showing retrieved stock data:
 1. **ID** - Stock ID
 2. **PUC** - Product Unique Code
 3. **Serial Number** - Device serial number
@@ -44,6 +64,13 @@ Successfully implemented two new routes for the stock module:
 7. **E-Commerce Publish** - Yes/No format
 8. **RFID** - RFID tag identifier
 9. **Location** - Storage location
+
+### **Sheet 3: Instructions**
+Comprehensive guide including:
+- Step-by-step upload instructions
+- Column guidelines and requirements
+- Available location options
+- Date format specifications
 
 ### 4. Key Features
 
@@ -129,10 +156,21 @@ downloadStockExport({ puc: 'ABC123', limit: '1000' });
 
 ## 📊 Excel Output Format
 
+### **Sheet 1: Bulk Upload Template**
+| PUC | RFID | Serial Number | Manufactured Year | E-Commerce Publish | Release Year | Location |
+|-----|------|---------------|-------------------|-------------------|--------------|----------|
+| es-we-0000000002 | | | YYYY-MM-DD | TRUE/FALSE ↓ | YYYY-MM-DD | Select Location ↓ |
+
+### **Sheet 2: Stock Data (Current)**
 | ID | PUC | Serial Number | Stock Status | Manufactured Year | Release Year | E-Commerce Publish | RFID | Location |
 |----|-----|---------------|--------------|-------------------|--------------|-------------------|------|----------|
-| 1 | ABC123 | SN123456 | Available | 15/03/2023 | 01/01/2023 | Yes | RF001 | Warehouse A |
-| 2 | DEF456 | SN789012 | Sold | 20/05/2023 | 10/02/2023 | No | RF002 | Store B |
+| 1 | es-we-0000000002 | Aravi-0032415312 | Available | 15/09/2025 | 15/09/2025 | Yes | 2135432515321 | |
+
+### **Sheet 3: Instructions**
+- Step-by-step guide for bulk upload
+- Column requirements and formats
+- Available dropdown options
+- Date format specifications
 
 ## 🔄 Integration with Existing System
 
@@ -189,3 +227,25 @@ const { Workbook } = pkg;
 ```
 
 **Status**: ✅ **RESOLVED** - Export endpoint now works correctly and generates valid Excel files.
+
+### Multi-Sheet Enhancement (Added ✅)
+**Enhancement**: Added 3-sheet Excel structure with bulk upload template, current data, and instructions.
+
+**New Features**:
+- **Sheet 1 (Bulk Upload)**: Template for data entry with PUC pre-filled, dropdowns for validation
+- **Sheet 2 (Stock Data)**: Current retrieved stock data (original functionality preserved)
+- **Sheet 3 (Instructions)**: Comprehensive guide for users
+
+**Location Options Available**:
+- `warehouse-a` - Warehouse A
+- `warehouse-b` - Warehouse B  
+- `retail-store-1` - Retail Store 1
+- `retail-store-2` - Retail Store 2
+- `online-fulfillment` - Online Fulfillment Center
+
+**Data Validation**:
+- E-Commerce Publish: TRUE/FALSE dropdown
+- Location: Dropdown with predefined warehouse/store options
+- Date Format: YYYY-MM-DD for Manufactured Year and Release Year
+
+**Status**: ✅ **COMPLETED** - Multi-sheet export with enhanced functionality ready for production.
