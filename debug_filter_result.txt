@@ -18928,3 +18928,25 @@ Filtered data result: {
   "createddate": 1756981505,
   "modifieddate": 1758177648916
 }
+Filtered data result: {
+  "puc": "es-we-0000000002",
+  "rfid": "2135432515321",
+  "serialnumber": "Aravi-0032415312",
+  "manufacturedyear": 1758240000,
+  "ecompublish": true,
+  "releaseyear": 1758240000,
+  "location": "",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtered data result: {
+  "quantity": 17,
+  "availablequantity": 4,
+  "soldquantity": 0,
+  "ecompublishedquantity": 16,
+  "productstatus": "low_stock",
+  "modifieddate": 1758263649944
+}

@@ -1119,6 +1119,13 @@ export async function promotionsRoutes(fastify) {
                                         priority: { type: 'number' },
                                         start_date: { type: 'integer' },
                                         end_date: { type: 'integer' },
+                                        promotionState: {
+                                            type: 'string',
+                                            enum: ['available', 'applied'],
+                                            description: 'State of promotion - available to apply or already applied'
+                                        },
+                                        evaluation_id: { type: 'string', description: 'Evaluation ID for remove operations (present if promotionState is applied)' },
+                                        applied_discount: { type: 'number', description: 'Applied discount amount (present if promotionState is applied)' },
                                         discountInfo: {
                                             type: 'object',
                                             properties: {
@@ -1197,7 +1204,7 @@ export async function promotionsRoutes(fastify) {
                                 },
                                 stackablePromotions: {
                                     type: 'array',
-                                    description: 'Stackable promotions user can apply in addition to current promotions',
+                                    description: 'Stackable promotions user can apply or remove (includes both available and applied stackable promotions)',
                                     items: {
                                         type: 'object',
                                         properties: {
@@ -1209,6 +1216,13 @@ export async function promotionsRoutes(fastify) {
                                             priority: { type: 'number' },
                                             start_date: { type: 'integer' },
                                             end_date: { type: 'integer' },
+                                            promotionState: {
+                                                type: 'string',
+                                                enum: ['available', 'applied'],
+                                                description: 'State of promotion - available to apply or already applied'
+                                            },
+                                            evaluation_id: { type: 'string', description: 'Evaluation ID for remove operations (present if promotionState is applied)' },
+                                            applied_discount: { type: 'number', description: 'Applied discount amount (present if promotionState is applied)' },
                                             action: {
                                                 type: 'object',
                                                 nullable: true,
@@ -1305,6 +1319,64 @@ export async function promotionsRoutes(fastify) {
                                         }
                                     }
                                 },
+                                currentEvaluation: {
+                                    type: 'object',
+                                    nullable: true,
+                                    description: 'Current active evaluation with applied promotions details',
+                                    properties: {
+                                        evaluation_id: { type: 'string', description: 'Evaluation ID for promotion removal/modification' },
+                                        original_total: { type: 'number', description: 'Original cart total before promotions' },
+                                        discounted_total: { type: 'number', description: 'Final total after all promotions applied' },
+                                        applied_promotions: {
+                                            type: 'array',
+                                            description: 'Currently applied promotions with enhanced details',
+                                            items: {
+                                                type: 'object',
+                                                properties: {
+                                                    promotion_id: { type: 'number' },
+                                                    promotion_name: { type: 'string' },
+                                                    promotion_type: { type: 'string' },
+                                                    discount_amount: { type: 'number' },
+                                                    is_auto: { type: 'boolean', description: 'Whether promotion was auto-applied' },
+                                                    is_free_shipping: { type: 'boolean' },
+                                                    is_stacked: { type: 'boolean', nullable: true, description: 'Whether promotion can stack with others' },
+                                                    // BOGO-specific details
+                                                    bogo_details: {
+                                                        type: 'object',
+                                                        nullable: true,
+                                                        description: 'BOGO promotion details (present only for BOGO promotions)',
+                                                        properties: {
+                                                            buy_quantity: { type: 'number', description: 'How many items to buy' },
+                                                            get_quantity: { type: 'number', description: 'How many items to get free' },
+                                                            affected_products: {
+                                                                type: 'array',
+                                                                items: { type: 'string' },
+                                                                description: 'Product IDs that got BOGO applied'
+                                                            },
+                                                            free_items_count: { type: 'number', description: 'Total free items granted' }
+                                                        }
+                                                    },
+                                                    // FREE_PRODUCT-specific details
+                                                    free_product_details: {
+                                                        type: 'object',
+                                                        nullable: true,
+                                                        description: 'Free product details (present only for FREE_PRODUCT promotions)',
+                                                        properties: {
+                                                            free_product_id: { type: 'string', description: 'ID of the free product' },
+                                                            max_free_items: { type: 'number', description: 'Maximum free items allowed' },
+                                                            granted_items_count: { type: 'number', description: 'Number of free items actually granted' }
+                                                        }
+                                                    },
+                                                    // Backward compatibility fields
+                                                    breakdown: { type: 'object', nullable: true },
+                                                    is_shipping_discount: { type: 'boolean', nullable: true },
+                                                    shipping_info: { type: 'object', nullable: true }
+                                                },
+                                                additionalProperties: true
+                                            }
+                                        }
+                                    }
+                                },
                                 summary: {
                                     type: 'object',
                                     properties: {
@@ -1313,6 +1385,8 @@ export async function promotionsRoutes(fastify) {
                                         ineligibleCount: { type: 'number' },
                                         stackableCount: { type: 'number' },
                                         autoAppliedCount: { type: 'number' },
+                                        appliedCount: { type: 'number', description: 'Number of currently applied promotions' },
+                                        hasActiveEvaluation: { type: 'boolean', description: 'Whether user has active evaluation' },
                                         cartTotal: { type: 'number' },
                                         cartItems: { type: 'number' },
                                         categories: { type: 'array', items: { type: 'string' } }
@@ -1407,8 +1481,41 @@ export async function promotionsRoutes(fastify) {
                                             promotion_type: { type: 'string' },
                                             discount_amount: { type: 'number' },
                                             is_auto: { type: 'boolean' },
-                                            is_free_shipping: { type: 'boolean', description: 'True if this is a free shipping promotion' }
-                                        }
+                                            is_free_shipping: { type: 'boolean', description: 'True if this is a free shipping promotion' },
+                                            is_stacked: { type: 'boolean', description: 'True if this promotion can stack with others' },
+                                            // BOGO-specific details
+                                            bogo_details: {
+                                                type: 'object',
+                                                nullable: true,
+                                                description: 'BOGO promotion details (present only for BOGO promotions)',
+                                                properties: {
+                                                    buy_quantity: { type: 'number', description: 'How many items to buy' },
+                                                    get_quantity: { type: 'number', description: 'How many items to get free' },
+                                                    affected_products: {
+                                                        type: 'array',
+                                                        items: { type: 'string' },
+                                                        description: 'Product IDs that got BOGO applied'
+                                                    },
+                                                    free_items_count: { type: 'number', description: 'Total free items granted' }
+                                                }
+                                            },
+                                            // FREE_PRODUCT-specific details
+                                            free_product_details: {
+                                                type: 'object',
+                                                nullable: true,
+                                                description: 'Free product details (present only for FREE_PRODUCT promotions)',
+                                                properties: {
+                                                    free_product_id: { type: 'string', description: 'ID of the free product' },
+                                                    max_free_items: { type: 'number', description: 'Maximum free items allowed' },
+                                                    granted_items_count: { type: 'number', description: 'Number of free items actually granted' }
+                                                }
+                                            },
+                                            // Backward compatibility fields
+                                            breakdown: { type: 'object', nullable: true },
+                                            is_shipping_discount: { type: 'boolean', nullable: true },
+                                            shipping_info: { type: 'object', nullable: true }
+                                        },
+                                        additionalProperties: true
                                     }
                                 },
                                 status: { type: 'string', description: 'Evaluation status' },
@@ -1473,7 +1580,24 @@ export async function promotionsRoutes(fastify) {
                                             promotion_id: { type: 'number' },
                                             original_total: { type: 'number' },
                                             discounted_total: { type: 'number' },
-                                            applied_promotions: { type: 'array' },
+                                            applied_promotions: {
+                                                type: 'array',
+                                                items: {
+                                                    type: 'object',
+                                                    properties: {
+                                                        promotion_id: { type: 'number' },
+                                                        promotion_name: { type: 'string' },
+                                                        promotion_type: { type: 'string' },
+                                                        discount_amount: { type: 'number' },
+                                                        is_auto: { type: 'boolean' },
+                                                        is_free_shipping: { type: 'boolean' },
+                                                        is_stacked: { type: 'boolean', nullable: true },
+                                                        bogo_details: { type: 'object', nullable: true },
+                                                        free_product_details: { type: 'object', nullable: true }
+                                                    },
+                                                    additionalProperties: true
+                                                }
+                                            },
                                             status: { type: 'string' },
                                             created_at: { type: 'string' },
                                             expires_at: { type: 'string' }
@@ -1608,7 +1732,39 @@ export async function promotionsRoutes(fastify) {
                                             promotion_type: { type: 'string', nullable: true },
                                             is_auto: { type: 'boolean' },
                                             is_free_shipping: { type: 'boolean' },
-                                            discount_amount: { type: 'number', nullable: true }
+                                            discount_amount: { type: 'number', nullable: true },
+                                            is_stacked: { type: 'boolean', nullable: true, description: 'True if this promotion can stack with others' },
+                                            // BOGO-specific details
+                                            bogo_details: {
+                                                type: 'object',
+                                                nullable: true,
+                                                description: 'BOGO promotion details (present only for BOGO promotions)',
+                                                properties: {
+                                                    buy_quantity: { type: 'number', description: 'How many items to buy' },
+                                                    get_quantity: { type: 'number', description: 'How many items to get free' },
+                                                    affected_products: {
+                                                        type: 'array',
+                                                        items: { type: 'string' },
+                                                        description: 'Product IDs that got BOGO applied'
+                                                    },
+                                                    free_items_count: { type: 'number', description: 'Total free items granted' }
+                                                }
+                                            },
+                                            // FREE_PRODUCT-specific details
+                                            free_product_details: {
+                                                type: 'object',
+                                                nullable: true,
+                                                description: 'Free product details (present only for FREE_PRODUCT promotions)',
+                                                properties: {
+                                                    free_product_id: { type: 'string', description: 'ID of the free product' },
+                                                    max_free_items: { type: 'number', description: 'Maximum free items allowed' },
+                                                    granted_items_count: { type: 'number', description: 'Number of free items actually granted' }
+                                                }
+                                            },
+                                            // Backward compatibility fields
+                                            breakdown: { type: 'object', nullable: true },
+                                            is_shipping_discount: { type: 'boolean', nullable: true },
+                                            shipping_info: { type: 'object', nullable: true }
                                         },
                                         additionalProperties: true
                                     }

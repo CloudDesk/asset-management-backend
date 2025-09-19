@@ -1,5 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { StockService } from '../services/stock.service.js';
+import { ExcelService } from '../services/excel.service.js';
 import { 
   createStockSchema, 
   updateStockSchema, 
@@ -21,6 +22,7 @@ import { formatStockForAPI, formatEntitiesForAPI } from '../utils/dynamicDbOpera
 
 export class StockController {
   public stockService = new StockService();
+  private excelService = new ExcelService();
 
   getStocks = asyncHandler(async (request: FastifyRequest<{ Querystring: Record<string, any> }>, reply: FastifyReply) => {
     // Get all query parameters as filters (not just schema-validated ones)
@@ -154,5 +156,36 @@ export class StockController {
     
     const response = createSuccessResponse(message, responseData);
     return reply.code(responseCode).send(response);
+  });
+
+  /**
+   * Export stocks to Excel file
+   */
+  exportStocks = asyncHandler(async (request: FastifyRequest<{ Querystring: Record<string, any> }>, reply: FastifyReply) => {
+    // Get all query parameters as filters
+    const allFilters: Record<string, any> = request.query || {};
+    
+    // Generate Excel buffer
+    const excelBuffer = await this.excelService.generateStockExcel(allFilters);
+    
+    // Generate filename with timestamp
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+    const filename = `stock_export_${timestamp}.xlsx`;
+    
+    // Set response headers for file download
+    reply.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    reply.header('Content-Disposition', `attachment; filename="${filename}"`);
+    reply.header('Content-Length', excelBuffer.length.toString());
+    
+    return reply.send(excelBuffer);
+  });
+
+  /**
+   * Import bulk stocks (placeholder)
+   */
+  importBulkStocks = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    // TODO: Implement bulk import functionality
+    const response = createSuccessResponse('Bulk import functionality not yet implemented', null);
+    return reply.code(501).send(response);
   });
 } 

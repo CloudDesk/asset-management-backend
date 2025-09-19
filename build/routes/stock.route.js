@@ -818,5 +818,121 @@ export async function stockRoutes(fastify) {
             },
         },
     }, stockController.bulkUpdateStockByRfid.bind(stockController));
+    // GET /v1/stocks/export - Export stocks to Excel
+    fastify.get('/export', {
+        schema: {
+            description: 'Export stocks to Excel file',
+            tags: ['Stocks'],
+            querystring: {
+                type: 'object',
+                properties: {
+                    page: { type: 'string', description: 'Page number (default: 1)' },
+                    limit: { type: 'string', description: 'Items per page (default: 500)' },
+                    puc: { type: 'string', description: 'Filter by product unique code' },
+                    category: { type: 'string', description: 'Filter by category' },
+                    subcategory: { type: 'string', description: 'Filter by subcategory' },
+                    brand: { type: 'string', description: 'Filter by brand' },
+                    model: { type: 'string', description: 'Filter by model' },
+                    operatingsystem: { type: 'string', description: 'Filter by operating system' },
+                    ram: { type: 'string', description: 'Filter by RAM specification' },
+                    storagetype: { type: 'string', description: 'Filter by storage type' },
+                    storagecapacity: { type: 'string', description: 'Filter by storage capacity' },
+                    colour: { type: 'string', description: 'Filter by color' },
+                    processor: { type: 'string', description: 'Filter by processor' },
+                    serialnumber: { type: 'string', description: 'Filter by serial number' },
+                    stockstatus: { type: 'string', description: 'Filter by stock status' },
+                    productname: { type: 'string', description: 'Filter by product name' },
+                    location: { type: 'string', description: 'Filter by storage location' },
+                    assetlocation: { type: 'string', description: 'Filter by asset location' },
+                    orderid: { type: 'string', description: 'Filter by order ID' },
+                    orderlinenumber: { type: 'string', description: 'Filter by order line number' },
+                    isdeleted: { type: 'string', description: 'Filter by deletion status (true/false)' },
+                    isarchive: { type: 'string', description: 'Filter by archive status (true/false)' },
+                    ecompublish: { type: 'string', description: 'Filter by e-commerce publish status (true/false)' },
+                    ewaste: { type: 'string', description: 'Filter by e-waste status (true/false)' },
+                    minManufacturedYear: { type: 'string', description: 'Minimum manufactured year' },
+                    maxManufacturedYear: { type: 'string', description: 'Maximum manufactured year' },
+                    minReleaseYear: { type: 'string', description: 'Minimum release year' },
+                    maxReleaseYear: { type: 'string', description: 'Maximum release year' },
+                    createdAfter: { type: 'string', description: 'Created after date (timestamp)' },
+                    createdBefore: { type: 'string', description: 'Created before date (timestamp)' },
+                    modifiedAfter: { type: 'string', description: 'Modified after date (timestamp)' },
+                    modifiedBefore: { type: 'string', description: 'Modified before date (timestamp)' },
+                },
+            },
+            response: {
+                200: {
+                    type: 'string',
+                    format: 'binary',
+                    description: 'Excel file download'
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
+            },
+        },
+    }, stockController.exportStocks.bind(stockController));
+    // POST /v1/stocks/import-bulk - Import stocks from Excel (placeholder)
+    fastify.post('/import-bulk', {
+        schema: {
+            description: 'Import stocks from Excel file (not yet implemented)',
+            tags: ['Stocks'],
+            consumes: ['multipart/form-data'],
+            body: {
+                type: 'object',
+                properties: {
+                    file: {
+                        type: 'string',
+                        format: 'binary',
+                        description: 'Excel file to import'
+                    }
+                },
+                required: ['file']
+            },
+            response: {
+                501: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        data: { type: 'null' },
+                    },
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
+            },
+        },
+    }, stockController.importBulkStocks.bind(stockController));
 }
 //# sourceMappingURL=stock.route.js.map

@@ -51,12 +51,20 @@ export declare class PromotionsService {
         ineligibleCoupons: any[];
         stackablePromotions: any[];
         autoAppliedPromotions: any[];
+        currentEvaluation: {
+            evaluation_id: string;
+            original_total: import("@prisma/client/runtime/library").Decimal | null;
+            discounted_total: import("@prisma/client/runtime/library").Decimal | null;
+            applied_promotions: any[];
+        } | null;
         summary: {
             totalPromotions: number;
             eligibleCount: number;
             ineligibleCount: number;
             stackableCount: number;
             autoAppliedCount: number;
+            appliedCount: number;
+            hasActiveEvaluation: boolean;
             cartTotal: number;
             cartItems: number;
             categories: string[];

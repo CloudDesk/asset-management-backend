@@ -1,10 +1,12 @@
 import { StockService } from '../services/stock.service.js';
+import { ExcelService } from '../services/excel.service.js';
 import { createStockSchema, updateStockSchema, upsertStockSchema, stockParamsSchema, rfidUpdateStockSchema, bulkRfidUpdateStockSchema } from '../schemas/stock.schema.js';
 import { getPaginationParams } from '../utils/pagination.js';
 import { createSuccessResponse, asyncHandler } from '../utils/errorHandler.js';
 import { formatStockForAPI, formatEntitiesForAPI } from '../utils/dynamicDbOperations.js';
 export class StockController {
     stockService = new StockService();
+    excelService = new ExcelService();
     getStocks = asyncHandler(async (request, reply) => {
         // Get all query parameters as filters (not just schema-validated ones)
         const allFilters = request.query || {};
@@ -94,6 +96,31 @@ export class StockController {
             : `Bulk RFID update completed: ${result.summary.successful} successful, ${result.summary.failed} failed`;
         const response = createSuccessResponse(message, responseData);
         return reply.code(responseCode).send(response);
+    });
+    /**
+     * Export stocks to Excel file
+     */
+    exportStocks = asyncHandler(async (request, reply) => {
+        // Get all query parameters as filters
+        const allFilters = request.query || {};
+        // Generate Excel buffer
+        const excelBuffer = await this.excelService.generateStockExcel(allFilters);
+        // Generate filename with timestamp
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+        const filename = `stock_export_${timestamp}.xlsx`;
+        // Set response headers for file download
+        reply.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        reply.header('Content-Disposition', `attachment; filename="${filename}"`);
+        reply.header('Content-Length', excelBuffer.length.toString());
+        return reply.send(excelBuffer);
+    });
+    /**
+     * Import bulk stocks (placeholder)
+     */
+    importBulkStocks = asyncHandler(async (request, reply) => {
+        // TODO: Implement bulk import functionality
+        const response = createSuccessResponse('Bulk import functionality not yet implemented', null);
+        return reply.code(501).send(response);
     });
 }
 //# sourceMappingURL=stock.controller.js.map
