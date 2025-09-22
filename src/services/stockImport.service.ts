@@ -4,6 +4,8 @@ import { prisma } from '../models/prisma.js';
 import { logger } from '../config/logger.js';
 import { ValidationError } from '../utils/errorHandler.js';
 import type { StockImportCommitRow } from '../schemas/stock-import.schema.js';
+import { StockService } from './stock.service.js';
+import { ProductService } from './product.service.js';
 
 export type StockImportRowStatus = 'success' | 'warning' | 'error';
 
@@ -62,6 +64,8 @@ export class StockImportService {
     'retail-store-2',
     'online-fulfillment'
   ];
+  private stockService = new StockService();
+  private productService = new ProductService();
   async generatePreview(fileBuffer: Buffer): Promise<StockImportEvaluation> {
     const rows = await this.parseExcel(fileBuffer);
     return this.evaluateRows(rows);
@@ -654,6 +658,41 @@ export class StockImportService {
     return null;
   }
 
+  private resolveProductIdentifier(
+    rowData: Record<string, any>,
+    createdStock: Record<string, any>
+  ): string | null {
+    const candidates = [
+      createdStock?.puc,
+      rowData?.puc,
+      createdStock?.productId,
+      createdStock?.product_id,
+      rowData?.productId,
+      rowData?.product_id,
+      createdStock?.productid,
+      rowData?.productid
+    ];
+
+    for (const candidate of candidates) {
+      if (candidate === null || candidate === undefined) {
+        continue;
+      }
+
+      if (typeof candidate === 'string') {
+        const trimmed = candidate.trim();
+        if (trimmed.length > 0) {
+          return trimmed;
+        }
+      } else if (typeof candidate === 'number') {
+        return candidate.toString();
+      } else if (typeof candidate === 'bigint') {
+        return candidate.toString();
+      }
+    }
+
+    return null;
+  }
+
   private parseDateField(
     value: any,
     field: 'manufacturedyear' | 'releaseyear',
@@ -780,6 +819,16 @@ export class StockImportService {
       rfid?: string;
       message: string;
     }>;
+    productQuantityUpdates: {
+      attempted: number;
+      succeeded: number;
+      failed: number;
+      failures: Array<{
+        identifier: string;
+        message: string;
+        rowNumber?: number;
+      }>;
+    };
   }> {
     try {
       logger.info({
@@ -788,56 +837,35 @@ export class StockImportService {
 
       const inserted: Array<{ rowNumber: number; data: any }> = [];
       const failures: Array<{ rowNumber: number; serialnumber?: string; rfid?: string; message: string }> = [];
+      const productUpdateQueue: Array<{
+        identifier: string;
+        insertedStock: { ecompublish?: boolean; stockstatus?: string; quantity?: number };
+        rowNumber?: number;
+      }> = [];
 
       for (const row of rows) {
+        const { rowNumber, ...rowData } = row;
+
         try {
-          // Prepare stock data for insertion
-          const stockData = {
-            puc: row.puc || null,
-            category: row.category || null,
-            subcategory: row.subcategory || null,
-            brand: row.brand || null,
-            model: row.model || null,
-            operatingsystem: row.operatingsystem || null,
-            operatingsystemversion: row.operatingsystemversion || null,
-            ram: row.ram || null,
-            storagetype: row.storagetype || null,
-            storagecapacity: row.storagecapacity || null,
-            colour: row.colour || null,
-            graphicscard: row.graphicscard || null,
-            processor: row.processor || null,
-            serialnumber: row.serialnumber,
-            rfid: row.rfid,
-            stockstatus: row.stockstatus || 'Available',
-            manufacturedyear: row.manufacturedyear || null,
-            releaseyear: row.releaseyear || null,
-            isdeleted: row.isdeleted || false,
-            isarchive: row.isarchive || false,
-            ecompublish: row.ecompublish || false,
-            productname: row.productname || null,
-            nfc: row.nfc || null,
-            orderid: row.orderid || null,
-            invoiceurl: row.invoiceurl || null,
-            location: row.location || null,
-            solddate: row.solddate || null,
-            assetlocation: row.assetlocation || null,
-            orderlinenumber: row.orderlinenumber || null,
-            qrcode: row.qrcode || null,
-            barcode: row.barcode || null,
-            ewaste: row.ewaste || false,
-            createddate: BigInt(Date.now()),
-            modifieddate: BigInt(Date.now()),
-            createdby: 1, // Default system user - you may want to get this from request context
-            modifiedby: 1 // Default system user - you may want to get this from request context
+          // Prepare stock data for insertion while preserving any existing dynamic fields
+          const stockData: Record<string, any> = {
+            ...rowData,
+            stockstatus: rowData.stockstatus ?? 'Available',
+            isdeleted: rowData.isdeleted ?? false,
+            isarchive: rowData.isarchive ?? false,
+            ecompublish: rowData.ecompublish ?? false,
+            ewaste: rowData.ewaste ?? false,
+            createddate: rowData.createddate ?? BigInt(Date.now()),
+            modifieddate: rowData.modifieddate ?? BigInt(Date.now()),
+            createdby: rowData.createdby ?? 1, // Default system user - ideally from auth context
+            modifiedby: rowData.modifiedby ?? 1
           };
 
-          // Insert stock record
-          const createdStock = await prisma.stock.create({
-            data: stockData
-          });
+          // Insert stock record via StockService while deferring product quantity recalculation
+          const createdStock = await this.stockService.create(stockData as any, { skipProductUpdate: true });
 
           inserted.push({
-            rowNumber: row.rowNumber || 0,
+            rowNumber: rowNumber || 0,
             data: {
               id: createdStock.id,
               serialnumber: createdStock.serialnumber,
@@ -847,29 +875,80 @@ export class StockImportService {
             }
           });
 
+          const productIdentifier = this.resolveProductIdentifier(rowData, createdStock);
+          if (productIdentifier) {
+            productUpdateQueue.push({
+              identifier: productIdentifier,
+              rowNumber,
+              insertedStock: {
+                ecompublish: createdStock.ecompublish ?? stockData.ecompublish ?? false,
+                stockstatus: createdStock.stockstatus ?? stockData.stockstatus ?? 'Available',
+                quantity: Number(createdStock.quantity ?? stockData.quantity ?? 1) || 1
+              }
+            });
+          } else {
+            logger.warn({
+              rowNumber,
+              serialnumber: rowData.serialnumber,
+              rfid: rowData.rfid
+            }, 'Stock created during import but no product identifier found; parent product quantities not updated');
+          }
+
           logger.debug({
             stockId: createdStock.id,
             serialnumber: createdStock.serialnumber,
             rfid: createdStock.rfid,
-            rowNumber: row.rowNumber
+            rowNumber
           }, 'Stock record inserted successfully');
 
         } catch (error: any) {
           const errorMessage = error.message || 'Unknown error during insertion';
-          
+
           failures.push({
-            rowNumber: row.rowNumber || 0,
-            serialnumber: row.serialnumber,
-            rfid: row.rfid,
+            rowNumber: rowNumber || 0,
+            serialnumber: rowData?.serialnumber,
+            rfid: rowData?.rfid,
             message: errorMessage
           });
 
           logger.warn({
-            rowNumber: row.rowNumber,
-            serialnumber: row.serialnumber,
-            rfid: row.rfid,
+            rowNumber,
+            serialnumber: rowData?.serialnumber,
+            rfid: rowData?.rfid,
             error: errorMessage
           }, 'Failed to insert stock record');
+        }
+      }
+
+      let productUpdateSuccessCount = 0;
+      const productUpdateFailures: Array<{ identifier: string; message: string; rowNumber?: number }> = [];
+
+      for (const task of productUpdateQueue) {
+        try {
+          const updateResult = await this.productService.updateStockTotals(task.identifier, task.insertedStock);
+          productUpdateSuccessCount += 1;
+          logger.debug({
+            productIdentifier: task.identifier,
+            rowNumber: task.rowNumber,
+            updateResult
+          }, 'Updated parent product quantities after stock import row');
+        } catch (error: any) {
+          const message = error.message || 'Failed to update product quantities';
+          const failureRecord: { identifier: string; message: string; rowNumber?: number } = {
+            identifier: task.identifier,
+            message
+          };
+
+          if (typeof task.rowNumber === 'number') {
+            failureRecord.rowNumber = task.rowNumber;
+          }
+
+          productUpdateFailures.push(failureRecord);
+          logger.warn({
+            productIdentifier: task.identifier,
+            rowNumber: task.rowNumber,
+            error: message
+          }, 'Failed to update parent product quantities after stock import row');
         }
       }
 
@@ -879,12 +958,23 @@ export class StockImportService {
         failed: failures.length
       };
 
-      logger.info(summary, 'Stock bulk insert process completed');
+      const productUpdateSummary = {
+        attempted: productUpdateQueue.length,
+        succeeded: productUpdateSuccessCount,
+        failed: productUpdateFailures.length,
+        failures: productUpdateFailures
+      };
+
+      logger.info({
+        ...summary,
+        productQuantityUpdates: productUpdateSummary
+      }, 'Stock bulk insert process completed with product quantity synchronization');
 
       return {
         summary,
         inserted,
-        failures
+        failures,
+        productQuantityUpdates: productUpdateSummary
       };
 
     } catch (error: any) {

@@ -498,6 +498,16 @@ async function buildDynamicWhereClause(
 
   // Helper function to determine if a field is numeric
   function isNumericField(fieldName: string): boolean {
+    const normalized = fieldName.toLowerCase();
+    const explicitNumericFields = new Set([
+      'manufacturedyear',
+      'releaseyear'
+    ]);
+
+    if (explicitNumericFields.has(normalized)) {
+      return true;
+    }
+
     // First, exclude fields that contain "number" but are actually string identifiers
     const stringNumberFields = [
       /^.*prnumber$/i, // PR numbers like "REVO-PR-00005"
@@ -533,6 +543,7 @@ async function buildDynamicWhereClause(
       /^.*count$/i, // ends with 'count'
       /^.*date$/i, // ends with 'date' (timestamps)
       /^.*time$/i, // ends with 'time' (timestamps)
+      /^.*year$/i, // ends with 'year' (timestamp stored as epoch)
       /^.*code$/i, // ends with 'code' like pincode
       /^mobilenumber$/i, // specific mobile fields (actual phone numbers)
       /^phonenumber$/i, // specific phone fields (actual phone numbers)
@@ -549,6 +560,17 @@ async function buildDynamicWhereClause(
 
   // Helper function to determine if a field is boolean
   function isBooleanField(fieldName: string): boolean {
+    const normalized = fieldName.toLowerCase();
+    const explicitBooleanFields = new Set([
+      'ecompublish',
+      'ewaste',
+      'removefromrecyclebin'
+    ]);
+
+    if (explicitBooleanFields.has(normalized)) {
+      return true;
+    }
+
     const booleanFieldPatterns = [
       /^is[A-Z]/i, // starts with 'is'
       /^has[A-Z]/i, // starts with 'has'
@@ -572,55 +594,57 @@ async function buildDynamicWhereClause(
       continue;
     }
 
+    if (value === undefined || value === null || value === '') {
+      continue;
+    }
+
+    // Normalize value (handle arrays and objects)
+    let processedValue: any = value;
+    if (Array.isArray(processedValue)) {
+      processedValue = processedValue[0];
+    }
+    if (typeof processedValue === 'object' && processedValue !== null) {
+      processedValue = processedValue.toString();
+    }
+    if (processedValue === undefined || processedValue === null || processedValue === '') {
+      continue;
+    }
+
+    // Handle range filters before direct column matching
+    if (key.startsWith('min') && key.length > 3) {
+      const baseKey = key.substring(3);
+      const columnName = findMatchingColumn(baseKey);
+      if (columnName) {
+        const numValue = Number(processedValue);
+        if (!isNaN(numValue)) {
+          conditions.push(`"${columnName}" >= $${paramIndex}`);
+          values.push(numValue);
+          paramIndex++;
+        }
+      }
+      continue;
+    }
+
+    if (key.startsWith('max') && key.length > 3) {
+      const baseKey = key.substring(3);
+      const columnName = findMatchingColumn(baseKey);
+      if (columnName) {
+        const numValue = Number(processedValue);
+        if (!isNaN(numValue)) {
+          conditions.push(`"${columnName}" <= $${paramIndex}`);
+          values.push(numValue);
+          paramIndex++;
+        }
+      }
+      continue;
+    }
+
     // Find matching column with case variations
     const matchingColumn = findMatchingColumn(key);
     
     if (matchingColumn) {
-      if (value !== undefined && value !== null && value !== '') {
-        // Safely convert value to appropriate type
-        let processedValue = value;
-        
-        // Handle arrays (take first element)
-        if (Array.isArray(value)) {
-          processedValue = value[0];
-        }
-        
-        // Handle objects (convert to string)
-        if (typeof processedValue === 'object' && processedValue !== null) {
-          processedValue = processedValue.toString();
-        }
-        
-        // Skip empty values after processing
-        if (processedValue === undefined || processedValue === null || processedValue === '') {
-          continue;
-        }
-        
-        // Handle different filter types
-        if (key.startsWith('min') && key.length > 3) {
-          // Range filters like minPrice, minQuantity
-          const baseKey = key.substring(3);
-          const columnName = findMatchingColumn(baseKey);
-          if (columnName) {
-            const numValue = Number(processedValue);
-            if (!isNaN(numValue)) {
-              conditions.push(`"${columnName}" >= $${paramIndex}`);
-              values.push(numValue);
-              paramIndex++;
-            }
-          }
-        } else if (key.startsWith('max') && key.length > 3) {
-          // Range filters like maxPrice, maxQuantity
-          const baseKey = key.substring(3);
-          const columnName = findMatchingColumn(baseKey);
-          if (columnName) {
-            const numValue = Number(processedValue);
-            if (!isNaN(numValue)) {
-              conditions.push(`"${columnName}" <= $${paramIndex}`);
-              values.push(numValue);
-              paramIndex++;
-            }
-          }
-        } else if (isNumericField(matchingColumn)) {
+      // Handle different filter types
+      if (isNumericField(matchingColumn)) {
           // Numeric fields - treat as exact numeric match
           const numValue = Number(processedValue);
           if (!isNaN(numValue)) {
@@ -635,7 +659,7 @@ async function buildDynamicWhereClause(
               value: processedValue
             }, `Failed to convert value to number for numeric field`);
           }
-        } else if (isBooleanField(matchingColumn)) {
+      } else if (isBooleanField(matchingColumn)) {
           // Boolean fields - convert string to boolean
           let boolValue: boolean;
           if (typeof processedValue === 'boolean') {
@@ -648,7 +672,7 @@ async function buildDynamicWhereClause(
           conditions.push(`"${matchingColumn}" = $${paramIndex}`);
           values.push(boolValue);
           paramIndex++;
-        } else if (typeof processedValue === 'string') {
+      } else if (typeof processedValue === 'string') {
           // String fields - support both exact match and ILIKE
           if (processedValue.includes('%') || processedValue.includes('*')) {
             // Wildcard search
@@ -661,12 +685,11 @@ async function buildDynamicWhereClause(
             values.push(processedValue);
           }
           paramIndex++;
-        } else {
+      } else {
           // Exact match for other types
           conditions.push(`"${matchingColumn}" = $${paramIndex}`);
           values.push(processedValue);
           paramIndex++;
-        }
       }
     } else {
       // Log warning for unrecognized fields

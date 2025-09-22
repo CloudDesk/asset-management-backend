@@ -173,10 +173,10 @@ export class ProductService {
     }
   }
 
-  async updateStockTotals(productIdentifier: string, insertedStock?: { ecompublish?: boolean, stockstatus?: string, quantity?: number }) {
+  async updateStockTotals(productIdentifier: string, insertedStock?: { ecompublish?: boolean, stockstatus?: string, quantity?: number }, stockStatusChange?: { from: string, to: string }) {
     try {
       logger.debug({ productIdentifier }, 'Starting comprehensive stock totals update');
-console.log(insertedStock,"insertedStock")
+      
       // First, try to determine if productIdentifier is an ID or PUC and find the product
       let product = null;
       let productPuc = productIdentifier;
@@ -258,59 +258,21 @@ console.log(insertedStock,"insertedStock")
         totalQuantity += 1;
 
         if (stock.stockstatus === 'Available') {
-          totalAvailable += 1;
           // Only count e-commerce published if stock is available AND ecompublish is true
           if (stock.ecompublish === true) {
             totalEcomPublished += 1;
+            totalAvailable += 1; // Available quantity = stocks that are Available AND ecompublish=true
           }
+          // Note: Available stocks with ecompublish=false are NOT counted in availablequantity
         } else if (stock.stockstatus === 'Sold') {
           totalSold += 1;
         }
         // Note: Damaged stocks are not counted in available or sold
       });
 
-      // Simple logic for availablequantity: 
-      // If ecompublish=true: availablequantity = existing.availablequantity + inserted_quantity
-      // If ecompublish=false: availablequantity = existing.availablequantity (no change)
-      let finalAvailableQuantity = product.availablequantity || 0;
-      
-      // If we have inserted stock information, apply the special logic
-      if (insertedStock && insertedStock.stockstatus === 'Available') {
-        if (insertedStock.ecompublish === true) {
-          // Add the inserted quantity to existing available quantity
-          const insertedQuantity = insertedStock.quantity || 1; // Default to 1 if not specified
-          finalAvailableQuantity = (product.availablequantity || 0) + insertedQuantity;
-          
-          logger.info({ 
-            productId, 
-            existingAvailableQuantity: product.availablequantity,
-            insertedQuantity,
-            finalAvailableQuantity,
-            ecompublish: insertedStock.ecompublish
-          }, 'Added inserted quantity to availablequantity (ecompublish=true)');
-        } else {
-          // Keep existing available quantity (no change)
-          finalAvailableQuantity = product.availablequantity || 0;
-          
-          logger.info({ 
-            productId, 
-            existingAvailableQuantity: product.availablequantity,
-            finalAvailableQuantity,
-            ecompublish: insertedStock.ecompublish
-          }, 'Kept existing availablequantity (ecompublish=false)');
-        }
-      } else {
-        // No inserted stock info, use existing available quantity
-        logger.info({ 
-          productId, 
-          existingAvailableQuantity: product.availablequantity,
-          finalAvailableQuantity
-        }, 'No inserted stock info, using existing availablequantity');
-      }
-
       const totals = {
         totalQuantity,
-        totalAvailable: finalAvailableQuantity, // Use the special logic result
+        totalAvailable, // Recalculated from actual stock data
         totalSold,
         totalEcomPublished
       };
@@ -323,18 +285,18 @@ console.log(insertedStock,"insertedStock")
         totals,
         stockBreakdown: {
           totalStocks: stocks.length,
-          calculatedAvailableCount: totalAvailable,
-          finalAvailableCount: finalAvailableQuantity,
+          availableAndEcomPublishedCount: totalAvailable, // Available AND ecompublish=true (for reference)
           soldCount: totalSold,
           ecomPublishedCount: totalEcomPublished,
           
           stockDetails: stocks.map(s => ({
             id: s.id,
             status: s.stockstatus,
-            ecompublish: s.ecompublish
+            ecompublish: s.ecompublish,
+            countsAsAvailable: s.stockstatus === 'Available' && s.ecompublish === true
           }))
         }
-      }, 'Calculated stock totals with record-count logic');
+      }, 'Calculated stock totals - availablequantity will be calculated using business formula: ecompublishedquantity - orderedquantity - soldquantity');
 
       // Determine product status based on available quantity
       let productStatus = 'out_of_stock';
@@ -344,16 +306,50 @@ console.log(insertedStock,"insertedStock")
         productStatus = 'low_stock';
       }
 
+      // Handle orderedquantity decrease when stock changes to Sold
+      let orderedQuantityAdjustment = 0;
+      if (stockStatusChange && stockStatusChange.from !== 'Sold' && stockStatusChange.to === 'Sold') {
+        // When stock changes to Sold, decrease orderedquantity by 1
+        orderedQuantityAdjustment = -1;
+        logger.info({ 
+          productIdentifier, 
+          stockStatusChange,
+          orderedQuantityAdjustment 
+        }, 'Stock status changed to Sold - will decrease orderedquantity');
+      }
+
+      // Calculate availablequantity using business formula: ecompublishedquantity - orderedquantity - soldquantity
+      const currentOrderedQuantity = product.orderedquantity || 0;
+      const orderedQuantityAfterAdjustment = orderedQuantityAdjustment !== 0 
+        ? Math.max(0, currentOrderedQuantity + orderedQuantityAdjustment)
+        : currentOrderedQuantity;
+      
+      const calculatedAvailableQuantity = Math.max(0, totals.totalEcomPublished - orderedQuantityAfterAdjustment - totals.totalSold);
+
       // Update product with calculated totals
-      const updateData = {
+      const updateData: Record<string, any> = {
         quantity: totals.totalQuantity,
-        availablequantity: totals.totalAvailable,
+        availablequantity: calculatedAvailableQuantity, // Use business formula instead of totalAvailable
         soldquantity: totals.totalSold,
         ecompublishedquantity: totals.totalEcomPublished,
         productstatus: productStatus,
         modifieddate: BigInt(Date.now())
       };
-console.log(updateData,"updateData")
+
+      // Add orderedquantity adjustment if needed
+      if (orderedQuantityAdjustment !== 0) {
+        const currentOrderedQuantity = product.orderedquantity || 0;
+        const newOrderedQuantity = Math.max(0, currentOrderedQuantity + orderedQuantityAdjustment);
+        updateData.orderedquantity = newOrderedQuantity;
+        
+        logger.info({ 
+          productIdentifier,
+          currentOrderedQuantity,
+          adjustment: orderedQuantityAdjustment,
+          newOrderedQuantity
+        }, 'Adjusting orderedquantity for stock status change to Sold');
+      }
+      
       const updatedProduct = await dynamicUpdate('product', { id: productId }, updateData);
 
       if (updatedProduct) {
@@ -363,9 +359,14 @@ console.log(updateData,"updateData")
           productPuc,
           totals,
           productStatus,
-          availableQuantity: totals.totalAvailable,
+          availableQuantityCalculation: {
+            ecompublishedquantity: totals.totalEcomPublished,
+            orderedquantity: orderedQuantityAfterAdjustment,
+            soldquantity: totals.totalSold,
+            calculatedAvailableQuantity
+          },
           updatedFields: Object.keys(updateData)
-        }, 'Updated product stock totals and status successfully');
+        }, 'Updated product stock totals and status successfully - availablequantity calculated using business formula');
       } else {
         logger.warn({ 
           productIdentifier, 

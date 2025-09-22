@@ -3,6 +3,7 @@ import { StockService } from '../services/stock.service.js';
 export declare class StockController {
     stockService: StockService;
     private excelService;
+    private stockImportService;
     getStocks: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     getStock: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     createStock: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
@@ -17,8 +18,12 @@ export declare class StockController {
      */
     exportStocks: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     /**
-     * Import bulk stocks (placeholder)
+     * Generate preview for stock import file
      */
-    importBulkStocks: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    /**
+     * Commit validated stock import rows
+     */
+    importPreview: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    importCommit: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
 }
 //# sourceMappingURL=stock.controller.d.ts.map

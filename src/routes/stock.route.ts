@@ -34,8 +34,20 @@ export async function stockRoutes(fastify: FastifyInstance) {
           orderlinenumber: { type: 'string', description: 'Filter by order line number' },
           isdeleted: { type: 'string', description: 'Filter by deletion status (true/false)' },
           isarchive: { type: 'string', description: 'Filter by archive status (true/false)' },
-          ecompublish: { type: 'string', description: 'Filter by e-commerce publish status (true/false)' },
-          ewaste: { type: 'string', description: 'Filter by e-waste status (true/false)' },
+          ecompublish: {
+            anyOf: [
+              { type: 'boolean' },
+              { type: 'string' }
+            ],
+            description: 'Filter by e-commerce publish status (true/false)'
+          },
+          ewaste: {
+            anyOf: [
+              { type: 'boolean' },
+              { type: 'string' }
+            ],
+            description: 'Filter by e-waste status (true/false)'
+          },
           minManufacturedYear: { type: 'string', description: 'Minimum manufactured year' },
           maxManufacturedYear: { type: 'string', description: 'Maximum manufactured year' },
           minReleaseYear: { type: 'string', description: 'Minimum release year' },

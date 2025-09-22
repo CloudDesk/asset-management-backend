@@ -46,7 +46,7 @@ export class StockService {
             throw error;
         }
     }
-    async create(data) {
+    async create(data, options = {}) {
         try {
             logger.debug({ originalData: data }, "Starting dynamic stock create operation");
             // First, try to find the product by PUC if provided
@@ -103,7 +103,7 @@ export class StockService {
                 linkedProduct?.id ||
                 stock.productId ||
                 stock.product_id;
-            if (productIdentifier) {
+            if (!options.skipProductUpdate && productIdentifier) {
                 try {
                     // Pass the inserted stock information to updateStockTotals
                     const insertedStockInfo = {
@@ -131,7 +131,7 @@ export class StockService {
                     }, "Failed to update product quantities after stock creation");
                 }
             }
-            else {
+            else if (!options.skipProductUpdate) {
                 logger.warn({ stockId: stock.id }, "No product identifier found, skipping product quantity update");
             }
             return stock;

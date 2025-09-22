@@ -23,6 +23,10 @@ import {
 import { logger } from "../config/logger.js";
 import { ProductService } from "./product.service.js";
 
+interface CreateStockOptions {
+  skipProductUpdate?: boolean;
+}
+
 export class StockService {
   private productService = new ProductService();
 
@@ -99,7 +103,10 @@ export class StockService {
     }
   }
 
-  async create(data: CreateStockInput & Record<string, any>) {
+  async create(
+    data: CreateStockInput & Record<string, any>,
+    options: CreateStockOptions = {}
+  ) {
     try {
       logger.debug(
         { originalData: data },
@@ -172,7 +179,7 @@ export class StockService {
                                stock.productId || 
                                stock.product_id;
 
-      if (productIdentifier) {
+      if (!options.skipProductUpdate && productIdentifier) {
         try {
           // Pass the inserted stock information to updateStockTotals
           const insertedStockInfo = {
@@ -205,7 +212,7 @@ export class StockService {
             "Failed to update product quantities after stock creation"
           );
         }
-      } else {
+      } else if (!options.skipProductUpdate) {
         logger.warn(
           { stockId: stock.id },
           "No product identifier found, skipping product quantity update"
@@ -279,7 +286,16 @@ export class StockService {
 
         if (productIdentifier) {
           try {
-            const updateResult = await this.productService.updateStockTotals(productIdentifier);
+            // Pass stock status change information if status changed
+            let stockStatusChange = undefined;
+            if (existingStock.stockstatus !== stock.stockstatus) {
+              stockStatusChange = {
+                from: existingStock.stockstatus,
+                to: stock.stockstatus
+              };
+            }
+            
+            const updateResult = await this.productService.updateStockTotals(productIdentifier, undefined, stockStatusChange);
             logger.info(
               { 
                 stockId: id, 
@@ -288,6 +304,7 @@ export class StockService {
                 newStockStatus: stock.stockstatus,
                 oldEcomPublish: existingStock.ecompublish,
                 newEcomPublish: stock.ecompublish,
+                stockStatusChange: stockStatusChange || 'no status change',
                 updateResult 
               },
               "Successfully updated product quantities after stock update"
@@ -674,14 +691,21 @@ export class StockService {
       // Update product quantities using existing logic if PUC is available
       if (updatedStock.puc) {
         try {
-          await this.updateProductByPuc(updatedStock.puc, "RFID stock sale");
+          // Pass stock status change information for orderedquantity handling
+          const stockStatusChange = {
+            from: stock.stockstatus,
+            to: "Sold"
+          };
+          
+          await this.productService.updateStockTotals(updatedStock.puc, undefined, stockStatusChange);
           logger.info(
             { 
               stockId, 
               puc: updatedStock.puc,
+              stockStatusChange,
               reason: "RFID stock sale"
             },
-            "Product quantities updated after RFID sale"
+            "Product quantities updated after RFID sale (including orderedquantity decrease)"
           );
         } catch (error: any) {
           logger.error(

@@ -18950,3 +18950,172 @@ Filtered data result: {
   "productstatus": "low_stock",
   "modifieddate": 1758263649944
 }
+Filtered data result: {
+  "serialnumber": "Aravi-0040",
+  "puc": "es-we-0000000002",
+  "rfid": "10101023100",
+  "location": "warehouse-a",
+  "ecompublish": true,
+  "manufacturedyear": 1758326400,
+  "releaseyear": 1754006400,
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1758516912154,
+  "modifieddate": 1758516912154,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtered data result: {
+  "quantity": 23,
+  "availablequantity": 5,
+  "soldquantity": 0,
+  "ecompublishedquantity": 22,
+  "productstatus": "low_stock",
+  "modifieddate": 1758516916548
+}
+Filtered data result: {
+  "serialnumber": "Aravi-0041",
+  "puc": "es-we-0000000002",
+  "rfid": "10101023101",
+  "location": "warehouse-a",
+  "ecompublish": true,
+  "manufacturedyear": 1758326400,
+  "releaseyear": 1754006400,
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1758516981967,
+  "modifieddate": 1758516981967,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtered data result: {
+  "quantity": 24,
+  "availablequantity": 6,
+  "soldquantity": 0,
+  "ecompublishedquantity": 23,
+  "productstatus": "in_stock",
+  "modifieddate": 1758516984426
+}
+Filtered data result: {
+  "puc": "es-we-0000000002",
+  "rfid": "101010231123",
+  "serialnumber": "Aravi-0028",
+  "manufacturedyear": 1758326400,
+  "ecompublish": true,
+  "releaseyear": 1754006400,
+  "location": "warehouse-a"
+}
+Filtered data result: {
+  "quantity": 24,
+  "availablequantity": 6,
+  "soldquantity": 0,
+  "ecompublishedquantity": 23,
+  "productstatus": "in_stock",
+  "modifieddate": 1758517082728
+}
+Filtered data result: {
+  "puc": "es-we-0000000002",
+  "rfid": "101010231123",
+  "serialnumber": "Aravi-0028",
+  "manufacturedyear": 1758326400,
+  "ecompublish": false,
+  "releaseyear": 1754006400,
+  "location": "warehouse-a"
+}
+Filtered data result: {
+  "quantity": 24,
+  "availablequantity": 6,
+  "soldquantity": 0,
+  "ecompublishedquantity": 22,
+  "productstatus": "in_stock",
+  "modifieddate": 1758519807215
+}
+Filtered data result: {
+  "puc": "es-we-0000000002",
+  "rfid": "101010231123",
+  "serialnumber": "Aravi-0028",
+  "manufacturedyear": 1758326400,
+  "ecompublish": true,
+  "releaseyear": 1754006400,
+  "location": "warehouse-a"
+}
+Filtered data result: {
+  "quantity": 24,
+  "availablequantity": 6,
+  "soldquantity": 0,
+  "ecompublishedquantity": 23,
+  "productstatus": "in_stock",
+  "modifieddate": 1758519827592
+}
+Filtered data result: {
+  "puc": "es-we-0000000002",
+  "rfid": "101010231123",
+  "serialnumber": "Aravi-0028",
+  "manufacturedyear": 1758326400,
+  "ecompublish": false,
+  "releaseyear": 1754006400,
+  "location": "warehouse-a"
+}
+Filtered data result: {
+  "quantity": 24,
+  "availablequantity": 22,
+  "soldquantity": 0,
+  "ecompublishedquantity": 22,
+  "productstatus": "in_stock",
+  "modifieddate": 1758523568072
+}
+Filtered data result: {
+  "puc": "es-we-0000000002",
+  "rfid": "101010231123",
+  "serialnumber": "Aravi-0028",
+  "manufacturedyear": 1758326400,
+  "ecompublish": true,
+  "releaseyear": 1754006400,
+  "location": "warehouse-a"
+}
+Filtered data result: {
+  "quantity": 24,
+  "availablequantity": 10,
+  "soldquantity": 0,
+  "ecompublishedquantity": 23,
+  "productstatus": "in_stock",
+  "modifieddate": 1758524132061
+}
+Filtered data result: {
+  "puc": "es-we-0000000002",
+  "rfid": "101010231123",
+  "serialnumber": "Aravi-0028",
+  "manufacturedyear": 1758326400,
+  "ecompublish": false,
+  "releaseyear": 1754006400,
+  "location": "warehouse-a"
+}
+Filtered data result: {
+  "quantity": 24,
+  "availablequantity": 9,
+  "soldquantity": 0,
+  "ecompublishedquantity": 22,
+  "productstatus": "in_stock",
+  "modifieddate": 1758524148574
+}
+Filtered data result: {
+  "puc": "es-we-0000000002",
+  "rfid": "101010231125",
+  "serialnumber": "Aravi-0025",
+  "manufacturedyear": 1754006400,
+  "ecompublish": false,
+  "releaseyear": 1754006400,
+  "location": "warehouse-a"
+}
+Filtered data result: {
+  "quantity": 24,
+  "availablequantity": 8,
+  "soldquantity": 0,
+  "ecompublishedquantity": 21,
+  "productstatus": "in_stock",
+  "modifieddate": 1758524162811
+}
