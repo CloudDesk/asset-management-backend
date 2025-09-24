@@ -8,6 +8,21 @@ export declare class StockService {
     private productService;
     findMany(filters: FilterOptions, page: number, limit: number): Promise<PaginationResult<any>>;
     findById(id: string): Promise<any>;
+    getSummaryByPuc(puc: string): Promise<{
+        quantity: number;
+        availablequantity: number;
+        orderedquantity: number;
+        soldquantity: number;
+        ecompublishedquantity: number;
+        locations: Array<{
+            location: string;
+            quantity: number;
+            availablequantity: number;
+            orderedquantity: number;
+            soldquantity: number;
+            ecompublishedquantity: number;
+        }>;
+    } | null>;
     create(data: CreateStockInput & Record<string, any>, options?: CreateStockOptions): Promise<any>;
     update(id: string, data: UpdateStockInput & Record<string, any>): Promise<any>;
     private updateProductByPuc;

@@ -168,7 +168,10 @@ export class StockService {
 
       return {
         ...summaryTotals,
-        locations
+        locations: locations.map((loc) => ({
+          ...loc,
+          location: loc.location ?? ''
+        }))
       };
     } catch (error: any) {
       logger.error({ error: error.message, puc }, 'Failed to build stock summary by PUC');

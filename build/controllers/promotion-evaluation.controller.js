@@ -41,8 +41,8 @@ export class PromotionEvaluationController {
                 if (!targetEvaluationId) {
                     // Find user's active evaluation
                     const activeEvaluations = await this.evaluationService.getUserActiveEvaluations(user_id);
-                    if (activeEvaluations.evaluations && activeEvaluations.evaluations.length > 0) {
-                        targetEvaluationId = activeEvaluations.evaluations[0].evaluation_id;
+                    if (activeEvaluations?.evaluations?.length && activeEvaluations.evaluations.length > 0) {
+                        targetEvaluationId = activeEvaluations.evaluations[0]?.evaluation_id;
                         logger.info({
                             userId: user_id,
                             autoDetectedEvaluationId: targetEvaluationId,
@@ -58,9 +58,23 @@ export class PromotionEvaluationController {
                     }
                 }
                 // Apply promotion to evaluation
+                if (!promotion_id) {
+                    return reply.code(400).send({
+                        success: false,
+                        message: 'promotion_id is required for manual_coupon or stackable_promotion',
+                        details: 'Please provide a valid promotion_id'
+                    });
+                }
+                if (!targetEvaluationId) {
+                    return reply.code(400).send({
+                        success: false,
+                        message: 'evaluation_id is required for manual_coupon or stackable_promotion',
+                        details: 'Could not determine evaluation_id for promotion application'
+                    });
+                }
                 evaluation = await this.evaluationService.applyManualCoupon({
-                    evaluation_id: targetEvaluationId,
-                    promotion_id: promotion_id,
+                    evaluation_id: typeof targetEvaluationId === 'string' ? targetEvaluationId : String(targetEvaluationId),
+                    promotion_id: typeof promotion_id === 'string' ? Number(promotion_id) : promotion_id,
                     cart_items
                 });
                 break;

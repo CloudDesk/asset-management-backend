@@ -496,3 +496,9 @@ Update query:
         WHERE "id" = $1 
         RETURNING id, name, type, code, auto_apply, status, priority, visibility, max_redemptions, per_user_limit, stackable, createddate, modifieddate, description, budget, timezone, evaluation_expiry_minutes, conditions, start_date, end_date, action
       
+Update query: 
+        UPDATE "inventoryusers" 
+        SET "sessiontoken" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, useremail, userpassword, createddate, modifieddate, role, usersphonenumber, firstname, lastname, location, fcmid, sessiontoken, resettoken, resettokenexpires
+      

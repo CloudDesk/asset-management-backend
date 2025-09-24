@@ -43,7 +43,9 @@ export class ExcelService {
       this.createInstructionsSheet(workbook);
 
       // Convert to buffer
-      const buffer = await workbook.xlsx.writeBuffer() as Buffer;
+      const bufferData = await workbook.xlsx.writeBuffer();
+      // Ensure compatibility with Node.js Buffer
+      const buffer = Buffer.isBuffer(bufferData) ? bufferData : Buffer.from(bufferData);
 
       logger.info(
         {
@@ -78,7 +80,7 @@ export class ExcelService {
     };
 
     // Add borders to header
-    headerRow.eachCell(cell => {
+    headerRow.eachCell((cell:any) => {
       cell.border = {
         top: { style: 'thin' },
         left: { style: 'thin' },
@@ -107,7 +109,7 @@ export class ExcelService {
       ]);
 
       // Add borders to data rows
-      row.eachCell(cell => {
+      row.eachCell((cell:any) => {
         cell.border = {
           top: { style: 'thin' },
           left: { style: 'thin' },
@@ -154,7 +156,7 @@ export class ExcelService {
    */
   private formatStockWorksheet(worksheet: any) {
     // Auto-fit columns with minimum width
-    worksheet.columns.forEach((column, index) => {
+    worksheet.columns.forEach((column:any, index:any) => {
       const headerLength = column.header?.length || 10;
       column.width = Math.max(headerLength + 2, 12);
     });
@@ -207,7 +209,7 @@ export class ExcelService {
       ]);
 
       // Style sample row with light gray background
-      sampleRow.eachCell(cell => {
+      sampleRow.eachCell((cell:any) => {
         cell.fill = {
           type: 'pattern',
           pattern: 'solid',
@@ -223,7 +225,7 @@ export class ExcelService {
     }
 
     // Add data validation for E-Commerce Publish column (column E)
-    worksheet.getColumn(5).eachCell({ includeEmpty: true }, (cell, rowNumber) => {
+    worksheet.getColumn(5).eachCell({ includeEmpty: true }, (cell:any, rowNumber:any) => {
       if (rowNumber > 1) { // Skip header row
         cell.dataValidation = {
           type: 'list',
@@ -235,7 +237,7 @@ export class ExcelService {
 
     // Add data validation for Location column (column G)
     const locationValues = this.locationOptions.map(opt => opt.value).filter(val => val !== '');
-    worksheet.getColumn(7).eachCell({ includeEmpty: true }, (cell, rowNumber) => {
+    worksheet.getColumn(7).eachCell({ includeEmpty: true }, (cell:any, rowNumber:any) => {
       if (rowNumber > 1) { // Skip header row
         cell.dataValidation = {
           type: 'list',

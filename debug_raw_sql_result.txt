@@ -7015,3 +7015,21 @@ Update result: [
     }
   }
 ]
+Update result: [
+  {
+    "id": 2,
+    "useremail": "harish@mail.com",
+    "userpassword": "$2a$12$so.ymfCoVsAVlnB5GvSo5.gXz0VKpmlA8lBKrE2EcBbzx/.dPhbVm",
+    "createddate": 1754579214,
+    "modifieddate": 1758653891,
+    "role": null,
+    "usersphonenumber": null,
+    "firstname": null,
+    "lastname": null,
+    "location": null,
+    "fcmid": null,
+    "sessiontoken": "80c138d04e8c3fb57981f3a1589406477f56a4e626547fc67ce32d4cc305cd0e",
+    "resettoken": null,
+    "resettokenexpires": null
+  }
+]

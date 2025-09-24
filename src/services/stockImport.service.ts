@@ -123,7 +123,10 @@ export class StockImportService {
     return {
       summary,
       rows: processedRows,
-      validRows,
+      validRows: validRows.map(row => ({
+        ...row,
+        rowNumber: row.rowNumber ?? 0, // Ensure rowNumber is always a number
+      })),
       warningRows,
       errorRows,
     };
@@ -327,7 +330,7 @@ export class StockImportService {
     const serials = new Set(
       rows
         .filter((row) => row.original?.serialnumber && typeof row.original.serialnumber === 'string')
-        .map((row) => String(row.original.serialnumber).trim())
+        .map((row:any) => String(row.original.serialnumber).trim())
         .filter(Boolean)
     );
 
@@ -335,7 +338,7 @@ export class StockImportService {
     const rfids = new Set(
       rows
         .filter((row) => row.original?.rfid)
-        .map((row) => String(row.original.rfid).trim())
+        .map((row:any) => String(row.original.rfid).trim())
         .filter(Boolean)
     );
 
@@ -343,7 +346,7 @@ export class StockImportService {
     const pucs = new Set(
       rows
         .filter((row) => row.original?.puc && typeof row.original.puc === 'string')
-        .map((row) => String(row.original.puc).trim())
+        .map((row:any) => String(row.original.puc).trim())
         .filter(Boolean)
     );
 
@@ -438,7 +441,7 @@ export class StockImportService {
     return row.issues.some((issue) => issue.type === 'error' && issue.field === field);
   }
 
-  private async parseExcel(fileBuffer: Buffer): Promise<StockImportInputRow[]> {
+  private async parseExcel(fileBuffer: any): Promise<StockImportInputRow[]> {
     try {
       const workbook = new Workbook();
       await workbook.xlsx.load(fileBuffer);
@@ -719,7 +722,7 @@ export class StockImportService {
       const trimmed = value.trim();
       if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
         const [year, month, day] = trimmed.split('-').map((part) => parseInt(part, 10));
-        date = new Date(Date.UTC(year, month - 1, day));
+        date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
       } else {
         const parsed = new Date(trimmed);
         if (!Number.isNaN(parsed.getTime())) {

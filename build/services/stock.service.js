@@ -1,3 +1,4 @@
+import { prisma } from "../models/prisma.js";
 import { createPaginationResult, getPrismaSkipTake, } from "../utils/pagination.js";
 import { dynamicFindMany, dynamicFindUnique, dynamicCreate, dynamicUpdate, dynamicDelete, dynamicFindManyWithFilters, } from "../utils/dynamicDbOperations.js";
 import { logger } from "../config/logger.js";
@@ -44,6 +45,56 @@ export class StockService {
         catch (error) {
             logger.error({ error, stockId: id }, "Error in stock findById operation");
             throw error;
+        }
+    }
+    async getSummaryByPuc(puc) {
+        try {
+            const products = await dynamicFindMany('product', {
+                where: { puc },
+                take: 1
+            });
+            const productRecord = Array.isArray(products) && products.length > 0 ? products[0] : null;
+            const summaryTotals = {
+                quantity: productRecord?.quantity !== undefined ? Number(productRecord.quantity) : 0,
+                availablequantity: productRecord?.availablequantity !== undefined ? Number(productRecord.availablequantity) : 0,
+                orderedquantity: productRecord?.orderedquantity !== undefined ? Number(productRecord.orderedquantity) : 0,
+                soldquantity: productRecord?.soldquantity !== undefined ? Number(productRecord.soldquantity) : 0,
+                ecompublishedquantity: productRecord?.ecompublishedquantity !== undefined ? Number(productRecord.ecompublishedquantity) : 0
+            };
+            const locationSummaryRaw = await prisma.$queryRaw `
+        SELECT
+          NULLIF(TRIM(location), '') AS location,
+          COUNT(*) AS quantity,
+          SUM(CASE WHEN stockstatus = 'Available' AND ecompublish = true THEN 1 ELSE 0 END) AS availablequantity,
+          SUM(CASE WHEN stockstatus = 'Ordered' THEN 1 ELSE 0 END) AS orderedquantity,
+          SUM(CASE WHEN stockstatus = 'Sold' THEN 1 ELSE 0 END) AS soldquantity,
+          SUM(CASE WHEN ecompublish = true THEN 1 ELSE 0 END) AS ecompublishedquantity
+        FROM stock
+        WHERE puc = ${puc}
+          AND (isdeleted IS NULL OR isdeleted = false)
+          AND (isarchive IS NULL OR isarchive = false)
+        GROUP BY NULLIF(TRIM(location), '')
+        ORDER BY location
+      `;
+            const locations = (locationSummaryRaw || []).map((row) => ({
+                location: row.location && row.location.trim().length > 0 ? row.location : null,
+                quantity: Number(row.quantity ?? 0),
+                availablequantity: Number(row.availablequantity ?? 0),
+                orderedquantity: Number(row.orderedquantity ?? 0),
+                soldquantity: Number(row.soldquantity ?? 0),
+                ecompublishedquantity: Number(row.ecompublishedquantity ?? 0)
+            }));
+            return {
+                ...summaryTotals,
+                locations: locations.map((loc) => ({
+                    ...loc,
+                    location: loc.location ?? ''
+                }))
+            };
+        }
+        catch (error) {
+            logger.error({ error: error.message, puc }, 'Failed to build stock summary by PUC');
+            return null;
         }
     }
     async create(data, options = {}) {
@@ -183,7 +234,15 @@ export class StockService {
                     existingStock.product_id;
                 if (productIdentifier) {
                     try {
-                        const updateResult = await this.productService.updateStockTotals(productIdentifier);
+                        // Pass stock status change information if status changed
+                        let stockStatusChange = undefined;
+                        if (existingStock.stockstatus !== stock.stockstatus) {
+                            stockStatusChange = {
+                                from: existingStock.stockstatus,
+                                to: stock.stockstatus
+                            };
+                        }
+                        const updateResult = await this.productService.updateStockTotals(productIdentifier, undefined, stockStatusChange);
                         logger.info({
                             stockId: id,
                             productIdentifier,
@@ -191,6 +250,7 @@ export class StockService {
                             newStockStatus: stock.stockstatus,
                             oldEcomPublish: existingStock.ecompublish,
                             newEcomPublish: stock.ecompublish,
+                            stockStatusChange: stockStatusChange || 'no status change',
                             updateResult
                         }, "Successfully updated product quantities after stock update");
                     }
@@ -477,12 +537,18 @@ export class StockService {
             // Update product quantities using existing logic if PUC is available
             if (updatedStock.puc) {
                 try {
-                    await this.updateProductByPuc(updatedStock.puc, "RFID stock sale");
+                    // Pass stock status change information for orderedquantity handling
+                    const stockStatusChange = {
+                        from: stock.stockstatus,
+                        to: "Sold"
+                    };
+                    await this.productService.updateStockTotals(updatedStock.puc, undefined, stockStatusChange);
                     logger.info({
                         stockId,
                         puc: updatedStock.puc,
+                        stockStatusChange,
                         reason: "RFID stock sale"
-                    }, "Product quantities updated after RFID sale");
+                    }, "Product quantities updated after RFID sale (including orderedquantity decrease)");
                 }
                 catch (error) {
                     logger.error({

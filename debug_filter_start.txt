@@ -19742,3 +19742,29 @@ Filtering data for product (product): {
   "productstatus": "in_stock",
   "modifieddate": 1758524162811
 }
+Filtering data for stock (stock): {
+  "puc": "es-we-0000000002",
+  "rfid": "1010101000",
+  "serialnumber": "Aravi-0029",
+  "manufacturedyear": 1758585600,
+  "ecompublish": true,
+  "releaseyear": 1758585600,
+  "location": "warehouse-a",
+  "stockstatus": "Available",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "ewaste": false
+}
+Filtering data for product (product): {
+  "quantity": 25,
+  "availablequantity": 9,
+  "soldquantity": 0,
+  "ecompublishedquantity": 22,
+  "productstatus": "in_stock",
+  "modifieddate": 1758633047202
+}
+Filtering data for inventoryusers (inventoryusers): {
+  "sessiontoken": "80c138d04e8c3fb57981f3a1589406477f56a4e626547fc67ce32d4cc305cd0e",
+  "modifieddate": 1758634090385
+}

@@ -31,8 +31,20 @@ export async function stockRoutes(fastify) {
                     orderlinenumber: { type: 'string', description: 'Filter by order line number' },
                     isdeleted: { type: 'string', description: 'Filter by deletion status (true/false)' },
                     isarchive: { type: 'string', description: 'Filter by archive status (true/false)' },
-                    ecompublish: { type: 'string', description: 'Filter by e-commerce publish status (true/false)' },
-                    ewaste: { type: 'string', description: 'Filter by e-waste status (true/false)' },
+                    ecompublish: {
+                        anyOf: [
+                            { type: 'boolean' },
+                            { type: 'string' }
+                        ],
+                        description: 'Filter by e-commerce publish status (true/false)'
+                    },
+                    ewaste: {
+                        anyOf: [
+                            { type: 'boolean' },
+                            { type: 'string' }
+                        ],
+                        description: 'Filter by e-waste status (true/false)'
+                    },
                     minManufacturedYear: { type: 'string', description: 'Minimum manufactured year' },
                     maxManufacturedYear: { type: 'string', description: 'Maximum manufactured year' },
                     minReleaseYear: { type: 'string', description: 'Minimum release year' },
@@ -95,6 +107,33 @@ export async function stockRoutes(fastify) {
                                 },
                                 additionalProperties: true // Allow additional dynamic fields
                             }
+                        },
+                        summary: {
+                            type: 'object',
+                            nullable: true,
+                            properties: {
+                                quantity: { type: 'number', description: 'Total stock quantity for the PUC' },
+                                availablequantity: { type: 'number', description: 'Available quantity for the PUC' },
+                                orderedquantity: { type: 'number', description: 'Ordered quantity for the PUC' },
+                                soldquantity: { type: 'number', description: 'Sold quantity for the PUC' },
+                                ecompublishedquantity: { type: 'number', description: 'E-commerce published quantity for the PUC' },
+                                locations: {
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            location: { anyOf: [{ type: 'string' }, { type: 'null' }], description: 'Stock location label (null when unknown)' },
+                                            quantity: { type: 'number', description: 'Total stocks at this location' },
+                                            availablequantity: { type: 'number', description: 'Available stocks at this location' },
+                                            orderedquantity: { type: 'number', description: 'Ordered stocks at this location' },
+                                            soldquantity: { type: 'number', description: 'Sold stocks at this location' },
+                                            ecompublishedquantity: { type: 'number', description: 'E-commerce published stocks at this location' }
+                                        },
+                                        additionalProperties: false
+                                    }
+                                }
+                            },
+                            additionalProperties: false
                         },
                         pagination: {
                             type: 'object',

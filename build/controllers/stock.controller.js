@@ -19,8 +19,14 @@ export class StockController {
         const result = await this.stockService.findMany(filters, page, limit);
         // Format all stocks in the result
         const formattedData = formatEntitiesForAPI(result.data, 'stock');
+        let summary = null;
+        const pucFilterRaw = filters?.puc;
+        const pucFilter = Array.isArray(pucFilterRaw) ? pucFilterRaw[0] : pucFilterRaw;
+        if (typeof pucFilter === 'string' && pucFilter.trim().length > 0) {
+            summary = await this.stockService.getSummaryByPuc(pucFilter.trim());
+        }
         const response = createSuccessResponse('Stocks retrieved successfully', formattedData);
-        return reply.code(200).send({
+        const payload = {
             ...response,
             pagination: result.pagination,
             meta: {
@@ -28,7 +34,11 @@ export class StockController {
                 total: result.pagination.total,
                 filtered: Object.keys(filters).length > 0
             }
-        });
+        };
+        if (summary) {
+            payload.summary = summary;
+        }
+        return reply.code(200).send(payload);
     });
     getStock = asyncHandler(async (request, reply) => {
         const { id } = stockParamsSchema.parse(request.params);

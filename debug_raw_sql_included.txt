@@ -228,3 +228,5 @@ Included in rawData: action = {"type":"PERCENT_OFF","value":25,"max_discount":50
 Included in rawData: id = 64
 Included in rawData: createddate = 1756981505
 Included in rawData: modifieddate = 1758177648916
+Included in rawData: sessiontoken = "80c138d04e8c3fb57981f3a1589406477f56a4e626547fc67ce32d4cc305cd0e"
+Included in rawData: modifieddate = 1758634090385

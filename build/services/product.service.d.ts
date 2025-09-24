@@ -12,6 +12,9 @@ export declare class ProductService {
         ecompublish?: boolean;
         stockstatus?: string;
         quantity?: number;
+    }, stockStatusChange?: {
+        from: string;
+        to: string;
     }): Promise<{
         totalQuantity: number;
         totalAvailable: number;
@@ -20,7 +23,7 @@ export declare class ProductService {
     } | {
         updatedProduct: any;
         totalQuantity: number;
-        totalAvailable: any;
+        totalAvailable: number;
         totalSold: number;
         totalEcomPublished: number;
     }>;
