@@ -84,13 +84,13 @@ export declare const createPromotionsSchema: z.ZodObject<{
     budget?: number | undefined;
     timezone?: string | undefined;
     evaluation_expiry_minutes?: number | undefined;
+    discount_type?: string | undefined;
+    discount_value?: number | undefined;
     conditions?: {
         value: string | number | string[];
         attribute: string;
         operator: "GTE" | "LTE" | "EQ" | "IN" | "NOT_IN" | "CONTAINS";
     }[] | undefined;
-    discount_type?: string | undefined;
-    discount_value?: number | undefined;
     actions?: {
         value: string | number | boolean;
         type: "BOGO" | "FREE_SHIPPING" | "FREE_PRODUCT" | "PERCENT_OFF" | "FIXED_AMOUNT_OFF";
@@ -112,13 +112,13 @@ export declare const createPromotionsSchema: z.ZodObject<{
     budget?: number | undefined;
     timezone?: string | undefined;
     evaluation_expiry_minutes?: number | undefined;
+    discount_type?: string | undefined;
+    discount_value?: number | undefined;
     conditions?: {
         value: string | number | string[];
         attribute: string;
         operator: "GTE" | "LTE" | "EQ" | "IN" | "NOT_IN" | "CONTAINS";
     }[] | undefined;
-    discount_type?: string | undefined;
-    discount_value?: number | undefined;
     actions?: {
         value: string | number | boolean;
         type: "BOGO" | "FREE_SHIPPING" | "FREE_PRODUCT" | "PERCENT_OFF" | "FIXED_AMOUNT_OFF";
@@ -183,13 +183,13 @@ export declare const updatePromotionsSchema: z.ZodObject<{
     budget?: number | undefined;
     timezone?: string | undefined;
     evaluation_expiry_minutes?: number | undefined;
+    discount_type?: string | undefined;
+    discount_value?: number | undefined;
     conditions?: {
         value: string | number | string[];
         attribute: string;
         operator: "GTE" | "LTE" | "EQ" | "IN" | "NOT_IN" | "CONTAINS";
     }[] | undefined;
-    discount_type?: string | undefined;
-    discount_value?: number | undefined;
     actions?: {
         value: string | number | boolean;
         type: "BOGO" | "FREE_SHIPPING" | "FREE_PRODUCT" | "PERCENT_OFF" | "FIXED_AMOUNT_OFF";
@@ -211,13 +211,13 @@ export declare const updatePromotionsSchema: z.ZodObject<{
     budget?: number | undefined;
     timezone?: string | undefined;
     evaluation_expiry_minutes?: number | undefined;
+    discount_type?: string | undefined;
+    discount_value?: number | undefined;
     conditions?: {
         value: string | number | string[];
         attribute: string;
         operator: "GTE" | "LTE" | "EQ" | "IN" | "NOT_IN" | "CONTAINS";
     }[] | undefined;
-    discount_type?: string | undefined;
-    discount_value?: number | undefined;
     actions?: {
         value: string | number | boolean;
         type: "BOGO" | "FREE_SHIPPING" | "FREE_PRODUCT" | "PERCENT_OFF" | "FIXED_AMOUNT_OFF";
@@ -284,13 +284,13 @@ export declare const upsertPromotionsSchema: z.ZodObject<{
     budget?: number | undefined;
     timezone?: string | undefined;
     evaluation_expiry_minutes?: number | undefined;
+    discount_type?: string | undefined;
+    discount_value?: number | undefined;
     conditions?: {
         value: string | number | string[];
         attribute: string;
         operator: "GTE" | "LTE" | "EQ" | "IN" | "NOT_IN" | "CONTAINS";
     }[] | undefined;
-    discount_type?: string | undefined;
-    discount_value?: number | undefined;
     actions?: {
         value: string | number | boolean;
         type: "BOGO" | "FREE_SHIPPING" | "FREE_PRODUCT" | "PERCENT_OFF" | "FIXED_AMOUNT_OFF";
@@ -313,13 +313,13 @@ export declare const upsertPromotionsSchema: z.ZodObject<{
     budget?: number | undefined;
     timezone?: string | undefined;
     evaluation_expiry_minutes?: number | undefined;
+    discount_type?: string | undefined;
+    discount_value?: number | undefined;
     conditions?: {
         value: string | number | string[];
         attribute: string;
         operator: "GTE" | "LTE" | "EQ" | "IN" | "NOT_IN" | "CONTAINS";
     }[] | undefined;
-    discount_type?: string | undefined;
-    discount_value?: number | undefined;
     actions?: {
         value: string | number | boolean;
         type: "BOGO" | "FREE_SHIPPING" | "FREE_PRODUCT" | "PERCENT_OFF" | "FIXED_AMOUNT_OFF";
@@ -363,9 +363,9 @@ export declare const promotionsQuerySchema: z.ZodObject<{
     visibility?: string | undefined;
     stackable?: string | undefined;
     timezone?: string | undefined;
+    discount_type?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
-    discount_type?: string | undefined;
     budget_min?: string | undefined;
     budget_max?: string | undefined;
     discount_value_min?: string | undefined;
@@ -384,9 +384,9 @@ export declare const promotionsQuerySchema: z.ZodObject<{
     visibility?: string | undefined;
     stackable?: string | undefined;
     timezone?: string | undefined;
+    discount_type?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
-    discount_type?: string | undefined;
     budget_min?: string | undefined;
     budget_max?: string | undefined;
     discount_value_min?: string | undefined;
