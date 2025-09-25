@@ -66,3 +66,219 @@ Fallback values: [
   "low_stock",
   1758800343
 ]
+Fallback values: [
+  31,
+  6,
+  5,
+  0,
+  5,
+  "low_stock",
+  1758804106
+]
+Fallback values: [
+  31,
+  7,
+  6,
+  0,
+  6,
+  "in_stock",
+  1758806125
+]
+Fallback values: [
+  31,
+  8,
+  7,
+  0,
+  7,
+  "in_stock",
+  1758806438
+]
+Fallback values: [
+  31,
+  9,
+  8,
+  0,
+  8,
+  "in_stock",
+  1758806460
+]
+Fallback values: [
+  31,
+  10,
+  9,
+  0,
+  9,
+  "in_stock",
+  1758806914
+]
+Fallback values: [
+  31,
+  11,
+  9,
+  0,
+  9,
+  "in_stock",
+  1758806928
+]
+Fallback values: [
+  31,
+  12,
+  10,
+  0,
+  10,
+  "in_stock",
+  1758806959
+]
+Fallback values: [
+  31,
+  13,
+  11,
+  0,
+  11,
+  "in_stock",
+  1758807481
+]
+Fallback values: [
+  31,
+  14,
+  11,
+  0,
+  11,
+  "in_stock",
+  1758807550
+]
+Fallback values: [
+  31,
+  15,
+  12,
+  0,
+  12,
+  "in_stock",
+  1758807627
+]
+Fallback values: [
+  31,
+  16,
+  13,
+  0,
+  13,
+  "in_stock",
+  1758807697
+]
+Fallback values: [
+  31,
+  17,
+  14,
+  0,
+  14,
+  "in_stock",
+  1758807845
+]
+Fallback values: [
+  31,
+  18,
+  15,
+  0,
+  15,
+  "in_stock",
+  1758807947
+]
+Fallback values: [
+  31,
+  19,
+  16,
+  0,
+  16,
+  "in_stock",
+  1758808050
+]
+Fallback values: [
+  31,
+  20,
+  16,
+  0,
+  16,
+  "in_stock",
+  1758808095
+]
+Fallback values: [
+  31,
+  21,
+  17,
+  0,
+  17,
+  "in_stock",
+  1758808232
+]
+Fallback values: [
+  31,
+  22,
+  18,
+  0,
+  18,
+  "in_stock",
+  1758808758
+]
+Fallback values: [
+  31,
+  23,
+  19,
+  0,
+  19,
+  "in_stock",
+  1758808997
+]
+Fallback values: [
+  31,
+  24,
+  20,
+  0,
+  20,
+  "in_stock",
+  1758809282
+]
+Fallback values: [
+  31,
+  25,
+  21,
+  0,
+  21,
+  "in_stock",
+  1758809483
+]
+Fallback values: [
+  31,
+  26,
+  22,
+  0,
+  22,
+  "in_stock",
+  1758809571
+]
+Fallback values: [
+  31,
+  27,
+  23,
+  0,
+  23,
+  "in_stock",
+  1758809643
+]
+Fallback values: [
+  31,
+  28,
+  24,
+  0,
+  24,
+  "in_stock",
+  1758809757
+]
+Fallback values: [
+  31,
+  29,
+  25,
+  0,
+  25,
+  "in_stock",
+  1758809818
+]

@@ -4,14 +4,14 @@ import { z } from 'zod';
 export const createPlatformStockSchema = z.object({
   // Core required fields
   platform: z.string().min(1, 'Platform is required').max(100, 'Platform name too long'),
-  productId: z.union([z.string().regex(/^\d+$/), z.number().min(1)]),
+  productid: z.union([z.string().regex(/^\d+$/), z.number().min(1)]),
   
   // Quantity fields with defaults
-  availableQty: z.number().int().min(0, 'Available quantity cannot be negative').default(0).optional(),
-  orderedQty: z.number().int().min(0, 'Ordered quantity cannot be negative').default(0).optional(),
-  soldQty: z.number().int().min(0, 'Sold quantity cannot be negative').default(0).optional(),
-  totalQty: z.number().int().min(0, 'Total quantity cannot be negative').default(0).optional(),
-  lockQty: z.number().int().min(0, 'Lock quantity cannot be negative').default(0).optional(),
+  availableqty: z.number().int().min(0, 'Available quantity cannot be negative').default(0).optional(),
+  orderedqty: z.number().int().min(0, 'Ordered quantity cannot be negative').default(0).optional(),
+  soldqty: z.number().int().min(0, 'Sold quantity cannot be negative').default(0).optional(),
+  totalqty: z.number().int().min(0, 'Total quantity cannot be negative').default(0).optional(),
+  lockqty: z.number().int().min(0, 'Lock quantity cannot be negative').default(0).optional(),
   
   // Timestamps
   createddate: z.union([z.string().regex(/^\d+$/), z.number(), z.bigint()]).optional(),
@@ -21,14 +21,14 @@ export const createPlatformStockSchema = z.object({
 export const updatePlatformStockSchema = z.object({
   // All fields optional for updates
   platform: z.string().max(100, 'Platform name too long').optional(),
-  productId: z.union([z.string().regex(/^\d+$/), z.number()]).optional(),
+  productid: z.union([z.string().regex(/^\d+$/), z.number()]).optional(),
   
   // Quantity fields
-  availableQty: z.number().int().min(0, 'Available quantity cannot be negative').optional(),
-  orderedQty: z.number().int().min(0, 'Ordered quantity cannot be negative').optional(),
-  soldQty: z.number().int().min(0, 'Sold quantity cannot be negative').optional(),
-  totalQty: z.number().int().min(0, 'Total quantity cannot be negative').optional(),
-  lockQty: z.number().int().min(0, 'Lock quantity cannot be negative').optional(),
+  availableqty: z.number().int().min(0, 'Available quantity cannot be negative').optional(),
+  orderedqty: z.number().int().min(0, 'Ordered quantity cannot be negative').optional(),
+  soldqty: z.number().int().min(0, 'Sold quantity cannot be negative').optional(),
+  totalqty: z.number().int().min(0, 'Total quantity cannot be negative').optional(),
+  lockqty: z.number().int().min(0, 'Lock quantity cannot be negative').optional(),
   
   // Timestamps
   modifieddate: z.union([z.string().regex(/^\d+$/), z.number(), z.bigint()]).optional(),
@@ -39,14 +39,14 @@ export const upsertPlatformStockSchema = z.object({
   
   // Core fields - same as create/update
   platform: z.string().min(1, 'Platform is required').max(100, 'Platform name too long').optional(),
-  productId: z.union([z.string().regex(/^\d+$/), z.number().min(1)]).optional(),
+  productid: z.union([z.string().regex(/^\d+$/), z.number().min(1)]).optional(),
   
   // Quantity fields
-  availableQty: z.number().int().min(0, 'Available quantity cannot be negative').default(0).optional(),
-  orderedQty: z.number().int().min(0, 'Ordered quantity cannot be negative').default(0).optional(),
-  soldQty: z.number().int().min(0, 'Sold quantity cannot be negative').default(0).optional(),
-  totalQty: z.number().int().min(0, 'Total quantity cannot be negative').default(0).optional(),
-  lockQty: z.number().int().min(0, 'Lock quantity cannot be negative').default(0).optional(),
+  availableqty: z.number().int().min(0, 'Available quantity cannot be negative').default(0).optional(),
+  orderedqty: z.number().int().min(0, 'Ordered quantity cannot be negative').default(0).optional(),
+  soldqty: z.number().int().min(0, 'Sold quantity cannot be negative').default(0).optional(),
+  totalqty: z.number().int().min(0, 'Total quantity cannot be negative').default(0).optional(),
+  lockqty: z.number().int().min(0, 'Lock quantity cannot be negative').default(0).optional(),
   
   // Timestamps
   createddate: z.union([z.string().regex(/^\d+$/), z.number(), z.bigint()]).optional(),
@@ -64,7 +64,7 @@ export const platformStockQuerySchema = z.object({
   
   // Filter fields
   platform: z.string().optional(),
-  productId: z.string().optional(),
+  productid: z.string().optional(),
   minAvailableQty: z.string().optional(),
   maxAvailableQty: z.string().optional(),
   minOrderedQty: z.string().optional(),
@@ -88,14 +88,14 @@ export const platformTransferSchema = z.object({
 
 // Bulk platform stock update schema
 export const bulkPlatformStockUpdateSchema = z.object({
-  productId: z.union([z.string().regex(/^\d+$/), z.number().min(1)]),
+  productid: z.union([z.string().regex(/^\d+$/), z.number().min(1)]),
   platformUpdates: z.array(z.object({
     platform: z.string().min(1, 'Platform is required').max(100, 'Platform name too long'),
-    availableQty: z.number().int().min(0).optional(),
-    orderedQty: z.number().int().min(0).optional(),
-    soldQty: z.number().int().min(0).optional(),
-    totalQty: z.number().int().min(0).optional(),
-    lockQty: z.number().int().min(0).optional(),
+    availableqty: z.number().int().min(0).optional(),
+    orderedqty: z.number().int().min(0).optional(),
+    soldqty: z.number().int().min(0).optional(),
+    totalqty: z.number().int().min(0).optional(),
+    lockqty: z.number().int().min(0).optional(),
   })).min(1, 'At least one platform update is required'),
 });
 
@@ -106,11 +106,11 @@ export function validatePlatformStockDynamicFields(data: Record<string, any>): R
   for (const [key, value] of Object.entries(data)) {
     // Accept any field, but apply type conversion for known fields
     switch (key) {
-      case 'availableQty':
-      case 'orderedQty':
-      case 'soldQty':
-      case 'totalQty':
-      case 'lockQty':
+      case 'availableqty':
+      case 'orderedqty':
+      case 'soldqty':
+      case 'totalqty':
+      case 'lockqty':
         dynamicFields[key] = Number(value);
         break;
       case 'createddate':

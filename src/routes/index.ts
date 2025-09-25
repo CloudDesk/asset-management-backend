@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { productRoutes } from './product.route.js';
 import { stockRoutes } from './stock.route.js';
+import { platformStockRoutes } from './platformStock.route.js';
 import { picklistRoutes } from './picklist.route.js';
 import { supplierRoutes } from './supplier.route.js';
 import { purchaseOrderRoutes } from './purchaseorder.route.js';
@@ -69,6 +70,7 @@ export async function routes(fastify: FastifyInstance) {
     await fastify.register(mobileAuthRoutes, { prefix: '/mobile-auth' });
     await fastify.register(productRoutes, { prefix: '/products' });
     await fastify.register(stockRoutes, { prefix: '/stocks' });
+    await fastify.register(platformStockRoutes, { prefix: '/platform-stocks' });
     await fastify.register(picklistRoutes, { prefix: '/picklists' });
     await fastify.register(supplierRoutes, { prefix: '/suppliers' });
     await fastify.register(purchaseOrderRoutes, { prefix: '/purchaseorders' });

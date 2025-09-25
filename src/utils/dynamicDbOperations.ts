@@ -36,7 +36,8 @@ const PREDEFINED_SAFE_COLUMNS: Record<string, string[]> = {
   product: ['id', 'productname', 'category', 'subcategory', 'brand', 'model', 'price', 'createddate', 'modifieddate', 'productstatus', 'puc'],
   picklist: ['id', 'type', 'table', 'field', 'label', 'value', 'isActive', 'ordering'],
   orders: ['id', 'userid', 'addressid', 'orderamount', 'orderid', 'orderstatus', 'quantity', 'transactionid', 'readytodispatchdate', 'dispatcheddate', 'productamount', 'discountamount', 'deliveryfrom', 'orderprocessingtime', 'ispaymentsucceed', 'merchanttransactionid', 'productid', 'mode', 'delivereddate', 'cancelleddate', 'returneddate', 'paymentfaileddate', 'createddate', 'modifieddate'],
-  orderline: ['id', 'orderid', 'productid', 'userid', 'addressid', 'productamount', 'discountamount', 'orderamount', 'quantity', 'merchanttransactionid', 'productname', 'productcategory', 'productcolour', 'readytodispatchdate', 'delivereddate', 'cancelleddate', 'returneddate', 'orderstatus', 'uniqueordderid', 'orderlinenumber', 'deliveryfrom', 'location', 'dispatcheddate', 'ordereddate', 'paymentfaileddate', 'createddate', 'modifieddate']
+  orderline: ['id', 'orderid', 'productid', 'userid', 'addressid', 'productamount', 'discountamount', 'orderamount', 'quantity', 'merchanttransactionid', 'productname', 'productcategory', 'productcolour', 'readytodispatchdate', 'delivereddate', 'cancelleddate', 'returneddate', 'orderstatus', 'uniqueordderid', 'orderlinenumber', 'deliveryfrom', 'location', 'dispatcheddate', 'ordereddate', 'paymentfaileddate', 'createddate', 'modifieddate'],
+  platformstock: ['id', 'productid', 'platform', 'availableqty', 'orderedqty', 'soldqty', 'totalqty', 'lockqty', 'createddate', 'modifieddate']
 };
 
 /**
@@ -369,6 +370,18 @@ async function filterInputDataBySchema(
       ignoredFields.push(key);
       writeFileSync('debug_filter_ignored.txt', `Ignored field: ${key} (not in available columns)\n`, { flag: 'a' });
     }
+  }
+
+  // Debug logging for platformstock specifically
+  if (modelName === 'platformstock') {
+    writeFileSync('debug_platformstock_filter.txt', 
+      `PlatformStock filter debug:\n` +
+      `Input data: ${JSON.stringify(data, null, 2)}\n` +
+      `Available columns: ${JSON.stringify(availableColumns, null, 2)}\n` +
+      `Filtered data: ${JSON.stringify(filteredData, null, 2)}\n` +
+      `Ignored fields: ${JSON.stringify(ignoredFields, null, 2)}\n\n`, 
+      { flag: 'a' }
+    );
   }
 
   writeFileSync('debug_filter_result.txt', `Filtered data result: ${JSON.stringify(filteredData, null, 2)}\n`, { flag: 'a' });
@@ -910,6 +923,16 @@ export async function dynamicFindMany(
         if (options.orderBy !== undefined) findOptions.orderBy = options.orderBy;
         
         result = await prisma.picklist.findMany(findOptions);
+      } else if (modelName === 'platformstock') {
+        const findOptions: any = {};
+        if (options.where !== undefined) findOptions.where = options.where;
+        if (options.skip !== undefined) findOptions.skip = options.skip;
+        if (options.take !== undefined) findOptions.take = options.take;
+        if (options.orderBy !== undefined) findOptions.orderBy = options.orderBy;
+        console.log('findOptions', findOptions);
+        result = await prisma.platformStock.findMany(findOptions);
+        console.log(result,"result")
+        console.log("first")
       }
 
       logger.debug({ 
@@ -1267,6 +1290,19 @@ export async function dynamicUpdate(
   include?: any
 ): Promise<any | null> {
   try {
+    // Debug logging for platformstock specifically
+    if (modelName === 'platformstock') {
+      logger.debug(
+        { 
+          modelName, 
+          dataReceived: data, 
+          dataKeys: Object.keys(data),
+          dataValues: Object.values(data)
+        }, 
+        "dynamicUpdate received data for platformstock"
+      );
+    }
+    
     const filteredData = await filterInputDataBySchema(data, modelName, 'update');
     
     if (Object.keys(filteredData).length === 0) {
@@ -1297,6 +1333,11 @@ export async function dynamicUpdate(
         });
       } else if (modelName === 'picklist') {
         result = await prisma.picklist.update({
+          where,
+          data: filteredData,
+        });
+      } else if (modelName === 'platformstock') {
+        result = await prisma.platformstock.update({
           where,
           data: filteredData,
         });

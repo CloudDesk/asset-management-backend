@@ -122,18 +122,18 @@ export const dynamicFieldConfigs: Record<string, DynamicFieldConfig> = {
   platformstock: {
     table: 'platformstock',
     allowedFields: [
-      'platform', 'productId', 'availableQty', 'orderedQty', 'soldQty', 'totalQty',
-      'lockQty', 'createddate', 'modifieddate'
+      'platform', 'productid', 'availableqty', 'orderedqty', 'soldqty', 'totalqty',
+      'lockqty', 'createddate', 'modifieddate'
     ],
-    requiredFields: ['platform', 'productId'],
+    requiredFields: ['platform', 'productid'],
     fieldTypes: {
       platform: 'string',
-      productId: 'number',
-      availableQty: 'number',
-      orderedQty: 'number',
-      soldQty: 'number',
-      totalQty: 'number',
-      lockQty: 'number',
+      productid: 'number',
+      availableqty: 'number',
+      orderedqty: 'number',
+      soldqty: 'number',
+      totalqty: 'number',
+      lockqty: 'number',
       createddate: 'number',
       modifieddate: 'number'
     }

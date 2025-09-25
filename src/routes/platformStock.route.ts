@@ -171,16 +171,16 @@ export async function platformStockRoutes(fastify: FastifyInstance) {
         type: "object",
         properties: {
           // Required fields
-          productId: { type: "number", description: "Product ID (required)" },
+          productid: { type: "number", description: "Product ID (required)" },
           platform: { type: "string", maxLength: 100, description: "Platform (amazon, flipkart, nivapp) (required)" },
           // Optional fields with defaults
-          availableQty: { type: "number", description: "Available quantity", default: 0 },
-          orderedQty: { type: "number", description: "Ordered quantity", default: 0 },
-          soldQty: { type: "number", description: "Sold quantity", default: 0 },
-          totalQty: { type: "number", description: "Total quantity", default: 0 },
-          lockQty: { type: "number", description: "Lock quantity", default: 0 },
+          availableqty: { type: "number", description: "Available quantity", default: 0 },
+          orderedqty: { type: "number", description: "Ordered quantity", default: 0 },
+          soldqty: { type: "number", description: "Sold quantity", default: 0 },
+          totalqty: { type: "number", description: "Total quantity", default: 0 },
+          lockqty: { type: "number", description: "Lock quantity", default: 0 },
         },
-        required: ["productId", "platform"],
+        required: ["productid", "platform"],
         additionalProperties: true, // Allow additional dynamic fields
       },
       response: {
@@ -352,7 +352,7 @@ export async function platformStockRoutes(fastify: FastifyInstance) {
           totalQty: { type: "number", description: "Total quantity", default: 0 },
           lockQty: { type: "number", description: "Lock quantity", default: 0 },
         },
-        required: ["productId", "platform"],
+        required: ["productid", "platform"],
         additionalProperties: true, // Allow additional dynamic fields
       },
       response: {

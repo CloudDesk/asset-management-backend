@@ -1,0 +1,34 @@
+PlatformStock filter debug:
+Input data: {}
+Available columns: [
+  "id",
+  "productid",
+  "platform",
+  "availableqty",
+  "orderedqty",
+  "soldqty",
+  "totalqty",
+  "lockqty",
+  "createddate",
+  "modifieddate"
+]
+Filtered data: {}
+Ignored fields: []
+
+PlatformStock filter debug:
+Input data: {}
+Available columns: [
+  "id",
+  "productid",
+  "platform",
+  "availableqty",
+  "orderedqty",
+  "soldqty",
+  "totalqty",
+  "lockqty",
+  "createddate",
+  "modifieddate"
+]
+Filtered data: {}
+Ignored fields: []
+

@@ -19453,3 +19453,662 @@ Filtered data result: {
   "productstatus": "low_stock",
   "modifieddate": 1758800342948
 }
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "amazon",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 6,
+  "availablequantity": 5,
+  "soldquantity": 0,
+  "ecompublishedquantity": 5,
+  "productstatus": "low_stock",
+  "modifieddate": 1758804106578
+}
+Filtered data result: {
+  "productId": 31,
+  "platform": "amazon",
+  "availableQty": 1,
+  "soldQty": 0,
+  "totalQty": 1,
+  "orderedQty": 0,
+  "lockQty": 0,
+  "createddate": 1758804108016,
+  "modifieddate": 1758804108016
+}
+Filtered data result: {
+  "productId": 31,
+  "platform": "amazon",
+  "availableQty": 1,
+  "totalQty": 1,
+  "orderedQty": 0,
+  "soldQty": 0,
+  "lockQty": 0
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "amazon",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 7,
+  "availablequantity": 6,
+  "soldquantity": 0,
+  "ecompublishedquantity": 6,
+  "productstatus": "in_stock",
+  "modifieddate": 1758806125270
+}
+Filtered data result: {
+  "productid": 31,
+  "platform": "amazon",
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 1,
+  "createddate": 1758806126590,
+  "modifieddate": 1758806126590
+}
+Filtered data result: {
+  "productid": 31,
+  "platform": "amazon",
+  "availableqty": 3,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 3,
+  "lockqty": 0
+}
+Filtered data result: {
+  "productid": 31,
+  "platform": "amazon",
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "flipkart",
+  "batchno": "SYNC001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 8,
+  "availablequantity": 7,
+  "soldquantity": 0,
+  "ecompublishedquantity": 7,
+  "productstatus": "in_stock",
+  "modifieddate": 1758806438166
+}
+Filtered data result: {
+  "productid": 31,
+  "platform": "flipkart",
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 1,
+  "createddate": 1758806439365,
+  "modifieddate": 1758806439365
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "nivapp",
+  "batchno": "SYNC002",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 9,
+  "availablequantity": 8,
+  "soldquantity": 0,
+  "ecompublishedquantity": 8,
+  "productstatus": "in_stock",
+  "modifieddate": 1758806460446
+}
+Filtered data result: {
+  "productid": 31,
+  "platform": "nivapp",
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 1,
+  "createddate": 1758806461298,
+  "modifieddate": 1758806461298
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "amazon",
+  "batchno": "TEST001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 9,
+  "soldquantity": 0,
+  "ecompublishedquantity": 9,
+  "productstatus": "in_stock",
+  "modifieddate": 1758806913989
+}
+Filtered data result: {
+  "productid": 31,
+  "platform": "amazon",
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 1,
+  "createddate": 1758806915148,
+  "modifieddate": 1758806915148
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "flipkart",
+  "batchno": "TEST002",
+  "stockstatus": "available",
+  "ecompublish": false,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 11,
+  "availablequantity": 9,
+  "soldquantity": 0,
+  "ecompublishedquantity": 9,
+  "productstatus": "in_stock",
+  "modifieddate": 1758806927779
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "nivapp",
+  "batchno": "TEST003",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "nivapp",
+  "batchno": "TEST003B",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "nivapp",
+  "batchno": "UNIQUE001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 12,
+  "availablequantity": 10,
+  "soldquantity": 0,
+  "ecompublishedquantity": 10,
+  "productstatus": "in_stock",
+  "modifieddate": 1758806959074
+}
+Filtered data result: {
+  "productid": 31,
+  "platform": "nivapp",
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 1,
+  "createddate": 1758806960496,
+  "modifieddate": 1758806960496
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "amazon",
+  "batchno": "FIXTEST001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 13,
+  "availablequantity": 11,
+  "soldquantity": 0,
+  "ecompublishedquantity": 11,
+  "productstatus": "in_stock",
+  "modifieddate": 1758807480799
+}
+Filtered data result: {
+  "productid": 31,
+  "platform": "amazon",
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 1,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "createddate": 1758807482046,
+  "modifieddate": 1758807482046
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "flipkart",
+  "batchno": "FIXTEST002",
+  "stockstatus": "available",
+  "ecompublish": false,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 14,
+  "availablequantity": 11,
+  "soldquantity": 0,
+  "ecompublishedquantity": 11,
+  "productstatus": "in_stock",
+  "modifieddate": 1758807549985
+}
+Filtered data result: {
+  "productid": 31,
+  "platform": "flipkart",
+  "availableqty": 0,
+  "soldqty": 0,
+  "totalqty": 1,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "createddate": 1758807551263,
+  "modifieddate": 1758807551263
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "nivapp",
+  "batchno": "FIXTEST003",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 15,
+  "availablequantity": 12,
+  "soldquantity": 0,
+  "ecompublishedquantity": 12,
+  "productstatus": "in_stock",
+  "modifieddate": 1758807627603
+}
+Filtered data result: {
+  "productid": 31,
+  "platform": "nivapp",
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 1,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "createddate": 1758807628871,
+  "modifieddate": 1758807628871
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "amazon",
+  "batchno": "DEBUGTEST001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 16,
+  "availablequantity": 13,
+  "soldquantity": 0,
+  "ecompublishedquantity": 13,
+  "productstatus": "in_stock",
+  "modifieddate": 1758807697429
+}
+Filtered data result: {
+  "productid": 31,
+  "platform": "amazon",
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 1,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "createddate": 1758807698616,
+  "modifieddate": 1758807698616
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "amazon",
+  "batchno": "FIXEDTEST001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 17,
+  "availablequantity": 14,
+  "soldquantity": 0,
+  "ecompublishedquantity": 14,
+  "productstatus": "in_stock",
+  "modifieddate": 1758807844932
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "amazon",
+  "batchno": "FINALTEST001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 18,
+  "availablequantity": 15,
+  "soldquantity": 0,
+  "ecompublishedquantity": 15,
+  "productstatus": "in_stock",
+  "modifieddate": 1758807946858
+}
+Filtered data result: {
+  "productid": 31,
+  "platform": "amazon",
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 1,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "modifieddate": 1758807947999
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "amazon",
+  "batchno": "WORKINGTEST001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 19,
+  "availablequantity": 16,
+  "soldquantity": 0,
+  "ecompublishedquantity": 16,
+  "productstatus": "in_stock",
+  "modifieddate": 1758808049727
+}
+Filtered data result: {}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "flipkart",
+  "batchno": "FINALTEST002",
+  "stockstatus": "available",
+  "ecompublish": false,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 20,
+  "availablequantity": 16,
+  "soldquantity": 0,
+  "ecompublishedquantity": 16,
+  "productstatus": "in_stock",
+  "modifieddate": 1758808095552
+}
+Filtered data result: {}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "nivapp",
+  "batchno": "FINALFIX001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 21,
+  "availablequantity": 17,
+  "soldquantity": 0,
+  "ecompublishedquantity": 17,
+  "productstatus": "in_stock",
+  "modifieddate": 1758808231915
+}
+Filtered data result: {}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "flipkart",
+  "batchno": "FINALTEST002",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 22,
+  "availablequantity": 18,
+  "soldquantity": 0,
+  "ecompublishedquantity": 18,
+  "productstatus": "in_stock",
+  "modifieddate": 1758808758674
+}
+Filtered data result: {}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "amazon",
+  "batchno": "WORKINGFIX001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "amazon",
+  "batchno": "WORKINGFIX002",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "amazon",
+  "batchno": "FINALFIX001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 23,
+  "availablequantity": 19,
+  "soldquantity": 0,
+  "ecompublishedquantity": 19,
+  "productstatus": "in_stock",
+  "modifieddate": 1758808996787
+}
+Filtered data result: {}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "nivapp",
+  "batchno": "DEBUG001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 24,
+  "availablequantity": 20,
+  "soldquantity": 0,
+  "ecompublishedquantity": 20,
+  "productstatus": "in_stock",
+  "modifieddate": 1758809282293
+}
+Filtered data result: {}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "amazon",
+  "batchno": "BIGINTFIX001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 25,
+  "availablequantity": 21,
+  "soldquantity": 0,
+  "ecompublishedquantity": 21,
+  "productstatus": "in_stock",
+  "modifieddate": 1758809483330
+}
+Filtered data result: {}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "amazon",
+  "batchno": "DEBUGFINAL001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 26,
+  "availablequantity": 22,
+  "soldquantity": 0,
+  "ecompublishedquantity": 22,
+  "productstatus": "in_stock",
+  "modifieddate": 1758809570880
+}
+Filtered data result: {}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "amazon",
+  "batchno": "DEBUGFINAL002",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "amazon",
+  "batchno": "DEBUGFINAL003",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "amazon",
+  "batchno": "TRACEFINAL001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 27,
+  "availablequantity": 23,
+  "soldquantity": 0,
+  "ecompublishedquantity": 23,
+  "productstatus": "in_stock",
+  "modifieddate": 1758809643451
+}
+Filtered data result: {}
+Filtered data result: {}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "amazon",
+  "batchno": "DEBUGPLATFORM001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 28,
+  "availablequantity": 24,
+  "soldquantity": 0,
+  "ecompublishedquantity": 24,
+  "productstatus": "in_stock",
+  "modifieddate": 1758809757281
+}
+Filtered data result: {}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "amazon",
+  "batchno": "DEBUGPLATFORM002",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "amazon",
+  "batchno": "DEBUGPLATFORM003",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "amazon",
+  "batchno": "TRACEDEBUG001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 29,
+  "availablequantity": 25,
+  "soldquantity": 0,
+  "ecompublishedquantity": 25,
+  "productstatus": "in_stock",
+  "modifieddate": 1758809817964
+}
+Filtered data result: {}

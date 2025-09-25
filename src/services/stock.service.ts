@@ -281,8 +281,30 @@ export class StockService {
           );
 
           // Update PlatformStock if we have a valid product ID and platform
+          logger.debug(
+            {
+              stockId: stock.id,
+              stockPlatform: stock.platform,
+              linkedProductId: linkedProduct?.id,
+              hasPlatform: !!stock.platform,
+              hasLinkedProduct: !!linkedProduct?.id,
+            },
+            "PlatformStock update check"
+          );
+          
           if (stock.platform && linkedProduct?.id) {
             try {
+              logger.info(
+                {
+                  stockId: stock.id,
+                  productId: linkedProduct.id,
+                  platform: stock.platform,
+                  ecompublish: stock.ecompublish,
+                  stockstatus: stock.stockstatus,
+                },
+                "Calling updatePlatformStockQuantities"
+              );
+              
               await this.platformStockService.updatePlatformStockQuantities(
                 Number(linkedProduct.id),
                 stock.platform,

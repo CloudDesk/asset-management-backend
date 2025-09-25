@@ -46,23 +46,20 @@ model Product {
 model PlatformStock {
   id            BigInt   @id @default(autoincrement())
   platform      String   @db.VarChar(100) // e.g. amazon, flipkart, nivapp
-  availableQty  Int @default(0)
-  orderedQty    Int @default(0)
-  soldQty       Int @default(0)
-  totalQty      Int @default(0)
-
-  lockQty    Int?   @default(0) // Add this for NIVAPP cart locking
+  availableqty  Int      @default(0)
+  orderedqty    Int      @default(0)
+  soldqty       Int      @default(0)
+  totalqty      Int      @default(0)
+  lockqty       Int?     @default(0) // Add this for NIVAPP cart locking
+  createddate   BigInt?
+  modifieddate  BigInt?
+  productid     BigInt
   
-  // Missing timestamps:
-  createddate  BigInt?
-  modifieddate BigInt?
+  // Relations
+  product       Product  @relation(fields: [productid], references: [id], onDelete: Cascade)
 
-
-  productId     BigInt
-  product       Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-   @@unique([productId, platform])
-
+  @@unique([productid, platform])
+  @@map("platformstock")
 }
 
 

@@ -140,6 +140,16 @@ export class PlatformStockService {
         "Starting dynamic platformStock update operation"
       );
 
+      logger.debug(
+        { 
+          id, 
+          dataToPassToDynamicUpdate: data,
+          dataKeys: Object.keys(data),
+          dataValues: Object.values(data)
+        },
+        "Data being passed to dynamicUpdate"
+      );
+
       const platformStock = await dynamicUpdate("platformstock", {
         where: { id: Number(id) },
         data,
@@ -203,11 +213,21 @@ export class PlatformStockService {
         "Starting dynamic platformStock upsert operation"
       );
 
-      // For upsert, we need to use the productId and platform as unique identifiers
-      const { productId, platform, ...updateData } = data;
+      // For upsert, we need to use the productid and platform as unique identifiers
+      const { productid, platform, ...updateData } = data;
 
-      if (!productId || !platform) {
-        throw new Error("productId and platform are required for upsert operation");
+      logger.debug(
+        { 
+          originalData: data,
+          productid, 
+          platform, 
+          updateData 
+        },
+        "Upsert method - destructured data"
+      );
+
+      if (!productid || !platform) {
+        throw new Error("productid and platform are required for upsert operation");
       }
 
       // Try to find existing platformStock
@@ -215,7 +235,7 @@ export class PlatformStockService {
       try {
         const existingStocks = await dynamicFindMany('platformstock', {
           where: {
-            productId: Number(productId),
+            productid: Number(productid),
             platform: platform,
           },
           take: 1
@@ -238,10 +258,15 @@ export class PlatformStockService {
       } else {
         // Create new - ensure required fields are present
         const createData = {
-          productId: Number(productId),
+          productid: Number(productid),
           platform: platform,
           ...updateData
         };
+        
+        // Ensure productid is defined
+        if (!createData.productid) {
+          throw new Error("productid is required for creating platform stock");
+        }
         platformStock = await this.create(createData);
         logger.info(
           { platformStockId: platformStock.id, action: "created" },
@@ -298,17 +323,21 @@ export class PlatformStockService {
       switch (operation) {
         case 'create':
           // New stock added
-          if (stockInfo.ecompublish && stockInfo.stockstatus === 'available') {
-            availableQtyChange = 1;
-            totalQtyChange = 1;
+          if (stockInfo.stockstatus === 'available') {
+            totalQtyChange = 1; // Always increase total quantity for new available stock
+            if (stockInfo.ecompublish) {
+              availableQtyChange = 1; // Only increase available quantity if e-commerce enabled
+            }
           }
           break;
 
         case 'delete':
           // Stock deleted - decrease quantities
-          if (stockInfo.ecompublish && stockInfo.stockstatus === 'available') {
-            availableQtyChange = -1;
-            totalQtyChange = -1;
+          if (stockInfo.stockstatus === 'available') {
+            totalQtyChange = -1; // Always decrease total quantity for deleted available stock
+            if (stockInfo.ecompublish) {
+              availableQtyChange = -1; // Only decrease available quantity if e-commerce was enabled
+            }
           } else if (stockInfo.stockstatus === 'sold') {
             soldQtyChange = -1;
             totalQtyChange = -1;
@@ -359,50 +388,80 @@ export class PlatformStockService {
         return null;
       }
 
-      // Use upsert to create or update platform stock
-      // First try to find existing record
-      let existingRecord = null;
+      // Use the existing upsert method to handle create or update
+      // First get the current record to calculate new quantities
+      let currentRecord = null;
       try {
         const existingRecords = await dynamicFindMany('platformstock', {
           where: {
-            productId: productId,
+            productid: productId,
             platform: platform,
           },
           take: 1
         });
         if (existingRecords && existingRecords.length > 0) {
-          existingRecord = existingRecords[0];
+          currentRecord = existingRecords[0];
         }
-      } catch (error) {
-        // Record doesn't exist, will create new
+      } catch (error: any) {
+        logger.debug({ error: error.message, productId, platform }, "No existing platform stock record found");
       }
 
-      let platformStock;
-      if (existingRecord) {
-        // Update existing record
-        platformStock = await dynamicUpdate('platformstock', {
-          where: { id: existingRecord.id },
-          data: {
-            availableQty: existingRecord.availableQty + availableQtyChange,
-            soldQty: existingRecord.soldQty + soldQtyChange,
-            totalQty: existingRecord.totalQty + totalQtyChange,
-            modifieddate: Date.now(),
+      // Calculate new quantities - convert BigInt to Number for calculations
+      const currentAvailableQty = currentRecord ? Number(currentRecord.availableqty) : 0;
+      const currentSoldQty = currentRecord ? Number(currentRecord.soldqty) : 0;
+      const currentTotalQty = currentRecord ? Number(currentRecord.totalqty) : 0;
+      
+      const newAvailableQty = Math.max(0, currentAvailableQty + availableQtyChange);
+      const newSoldQty = Math.max(0, currentSoldQty + soldQtyChange);
+      const newTotalQty = Math.max(0, currentTotalQty + totalQtyChange);
+
+      logger.debug(
+        {
+          productId,
+          platform,
+          currentRecord: currentRecord ? {
+            availableqty: currentRecord.availableqty,
+            soldqty: currentRecord.soldqty,
+            totalqty: currentRecord.totalqty
+          } : null,
+          calculatedNewValues: {
+            newAvailableQty,
+            newSoldQty,
+            newTotalQty
+          },
+          changes: {
+            availableQtyChange,
+            soldQtyChange,
+            totalQtyChange
           }
-        }, {});
-      } else {
-        // Create new record
-        platformStock = await dynamicCreate('platformstock', {
-          productId: productId,
-          platform: platform,
-          availableQty: Math.max(0, availableQtyChange),
-          soldQty: Math.max(0, soldQtyChange),
-          totalQty: Math.max(0, totalQtyChange),
-          orderedQty: 0,
-          lockQty: 0,
-          createddate: Date.now(),
-          modifieddate: Date.now(),
-        });
-      }
+        },
+        "PlatformStock quantity calculations"
+      );
+
+      // Use upsert to create or update
+      const upsertData = {
+        productid: productId,
+        platform: platform,
+        availableqty: newAvailableQty,
+        soldqty: newSoldQty,
+        totalqty: newTotalQty,
+        orderedqty: currentRecord?.orderedqty || 0,
+        lockqty: currentRecord?.lockqty || 0,
+        modifieddate: Date.now(),
+      };
+
+      logger.debug(
+        {
+          upsertData,
+          currentRecord: currentRecord ? {
+            orderedqty: currentRecord.orderedqty,
+            lockqty: currentRecord.lockqty
+          } : null
+        },
+        "About to call upsert with data"
+      );
+
+      const platformStock = await this.upsert(upsertData);
 
       logger.info(
         {
@@ -416,9 +475,9 @@ export class PlatformStockService {
             totalQtyChange,
           },
           finalQuantities: {
-            availableQty: platformStock.availableQty,
-            soldQty: platformStock.soldQty,
-            totalQty: platformStock.totalQty,
+            availableqty: platformStock.availableqty,
+            soldqty: platformStock.soldqty,
+            totalqty: platformStock.totalqty,
           },
         },
         "Platform stock quantities updated successfully"
@@ -468,7 +527,7 @@ export class PlatformStockService {
       try {
         const fromRecords = await dynamicFindMany('platformstock', {
           where: {
-            productId: productId,
+            productid: productId,
             platform: fromPlatform,
           },
           take: 1
@@ -479,21 +538,21 @@ export class PlatformStockService {
           fromPlatformStock = await dynamicUpdate('platformstock', {
             where: { id: fromRecord.id },
             data: {
-              availableQty: Math.max(0, fromRecord.availableQty - 1),
-              totalQty: Math.max(0, fromRecord.totalQty - 1),
+              availableqty: Math.max(0, fromRecord.availableqty - 1),
+              totalqty: Math.max(0, fromRecord.totalqty - 1),
               modifieddate: Date.now(),
             }
           }, {});
         } else {
           // Create with 0 quantities
           fromPlatformStock = await dynamicCreate('platformstock', {
-            productId: productId,
+            productid: productId,
             platform: fromPlatform,
-            availableQty: 0,
-            soldQty: 0,
-            totalQty: 0,
-            orderedQty: 0,
-            lockQty: 0,
+            availableqty: 0,
+            soldqty: 0,
+            totalqty: 0,
+            orderedqty: 0,
+            lockqty: 0,
             createddate: Date.now(),
             modifieddate: Date.now(),
           });
@@ -507,7 +566,7 @@ export class PlatformStockService {
       try {
         const toRecords = await dynamicFindMany('platformstock', {
           where: {
-            productId: productId,
+            productid: productId,
             platform: toPlatform,
           },
           take: 1
@@ -518,21 +577,21 @@ export class PlatformStockService {
           toPlatformStock = await dynamicUpdate('platformstock', {
             where: { id: toRecord.id },
             data: {
-              availableQty: toRecord.availableQty + 1,
-              totalQty: toRecord.totalQty + 1,
+              availableqty: toRecord.availableqty + 1,
+              totalqty: toRecord.totalqty + 1,
               modifieddate: Date.now(),
             }
           }, {});
         } else {
           // Create new record
           toPlatformStock = await dynamicCreate('platformstock', {
-            productId: productId,
+            productid: productId,
             platform: toPlatform,
-            availableQty: 1,
-            soldQty: 0,
-            totalQty: 1,
-            orderedQty: 0,
-            lockQty: 0,
+            availableqty: 1,
+            soldqty: 0,
+            totalqty: 1,
+            orderedqty: 0,
+            lockqty: 0,
             createddate: Date.now(),
             modifieddate: Date.now(),
           });
@@ -548,13 +607,13 @@ export class PlatformStockService {
           toPlatform,
           fromPlatformStock: {
             id: fromPlatformStock.id,
-            availableQty: fromPlatformStock.availableQty,
-            totalQty: fromPlatformStock.totalQty,
+            availableqty: fromPlatformStock.availableqty,
+            totalqty: fromPlatformStock.totalqty,
           },
           toPlatformStock: {
             id: toPlatformStock.id,
-            availableQty: toPlatformStock.availableQty,
-            totalQty: toPlatformStock.totalQty,
+            availableqty: toPlatformStock.availableqty,
+            totalqty: toPlatformStock.totalqty,
           },
         },
         "Platform stock transfer completed successfully"
@@ -577,7 +636,7 @@ export class PlatformStockService {
     try {
       const platformStocks = await dynamicFindMany('platformstock', {
         where: {
-          productId: productId,
+          productid: productId,
           platform: platform,
         },
         take: 1
