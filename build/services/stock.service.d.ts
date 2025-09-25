@@ -6,6 +6,7 @@ interface CreateStockOptions {
 }
 export declare class StockService {
     private productService;
+    private platformStockService;
     findMany(filters: FilterOptions, page: number, limit: number): Promise<PaginationResult<any>>;
     findById(id: string): Promise<any>;
     getSummaryByPuc(puc: string): Promise<{

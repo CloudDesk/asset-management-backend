@@ -8,109 +8,120 @@ datasource db {
 }
 
 model Product {
-  id                   BigInt      @id @default(autoincrement())
-  name                 String      @db.VarChar(500)
-  shortdescription     String?
-  fulldescription      String?
-  puc                  String      @unique @db.VarChar(255)
-  category             String?     @db.VarChar(255)
-  subcategory          String?     @db.VarChar(255)
-  fragnancetype        String?     @db.VarChar(255)
-  large                String[]
-  medium               String[]
-  small                String[]
-  brand                String?     @db.VarChar(255)
-  pack                 String?     @db.VarChar(255)
-  searchtext           Unsupported("tsvector")?
-
-  averagerating        Decimal?    @db.Decimal(2, 1)
-  discount             Int?
-  price                Decimal?    @db.Decimal(10, 2)
-  createddate          BigInt?
-  modifieddate         BigInt?
-
-  quantity             Int?
-  orderedquantity      Int?
-  soldquantity         Int?
-  availablequantity    Int?
+  id                    BigInt                   @id @default(autoincrement())
+  name                  String                   @db.VarChar(500)
+  shortdescription      String?
+  fulldescription       String?
+  fragnancetype         String?                  @db.VarChar(255)
+  volume                String?                  @db.VarChar(50)
+  origincountry         String?                  @db.VarChar(255)
+  organiccertified      Boolean?
+  supplierid            Int?
+  soldquantity          Int?
+  availablequantity     Int?
+  quantity              Int?
   ecompublishedquantity Int?
-  productstatus        String?     @db.VarChar(255)
-
-  platformStocks       PlatformStock[]
+  productstatus         String?                  @db.VarChar(255)
+  ponumber              String?                  @db.VarChar(255)
+  puc                   String?                  @unique @db.VarChar(255)
+  suppliername          String?                  @db.VarChar(255)
+  serialnumber          String?                  @db.VarChar(255)
+  averagerating         Decimal?                 @db.Decimal(2, 1)
+  discount              Int?
+  price                 Decimal?                 @db.Decimal(10, 2)
+  orderedquantity       Int?
+  createddate           BigInt?
+  modifieddate          BigInt?
+  ingredients           String?
+  usage                 String?
+  extractionmethod      String?                  @db.VarChar(100)
+  note                  String?                  @db.VarChar(150)
+  shelflife             String?                  @db.VarChar(150)
+  wax_type              String?                  @db.VarChar(150)
+  burn_time             String?                  @db.VarChar(150)
+  scent_profile         String?                  @db.VarChar(100)
+  container_material    String?                  @db.VarChar(100)
+  candle_dimensions     String?
+  planter_material      String?
+  drainage_hole         Boolean?
+  suitable_for          String?
+  planter_dimensions    String?
+  plant_included        Boolean?
+  art_type              String?
+  frame_included        Boolean?
+  art_dimensions        String?
+  orientation           String?
+  artist_name           String?
+  isactive              Boolean?
+  isdealoftheday        Boolean?                 @default(false)
+  category              String?                  @db.VarChar(255)
+  subcategory           String?                  @db.VarChar(255)
+  large                 String[]
+  medium                String[]
+  small                 String[]
+  qrcode                String?                  @db.VarChar(500)
+  searchtext            Unsupported("tsvector")?
+  barcode               String?                  @db.VarChar(500)
   orderline             orderline[]
+  supplier              Supplier?                @relation(fields: [supplierid], references: [id], map: "fk_supplier")
   stock                 Stock[]
   rating                rating[]
 
+  @@map("product")
 }
-
-model PlatformStock {
-  id            BigInt   @id @default(autoincrement())
-  platform      String   @db.VarChar(100) // e.g. amazon, flipkart, nivapp
-  availableQty  Int @default(0)
-  orderedQty    Int @default(0)
-  soldQty       Int @default(0)
-  totalQty      Int @default(0)
-
-  lockQty    Int?   @default(0) // Add this for NIVAPP cart locking
-  
-  // Missing timestamps:
-  createddate  BigInt?
-  modifieddate BigInt?
-
-
-  productId     BigInt
-  product       Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-   @@unique([productId, platform])
-
-}
-
-
 
 model Stock {
-  id                   BigInt      @id @default(autoincrement())
-  puc                  String
-  platform             String      @db.VarChar(100) // amazon, flipkart, nivapp
-  manufacturedyear     BigInt?
-  releaseyear          BigInt?
-  isdeleted            Boolean?    @default(false)
-  isarchive            Boolean?    @default(false)
-  removefromrecyclebin Boolean?    @default(false)
-  ecompublish          Boolean?    @default(false)
-  solddate             BigInt?
-  orderlinenumber      String?     @db.VarChar(500)
-  searchtext           Unsupported("tsvector")?
-  stockstatus          String      @default("available") @db.VarChar(500) // Available, Sold
-  serialnumber         String?     @unique(map: "unique_serialnumber") @db.VarChar(500)
-  sku                  String      @unique @db.VarChar(255)
-  createddate          BigInt?
-  modifieddate         BigInt?
-  poid                 Int?
-  supplierid           Int?
-  batchno              String?     @db.VarChar(255)
-  orderid              String?     @db.VarChar(500)
-  platformhistory      Json?
-  rfid                 String?     @db.VarChar(500)
-  rfidscannedtime      BigInt?  
+  id                     Int                      @id @default(autoincrement())
+  puc                    String?                  @db.VarChar(500)
+  category               String?                  @db.VarChar(500)
+  subcategory            String?                  @db.VarChar(500)
+  brand                  String?                  @db.VarChar(500)
+  model                  String?                  @db.VarChar(500)
+  operatingsystem        String?                  @db.VarChar(500)
+  operatingsystemversion String?                  @db.VarChar(500)
+  ram                    String?                  @db.VarChar(500)
+  storagetype            String?                  @db.VarChar(500)
+  storagecapacity        String?                  @db.VarChar(500)
+  colour                 String?                  @db.VarChar(500)
+  graphicscard           String?                  @db.VarChar(500)
+  processor              String?                  @db.VarChar(500)
+  createddate            BigInt?
+  modifieddate           BigInt?
+  createdby              Int?
+  modifiedby             Int?
+  serialnumber           String?                  @unique(map: "unique_serialnumber") @db.VarChar(500)
+  stockstatus            String                   @default("Available") @db.VarChar(500)
+  manufacturedyear       BigInt?
+  releaseyear            BigInt?
+  isdeleted              Boolean?                 @default(false)
+  isarchive              Boolean?                 @default(false)
+  removefromrecyclebin   Boolean?                 @default(false)
+  ecompublish            Boolean?                 @default(false)
+  productname            String?                  @db.VarChar(500)
+  rfid                   String?                  @db.VarChar(500)
+  nfc                    String?                  @unique(map: "nfc_id") @db.VarChar(500)
+  orderid                String?                  @db.VarChar(500)
+  invoiceurl             String?                  @db.VarChar(500)
+  location               String?                  @db.VarChar(500)
+  solddate               BigInt?
+  assetlocation          String?                  @db.VarChar(200)
+  rfidscannedtime        BigInt?
+  orderlinenumber        String?                  @db.VarChar(500)
+  searchtext             Unsupported("tsvector")?
+  qrcode                 String?                  @unique(map: "unique_qrcode_stock") @db.VarChar(500)
+  barcode                String?                  @unique(map: "unique_barcode_stock") @db.VarChar(500)
+  ewaste                 Boolean?                 @default(false)
+  orderline              orderline?               @relation(fields: [orderlinenumber], references: [orderlinenumber], onDelete: NoAction, onUpdate: NoAction, map: "fk_orderlinenumber")
+  product                Product?                 @relation(fields: [puc], references: [puc], onDelete: Cascade, onUpdate: NoAction, map: "fk_puc")
+  orders                 orders?                  @relation(fields: [orderid], references: [orderid], onDelete: NoAction, onUpdate: NoAction, map: "stock_orderid_fkey")
 
-  // Relations
-  product              Product?    @relation(fields: [puc], references: [puc], onDelete: Cascade, onUpdate: NoAction, map: "fk_puc")
-  orderline            orderline?  @relation(fields: [orderlinenumber], references: [orderlinenumber], onDelete: NoAction, onUpdate: NoAction, map: "fk_orderlinenumber")
-  orders               orders?     @relation(fields: [orderid], references: [orderid], onDelete: NoAction, onUpdate: NoAction, map: "stock_orderid_fkey")
-  po                   PurchaseOrder? @relation(fields: [poid], references: [id])
-  supplier             Supplier?      @relation(fields: [supplierid], references: [id])
-  
-  @@index([sku], map: "idx_stock_sku")
- @@index([platform], map: "idx_stock_platform")
+  @@index([category], map: "idx_stock_category")
   @@index([createddate], map: "idx_stock_createddate")
   @@index([id], map: "idx_stock_id")
   @@index([puc], map: "idx_stock_puc")
   @@index([stockstatus], map: "idx_stock_stockstatus")
-
   @@map("stock")
 }
-
-
 
 model Picklist {
   id                  Int     @id @default(autoincrement())
@@ -144,7 +155,8 @@ model Supplier {
   suppliercode        String?           @unique(map: "unique_supplier_code") @db.VarChar(50)
   suppliertype        String            @default("local") @db.VarChar(255)
   country             String?           @db.VarChar(255)
-  stocks              Stock[]
+  product             Product[] 
+  stocks    Stock[]
   purchaseorder       PurchaseOrder[]
   purchaserequest     PurchaseRequest[]
 
@@ -152,8 +164,8 @@ model Supplier {
 }
 
 model PurchaseOrder {
-  id                  Int              @id @default(autoincrement())
-  ponumber            String           @unique @db.VarChar(500)
+  id                  Int              @default(autoincrement())
+  ponumber            String           @id @db.VarChar(500)
   companyname         String?          @db.VarChar(500)
   companyaddress      String?          @db.VarChar(500)
   contactname         String?          @db.VarChar(500)

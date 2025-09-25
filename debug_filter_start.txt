@@ -19768,3 +19768,364 @@ Filtering data for inventoryusers (inventoryusers): {
   "sessiontoken": "80c138d04e8c3fb57981f3a1589406477f56a4e626547fc67ce32d4cc305cd0e",
   "modifieddate": 1758634090385
 }
+Filtering data for product (product): {
+  "name": "test",
+  "category": "wellness",
+  "price": 1,
+  "isdealoftheday": false,
+  "quantity": 0,
+  "ecompublishedquantity": 0,
+  "subcategory": "essential-oils",
+  "supplierid": 0,
+  "suppliername": "",
+  "shortdescription": "test",
+  "fulldescription": "",
+  "discount": 0,
+  "supplier": "",
+  "orderedquantity": 0,
+  "availablequantity": 0,
+  "soldquantity": 0,
+  "productstatus": "",
+  "ingredients": "",
+  "usage": "",
+  "extractionmethod": "",
+  "note": "",
+  "shelflife": ""
+}
+Filtering data for product (product): {
+  "name": "Kasturi Premium Incense Stick",
+  "shortdescription": "Premium kasturi fragrance incense stick",
+  "fulldescription": "High-quality kasturi scented incense stick made with natural ingredients for a long-lasting aromatic experience.",
+  "category": "incense",
+  "subcategory": "premium_incense_sticks",
+  "fragnancetype": "kasturi",
+  "brand": "Nivaana",
+  "pack": "single",
+  "price": 150,
+  "discount": 0
+}
+Filtering data for product (product): {
+  "name": "Test Product"
+}
+Filtering data for product (product): {
+  "name": "Test Product",
+  "shortdescription": "Test description",
+  "fulldescription": "Test full description",
+  "category": "incense",
+  "subcategory": "premium_incense_sticks",
+  "fragnancetype": "kasturi",
+  "brand": "Nivaana",
+  "pack": "single",
+  "price": 150,
+  "discount": 0
+}
+Filtering data for product (product): {
+  "name": "Kasturi Premium Incense Stick",
+  "shortdescription": "Premium kasturi fragrance incense stick",
+  "fulldescription": "High-quality kasturi scented incense stick made with natural ingredients for a long-lasting aromatic experience.",
+  "category": "incense",
+  "subcategory": "premium_incense_sticks",
+  "fragnancetype": "kasturi",
+  "brand": "Nivaana",
+  "pack": "single",
+  "price": 150,
+  "discount": 0
+}
+Filtering data for product (product): {
+  "name": "Kasturi Premium Incense Stick",
+  "shortdescription": "Premium kasturi fragrance incense stick",
+  "fulldescription": "High-quality kasturi scented incense stick made with natural ingredients for a long-lasting aromatic experience.",
+  "category": "incense",
+  "subcategory": "premium_incense_sticks",
+  "fragnancetype": "kasturi",
+  "brand": "Nivaana",
+  "pack": "single",
+  "price": 150,
+  "discount": 0
+}
+Filtering data for product (product): {
+  "name": "Kasturi Premium Incense Stick",
+  "shortdescription": "Premium kasturi fragrance incense stick",
+  "fulldescription": "High-quality kasturi scented incense stick made with natural ingredients for a long-lasting aromatic experience.",
+  "category": "incense",
+  "subcategory": "premium_incense_sticks",
+  "fragnancetype": "kasturi",
+  "brand": "Nivaana",
+  "pack": "single",
+  "price": 150,
+  "discount": 0
+}
+Filtering data for product (product): {
+  "name": "Test Product"
+}
+Filtering data for product (product): {
+  "name": "Test Product"
+}
+Filtering data for product (product): {
+  "name": "Test Product",
+  "brand": "Nivaana"
+}
+Filtering data for product (product): {
+  "name": "Test Product",
+  "subcategory": "premium_incense_sticks",
+  "brand": "Nivaana"
+}
+Filtering data for product (product): {
+  "name": "Test Product",
+  "subcategory": "premium_incense_sticks",
+  "brand": "Nivaana"
+}
+Filtering data for product (product): {
+  "name": "Test Product",
+  "shortdescription": "Test description",
+  "fulldescription": "Test full description",
+  "category": "incense",
+  "subcategory": "premium_incense_sticks",
+  "fragnancetype": "kasturi",
+  "brand": "Nivaana",
+  "pack": "single",
+  "price": 150,
+  "discount": 0
+}
+Filtering data for product (product): {
+  "name": "Test Product"
+}
+Filtering data for product (product): {
+  "name": "Test Product"
+}
+Filtering data for product (product): {
+  "name": "Kasturi Premium Incense Stick",
+  "shortdescription": "Premium kasturi fragrance incense stick",
+  "fulldescription": "High-quality kasturi scented incense stick made with natural ingredients for a long-lasting aromatic experience.",
+  "category": "incense",
+  "subcategory": "premium_incense_sticks",
+  "fragnancetype": "kasturi",
+  "brand": "Nivaana",
+  "pack": "single",
+  "price": 150,
+  "discount": 0
+}
+Filtering data for product (product): {
+  "name": "Kasturi Premium Incense Stick",
+  "shortdescription": "Premium kasturi fragrance incense stick",
+  "fulldescription": "High-quality kasturi scented incense stick made with natural ingredients for a long-lasting aromatic experience.",
+  "category": "incense",
+  "subcategory": "premium_incense_sticks",
+  "fragnancetype": "kasturi",
+  "brand": "Nivaana",
+  "pack": "single",
+  "price": 150,
+  "discount": 0
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-product-images-dev/31/large/large_81863fjJgsL._SL1500_.jpg",
+    "https://storage.googleapis.com/niv-product-images-dev/31/large/large_81orgPPLBTL._SY879_.jpg",
+    "https://storage.googleapis.com/niv-product-images-dev/31/large/large_519aocdp-HL._SY879_.jpg",
+    "https://storage.googleapis.com/niv-product-images-dev/31/large/large_713HEskRPNL._SY879_.jpg"
+  ]
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0031",
+  "platform": "nivapp",
+  "batchno": "BATCH001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0031",
+  "platform": "nivapp",
+  "batchno": "BATCH001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0031",
+  "platform": "nivapp",
+  "batchno": "BATCH001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtering data for product (product): {
+  "quantity": 1,
+  "availablequantity": 0,
+  "soldquantity": 0,
+  "ecompublishedquantity": 0,
+  "productstatus": "out_of_stock",
+  "modifieddate": 1758799529055
+}
+Filtering data for platformstock (platformstock): {
+  "productId": 31,
+  "platform": "nivapp",
+  "availableQty": 1,
+  "soldQty": 0,
+  "totalQty": 1,
+  "orderedQty": 0,
+  "lockQty": 0,
+  "createddate": 1758799530400,
+  "modifieddate": 1758799530400
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0031",
+  "platform": "amazon",
+  "batchno": "BATCH002",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtering data for product (product): {
+  "quantity": 2,
+  "availablequantity": 0,
+  "soldquantity": 0,
+  "ecompublishedquantity": 0,
+  "productstatus": "out_of_stock",
+  "modifieddate": 1758799570626
+}
+Filtering data for platformstock (platformstock): {
+  "productId": 31,
+  "platform": "amazon",
+  "availableQty": 1,
+  "soldQty": 0,
+  "totalQty": 1,
+  "orderedQty": 0,
+  "lockQty": 0,
+  "createddate": 1758799571626,
+  "modifieddate": 1758799571626
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0031",
+  "platform": "flipkart",
+  "batchno": "BATCH003",
+  "poid": 11,
+  "supplierid": 1,
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtering data for product (product): {
+  "quantity": 3,
+  "availablequantity": 0,
+  "soldquantity": 0,
+  "ecompublishedquantity": 0,
+  "productstatus": "out_of_stock",
+  "modifieddate": 1758799819600
+}
+Filtering data for platformstock (platformstock): {
+  "productId": 31,
+  "platform": "flipkart",
+  "availableQty": 1,
+  "soldQty": 0,
+  "totalQty": 1,
+  "orderedQty": 0,
+  "lockQty": 0,
+  "createddate": 1758799820264,
+  "modifieddate": 1758799820264
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0031",
+  "platform": "flipkart",
+  "batchno": "BATCH004",
+  "poid": 11,
+  "supplierid": 1,
+  "stockstatus": "available",
+  "ecompublish": false,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtering data for product (product): {
+  "name": "Kasturi Premium Incense Stick"
+}
+Filtering data for product (product): {
+  "name": "Kasturi Premium Incense Stick Updated"
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0031",
+  "platform": "nivapp",
+  "batchno": "BATCH005",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0031",
+  "platform": "nivapp",
+  "batchno": "BATCH005",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0031",
+  "platform": "nivapp",
+  "batchno": "TEST001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtering data for product (product): {
+  "quantity": 4,
+  "availablequantity": 4,
+  "soldquantity": 0,
+  "ecompublishedquantity": 4,
+  "productstatus": "low_stock",
+  "modifieddate": 1758800177992
+}
+Filtering data for platformstock (platformstock): {
+  "productId": 31,
+  "platform": "nivapp",
+  "availableQty": 1,
+  "soldQty": 0,
+  "totalQty": 1,
+  "orderedQty": 0,
+  "lockQty": 0,
+  "createddate": 1758800179130,
+  "modifieddate": 1758800179130
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0031",
+  "platform": "nivapp",
+  "batchno": "TEST002",
+  "stockstatus": "available",
+  "ecompublish": false,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0031",
+  "platform": "nivapp",
+  "batchno": "NOECOM001",
+  "stockstatus": "available",
+  "ecompublish": false,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtering data for product (product): {
+  "quantity": 5,
+  "availablequantity": 4,
+  "soldquantity": 0,
+  "ecompublishedquantity": 4,
+  "productstatus": "low_stock",
+  "modifieddate": 1758800342948
+}

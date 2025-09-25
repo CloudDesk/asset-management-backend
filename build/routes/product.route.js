@@ -26,49 +26,24 @@ export async function productRoutes(fastify) {
                         type: "string",
                         description: "Filter by fragrance type",
                     },
-                    volume: { type: "string", description: "Filter by volume" },
-                    origincountry: {
+                    category: { type: "string", description: "Filter by category" },
+                    subcategory: {
                         type: "string",
-                        description: "Filter by origin country",
+                        description: "Filter by subcategory",
                     },
-                    organiccertified: {
+                    Brand: {
                         type: "string",
-                        description: "Filter by organic certified status",
+                        description: "Filter by brand",
                     },
-                    supplierid: {
+                    pack: {
                         type: "string",
-                        description: "Filter by supplier ID",
-                    },
-                    soldquantity: {
-                        type: "string",
-                        description: "Filter by sold quantity",
-                    },
-                    availablequantity: {
-                        type: "string",
-                        description: "Filter by available quantity",
-                    },
-                    quantity: {
-                        type: "string",
-                        description: "Filter by quantity",
-                    },
-                    ecompublishedquantity: {
-                        type: "string",
-                        description: "Filter by e-commerce published quantity",
+                        description: "Filter by pack size",
                     },
                     productstatus: {
                         type: "string",
                         description: "Filter by product status",
                     },
-                    ponumber: { type: "string", description: "Filter by PO number" },
                     puc: { type: "string", description: "Filter by PUC code" },
-                    suppliername: {
-                        type: "string",
-                        description: "Filter by supplier name",
-                    },
-                    serialnumber: {
-                        type: "string",
-                        description: "Filter by serial number",
-                    },
                     averagerating: {
                         type: "string",
                         description: "Filter by average rating",
@@ -81,9 +56,25 @@ export async function productRoutes(fastify) {
                         type: "string",
                         description: "Filter by product price",
                     },
+                    quantity: {
+                        type: "string",
+                        description: "Filter by quantity",
+                    },
                     orderedquantity: {
                         type: "string",
                         description: "Filter by ordered quantity",
+                    },
+                    soldquantity: {
+                        type: "string",
+                        description: "Filter by sold quantity",
+                    },
+                    availablequantity: {
+                        type: "string",
+                        description: "Filter by available quantity",
+                    },
+                    ecompublishedquantity: {
+                        type: "string",
+                        description: "Filter by e-commerce published quantity",
                     },
                     createddate: {
                         type: "string",
@@ -93,95 +84,7 @@ export async function productRoutes(fastify) {
                         type: "string",
                         description: "Filter by modification date (timestamp)",
                     },
-                    // Additional product fields for filtering (21 missing fields)
-                    ingredients: {
-                        type: "string",
-                        description: "Filter by product ingredients",
-                    },
-                    usage: {
-                        type: "string",
-                        description: "Filter by usage instructions",
-                    },
-                    extractionmethod: {
-                        type: "string",
-                        description: "Filter by extraction method",
-                    },
-                    note: { type: "string", description: "Filter by additional notes" },
-                    shelflife: {
-                        type: "string",
-                        description: "Filter by shelf life information",
-                    },
-                    // Candle-specific filter fields
-                    wax_type: { type: "string", description: "Filter by wax type" },
-                    burn_time: { type: "string", description: "Filter by burn time" },
-                    scent_profile: {
-                        type: "string",
-                        description: "Filter by scent profile",
-                    },
-                    container_material: {
-                        type: "string",
-                        description: "Filter by container material",
-                    },
-                    candle_dimensions: {
-                        type: "string",
-                        description: "Filter by candle dimensions",
-                    },
-                    // Planter-specific filter fields
-                    planter_material: {
-                        type: "string",
-                        description: "Filter by planter material",
-                    },
-                    drainage_hole: {
-                        type: "string",
-                        description: "Filter by drainage hole (true/false)",
-                    },
-                    suitable_for: {
-                        type: "string",
-                        description: "Filter by suitable for plants",
-                    },
-                    planter_dimensions: {
-                        type: "string",
-                        description: "Filter by planter dimensions",
-                    },
-                    plant_included: {
-                        type: "string",
-                        description: "Filter by plant included (true/false)",
-                    },
-                    // Art-specific filter fields
-                    art_type: { type: "string", description: "Filter by art type" },
-                    frame_included: {
-                        type: "string",
-                        description: "Filter by frame included (true/false)",
-                    },
-                    art_dimensions: {
-                        type: "string",
-                        description: "Filter by art dimensions",
-                    },
-                    orientation: {
-                        type: "string",
-                        description: "Filter by art orientation",
-                    },
-                    artist_name: {
-                        type: "string",
-                        description: "Filter by artist name",
-                    },
-                    // Status filter field
-                    isactive: {
-                        type: "string",
-                        description: "Filter by active status (true/false)",
-                    },
-                    // Deal of the day filter field
-                    isdealoftheday: {
-                        type: "string",
-                        description: "Filter by deal of the day status (true/false)",
-                    },
-                    // Category filter fields
-                    category: { type: "string", description: "Filter by category" },
-                    subcategory: {
-                        type: "string",
-                        description: "Filter by subcategory",
-                    },
-                    // Size-related filter fields (3 new fields)
+                    // Size-related filter fields
                     large: {
                         type: "string",
                         description: "Filter by large size options",
@@ -633,123 +536,27 @@ export async function productRoutes(fastify) {
                                 },
                                 modifieddate: {
                                     type: "number",
+                                    nullable: true,
                                     description: "Modification timestamp",
                                 },
-                                // Additional product fields from database (21 missing fields)
-                                ingredients: {
-                                    type: "string",
+                                // Size-related fields
+                                large: {
+                                    type: "array",
+                                    items: { type: "string" },
                                     nullable: true,
-                                    description: "Product ingredients",
+                                    description: "Large size options",
                                 },
-                                usage: {
-                                    type: "string",
+                                medium: {
+                                    type: "array",
+                                    items: { type: "string" },
                                     nullable: true,
-                                    description: "Usage instructions",
+                                    description: "Medium size options",
                                 },
-                                extractionmethod: {
-                                    type: "string",
+                                small: {
+                                    type: "array",
+                                    items: { type: "string" },
                                     nullable: true,
-                                    description: "Extraction method",
-                                },
-                                note: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Additional notes",
-                                },
-                                shelflife: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Shelf life information",
-                                },
-                                // Candle-specific fields
-                                wax_type: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Type of wax used",
-                                },
-                                burn_time: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Burn time duration",
-                                },
-                                scent_profile: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Scent profile description",
-                                },
-                                container_material: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Container material",
-                                },
-                                candle_dimensions: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Candle dimensions",
-                                },
-                                // Planter-specific fields
-                                planter_material: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Planter material",
-                                },
-                                drainage_hole: {
-                                    type: "boolean",
-                                    nullable: true,
-                                    description: "Has drainage hole",
-                                },
-                                suitable_for: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Suitable for plants",
-                                },
-                                planter_dimensions: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Planter dimensions",
-                                },
-                                plant_included: {
-                                    type: "boolean",
-                                    nullable: true,
-                                    description: "Plant included with planter",
-                                },
-                                // Art-specific fields
-                                art_type: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Type of art",
-                                },
-                                frame_included: {
-                                    type: "boolean",
-                                    nullable: true,
-                                    description: "Frame included",
-                                },
-                                art_dimensions: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Art dimensions",
-                                },
-                                orientation: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Art orientation",
-                                },
-                                artist_name: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Artist name",
-                                },
-                                // Status field
-                                isactive: {
-                                    type: "boolean",
-                                    nullable: true,
-                                    description: "Is product active",
-                                },
-                                // Deal of the day field
-                                isdealoftheday: {
-                                    type: "boolean",
-                                    nullable: true,
-                                    description: "Is deal of the day",
+                                    description: "Small size options",
                                 },
                             },
                             additionalProperties: true, // Allow additional dynamic fields
@@ -856,52 +663,25 @@ export async function productRoutes(fastify) {
                         maxLength: 255,
                         description: "Fragrance type",
                     },
-                    volume: { type: "string", maxLength: 50, description: "Volume" },
-                    origincountry: {
+                    category: {
                         type: "string",
                         maxLength: 255,
-                        description: "Origin country",
+                        description: "Product category",
                     },
-                    organiccertified: {
-                        type: "boolean",
-                        description: "Organic certified status",
-                    },
-                    supplierid: { type: "number", description: "Supplier ID" },
-                    soldquantity: { type: "number", description: "Sold quantity" },
-                    availablequantity: {
-                        type: "number",
-                        description: "Available quantity",
-                    },
-                    quantity: {
-                        type: "number",
-                        minimum: 0,
-                        description: "Product quantity",
-                    },
-                    ecompublishedquantity: {
-                        type: "number",
-                        minimum: 0,
-                        description: "E-commerce published quantity",
-                    },
-                    productstatus: {
+                    subcategory: {
                         type: "string",
                         maxLength: 255,
-                        description: "Product status",
+                        description: "Product subcategory",
                     },
-                    ponumber: {
+                    Brand: {
                         type: "string",
                         maxLength: 255,
-                        description: "PO number",
+                        description: "Product brand",
                     },
-                    puc: { type: "string", maxLength: 255, description: "PUC code" },
-                    suppliername: {
+                    pack: {
                         type: "string",
                         maxLength: 255,
-                        description: "Supplier name",
-                    },
-                    serialnumber: {
-                        type: "string",
-                        maxLength: 255,
-                        description: "Serial number",
+                        description: "Pack size",
                     },
                     averagerating: {
                         type: "number",
@@ -919,96 +699,35 @@ export async function productRoutes(fastify) {
                         minimum: 0,
                         description: "Product price",
                     },
+                    quantity: {
+                        type: "number",
+                        minimum: 0,
+                        description: "Product quantity",
+                    },
                     orderedquantity: {
                         type: "number",
                         description: "Ordered quantity",
                     },
-                    // Additional product fields from database (21 missing fields)
-                    ingredients: { type: "string", description: "Product ingredients" },
-                    usage: { type: "string", description: "Usage instructions" },
-                    extractionmethod: {
-                        type: "string",
-                        maxLength: 100,
-                        description: "Extraction method",
+                    soldquantity: {
+                        type: "number",
+                        description: "Sold quantity"
                     },
-                    note: {
-                        type: "string",
-                        maxLength: 150,
-                        description: "Additional notes",
+                    availablequantity: {
+                        type: "number",
+                        description: "Available quantity",
                     },
-                    shelflife: {
-                        type: "string",
-                        maxLength: 150,
-                        description: "Shelf life information",
+                    ecompublishedquantity: {
+                        type: "number",
+                        minimum: 0,
+                        description: "E-commerce published quantity",
                     },
-                    // Candle-specific fields
-                    wax_type: {
-                        type: "string",
-                        maxLength: 150,
-                        description: "Type of wax used",
-                    },
-                    burn_time: {
-                        type: "string",
-                        maxLength: 150,
-                        description: "Burn time duration",
-                    },
-                    scent_profile: {
-                        type: "string",
-                        maxLength: 100,
-                        description: "Scent profile description",
-                    },
-                    container_material: {
-                        type: "string",
-                        maxLength: 100,
-                        description: "Container material",
-                    },
-                    candle_dimensions: {
-                        type: "string",
-                        description: "Candle dimensions",
-                    },
-                    // Planter-specific fields
-                    planter_material: {
-                        type: "string",
-                        description: "Planter material",
-                    },
-                    drainage_hole: {
-                        type: "boolean",
-                        description: "Has drainage hole",
-                    },
-                    suitable_for: {
-                        type: "string",
-                        description: "Suitable for plants",
-                    },
-                    planter_dimensions: {
-                        type: "string",
-                        description: "Planter dimensions",
-                    },
-                    plant_included: {
-                        type: "boolean",
-                        description: "Plant included with planter",
-                    },
-                    // Art-specific fields
-                    art_type: { type: "string", description: "Type of art" },
-                    frame_included: { type: "boolean", description: "Frame included" },
-                    art_dimensions: { type: "string", description: "Art dimensions" },
-                    orientation: { type: "string", description: "Art orientation" },
-                    artist_name: { type: "string", description: "Artist name" },
-                    // Status field
-                    isactive: { type: "boolean", description: "Is product active" },
-                    // Deal of the day field
-                    isdealoftheday: { type: "boolean", description: "Is deal of the day" },
-                    // Category fields
-                    category: {
+                    productstatus: {
                         type: "string",
                         maxLength: 255,
-                        description: "Product category",
+                        description: "Product status",
                     },
-                    subcategory: {
-                        type: "string",
-                        maxLength: 255,
-                        description: "Product subcategory",
-                    },
-                    // Size-related fields (3 new fields)
+                    puc: { type: "string", maxLength: 255, description: "PUC code (auto-generated)" },
+                    // Size-related fields
                     large: {
                         type: "array",
                         items: { type: "string" },
@@ -1053,70 +772,25 @@ export async function productRoutes(fastify) {
                                     nullable: true,
                                     description: "Fragrance type",
                                 },
-                                volume: {
+                                category: {
                                     type: "string",
                                     nullable: true,
-                                    description: "Volume",
+                                    description: "Product category",
                                 },
-                                origincountry: {
+                                subcategory: {
                                     type: "string",
                                     nullable: true,
-                                    description: "Origin country",
+                                    description: "Product subcategory",
                                 },
-                                organiccertified: {
-                                    type: "boolean",
-                                    nullable: true,
-                                    description: "Organic certified status",
-                                },
-                                supplierid: {
-                                    type: "number",
-                                    nullable: true,
-                                    description: "Supplier ID",
-                                },
-                                soldquantity: {
-                                    type: "number",
-                                    nullable: true,
-                                    description: "Sold quantity",
-                                },
-                                availablequantity: {
-                                    type: "number",
-                                    nullable: true,
-                                    description: "Available quantity",
-                                },
-                                quantity: {
-                                    type: "number",
-                                    nullable: true,
-                                    description: "Product quantity",
-                                },
-                                ecompublishedquantity: {
-                                    type: "number",
-                                    nullable: true,
-                                    description: "E-commerce published quantity",
-                                },
-                                productstatus: {
+                                Brand: {
                                     type: "string",
                                     nullable: true,
-                                    description: "Product status",
+                                    description: "Product brand",
                                 },
-                                ponumber: {
+                                pack: {
                                     type: "string",
                                     nullable: true,
-                                    description: "PO number",
-                                },
-                                puc: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "PUC code",
-                                },
-                                suppliername: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Supplier name",
-                                },
-                                serialnumber: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Serial number",
+                                    description: "Pack size",
                                 },
                                 averagerating: {
                                     type: "number",
@@ -1133,147 +807,52 @@ export async function productRoutes(fastify) {
                                     nullable: true,
                                     description: "Product price",
                                 },
+                                quantity: {
+                                    type: "number",
+                                    nullable: true,
+                                    description: "Product quantity",
+                                },
                                 orderedquantity: {
                                     type: "number",
                                     nullable: true,
                                     description: "Ordered quantity",
                                 },
+                                soldquantity: {
+                                    type: "number",
+                                    nullable: true,
+                                    description: "Sold quantity",
+                                },
+                                availablequantity: {
+                                    type: "number",
+                                    nullable: true,
+                                    description: "Available quantity",
+                                },
+                                ecompublishedquantity: {
+                                    type: "number",
+                                    nullable: true,
+                                    description: "E-commerce published quantity",
+                                },
+                                productstatus: {
+                                    type: "string",
+                                    nullable: true,
+                                    description: "Product status",
+                                },
+                                puc: {
+                                    type: "string",
+                                    nullable: true,
+                                    description: "PUC code",
+                                },
                                 createddate: {
                                     type: "number",
+                                    nullable: true,
                                     description: "Creation timestamp",
                                 },
                                 modifieddate: {
                                     type: "number",
+                                    nullable: true,
                                     description: "Modification timestamp",
                                 },
-                                // Additional product fields from database (21 missing fields)
-                                ingredients: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Product ingredients",
-                                },
-                                usage: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Usage instructions",
-                                },
-                                extractionmethod: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Extraction method",
-                                },
-                                note: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Additional notes",
-                                },
-                                shelflife: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Shelf life information",
-                                },
-                                // Candle-specific fields
-                                wax_type: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Type of wax used",
-                                },
-                                burn_time: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Burn time duration",
-                                },
-                                scent_profile: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Scent profile description",
-                                },
-                                container_material: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Container material",
-                                },
-                                candle_dimensions: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Candle dimensions",
-                                },
-                                // Planter-specific fields
-                                planter_material: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Planter material",
-                                },
-                                drainage_hole: {
-                                    type: "boolean",
-                                    nullable: true,
-                                    description: "Has drainage hole",
-                                },
-                                suitable_for: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Suitable for plants",
-                                },
-                                planter_dimensions: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Planter dimensions",
-                                },
-                                plant_included: {
-                                    type: "boolean",
-                                    nullable: true,
-                                    description: "Plant included with planter",
-                                },
-                                // Art-specific fields
-                                art_type: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Type of art",
-                                },
-                                frame_included: {
-                                    type: "boolean",
-                                    nullable: true,
-                                    description: "Frame included",
-                                },
-                                art_dimensions: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Art dimensions",
-                                },
-                                orientation: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Art orientation",
-                                },
-                                artist_name: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Artist name",
-                                },
-                                // Status field
-                                isactive: {
-                                    type: "boolean",
-                                    nullable: true,
-                                    description: "Is product active",
-                                },
-                                // Deal of the day field
-                                isdealoftheday: {
-                                    type: "boolean",
-                                    nullable: true,
-                                    description: "Is deal of the day",
-                                },
-                                // Category fields
-                                category: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Product category",
-                                },
-                                subcategory: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Product subcategory",
-                                },
-                                // Size-related fields (3 new fields)
+                                // Size-related fields
                                 large: {
                                     type: "array",
                                     items: { type: "string" },
@@ -1353,52 +932,25 @@ export async function productRoutes(fastify) {
                         maxLength: 255,
                         description: "Fragrance type",
                     },
-                    volume: { type: "string", maxLength: 50, description: "Volume" },
-                    origincountry: {
+                    category: {
                         type: "string",
                         maxLength: 255,
-                        description: "Origin country",
+                        description: "Product category",
                     },
-                    organiccertified: {
-                        type: "boolean",
-                        description: "Organic certified status",
-                    },
-                    supplierid: { type: "number", description: "Supplier ID" },
-                    soldquantity: { type: "number", description: "Sold quantity" },
-                    availablequantity: {
-                        type: "number",
-                        description: "Available quantity",
-                    },
-                    quantity: {
-                        type: "number",
-                        minimum: 0,
-                        description: "Product quantity",
-                    },
-                    ecompublishedquantity: {
-                        type: "number",
-                        minimum: 0,
-                        description: "E-commerce published quantity",
-                    },
-                    productstatus: {
+                    subcategory: {
                         type: "string",
                         maxLength: 255,
-                        description: "Product status",
+                        description: "Product subcategory",
                     },
-                    ponumber: {
+                    Brand: {
                         type: "string",
                         maxLength: 255,
-                        description: "PO number",
+                        description: "Product brand",
                     },
-                    puc: { type: "string", maxLength: 255, description: "PUC code" },
-                    suppliername: {
+                    pack: {
                         type: "string",
                         maxLength: 255,
-                        description: "Supplier name",
-                    },
-                    serialnumber: {
-                        type: "string",
-                        maxLength: 255,
-                        description: "Serial number",
+                        description: "Pack size",
                     },
                     averagerating: {
                         type: "number",
@@ -1416,95 +968,34 @@ export async function productRoutes(fastify) {
                         minimum: 0,
                         description: "Product price",
                     },
+                    quantity: {
+                        type: "number",
+                        minimum: 0,
+                        description: "Product quantity",
+                    },
                     orderedquantity: {
                         type: "number",
                         description: "Ordered quantity",
                     },
-                    // Additional product fields from database (21 missing fields)
-                    ingredients: { type: "string", description: "Product ingredients" },
-                    usage: { type: "string", description: "Usage instructions" },
-                    extractionmethod: {
-                        type: "string",
-                        maxLength: 100,
-                        description: "Extraction method",
+                    soldquantity: {
+                        type: "number",
+                        description: "Sold quantity"
                     },
-                    note: {
-                        type: "string",
-                        maxLength: 150,
-                        description: "Additional notes",
+                    availablequantity: {
+                        type: "number",
+                        description: "Available quantity",
                     },
-                    shelflife: {
-                        type: "string",
-                        maxLength: 150,
-                        description: "Shelf life information",
+                    ecompublishedquantity: {
+                        type: "number",
+                        minimum: 0,
+                        description: "E-commerce published quantity",
                     },
-                    // Candle-specific fields
-                    wax_type: {
-                        type: "string",
-                        maxLength: 150,
-                        description: "Type of wax used",
-                    },
-                    burn_time: {
-                        type: "string",
-                        maxLength: 150,
-                        description: "Burn time duration",
-                    },
-                    scent_profile: {
-                        type: "string",
-                        maxLength: 100,
-                        description: "Scent profile description",
-                    },
-                    container_material: {
-                        type: "string",
-                        maxLength: 100,
-                        description: "Container material",
-                    },
-                    candle_dimensions: {
-                        type: "string",
-                        description: "Candle dimensions",
-                    },
-                    // Planter-specific fields
-                    planter_material: {
-                        type: "string",
-                        description: "Planter material",
-                    },
-                    drainage_hole: {
-                        type: "boolean",
-                        description: "Has drainage hole",
-                    },
-                    suitable_for: {
-                        type: "string",
-                        description: "Suitable for plants",
-                    },
-                    planter_dimensions: {
-                        type: "string",
-                        description: "Planter dimensions",
-                    },
-                    plant_included: {
-                        type: "boolean",
-                        description: "Plant included with planter",
-                    },
-                    // Art-specific fields
-                    art_type: { type: "string", description: "Type of art" },
-                    frame_included: { type: "boolean", description: "Frame included" },
-                    art_dimensions: { type: "string", description: "Art dimensions" },
-                    orientation: { type: "string", description: "Art orientation" },
-                    artist_name: { type: "string", description: "Artist name" },
-                    // Status field
-                    isactive: { type: "boolean", description: "Is product active" },
-                    // Deal of the day field
-                    isdealoftheday: { type: "boolean", description: "Is deal of the day" },
-                    // Category fields
-                    category: {
+                    productstatus: {
                         type: "string",
                         maxLength: 255,
-                        description: "Product category",
+                        description: "Product status",
                     },
-                    subcategory: {
-                        type: "string",
-                        maxLength: 255,
-                        description: "Product subcategory",
-                    },
+                    puc: { type: "string", maxLength: 255, description: "PUC code (auto-generated)" },
                     // Size array fields
                     large: {
                         type: "array",
@@ -1641,133 +1132,6 @@ export async function productRoutes(fastify) {
                                 modifieddate: {
                                     type: "number",
                                     description: "Modification timestamp",
-                                },
-                                // Additional product fields from database (21 missing fields)
-                                ingredients: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Product ingredients",
-                                },
-                                usage: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Usage instructions",
-                                },
-                                extractionmethod: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Extraction method",
-                                },
-                                note: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Additional notes",
-                                },
-                                shelflife: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Shelf life information",
-                                },
-                                // Candle-specific fields
-                                wax_type: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Type of wax used",
-                                },
-                                burn_time: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Burn time duration",
-                                },
-                                scent_profile: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Scent profile description",
-                                },
-                                container_material: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Container material",
-                                },
-                                candle_dimensions: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Candle dimensions",
-                                },
-                                // Planter-specific fields
-                                planter_material: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Planter material",
-                                },
-                                drainage_hole: {
-                                    type: "boolean",
-                                    nullable: true,
-                                    description: "Has drainage hole",
-                                },
-                                suitable_for: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Suitable for plants",
-                                },
-                                planter_dimensions: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Planter dimensions",
-                                },
-                                plant_included: {
-                                    type: "boolean",
-                                    nullable: true,
-                                    description: "Plant included with planter",
-                                },
-                                // Art-specific fields
-                                art_type: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Type of art",
-                                },
-                                frame_included: {
-                                    type: "boolean",
-                                    nullable: true,
-                                    description: "Frame included",
-                                },
-                                art_dimensions: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Art dimensions",
-                                },
-                                orientation: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Art orientation",
-                                },
-                                artist_name: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Artist name",
-                                },
-                                // Status field
-                                isactive: {
-                                    type: "boolean",
-                                    nullable: true,
-                                    description: "Is product active",
-                                },
-                                // Deal of the day field
-                                isdealoftheday: {
-                                    type: "boolean",
-                                    nullable: true,
-                                    description: "Is deal of the day",
-                                },
-                                // Category fields
-                                category: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Product category",
-                                },
-                                subcategory: {
-                                    type: "string",
-                                    nullable: true,
-                                    description: "Product subcategory",
                                 },
                                 // Size array fields
                                 large: {

@@ -19145,3 +19145,311 @@ Filtered data result: {
   "sessiontoken": "80c138d04e8c3fb57981f3a1589406477f56a4e626547fc67ce32d4cc305cd0e",
   "modifieddate": 1758634090385
 }
+Filtered data result: {
+  "name": "test",
+  "category": "wellness",
+  "price": 1,
+  "isdealoftheday": false,
+  "quantity": 0,
+  "ecompublishedquantity": 0,
+  "subcategory": "essential-oils",
+  "supplierid": 0,
+  "suppliername": "",
+  "shortdescription": "test",
+  "fulldescription": "",
+  "discount": 0,
+  "orderedquantity": 0,
+  "availablequantity": 0,
+  "soldquantity": 0,
+  "productstatus": "",
+  "ingredients": "",
+  "usage": "",
+  "extractionmethod": "",
+  "note": "",
+  "shelflife": ""
+}
+Filtered data result: {
+  "name": "Kasturi Premium Incense Stick",
+  "shortdescription": "Premium kasturi fragrance incense stick",
+  "fulldescription": "High-quality kasturi scented incense stick made with natural ingredients for a long-lasting aromatic experience.",
+  "category": "incense",
+  "subcategory": "premium_incense_sticks",
+  "fragnancetype": "kasturi",
+  "price": 150,
+  "discount": 0
+}
+Filtered data result: {
+  "name": "Test Product"
+}
+Filtered data result: {
+  "name": "Test Product",
+  "shortdescription": "Test description",
+  "fulldescription": "Test full description",
+  "category": "incense",
+  "subcategory": "premium_incense_sticks",
+  "fragnancetype": "kasturi",
+  "price": 150,
+  "discount": 0
+}
+Filtered data result: {
+  "name": "Kasturi Premium Incense Stick",
+  "shortdescription": "Premium kasturi fragrance incense stick",
+  "fulldescription": "High-quality kasturi scented incense stick made with natural ingredients for a long-lasting aromatic experience.",
+  "category": "incense",
+  "subcategory": "premium_incense_sticks",
+  "fragnancetype": "kasturi",
+  "price": 150,
+  "discount": 0
+}
+Filtered data result: {
+  "name": "Kasturi Premium Incense Stick",
+  "shortdescription": "Premium kasturi fragrance incense stick",
+  "fulldescription": "High-quality kasturi scented incense stick made with natural ingredients for a long-lasting aromatic experience.",
+  "category": "incense",
+  "subcategory": "premium_incense_sticks",
+  "fragnancetype": "kasturi",
+  "brand": "Nivaana",
+  "pack": "single",
+  "price": 150,
+  "discount": 0
+}
+Filtered data result: {
+  "name": "Kasturi Premium Incense Stick",
+  "shortdescription": "Premium kasturi fragrance incense stick",
+  "fulldescription": "High-quality kasturi scented incense stick made with natural ingredients for a long-lasting aromatic experience.",
+  "category": "incense",
+  "subcategory": "premium_incense_sticks",
+  "fragnancetype": "kasturi",
+  "brand": "Nivaana",
+  "pack": "single",
+  "price": 150,
+  "discount": 0
+}
+Filtered data result: {
+  "name": "Test Product"
+}
+Filtered data result: {
+  "name": "Test Product"
+}
+Filtered data result: {
+  "name": "Test Product",
+  "brand": "Nivaana"
+}
+Filtered data result: {
+  "name": "Test Product",
+  "subcategory": "premium_incense_sticks",
+  "brand": "Nivaana"
+}
+Filtered data result: {
+  "name": "Test Product",
+  "subcategory": "premium_incense_sticks",
+  "brand": "Nivaana"
+}
+Filtered data result: {
+  "name": "Test Product",
+  "shortdescription": "Test description",
+  "fulldescription": "Test full description",
+  "category": "incense",
+  "subcategory": "premium_incense_sticks",
+  "fragnancetype": "kasturi",
+  "brand": "Nivaana",
+  "pack": "single",
+  "price": 150,
+  "discount": 0
+}
+Filtered data result: {
+  "name": "Test Product"
+}
+Filtered data result: {
+  "name": "Test Product"
+}
+Filtered data result: {
+  "name": "Kasturi Premium Incense Stick",
+  "shortdescription": "Premium kasturi fragrance incense stick",
+  "fulldescription": "High-quality kasturi scented incense stick made with natural ingredients for a long-lasting aromatic experience.",
+  "category": "incense",
+  "subcategory": "premium_incense_sticks",
+  "fragnancetype": "kasturi",
+  "brand": "Nivaana",
+  "pack": "single",
+  "price": 150,
+  "discount": 0
+}
+Filtered data result: {
+  "name": "Kasturi Premium Incense Stick",
+  "shortdescription": "Premium kasturi fragrance incense stick",
+  "fulldescription": "High-quality kasturi scented incense stick made with natural ingredients for a long-lasting aromatic experience.",
+  "category": "incense",
+  "subcategory": "premium_incense_sticks",
+  "fragnancetype": "kasturi",
+  "brand": "Nivaana",
+  "pack": "single",
+  "price": 150,
+  "discount": 0
+}
+Filtered data result: {
+  "large": [
+    "https://storage.googleapis.com/niv-product-images-dev/31/large/large_81863fjJgsL._SL1500_.jpg",
+    "https://storage.googleapis.com/niv-product-images-dev/31/large/large_81orgPPLBTL._SY879_.jpg",
+    "https://storage.googleapis.com/niv-product-images-dev/31/large/large_519aocdp-HL._SY879_.jpg",
+    "https://storage.googleapis.com/niv-product-images-dev/31/large/large_713HEskRPNL._SY879_.jpg"
+  ]
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "nivapp",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "nivapp",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "nivapp",
+  "batchno": "BATCH001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 1,
+  "availablequantity": 0,
+  "soldquantity": 0,
+  "ecompublishedquantity": 0,
+  "productstatus": "out_of_stock",
+  "modifieddate": 1758799529055
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "amazon",
+  "batchno": "BATCH002",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 2,
+  "availablequantity": 0,
+  "soldquantity": 0,
+  "ecompublishedquantity": 0,
+  "productstatus": "out_of_stock",
+  "modifieddate": 1758799570626
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "flipkart",
+  "batchno": "BATCH003",
+  "poid": 11,
+  "supplierid": 1,
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 3,
+  "availablequantity": 0,
+  "soldquantity": 0,
+  "ecompublishedquantity": 0,
+  "productstatus": "out_of_stock",
+  "modifieddate": 1758799819600
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "flipkart",
+  "batchno": "BATCH004",
+  "poid": 11,
+  "supplierid": 1,
+  "stockstatus": "available",
+  "ecompublish": false,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "name": "Kasturi Premium Incense Stick"
+}
+Filtered data result: {
+  "name": "Kasturi Premium Incense Stick Updated"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "nivapp",
+  "batchno": "BATCH005",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "nivapp",
+  "batchno": "BATCH005",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "nivapp",
+  "batchno": "TEST001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 4,
+  "availablequantity": 4,
+  "soldquantity": 0,
+  "ecompublishedquantity": 4,
+  "productstatus": "low_stock",
+  "modifieddate": 1758800177992
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "nivapp",
+  "batchno": "TEST002",
+  "stockstatus": "available",
+  "ecompublish": false,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "nivapp",
+  "batchno": "NOECOM001",
+  "stockstatus": "available",
+  "ecompublish": false,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 5,
+  "availablequantity": 4,
+  "soldquantity": 0,
+  "ecompublishedquantity": 4,
+  "productstatus": "low_stock",
+  "modifieddate": 1758800342948
+}

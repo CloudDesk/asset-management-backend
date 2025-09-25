@@ -6,3 +6,63 @@ Fallback values: [
   1750913791598,
   1750913791
 ]
+Fallback values: [
+  31,
+  [
+    "https://storage.googleapis.com/niv-product-images-dev/31/large/large_81863fjJgsL._SL1500_.jpg",
+    "https://storage.googleapis.com/niv-product-images-dev/31/large/large_81orgPPLBTL._SY879_.jpg",
+    "https://storage.googleapis.com/niv-product-images-dev/31/large/large_519aocdp-HL._SY879_.jpg",
+    "https://storage.googleapis.com/niv-product-images-dev/31/large/large_713HEskRPNL._SY879_.jpg"
+  ],
+  1758798162
+]
+Fallback values: [
+  31,
+  1,
+  0,
+  0,
+  0,
+  "out_of_stock",
+  1758799529
+]
+Fallback values: [
+  31,
+  2,
+  0,
+  0,
+  0,
+  "out_of_stock",
+  1758799570
+]
+Fallback values: [
+  31,
+  3,
+  0,
+  0,
+  0,
+  "out_of_stock",
+  1758799819
+]
+Fallback values: [
+  31,
+  "Kasturi Premium Incense Stick",
+  1758800092
+]
+Fallback values: [
+  31,
+  4,
+  4,
+  0,
+  4,
+  "low_stock",
+  1758800178
+]
+Fallback values: [
+  31,
+  5,
+  4,
+  0,
+  4,
+  "low_stock",
+  1758800343
+]

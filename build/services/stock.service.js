@@ -3,8 +3,10 @@ import { createPaginationResult, getPrismaSkipTake, } from "../utils/pagination.
 import { dynamicFindMany, dynamicFindUnique, dynamicCreate, dynamicUpdate, dynamicDelete, dynamicFindManyWithFilters, } from "../utils/dynamicDbOperations.js";
 import { logger } from "../config/logger.js";
 import { ProductService } from "./product.service.js";
+import { PlatformStockService } from "./platformStock.service.js";
 export class StockService {
     productService = new ProductService();
+    platformStockService = new PlatformStockService();
     async findMany(filters, page, limit) {
         try {
             logger.info({ filters, page, limit }, "Starting dynamic stock findMany with filters");
@@ -147,7 +149,7 @@ export class StockService {
                 ecompublish: stock.ecompublish,
                 availableFields: Object.keys(stock),
             }, "Dynamic stock create completed");
-            // Update product quantities based on the new stock
+            // Update product quantities and platform stock based on the new stock
             // Priority: 1. Use stock.puc, 2. Use linked product, 3. Use legacy productId
             const productIdentifier = stock.puc ||
                 linkedProduct?.puc ||
@@ -162,6 +164,7 @@ export class StockService {
                         stockstatus: stock.stockstatus,
                         quantity: stock.quantity || 1 // Default to 1 if not specified
                     };
+                    // Update parent product quantities
                     const updateResult = await this.productService.updateStockTotals(productIdentifier, insertedStockInfo);
                     logger.info({
                         stockId: stock.id,
@@ -171,6 +174,42 @@ export class StockService {
                         insertedStockInfo,
                         updateResult
                     }, "Successfully updated product quantities after stock creation");
+                    // Update PlatformStock if we have a valid product ID and platform
+                    if (stock.platform && linkedProduct?.id) {
+                        try {
+                            await this.platformStockService.updatePlatformStockQuantities(Number(linkedProduct.id), stock.platform, {
+                                ecompublish: stock.ecompublish,
+                                stockstatus: stock.stockstatus,
+                                quantity: stock.quantity || 1,
+                                operation: 'create'
+                            });
+                            logger.info({
+                                stockId: stock.id,
+                                productId: linkedProduct.id,
+                                platform: stock.platform,
+                                stockstatus: stock.stockstatus,
+                                ecompublish: stock.ecompublish,
+                            }, "Successfully updated platform stock quantities after stock creation");
+                        }
+                        catch (platformError) {
+                            logger.error({
+                                error: platformError.message,
+                                stockId: stock.id,
+                                productId: linkedProduct.id,
+                                platform: stock.platform,
+                            }, "Failed to update platform stock quantities after stock creation");
+                            // Don't throw here - stock creation was successful, platform update is secondary
+                        }
+                    }
+                    else {
+                        logger.warn({
+                            stockId: stock.id,
+                            hasPlatform: !!stock.platform,
+                            hasLinkedProduct: !!linkedProduct?.id,
+                            platform: stock.platform,
+                            productId: linkedProduct?.id,
+                        }, "Skipping platform stock update - missing platform or product ID");
+                    }
                 }
                 catch (error) {
                     logger.error({
@@ -253,6 +292,78 @@ export class StockService {
                             stockStatusChange: stockStatusChange || 'no status change',
                             updateResult
                         }, "Successfully updated product quantities after stock update");
+                        // Update PlatformStock if platform, status, or e-com publish changed
+                        if (stock.platform) {
+                            try {
+                                // Find the product to get the product ID
+                                const products = await dynamicFindMany('product', {
+                                    where: { puc: stock.puc },
+                                    take: 1
+                                });
+                                if (products && products.length > 0) {
+                                    const product = products[0];
+                                    const productId = Number(product.id);
+                                    // Check if platform changed (transfer scenario)
+                                    if (existingStock.platform !== stock.platform) {
+                                        // Platform transfer
+                                        await this.platformStockService.updatePlatformStockQuantities(productId, stock.platform, {
+                                            ecompublish: stock.ecompublish,
+                                            stockstatus: stock.stockstatus,
+                                            operation: 'transfer',
+                                            oldPlatform: existingStock.platform
+                                        });
+                                        logger.info({
+                                            stockId: id,
+                                            productId: productId,
+                                            fromPlatform: existingStock.platform,
+                                            toPlatform: stock.platform,
+                                            stockstatus: stock.stockstatus,
+                                            ecompublish: stock.ecompublish,
+                                        }, "Successfully transferred platform stock between platforms");
+                                    }
+                                    else {
+                                        // Regular update (status or e-com changes)
+                                        await this.platformStockService.updatePlatformStockQuantities(productId, stock.platform, {
+                                            ecompublish: stock.ecompublish,
+                                            stockstatus: stock.stockstatus,
+                                            operation: 'update',
+                                            oldEcompublish: existingStock.ecompublish,
+                                            oldStockstatus: existingStock.stockstatus
+                                        });
+                                        logger.info({
+                                            stockId: id,
+                                            productId: productId,
+                                            platform: stock.platform,
+                                            oldStockstatus: existingStock.stockstatus,
+                                            newStockstatus: stock.stockstatus,
+                                            oldEcompublish: existingStock.ecompublish,
+                                            newEcompublish: stock.ecompublish,
+                                        }, "Successfully updated platform stock quantities after stock update");
+                                    }
+                                }
+                                else {
+                                    logger.warn({
+                                        stockId: id,
+                                        puc: stock.puc,
+                                    }, "Product not found for platform stock update");
+                                }
+                            }
+                            catch (platformError) {
+                                logger.error({
+                                    error: platformError.message,
+                                    stockId: id,
+                                    platform: stock.platform,
+                                    stockstatus: stock.stockstatus,
+                                }, "Failed to update platform stock quantities after stock update");
+                                // Don't throw here - stock update was successful, platform update is secondary
+                            }
+                        }
+                        else {
+                            logger.warn({
+                                stockId: id,
+                                hasPlatform: !!stock.platform,
+                            }, "Skipping platform stock update - missing platform");
+                        }
                     }
                     catch (error) {
                         logger.error({
@@ -326,6 +437,7 @@ export class StockService {
                 existingStock.product_id;
             if (productIdentifier) {
                 try {
+                    // Update parent product quantities
                     const updateResult = await this.productService.updateStockTotals(productIdentifier);
                     logger.info({
                         stockId: id,
@@ -334,6 +446,39 @@ export class StockService {
                         deletedStockEcompublish: existingStock.ecompublish,
                         updateResult
                     }, "Successfully updated product quantities after stock deletion");
+                    // Update PlatformStock if we have platform information
+                    if (existingStock.platform) {
+                        try {
+                            // Find the product to get the product ID
+                            const products = await dynamicFindMany('product', {
+                                where: { puc: existingStock.puc },
+                                take: 1
+                            });
+                            if (products && products.length > 0) {
+                                const product = products[0];
+                                await this.platformStockService.updatePlatformStockQuantities(Number(product.id), existingStock.platform, {
+                                    ecompublish: existingStock.ecompublish,
+                                    stockstatus: existingStock.stockstatus,
+                                    operation: 'delete'
+                                });
+                                logger.info({
+                                    stockId: id,
+                                    productId: product.id,
+                                    platform: existingStock.platform,
+                                    deletedStockStatus: existingStock.stockstatus,
+                                    deletedStockEcompublish: existingStock.ecompublish,
+                                }, "Successfully updated platform stock quantities after stock deletion");
+                            }
+                        }
+                        catch (platformError) {
+                            logger.error({
+                                error: platformError.message,
+                                stockId: id,
+                                platform: existingStock.platform,
+                            }, "Failed to update platform stock quantities after stock deletion");
+                            // Don't throw here - stock deletion was successful, platform update is secondary
+                        }
+                    }
                 }
                 catch (error) {
                     logger.error({
@@ -434,9 +579,16 @@ export class StockService {
                     return this.update(existingStock.id.toString(), updateData);
                 }
                 else {
-                    // Create new stock
+                    // Create new stock - ensure required fields are present
                     logger.debug({ data: updateData }, "Upserting new stock (no existing found)");
-                    return this.create(updateData);
+                    // Ensure required fields for creation
+                    const createData = {
+                        ...updateData,
+                        // Provide defaults if missing required fields
+                        puc: updateData.puc || updateData.productId || 'TEMP-PUC',
+                        platform: updateData.platform || 'nivapp', // Default platform
+                    };
+                    return this.create(createData);
                 }
             }
         }

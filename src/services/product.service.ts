@@ -161,11 +161,20 @@ export class ProductService {
       if (id) {
         // Update existing product
         logger.debug({ productId: id, data: updateData }, 'Upserting existing product');
-        return this.update(id, updateData);
+        return this.update(String(id), updateData);
       } else {
-        // Create new product
+        // Create new product - ensure required fields are present
         logger.debug({ data: updateData }, 'Upserting new product');
-        return this.create(updateData);
+        
+        // Ensure required fields for creation
+        const createData = {
+          ...updateData,
+          // Provide defaults if missing required fields
+          name: updateData.name || 'TEMP-PRODUCT',
+          puc: updateData.puc || 'TEMP-PUC'
+        };
+        
+        return this.create(createData);
       }
     } catch (error) {
       logger.error({ error, data }, 'Error in product upsert operation');
@@ -257,14 +266,14 @@ export class ProductService {
         // Count each stock record as 1 unit (not using stock.quantity field)
         totalQuantity += 1;
 
-        if (stock.stockstatus === 'Available') {
+        if (stock.stockstatus?.toLowerCase() === 'available') {
           // Only count e-commerce published if stock is available AND ecompublish is true
           if (stock.ecompublish === true) {
             totalEcomPublished += 1;
             totalAvailable += 1; // Available quantity = stocks that are Available AND ecompublish=true
           }
           // Note: Available stocks with ecompublish=false are NOT counted in availablequantity
-        } else if (stock.stockstatus === 'Sold') {
+        } else if (stock.stockstatus?.toLowerCase() === 'sold') {
           totalSold += 1;
         }
         // Note: Damaged stocks are not counted in available or sold
@@ -308,7 +317,9 @@ export class ProductService {
 
       // Handle orderedquantity decrease when stock changes to Sold
       let orderedQuantityAdjustment = 0;
-      if (stockStatusChange && stockStatusChange.from !== 'Sold' && stockStatusChange.to === 'Sold') {
+      if (stockStatusChange && 
+          stockStatusChange.from?.toLowerCase() !== 'sold' && 
+          stockStatusChange.to?.toLowerCase() === 'sold') {
         // When stock changes to Sold, decrease orderedquantity by 1
         orderedQuantityAdjustment = -1;
         logger.info({ 

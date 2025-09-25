@@ -9,50 +9,68 @@ export const dynamicFieldConfigs: Record<string, DynamicFieldConfig> = {
   product: {
     table: 'product',
     allowedFields: [
-      'brand', 'model', 'color', 'size', 'weight', 'dimensions',
-      'material', 'warranty', 'tags', 'notes', 'customField1',
-      'customField2', 'customField3', 'customField4', 'customField5',
-      'isdealoftheday', 'quantity', 'ecompublishedquantity'
+      'name', 'puc', 'shortdescription', 'fulldescription', 'category', 'subcategory',
+      'fragnancetype', 'Brand', 'pack', 'price', 'discount', 'averagerating',
+      'quantity', 'orderedquantity', 'soldquantity', 'availablequantity', 
+      'ecompublishedquantity', 'productstatus', 'large', 'medium', 'small',
+      'createddate', 'modifieddate', 'isdealoftheday'
     ],
-    requiredFields: ['name', 'category'],
+    requiredFields: ['name'],
     fieldTypes: {
-      brand: 'string',
-      model: 'string',
-      color: 'string',
-      size: 'string',
-      weight: 'number',
-      dimensions: 'string',
-      material: 'string',
-      warranty: 'string',
-      tags: 'string',
-      notes: 'string',
-      customField1: 'string',
-      customField2: 'string',
-      customField3: 'string',
-      customField4: 'string',
-      customField5: 'string',
-      isdealoftheday: 'boolean',
+      name: 'string',
+      puc: 'string',
+      shortdescription: 'string',
+      fulldescription: 'string',
+      category: 'string',
+      subcategory: 'string',
+      fragnancetype: 'string',
+      Brand: 'string',
+      pack: 'string',
+      price: 'number',
+      discount: 'number',
+      averagerating: 'number',
       quantity: 'number',
-      ecompublishedquantity: 'number'
+      orderedquantity: 'number',
+      soldquantity: 'number',
+      availablequantity: 'number',
+      ecompublishedquantity: 'number',
+      productstatus: 'string',
+      createddate: 'number',
+      modifieddate: 'number',
+      isdealoftheday: 'boolean'
     }
   },
   stock: {
     table: 'stock',
     allowedFields: [
-      'supplier', 'purchasePrice', 'expiryDate', 'manufacturingDate',
-      'qualityGrade', 'notes', 'customField1', 'customField2', 'customField3'
+      'puc', 'platform', 'sku', 'serialnumber', 'batchno', 'poid', 'supplierid',
+      'platformhistory', 'stockstatus', 'orderlinenumber', 'orderid', 'ecompublish',
+      'isdeleted', 'isarchive', 'removefromrecyclebin', 'manufacturedyear', 'releaseyear',
+      'solddate', 'createddate', 'modifieddate', 'rfid', 'rfidscannedtime'
     ],
-    requiredFields: ['batchNumber', 'warehouseLocation', 'quantity'],
+    requiredFields: ['puc', 'platform'],
     fieldTypes: {
-      supplier: 'string',
-      purchasePrice: 'number',
-      expiryDate: 'date',
-      manufacturingDate: 'date',
-      qualityGrade: 'string',
-      notes: 'string',
-      customField1: 'string',
-      customField2: 'string',
-      customField3: 'string'
+      puc: 'string',
+      platform: 'string',
+      sku: 'string',
+      serialnumber: 'string',
+      batchno: 'string',
+      poid: 'number',
+      supplierid: 'number',
+      stockstatus: 'string',
+      orderlinenumber: 'string',
+      orderid: 'string',
+      ecompublish: 'boolean',
+      isdeleted: 'boolean',
+      isarchive: 'boolean',
+      removefromrecyclebin: 'boolean',
+      manufacturedyear: 'number',
+      releaseyear: 'number',
+      solddate: 'number',
+      createddate: 'number',
+      modifieddate: 'number',
+      rfid: 'string',
+      rfidscannedtime: 'number'
     }
   },
   picklist: {
@@ -97,6 +115,25 @@ export const dynamicFieldConfigs: Record<string, DynamicFieldConfig> = {
       prnumber: 'string',
       supplieremail: 'string',
       prstatus: 'string',
+      createddate: 'number',
+      modifieddate: 'number'
+    }
+  },
+  platformstock: {
+    table: 'platformstock',
+    allowedFields: [
+      'platform', 'productId', 'availableQty', 'orderedQty', 'soldQty', 'totalQty',
+      'lockQty', 'createddate', 'modifieddate'
+    ],
+    requiredFields: ['platform', 'productId'],
+    fieldTypes: {
+      platform: 'string',
+      productId: 'number',
+      availableQty: 'number',
+      orderedQty: 'number',
+      soldQty: 'number',
+      totalQty: 'number',
+      lockQty: 'number',
       createddate: 'number',
       modifieddate: 'number'
     }

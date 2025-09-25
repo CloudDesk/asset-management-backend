@@ -252,14 +252,12 @@ export declare const purchaseRequestQuerySchema: z.ZodObject<{
     created_before: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     status?: string | undefined;
+    supplierId?: string | undefined;
     priority?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
     createdAfter?: string | undefined;
     createdBefore?: string | undefined;
-    created_after?: string | undefined;
-    created_before?: string | undefined;
-    supplierId?: string | undefined;
     supplier_id?: string | undefined;
     minAmount?: string | undefined;
     maxAmount?: string | undefined;
@@ -277,20 +275,20 @@ export declare const purchaseRequestQuerySchema: z.ZodObject<{
     requiredDateBefore?: string | undefined;
     min_amount?: string | undefined;
     max_amount?: string | undefined;
+    created_after?: string | undefined;
+    created_before?: string | undefined;
     request_date_after?: string | undefined;
     request_date_before?: string | undefined;
     required_date_after?: string | undefined;
     required_date_before?: string | undefined;
 }, {
     status?: string | undefined;
+    supplierId?: string | undefined;
     priority?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
     createdAfter?: string | undefined;
     createdBefore?: string | undefined;
-    created_after?: string | undefined;
-    created_before?: string | undefined;
-    supplierId?: string | undefined;
     supplier_id?: string | undefined;
     minAmount?: string | undefined;
     maxAmount?: string | undefined;
@@ -308,6 +306,8 @@ export declare const purchaseRequestQuerySchema: z.ZodObject<{
     requiredDateBefore?: string | undefined;
     min_amount?: string | undefined;
     max_amount?: string | undefined;
+    created_after?: string | undefined;
+    created_before?: string | undefined;
     request_date_after?: string | undefined;
     request_date_before?: string | undefined;
     required_date_after?: string | undefined;

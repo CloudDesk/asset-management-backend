@@ -110,12 +110,19 @@ export class ProductService {
             if (id) {
                 // Update existing product
                 logger.debug({ productId: id, data: updateData }, 'Upserting existing product');
-                return this.update(id, updateData);
+                return this.update(String(id), updateData);
             }
             else {
-                // Create new product
+                // Create new product - ensure required fields are present
                 logger.debug({ data: updateData }, 'Upserting new product');
-                return this.create(updateData);
+                // Ensure required fields for creation
+                const createData = {
+                    ...updateData,
+                    // Provide defaults if missing required fields
+                    name: updateData.name || 'TEMP-PRODUCT',
+                    puc: updateData.puc || 'TEMP-PUC'
+                };
+                return this.create(createData);
             }
         }
         catch (error) {

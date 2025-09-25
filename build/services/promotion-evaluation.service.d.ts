@@ -30,10 +30,11 @@ export declare class PromotionEvaluationService {
         createddate: bigint | null;
         modifieddate: bigint | null;
         evaluation_id: string;
+        original_total: import("@prisma/client/runtime/library").Decimal | null;
+        order_id: number | null;
         user_id: string | null;
         cart_data: import("@prisma/client/runtime/library").JsonValue | null;
         cart_signature: string | null;
-        original_total: import("@prisma/client/runtime/library").Decimal | null;
         discounted_total: import("@prisma/client/runtime/library").Decimal | null;
         applied_promotions: import("@prisma/client/runtime/library").JsonValue | null;
         ineligible_coupons: import("@prisma/client/runtime/library").JsonValue | null;
@@ -218,10 +219,11 @@ export declare class PromotionEvaluationService {
         createddate: bigint | null;
         modifieddate: bigint | null;
         evaluation_id: string;
+        original_total: import("@prisma/client/runtime/library").Decimal | null;
+        order_id: number | null;
         user_id: string | null;
         cart_data: import("@prisma/client/runtime/library").JsonValue | null;
         cart_signature: string | null;
-        original_total: import("@prisma/client/runtime/library").Decimal | null;
         discounted_total: import("@prisma/client/runtime/library").Decimal | null;
         applied_promotions: import("@prisma/client/runtime/library").JsonValue | null;
         ineligible_coupons: import("@prisma/client/runtime/library").JsonValue | null;

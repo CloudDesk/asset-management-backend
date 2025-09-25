@@ -192,15 +192,13 @@ export declare const purchaseOrderQuerySchema: z.ZodObject<{
     created_before: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     status?: string | undefined;
+    supplierId?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
     createdAfter?: string | undefined;
     createdBefore?: string | undefined;
-    created_after?: string | undefined;
-    created_before?: string | undefined;
     orderNumber?: string | undefined;
     order_number?: string | undefined;
-    supplierId?: string | undefined;
     supplier_id?: string | undefined;
     purchase_status?: string | undefined;
     minAmount?: string | undefined;
@@ -215,17 +213,17 @@ export declare const purchaseOrderQuerySchema: z.ZodObject<{
     order_date_before?: string | undefined;
     expected_delivery_after?: string | undefined;
     expected_delivery_before?: string | undefined;
+    created_after?: string | undefined;
+    created_before?: string | undefined;
 }, {
     status?: string | undefined;
+    supplierId?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
     createdAfter?: string | undefined;
     createdBefore?: string | undefined;
-    created_after?: string | undefined;
-    created_before?: string | undefined;
     orderNumber?: string | undefined;
     order_number?: string | undefined;
-    supplierId?: string | undefined;
     supplier_id?: string | undefined;
     purchase_status?: string | undefined;
     minAmount?: string | undefined;
@@ -240,6 +238,8 @@ export declare const purchaseOrderQuerySchema: z.ZodObject<{
     order_date_before?: string | undefined;
     expected_delivery_after?: string | undefined;
     expected_delivery_before?: string | undefined;
+    created_after?: string | undefined;
+    created_before?: string | undefined;
 }>;
 export declare function validatePurchaseOrderDynamicFields(data: Record<string, any>): Record<string, any>;
 export type CreatePurchaseOrderInput = z.infer<typeof createPurchaseOrderSchema>;
