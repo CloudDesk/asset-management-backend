@@ -333,7 +333,6 @@ export class OrderlineService {
       } else {
         newProductStatus = "in_stock";
       }
-
       // Update product quantities and status
       const updatedProduct = await dynamicUpdate('product', 
         { id: parseInt(productId.toString()) }, 

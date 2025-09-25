@@ -12,19 +12,19 @@ export declare const stockImportCommitRowSchema: z.ZodObject<{
     serialnumber: string;
     rfid: string;
     puc?: string | undefined;
+    location?: string | undefined;
     manufacturedyear?: number | undefined;
     releaseyear?: number | undefined;
     ecompublish?: boolean | undefined;
-    location?: string | undefined;
     rowNumber?: number | undefined;
 }, {
     serialnumber: string;
     rfid: string;
     puc?: string | undefined;
+    location?: string | undefined;
     manufacturedyear?: number | undefined;
     releaseyear?: number | undefined;
     ecompublish?: boolean | undefined;
-    location?: string | undefined;
     rowNumber?: number | undefined;
 }>;
 export declare const stockImportCommitSchema: z.ZodObject<{
@@ -41,19 +41,19 @@ export declare const stockImportCommitSchema: z.ZodObject<{
         serialnumber: string;
         rfid: string;
         puc?: string | undefined;
+        location?: string | undefined;
         manufacturedyear?: number | undefined;
         releaseyear?: number | undefined;
         ecompublish?: boolean | undefined;
-        location?: string | undefined;
         rowNumber?: number | undefined;
     }, {
         serialnumber: string;
         rfid: string;
         puc?: string | undefined;
+        location?: string | undefined;
         manufacturedyear?: number | undefined;
         releaseyear?: number | undefined;
         ecompublish?: boolean | undefined;
-        location?: string | undefined;
         rowNumber?: number | undefined;
     }>, "many">;
 }, "strip", z.ZodTypeAny, {
@@ -61,10 +61,10 @@ export declare const stockImportCommitSchema: z.ZodObject<{
         serialnumber: string;
         rfid: string;
         puc?: string | undefined;
+        location?: string | undefined;
         manufacturedyear?: number | undefined;
         releaseyear?: number | undefined;
         ecompublish?: boolean | undefined;
-        location?: string | undefined;
         rowNumber?: number | undefined;
     }[];
 }, {
@@ -72,10 +72,10 @@ export declare const stockImportCommitSchema: z.ZodObject<{
         serialnumber: string;
         rfid: string;
         puc?: string | undefined;
+        location?: string | undefined;
         manufacturedyear?: number | undefined;
         releaseyear?: number | undefined;
         ecompublish?: boolean | undefined;
-        location?: string | undefined;
         rowNumber?: number | undefined;
     }[];
 }>;
