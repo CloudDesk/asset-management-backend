@@ -37,9 +37,9 @@ export declare class EnhancedOrderCreationService {
         };
         orderlines: {
             id: number;
+            quantity: number | null;
             createddate: bigint | null;
             modifieddate: bigint | null;
-            quantity: number | null;
             orderid: number;
             orderlinenumber: string | null;
             productid: bigint | null;
