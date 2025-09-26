@@ -190,3 +190,51 @@ Fallback query:
         WHERE "id" = $1 
         RETURNING id, name, shortdescription, fulldescription, fragnancetype, soldquantity, availablequantity, quantity, ecompublishedquantity, productstatus, puc, averagerating, discount, price, orderedquantity, createddate, modifieddate, category, subcategory, large, medium, small, brand, pack
       
+Fallback query: 
+        UPDATE "product" 
+        SET "quantity" = $2, "availablequantity" = $3, "soldquantity" = $4, "ecompublishedquantity" = $5, "productstatus" = $6, "modifieddate" = $7 
+        WHERE "id" = $1 
+        RETURNING id, name, shortdescription, fulldescription, fragnancetype, soldquantity, availablequantity, quantity, ecompublishedquantity, productstatus, puc, averagerating, discount, price, orderedquantity, createddate, modifieddate, category, subcategory, large, medium, small, brand, pack
+      
+Fallback query: 
+        UPDATE "product" 
+        SET "quantity" = $2, "availablequantity" = $3, "soldquantity" = $4, "ecompublishedquantity" = $5, "productstatus" = $6, "modifieddate" = $7 
+        WHERE "id" = $1 
+        RETURNING id, name, shortdescription, fulldescription, fragnancetype, soldquantity, availablequantity, quantity, ecompublishedquantity, productstatus, puc, averagerating, discount, price, orderedquantity, createddate, modifieddate, category, subcategory, large, medium, small, brand, pack
+      
+Fallback query: 
+        UPDATE "product" 
+        SET "quantity" = $2, "availablequantity" = $3, "soldquantity" = $4, "ecompublishedquantity" = $5, "productstatus" = $6, "modifieddate" = $7 
+        WHERE "id" = $1 
+        RETURNING id, name, shortdescription, fulldescription, fragnancetype, soldquantity, availablequantity, quantity, ecompublishedquantity, productstatus, puc, averagerating, discount, price, orderedquantity, createddate, modifieddate, category, subcategory, large, medium, small, brand, pack
+      
+Fallback query: 
+        UPDATE "product" 
+        SET "quantity" = $2, "availablequantity" = $3, "soldquantity" = $4, "ecompublishedquantity" = $5, "productstatus" = $6, "modifieddate" = $7 
+        WHERE "id" = $1 
+        RETURNING id, name, shortdescription, fulldescription, fragnancetype, soldquantity, availablequantity, quantity, ecompublishedquantity, productstatus, puc, averagerating, discount, price, orderedquantity, createddate, modifieddate, category, subcategory, large, medium, small, brand, pack
+      
+Fallback query: 
+        UPDATE "product" 
+        SET "quantity" = $2, "availablequantity" = $3, "soldquantity" = $4, "ecompublishedquantity" = $5, "productstatus" = $6, "modifieddate" = $7 
+        WHERE "id" = $1 
+        RETURNING id, name, shortdescription, fulldescription, fragnancetype, soldquantity, availablequantity, quantity, ecompublishedquantity, productstatus, puc, averagerating, discount, price, orderedquantity, createddate, modifieddate, category, subcategory, large, medium, small, brand, pack
+      
+Fallback query: 
+        UPDATE "product" 
+        SET "quantity" = $2, "availablequantity" = $3, "soldquantity" = $4, "ecompublishedquantity" = $5, "productstatus" = $6, "modifieddate" = $7 
+        WHERE "id" = $1 
+        RETURNING id, name, shortdescription, fulldescription, fragnancetype, soldquantity, availablequantity, quantity, ecompublishedquantity, productstatus, puc, averagerating, discount, price, orderedquantity, createddate, modifieddate, category, subcategory, large, medium, small, brand, pack
+      
+Fallback query: 
+        UPDATE "product" 
+        SET "quantity" = $2, "availablequantity" = $3, "soldquantity" = $4, "ecompublishedquantity" = $5, "productstatus" = $6, "modifieddate" = $7 
+        WHERE "id" = $1 
+        RETURNING id, name, shortdescription, fulldescription, fragnancetype, soldquantity, availablequantity, quantity, ecompublishedquantity, productstatus, puc, averagerating, discount, price, orderedquantity, createddate, modifieddate, category, subcategory, large, medium, small, brand, pack
+      
+Fallback query: 
+        UPDATE "product" 
+        SET "quantity" = $2, "availablequantity" = $3, "soldquantity" = $4, "ecompublishedquantity" = $5, "productstatus" = $6, "modifieddate" = $7 
+        WHERE "id" = $1 
+        RETURNING id, name, shortdescription, fulldescription, fragnancetype, soldquantity, availablequantity, quantity, ecompublishedquantity, productstatus, puc, averagerating, discount, price, orderedquantity, createddate, modifieddate, category, subcategory, large, medium, small, brand, pack
+      

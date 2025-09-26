@@ -12,7 +12,7 @@ export const createProductSchema = z.object({
     subcategory: z.string().max(255).optional(),
     fragnancetype: z.string().max(255).optional(),
     // Brand and packaging
-    Brand: z.string().max(255).optional(),
+    brand: z.string().max(255).optional(),
     pack: z.string().max(255).optional(),
     // Pricing
     price: z.number().positive('Price must be positive').optional(),
@@ -49,7 +49,7 @@ export const updateProductSchema = z.object({
     subcategory: z.string().max(255).optional(),
     fragnancetype: z.string().max(255).optional(),
     // Brand and packaging
-    Brand: z.string().max(255).optional(),
+    brand: z.string().max(255).optional(),
     pack: z.string().max(255).optional(),
     // Pricing
     price: z.number().positive('Price must be positive').optional(),
@@ -87,7 +87,7 @@ export const upsertProductSchema = z.object({
     subcategory: z.string().max(255).optional(),
     fragnancetype: z.string().max(255).optional(),
     // Brand and packaging
-    Brand: z.string().max(255).optional(),
+    brand: z.string().max(255).optional(),
     pack: z.string().max(255).optional(),
     // Pricing
     price: z.number().positive('Price must be positive').optional(),
@@ -125,7 +125,7 @@ export const productQuerySchema = z.object({
     category: z.string().optional(),
     subcategory: z.string().optional(),
     fragnancetype: z.string().optional(),
-    Brand: z.string().optional(),
+    brand: z.string().optional(),
     pack: z.string().optional(),
     productstatus: z.string().optional(),
     minPrice: z.string().optional(),

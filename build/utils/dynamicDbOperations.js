@@ -12,7 +12,8 @@ const PREDEFINED_SAFE_COLUMNS = {
     product: ['id', 'productname', 'category', 'subcategory', 'brand', 'model', 'price', 'createddate', 'modifieddate', 'productstatus', 'puc'],
     picklist: ['id', 'type', 'table', 'field', 'label', 'value', 'isActive', 'ordering'],
     orders: ['id', 'userid', 'addressid', 'orderamount', 'orderid', 'orderstatus', 'quantity', 'transactionid', 'readytodispatchdate', 'dispatcheddate', 'productamount', 'discountamount', 'deliveryfrom', 'orderprocessingtime', 'ispaymentsucceed', 'merchanttransactionid', 'productid', 'mode', 'delivereddate', 'cancelleddate', 'returneddate', 'paymentfaileddate', 'createddate', 'modifieddate'],
-    orderline: ['id', 'orderid', 'productid', 'userid', 'addressid', 'productamount', 'discountamount', 'orderamount', 'quantity', 'merchanttransactionid', 'productname', 'productcategory', 'productcolour', 'readytodispatchdate', 'delivereddate', 'cancelleddate', 'returneddate', 'orderstatus', 'uniqueordderid', 'orderlinenumber', 'deliveryfrom', 'location', 'dispatcheddate', 'ordereddate', 'paymentfaileddate', 'createddate', 'modifieddate']
+    orderline: ['id', 'orderid', 'productid', 'userid', 'addressid', 'productamount', 'discountamount', 'orderamount', 'quantity', 'merchanttransactionid', 'productname', 'productcategory', 'productcolour', 'readytodispatchdate', 'delivereddate', 'cancelleddate', 'returneddate', 'orderstatus', 'uniqueordderid', 'orderlinenumber', 'deliveryfrom', 'location', 'dispatcheddate', 'ordereddate', 'paymentfaileddate', 'createddate', 'modifieddate'],
+    platformstock: ['id', 'productid', 'platform', 'availableqty', 'orderedqty', 'soldqty', 'totalqty', 'lockqty', 'createddate', 'modifieddate']
 };
 /**
  * Gets safe columns for a table with caching to improve performance
@@ -307,6 +308,14 @@ async function filterInputDataBySchema(data, modelName, operation = 'create') {
             ignoredFields.push(key);
             writeFileSync('debug_filter_ignored.txt', `Ignored field: ${key} (not in available columns)\n`, { flag: 'a' });
         }
+    }
+    // Debug logging for platformstock specifically
+    if (modelName === 'platformstock') {
+        writeFileSync('debug_platformstock_filter.txt', `PlatformStock filter debug:\n` +
+            `Input data: ${JSON.stringify(data, null, 2)}\n` +
+            `Available columns: ${JSON.stringify(availableColumns, null, 2)}\n` +
+            `Filtered data: ${JSON.stringify(filteredData, null, 2)}\n` +
+            `Ignored fields: ${JSON.stringify(ignoredFields, null, 2)}\n\n`, { flag: 'a' });
     }
     writeFileSync('debug_filter_result.txt', `Filtered data result: ${JSON.stringify(filteredData, null, 2)}\n`, { flag: 'a' });
     writeFileSync('debug_filter_ignored_summary.txt', `Ignored fields: ${JSON.stringify(ignoredFields)}\n`, { flag: 'a' });
@@ -777,6 +786,21 @@ export async function dynamicFindMany(modelName, options = {}) {
                     findOptions.orderBy = options.orderBy;
                 result = await prisma.picklist.findMany(findOptions);
             }
+            else if (modelName === 'platformstock') {
+                const findOptions = {};
+                if (options.where !== undefined)
+                    findOptions.where = options.where;
+                if (options.skip !== undefined)
+                    findOptions.skip = options.skip;
+                if (options.take !== undefined)
+                    findOptions.take = options.take;
+                if (options.orderBy !== undefined)
+                    findOptions.orderBy = options.orderBy;
+                console.log('findOptions', findOptions);
+                result = await prisma.platformStock.findMany(findOptions);
+                console.log(result, "result");
+                console.log("first");
+            }
             logger.debug({
                 modelName,
                 resultCount: result.length
@@ -1073,6 +1097,15 @@ export async function dynamicCreate(modelName, data, include) {
  */
 export async function dynamicUpdate(modelName, where, data, include) {
     try {
+        // Debug logging for platformstock specifically
+        if (modelName === 'platformstock') {
+            logger.debug({
+                modelName,
+                dataReceived: data,
+                dataKeys: Object.keys(data),
+                dataValues: Object.values(data)
+            }, "dynamicUpdate received data for platformstock");
+        }
         const filteredData = await filterInputDataBySchema(data, modelName, 'update');
         if (Object.keys(filteredData).length === 0) {
             logger.warn({ modelName, where, originalData: data }, 'No valid fields for update operation');
@@ -1102,6 +1135,12 @@ export async function dynamicUpdate(modelName, where, data, include) {
             }
             else if (modelName === 'picklist') {
                 result = await prisma.picklist.update({
+                    where,
+                    data: filteredData,
+                });
+            }
+            else if (modelName === 'platformstock') {
+                result = await prisma.platformStock.update({
                     where,
                     data: filteredData,
                 });

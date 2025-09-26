@@ -282,3 +282,75 @@ Fallback values: [
   "in_stock",
   1758809818
 ]
+Fallback values: [
+  31,
+  31,
+  27,
+  0,
+  27,
+  "in_stock",
+  1758863872
+]
+Fallback values: [
+  31,
+  32,
+  28,
+  0,
+  28,
+  "in_stock",
+  1758863902
+]
+Fallback values: [
+  31,
+  33,
+  29,
+  0,
+  29,
+  "in_stock",
+  1758863923
+]
+Fallback values: [
+  32,
+  1,
+  1,
+  0,
+  1,
+  "low_stock",
+  1758864147
+]
+Fallback values: [
+  32,
+  2,
+  2,
+  0,
+  2,
+  "low_stock",
+  1758864157
+]
+Fallback values: [
+  32,
+  3,
+  3,
+  0,
+  3,
+  "low_stock",
+  1758864173
+]
+Fallback values: [
+  32,
+  4,
+  4,
+  0,
+  4,
+  "low_stock",
+  1758864341
+]
+Fallback values: [
+  32,
+  5,
+  4,
+  0,
+  4,
+  "low_stock",
+  1758864395
+]

@@ -1337,7 +1337,7 @@ export async function dynamicUpdate(
           data: filteredData,
         });
       } else if (modelName === 'platformstock') {
-        result = await prisma.platformstock.update({
+        result = await prisma.platformStock.update({
           where,
           data: filteredData,
         });

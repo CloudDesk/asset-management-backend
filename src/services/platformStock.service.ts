@@ -150,10 +150,7 @@ export class PlatformStockService {
         "Data being passed to dynamicUpdate"
       );
 
-      const platformStock = await dynamicUpdate("platformstock", {
-        where: { id: Number(id) },
-        data,
-      }, {});
+      const platformStock = await dynamicUpdate("platformstock", { id: Number(id) }, data);
 
       if (!platformStock) {
         throw new Error(`PlatformStock with ID ${id} not found`);
@@ -535,14 +532,11 @@ export class PlatformStockService {
         
         if (fromRecords && fromRecords.length > 0) {
           const fromRecord = fromRecords[0];
-          fromPlatformStock = await dynamicUpdate('platformstock', {
-            where: { id: fromRecord.id },
-            data: {
-              availableqty: Math.max(0, fromRecord.availableqty - 1),
-              totalqty: Math.max(0, fromRecord.totalqty - 1),
-              modifieddate: Date.now(),
-            }
-          }, {});
+          fromPlatformStock = await dynamicUpdate('platformstock', { id: fromRecord.id }, {
+            availableqty: Math.max(0, fromRecord.availableqty - 1),
+            totalqty: Math.max(0, fromRecord.totalqty - 1),
+            modifieddate: Date.now(),
+          });
         } else {
           // Create with 0 quantities
           fromPlatformStock = await dynamicCreate('platformstock', {
@@ -574,14 +568,11 @@ export class PlatformStockService {
         
         if (toRecords && toRecords.length > 0) {
           const toRecord = toRecords[0];
-          toPlatformStock = await dynamicUpdate('platformstock', {
-            where: { id: toRecord.id },
-            data: {
-              availableqty: toRecord.availableqty + 1,
-              totalqty: toRecord.totalqty + 1,
-              modifieddate: Date.now(),
-            }
-          }, {});
+          toPlatformStock = await dynamicUpdate('platformstock', { id: toRecord.id }, {
+            availableqty: toRecord.availableqty + 1,
+            totalqty: toRecord.totalqty + 1,
+            modifieddate: Date.now(),
+          });
         } else {
           // Create new record
           toPlatformStock = await dynamicCreate('platformstock', {

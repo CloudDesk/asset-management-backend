@@ -94,7 +94,7 @@ export class PlatformStockController {
       // Ensure required fields are present
       const createData = {
         ...validatedData,
-        productId: validatedData.productId || Number(data.productId),
+        productid: validatedData.productid || Number(data.productId),
         platform: validatedData.platform || data.platform || 'nivapp'
       };
 

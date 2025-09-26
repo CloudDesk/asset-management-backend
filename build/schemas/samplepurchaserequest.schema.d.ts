@@ -256,12 +256,12 @@ export declare const samplePurchaseRequestQuerySchema: z.ZodObject<{
     id?: string | undefined;
     createddate?: string | undefined;
     modifieddate?: string | undefined;
+    supplierid?: string | undefined;
     gstnumber?: string | undefined;
     companyname?: string | undefined;
     companyaddress?: string | undefined;
     contactname?: string | undefined;
     phonenumber?: string | undefined;
-    supplierid?: string | undefined;
     companymail?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
@@ -271,12 +271,12 @@ export declare const samplePurchaseRequestQuerySchema: z.ZodObject<{
     id?: string | undefined;
     createddate?: string | undefined;
     modifieddate?: string | undefined;
+    supplierid?: string | undefined;
     gstnumber?: string | undefined;
     companyname?: string | undefined;
     companyaddress?: string | undefined;
     contactname?: string | undefined;
     phonenumber?: string | undefined;
-    supplierid?: string | undefined;
     companymail?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;

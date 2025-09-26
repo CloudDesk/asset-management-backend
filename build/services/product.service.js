@@ -204,7 +204,7 @@ export class ProductService {
             stocks.forEach(stock => {
                 // Count each stock record as 1 unit (not using stock.quantity field)
                 totalQuantity += 1;
-                if (stock.stockstatus === 'Available') {
+                if (stock.stockstatus?.toLowerCase() === 'available') {
                     // Only count e-commerce published if stock is available AND ecompublish is true
                     if (stock.ecompublish === true) {
                         totalEcomPublished += 1;
@@ -212,7 +212,7 @@ export class ProductService {
                     }
                     // Note: Available stocks with ecompublish=false are NOT counted in availablequantity
                 }
-                else if (stock.stockstatus === 'Sold') {
+                else if (stock.stockstatus?.toLowerCase() === 'sold') {
                     totalSold += 1;
                 }
                 // Note: Damaged stocks are not counted in available or sold
@@ -252,7 +252,9 @@ export class ProductService {
             }
             // Handle orderedquantity decrease when stock changes to Sold
             let orderedQuantityAdjustment = 0;
-            if (stockStatusChange && stockStatusChange.from !== 'Sold' && stockStatusChange.to === 'Sold') {
+            if (stockStatusChange &&
+                stockStatusChange.from?.toLowerCase() !== 'sold' &&
+                stockStatusChange.to?.toLowerCase() === 'sold') {
                 // When stock changes to Sold, decrease orderedquantity by 1
                 orderedQuantityAdjustment = -1;
                 logger.info({

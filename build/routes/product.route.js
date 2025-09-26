@@ -673,7 +673,7 @@ export async function productRoutes(fastify) {
                         maxLength: 255,
                         description: "Product subcategory",
                     },
-                    Brand: {
+                    brand: {
                         type: "string",
                         maxLength: 255,
                         description: "Product brand",
@@ -682,12 +682,6 @@ export async function productRoutes(fastify) {
                         type: "string",
                         maxLength: 255,
                         description: "Pack size",
-                    },
-                    averagerating: {
-                        type: "number",
-                        minimum: 0,
-                        maximum: 5,
-                        description: "Average rating (0-5, decimal allowed)",
                     },
                     discount: {
                         type: "integer",
@@ -699,53 +693,9 @@ export async function productRoutes(fastify) {
                         minimum: 0,
                         description: "Product price",
                     },
-                    quantity: {
-                        type: "number",
-                        minimum: 0,
-                        description: "Product quantity",
-                    },
-                    orderedquantity: {
-                        type: "number",
-                        description: "Ordered quantity",
-                    },
-                    soldquantity: {
-                        type: "number",
-                        description: "Sold quantity"
-                    },
-                    availablequantity: {
-                        type: "number",
-                        description: "Available quantity",
-                    },
-                    ecompublishedquantity: {
-                        type: "number",
-                        minimum: 0,
-                        description: "E-commerce published quantity",
-                    },
-                    productstatus: {
-                        type: "string",
-                        maxLength: 255,
-                        description: "Product status",
-                    },
-                    puc: { type: "string", maxLength: 255, description: "PUC code (auto-generated)" },
-                    // Size-related fields
-                    large: {
-                        type: "array",
-                        items: { type: "string" },
-                        description: "Large size options",
-                    },
-                    medium: {
-                        type: "array",
-                        items: { type: "string" },
-                        description: "Medium size options",
-                    },
-                    small: {
-                        type: "array",
-                        items: { type: "string" },
-                        description: "Small size options",
-                    },
                 },
                 required: ["name"], // Only name is required as per schema
-                additionalProperties: true,
+                additionalProperties: false, // Strict validation - only allow specified fields
             },
             response: {
                 201: {

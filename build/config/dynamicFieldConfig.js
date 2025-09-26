@@ -36,10 +36,10 @@ export const dynamicFieldConfigs = {
     stock: {
         table: 'stock',
         allowedFields: [
-            'puc', 'platform', 'sku', 'serialnumber', 'batchNo', 'poId', 'supplierId',
-            'platformHistory', 'stockstatus', 'orderlinenumber', 'orderid', 'ecompublish',
+            'puc', 'platform', 'sku', 'serialnumber', 'batchno', 'poid', 'supplierid',
+            'platformhistory', 'stockstatus', 'orderlinenumber', 'orderid', 'ecompublish',
             'isdeleted', 'isarchive', 'removefromrecyclebin', 'manufacturedyear', 'releaseyear',
-            'solddate', 'createddate', 'modifieddate'
+            'solddate', 'createddate', 'modifieddate', 'rfid', 'rfidscannedtime'
         ],
         requiredFields: ['puc', 'platform'],
         fieldTypes: {
@@ -47,9 +47,9 @@ export const dynamicFieldConfigs = {
             platform: 'string',
             sku: 'string',
             serialnumber: 'string',
-            batchNo: 'string',
-            poId: 'number',
-            supplierId: 'number',
+            batchno: 'string',
+            poid: 'number',
+            supplierid: 'number',
             stockstatus: 'string',
             orderlinenumber: 'string',
             orderid: 'string',
@@ -61,7 +61,9 @@ export const dynamicFieldConfigs = {
             releaseyear: 'number',
             solddate: 'number',
             createddate: 'number',
-            modifieddate: 'number'
+            modifieddate: 'number',
+            rfid: 'string',
+            rfidscannedtime: 'number'
         }
     },
     picklist: {
@@ -113,18 +115,18 @@ export const dynamicFieldConfigs = {
     platformstock: {
         table: 'platformstock',
         allowedFields: [
-            'platform', 'productId', 'availableQty', 'orderedQty', 'soldQty', 'totalQty',
-            'lockQty', 'createddate', 'modifieddate'
+            'platform', 'productid', 'availableqty', 'orderedqty', 'soldqty', 'totalqty',
+            'lockqty', 'createddate', 'modifieddate'
         ],
-        requiredFields: ['platform', 'productId'],
+        requiredFields: ['platform', 'productid'],
         fieldTypes: {
             platform: 'string',
-            productId: 'number',
-            availableQty: 'number',
-            orderedQty: 'number',
-            soldQty: 'number',
-            totalQty: 'number',
-            lockQty: 'number',
+            productid: 'number',
+            availableqty: 'number',
+            orderedqty: 'number',
+            soldqty: 'number',
+            totalqty: 'number',
+            lockqty: 'number',
             createddate: 'number',
             modifieddate: 'number'
         }

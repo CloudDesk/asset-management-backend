@@ -149,8 +149,8 @@ export declare const evaluationRequestSchema: z.ZodObject<{
         total: z.ZodOptional<z.ZodNumber>;
     }, "strip", z.ZodTypeAny, {
         shipping_cost: number;
-        subtotal: number;
         tax_amount: number;
+        subtotal: number;
         items: {
             price: number;
             quantity: number;
@@ -164,8 +164,8 @@ export declare const evaluationRequestSchema: z.ZodObject<{
         total?: number | undefined;
     }, {
         shipping_cost: number;
-        subtotal: number;
         tax_amount: number;
+        subtotal: number;
         items: {
             price: number;
             quantity: number;
@@ -201,8 +201,8 @@ export declare const evaluationRequestSchema: z.ZodObject<{
     promotion_id: number;
     cart_data: {
         shipping_cost: number;
-        subtotal: number;
         tax_amount: number;
+        subtotal: number;
         items: {
             price: number;
             quantity: number;
@@ -228,8 +228,8 @@ export declare const evaluationRequestSchema: z.ZodObject<{
     promotion_id: number;
     cart_data: {
         shipping_cost: number;
-        subtotal: number;
         tax_amount: number;
+        subtotal: number;
         items: {
             price: number;
             quantity: number;

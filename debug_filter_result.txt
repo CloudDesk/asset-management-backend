@@ -20112,3 +20112,1906 @@ Filtered data result: {
   "modifieddate": 1758809817964
 }
 Filtered data result: {}
+Filtered data result: {
+  "productid": 12,
+  "platform": "amazon",
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 1,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "createddate": 1758863551949,
+  "modifieddate": 1758863551949
+}
+Filtered data result: {}
+Filtered data result: {
+  "productid": 12,
+  "platform": "amazon",
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 1,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "createddate": 1758863636648,
+  "modifieddate": 1758863636648
+}
+Filtered data result: {
+  "productid": 12,
+  "platform": "amazon",
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 1,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "createddate": 1758863657863,
+  "modifieddate": 1758863657863
+}
+Filtered data result: {
+  "availableqty": 5,
+  "totalqty": 5,
+  "modifieddate": 1758863660476
+}
+Filtered data result: {
+  "availableqty": 10,
+  "totalqty": 10,
+  "modifieddate": 1758863661156
+}
+Filtered data result: {
+  "productid": 12,
+  "platform": "flipkart",
+  "availableqty": 3,
+  "totalqty": 3,
+  "modifieddate": 1758863662239
+}
+Filtered data result: {
+  "availableqty": 11,
+  "soldqty": 0,
+  "totalqty": 11,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "modifieddate": 1758863663506
+}
+Filtered data result: {
+  "availableqty": 10,
+  "totalqty": 10,
+  "modifieddate": 1758863665077
+}
+Filtered data result: {
+  "availableqty": 4,
+  "totalqty": 4,
+  "modifieddate": 1758863665766
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "amazon",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758863805192,
+  "modifieddate": 1758863805192,
+  "batchno": "TEST-BATCH-001",
+  "serialnumber": "SN-1758863805192"
+}
+Filtered data result: {
+  "availableqty": 4,
+  "soldqty": 0,
+  "totalqty": 4,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "modifieddate": 1758863810228
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "amazon",
+  "batchno": "DEBUGFINAL001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 31,
+  "availablequantity": 27,
+  "soldquantity": 0,
+  "ecompublishedquantity": 27,
+  "productstatus": "in_stock",
+  "modifieddate": 1758863871764
+}
+Filtered data result: {
+  "availableqty": 5,
+  "soldqty": 0,
+  "totalqty": 5,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "modifieddate": 1758863873494
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "flipkart",
+  "batchno": "FLIPKART001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 32,
+  "availablequantity": 28,
+  "soldquantity": 0,
+  "ecompublishedquantity": 28,
+  "productstatus": "in_stock",
+  "modifieddate": 1758863902171
+}
+Filtered data result: {
+  "availableqty": 3,
+  "soldqty": 0,
+  "totalqty": 3,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "modifieddate": 1758863903840
+}
+Filtered data result: {
+  "puc": "NIV-IS-0031",
+  "platform": "nivapp",
+  "batchno": "NIVAPP001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 33,
+  "availablequantity": 29,
+  "soldquantity": 0,
+  "ecompublishedquantity": 29,
+  "productstatus": "in_stock",
+  "modifieddate": 1758863923103
+}
+Filtered data result: {
+  "availableqty": 4,
+  "soldqty": 0,
+  "totalqty": 5,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "modifieddate": 1758863923960
+}
+Filtered data result: {
+  "name": "Premium Incense Sticks - Kesar Chandan",
+  "shortdescription": "Premium kesar chandan fragrance incense stick",
+  "fulldescription": "High-quality kesar chandan scented incense stick made with natural ingredients for a long-lasting aromatic experience.",
+  "category": "incense",
+  "subcategory": "premium_incense_sticks",
+  "fragnancetype": "kesar_handan",
+  "brand": "Nivaana",
+  "pack": "single",
+  "price": 150,
+  "discount": 0
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "batchno": "AMZ001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 1,
+  "availablequantity": 1,
+  "soldquantity": 0,
+  "ecompublishedquantity": 1,
+  "productstatus": "low_stock",
+  "modifieddate": 1758864146737
+}
+Filtered data result: {
+  "productid": 32,
+  "platform": "amazon",
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 1,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "modifieddate": 1758864147591
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "flipkart",
+  "batchno": "FKT001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 2,
+  "availablequantity": 2,
+  "soldquantity": 0,
+  "ecompublishedquantity": 2,
+  "productstatus": "low_stock",
+  "modifieddate": 1758864156858
+}
+Filtered data result: {
+  "productid": 32,
+  "platform": "flipkart",
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 1,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "modifieddate": 1758864157711
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "nivapp",
+  "batchno": "NIV001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 3,
+  "availablequantity": 3,
+  "soldquantity": 0,
+  "ecompublishedquantity": 3,
+  "productstatus": "low_stock",
+  "modifieddate": 1758864173414
+}
+Filtered data result: {
+  "productid": 32,
+  "platform": "nivapp",
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 1,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "modifieddate": 1758864174267
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 4,
+  "availablequantity": 4,
+  "soldquantity": 0,
+  "ecompublishedquantity": 4,
+  "productstatus": "low_stock",
+  "modifieddate": 1758864340851
+}
+Filtered data result: {
+  "availableqty": 2,
+  "soldqty": 0,
+  "totalqty": 2,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "modifieddate": 1758864342387
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "batchno": "AMZ003",
+  "stockstatus": "available",
+  "ecompublish": false,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 5,
+  "availablequantity": 4,
+  "soldquantity": 0,
+  "ecompublishedquantity": 4,
+  "productstatus": "low_stock",
+  "modifieddate": 1758864395496
+}
+Filtered data result: {
+  "availableqty": 2,
+  "soldqty": 0,
+  "totalqty": 3,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "modifieddate": 1758864396351
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "batchno": "AMZ001",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758864798993,
+  "modifieddate": 1758864798993,
+  "serialnumber": "SN-1758864798993-1"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "batchno": "AMZ001",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758864800940,
+  "modifieddate": 1758864800940,
+  "serialnumber": "SN-1758864800939-1"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "batchno": "AMZ001",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758864800941,
+  "modifieddate": 1758864800941,
+  "serialnumber": "SN-1758864800939-2"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "batchno": "AMZ001",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758864800942,
+  "modifieddate": 1758864800942,
+  "serialnumber": "SN-1758864800939-3"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "batchno": "AMZ001",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758864800943,
+  "modifieddate": 1758864800943,
+  "serialnumber": "SN-1758864800939-4"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "batchno": "AMZ001",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758864800944,
+  "modifieddate": 1758864800944,
+  "serialnumber": "SN-1758864800939-5"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "batchno": "AMZ001",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758864882863,
+  "modifieddate": 1758864882863,
+  "serialnumber": "SN-SEQ-1-1758864882863"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "batchno": "AMZ001",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758864884807,
+  "modifieddate": 1758864884807,
+  "serialnumber": "SN-SEQ-2-1758864884807"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "batchno": "AMZ001",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758864885091,
+  "modifieddate": 1758864885091,
+  "serialnumber": "SN-SEQ-3-1758864885091"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "batchno": "AMZ001",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758864885420,
+  "modifieddate": 1758864885420,
+  "serialnumber": "SN-SEQ-4-1758864885420"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "batchno": "AMZ001",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758864885726,
+  "modifieddate": 1758864885726,
+  "serialnumber": "SN-SEQ-5-1758864885726"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "batchno": "AMZ001",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758864886012,
+  "modifieddate": 1758864886012,
+  "serialnumber": "SN-SEQ-6-1758864886012"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "batchno": "AMZ001",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758864886341,
+  "modifieddate": 1758864886341,
+  "serialnumber": "SN-SEQ-7-1758864886341"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "batchno": "AMZ001",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758864886649,
+  "modifieddate": 1758864886649,
+  "serialnumber": "SN-SEQ-8-1758864886649"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "batchno": "AMZ001",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758864886956,
+  "modifieddate": 1758864886956,
+  "serialnumber": "SN-SEQ-9-1758864886956"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "batchno": "AMZ001",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758864887240,
+  "modifieddate": 1758864887240,
+  "serialnumber": "SN-SEQ-10-1758864887240"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "batchno": "AMZ001",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758864887806,
+  "modifieddate": 1758864887806,
+  "serialnumber": "SN-PAR-1-1758864887806"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "batchno": "AMZ001",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758864887806,
+  "modifieddate": 1758864887806,
+  "serialnumber": "SN-PAR-2-1758864887806"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "batchno": "AMZ001",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758864887806,
+  "modifieddate": 1758864887806,
+  "serialnumber": "SN-PAR-3-1758864887806"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "batchno": "AMZ001",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758864887806,
+  "modifieddate": 1758864887806,
+  "serialnumber": "SN-PAR-4-1758864887806"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "batchno": "AMZ001",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758864887806,
+  "modifieddate": 1758864887806,
+  "serialnumber": "SN-PAR-5-1758864887806"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "batchno": "AMZ001",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758864887806,
+  "modifieddate": 1758864887806,
+  "serialnumber": "SN-PAR-6-1758864887806"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "batchno": "AMZ001",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758864887806,
+  "modifieddate": 1758864887806,
+  "serialnumber": "SN-PAR-7-1758864887806"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "batchno": "AMZ001",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758864887806,
+  "modifieddate": 1758864887806,
+  "serialnumber": "SN-PAR-8-1758864887806"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "batchno": "AMZ001",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758864887806,
+  "modifieddate": 1758864887806,
+  "serialnumber": "SN-PAR-9-1758864887806"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "batchno": "AMZ001",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758864887806,
+  "modifieddate": 1758864887806,
+  "serialnumber": "SN-PAR-10-1758864887806"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "batchno": "AMZ001",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865427013,
+  "modifieddate": 1758865427013,
+  "serialnumber": "SN-NEW-1-1758865427013"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "batchno": "AMZ001",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865428924,
+  "modifieddate": 1758865428924,
+  "serialnumber": "SN-NEW-2-1758865428924"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "batchno": "AMZ001",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865429221,
+  "modifieddate": 1758865429221,
+  "serialnumber": "SN-NEW-3-1758865429221"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865669155,
+  "modifieddate": 1758865669155,
+  "serialnumber": "SN-BATCH1-1-1758865669155"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865671039,
+  "modifieddate": 1758865671039,
+  "serialnumber": "SN-BATCH1-2-1758865671039"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865671348,
+  "modifieddate": 1758865671348,
+  "serialnumber": "SN-BATCH1-3-1758865671348"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865671647,
+  "modifieddate": 1758865671647,
+  "serialnumber": "SN-BATCH1-4-1758865671647"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865671962,
+  "modifieddate": 1758865671962,
+  "serialnumber": "SN-BATCH1-5-1758865671962"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865672269,
+  "modifieddate": 1758865672269,
+  "serialnumber": "SN-BATCH1-6-1758865672269"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865672681,
+  "modifieddate": 1758865672681,
+  "serialnumber": "SN-BATCH1-7-1758865672681"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865672975,
+  "modifieddate": 1758865672975,
+  "serialnumber": "SN-BATCH1-8-1758865672975"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865673272,
+  "modifieddate": 1758865673272,
+  "serialnumber": "SN-BATCH1-9-1758865673272"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865673573,
+  "modifieddate": 1758865673573,
+  "serialnumber": "SN-BATCH1-10-1758865673573"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865673909,
+  "modifieddate": 1758865673909,
+  "serialnumber": "SN-BATCH1-11-1758865673909"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865674219,
+  "modifieddate": 1758865674219,
+  "serialnumber": "SN-BATCH1-12-1758865674219"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865674517,
+  "modifieddate": 1758865674517,
+  "serialnumber": "SN-BATCH1-13-1758865674517"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865674830,
+  "modifieddate": 1758865674830,
+  "serialnumber": "SN-BATCH1-14-1758865674830"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865675178,
+  "modifieddate": 1758865675178,
+  "serialnumber": "SN-BATCH1-15-1758865675178"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865675473,
+  "modifieddate": 1758865675473,
+  "serialnumber": "SN-BATCH1-16-1758865675473"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865675854,
+  "modifieddate": 1758865675854,
+  "serialnumber": "SN-BATCH1-17-1758865675854"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865676159,
+  "modifieddate": 1758865676159,
+  "serialnumber": "SN-BATCH1-18-1758865676159"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865676459,
+  "modifieddate": 1758865676459,
+  "serialnumber": "SN-BATCH1-19-1758865676459"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865676753,
+  "modifieddate": 1758865676753,
+  "serialnumber": "SN-BATCH1-20-1758865676753"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865677082,
+  "modifieddate": 1758865677082,
+  "serialnumber": "SN-BATCH1-21-1758865677082"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865677389,
+  "modifieddate": 1758865677389,
+  "serialnumber": "SN-BATCH1-22-1758865677389"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865677689,
+  "modifieddate": 1758865677689,
+  "serialnumber": "SN-BATCH1-23-1758865677689"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865678004,
+  "modifieddate": 1758865678004,
+  "serialnumber": "SN-BATCH1-24-1758865678004"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865678306,
+  "modifieddate": 1758865678306,
+  "serialnumber": "SN-BATCH1-25-1758865678306"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865678604,
+  "modifieddate": 1758865678604,
+  "serialnumber": "SN-BATCH1-26-1758865678604"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865678905,
+  "modifieddate": 1758865678905,
+  "serialnumber": "SN-BATCH1-27-1758865678905"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865679200,
+  "modifieddate": 1758865679200,
+  "serialnumber": "SN-BATCH1-28-1758865679200"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865679541,
+  "modifieddate": 1758865679541,
+  "serialnumber": "SN-BATCH1-29-1758865679541"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865679850,
+  "modifieddate": 1758865679850,
+  "serialnumber": "SN-BATCH1-30-1758865679850"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865680154,
+  "modifieddate": 1758865680154,
+  "serialnumber": "SN-BATCH1-31-1758865680154"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865680666,
+  "modifieddate": 1758865680666,
+  "serialnumber": "SN-BATCH1-32-1758865680666"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865680973,
+  "modifieddate": 1758865680973,
+  "serialnumber": "SN-BATCH1-33-1758865680973"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865681272,
+  "modifieddate": 1758865681272,
+  "serialnumber": "SN-BATCH1-34-1758865681272"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865681588,
+  "modifieddate": 1758865681588,
+  "serialnumber": "SN-BATCH1-35-1758865681588"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865681888,
+  "modifieddate": 1758865681888,
+  "serialnumber": "SN-BATCH1-36-1758865681888"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865682183,
+  "modifieddate": 1758865682183,
+  "serialnumber": "SN-BATCH1-37-1758865682183"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865682490,
+  "modifieddate": 1758865682490,
+  "serialnumber": "SN-BATCH1-38-1758865682490"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865683080,
+  "modifieddate": 1758865683080,
+  "serialnumber": "SN-BATCH1-39-1758865683080"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865683383,
+  "modifieddate": 1758865683383,
+  "serialnumber": "SN-BATCH1-40-1758865683383"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865683687,
+  "modifieddate": 1758865683687,
+  "serialnumber": "SN-BATCH1-41-1758865683687"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865683985,
+  "modifieddate": 1758865683985,
+  "serialnumber": "SN-BATCH1-42-1758865683985"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865684287,
+  "modifieddate": 1758865684287,
+  "serialnumber": "SN-BATCH1-43-1758865684287"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865684599,
+  "modifieddate": 1758865684599,
+  "serialnumber": "SN-BATCH1-44-1758865684599"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865684911,
+  "modifieddate": 1758865684911,
+  "serialnumber": "SN-BATCH1-45-1758865684911"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865685212,
+  "modifieddate": 1758865685212,
+  "serialnumber": "SN-BATCH1-46-1758865685212"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865685511,
+  "modifieddate": 1758865685511,
+  "serialnumber": "SN-BATCH1-47-1758865685511"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865685808,
+  "modifieddate": 1758865685808,
+  "serialnumber": "SN-BATCH1-48-1758865685808"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865686105,
+  "modifieddate": 1758865686105,
+  "serialnumber": "SN-BATCH1-49-1758865686105"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865686402,
+  "modifieddate": 1758865686402,
+  "serialnumber": "SN-BATCH1-50-1758865686402"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865687704,
+  "modifieddate": 1758865687704,
+  "serialnumber": "SN-BATCH2-1-1758865687704"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865688003,
+  "modifieddate": 1758865688003,
+  "serialnumber": "SN-BATCH2-2-1758865688003"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865688298,
+  "modifieddate": 1758865688298,
+  "serialnumber": "SN-BATCH2-3-1758865688298"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865688599,
+  "modifieddate": 1758865688599,
+  "serialnumber": "SN-BATCH2-4-1758865688599"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865688900,
+  "modifieddate": 1758865688900,
+  "serialnumber": "SN-BATCH2-5-1758865688900"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865689195,
+  "modifieddate": 1758865689195,
+  "serialnumber": "SN-BATCH2-6-1758865689195"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865689494,
+  "modifieddate": 1758865689494,
+  "serialnumber": "SN-BATCH2-7-1758865689494"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865689790,
+  "modifieddate": 1758865689790,
+  "serialnumber": "SN-BATCH2-8-1758865689790"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865690091,
+  "modifieddate": 1758865690091,
+  "serialnumber": "SN-BATCH2-9-1758865690091"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865690394,
+  "modifieddate": 1758865690394,
+  "serialnumber": "SN-BATCH2-10-1758865690394"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865690694,
+  "modifieddate": 1758865690694,
+  "serialnumber": "SN-BATCH2-11-1758865690694"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865690994,
+  "modifieddate": 1758865690994,
+  "serialnumber": "SN-BATCH2-12-1758865690994"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865691288,
+  "modifieddate": 1758865691288,
+  "serialnumber": "SN-BATCH2-13-1758865691288"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865691585,
+  "modifieddate": 1758865691585,
+  "serialnumber": "SN-BATCH2-14-1758865691585"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865691884,
+  "modifieddate": 1758865691884,
+  "serialnumber": "SN-BATCH2-15-1758865691884"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865692185,
+  "modifieddate": 1758865692185,
+  "serialnumber": "SN-BATCH2-16-1758865692185"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865692485,
+  "modifieddate": 1758865692485,
+  "serialnumber": "SN-BATCH2-17-1758865692485"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865692784,
+  "modifieddate": 1758865692784,
+  "serialnumber": "SN-BATCH2-18-1758865692784"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865693083,
+  "modifieddate": 1758865693083,
+  "serialnumber": "SN-BATCH2-19-1758865693083"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865693385,
+  "modifieddate": 1758865693385,
+  "serialnumber": "SN-BATCH2-20-1758865693385"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865693683,
+  "modifieddate": 1758865693683,
+  "serialnumber": "SN-BATCH2-21-1758865693683"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865693982,
+  "modifieddate": 1758865693982,
+  "serialnumber": "SN-BATCH2-22-1758865693982"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865694283,
+  "modifieddate": 1758865694283,
+  "serialnumber": "SN-BATCH2-23-1758865694283"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865694589,
+  "modifieddate": 1758865694589,
+  "serialnumber": "SN-BATCH2-24-1758865694589"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865694893,
+  "modifieddate": 1758865694893,
+  "serialnumber": "SN-BATCH2-25-1758865694893"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865695195,
+  "modifieddate": 1758865695195,
+  "serialnumber": "SN-BATCH2-26-1758865695195"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865695492,
+  "modifieddate": 1758865695492,
+  "serialnumber": "SN-BATCH2-27-1758865695492"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865695790,
+  "modifieddate": 1758865695790,
+  "serialnumber": "SN-BATCH2-28-1758865695790"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865696092,
+  "modifieddate": 1758865696092,
+  "serialnumber": "SN-BATCH2-29-1758865696092"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865696388,
+  "modifieddate": 1758865696388,
+  "serialnumber": "SN-BATCH2-30-1758865696388"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865696683,
+  "modifieddate": 1758865696683,
+  "serialnumber": "SN-BATCH2-31-1758865696683"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865696978,
+  "modifieddate": 1758865696978,
+  "serialnumber": "SN-BATCH2-32-1758865696978"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865697273,
+  "modifieddate": 1758865697273,
+  "serialnumber": "SN-BATCH2-33-1758865697273"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865697572,
+  "modifieddate": 1758865697572,
+  "serialnumber": "SN-BATCH2-34-1758865697572"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865698149,
+  "modifieddate": 1758865698149,
+  "serialnumber": "SN-BATCH2-35-1758865698149"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865698744,
+  "modifieddate": 1758865698744,
+  "serialnumber": "SN-BATCH2-36-1758865698744"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865699051,
+  "modifieddate": 1758865699051,
+  "serialnumber": "SN-BATCH2-37-1758865699051"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865699619,
+  "modifieddate": 1758865699619,
+  "serialnumber": "SN-BATCH2-38-1758865699619"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865699923,
+  "modifieddate": 1758865699923,
+  "serialnumber": "SN-BATCH2-39-1758865699923"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865700226,
+  "modifieddate": 1758865700226,
+  "serialnumber": "SN-BATCH2-40-1758865700226"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865700522,
+  "modifieddate": 1758865700522,
+  "serialnumber": "SN-BATCH2-41-1758865700522"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865700819,
+  "modifieddate": 1758865700819,
+  "serialnumber": "SN-BATCH2-42-1758865700819"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865701453,
+  "modifieddate": 1758865701453,
+  "serialnumber": "SN-BATCH2-43-1758865701453"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865701755,
+  "modifieddate": 1758865701755,
+  "serialnumber": "SN-BATCH2-44-1758865701755"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865702068,
+  "modifieddate": 1758865702068,
+  "serialnumber": "SN-BATCH2-45-1758865702068"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865702368,
+  "modifieddate": 1758865702368,
+  "serialnumber": "SN-BATCH2-46-1758865702368"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865702676,
+  "modifieddate": 1758865702676,
+  "serialnumber": "SN-BATCH2-47-1758865702676"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865702979,
+  "modifieddate": 1758865702979,
+  "serialnumber": "SN-BATCH2-48-1758865702979"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865703277,
+  "modifieddate": 1758865703277,
+  "serialnumber": "SN-BATCH2-49-1758865703277"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865703913,
+  "modifieddate": 1758865703913,
+  "serialnumber": "SN-BATCH2-50-1758865703913"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865704208,
+  "modifieddate": 1758865704208,
+  "serialnumber": "SN-BATCH3-1-1758865704208"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865704508,
+  "modifieddate": 1758865704508,
+  "serialnumber": "SN-BATCH3-2-1758865704508"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865704803,
+  "modifieddate": 1758865704803,
+  "serialnumber": "SN-BATCH3-3-1758865704803"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865705108,
+  "modifieddate": 1758865705108,
+  "serialnumber": "SN-BATCH3-4-1758865705108"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865705413,
+  "modifieddate": 1758865705413,
+  "serialnumber": "SN-BATCH3-5-1758865705413"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865705731,
+  "modifieddate": 1758865705731,
+  "serialnumber": "SN-BATCH3-6-1758865705731"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865706028,
+  "modifieddate": 1758865706028,
+  "serialnumber": "SN-BATCH3-7-1758865706028"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865706334,
+  "modifieddate": 1758865706334,
+  "serialnumber": "SN-BATCH3-8-1758865706334"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865706629,
+  "modifieddate": 1758865706629,
+  "serialnumber": "SN-BATCH3-9-1758865706629"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865706928,
+  "modifieddate": 1758865706928,
+  "serialnumber": "SN-BATCH3-10-1758865706928"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865707293,
+  "modifieddate": 1758865707293,
+  "serialnumber": "SN-BATCH3-11-1758865707293"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865707595,
+  "modifieddate": 1758865707595,
+  "serialnumber": "SN-BATCH3-12-1758865707595"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865707903,
+  "modifieddate": 1758865707903,
+  "serialnumber": "SN-BATCH3-13-1758865707903"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865708204,
+  "modifieddate": 1758865708204,
+  "serialnumber": "SN-BATCH3-14-1758865708204"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865708504,
+  "modifieddate": 1758865708504,
+  "serialnumber": "SN-BATCH3-15-1758865708504"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865708803,
+  "modifieddate": 1758865708803,
+  "serialnumber": "SN-BATCH3-16-1758865708803"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865709102,
+  "modifieddate": 1758865709102,
+  "serialnumber": "SN-BATCH3-17-1758865709102"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865709400,
+  "modifieddate": 1758865709400,
+  "serialnumber": "SN-BATCH3-18-1758865709400"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865709695,
+  "modifieddate": 1758865709695,
+  "serialnumber": "SN-BATCH3-19-1758865709696"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865709999,
+  "modifieddate": 1758865709999,
+  "serialnumber": "SN-BATCH3-20-1758865709999"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865710296,
+  "modifieddate": 1758865710296,
+  "serialnumber": "SN-BATCH3-21-1758865710296"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865710945,
+  "modifieddate": 1758865710945,
+  "serialnumber": "SN-BATCH3-22-1758865710945"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865711248,
+  "modifieddate": 1758865711248,
+  "serialnumber": "SN-BATCH3-23-1758865711248"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865711543,
+  "modifieddate": 1758865711543,
+  "serialnumber": "SN-BATCH3-24-1758865711543"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865711838,
+  "modifieddate": 1758865711838,
+  "serialnumber": "SN-BATCH3-25-1758865711838"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865712138,
+  "modifieddate": 1758865712138,
+  "serialnumber": "SN-BATCH3-26-1758865712138"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865712434,
+  "modifieddate": 1758865712434,
+  "serialnumber": "SN-BATCH3-27-1758865712434"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865712820,
+  "modifieddate": 1758865712820,
+  "serialnumber": "SN-BATCH3-28-1758865712820"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865713120,
+  "modifieddate": 1758865713120,
+  "serialnumber": "SN-BATCH3-29-1758865713120"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0033",
+  "platform": "amazon",
+  "batchno": "AMZ002",
+  "stockstatus": "Available",
+  "ecompublish": true,
+  "createddate": 1758865713415,
+  "modifieddate": 1758865713415,
+  "serialnumber": "SN-BATCH3-30-1758865713415"
+}
