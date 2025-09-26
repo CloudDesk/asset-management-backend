@@ -22015,3 +22015,419 @@ Filtered data result: {
   "modifieddate": 1758865713415,
   "serialnumber": "SN-BATCH3-30-1758865713415"
 }
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "sku": "NIV-IS-0032-AMAZON-001",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtered data result: {
+  "quantity": 1,
+  "availablequantity": 1,
+  "soldquantity": 0,
+  "ecompublishedquantity": 1,
+  "productstatus": "low_stock",
+  "modifieddate": 1758883302786
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtered data result: {
+  "quantity": 2,
+  "availablequantity": 2,
+  "soldquantity": 0,
+  "ecompublishedquantity": 2,
+  "productstatus": "low_stock",
+  "modifieddate": 1758884933769
+}
+Filtered data result: {
+  "productid": 32,
+  "platform": "amazon",
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 1,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "modifieddate": 1758884935423
+}
+Filtered data result: {
+  "quantity": 1,
+  "availablequantity": 1,
+  "soldquantity": 0,
+  "ecompublishedquantity": 1,
+  "productstatus": "low_stock",
+  "modifieddate": 1758885004449
+}
+Filtered data result: {
+  "availableqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "modifieddate": 1758885005855
+}
+Filtered data result: {
+  "quantity": 0,
+  "availablequantity": 0,
+  "soldquantity": 0,
+  "ecompublishedquantity": 0,
+  "productstatus": "out_of_stock",
+  "modifieddate": 1758885027631
+}
+Filtered data result: {
+  "availableqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "modifieddate": 1758885028455
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtered data result: {
+  "quantity": 1,
+  "availablequantity": 1,
+  "soldquantity": 0,
+  "ecompublishedquantity": 1,
+  "productstatus": "low_stock",
+  "modifieddate": 1758885050997
+}
+Filtered data result: {
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 1,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "modifieddate": 1758885052124
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "flipkart",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "manufacturedyear": 1758844800,
+  "releaseyear": 1758844800,
+  "rfid": ""
+}
+Filtered data result: {
+  "quantity": 2,
+  "availablequantity": 2,
+  "soldquantity": 0,
+  "ecompublishedquantity": 2,
+  "productstatus": "low_stock",
+  "modifieddate": 1758885093619
+}
+Filtered data result: {
+  "productid": 32,
+  "platform": "flipkart",
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 1,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "modifieddate": 1758885095039
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "nivapp",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtered data result: {
+  "quantity": 3,
+  "availablequantity": 3,
+  "soldquantity": 0,
+  "ecompublishedquantity": 3,
+  "productstatus": "low_stock",
+  "modifieddate": 1758885124341
+}
+Filtered data result: {
+  "productid": 32,
+  "platform": "nivapp",
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 1,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "modifieddate": 1758885125042
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtered data result: {
+  "quantity": 4,
+  "availablequantity": 4,
+  "soldquantity": 0,
+  "ecompublishedquantity": 4,
+  "productstatus": "low_stock",
+  "modifieddate": 1758885141952
+}
+Filtered data result: {
+  "availableqty": 2,
+  "soldqty": 0,
+  "totalqty": 2,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "modifieddate": 1758885142668
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "supplierid": 1,
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtered data result: {
+  "quantity": 5,
+  "availablequantity": 5,
+  "soldquantity": 0,
+  "ecompublishedquantity": 5,
+  "productstatus": "low_stock",
+  "modifieddate": 1758890369131
+}
+Filtered data result: {
+  "availableqty": 3,
+  "soldqty": 0,
+  "totalqty": 3,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "modifieddate": 1758890370935
+}
+Filtered data result: {
+  "puc": "NIV-IS-0032",
+  "platform": "amazon",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "poid": 12,
+  "supplierid": 1,
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtered data result: {
+  "quantity": 6,
+  "availablequantity": 6,
+  "soldquantity": 0,
+  "ecompublishedquantity": 6,
+  "productstatus": "in_stock",
+  "modifieddate": 1758890748693
+}
+Filtered data result: {
+  "availableqty": 4,
+  "soldqty": 0,
+  "totalqty": 4,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "modifieddate": 1758890749934
+}

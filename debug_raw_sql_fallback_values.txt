@@ -354,3 +354,12 @@ Fallback values: [
   "low_stock",
   1758864395
 ]
+Fallback values: [
+  32,
+  1,
+  1,
+  0,
+  1,
+  "low_stock",
+  1758883303
+]

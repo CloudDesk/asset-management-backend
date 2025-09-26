@@ -40,6 +40,8 @@ model Product {
   orderline             orderline[]
   stock                 Stock[]
   rating                rating[]
+
+  @@map("product")
 }
 
 model PlatformStock {
@@ -75,7 +77,7 @@ model Stock {
   orderlinenumber      String?     @db.VarChar(500)
   searchtext           Unsupported("tsvector")?
   stockstatus          String      @default("available") @db.VarChar(500) // Available, Sold
-  serialnumber         String?     @unique(map: "unique_serialnumber") @db.VarChar(500)
+  serialnumber         String?     @db.VarChar(500)
   sku                  String      @unique @db.VarChar(255)
   createddate          BigInt?
   modifieddate         BigInt?
@@ -116,6 +118,8 @@ model Picklist {
   controlledlabel     String? @db.VarChar(255)
   controlledfieldname String? @db.VarChar(255)
   parent              String? @db.VarChar(20)
+  createddate          BigInt?
+  modifieddate         BigInt?
 
   @@map("picklist")
 }
