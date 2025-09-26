@@ -40,7 +40,6 @@ model Product {
   orderline             orderline[]
   stock                 Stock[]
   rating                rating[]
-
 }
 
 model PlatformStock {
@@ -61,8 +60,6 @@ model PlatformStock {
   @@unique([productid, platform])
   @@map("platformstock")
 }
-
-
 
 model Stock {
   id                   BigInt      @id @default(autoincrement())

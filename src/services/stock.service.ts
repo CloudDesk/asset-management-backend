@@ -111,6 +111,22 @@ export class StockService {
     orderedquantity: number;
     soldquantity: number;
     ecompublishedquantity: number;
+    platforms: Array<{
+      platform: string;
+      quantity: number;
+      availablequantity: number;
+      orderedquantity: number;
+      soldquantity: number;
+      ecompublishedquantity: number;
+    }>;
+    platformStocks: Array<{
+      platform: string;
+      totalqty: number;
+      availableqty: number;
+      orderedqty: number;
+      soldqty: number;
+      lockqty: number;
+    }>;
     locations: Array<{
       location: string;
       quantity: number;
@@ -136,8 +152,8 @@ export class StockService {
         ecompublishedquantity: productRecord?.ecompublishedquantity !== undefined ? Number(productRecord.ecompublishedquantity) : 0
       };
 
-      const locationSummaryRaw = await prisma.$queryRaw<Array<{
-        location: string | null;
+      const platformSummaryRaw = await prisma.$queryRaw<Array<{
+        platform: string | null;
         quantity: bigint | number | null;
         availablequantity: bigint | number | null;
         orderedquantity: bigint | number | null;
@@ -145,7 +161,7 @@ export class StockService {
         ecompublishedquantity: bigint | number | null;
       }>>`
         SELECT
-          NULLIF(TRIM(location), '') AS location,
+          NULLIF(TRIM(platform), '') AS platform,
           COUNT(*) AS quantity,
           SUM(CASE WHEN stockstatus = 'Available' AND ecompublish = true THEN 1 ELSE 0 END) AS availablequantity,
           SUM(CASE WHEN stockstatus = 'Ordered' THEN 1 ELSE 0 END) AS orderedquantity,
@@ -155,25 +171,75 @@ export class StockService {
         WHERE puc = ${puc}
           AND (isdeleted IS NULL OR isdeleted = false)
           AND (isarchive IS NULL OR isarchive = false)
-        GROUP BY NULLIF(TRIM(location), '')
-        ORDER BY location
+        GROUP BY NULLIF(TRIM(platform), '')
+        ORDER BY platform
       `;
 
-      const locations = (locationSummaryRaw || []).map((row) => ({
-        location: row.location && row.location.trim().length > 0 ? row.location : null,
-        quantity: Number(row.quantity ?? 0),
-        availablequantity: Number(row.availablequantity ?? 0),
-        orderedquantity: Number(row.orderedquantity ?? 0),
-        soldquantity: Number(row.soldquantity ?? 0),
-        ecompublishedquantity: Number(row.ecompublishedquantity ?? 0)
-      }));
+      const platforms = (platformSummaryRaw || []).map((row) => {
+        const platform = row.platform && row.platform.trim().length > 0 ? row.platform : '';
+
+        return {
+          platform,
+          quantity: Number(row.quantity ?? 0),
+          availablequantity: Number(row.availablequantity ?? 0),
+          orderedquantity: Number(row.orderedquantity ?? 0),
+          soldquantity: Number(row.soldquantity ?? 0),
+          ecompublishedquantity: Number(row.ecompublishedquantity ?? 0)
+        };
+      });
+
+      let platformStocks: Array<{
+        platform: string;
+        totalqty: number;
+        availableqty: number;
+        orderedqty: number;
+        soldqty: number;
+        lockqty: number;
+      }> = [];
+
+      if (productRecord?.id !== undefined && productRecord?.id !== null) {
+        try {
+          const productIdRaw = productRecord.id;
+          const productId =
+            typeof productIdRaw === 'bigint' ? productIdRaw : BigInt(productIdRaw);
+
+          const platformStockRecords = await prisma.platformStock.findMany({
+            where: { productid: productId },
+            orderBy: { platform: 'asc' },
+          });
+
+          platformStocks = platformStockRecords.map((record) => ({
+            platform: record.platform ?? '',
+            totalqty: Number(record.totalqty ?? 0),
+            availableqty: Number(record.availableqty ?? 0),
+            orderedqty: Number(record.orderedqty ?? 0),
+            soldqty: Number(record.soldqty ?? 0),
+            lockqty: Number(record.lockqty ?? 0),
+          }));
+        } catch (error) {
+          logger.error(
+            {
+              error: error instanceof Error ? error.message : error,
+              puc,
+              productId: productRecord?.id,
+            },
+            'Failed to fetch platform stock summary'
+          );
+        }
+      }
 
       return {
         ...summaryTotals,
-        locations: locations.map((loc) => ({
-          ...loc,
-          location: loc.location ?? ''
-        }))
+        platforms,
+        platformStocks,
+        locations: platforms.map((platformSummary) => ({
+          location: platformSummary.platform,
+          quantity: platformSummary.quantity,
+          availablequantity: platformSummary.availablequantity,
+          orderedquantity: platformSummary.orderedquantity,
+          soldquantity: platformSummary.soldquantity,
+          ecompublishedquantity: platformSummary.ecompublishedquantity,
+        })),
       };
     } catch (error: any) {
       logger.error({ error: error.message, puc }, 'Failed to build stock summary by PUC');
