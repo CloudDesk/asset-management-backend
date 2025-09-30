@@ -15,6 +15,22 @@ export declare class StockService {
         orderedquantity: number;
         soldquantity: number;
         ecompublishedquantity: number;
+        platforms: Array<{
+            platform: string;
+            quantity: number;
+            availablequantity: number;
+            orderedquantity: number;
+            soldquantity: number;
+            ecompublishedquantity: number;
+        }>;
+        platformStocks: Array<{
+            platform: string;
+            totalqty: number;
+            availableqty: number;
+            orderedqty: number;
+            soldqty: number;
+            lockqty: number;
+        }>;
         locations: Array<{
             location: string;
             quantity: number;

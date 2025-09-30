@@ -7,13 +7,6 @@ import { StockService } from './stock.service.js';
 import { ProductService } from './product.service.js';
 export class StockImportService {
     // ✅ NEW: Valid location options (from ExcelService)
-    validLocations = [
-        'warehouse-a',
-        'warehouse-b',
-        'retail-store-1',
-        'retail-store-2',
-        'online-fulfillment'
-    ];
     stockService = new StockService();
     productService = new ProductService();
     async generatePreview(fileBuffer) {
@@ -34,7 +27,13 @@ export class StockImportService {
         }
         const processedRows = rows.map((row) => this.processRow(row));
         this.applyDuplicateChecks(processedRows);
-        await this.applyDatabaseChecks(processedRows);
+        try {
+            await this.applyDatabaseChecks(processedRows);
+        }
+        catch (error) {
+            console.error('Error in applyDatabaseChecks:', error);
+            throw error;
+        }
         processedRows.forEach((row) => {
             const hasErrors = row.issues.some((issue) => issue.type === 'error');
             const hasWarnings = row.issues.some((issue) => issue.type === 'warning');
@@ -80,9 +79,13 @@ export class StockImportService {
         const issues = [];
         const normalized = {
             rowNumber: row.rowNumber,
-            serialnumber: '',
+            puc: '',
+            platform: '',
+            batchno: '',
+            stockstatus: '',
+            ecompublish: false,
         };
-        // ✅ ENHANCED: PUC validation - must exist and be valid
+        // ✅ NEW: PUC validation - mandatory field
         const puc = this.normalizeString(row.values.puc);
         if (!puc) {
             issues.push({ type: 'error', field: 'puc', message: 'PUC (Product Unique Code) is required' });
@@ -91,60 +94,94 @@ export class StockImportService {
             normalized.puc = puc;
             // Note: PUC existence in products table will be validated in applyDatabaseChecks
         }
-        const serial = this.normalizeString(row.values.serialnumber);
-        if (!serial) {
-            issues.push({ type: 'error', field: 'serialnumber', message: 'Serial Number is required' });
+        // ✅ NEW: Platform validation - mandatory field
+        const platform = this.normalizeString(row.values.platform);
+        if (!platform) {
+            issues.push({ type: 'error', field: 'platform', message: 'Platform is required' });
         }
         else {
+            normalized.platform = platform;
+            // Note: Platform picklist validation will be done in applyDatabaseChecks
+        }
+        // ✅ NEW: Batch Number validation - mandatory field
+        const batchno = this.normalizeString(row.values.batchno);
+        if (!batchno) {
+            issues.push({ type: 'error', field: 'batchno', message: 'Batch Number is required' });
+        }
+        else {
+            normalized.batchno = batchno;
+        }
+        // ✅ NEW: Stock Status validation - mandatory field
+        const stockstatus = this.normalizeString(row.values.stockstatus);
+        if (!stockstatus) {
+            issues.push({ type: 'error', field: 'stockstatus', message: 'Stock Status is required' });
+        }
+        else {
+            normalized.stockstatus = stockstatus;
+            // Note: Stock Status picklist validation will be done in applyDatabaseChecks
+        }
+        // ✅ NEW: E-commerce Publish validation - mandatory field
+        const ecompublishValue = row.values.ecompublish;
+        if (ecompublishValue === undefined || ecompublishValue === null) {
+            issues.push({ type: 'error', field: 'ecompublish', message: 'E-commerce Publish is required' });
+        }
+        else if (typeof ecompublishValue === 'boolean') {
+            normalized.ecompublish = ecompublishValue;
+        }
+        else if (typeof ecompublishValue === 'string') {
+            const normalizedValue = ecompublishValue.toLowerCase().trim();
+            if (normalizedValue === 'true') {
+                normalized.ecompublish = true;
+            }
+            else if (normalizedValue === 'false') {
+                normalized.ecompublish = false;
+            }
+            else {
+                issues.push({ type: 'error', field: 'ecompublish', message: 'E-commerce Publish must be TRUE or FALSE' });
+            }
+        }
+        else {
+            issues.push({ type: 'error', field: 'ecompublish', message: 'E-commerce Publish must be TRUE or FALSE' });
+        }
+        // ✅ NEW: Serial Number - optional field (no duplicate validation)
+        const serial = this.normalizeString(row.values.serialnumber);
+        if (serial) {
             normalized.serialnumber = serial;
         }
+        // ✅ NEW: Manufactured Year validation - optional field
+        if (row.values.manufacturedyear !== undefined && row.values.manufacturedyear !== null) {
+            const manufactured = this.parseDateField(row.values.manufacturedyear, 'manufacturedyear', issues, row.rowNumber);
+            if (manufactured !== undefined) {
+                normalized.manufacturedyear = manufactured;
+            }
+        }
+        // ✅ NEW: Release Year validation - optional field
+        if (row.values.releaseyear !== undefined && row.values.releaseyear !== null) {
+            const release = this.parseDateField(row.values.releaseyear, 'releaseyear', issues, row.rowNumber);
+            if (release !== undefined) {
+                normalized.releaseyear = release;
+            }
+        }
+        // ✅ NEW: Purchase Order ID validation - optional field
+        const poid = this.normalizeString(row.values.poid);
+        if (poid) {
+            normalized.poid = poid;
+            // Note: PO ID existence validation will be done in applyDatabaseChecks
+        }
+        // ✅ NEW: Supplier ID validation - optional field
+        const supplierid = this.normalizeString(row.values.supplierid);
+        if (supplierid) {
+            normalized.supplierid = supplierid;
+            // Note: Supplier ID existence validation will be done in applyDatabaseChecks
+        }
+        // ✅ LEGACY: RFID validation (keeping for backward compatibility)
         const rfid = this.normalizeString(row.values.rfid);
-        if (!rfid) {
-            issues.push({ type: 'error', field: 'rfid', message: 'RFID is required' });
-        }
-        else {
+        if (rfid) {
             normalized.rfid = rfid;
-        }
-        // ✅ ENHANCED: Location validation with predefined list
-        const location = this.normalizeString(row.values.location);
-        if (location) {
-            if (this.validLocations.includes(location.toLowerCase())) {
-                normalized.location = location;
-            }
-            else {
-                issues.push({
-                    type: 'error',
-                    field: 'location',
-                    message: `Invalid location. Must be one of: ${this.validLocations.join(', ')}`
-                });
-            }
-        }
-        // ✅ ENHANCED: E-commerce publish validation (strict true/false only)
-        const ecompublishValue = row.values.ecompublish;
-        if (ecompublishValue !== undefined && ecompublishValue !== null && `${ecompublishValue}`.trim() !== '') {
-            const parsedBoolean = this.parseBoolean(ecompublishValue);
-            if (parsedBoolean === null) {
-                issues.push({
-                    type: 'error',
-                    field: 'ecompublish',
-                    message: 'Invalid value for E-Commerce Publish. Use TRUE, FALSE, YES, NO, 1, or 0'
-                });
-            }
-            else {
-                normalized.ecompublish = parsedBoolean;
-            }
-        }
-        const manufactured = this.parseDateField(row.values.manufacturedyear, 'manufacturedyear', issues, row.rowNumber);
-        if (manufactured !== undefined) {
-            normalized.manufacturedyear = manufactured;
-        }
-        const release = this.parseDateField(row.values.releaseyear, 'releaseyear', issues, row.rowNumber);
-        if (release !== undefined) {
-            normalized.releaseyear = release;
         }
         return {
             rowNumber: row.rowNumber,
-            status: 'success',
+            status: issues.some((issue) => issue.type === 'error') ? 'error' : 'success',
             normalized: issues.some((issue) => issue.type === 'error') ? null : normalized,
             issues,
             original: row.values,
@@ -155,7 +192,11 @@ export class StockImportService {
         const input = row.values;
         const normalized = {
             rowNumber: row.rowNumber,
-            serialnumber: '',
+            puc: '',
+            platform: '',
+            batchno: '',
+            stockstatus: '',
+            ecompublish: false,
         };
         const serial = this.normalizeString(input.serialnumber);
         if (!serial) {
@@ -211,15 +252,9 @@ export class StockImportService {
         };
     }
     applyDuplicateChecks(rows) {
-        const serialMap = new Map();
+        // ✅ UPDATED: Only check RFID duplicates (serial number duplicates are now allowed)
         const rfidMap = new Map();
         for (const row of rows) {
-            const serialKey = row.normalized?.serialnumber?.toLowerCase();
-            if (serialKey) {
-                const list = serialMap.get(serialKey) ?? [];
-                list.push(row);
-                serialMap.set(serialKey, list);
-            }
             const rfidKey = row.normalized?.rfid?.toLowerCase();
             if (rfidKey) {
                 const list = rfidMap.get(rfidKey) ?? [];
@@ -228,80 +263,186 @@ export class StockImportService {
             }
         }
         const duplicateMessage = {
-            serialnumber: 'Duplicate Serial Number found in uploaded file',
             rfid: 'Duplicate RFID found in uploaded file',
         };
-        serialMap.forEach((list) => {
-            if (list.length > 1) {
-                list.forEach((row) => this.appendIssue(row, 'serialnumber', duplicateMessage.serialnumber));
-            }
-        });
         rfidMap.forEach((list) => {
             if (list.length > 1) {
                 list.forEach((row) => this.appendIssue(row, 'rfid', duplicateMessage.rfid));
             }
         });
     }
-    async applyDatabaseChecks(rows) {
-        // ✅ FIXED: Check serial numbers and RFIDs from original data, not just normalized data
-        // This ensures we validate uniqueness even for rows with other validation errors
-        // 1. Check serial number uniqueness - use original data
-        const serials = new Set(rows
-            .filter((row) => row.original?.serialnumber && typeof row.original.serialnumber === 'string')
-            .map((row) => String(row.original.serialnumber).trim())
-            .filter(Boolean));
-        // 2. Check RFID uniqueness - use original data  
-        const rfids = new Set(rows
-            .filter((row) => row.original?.rfid)
-            .map((row) => String(row.original.rfid).trim())
-            .filter(Boolean));
-        // 3. Check PUC existence in products table - use original data
-        const pucs = new Set(rows
-            .filter((row) => row.original?.puc && typeof row.original.puc === 'string')
-            .map((row) => String(row.original.puc).trim())
-            .filter(Boolean));
-        // Serial number validation
-        if (serials.size > 0) {
-            const serialList = Array.from(serials);
-            const existingSerials = await prisma.stock.findMany({
-                where: {
-                    OR: serialList.map((value) => ({
-                        serialnumber: { equals: value, mode: 'insensitive' },
-                    })),
-                },
-                select: { serialnumber: true },
+    /**
+     * Generic picklist validation for all picklist fields
+     * Validates and converts labels to values for any field that has picklist data
+     */
+    async validatePicklistFields(rows) {
+        // Define which fields are picklist fields for the stock object
+        const picklistFields = ['platform', 'stockstatus']; // Add more fields as needed
+        // Collect all unique values for each picklist field
+        const fieldValues = new Map();
+        picklistFields.forEach(field => {
+            fieldValues.set(field, new Set());
+        });
+        // Collect values from all rows
+        rows.forEach(row => {
+            picklistFields.forEach(field => {
+                const value = row.original?.[field];
+                if (value && typeof value === 'string' && value.trim()) {
+                    fieldValues.get(field).add(value.trim());
+                }
             });
-            const existingSerialSet = new Set(existingSerials.map((record) => record.serialnumber?.toLowerCase()).filter(Boolean));
-            // ✅ FIXED: Check against original data, not normalized data
+        });
+        // Process each picklist field
+        for (const field of picklistFields) {
+            const values = fieldValues.get(field);
+            if (!values || values.size === 0)
+                continue;
+            const valueList = Array.from(values);
+            // Fetch picklist data for this field
+            const picklistData = await prisma.picklist.findMany({
+                where: {
+                    object: 'stock',
+                    fieldname: field,
+                    OR: [
+                        ...valueList.map((value) => ({ value: { equals: value, mode: 'insensitive' } })),
+                        ...valueList.map((value) => ({ label: { equals: value, mode: 'insensitive' } }))
+                    ],
+                },
+                select: { value: true, label: true },
+            });
+            // Create mapping from label to value
+            const labelToValueMap = new Map();
+            const validValues = new Set();
+            picklistData.forEach((record) => {
+                if (record.value && record.label) {
+                    const valueLower = record.value.toLowerCase();
+                    const labelLower = record.label.toLowerCase();
+                    validValues.add(valueLower);
+                    labelToValueMap.set(labelLower, record.value);
+                }
+            });
+            // Apply validation and conversion to each row
             rows.forEach((row) => {
-                const originalSerial = row.original?.serialnumber;
-                if (originalSerial && typeof originalSerial === 'string') {
-                    const key = originalSerial.trim().toLowerCase();
-                    if (key && existingSerialSet.has(key)) {
-                        this.appendIssue(row, 'serialnumber', 'Serial Number already exists in the database');
+                const originalValue = row.original?.[field];
+                if (originalValue && typeof originalValue === 'string') {
+                    const inputLower = originalValue.trim().toLowerCase();
+                    // Check if input is a label first (prioritize label-to-value conversion)
+                    if (labelToValueMap.has(inputLower)) {
+                        // Input is a label, convert to value
+                        const dbValue = labelToValueMap.get(inputLower);
+                        if (row.normalized) {
+                            row.normalized[field] = dbValue;
+                        }
+                    }
+                    else if (validValues.has(inputLower)) {
+                        // Input is already a valid value, keep it as is
+                        if (row.normalized) {
+                            row.normalized[field] = originalValue.trim();
+                        }
+                    }
+                    else {
+                        // Input is neither a valid value nor a valid label
+                        this.appendIssue(row, field, `Invalid ${field} value. Must match a value or label from the ${field} picklist.`);
                     }
                 }
             });
         }
-        // RFID validation
-        if (rfids.size > 0) {
-            const rfidList = Array.from(rfids);
-            const existingRfids = await prisma.stock.findMany({
+    }
+    async applyDatabaseChecks(rows) {
+        // ✅ NEW: Collect all values for batch validation
+        // 1. Apply generic picklist validation for all picklist fields
+        await this.validatePicklistFields(rows);
+        // 2. Check PUC existence in products table - use original data
+        const pucs = new Set(rows
+            .filter((row) => row.original?.puc && typeof row.original.puc === 'string')
+            .map((row) => String(row.original.puc).trim())
+            .filter(Boolean));
+        // 4. Check Purchase Order IDs - use original data
+        const poIds = new Set(rows
+            .filter((row) => row.original?.poid !== undefined && row.original?.poid !== null)
+            .map((row) => {
+            const poId = row.original.poid;
+            if (typeof poId === 'number') {
+                return poId;
+            }
+            else if (typeof poId === 'string') {
+                return parseInt(poId.trim(), 10);
+            }
+            return NaN;
+        })
+            .filter((id) => !isNaN(id)));
+        // 5. Check Supplier IDs - use original data
+        const supplierIds = new Set(rows
+            .filter((row) => row.original?.supplierid !== undefined && row.original?.supplierid !== null)
+            .map((row) => {
+            const supplierId = row.original.supplierid;
+            if (typeof supplierId === 'number') {
+                return supplierId;
+            }
+            else if (typeof supplierId === 'string') {
+                return parseInt(supplierId.trim(), 10);
+            }
+            return NaN;
+        })
+            .filter((id) => !isNaN(id)));
+        // ✅ NEW: Purchase Order ID validation
+        if (poIds.size > 0) {
+            const poIdList = Array.from(poIds);
+            const existingPOs = await prisma.purchaseOrder.findMany({
                 where: {
-                    OR: rfidList.map((value) => ({
-                        rfid: { equals: value, mode: 'insensitive' },
+                    OR: poIdList.map((value) => ({
+                        id: { equals: value },
                     })),
                 },
-                select: { rfid: true },
+                select: { id: true },
             });
-            const existingRfidSet = new Set(existingRfids.map((record) => record.rfid?.toLowerCase()).filter(Boolean));
-            // ✅ FIXED: Check against original data, not normalized data
+            const existingPOSet = new Set(existingPOs.map((record) => record.id));
             rows.forEach((row) => {
-                const originalRfid = row.original?.rfid;
-                if (originalRfid) {
-                    const key = String(originalRfid).trim().toLowerCase();
-                    if (key && existingRfidSet.has(key)) {
-                        this.appendIssue(row, 'rfid', 'RFID already exists in the database');
+                const originalPOId = row.original?.poid;
+                if (originalPOId !== undefined && originalPOId !== null) {
+                    let parsedId;
+                    if (typeof originalPOId === 'number') {
+                        parsedId = originalPOId;
+                    }
+                    else if (typeof originalPOId === 'string') {
+                        parsedId = parseInt(originalPOId.trim(), 10);
+                    }
+                    else {
+                        return; // Skip invalid types
+                    }
+                    if (!isNaN(parsedId) && !existingPOSet.has(parsedId)) {
+                        this.appendIssue(row, 'poid', 'Purchase Order ID does not exist in database.');
+                    }
+                }
+            });
+        }
+        // ✅ NEW: Supplier ID validation
+        if (supplierIds.size > 0) {
+            const supplierIdList = Array.from(supplierIds);
+            const existingSuppliers = await prisma.supplier.findMany({
+                where: {
+                    OR: supplierIdList.map((value) => ({
+                        id: { equals: value },
+                    })),
+                },
+                select: { id: true },
+            });
+            const existingSupplierSet = new Set(existingSuppliers.map((record) => record.id));
+            rows.forEach((row) => {
+                const originalSupplierId = row.original?.supplierid;
+                if (originalSupplierId !== undefined && originalSupplierId !== null) {
+                    let parsedId;
+                    if (typeof originalSupplierId === 'number') {
+                        parsedId = originalSupplierId;
+                    }
+                    else if (typeof originalSupplierId === 'string') {
+                        parsedId = parseInt(originalSupplierId.trim(), 10);
+                    }
+                    else {
+                        return; // Skip invalid types
+                    }
+                    if (!isNaN(parsedId) && !existingSupplierSet.has(parsedId)) {
+                        this.appendIssue(row, 'supplierid', 'Supplier ID does not exist in database.');
                     }
                 }
             });
@@ -353,7 +494,7 @@ export class StockImportService {
                 throw new ValidationError('Header row missing in uploaded file', 'Ensure the first row of the Excel file contains column headers');
             }
             const columnMapping = this.buildColumnMapping(headerRow);
-            const requiredFields = ['serialnumber', 'rfid'];
+            const requiredFields = ['puc', 'platform', 'batchno', 'stockstatus', 'ecompublish'];
             const missingHeaders = requiredFields.filter((field) => !Object.values(columnMapping).includes(field));
             if (missingHeaders.length > 0) {
                 throw new ValidationError('Required columns missing in uploaded file', `Missing columns: ${missingHeaders.join(', ')}`);
@@ -409,43 +550,71 @@ export class StockImportService {
     }
     get headerFieldMapping() {
         return {
-            // PUC variations
+            // ✅ NEW: PUC variations (mandatory)
             'puc': 'puc',
             'product unique code': 'puc',
             'product code': 'puc',
-            // Serial Number variations
-            'serial number': 'serialnumber',
-            'serialnumber': 'serialnumber',
-            'serial': 'serialnumber',
-            'sn': 'serialnumber',
-            // RFID variations
-            'rfid': 'rfid',
-            'rfid tag': 'rfid',
-            'rfid number': 'rfid',
-            // Manufactured Year variations
-            'manufactured year': 'manufacturedyear',
-            'manufacturing year': 'manufacturedyear',
-            'manufacturing date': 'manufacturedyear',
-            'manufacturedyear': 'manufacturedyear',
-            'mfg year': 'manufacturedyear',
-            'mfg date': 'manufacturedyear',
-            // Release Year variations
-            'release year': 'releaseyear',
-            'release date': 'releaseyear',
-            'releaseyear': 'releaseyear',
-            // E-Commerce Publish variations
+            // ✅ NEW: Platform variations (mandatory)
+            'platform': 'platform',
+            'selling platform': 'platform',
+            'marketplace': 'platform',
+            // ✅ NEW: Batch Number variations (mandatory)
+            'batchno': 'batchno',
+            'batch number': 'batchno',
+            'batch no': 'batchno',
+            'lot number': 'batchno',
+            'lot no': 'batchno',
+            // ✅ NEW: Stock Status variations (mandatory)
+            'stockstatus': 'stockstatus',
+            'stock status': 'stockstatus',
+            'status': 'stockstatus',
+            'inventory status': 'stockstatus',
+            // ✅ NEW: E-commerce Publish variations (mandatory)
+            'ecompublish': 'ecompublish',
             'e-commerce publish': 'ecompublish',
             'e commerce publish': 'ecompublish',
             'ecommerce publish': 'ecompublish',
-            'ecompublish': 'ecompublish',
             'publish': 'ecompublish',
             'ec publish': 'ecompublish',
-            // Location variations
+            'publish to ecommerce': 'ecompublish',
+            // ✅ NEW: Manufactured Year variations (optional)
+            'manufacturedyear': 'manufacturedyear',
+            'manufactured year': 'manufacturedyear',
+            'manufacturing year': 'manufacturedyear',
+            'manufacturing date': 'manufacturedyear',
+            'mfg year': 'manufacturedyear',
+            'mfg date': 'manufacturedyear',
+            // ✅ NEW: Release Year variations (optional)
+            'releaseyear': 'releaseyear',
+            'release year': 'releaseyear',
+            'release date': 'releaseyear',
+            // ✅ NEW: Purchase Order ID variations (optional)
+            'poid': 'poid',
+            'po id': 'poid',
+            'purchase order id': 'poid',
+            'purchase order': 'poid',
+            'po': 'poid',
+            // ✅ NEW: Supplier ID variations (optional)
+            'supplierid': 'supplierid',
+            'supplier id': 'supplierid',
+            'supplier': 'supplierid',
+            'vendor id': 'supplierid',
+            'vendor': 'supplierid',
+            // ✅ NEW: Serial Number variations (optional)
+            'serialnumber': 'serialnumber',
+            'serial number': 'serialnumber',
+            'serial': 'serialnumber',
+            'sn': 'serialnumber',
+            // ✅ LEGACY: RFID variations (optional, backward compatibility)
+            'rfid': 'rfid',
+            'rfid tag': 'rfid',
+            'rfid number': 'rfid',
+            // ✅ LEGACY: Location variations (optional, backward compatibility)
             'location': 'location',
             'storage location': 'location',
             'warehouse': 'location',
             'warehouse location': 'location',
-            // Additional common stock fields
+            // ✅ LEGACY: Additional common stock fields (optional, backward compatibility)
             'category': 'category',
             'subcategory': 'subcategory',
             'brand': 'brand',
@@ -460,8 +629,6 @@ export class StockImportService {
             'color': 'colour',
             'processor': 'processor',
             'cpu': 'processor',
-            'stock status': 'stockstatus',
-            'status': 'stockstatus',
             'product name': 'productname',
             'name': 'productname',
             'nfc': 'nfc',
@@ -624,7 +791,6 @@ export class StockImportService {
             logger.info('Starting stock Excel parsing and validation');
             // Parse Excel file to extract rows
             const rawRows = await this.parseExcel(fileBuffer);
-            console.log(rawRows, "rawRows");
             logger.info({
                 rawRowsCount: rawRows.length
             }, 'Excel parsing completed, starting validation');

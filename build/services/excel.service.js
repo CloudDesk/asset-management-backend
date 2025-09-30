@@ -1,18 +1,71 @@
 import pkg from 'exceljs';
 const { Workbook } = pkg;
 import { StockService } from './stock.service.js';
+import { SupplierService } from './supplier.service.js';
+import { PurchaseOrderService } from './purchaseorder.service.js';
+import { PicklistService } from './picklist.service.js';
 import { logger } from '../config/logger.js';
+const BOOLEAN_FIELDS = new Set([
+    'ecompublish',
+    'isdeleted',
+    'isarchive',
+    'removefromrecyclebin'
+]);
+const TEMPORAL_FIELDS = new Set([
+    'manufacturedyear',
+    'releaseyear',
+    'solddate',
+    'createddate',
+    'modifieddate',
+    'rfidscannedtime'
+]);
+const COLUMN_GUIDELINES = {
+    puc: 'Required. Product unique code for the stock item.',
+    platform: 'Required. Enter the picklist value for the selling platform (see platform picklist below).',
+    batchno: 'Required. Batch or lot number for the item.',
+    stockstatus: 'Required. Enter the picklist value for stock status (see stock status picklist below).',
+    ecompublish: 'Required. Enter TRUE to publish on e-commerce listings, FALSE otherwise.',
+    manufacturedyear: 'Optional. Year or date (YYYY-MM-DD) the item was manufactured.',
+    releaseyear: 'Optional. Year or date (YYYY-MM-DD) the item was released.',
+    poid: 'Optional. Enter the purchase order ID (see purchase order reference).',
+    supplierid: 'Optional. Enter the supplier ID (see supplier reference).',
+    serialnumber: 'Optional. Device serial number.',
+    rfid: 'Optional. RFID tag value.',
+    orderid: 'Optional. Related order identifier.',
+    orderlinenumber: 'Optional. Related order line number.',
+    sku: 'Optional. Stock keeping unit. Auto-generated for existing records.',
+    isdeleted: 'Optional. Enter TRUE if the record is marked as deleted or FALSE if active.',
+    isarchive: 'Optional. Enter TRUE if archived or FALSE if active.',
+    removefromrecyclebin: 'Optional. Enter TRUE if the record should be removed from recycle bin.',
+    solddate: 'Optional. Date sold (YYYY-MM-DD).',
+    createddate: 'Optional. Record creation date (YYYY-MM-DD).',
+    modifieddate: 'Optional. Last modified date (YYYY-MM-DD).',
+    rfidscannedtime: 'Optional. Date the RFID was scanned (YYYY-MM-DD).'
+};
+const TRUE_FALSE_LIST = '"TRUE,FALSE"';
+const TEMPLATE_COLUMNS = [
+    { key: 'puc', header: 'puc', required: true },
+    { key: 'platform', header: 'platform', required: true },
+    { key: 'batchno', header: 'batchno', required: true },
+    { key: 'stockstatus', header: 'stockstatus', required: true },
+    { key: 'ecompublish', header: 'ecompublish', required: true },
+    { key: 'manufacturedyear', header: 'manufacturedyear' },
+    { key: 'releaseyear', header: 'releaseyear' },
+    { key: 'poid', header: 'poid' },
+    { key: 'supplierid', header: 'supplierid' },
+    { key: 'serialnumber', header: 'serialnumber' }
+];
+const DATA_COLUMNS = [
+    ...TEMPLATE_COLUMNS,
+    { key: 'solddate', header: 'solddate' },
+    { key: 'createddate', header: 'createddate' },
+    { key: 'modifieddate', header: 'modifieddate' }
+];
 export class ExcelService {
     stockService = new StockService();
-    // Location options for dropdown validation
-    locationOptions = [
-        { value: "", label: "Select a location" },
-        { value: "warehouse-a", label: "Warehouse A" },
-        { value: "warehouse-b", label: "Warehouse B" },
-        { value: "retail-store-1", label: "Retail Store 1" },
-        { value: "retail-store-2", label: "Retail Store 2" },
-        { value: "online-fulfillment", label: "Online Fulfillment Center" },
-    ];
+    supplierService = new SupplierService();
+    purchaseOrderService = new PurchaseOrderService();
+    picklistService = new PicklistService();
     /**
      * Generate multi-sheet Excel file for stock export
      * @param filters - Query filters (including puc, page, limit)
@@ -22,20 +75,31 @@ export class ExcelService {
         try {
             const { page = 1, limit = 500, ...stockFilters } = filters;
             logger.info({ filters, page, limit }, 'Starting multi-sheet stock Excel generation');
-            // Fetch stock data using the existing service
             const stockData = await this.stockService.findMany(stockFilters, page, limit);
-            // Create workbook
+            const [suppliers, purchaseOrders, picklistOptions] = await Promise.all([
+                this.fetchSuppliers(),
+                this.fetchPurchaseOrders(),
+                this.fetchStockPicklistOptions()
+            ]);
             const workbook = new Workbook();
-            // Sheet 1: Bulk Upload Template
-            this.createBulkUploadSheet(workbook, stockFilters.puc);
-            // Sheet 2: Stock Data (retrieved data)
-            this.createStockDataSheet(workbook, stockData);
-            // Sheet 3: Instructions
-            this.createInstructionsSheet(workbook);
-            // Convert to buffer
+            this.createBulkUploadSheet(workbook, {
+                columns: TEMPLATE_COLUMNS,
+                samplePuc: stockFilters.puc
+            });
+            this.createStockDataSheet(workbook, {
+                columns: DATA_COLUMNS,
+                stocks: stockData.data
+            });
+            this.createInstructionsSheet(workbook, {
+                columns: TEMPLATE_COLUMNS,
+                suppliers,
+                purchaseOrders,
+                picklistOptions
+            });
             const bufferData = await workbook.xlsx.writeBuffer();
-            // Ensure compatibility with Node.js Buffer
-            const buffer = Buffer.isBuffer(bufferData) ? bufferData : Buffer.from(bufferData);
+            const buffer = Buffer.isBuffer(bufferData)
+                ? bufferData
+                : Buffer.from(bufferData);
             logger.info({
                 recordCount: stockData.data.length,
                 totalRecords: stockData.pagination.total,
@@ -50,19 +114,14 @@ export class ExcelService {
             throw error;
         }
     }
-    /**
-     * Add header row with styling
-     */
     addHeaderRow(worksheet, headers) {
         const headerRow = worksheet.addRow(headers);
-        // Style the header row
         headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
         headerRow.fill = {
             type: 'pattern',
             pattern: 'solid',
-            fgColor: { argb: 'FF4472C4' } // Blue background
+            fgColor: { argb: 'FF4472C4' }
         };
-        // Add borders to header
         headerRow.eachCell((cell) => {
             cell.border = {
                 top: { style: 'thin' },
@@ -72,113 +131,13 @@ export class ExcelService {
             };
             cell.alignment = { horizontal: 'center', vertical: 'middle' };
         });
+        return headerRow;
     }
-    /**
-     * Bind stock data to Excel rows
-     */
-    bindStockDataToRows(worksheet, stocks) {
-        stocks.forEach(stock => {
-            const row = worksheet.addRow([
-                stock.id?.toString() || '',
-                stock.puc || '',
-                stock.serialnumber || '',
-                stock.stockstatus || '',
-                this.convertEpochToDate(stock.manufacturedyear),
-                this.convertEpochToDate(stock.releaseyear),
-                stock.ecompublish === true ? 'Yes' : 'No',
-                stock.rfid || '',
-                stock.location || ''
-            ]);
-            // Add borders to data rows
-            row.eachCell((cell) => {
-                cell.border = {
-                    top: { style: 'thin' },
-                    left: { style: 'thin' },
-                    bottom: { style: 'thin' },
-                    right: { style: 'thin' }
-                };
-            });
-        });
-    }
-    /**
-     * Convert epoch timestamp (bigint) to readable date format
-     * @param epochTime - Bigint epoch timestamp in seconds
-     * @returns Formatted date string or empty string
-     */
-    convertEpochToDate(epochTime) {
-        if (!epochTime)
-            return '';
-        try {
-            // Handle both bigint and number types
-            const timestamp = typeof epochTime === 'bigint' ? Number(epochTime) : epochTime;
-            // Check if it's a valid timestamp
-            if (isNaN(timestamp) || timestamp <= 0)
-                return '';
-            // Convert from seconds to milliseconds by multiplying by 1000
-            const timestampMs = timestamp * 1000;
-            const date = new Date(timestampMs);
-            // Check if date is valid
-            if (isNaN(date.getTime()))
-                return '';
-            // Return formatted date (DD/MM/YYYY)
-            return date.toLocaleDateString('en-GB');
-        }
-        catch (error) {
-            logger.warn({ epochTime, error }, 'Error converting epoch time to date');
-            return '';
-        }
-    }
-    /**
-     * Apply formatting to the worksheet
-     */
-    formatStockWorksheet(worksheet) {
-        // Auto-fit columns with minimum width
-        worksheet.columns.forEach((column, index) => {
-            const headerLength = column.header?.length || 10;
-            column.width = Math.max(headerLength + 2, 12);
-        });
-        // Set specific widths for certain columns
-        worksheet.getColumn(1).width = 8; // ID
-        worksheet.getColumn(2).width = 15; // PUC
-        worksheet.getColumn(3).width = 20; // Serial Number
-        worksheet.getColumn(4).width = 15; // Stock Status
-        worksheet.getColumn(5).width = 18; // Manufactured Year
-        worksheet.getColumn(6).width = 15; // Release Year
-        worksheet.getColumn(7).width = 18; // E-Commerce Publish
-        worksheet.getColumn(8).width = 20; // RFID
-        worksheet.getColumn(9).width = 15; // Location
-        // Freeze the header row
-        worksheet.views = [{ state: 'frozen', ySplit: 1 }];
-    }
-    /**
-     * Create Sheet 1: Bulk Upload Template
-     */
-    createBulkUploadSheet(workbook, puc) {
+    createBulkUploadSheet(workbook, params) {
         const worksheet = workbook.addWorksheet('Bulk Upload');
-        // Define bulk upload headers as per requirements
-        const headers = [
-            'PUC',
-            'RFID',
-            'Serial Number',
-            'Manufactured Year',
-            'E-Commerce Publish',
-            'Release Year',
-            'Location'
-        ];
-        // Add headers
-        this.addHeaderRow(worksheet, headers);
-        // Add sample row with PUC pre-filled if provided
-        if (puc) {
-            const sampleRow = worksheet.addRow([
-                puc, // PUC pre-filled
-                '', // RFID
-                '', // Serial Number
-                '', // Manufactured Year (YYYY-MM-DD)
-                '', // E-Commerce Publish (TRUE/FALSE)
-                '', // Release Year (YYYY-MM-DD)
-                '' // Location (dropdown)
-            ]);
-            // Style sample row with light gray background
+        this.addHeaderRow(worksheet, params.columns.map((column) => column.header));
+        if (params.samplePuc) {
+            const sampleRow = worksheet.addRow(params.columns.map((column) => (column.key === 'puc' ? params.samplePuc : '')));
             sampleRow.eachCell((cell) => {
                 cell.fill = {
                     type: 'pattern',
@@ -193,118 +152,260 @@ export class ExcelService {
                 };
             });
         }
-        // Add data validation for E-Commerce Publish column (column E)
-        worksheet.getColumn(5).eachCell({ includeEmpty: true }, (cell, rowNumber) => {
-            if (rowNumber > 1) { // Skip header row
-                cell.dataValidation = {
-                    type: 'list',
-                    allowBlank: true,
-                    formulae: ['"TRUE,FALSE"']
-                };
-            }
-        });
-        // Add data validation for Location column (column G)
-        const locationValues = this.locationOptions.map(opt => opt.value).filter(val => val !== '');
-        worksheet.getColumn(7).eachCell({ includeEmpty: true }, (cell, rowNumber) => {
-            if (rowNumber > 1) { // Skip header row
-                cell.dataValidation = {
-                    type: 'list',
-                    allowBlank: true,
-                    formulae: [`"${locationValues.join(',')}"`]
-                };
-            }
-        });
-        // Set column widths
-        worksheet.getColumn(1).width = 20; // PUC
-        worksheet.getColumn(2).width = 20; // RFID
-        worksheet.getColumn(3).width = 25; // Serial Number
-        worksheet.getColumn(4).width = 18; // Manufactured Year
-        worksheet.getColumn(5).width = 20; // E-Commerce Publish
-        worksheet.getColumn(6).width = 15; // Release Year
-        worksheet.getColumn(7).width = 25; // Location
-        // Freeze header row
-        worksheet.views = [{ state: 'frozen', ySplit: 1 }];
-        /*
-        // Add note about date format
-        worksheet.addRow([]);
-        const noteRow = worksheet.addRow(['Note: Date format should be YYYY-MM-DD (e.g., 2025-01-15)']);
-        noteRow.getCell(1).font = { italic: true, color: { argb: 'FF666666' } };
-        */
+        const ecomIndex = params.columns.findIndex((column) => column.key === 'ecompublish');
+        if (ecomIndex !== -1) {
+            worksheet.getColumn(ecomIndex + 1).eachCell({ includeEmpty: true }, (cell, rowNumber) => {
+                if (rowNumber > 1) {
+                    cell.dataValidation = {
+                        type: 'list',
+                        allowBlank: false,
+                        formulae: [TRUE_FALSE_LIST]
+                    };
+                }
+            });
+        }
+        this.adjustColumnWidths(worksheet, params.columns);
     }
-    /**
-     * Create Sheet 2: Stock Data (Retrieved Data)
-     */
-    createStockDataSheet(workbook, stockData) {
+    createStockDataSheet(workbook, params) {
         const worksheet = workbook.addWorksheet('Stock Data');
-        // Define headers for stock data (original format)
-        const headers = [
-            'ID',
-            'PUC',
-            'Serial Number',
-            'Stock Status',
-            'Manufactured Year',
-            'Release Year',
-            'E-Commerce Publish',
-            'RFID',
-            'Location'
-        ];
-        // Add headers
-        this.addHeaderRow(worksheet, headers);
-        // Add data rows
-        this.bindStockDataToRows(worksheet, stockData.data);
-        // Apply formatting
-        this.formatStockWorksheet(worksheet);
+        this.addHeaderRow(worksheet, params.columns.map((column) => column.header));
+        params.stocks.forEach((stock) => {
+            const rowValues = params.columns.map((column) => this.formatStockValue(column.key, stock[column.key]));
+            const row = worksheet.addRow(rowValues);
+            this.applyRowBorder(row);
+        });
+        this.adjustColumnWidths(worksheet, params.columns);
     }
-    /**
-     * Create Sheet 3: Instructions
-     */
-    createInstructionsSheet(workbook) {
+    createInstructionsSheet(workbook, params) {
         const worksheet = workbook.addWorksheet('Instructions');
-        // Title
         const titleRow = worksheet.addRow(['Bulk Stock Upload - Instructions']);
         titleRow.font = { bold: true, size: 16, color: { argb: 'FF4472C4' } };
         titleRow.getCell(1).alignment = { horizontal: 'left' };
-        worksheet.addRow([]); // Empty row
-        // Steps
+        worksheet.addRow([]);
         const steps = [
-            { step: 'Step 1:', instruction: 'Download and open this template' },
-            { step: 'Step 2:', instruction: 'Go to "Bulk Upload" sheet for data entry' },
-            { step: 'Step 3:', instruction: 'Fill in stock data for each row' },
-            { step: 'Step 4:', instruction: 'Use dropdowns for E-Commerce Publish and Location fields' },
-            { step: 'Step 5:', instruction: 'Use YYYY-MM-DD format for date fields' },
-            { step: 'Step 6:', instruction: 'Save the file and upload it to the system' }
+            'Verify required columns are filled: puc, platform, batchno, stockstatus, ecompublish.',
+            'Use the "Bulk Upload" sheet to enter new or updated stock records.',
+            'Refer to the guidelines and reference lists below before entering values.',
+            'Save the file and upload it back into the system once complete.'
         ];
-        steps.forEach(({ step, instruction }) => {
-            const row = worksheet.addRow([step, instruction]);
+        steps.forEach((instruction, index) => {
+            const row = worksheet.addRow([`Step ${index + 1}:`, instruction]);
             row.getCell(1).font = { bold: true };
         });
-        worksheet.addRow([]); // Empty row
-        // Column Guidelines
-        const guidelinesRow = worksheet.addRow(['Column Guidelines:']);
+        worksheet.addRow([]);
+        const guidelinesRow = worksheet.addRow(['Column Guidelines']);
         guidelinesRow.font = { bold: true, size: 14 };
-        const guidelines = [
-            { field: 'PUC:', description: 'Product Unique Code - Required' },
-            { field: 'RFID:', description: 'RFID tag identifier - Optional' },
-            { field: 'Serial Number:', description: 'Device serial number - Required' },
-            { field: 'Manufactured Year:', description: 'Date in YYYY-MM-DD format' },
-            { field: 'E-Commerce Publish:', description: 'Use dropdown: TRUE or FALSE' },
-            { field: 'Release Year:', description: 'Date in YYYY-MM-DD format' },
-            { field: 'Location:', description: 'Use dropdown to select warehouse/store location' }
-        ];
-        guidelines.forEach(({ field, description }) => {
-            const row = worksheet.addRow([field, description]);
+        params.columns.forEach((column) => {
+            const description = COLUMN_GUIDELINES[column.key] || (column.required ? 'Required field.' : 'Optional field.');
+            const row = worksheet.addRow([column.header, description]);
             row.getCell(1).font = { bold: true };
         });
-        worksheet.addRow([]); // Empty row
-        // Location Options
-        const locationRow = worksheet.addRow(['Available Locations:']);
-        locationRow.font = { bold: true, size: 14 };
-        this.locationOptions.slice(1).forEach(option => {
-            worksheet.addRow([option.value, option.label]);
+        worksheet.addRow([]);
+        const supplierTitle = worksheet.addRow(['Supplier Reference (ObjectId - Supplier Name)', 'Enter the ID value in the supplierid column.']);
+        supplierTitle.font = { bold: true };
+        const supplierHeader = worksheet.addRow(['ID', 'Supplier Name']);
+        supplierHeader.font = { bold: true };
+        if (params.suppliers.length === 0) {
+            worksheet.addRow(['No supplier records found.', '']);
+        }
+        else {
+            params.suppliers.forEach((supplier) => {
+                worksheet.addRow([supplier.id, supplier.name]);
+            });
+        }
+        worksheet.addRow([]);
+        const poTitle = worksheet.addRow(['Purchase Order Reference (ObjectId - PONumber)', 'Enter the ID value in the poid column.']);
+        poTitle.font = { bold: true };
+        const poHeader = worksheet.addRow(['ID', 'PO Number']);
+        poHeader.font = { bold: true };
+        if (params.purchaseOrders.length === 0) {
+            worksheet.addRow(['No purchase order records found.', '']);
+        }
+        else {
+            params.purchaseOrders.forEach((po) => {
+                worksheet.addRow([po.id, po.ponumber]);
+            });
+        }
+        worksheet.addRow([]);
+        const platformTitle = worksheet.addRow(['Platform Picklist (Label - Value)', 'Enter the Value in the platform column.']);
+        platformTitle.font = { bold: true };
+        const platformHeader = worksheet.addRow(['Label', 'Value']);
+        platformHeader.font = { bold: true };
+        const platformOptions = params.picklistOptions['platform'] || [];
+        if (platformOptions.length === 0) {
+            worksheet.addRow(['No platform picklist records found.', '']);
+        }
+        else {
+            platformOptions.forEach((option) => {
+                worksheet.addRow([option.label, option.value]);
+            });
+        }
+        worksheet.addRow([]);
+        const statusTitle = worksheet.addRow(['Stock Status Picklist (Label - Value)', 'Enter the Value in the stockstatus column.']);
+        statusTitle.font = { bold: true };
+        const statusHeader = worksheet.addRow(['Label', 'Value']);
+        statusHeader.font = { bold: true };
+        const statusOptions = params.picklistOptions['stockstatus'] || [];
+        if (statusOptions.length === 0) {
+            worksheet.addRow(['No stock status picklist records found.', '']);
+        }
+        else {
+            statusOptions.forEach((option) => {
+                worksheet.addRow([option.label, option.value]);
+            });
+        }
+        worksheet.getColumn(1).width = 45;
+        worksheet.getColumn(2).width = 80;
+    }
+    adjustColumnWidths(worksheet, columns) {
+        columns.forEach((column, index) => {
+            const excelColumn = worksheet.getColumn(index + 1);
+            let maxLength = column.header.length + 2;
+            excelColumn.eachCell({ includeEmpty: true }, (cell) => {
+                const cellValue = cell.value ?? '';
+                const length = typeof cellValue === 'number' ? cellValue.toString().length : cellValue.toString().length;
+                if (length + 2 > maxLength) {
+                    maxLength = length + 2;
+                }
+            });
+            excelColumn.width = Math.min(Math.max(maxLength, 12), 40);
         });
-        // Set column widths
-        worksheet.getColumn(1).width = 25;
-        worksheet.getColumn(2).width = 50;
+        worksheet.views = [{ state: 'frozen', ySplit: 1 }];
+    }
+    applyRowBorder(row) {
+        row.eachCell((cell) => {
+            cell.border = {
+                top: { style: 'thin' },
+                left: { style: 'thin' },
+                bottom: { style: 'thin' },
+                right: { style: 'thin' }
+            };
+        });
+    }
+    formatStockValue(columnKey, value) {
+        if (value === null || value === undefined) {
+            return '';
+        }
+        if (BOOLEAN_FIELDS.has(columnKey)) {
+            if (typeof value === 'boolean') {
+                return value ? 'TRUE' : 'FALSE';
+            }
+            if (typeof value === 'number') {
+                return value === 1 ? 'TRUE' : 'FALSE';
+            }
+            return value.toString().toUpperCase();
+        }
+        if (TEMPORAL_FIELDS.has(columnKey)) {
+            return this.formatTemporalValue(value);
+        }
+        if (typeof value === 'bigint') {
+            return value.toString();
+        }
+        if (typeof value === 'number') {
+            return Number.isFinite(value) ? value.toString() : '';
+        }
+        if (value instanceof Date) {
+            return this.toIsoDateString(value);
+        }
+        return value.toString();
+    }
+    formatTemporalValue(value) {
+        if (value === null || value === undefined) {
+            return '';
+        }
+        const numericValue = typeof value === 'bigint' ? Number(value) : value;
+        if (typeof numericValue === 'number' && Number.isFinite(numericValue)) {
+            if (numericValue > 1e12) {
+                const date = new Date(numericValue);
+                return isNaN(date.getTime()) ? numericValue.toString() : this.toIsoDateString(date);
+            }
+            if (numericValue > 1e9) {
+                const date = new Date(numericValue * 1000);
+                return isNaN(date.getTime()) ? numericValue.toString() : this.toIsoDateString(date);
+            }
+            if (numericValue >= 1000 && numericValue <= 9999) {
+                return numericValue.toString();
+            }
+            return numericValue.toString();
+        }
+        if (typeof numericValue === 'string') {
+            return numericValue;
+        }
+        return '';
+    }
+    async fetchSuppliers() {
+        try {
+            const { data } = await this.supplierService.findMany({}, 1, 500);
+            return data
+                .map((supplier) => ({
+                id: this.safeToString(supplier.id),
+                name: supplier.suppliername || ''
+            }))
+                .filter((supplier) => supplier.id !== '');
+        }
+        catch (error) {
+            logger.warn({ error }, 'Failed to load supplier reference data for Excel instructions');
+            return [];
+        }
+    }
+    async fetchPurchaseOrders() {
+        try {
+            const { data } = await this.purchaseOrderService.findMany({}, 1, 500);
+            return data
+                .map((po) => ({
+                id: this.safeToString(po.id),
+                ponumber: this.safeToString(po.ponumber || po.po_number || po.orderNumber || po.order_number || '')
+            }))
+                .filter((po) => po.id !== '' && po.ponumber !== '');
+        }
+        catch (error) {
+            logger.warn({ error }, 'Failed to load purchase order reference data for Excel instructions');
+            return [];
+        }
+    }
+    async fetchStockPicklistOptions() {
+        try {
+            const picklists = await this.picklistService.findByObject('stock');
+            const options = {};
+            picklists.forEach((item) => {
+                const fieldname = (item.fieldname || '').toString().toLowerCase();
+                if (!['platform', 'stockstatus'].includes(fieldname)) {
+                    return;
+                }
+                if (!options[fieldname]) {
+                    options[fieldname] = [];
+                }
+                options[fieldname].push({
+                    label: this.safeToString(item.label || ''),
+                    value: this.safeToString(item.value || '')
+                });
+            });
+            return options;
+        }
+        catch (error) {
+            logger.warn({ error }, 'Failed to load picklist reference data for Excel instructions');
+            return {};
+        }
+    }
+    toIsoDateString(date) {
+        const isoString = date.toISOString();
+        const [datePart] = isoString.split('T');
+        return datePart ?? isoString;
+    }
+    safeToString(value) {
+        if (value === null || value === undefined) {
+            return '';
+        }
+        if (typeof value === 'string') {
+            return value;
+        }
+        if (typeof value === 'bigint') {
+            return value.toString();
+        }
+        if (typeof value === 'number') {
+            return Number.isFinite(value) ? value.toString() : '';
+        }
+        return value.toString();
     }
 }
 //# sourceMappingURL=excel.service.js.map

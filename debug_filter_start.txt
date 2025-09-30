@@ -23119,3 +23119,193 @@ Filtering data for platformstock (platformstock): {
   "lockqty": 0,
   "modifieddate": 1758890749934
 }
+Filtering data for product (product): {
+  "name": "test prod",
+  "shortdescription": "",
+  "fulldescription": "",
+  "category": "incense",
+  "subcategory": "premium_incense_sticks",
+  "fragnancetype": "kasturi",
+  "brand": "Nivaana",
+  "pack": "pack_of_2",
+  "price": 1000,
+  "discount": 0
+}
+Filtering data for product (product): {
+  "name": "test prod",
+  "shortdescription": "test",
+  "fulldescription": "",
+  "price": 1000,
+  "discount": 0,
+  "fragnancetype": "kasturi",
+  "brand": "Nivaana",
+  "pack": "pack_of_2",
+  "puc": "NIV-IS-0034",
+  "productstatus": "out_of_stock",
+  "category": "incense",
+  "subcategory": "premium_incense_sticks",
+  "quantity": 0,
+  "orderedquantity": 0,
+  "soldquantity": 0,
+  "availablequantity": 0,
+  "ecompublishedquantity": 0
+}
+Filtering data for product (product): {
+  "name": "test prod",
+  "shortdescription": "test. ",
+  "fulldescription": "",
+  "price": 1000,
+  "discount": 0,
+  "fragnancetype": "kasturi",
+  "brand": "Nivaana",
+  "pack": "pack_of_2",
+  "category": "incense",
+  "subcategory": "premium_incense_sticks"
+}
+Filtering data for product (product): {
+  "name": "Nivaana - premium_incense_sticks - kesar_chandan",
+  "category": "incense",
+  "subcategory": "premium_incense_sticks",
+  "fragnancetype": "kesar_chandan",
+  "brand": "Nivaana",
+  "pack": "single",
+  "price": 150,
+  "discount": 0
+}
+Filtering data for product (product): {
+  "name": "Nivaana - Premium Incense Sticks - Kesar Chandan",
+  "category": "incense",
+  "subcategory": "premium_incense_sticks",
+  "fragnancetype": "kesar_chandan",
+  "brand": "Nivaana",
+  "pack": "single",
+  "price": 150,
+  "discount": 0
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-product-images-dev/36/large/large_auyu2.jpeg",
+    "https://storage.googleapis.com/niv-product-images-dev/36/large/large_auyu3.jpeg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-product-images-dev/36/large/large_auyu3.jpeg"
+  ]
+}
+Filtering data for product (product): {
+  "large": []
+}
+Filtering data for product (product): {
+  "large": []
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-product-images-dev/36/large/large_auyu1.jpeg",
+    "https://storage.googleapis.com/niv-product-images-dev/36/large/large_auyu2.jpeg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-product-images-dev/36/large/large_auyu2.jpeg"
+  ]
+}
+Filtering data for product (product): {
+  "large": []
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-product-images-dev/36/large/large_auyu1.jpeg",
+    "https://storage.googleapis.com/niv-product-images-dev/36/large/large_auyu2.jpeg",
+    "https://storage.googleapis.com/niv-product-images-dev/36/large/large_auyu1.jpeg",
+    "https://storage.googleapis.com/niv-product-images-dev/36/large/large_auyu2.jpeg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-product-images-dev/36/large/large_auyu1.jpeg",
+    "https://storage.googleapis.com/niv-product-images-dev/36/large/large_auyu3.jpeg",
+    "https://storage.googleapis.com/niv-product-images-dev/36/large/large_auyu1.jpeg",
+    "https://storage.googleapis.com/niv-product-images-dev/36/large/large_auyu3.jpeg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-product-images-dev/36/large/large_auyu3.jpeg",
+    "https://storage.googleapis.com/niv-product-images-dev/36/large/large_auyu3.jpeg"
+  ]
+}
+Filtering data for product (product): {
+  "large": []
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-product-images-dev/36/large/large_auyu2.jpeg",
+    "https://storage.googleapis.com/niv-product-images-dev/36/large/large_auyu3.jpeg",
+    "https://storage.googleapis.com/niv-product-images-dev/36/large/large_auyu2.jpeg",
+    "https://storage.googleapis.com/niv-product-images-dev/36/large/large_auyu3.jpeg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-product-images-dev/36/large/large_auyu2.jpeg",
+    "https://storage.googleapis.com/niv-product-images-dev/36/large/large_auyu2.jpeg",
+    "https://storage.googleapis.com/niv-product-images-dev/36/large/large_auyu1.jpeg",
+    "https://storage.googleapis.com/niv-product-images-dev/36/large/large_auyu2.jpeg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-product-images-dev/36/large/large_auyu1.jpeg"
+  ]
+}
+Filtering data for product (product): {
+  "large": []
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/vyb-product-images-dev/7/large/large_Aravi_Organic_Peppermint_Essential_Oil_15ml-468327-0.jpeg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-product-images-dev/36/large/large_81orgPPLBTL._SY879_.jpg",
+    "https://storage.googleapis.com/niv-product-images-dev/36/large/large_713HEskRPNL._SY879_.jpg",
+    "https://storage.googleapis.com/niv-product-images-dev/36/large/large_81863fjJgsL._SL1500_.jpg",
+    "https://storage.googleapis.com/niv-product-images-dev/36/large/large_519aocdp-HL._SY879_.jpg"
+  ]
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0036",
+  "platform": "amazon",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "poid": 11,
+  "supplierid": 1,
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "manufacturedyear": 1759190400,
+  "releaseyear": 1759190400,
+  "rfid": ""
+}
+Filtering data for product (product): {
+  "quantity": 1,
+  "availablequantity": 1,
+  "soldquantity": 0,
+  "ecompublishedquantity": 1,
+  "productstatus": "low_stock",
+  "modifieddate": 1759207506264
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 36,
+  "platform": "amazon",
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 1,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "modifieddate": 1759207508322
+}

@@ -5,12 +5,12 @@ const schemaCache = new Map();
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 // Cache for safe columns to avoid repeated schema queries
 const safeColumnsCache = new Map();
-const SAFE_COLUMNS_TTL = 30 * 60 * 1000; // 30 minutes
+const SAFE_COLUMNS_TTL = 5 * 60 * 1000; // 5 minutes for debugging
 // Predefined safe columns for common tables (to avoid schema queries)
 const PREDEFINED_SAFE_COLUMNS = {
     stock: ['id', 'puc', 'category', 'subcategory', 'brand', 'model', 'stockstatus', 'createddate', 'modifieddate', 'productname', 'serialnumber', 'location'],
     product: ['id', 'productname', 'category', 'subcategory', 'brand', 'model', 'price', 'createddate', 'modifieddate', 'productstatus', 'puc'],
-    picklist: ['id', 'type', 'table', 'field', 'label', 'value', 'isActive', 'ordering'],
+    picklist: ['id', 'label', 'value', 'object', 'controlledvalue', 'fieldname', 'controlledlabel', 'controlledfieldname', 'parent'],
     orders: ['id', 'userid', 'addressid', 'orderamount', 'orderid', 'orderstatus', 'quantity', 'transactionid', 'readytodispatchdate', 'dispatcheddate', 'productamount', 'discountamount', 'deliveryfrom', 'orderprocessingtime', 'ispaymentsucceed', 'merchanttransactionid', 'productid', 'mode', 'delivereddate', 'cancelleddate', 'returneddate', 'paymentfaileddate', 'createddate', 'modifieddate'],
     orderline: ['id', 'orderid', 'productid', 'userid', 'addressid', 'productamount', 'discountamount', 'orderamount', 'quantity', 'merchanttransactionid', 'productname', 'productcategory', 'productcolour', 'readytodispatchdate', 'delivereddate', 'cancelleddate', 'returneddate', 'orderstatus', 'uniqueordderid', 'orderlinenumber', 'deliveryfrom', 'location', 'dispatcheddate', 'ordereddate', 'paymentfaileddate', 'createddate', 'modifieddate'],
     platformstock: ['id', 'productid', 'platform', 'availableqty', 'orderedqty', 'soldqty', 'totalqty', 'lockqty', 'createddate', 'modifieddate']

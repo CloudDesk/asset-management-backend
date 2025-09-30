@@ -7,12 +7,17 @@ export interface StockImportRowIssue {
 }
 export interface StockImportNormalizedRow {
     rowNumber?: number;
-    puc?: string;
+    puc: string;
+    platform: string;
+    batchno: string;
+    stockstatus: string;
+    ecompublish: boolean;
+    serialnumber?: string;
     rfid?: string;
-    serialnumber: string;
     manufacturedyear?: number;
     releaseyear?: number;
-    ecompublish?: boolean;
+    poid?: string;
+    supplierid?: string;
     location?: string;
 }
 export interface StockImportRowResult {
@@ -35,7 +40,6 @@ export interface StockImportEvaluation {
     errorRows: StockImportRowResult[];
 }
 export declare class StockImportService {
-    private readonly validLocations;
     private stockService;
     private productService;
     generatePreview(fileBuffer: Buffer): Promise<StockImportEvaluation>;
@@ -45,6 +49,11 @@ export declare class StockImportService {
     private processRawRow;
     private processNormalizedRow;
     private applyDuplicateChecks;
+    /**
+     * Generic picklist validation for all picklist fields
+     * Validates and converts labels to values for any field that has picklist data
+     */
+    private validatePicklistFields;
     private applyDatabaseChecks;
     private appendIssue;
     private hasError;

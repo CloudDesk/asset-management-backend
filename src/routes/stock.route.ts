@@ -55,7 +55,7 @@ export async function stockRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            data: { 
+            data: {
               type: 'array',
               items: {
                 type: 'object',
@@ -163,7 +163,7 @@ export async function stockRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            data: { 
+            data: {
               type: 'object',
               additionalProperties: true // Allow any fields in stock object
             },
@@ -202,7 +202,7 @@ export async function stockRoutes(fastify: FastifyInstance) {
   }, async (request: any, reply: any) => {
     try {
       const { id } = request.params;
-      
+
       // Validate ID format
       if (!id || id.trim() === '' || !/^\d+$/.test(id)) {
         const errorResponse = {
@@ -213,10 +213,10 @@ export async function stockRoutes(fastify: FastifyInstance) {
         };
         return reply.code(400).send(errorResponse);
       }
-      
+
       // Call the service method directly
       const stock = await stockController.stockService.findById(id);
-      
+
       const response = {
         success: true,
         message: 'Stock retrieved successfully',
@@ -225,7 +225,7 @@ export async function stockRoutes(fastify: FastifyInstance) {
       return reply.code(200).send(response);
     } catch (error: any) {
       console.log('=== STOCK GET ERROR:', error.message);
-      
+
       if (error.message.includes('not found')) {
         const errorResponse = {
           success: false,
@@ -235,7 +235,7 @@ export async function stockRoutes(fastify: FastifyInstance) {
         };
         return reply.code(404).send(errorResponse);
       }
-      
+
       // Default error response
       const errorResponse = {
         success: false,
@@ -293,7 +293,7 @@ export async function stockRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            data: { 
+            data: {
               type: 'object',
               additionalProperties: true // Allow any fields in stock object
             },
@@ -372,7 +372,7 @@ export async function stockRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            data: { 
+            data: {
               type: 'object',
               additionalProperties: true // Allow any fields in stock object
             },
@@ -411,7 +411,7 @@ export async function stockRoutes(fastify: FastifyInstance) {
   }, async (request: any, reply: any) => {
     try {
       const { id } = request.params;
-      
+
       // Validate ID format
       if (!/^\d+$/.test(id)) {
         const errorResponse = {
@@ -422,10 +422,10 @@ export async function stockRoutes(fastify: FastifyInstance) {
         };
         return reply.code(400).send(errorResponse);
       }
-      
+
       // Update the stock
       const stock = await stockController.stockService.update(id, request.body);
-      
+
       const response = {
         success: true,
         message: 'Stock updated successfully',
@@ -434,7 +434,7 @@ export async function stockRoutes(fastify: FastifyInstance) {
       return reply.code(200).send(response);
     } catch (error: any) {
       console.log('=== STOCK PUT ERROR:', error.message);
-      
+
       if (error.message.includes('not found')) {
         const errorResponse = {
           success: false,
@@ -444,7 +444,7 @@ export async function stockRoutes(fastify: FastifyInstance) {
         };
         return reply.code(404).send(errorResponse);
       }
-      
+
       if (error.message.includes('already exists')) {
         const errorResponse = {
           success: false,
@@ -454,7 +454,7 @@ export async function stockRoutes(fastify: FastifyInstance) {
         };
         return reply.code(400).send(errorResponse);
       }
-      
+
       // Default error response
       const errorResponse = {
         success: false,
@@ -550,7 +550,7 @@ export async function stockRoutes(fastify: FastifyInstance) {
   }, async (request: any, reply: any) => {
     try {
       const { id } = request.params;
-      
+
       // Validate ID format
       if (!/^\d+$/.test(id)) {
         const errorResponse = {
@@ -561,10 +561,10 @@ export async function stockRoutes(fastify: FastifyInstance) {
         };
         return reply.code(400).send(errorResponse);
       }
-      
+
       // Delete the stock
       await stockController.stockService.delete(id);
-      
+
       const response = {
         success: true,
         message: 'Stock deleted successfully'
@@ -586,7 +586,7 @@ export async function stockRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            data: { 
+            data: {
               type: 'object',
               additionalProperties: true // Allow any fields in stock object
             },
@@ -666,14 +666,14 @@ export async function stockRoutes(fastify: FastifyInstance) {
       body: {
         type: 'object',
         properties: {
-          rfid: { 
-            type: 'string', 
+          rfid: {
+            type: 'string',
             description: 'RFID tag identifier',
             minLength: 1,
             maxLength: 500
           },
-          orderlineid: { 
-            type: 'string', 
+          orderlineid: {
+            type: 'string',
             description: 'Order line ID to associate with this stock',
             minLength: 1,
             maxLength: 500
@@ -686,7 +686,7 @@ export async function stockRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            data: { 
+            data: {
               type: 'object',
               additionalProperties: true,
               description: 'Updated stock object'
@@ -735,14 +735,14 @@ export async function stockRoutes(fastify: FastifyInstance) {
         items: {
           type: 'object',
           properties: {
-            rfid: { 
-              type: 'string', 
+            rfid: {
+              type: 'string',
               description: 'RFID tag identifier',
               minLength: 1,
               maxLength: 500
             },
-            orderlineid: { 
-              type: 'string', 
+            orderlineid: {
+              type: 'string',
               description: 'Order line ID to associate with this stock',
               minLength: 1,
               maxLength: 500
@@ -759,7 +759,7 @@ export async function stockRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            data: { 
+            data: {
               type: 'object',
               properties: {
                 summary: {
@@ -795,7 +795,7 @@ export async function stockRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            data: { 
+            data: {
               type: 'object',
               properties: {
                 summary: {
@@ -859,27 +859,11 @@ export async function stockRoutes(fastify: FastifyInstance) {
           page: { type: 'string', description: 'Page number (default: 1)' },
           limit: { type: 'string', description: 'Items per page (default: 500)' },
           puc: { type: 'string', description: 'Filter by product unique code' },
-          category: { type: 'string', description: 'Filter by category' },
-          subcategory: { type: 'string', description: 'Filter by subcategory' },
-          brand: { type: 'string', description: 'Filter by brand' },
-          model: { type: 'string', description: 'Filter by model' },
-          operatingsystem: { type: 'string', description: 'Filter by operating system' },
-          ram: { type: 'string', description: 'Filter by RAM specification' },
-          storagetype: { type: 'string', description: 'Filter by storage type' },
-          storagecapacity: { type: 'string', description: 'Filter by storage capacity' },
-          colour: { type: 'string', description: 'Filter by color' },
-          processor: { type: 'string', description: 'Filter by processor' },
+          platform: { type: 'string', description: 'Filter by platform (amazon, flipkart, nivapp)' },
+          sku: { type: 'string', description: 'Filter by SKU' },
           serialnumber: { type: 'string', description: 'Filter by serial number' },
           stockstatus: { type: 'string', description: 'Filter by stock status' },
-          productname: { type: 'string', description: 'Filter by product name' },
-          location: { type: 'string', description: 'Filter by storage location' },
-          assetlocation: { type: 'string', description: 'Filter by asset location' },
-          orderid: { type: 'string', description: 'Filter by order ID' },
-          orderlinenumber: { type: 'string', description: 'Filter by order line number' },
-          isdeleted: { type: 'string', description: 'Filter by deletion status (true/false)' },
-          isarchive: { type: 'string', description: 'Filter by archive status (true/false)' },
           ecompublish: { type: 'string', description: 'Filter by e-commerce publish status (true/false)' },
-          ewaste: { type: 'string', description: 'Filter by e-waste status (true/false)' },
           minManufacturedYear: { type: 'string', description: 'Minimum manufactured year' },
           maxManufacturedYear: { type: 'string', description: 'Maximum manufactured year' },
           minReleaseYear: { type: 'string', description: 'Minimum release year' },
@@ -917,251 +901,251 @@ export async function stockRoutes(fastify: FastifyInstance) {
       },
     },
   }, stockController.exportStocks.bind(stockController));
-/*
-  // POST /v1/stocks/import/preview - Parse and validate Excel import file
-  fastify.post('/import/preview', {
-    schema: {
-      description: 'Parse and validate stock import Excel file before commit',
-      tags: ['Stocks'],
-      consumes: ['multipart/form-data'],
-      body: {
-        type: 'object',
-        properties: {
-          file: {
-            isFile: true,
-            description: 'Excel file to import',
-          },
-        },
-        required: ['file'],
-      },
-      response: {
-        200: {
+  /*
+    // POST /v1/stocks/import/preview - Parse and validate Excel import file
+    fastify.post('/import/preview', {
+      schema: {
+        description: 'Parse and validate stock import Excel file before commit',
+        tags: ['Stocks'],
+        consumes: ['multipart/form-data'],
+        body: {
           type: 'object',
           properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            data: {
-              type: 'object',
-              properties: {
-                summary: {
-                  type: 'object',
-                  properties: {
-                    totalRows: { type: 'number' },
-                    success: { type: 'number' },
-                    warnings: { type: 'number' },
-                    errors: { type: 'number' },
-                  },
-                  required: ['totalRows', 'success', 'warnings', 'errors'],
-                },
-                rows: {
-                  type: 'array',
-                  items: {
+            file: {
+              isFile: true,
+              description: 'Excel file to import',
+            },
+          },
+          required: ['file'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: {
+                type: 'object',
+                properties: {
+                  summary: {
                     type: 'object',
                     properties: {
-                      rowNumber: { type: 'number' },
-                      status: { type: 'string', enum: ['success', 'warning', 'error'] },
-                      normalized: { type: ['object', 'null'], additionalProperties: true },
-                      issues: {
-                        type: 'array',
-                        items: {
-                          type: 'object',
-                          properties: {
-                            type: { type: 'string', enum: ['error', 'warning'] },
-                            field: { type: ['string', 'null'], nullable: true },
-                            message: { type: 'string' },
+                      totalRows: { type: 'number' },
+                      success: { type: 'number' },
+                      warnings: { type: 'number' },
+                      errors: { type: 'number' },
+                    },
+                    required: ['totalRows', 'success', 'warnings', 'errors'],
+                  },
+                  rows: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        rowNumber: { type: 'number' },
+                        status: { type: 'string', enum: ['success', 'warning', 'error'] },
+                        normalized: { type: ['object', 'null'], additionalProperties: true },
+                        issues: {
+                          type: 'array',
+                          items: {
+                            type: 'object',
+                            properties: {
+                              type: { type: 'string', enum: ['error', 'warning'] },
+                              field: { type: ['string', 'null'], nullable: true },
+                              message: { type: 'string' },
+                            },
+                            required: ['type', 'message'],
+                            additionalProperties: false,
                           },
-                          required: ['type', 'message'],
-                          additionalProperties: false,
                         },
+                        original: { type: ['object', 'null'], additionalProperties: true, nullable: true },
                       },
-                      original: { type: ['object', 'null'], additionalProperties: true, nullable: true },
+                      required: ['rowNumber', 'status', 'issues'],
+                      additionalProperties: false,
                     },
-                    required: ['rowNumber', 'status', 'issues'],
-                    additionalProperties: false,
                   },
-                },
-                validRows: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    additionalProperties: true,
+                  validRows: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      additionalProperties: true,
+                    },
                   },
-                },
-                warningRows: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    additionalProperties: true,
+                  warningRows: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      additionalProperties: true,
+                    },
                   },
-                },
-                errorRows: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    additionalProperties: true,
+                  errorRows: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      additionalProperties: true,
+                    },
                   },
                 },
               },
             },
           },
-        },
-        400: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            details: { type: 'string' },
-            statusCode: { type: 'number' },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              details: { type: 'string' },
+              statusCode: { type: 'number' },
+            },
           },
-        },
-        500: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            details: { type: 'string' },
-            statusCode: { type: 'number' },
+          500: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              details: { type: 'string' },
+              statusCode: { type: 'number' },
+            },
           },
         },
       },
-    },
-  }, stockController.importPreview.bind(stockController));
-
-  // POST /v1/stocks/import/commit - Persist validated rows
-  fastify.post('/import/commit', {
-    schema: {
-      description: 'Commit validated stock import rows into the database',
-      tags: ['Stocks'],
-      body: {
-        type: 'object',
-        properties: {
-          rows: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                rowNumber: { type: 'number' },
-                puc: { type: 'string' },
-                rfid: { type: 'string' },
-                serialnumber: { type: 'string' },
-                manufacturedyear: { type: 'number' },
-                releaseyear: { type: 'number' },
-                ecompublish: { type: 'boolean' },
-                location: { type: 'string' },
+    }, stockController.importPreview.bind(stockController));
+  
+    // POST /v1/stocks/import/commit - Persist validated rows
+    fastify.post('/import/commit', {
+      schema: {
+        description: 'Commit validated stock import rows into the database',
+        tags: ['Stocks'],
+        body: {
+          type: 'object',
+          properties: {
+            rows: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  rowNumber: { type: 'number' },
+                  puc: { type: 'string' },
+                  rfid: { type: 'string' },
+                  serialnumber: { type: 'string' },
+                  manufacturedyear: { type: 'number' },
+                  releaseyear: { type: 'number' },
+                  ecompublish: { type: 'boolean' },
+                  location: { type: 'string' },
+                },
+                required: ['rfid', 'serialnumber'],
+                additionalProperties: true,
               },
-              required: ['rfid', 'serialnumber'],
-              additionalProperties: true,
+              minItems: 1,
             },
-            minItems: 1,
+          },
+          required: ['rows'],
+        },
+        response: {
+          201: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: {
+                type: 'object',
+                properties: {
+                  summary: {
+                    type: 'object',
+                    properties: {
+                      requested: { type: 'number' },
+                      inserted: { type: 'number' },
+                      failed: { type: 'number' },
+                    },
+                  },
+                  inserted: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        rowNumber: { type: 'number', nullable: true },
+                        data: { type: 'object', additionalProperties: true },
+                      },
+                    },
+                  },
+                  failures: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        rowNumber: { type: 'number', nullable: true },
+                        serialnumber: { type: 'string', nullable: true },
+                        message: { type: 'string' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          207: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: {
+                type: 'object',
+                properties: {
+                  summary: {
+                    type: 'object',
+                    properties: {
+                      requested: { type: 'number' },
+                      inserted: { type: 'number' },
+                      failed: { type: 'number' },
+                    },
+                  },
+                  inserted: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        rowNumber: { type: 'number', nullable: true },
+                        data: { type: 'object', additionalProperties: true },
+                      },
+                    },
+                  },
+                  failures: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        rowNumber: { type: 'number', nullable: true },
+                        serialnumber: { type: 'string', nullable: true },
+                        message: { type: 'string' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              statusCode: { type: 'number' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          500: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              details: { type: 'string' },
+              statusCode: { type: 'number' },
+            },
           },
         },
-        required: ['rows'],
       },
-      response: {
-        201: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            data: {
-              type: 'object',
-              properties: {
-                summary: {
-                  type: 'object',
-                  properties: {
-                    requested: { type: 'number' },
-                    inserted: { type: 'number' },
-                    failed: { type: 'number' },
-                  },
-                },
-                inserted: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      rowNumber: { type: 'number', nullable: true },
-                      data: { type: 'object', additionalProperties: true },
-                    },
-                  },
-                },
-                failures: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      rowNumber: { type: 'number', nullable: true },
-                      serialnumber: { type: 'string', nullable: true },
-                      message: { type: 'string' },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-        207: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            data: {
-              type: 'object',
-              properties: {
-                summary: {
-                  type: 'object',
-                  properties: {
-                    requested: { type: 'number' },
-                    inserted: { type: 'number' },
-                    failed: { type: 'number' },
-                  },
-                },
-                inserted: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      rowNumber: { type: 'number', nullable: true },
-                      data: { type: 'object', additionalProperties: true },
-                    },
-                  },
-                },
-                failures: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      rowNumber: { type: 'number', nullable: true },
-                      serialnumber: { type: 'string', nullable: true },
-                      message: { type: 'string' },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-        400: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            statusCode: { type: 'number' },
-            data: { type: 'object', additionalProperties: true },
-          },
-        },
-        500: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            details: { type: 'string' },
-            statusCode: { type: 'number' },
-          },
-        },
-      },
-    },
-  }, stockController.importCommit.bind(stockController));
-  */
+    }, stockController.importCommit.bind(stockController));
+    */
 
   // POST /v1/stocks/import-bulk/preview - Parse and validate Excel import file for stocks
   fastify.post('/import/preview', {
@@ -1206,8 +1190,8 @@ export async function stockRoutes(fastify: FastifyInstance) {
                     properties: {
                       rowNumber: { type: 'number', description: 'Excel row number' },
                       status: { type: 'string', enum: ['success', 'warning', 'error'], description: 'Row validation status' },
-                      normalized: { 
-                        type: ['object', 'null'], 
+                      normalized: {
+                        type: ['object', 'null'],
                         additionalProperties: true,
                         description: 'Normalized stock data ready for insertion'
                       },
@@ -1225,9 +1209,9 @@ export async function stockRoutes(fastify: FastifyInstance) {
                           additionalProperties: false,
                         },
                       },
-                      original: { 
-                        type: ['object', 'null'], 
-                        additionalProperties: true, 
+                      original: {
+                        type: ['object', 'null'],
+                        additionalProperties: true,
                         nullable: true,
                         description: 'Original Excel row data'
                       },
