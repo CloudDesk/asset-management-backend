@@ -987,6 +987,159 @@ export class StockImportService {
     }
   }
 
+  /**
+   * Validate commit data to ensure all picklist values and reference IDs exist
+   * This provides an additional safety layer even though preview should have validated
+   */
+  private async validateCommitData(rows: any[]): Promise<void> {
+    // Collect all unique values for validation
+    const platforms = new Set<string>();
+    const stockStatuses = new Set<string>();
+    const poIds = new Set<number>();
+    const supplierIds = new Set<number>();
+    const pucs = new Set<string>();
+
+    rows.forEach(row => {
+      if (row.platform && typeof row.platform === 'string') {
+        platforms.add(row.platform.trim());
+      }
+      if (row.stockstatus && typeof row.stockstatus === 'string') {
+        stockStatuses.add(row.stockstatus.trim());
+      }
+      if (row.poid) {
+        const poId = typeof row.poid === 'string' ? parseInt(row.poid, 10) : row.poid;
+        if (!isNaN(poId)) poIds.add(poId);
+      }
+      if (row.supplierid) {
+        const supplierId = typeof row.supplierid === 'string' ? parseInt(row.supplierid, 10) : row.supplierid;
+        if (!isNaN(supplierId)) supplierIds.add(supplierId);
+      }
+      if (row.puc && typeof row.puc === 'string') {
+        pucs.add(row.puc.trim());
+      }
+    });
+
+    // Validate picklist values
+    if (platforms.size > 0) {
+      const platformList = Array.from(platforms);
+      const existingPlatforms = await prisma.picklist.findMany({
+        where: {
+          object: 'stock',
+          fieldname: 'platform',
+          OR: [
+            ...platformList.map((value) => ({ value: { equals: value, mode: 'insensitive' as const } })),
+            ...platformList.map((value) => ({ label: { equals: value, mode: 'insensitive' as const } }))
+          ],
+        },
+        select: { value: true, label: true },
+      });
+
+      const validPlatforms = new Set<string>();
+      existingPlatforms.forEach(record => {
+        if (record.value) validPlatforms.add(record.value.toLowerCase());
+        if (record.label) validPlatforms.add(record.label.toLowerCase());
+      });
+
+      const invalidPlatforms = platformList.filter(platform => 
+        !validPlatforms.has(platform.toLowerCase())
+      );
+
+      if (invalidPlatforms.length > 0) {
+        throw new ValidationError(`Invalid platform values: ${invalidPlatforms.join(', ')}. Must match values from the platform picklist.`);
+      }
+    }
+
+    if (stockStatuses.size > 0) {
+      const stockStatusList = Array.from(stockStatuses);
+      const existingStockStatuses = await prisma.picklist.findMany({
+        where: {
+          object: 'stock',
+          fieldname: 'stockstatus',
+          OR: [
+            ...stockStatusList.map((value) => ({ value: { equals: value, mode: 'insensitive' as const } })),
+            ...stockStatusList.map((value) => ({ label: { equals: value, mode: 'insensitive' as const } }))
+          ],
+        },
+        select: { value: true, label: true },
+      });
+
+      const validStockStatuses = new Set<string>();
+      existingStockStatuses.forEach(record => {
+        if (record.value) validStockStatuses.add(record.value.toLowerCase());
+        if (record.label) validStockStatuses.add(record.label.toLowerCase());
+      });
+
+      const invalidStockStatuses = stockStatusList.filter(status => 
+        !validStockStatuses.has(status.toLowerCase())
+      );
+
+      if (invalidStockStatuses.length > 0) {
+        throw new ValidationError(`Invalid stock status values: ${invalidStockStatuses.join(', ')}. Must match values from the stock status picklist.`);
+      }
+    }
+
+    // Validate reference IDs
+    if (poIds.size > 0) {
+      const poIdList = Array.from(poIds);
+      const existingPOs = await prisma.purchaseOrder.findMany({
+        where: {
+          OR: poIdList.map((id) => ({ id: { equals: id } })),
+        },
+        select: { id: true },
+      });
+
+      const existingPOSet = new Set(existingPOs.map(record => record.id));
+      const invalidPOIds = poIdList.filter(id => !existingPOSet.has(id));
+
+      if (invalidPOIds.length > 0) {
+        throw new ValidationError(`Invalid Purchase Order IDs: ${invalidPOIds.join(', ')}. These IDs do not exist in the database.`);
+      }
+    }
+
+    if (supplierIds.size > 0) {
+      const supplierIdList = Array.from(supplierIds);
+      const existingSuppliers = await prisma.supplier.findMany({
+        where: {
+          OR: supplierIdList.map((id) => ({ id: { equals: id } })),
+        },
+        select: { id: true },
+      });
+
+      const existingSupplierSet = new Set(existingSuppliers.map(record => record.id));
+      const invalidSupplierIds = supplierIdList.filter(id => !existingSupplierSet.has(id));
+
+      if (invalidSupplierIds.length > 0) {
+        throw new ValidationError(`Invalid Supplier IDs: ${invalidSupplierIds.join(', ')}. These IDs do not exist in the database.`);
+      }
+    }
+
+    // Validate PUCs exist in products
+    if (pucs.size > 0) {
+      const pucList = Array.from(pucs);
+      const existingProducts = await prisma.product.findMany({
+        where: {
+          OR: pucList.map((puc) => ({ puc: { equals: puc, mode: 'insensitive' as const } })),
+        },
+        select: { puc: true },
+      });
+
+      const existingPucSet = new Set(existingProducts.map(record => record.puc.toLowerCase()));
+      const invalidPucs = pucList.filter(puc => !existingPucSet.has(puc.toLowerCase()));
+
+      if (invalidPucs.length > 0) {
+        throw new ValidationError(`Invalid PUCs: ${invalidPucs.join(', ')}. These PUCs do not exist in the products database. Please create the products first.`);
+      }
+    }
+
+    logger.info({
+      platformsValidated: platforms.size,
+      stockStatusesValidated: stockStatuses.size,
+      poIdsValidated: poIds.size,
+      supplierIdsValidated: supplierIds.size,
+      pucsValidated: pucs.size
+    }, 'Commit data validation completed successfully');
+  }
+
   // Insert validated rows into database
   async insertValidatedRows(rows: any[]): Promise<{
     summary: {
@@ -1020,6 +1173,9 @@ export class StockImportService {
         rowCount: rows.length
       }, 'Starting stock bulk insert process');
 
+      // ✅ NEW: Validate all rows before insertion to ensure data integrity
+      await this.validateCommitData(rows);
+
       const inserted: Array<{ rowNumber: number; data: any }> = [];
       const failures: Array<{ rowNumber: number; serialnumber?: string; rfid?: string; message: string }> = [];
       const productUpdateQueue: Array<{
@@ -1045,6 +1201,14 @@ export class StockImportService {
             createdby: rowData.createdby ?? 1, // Default system user - ideally from auth context
             modifiedby: rowData.modifiedby ?? 1
           };
+
+          // Convert string IDs to integers for database compatibility
+          if (stockData.poid && typeof stockData.poid === 'string') {
+            stockData.poid = parseInt(stockData.poid, 10);
+          }
+          if (stockData.supplierid && typeof stockData.supplierid === 'string') {
+            stockData.supplierid = parseInt(stockData.supplierid, 10);
+          }
 
           // Insert stock record via StockService while deferring product quantity recalculation
           const createdStock = await this.stockService.create(stockData as any, { skipProductUpdate: true });

@@ -68,6 +68,11 @@ export declare class StockImportService {
     private parseDateField;
     private excelSerialNumberToDate;
     parseAndValidateExcel(fileBuffer: Buffer): Promise<StockImportEvaluation>;
+    /**
+     * Validate commit data to ensure all picklist values and reference IDs exist
+     * This provides an additional safety layer even though preview should have validated
+     */
+    private validateCommitData;
     insertValidatedRows(rows: any[]): Promise<{
         summary: {
             requested: number;

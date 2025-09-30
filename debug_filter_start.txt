@@ -23309,3 +23309,135 @@ Filtering data for platformstock (platformstock): {
   "lockqty": 0,
   "modifieddate": 1759207508322
 }
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0036",
+  "platform": "flipkart",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "manufacturedyear": 1759190400,
+  "releaseyear": 1759190400,
+  "poid": "11",
+  "supplierid": "1",
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759216759018,
+  "modifieddate": 1759216759018,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0036",
+  "platform": "flipkart",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "manufacturedyear": 1759190400,
+  "releaseyear": 1759190400,
+  "poid": "11",
+  "supplierid": "1",
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759216784890,
+  "modifieddate": 1759216784890,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0036",
+  "platform": "flipkart",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "manufacturedyear": 1759190400,
+  "releaseyear": 1759190400,
+  "poid": "11",
+  "supplierid": "1",
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759216824216,
+  "modifieddate": 1759216824216,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0036",
+  "platform": "flipkart",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "manufacturedyear": 1759190400,
+  "releaseyear": 1759190400,
+  "poid": 11,
+  "supplierid": 1,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759216846700,
+  "modifieddate": 1759216846700,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for product (product): {
+  "quantity": 2,
+  "availablequantity": 2,
+  "soldquantity": 0,
+  "ecompublishedquantity": 2,
+  "productstatus": "low_stock",
+  "modifieddate": 1759216850895
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0036",
+  "platform": "flipkart",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "manufacturedyear": 1759190400,
+  "releaseyear": 1759190400,
+  "poid": 11,
+  "supplierid": 1,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759217006726,
+  "modifieddate": 1759217006726,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for product (product): {
+  "quantity": 3,
+  "availablequantity": 3,
+  "soldquantity": 0,
+  "ecompublishedquantity": 3,
+  "productstatus": "low_stock",
+  "modifieddate": 1759217008147
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0036",
+  "platform": "invalid_platform",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "manufacturedyear": 1759190400,
+  "releaseyear": 1759190400,
+  "poid": 11,
+  "supplierid": 1,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759217026795,
+  "modifieddate": 1759217026795,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for product (product): {
+  "quantity": 4,
+  "availablequantity": 4,
+  "soldquantity": 0,
+  "ecompublishedquantity": 4,
+  "productstatus": "low_stock",
+  "modifieddate": 1759217028206
+}
