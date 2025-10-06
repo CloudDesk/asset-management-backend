@@ -82,6 +82,151 @@ export class ProductService {
       throw error;
     }
   }
+  // Add these methods to ProductService class
+
+async findManyForPlatform(
+  platform: string,
+  filters: Record<string, any> = {},
+  page: number = 1,
+  limit: number = 10
+): Promise<{ data: any[]; pagination: any }> {
+  try {
+    const offset = (page - 1) * limit;
+    
+    // Build base query with platform stock join
+    const whereClause = this.buildPlatformWhereClause(platform, filters);
+    
+    const [products, total] = await Promise.all([
+      prisma.product.findMany({
+        where: whereClause,
+        include: {
+          platformStocks: {
+            where: { platform },
+            select: {
+              id: true,
+              platform: true,
+              availableqty: true,
+              platformstatus: true,
+              soldqty: true,
+              totalqty: true,
+              orderedqty: true,
+              lockqty: true,
+            } as any,
+            take: 1, // Only get one record since it's unique
+          },
+        },
+        skip: offset,
+        take: limit,
+        orderBy: { createddate: 'desc' },
+      }),
+      prisma.product.count({ where: whereClause }),
+    ]);
+    
+    return {
+      data: products,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNext: offset + limit < total,
+        hasPrev: page > 1,
+      },
+    };
+  } catch (error: any) {
+    logger.error({ error: error.message, platform, filters }, 'Error in findManyForPlatform');
+    throw error;
+  }
+}
+
+async findByIdForPlatform(id: string, platform: string): Promise<any> {
+  try {
+    const product = await prisma.product.findUnique({
+      where: { id: BigInt(id) },
+      include: {
+        platformStocks: {
+          where: { platform },
+          select: {
+            id: true,
+            platform: true,
+            availableqty: true,
+            platformstatus: true,
+            soldqty: true,
+            totalqty: true,
+            orderedqty: true,
+            lockqty: true,
+            createddate: true,
+            modifieddate: true,
+          } as any,
+          take: 1, // Only get one record since it's unique
+        },
+      },
+    });
+    
+    if (!product) {
+      throw new Error(`Product with ID ${id} not found`);
+    }
+    
+    return product;
+  } catch (error: any) {
+    logger.error({ error: error.message, id, platform }, 'Error in findByIdForPlatform');
+    throw error;
+  }
+}
+
+private buildPlatformWhereClause(platform: string, filters: Record<string, any>): any {
+  const where: any = {};
+  
+  // Add platform stock existence filter
+  where.platformStocks = {
+    some: {
+      platform,
+    },
+  };
+  
+  // Apply other filters
+  if (filters.category) {
+    where.category = filters.category;
+  }
+  
+  if (filters.subcategory) {
+    where.subcategory = filters.subcategory;
+  }
+  
+  if (filters.brand) {
+    where.Brand = filters.brand;
+  }
+  
+  if (filters.minPrice || filters.maxPrice) {
+    where.price = {};
+    if (filters.minPrice) {
+      where.price.gte = parseFloat(filters.minPrice);
+    }
+    if (filters.maxPrice) {
+      where.price.lte = parseFloat(filters.maxPrice);
+    }
+  }
+  
+  if (filters.stockStatus) {
+    where.platformStocks = {
+      some: {
+        platform,
+        platformstatus: filters.stockStatus,
+      },
+    };
+  }
+  
+  if (filters.search) {
+    where.OR = [
+      { name: { contains: filters.search, mode: 'insensitive' } },
+      { shortdescription: { contains: filters.search, mode: 'insensitive' } },
+      { fulldescription: { contains: filters.search, mode: 'insensitive' } },
+    ];
+  }
+  
+  return where;
+}
+
 
   async create(data: CreateProductInput & Record<string, any>) {
     try {

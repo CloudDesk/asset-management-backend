@@ -491,4 +491,83 @@ export class ProductController {
       }
     }
   );
+
+  // Add these methods to ProductController class
+
+getProductsForPlatform = asyncHandler(
+  async (
+    request: FastifyRequest<{ 
+      Params: { platform: string },
+      Querystring: Record<string, any> 
+    }>,
+    reply: FastifyReply
+  ) => {
+    const { platform } = request.params;
+    const allFilters: Record<string, any> = request.query || {};
+    const { page, limit } = getPaginationParams(allFilters);
+    
+    const { page: _, limit: __, ...filters } = allFilters;
+    
+    const result = await this.productService.findManyForPlatform(
+      platform, 
+      filters, 
+      page, 
+      limit
+    );
+    
+    const formattedData = formatEntitiesForAPI(result.data, "product");
+    
+    // Transform platformStocks array to single platformStock object
+    const transformedData = formattedData.map((product: any) => ({
+      ...product,
+      platformStock: product.platformStocks?.[0] || null,
+      platformStocks: undefined, // Remove the array
+    }));
+    
+    const response = createSuccessResponse(
+      `Products for ${platform} platform retrieved successfully`,
+      transformedData
+    );
+    
+    return reply.code(200).send({
+      ...response,
+      pagination: result.pagination,
+      meta: {
+        platform,
+        filters: Object.keys(filters),
+        total: result.pagination.total,
+        filtered: Object.keys(filters).length > 0,
+      },
+    });
+  }
+);
+
+getProductForPlatform = asyncHandler(
+  async (
+    request: FastifyRequest<{ 
+      Params: { id: string; platform: string } 
+    }>,
+    reply: FastifyReply
+  ) => {
+    const { id, platform } = request.params;
+    
+    const product = await this.productService.findByIdForPlatform(id, platform);
+    
+    const formattedProduct = formatProductForAPI(product);
+    
+    // Transform platformStocks array to single platformStock object
+    const transformedProduct = {
+      ...formattedProduct,
+      platformStock: formattedProduct.platformStocks?.[0] || null,
+      platformStocks: undefined, // Remove the array
+    };
+    
+    const response = createSuccessResponse(
+      `Product ${id} for ${platform} platform retrieved successfully`,
+      transformedProduct
+    );
+    
+    return reply.code(200).send(response);
+  }
+);
 }
