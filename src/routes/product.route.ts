@@ -48,6 +48,11 @@ export async function productRoutes(fastify: FastifyInstance) {
               type: "string",
               description: "Filter by product status",
             },
+            isdealoftheday: {
+              type: "string",
+              description:
+                "Filter by deal of the day status (true or false)",
+            },
             puc: { type: "string", description: "Filter by PUC code" },
             averagerating: {
               type: "string",
@@ -500,6 +505,11 @@ export async function productRoutes(fastify: FastifyInstance) {
                     nullable: true,
                     description: "Product status",
                   },
+                  isdealoftheday: {
+                    type: "boolean",
+                    nullable: true,
+                    description: "Is deal of the day",
+                  },
                   ponumber: {
                     type: "string",
                     nullable: true,
@@ -712,6 +722,10 @@ export async function productRoutes(fastify: FastifyInstance) {
               minimum: 0,
               description: "Product price",
             },
+            isdealoftheday: {
+              type: "boolean",
+              description: "Mark product as deal of the day",
+            },
           },
           required: ["name"], // Only name is required as per schema
           additionalProperties: false, // Strict validation - only allow specified fields
@@ -805,6 +819,11 @@ export async function productRoutes(fastify: FastifyInstance) {
                     type: "string",
                     nullable: true,
                     description: "Product status",
+                  },
+                  isdealoftheday: {
+                    type: "boolean",
+                    nullable: true,
+                    description: "Is deal of the day",
                   },
                   puc: {
                     type: "string",
@@ -969,6 +988,10 @@ export async function productRoutes(fastify: FastifyInstance) {
               maxLength: 255,
               description: "Product status",
             },
+            isdealoftheday: {
+              type: "boolean",
+              description: "Mark product as deal of the day",
+            },
             puc: { type: "string", maxLength: 255, description: "PUC code (auto-generated)" },
             // Size array fields
             large: {
@@ -1058,6 +1081,11 @@ export async function productRoutes(fastify: FastifyInstance) {
                     type: "string",
                     nullable: true,
                     description: "Product status",
+                  },
+                  isdealoftheday: {
+                    type: "boolean",
+                    nullable: true,
+                    description: "Is deal of the day",
                   },
                   ponumber: {
                     type: "string",

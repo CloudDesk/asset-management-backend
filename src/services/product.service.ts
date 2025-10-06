@@ -25,6 +25,9 @@ import {
 } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
 
+const DEFAULT_PLATFORM_STOCK_PLATFORMS = ['amazon', 'flipkart', 'nivapp'] as const;
+const DEFAULT_PLATFORM_STATUS = 'outofstock';
+
 export class ProductService {
   async findMany(
     filters: FilterOptions,
@@ -88,6 +91,32 @@ export class ProductService {
 
       if (!product) {
         throw new Error('Failed to create product - no valid fields provided');
+      }
+
+      try {
+        await this.createDefaultPlatformStocks(product.id);
+      } catch (platformStockError: any) {
+        logger.error(
+          {
+            error: platformStockError?.message,
+            productId: product.id,
+          },
+          'Failed to create default platform stock records; attempting to roll back product creation'
+        );
+
+        try {
+          await dynamicDelete('product', { id: product.id });
+        } catch (rollbackError: any) {
+          logger.error(
+            {
+              error: rollbackError?.message,
+              productId: product.id,
+            },
+            'Product rollback after platform stock failure did not complete'
+          );
+        }
+
+        throw platformStockError;
       }
 
       logger.info({ 
@@ -685,4 +714,112 @@ export class ProductService {
       throw error;
     }
   }
-} 
+
+  /**
+   * Calculate platform status based on available quantity
+   * @param availableqty - Available quantity
+   * @returns Platform status string
+   */
+  private calculatePlatformStatus(availableqty: number): string {
+    if (availableqty === 0) {
+      return 'out_of_stock';
+    } else if (availableqty > 5) {
+      return 'in_stock';
+    } else {
+      return 'low_stock';
+    }
+  }
+
+  /**
+   * Update platform stock status based on available quantity
+   * @param productId - Product ID
+   * @param platform - Platform name
+   * @param availableqty - Available quantity
+   */
+  private async updatePlatformStockStatus(productId: number | string, platform: string, availableqty: number): Promise<void> {
+    try {
+      const numericId = typeof productId === 'string' ? parseInt(productId, 10) : Number(productId);
+      const platformStatus = this.calculatePlatformStatus(availableqty);
+
+      await prisma.platformStock.updateMany({
+        where: {
+          productid: BigInt(numericId),
+          platform: platform
+        },
+        data: {
+          platformstatus: platformStatus,
+          modifieddate: BigInt(Date.now())
+        } as any
+      });
+
+      logger.debug({
+        productId: numericId,
+        platform,
+        availableqty,
+        platformStatus
+      }, 'Updated platform stock status');
+    } catch (error: any) {
+      logger.error({
+        error: error.message,
+        productId,
+        platform,
+        availableqty
+      }, 'Error updating platform stock status');
+      throw error;
+    }
+  }
+
+  private async createDefaultPlatformStocks(productId: number | string) {
+    const numericId = typeof productId === 'string' ? parseInt(productId, 10) : Number(productId);
+
+    if (!Number.isFinite(numericId)) {
+      logger.warn({ productId }, 'Skipping default platform stock creation due to invalid product ID');
+      return;
+    }
+
+    const platformStockDefaults = {
+      productid: numericId,
+      availableqty: 0,
+      orderedqty: 0,
+      soldqty: 0,
+      totalqty: 0,
+      lockqty: 0,
+      platformstatus: this.calculatePlatformStatus(0), // Calculate status based on availableqty = 0
+    };
+
+    for (const platform of DEFAULT_PLATFORM_STOCK_PLATFORMS) {
+      try {
+        const existing = await prisma.platformStock.findUnique({
+          where: {
+            productid_platform: {
+              productid: BigInt(numericId),
+              platform,
+            },
+          },
+        });
+
+        if (existing) {
+          logger.debug({ productId: numericId, platform }, 'Default platform stock already present, skipping creation');
+          continue;
+        }
+
+        await dynamicCreate('platformstock', {
+          ...platformStockDefaults,
+          platform,
+        });
+
+        logger.info({ productId: numericId, platform }, 'Default platform stock created');
+      } catch (error: any) {
+        logger.error(
+          {
+            error: error?.message,
+            productId: numericId,
+            platform,
+          },
+          'Error while creating default platform stock'
+        );
+        throw error;
+      }
+    }
+  }
+}

@@ -22,6 +22,7 @@ model Product {
   brand                String?     @db.VarChar(255)
   pack                 String?     @db.VarChar(255)
   searchtext           Unsupported("tsvector")?
+  isdealoftheday        Boolean     @default(false)
 
   averagerating        Decimal?    @db.Decimal(2, 1)
   discount             Int?
@@ -55,13 +56,15 @@ model PlatformStock {
   createddate   BigInt?
   modifieddate  BigInt?
   productid     BigInt
-  
+  platformstatus        String?     @db.VarChar(255)
   // Relations
   product       Product  @relation(fields: [productid], references: [id], onDelete: Cascade)
 
   @@unique([productid, platform])
   @@map("platformstock")
 }
+
+
 
 model Stock {
   id                   BigInt      @id @default(autoincrement())

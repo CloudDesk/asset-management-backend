@@ -23,6 +23,20 @@ import {
 import { logger } from "../config/logger.js";
 
 export class PlatformStockService {
+  /**
+   * Calculate platform status based on available quantity
+   * @param availableqty - Available quantity
+   * @returns Platform status string
+   */
+  private calculatePlatformStatus(availableqty: number): string {
+    if (availableqty === 0) {
+      return 'out_of_stock';
+    } else if (availableqty > 5) {
+      return 'in_stock';
+    } else {
+      return 'low_stock';
+    }
+  }
   async findMany(
     filters: FilterOptions,
     page: number,
@@ -107,7 +121,18 @@ export class PlatformStockService {
         "Starting dynamic platformStock create operation"
       );
 
-      const platformStock = await dynamicCreate("platformstock", data);
+      // Calculate platform status based on availableqty if provided
+      const availableqty = data.availableqty || 0;
+      const platformStatus = this.calculatePlatformStatus(Number(availableqty));
+      
+      // Add platform status and date fields to create data
+      const dataWithStatus = {
+        ...data,
+        platformstatus: platformStatus,
+
+      };
+
+      const platformStock = await dynamicCreate("platformstock", dataWithStatus);
 
       if (!platformStock) {
         throw new Error("Failed to create platformStock - no valid fields provided");
@@ -118,9 +143,11 @@ export class PlatformStockService {
           platformStockId: platformStock.id,
           productId: platformStock.productId,
           platform: platformStock.platform,
+          platformStatus: platformStatus,
+          availableqty: availableqty,
           availableFields: Object.keys(platformStock),
         },
-        "Dynamic platformStock create completed"
+        "Dynamic platformStock create completed with calculated status"
       );
 
       return platformStock;
@@ -140,17 +167,40 @@ export class PlatformStockService {
         "Starting dynamic platformStock update operation"
       );
 
-      logger.debug(
-        { 
-          id, 
-          dataToPassToDynamicUpdate: data,
-          dataKeys: Object.keys(data),
-          dataValues: Object.values(data)
-        },
-        "Data being passed to dynamicUpdate"
-      );
+      // Calculate platform status based on availableqty if provided
+      const availableqty = data.availableqty;
+      let dataWithStatus = { ...data };
+      
+      if (availableqty !== undefined) {
+        const platformStatus = this.calculatePlatformStatus(Number(availableqty));
+        dataWithStatus.platformstatus = platformStatus;
+        
+        logger.debug(
+          { 
+            id, 
+            availableqty,
+            calculatedPlatformStatus: platformStatus,
+            dataToPassToDynamicUpdate: dataWithStatus,
+            dataKeys: Object.keys(dataWithStatus),
+            dataValues: Object.values(dataWithStatus)
+          },
+          "Data being passed to dynamicUpdate with calculated platform status"
+        );
+      } else {
+  
+        
+        logger.debug(
+          { 
+            id, 
+            dataToPassToDynamicUpdate: dataWithStatus,
+            dataKeys: Object.keys(dataWithStatus),
+            dataValues: Object.values(dataWithStatus)
+          },
+          "Data being passed to dynamicUpdate (no availableqty change)"
+        );
+      }
 
-      const platformStock = await dynamicUpdate("platformstock", { id: Number(id) }, data);
+      const platformStock = await dynamicUpdate("platformstock", { id: Number(id) }, dataWithStatus);
 
       if (!platformStock) {
         throw new Error(`PlatformStock with ID ${id} not found`);
@@ -161,9 +211,11 @@ export class PlatformStockService {
           platformStockId: platformStock.id,
           productId: platformStock.productId,
           platform: platformStock.platform,
-          updatedFields: Object.keys(data),
+          updatedFields: Object.keys(dataWithStatus),
+          platformStatus: dataWithStatus.platformstatus,
+          availableqty: availableqty,
         },
-        "Dynamic platformStock update completed"
+        "Dynamic platformStock update completed with calculated status"
       );
 
       return platformStock;
@@ -244,20 +296,35 @@ export class PlatformStockService {
         logger.debug({ error: error.message }, "No existing platformStock found");
       }
 
+      // Calculate platform status based on availableqty if provided
+      const availableqty = updateData.availableqty || existingPlatformStock?.availableqty || 0;
+      const platformStatus = this.calculatePlatformStatus(Number(availableqty));
+      
+      // Add platform status and date fields to update data
+      const dataWithStatus = {
+        ...updateData,
+        platformstatus: platformStatus
+      };
+
       let platformStock;
       if (existingPlatformStock) {
         // Update existing
-        platformStock = await this.update(existingPlatformStock.id, updateData);
+        platformStock = await this.update(existingPlatformStock.id, dataWithStatus);
         logger.info(
-          { platformStockId: platformStock.id, action: "updated" },
-          "PlatformStock upsert - updated existing"
+          { 
+            platformStockId: platformStock.id, 
+            action: "updated",
+            platformStatus: platformStatus,
+            availableqty: availableqty
+          },
+          "PlatformStock upsert - updated existing with calculated status"
         );
       } else {
         // Create new - ensure required fields are present
         const createData = {
           productid: Number(productid),
           platform: platform,
-          ...updateData
+          ...dataWithStatus,
         };
         
         // Ensure productid is defined
@@ -266,8 +333,13 @@ export class PlatformStockService {
         }
         platformStock = await this.create(createData);
         logger.info(
-          { platformStockId: platformStock.id, action: "created" },
-          "PlatformStock upsert - created new"
+          { 
+            platformStockId: platformStock.id, 
+            action: "created",
+            platformStatus: platformStatus,
+            availableqty: availableqty
+          },
+          "PlatformStock upsert - created new with calculated status"
         );
       }
 
@@ -435,6 +507,9 @@ export class PlatformStockService {
         "PlatformStock quantity calculations"
       );
 
+      // Calculate platform status based on new available quantity
+      const platformStatus = this.calculatePlatformStatus(newAvailableQty);
+
       // Use upsert to create or update
       const upsertData = {
         productid: productId,
@@ -444,7 +519,7 @@ export class PlatformStockService {
         totalqty: newTotalQty,
         orderedqty: currentRecord?.orderedqty || 0,
         lockqty: currentRecord?.lockqty || 0,
-        modifieddate: Date.now(),
+        platformstatus: platformStatus,
       };
 
       logger.debug(
@@ -476,8 +551,9 @@ export class PlatformStockService {
             soldqty: platformStock.soldqty,
             totalqty: platformStock.totalqty,
           },
+          platformStatus: platformStatus,
         },
-        "Platform stock quantities updated successfully"
+        "Platform stock quantities and status updated successfully"
       );
 
       return platformStock;
@@ -535,7 +611,6 @@ export class PlatformStockService {
           fromPlatformStock = await dynamicUpdate('platformstock', { id: fromRecord.id }, {
             availableqty: Math.max(0, fromRecord.availableqty - 1),
             totalqty: Math.max(0, fromRecord.totalqty - 1),
-            modifieddate: Date.now(),
           });
         } else {
           // Create with 0 quantities
@@ -547,8 +622,6 @@ export class PlatformStockService {
             totalqty: 0,
             orderedqty: 0,
             lockqty: 0,
-            createddate: Date.now(),
-            modifieddate: Date.now(),
           });
         }
       } catch (error: any) {
@@ -571,7 +644,6 @@ export class PlatformStockService {
           toPlatformStock = await dynamicUpdate('platformstock', { id: toRecord.id }, {
             availableqty: toRecord.availableqty + 1,
             totalqty: toRecord.totalqty + 1,
-            modifieddate: Date.now(),
           });
         } else {
           // Create new record
@@ -583,8 +655,6 @@ export class PlatformStockService {
             totalqty: 1,
             orderedqty: 0,
             lockqty: 0,
-            createddate: Date.now(),
-            modifieddate: Date.now(),
           });
         }
       } catch (error: any) {
