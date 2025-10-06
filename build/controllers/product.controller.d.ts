@@ -11,5 +11,7 @@ export declare class ProductController {
     upsertProductWithFile: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     rearrangeProductImages: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     deleteProductImageUrls: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    getProductsForPlatform: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    getProductForPlatform: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
 }
 //# sourceMappingURL=product.controller.d.ts.map

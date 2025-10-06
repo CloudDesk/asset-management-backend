@@ -1,6 +1,9 @@
+import { prisma } from '../models/prisma.js';
 import { createPaginationResult, getPrismaSkipTake } from '../utils/pagination.js';
 import { dynamicFindMany, dynamicFindUnique, dynamicCreate, dynamicUpdate, dynamicDelete, dynamicFindManyWithFilters } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
+const DEFAULT_PLATFORM_STOCK_PLATFORMS = ['amazon', 'flipkart', 'nivapp'];
+const DEFAULT_PLATFORM_STATUS = 'outofstock';
 export class ProductService {
     async findMany(filters, page, limit) {
         try {
@@ -44,12 +47,156 @@ export class ProductService {
             throw error;
         }
     }
+    // Add these methods to ProductService class
+    async findManyForPlatform(platform, filters = {}, page = 1, limit = 10) {
+        try {
+            const offset = (page - 1) * limit;
+            // Build base query with platform stock join
+            const whereClause = this.buildPlatformWhereClause(platform, filters);
+            const [products, total] = await Promise.all([
+                prisma.product.findMany({
+                    where: whereClause,
+                    include: {
+                        platformStocks: {
+                            where: { platform },
+                            select: {
+                                id: true,
+                                platform: true,
+                                availableqty: true,
+                                platformstatus: true,
+                                soldqty: true,
+                                totalqty: true,
+                                orderedqty: true,
+                                lockqty: true,
+                            },
+                            take: 1, // Only get one record since it's unique
+                        },
+                    },
+                    skip: offset,
+                    take: limit,
+                    orderBy: { createddate: 'desc' },
+                }),
+                prisma.product.count({ where: whereClause }),
+            ]);
+            return {
+                data: products,
+                pagination: {
+                    page,
+                    limit,
+                    total,
+                    totalPages: Math.ceil(total / limit),
+                    hasNext: offset + limit < total,
+                    hasPrev: page > 1,
+                },
+            };
+        }
+        catch (error) {
+            logger.error({ error: error.message, platform, filters }, 'Error in findManyForPlatform');
+            throw error;
+        }
+    }
+    async findByIdForPlatform(id, platform) {
+        try {
+            const product = await prisma.product.findUnique({
+                where: { id: BigInt(id) },
+                include: {
+                    platformStocks: {
+                        where: { platform },
+                        select: {
+                            id: true,
+                            platform: true,
+                            availableqty: true,
+                            platformstatus: true,
+                            soldqty: true,
+                            totalqty: true,
+                            orderedqty: true,
+                            lockqty: true,
+                            createddate: true,
+                            modifieddate: true,
+                        },
+                        take: 1, // Only get one record since it's unique
+                    },
+                },
+            });
+            if (!product) {
+                throw new Error(`Product with ID ${id} not found`);
+            }
+            return product;
+        }
+        catch (error) {
+            logger.error({ error: error.message, id, platform }, 'Error in findByIdForPlatform');
+            throw error;
+        }
+    }
+    buildPlatformWhereClause(platform, filters) {
+        const where = {};
+        // Add platform stock existence filter
+        where.platformStocks = {
+            some: {
+                platform,
+            },
+        };
+        // Apply other filters
+        if (filters.category) {
+            where.category = filters.category;
+        }
+        if (filters.subcategory) {
+            where.subcategory = filters.subcategory;
+        }
+        if (filters.brand) {
+            where.Brand = filters.brand;
+        }
+        if (filters.minPrice || filters.maxPrice) {
+            where.price = {};
+            if (filters.minPrice) {
+                where.price.gte = parseFloat(filters.minPrice);
+            }
+            if (filters.maxPrice) {
+                where.price.lte = parseFloat(filters.maxPrice);
+            }
+        }
+        if (filters.stockStatus) {
+            where.platformStocks = {
+                some: {
+                    platform,
+                    platformstatus: filters.stockStatus,
+                },
+            };
+        }
+        if (filters.search) {
+            where.OR = [
+                { name: { contains: filters.search, mode: 'insensitive' } },
+                { shortdescription: { contains: filters.search, mode: 'insensitive' } },
+                { fulldescription: { contains: filters.search, mode: 'insensitive' } },
+            ];
+        }
+        return where;
+    }
     async create(data) {
         try {
             logger.debug({ originalData: data }, 'Starting dynamic product create operation');
             const product = await dynamicCreate('product', data);
             if (!product) {
                 throw new Error('Failed to create product - no valid fields provided');
+            }
+            try {
+                await this.createDefaultPlatformStocks(product.id);
+            }
+            catch (platformStockError) {
+                logger.error({
+                    error: platformStockError?.message,
+                    productId: product.id,
+                }, 'Failed to create default platform stock records; attempting to roll back product creation');
+                try {
+                    await dynamicDelete('product', { id: product.id });
+                }
+                catch (rollbackError) {
+                    logger.error({
+                        error: rollbackError?.message,
+                        productId: product.id,
+                    }, 'Product rollback after platform stock failure did not complete');
+                }
+                throw platformStockError;
             }
             logger.info({
                 productId: product.id,
@@ -569,6 +716,104 @@ export class ProductService {
                 deleteData
             }, 'Error in product image URL deletion operation');
             throw error;
+        }
+    }
+    /**
+     * Calculate platform status based on available quantity
+     * @param availableqty - Available quantity
+     * @returns Platform status string
+     */
+    calculatePlatformStatus(availableqty) {
+        if (availableqty === 0) {
+            return 'out_of_stock';
+        }
+        else if (availableqty > 5) {
+            return 'in_stock';
+        }
+        else {
+            return 'low_stock';
+        }
+    }
+    /**
+     * Update platform stock status based on available quantity
+     * @param productId - Product ID
+     * @param platform - Platform name
+     * @param availableqty - Available quantity
+     */
+    async updatePlatformStockStatus(productId, platform, availableqty) {
+        try {
+            const numericId = typeof productId === 'string' ? parseInt(productId, 10) : Number(productId);
+            const platformStatus = this.calculatePlatformStatus(availableqty);
+            await prisma.platformStock.updateMany({
+                where: {
+                    productid: BigInt(numericId),
+                    platform: platform
+                },
+                data: {
+                    platformstatus: platformStatus,
+                    modifieddate: BigInt(Date.now())
+                }
+            });
+            logger.debug({
+                productId: numericId,
+                platform,
+                availableqty,
+                platformStatus
+            }, 'Updated platform stock status');
+        }
+        catch (error) {
+            logger.error({
+                error: error.message,
+                productId,
+                platform,
+                availableqty
+            }, 'Error updating platform stock status');
+            throw error;
+        }
+    }
+    async createDefaultPlatformStocks(productId) {
+        const numericId = typeof productId === 'string' ? parseInt(productId, 10) : Number(productId);
+        if (!Number.isFinite(numericId)) {
+            logger.warn({ productId }, 'Skipping default platform stock creation due to invalid product ID');
+            return;
+        }
+        const platformStockDefaults = {
+            productid: numericId,
+            availableqty: 0,
+            orderedqty: 0,
+            soldqty: 0,
+            totalqty: 0,
+            lockqty: 0,
+            platformstatus: this.calculatePlatformStatus(0), // Calculate status based on availableqty = 0
+        };
+        for (const platform of DEFAULT_PLATFORM_STOCK_PLATFORMS) {
+            try {
+                const existing = await prisma.platformStock.findUnique({
+                    where: {
+                        productid_platform: {
+                            productid: BigInt(numericId),
+                            platform,
+                        },
+                    },
+                });
+                if (existing) {
+                    logger.debug({ productId: numericId, platform }, 'Default platform stock already present, skipping creation');
+                    continue;
+                }
+                await dynamicCreate('platformstock', {
+                    ...platformStockDefaults,
+                    platform,
+                });
+                logger.info({ productId: numericId, platform }, 'Default platform stock created');
+            }
+            catch (error) {
+                logger.error({
+                    error: error?.message,
+                    productId: numericId,
+                    platform,
+                }, 'Error while creating default platform stock');
+                throw error;
+            }
         }
     }
 }

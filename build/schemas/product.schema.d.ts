@@ -285,8 +285,8 @@ export declare const productQuerySchema: z.ZodObject<{
     fragnancetype?: string | undefined;
     brand?: string | undefined;
     pack?: string | undefined;
-    productstatus?: string | undefined;
     isdealoftheday?: string | undefined;
+    productstatus?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
     minPrice?: string | undefined;
@@ -308,8 +308,8 @@ export declare const productQuerySchema: z.ZodObject<{
     fragnancetype?: string | undefined;
     brand?: string | undefined;
     pack?: string | undefined;
-    productstatus?: string | undefined;
     isdealoftheday?: string | undefined;
+    productstatus?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
     minPrice?: string | undefined;

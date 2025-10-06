@@ -43,6 +43,10 @@ export async function productRoutes(fastify) {
                         type: "string",
                         description: "Filter by product status",
                     },
+                    isdealoftheday: {
+                        type: "string",
+                        description: "Filter by deal of the day status (true or false)",
+                    },
                     puc: { type: "string", description: "Filter by PUC code" },
                     averagerating: {
                         type: "string",
@@ -490,6 +494,11 @@ export async function productRoutes(fastify) {
                                     nullable: true,
                                     description: "Product status",
                                 },
+                                isdealoftheday: {
+                                    type: "boolean",
+                                    nullable: true,
+                                    description: "Is deal of the day",
+                                },
                                 ponumber: {
                                     type: "string",
                                     nullable: true,
@@ -636,6 +645,201 @@ export async function productRoutes(fastify) {
             return reply.code(500).send(errorResponse);
         }
     });
+    // GET /v1/products/platform/:platform - Get products for specific platform
+    fastify.get("/platform/:platform", {
+        schema: {
+            description: "Get products for specific platform with platform stock data",
+            tags: ["Products", "E-Commerce"],
+            params: {
+                type: "object",
+                properties: {
+                    platform: {
+                        type: "string",
+                        enum: ["amazon", "flipkart", "nivapp"],
+                        description: "Platform name"
+                    },
+                },
+                required: ["platform"],
+            },
+            querystring: {
+                type: "object",
+                properties: {
+                    page: { type: "string", description: "Page number" },
+                    limit: { type: "string", description: "Items per page" },
+                    category: { type: "string", description: "Filter by category" },
+                    subcategory: { type: "string", description: "Filter by subcategory" },
+                    brand: { type: "string", description: "Filter by brand" },
+                    minPrice: { type: "string", description: "Minimum price" },
+                    maxPrice: { type: "string", description: "Maximum price" },
+                    stockStatus: {
+                        type: "string",
+                        enum: ["in_stock", "low_stock", "out_of_stock"],
+                        description: "Filter by platform stock status"
+                    },
+                    search: { type: "string", description: "Search in product name/description" },
+                },
+            },
+            response: {
+                200: {
+                    type: "object",
+                    properties: {
+                        success: { type: "boolean" },
+                        data: {
+                            type: "array",
+                            items: {
+                                type: "object",
+                                properties: {
+                                    id: { type: "number", description: "Product ID" },
+                                    name: { type: "string", description: "Product name" },
+                                    price: { type: "number", nullable: true, description: "Product price" },
+                                    category: { type: "string", nullable: true, description: "Product category" },
+                                    subcategory: { type: "string", nullable: true, description: "Product subcategory" },
+                                    platformStock: {
+                                        type: "object",
+                                        nullable: true,
+                                        properties: {
+                                            id: { type: "number", description: "Platform Stock ID" },
+                                            platform: { type: "string", description: "Platform name" },
+                                            availableqty: { type: "number", description: "Available quantity" },
+                                            platformstatus: { type: "string", description: "Platform stock status" },
+                                            soldqty: { type: "number", description: "Sold quantity" },
+                                            totalqty: { type: "number", description: "Total quantity" },
+                                            orderedqty: { type: "number", description: "Ordered quantity" },
+                                            lockqty: { type: "number", description: "Lock quantity" },
+                                        },
+                                        description: "Platform stock data (single object since each product-platform combination is unique)",
+                                    },
+                                },
+                                additionalProperties: true,
+                            },
+                        },
+                        pagination: {
+                            type: "object",
+                            properties: {
+                                page: { type: "number" },
+                                limit: { type: "number" },
+                                total: { type: "number" },
+                                totalPages: { type: "number" },
+                                hasNext: { type: "boolean" },
+                                hasPrev: { type: "boolean" },
+                            },
+                        },
+                        meta: {
+                            type: "object",
+                            properties: {
+                                platform: { type: "string" },
+                                filters: { type: "array", items: { type: "string" } },
+                                total: { type: "number" },
+                                filtered: { type: "boolean" },
+                            },
+                        },
+                        message: { type: "string" },
+                    },
+                },
+                400: {
+                    type: "object",
+                    properties: {
+                        success: { type: "boolean" },
+                        message: { type: "string" },
+                        details: { type: "string" },
+                        statusCode: { type: "number" },
+                    },
+                },
+                500: {
+                    type: "object",
+                    properties: {
+                        success: { type: "boolean" },
+                        message: { type: "string" },
+                        details: { type: "string" },
+                        statusCode: { type: "number" },
+                    },
+                },
+            },
+        },
+    }, productController.getProductsForPlatform.bind(productController));
+    // GET /v1/products/:id/platform/:platform - Get single product with platform stock
+    fastify.get("/:id/platform/:platform", {
+        schema: {
+            description: "Get single product with platform-specific stock data",
+            tags: ["Products", "E-Commerce"],
+            params: {
+                type: "object",
+                properties: {
+                    id: { type: "string", description: "Product ID" },
+                    platform: {
+                        type: "string",
+                        enum: ["amazon", "flipkart", "nivapp"],
+                        description: "Platform name"
+                    },
+                },
+                required: ["id", "platform"],
+            },
+            response: {
+                200: {
+                    type: "object",
+                    properties: {
+                        success: { type: "boolean" },
+                        data: {
+                            type: "object",
+                            properties: {
+                                id: { type: "number", description: "Product ID" },
+                                name: { type: "string", description: "Product name" },
+                                price: { type: "number", nullable: true, description: "Product price" },
+                                category: { type: "string", nullable: true, description: "Product category" },
+                                subcategory: { type: "string", nullable: true, description: "Product subcategory" },
+                                platformStock: {
+                                    type: "object",
+                                    nullable: true,
+                                    properties: {
+                                        id: { type: "number", description: "Platform Stock ID" },
+                                        platform: { type: "string", description: "Platform name" },
+                                        availableqty: { type: "number", description: "Available quantity" },
+                                        platformstatus: { type: "string", description: "Platform stock status" },
+                                        soldqty: { type: "number", description: "Sold quantity" },
+                                        totalqty: { type: "number", description: "Total quantity" },
+                                        orderedqty: { type: "number", description: "Ordered quantity" },
+                                        lockqty: { type: "number", description: "Lock quantity" },
+                                        createddate: { type: "number", nullable: true, description: "Creation timestamp" },
+                                        modifieddate: { type: "number", nullable: true, description: "Modification timestamp" },
+                                    },
+                                    description: "Platform stock data (single object since each product-platform combination is unique)",
+                                },
+                            },
+                            additionalProperties: true,
+                        },
+                        message: { type: "string" },
+                    },
+                },
+                400: {
+                    type: "object",
+                    properties: {
+                        success: { type: "boolean" },
+                        message: { type: "string" },
+                        details: { type: "string" },
+                        statusCode: { type: "number" },
+                    },
+                },
+                404: {
+                    type: "object",
+                    properties: {
+                        success: { type: "boolean" },
+                        message: { type: "string" },
+                        details: { type: "string" },
+                        statusCode: { type: "number" },
+                    },
+                },
+                500: {
+                    type: "object",
+                    properties: {
+                        success: { type: "boolean" },
+                        message: { type: "string" },
+                        details: { type: "string" },
+                        statusCode: { type: "number" },
+                    },
+                },
+            },
+        },
+    }, productController.getProductForPlatform.bind(productController));
     // POST /v1/products - Create new product
     fastify.post("/", {
         schema: {
@@ -692,6 +896,10 @@ export async function productRoutes(fastify) {
                         type: "number",
                         minimum: 0,
                         description: "Product price",
+                    },
+                    isdealoftheday: {
+                        type: "boolean",
+                        description: "Mark product as deal of the day",
                     },
                 },
                 required: ["name"], // Only name is required as per schema
@@ -786,6 +994,11 @@ export async function productRoutes(fastify) {
                                     type: "string",
                                     nullable: true,
                                     description: "Product status",
+                                },
+                                isdealoftheday: {
+                                    type: "boolean",
+                                    nullable: true,
+                                    description: "Is deal of the day",
                                 },
                                 puc: {
                                     type: "string",
@@ -945,6 +1158,10 @@ export async function productRoutes(fastify) {
                         maxLength: 255,
                         description: "Product status",
                     },
+                    isdealoftheday: {
+                        type: "boolean",
+                        description: "Mark product as deal of the day",
+                    },
                     puc: { type: "string", maxLength: 255, description: "PUC code (auto-generated)" },
                     // Size array fields
                     large: {
@@ -1034,6 +1251,11 @@ export async function productRoutes(fastify) {
                                     type: "string",
                                     nullable: true,
                                     description: "Product status",
+                                },
+                                isdealoftheday: {
+                                    type: "boolean",
+                                    nullable: true,
+                                    description: "Is deal of the day",
                                 },
                                 ponumber: {
                                     type: "string",
