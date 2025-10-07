@@ -634,7 +634,8 @@ model users {
   lastname         String?     @db.VarChar(500)
   gender           String?     @db.VarChar(50)
   gstnumber        String?     @db.VarChar(20)
-  isbusinessuser   Boolean?
+  isbusinessuser   Boolean?    @default(false)
+  isguest          Boolean?    @default(false)
   address          address[]
   orderline        orderline[]
   orders           orders[]
