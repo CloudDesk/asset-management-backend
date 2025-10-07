@@ -208,7 +208,7 @@ export class StockService {
             orderBy: { platform: 'asc' },
           });
 
-          platformStocks = platformStockRecords.map((record) => ({
+          platformStocks = platformStockRecords.map((record: any) => ({
             platform: record.platform ?? '',
             totalqty: Number(record.totalqty ?? 0),
             availableqty: Number(record.availableqty ?? 0),

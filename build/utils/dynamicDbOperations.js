@@ -797,7 +797,7 @@ export async function dynamicFindMany(modelName, options = {}) {
                 if (options.orderBy !== undefined)
                     findOptions.orderBy = options.orderBy;
                 console.log('findOptions', findOptions);
-                result = await prisma.platformStock.findMany(findOptions);
+                result = await prisma.PlatformStock.findMany(findOptions);
                 console.log(result, "result");
                 console.log("first");
             }
@@ -1140,7 +1140,7 @@ export async function dynamicUpdate(modelName, where, data, include) {
                 });
             }
             else if (modelName === 'platformstock') {
-                result = await prisma.platformStock.update({
+                result = await prisma.PlatformStock.update({
                     where,
                     data: filteredData,
                 });

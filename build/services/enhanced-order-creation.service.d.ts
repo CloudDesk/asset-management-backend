@@ -7,11 +7,11 @@ export declare class EnhancedOrderCreationService {
     createOrderWithPromotionData(orderData: any, evaluationId: string, promotionData: any): Promise<{
         order: {
             id: number;
+            quantity: number | null;
             createddate: bigint | null;
             modifieddate: bigint | null;
-            quantity: number | null;
-            productid: number[];
             orderid: string | null;
+            productid: number[];
             userid: number | null;
             addressid: number | null;
             productamount: import("@prisma/client/runtime/library").Decimal | null;
@@ -37,12 +37,12 @@ export declare class EnhancedOrderCreationService {
         };
         orderlines: {
             id: number;
+            quantity: number | null;
             createddate: bigint | null;
             modifieddate: bigint | null;
-            quantity: number | null;
-            productid: bigint | null;
             orderid: number;
             orderlinenumber: string | null;
+            productid: bigint | null;
             userid: number | null;
             addressid: number | null;
             productamount: import("@prisma/client/runtime/library").Decimal | null;
@@ -111,11 +111,11 @@ export declare class EnhancedOrderCreationService {
             }[];
         } & {
             id: number;
+            quantity: number | null;
             createddate: bigint | null;
             modifieddate: bigint | null;
-            quantity: number | null;
-            productid: number[];
             orderid: string | null;
+            productid: number[];
             userid: number | null;
             addressid: number | null;
             productamount: import("@prisma/client/runtime/library").Decimal | null;

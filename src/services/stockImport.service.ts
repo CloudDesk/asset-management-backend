@@ -1123,7 +1123,7 @@ export class StockImportService {
         select: { puc: true },
       });
 
-      const existingPucSet = new Set(existingProducts.map(record => record.puc.toLowerCase()));
+      const existingPucSet = new Set(existingProducts.map(record => record.puc?.toLowerCase()));
       const invalidPucs = pucList.filter(puc => !existingPucSet.has(puc.toLowerCase()));
 
       if (invalidPucs.length > 0) {

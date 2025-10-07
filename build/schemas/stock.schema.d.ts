@@ -219,18 +219,18 @@ export declare const stockQuerySchema: z.ZodObject<{
     batchNumber: z.ZodOptional<z.ZodString>;
     warehouseLocation: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
+    supplierid?: string | undefined;
     puc?: string | undefined;
-    platform?: string | undefined;
     orderid?: string | undefined;
     orderlinenumber?: string | undefined;
+    stockstatus?: string | undefined;
     isdeleted?: string | undefined;
     isarchive?: string | undefined;
     ecompublish?: string | undefined;
-    stockstatus?: string | undefined;
+    platform?: string | undefined;
     sku?: string | undefined;
-    poid?: string | undefined;
-    supplierid?: string | undefined;
     batchno?: string | undefined;
+    poid?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
     createdAfter?: string | undefined;
@@ -239,18 +239,18 @@ export declare const stockQuerySchema: z.ZodObject<{
     batchNumber?: string | undefined;
     warehouseLocation?: string | undefined;
 }, {
+    supplierid?: string | undefined;
     puc?: string | undefined;
-    platform?: string | undefined;
     orderid?: string | undefined;
     orderlinenumber?: string | undefined;
+    stockstatus?: string | undefined;
     isdeleted?: string | undefined;
     isarchive?: string | undefined;
     ecompublish?: string | undefined;
-    stockstatus?: string | undefined;
+    platform?: string | undefined;
     sku?: string | undefined;
-    poid?: string | undefined;
-    supplierid?: string | undefined;
     batchno?: string | undefined;
+    poid?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
     createdAfter?: string | undefined;

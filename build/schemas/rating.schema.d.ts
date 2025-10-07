@@ -123,8 +123,8 @@ export declare const ratingQuerySchema: z.ZodObject<{
     createdAfter: z.ZodOptional<z.ZodString>;
     createdBefore: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    productid?: string | undefined;
     orderid?: string | undefined;
+    productid?: string | undefined;
     userid?: string | undefined;
     starrating?: string | undefined;
     usermail?: string | undefined;
@@ -134,8 +134,8 @@ export declare const ratingQuerySchema: z.ZodObject<{
     createdAfter?: string | undefined;
     createdBefore?: string | undefined;
 }, {
-    productid?: string | undefined;
     orderid?: string | undefined;
+    productid?: string | undefined;
     userid?: string | undefined;
     starrating?: string | undefined;
     usermail?: string | undefined;

@@ -133,24 +133,24 @@ export declare const usersQuerySchema: z.ZodObject<{
     createdAfter: z.ZodOptional<z.ZodString>;
     createdBefore: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
+    gstnumber?: string | undefined;
     useremail?: string | undefined;
     usermobilenumber?: string | undefined;
     firstname?: string | undefined;
     lastname?: string | undefined;
     gender?: string | undefined;
-    gstnumber?: string | undefined;
     isbusinessuser?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
     createdAfter?: string | undefined;
     createdBefore?: string | undefined;
 }, {
+    gstnumber?: string | undefined;
     useremail?: string | undefined;
     usermobilenumber?: string | undefined;
     firstname?: string | undefined;
     lastname?: string | undefined;
     gender?: string | undefined;
-    gstnumber?: string | undefined;
     isbusinessuser?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;

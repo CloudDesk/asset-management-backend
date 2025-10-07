@@ -254,9 +254,11 @@ export declare const samplePurchaseRequestQuerySchema: z.ZodObject<{
     modifieddate: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     id?: string | undefined;
+    supplierid?: string | undefined;
     createddate?: string | undefined;
     modifieddate?: string | undefined;
-    supplierid?: string | undefined;
+    createdby?: string | undefined;
+    modifiedby?: string | undefined;
     gstnumber?: string | undefined;
     companyname?: string | undefined;
     companyaddress?: string | undefined;
@@ -265,13 +267,13 @@ export declare const samplePurchaseRequestQuerySchema: z.ZodObject<{
     companymail?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
-    createdby?: string | undefined;
-    modifiedby?: string | undefined;
 }, {
     id?: string | undefined;
+    supplierid?: string | undefined;
     createddate?: string | undefined;
     modifieddate?: string | undefined;
-    supplierid?: string | undefined;
+    createdby?: string | undefined;
+    modifiedby?: string | undefined;
     gstnumber?: string | undefined;
     companyname?: string | undefined;
     companyaddress?: string | undefined;
@@ -280,8 +282,6 @@ export declare const samplePurchaseRequestQuerySchema: z.ZodObject<{
     companymail?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
-    createdby?: string | undefined;
-    modifiedby?: string | undefined;
 }>;
 export type CreateSamplePurchaseRequestInput = z.infer<typeof createSamplePurchaseRequestSchema>;
 export type UpdateSamplePurchaseRequestInput = z.infer<typeof updateSamplePurchaseRequestSchema>;

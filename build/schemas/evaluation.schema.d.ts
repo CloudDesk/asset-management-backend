@@ -9,8 +9,8 @@ export declare const cartItemSchema: z.ZodObject<{
     subcategory: z.ZodOptional<z.ZodString>;
     name: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    price: number;
     quantity: number;
+    price: number;
     product_id: string;
     base_price: number;
     product_discount: number;
@@ -18,8 +18,8 @@ export declare const cartItemSchema: z.ZodObject<{
     category?: string | undefined;
     subcategory?: string | undefined;
 }, {
-    price: number;
     quantity: number;
+    price: number;
     product_id: string;
     base_price: number;
     product_discount: number;
@@ -38,8 +38,8 @@ export declare const cartDataSchema: z.ZodObject<{
         subcategory: z.ZodOptional<z.ZodString>;
         name: z.ZodOptional<z.ZodString>;
     }, "strip", z.ZodTypeAny, {
-        price: number;
         quantity: number;
+        price: number;
         product_id: string;
         base_price: number;
         product_discount: number;
@@ -47,8 +47,8 @@ export declare const cartDataSchema: z.ZodObject<{
         category?: string | undefined;
         subcategory?: string | undefined;
     }, {
-        price: number;
         quantity: number;
+        price: number;
         product_id: string;
         base_price: number;
         product_discount: number;
@@ -62,11 +62,11 @@ export declare const cartDataSchema: z.ZodObject<{
     total: z.ZodOptional<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
     shipping_cost: number;
-    tax_amount: number;
     subtotal: number;
+    tax_amount: number;
     items: {
-        price: number;
         quantity: number;
+        price: number;
         product_id: string;
         base_price: number;
         product_discount: number;
@@ -77,11 +77,11 @@ export declare const cartDataSchema: z.ZodObject<{
     total?: number | undefined;
 }, {
     shipping_cost: number;
-    tax_amount: number;
     subtotal: number;
+    tax_amount: number;
     items: {
-        price: number;
         quantity: number;
+        price: number;
         product_id: string;
         base_price: number;
         product_discount: number;
@@ -125,8 +125,8 @@ export declare const evaluationRequestSchema: z.ZodObject<{
             subcategory: z.ZodOptional<z.ZodString>;
             name: z.ZodOptional<z.ZodString>;
         }, "strip", z.ZodTypeAny, {
-            price: number;
             quantity: number;
+            price: number;
             product_id: string;
             base_price: number;
             product_discount: number;
@@ -134,8 +134,8 @@ export declare const evaluationRequestSchema: z.ZodObject<{
             category?: string | undefined;
             subcategory?: string | undefined;
         }, {
-            price: number;
             quantity: number;
+            price: number;
             product_id: string;
             base_price: number;
             product_discount: number;
@@ -149,11 +149,11 @@ export declare const evaluationRequestSchema: z.ZodObject<{
         total: z.ZodOptional<z.ZodNumber>;
     }, "strip", z.ZodTypeAny, {
         shipping_cost: number;
-        tax_amount: number;
         subtotal: number;
+        tax_amount: number;
         items: {
-            price: number;
             quantity: number;
+            price: number;
             product_id: string;
             base_price: number;
             product_discount: number;
@@ -164,11 +164,11 @@ export declare const evaluationRequestSchema: z.ZodObject<{
         total?: number | undefined;
     }, {
         shipping_cost: number;
-        tax_amount: number;
         subtotal: number;
+        tax_amount: number;
         items: {
-            price: number;
             quantity: number;
+            price: number;
             product_id: string;
             base_price: number;
             product_discount: number;
@@ -201,11 +201,11 @@ export declare const evaluationRequestSchema: z.ZodObject<{
     promotion_id: number;
     cart_data: {
         shipping_cost: number;
-        tax_amount: number;
         subtotal: number;
+        tax_amount: number;
         items: {
-            price: number;
             quantity: number;
+            price: number;
             product_id: string;
             base_price: number;
             product_discount: number;
@@ -228,11 +228,11 @@ export declare const evaluationRequestSchema: z.ZodObject<{
     promotion_id: number;
     cart_data: {
         shipping_cost: number;
-        tax_amount: number;
         subtotal: number;
+        tax_amount: number;
         items: {
-            price: number;
             quantity: number;
+            price: number;
             product_id: string;
             base_price: number;
             product_discount: number;

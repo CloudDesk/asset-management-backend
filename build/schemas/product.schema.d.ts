@@ -280,13 +280,13 @@ export declare const productQuerySchema: z.ZodObject<{
     isdealoftheday: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     name?: string | undefined;
+    fragnancetype?: string | undefined;
+    productstatus?: string | undefined;
+    isdealoftheday?: string | undefined;
     category?: string | undefined;
     subcategory?: string | undefined;
-    fragnancetype?: string | undefined;
     brand?: string | undefined;
     pack?: string | undefined;
-    isdealoftheday?: string | undefined;
-    productstatus?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
     minPrice?: string | undefined;
@@ -303,13 +303,13 @@ export declare const productQuerySchema: z.ZodObject<{
     createdBefore?: string | undefined;
 }, {
     name?: string | undefined;
+    fragnancetype?: string | undefined;
+    productstatus?: string | undefined;
+    isdealoftheday?: string | undefined;
     category?: string | undefined;
     subcategory?: string | undefined;
-    fragnancetype?: string | undefined;
     brand?: string | undefined;
     pack?: string | undefined;
-    isdealoftheday?: string | undefined;
-    productstatus?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
     minPrice?: string | undefined;

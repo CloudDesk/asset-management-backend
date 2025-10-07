@@ -930,7 +930,7 @@ export class StockImportService {
                 },
                 select: { puc: true },
             });
-            const existingPucSet = new Set(existingProducts.map(record => record.puc.toLowerCase()));
+            const existingPucSet = new Set(existingProducts.map(record => record.puc?.toLowerCase()));
             const invalidPucs = pucList.filter(puc => !existingPucSet.has(puc.toLowerCase()));
             if (invalidPucs.length > 0) {
                 throw new ValidationError(`Invalid PUCs: ${invalidPucs.join(', ')}. These PUCs do not exist in the products database. Please create the products first.`);
