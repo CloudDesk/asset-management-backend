@@ -82,3 +82,7 @@ Available columns: ["id","name","type","code","auto_apply","status","priority","
 Available columns: ["id","name","type","code","auto_apply","status","priority","visibility","max_redemptions","per_user_limit","stackable","createddate","modifieddate","description","budget","timezone","evaluation_expiry_minutes","conditions","start_date","end_date","action"]
 Available columns: ["id","name","type","code","auto_apply","status","priority","visibility","max_redemptions","per_user_limit","stackable","createddate","modifieddate","description","budget","timezone","evaluation_expiry_minutes","conditions","start_date","end_date","action"]
 Available columns: ["id","useremail","userpassword","createddate","modifieddate","role","usersphonenumber","firstname","lastname","location","fcmid","sessiontoken","resettoken","resettokenexpires"]
+Available columns: ["id","userid","name","mobilenumber","pincode","doornumber","address","landmark","state","city","modifieddate","createddate","isdefaultaddress"]
+Available columns: ["id","userid","name","mobilenumber","pincode","doornumber","address","landmark","state","city","modifieddate","createddate","isdefaultaddress"]
+Available columns: ["id","userid","name","mobilenumber","pincode","doornumber","address","landmark","state","city","modifieddate","createddate","isdefaultaddress"]
+Available columns: ["id","userid","name","mobilenumber","pincode","doornumber","address","landmark","state","city","modifieddate","createddate","isdefaultaddress"]

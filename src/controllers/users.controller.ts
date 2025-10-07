@@ -2,6 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { UsersService } from '../services/users.service.js';
 import { 
   createUsersSchema, 
+  createGuestUserSchema,
   updateUsersSchema, 
   upsertUsersSchema,
   usersParamsSchema,
@@ -116,6 +117,37 @@ export class UsersController {
     
     const message = data.id ? 'User updated successfully' : 'User created successfully';
     const response = createSuccessResponse(message, formattedUser);
+    return reply.code(200).send(response);
+  });
+
+  /**
+   * Create a guest user for checkout without registration
+   */
+  createGuestUser = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    const data = createGuestUserSchema.parse(request.body);
+    
+    const guestUser = await this.usersService.createGuestUser(data);
+    
+    // Format the created guest user data
+    const formattedUser = formatUsersForAPI(guestUser);
+    
+    const response = createSuccessResponse('Guest user created successfully', formattedUser);
+    return reply.code(201).send(response);
+  });
+
+  /**
+   * Convert guest user to registered user
+   */
+  convertGuestToRegistered = asyncHandler(async (request: FastifyRequest<{ Params: UsersParams }>, reply: FastifyReply) => {
+    const { id } = usersParamsSchema.parse(request.params);
+    const registrationData = request.body as any;
+    
+    const user = await this.usersService.convertGuestToRegistered(parseInt(id), registrationData);
+    
+    // Format the updated user data
+    const formattedUser = formatUsersForAPI(user);
+    
+    const response = createSuccessResponse('Guest user converted to registered user successfully', formattedUser);
     return reply.code(200).send(response);
   });
 } 
