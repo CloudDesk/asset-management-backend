@@ -23736,3 +23736,1275 @@ Filtering data for address (address): {
   "createddate": 1759822422744,
   "modifieddate": 1759822422744
 }
+Filtering data for product (product): {
+  "name": "Nivaana - Premium Incense Sticks - Kasturi",
+  "shortdescription": "A rich, musky fragrance that creates a calm and divine atmosphere for your home or meditation space.",
+  "fulldescription": "Kasturi Premium Incense Sticks are crafted to bring a sense of warmth and serenity to your surroundings. Infused with the deep, musky aroma of natural kasturi, these sticks are perfect for prayer, meditation, or simply creating a relaxing ambiance. Each stick burns evenly, releasing a long-lasting fragrance that evokes traditional Indian spirituality and purity. Ideal for daily rituals or peaceful evenings.",
+  "category": "incense",
+  "subcategory": "premium_incense_sticks",
+  "fragnancetype": "kasturi",
+  "brand": "Nivaana",
+  "pack": "single",
+  "price": 150,
+  "discount": 10,
+  "isdealoftheday": true
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 39,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 39,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 39,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0039",
+  "platform": "nivapp",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtering data for product (product): {
+  "quantity": 1,
+  "availablequantity": 1,
+  "soldquantity": 0,
+  "ecompublishedquantity": 1,
+  "productstatus": "low_stock",
+  "modifieddate": 1759920895584
+}
+Filtering data for platformstock (platformstock): {
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 1,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "low_stock"
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0039",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759921471645,
+  "modifieddate": 1759921471645,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0039",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759921473494,
+  "modifieddate": 1759921473494,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0039",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759921474104,
+  "modifieddate": 1759921474104,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0039",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759921474720,
+  "modifieddate": 1759921474720,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0039",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759921475323,
+  "modifieddate": 1759921475323,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0039",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759921475925,
+  "modifieddate": 1759921475925,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0039",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": false,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759921476527,
+  "modifieddate": 1759921476527,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for product (product): {
+  "quantity": 8,
+  "availablequantity": 7,
+  "soldquantity": 0,
+  "ecompublishedquantity": 7,
+  "productstatus": "in_stock",
+  "modifieddate": 1759921478031
+}
+Filtering data for product (product): {
+  "quantity": 8,
+  "availablequantity": 7,
+  "soldquantity": 0,
+  "ecompublishedquantity": 7,
+  "productstatus": "in_stock",
+  "modifieddate": 1759921479241
+}
+Filtering data for product (product): {
+  "quantity": 8,
+  "availablequantity": 7,
+  "soldquantity": 0,
+  "ecompublishedquantity": 7,
+  "productstatus": "in_stock",
+  "modifieddate": 1759921480177
+}
+Filtering data for product (product): {
+  "quantity": 8,
+  "availablequantity": 7,
+  "soldquantity": 0,
+  "ecompublishedquantity": 7,
+  "productstatus": "in_stock",
+  "modifieddate": 1759921481083
+}
+Filtering data for product (product): {
+  "quantity": 8,
+  "availablequantity": 7,
+  "soldquantity": 0,
+  "ecompublishedquantity": 7,
+  "productstatus": "in_stock",
+  "modifieddate": 1759921481989
+}
+Filtering data for product (product): {
+  "quantity": 8,
+  "availablequantity": 7,
+  "soldquantity": 0,
+  "ecompublishedquantity": 7,
+  "productstatus": "in_stock",
+  "modifieddate": 1759921482886
+}
+Filtering data for product (product): {
+  "quantity": 8,
+  "availablequantity": 7,
+  "soldquantity": 0,
+  "ecompublishedquantity": 7,
+  "productstatus": "in_stock",
+  "modifieddate": 1759921483793
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0039",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759922543497,
+  "modifieddate": 1759922543497,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0039",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759922546061,
+  "modifieddate": 1759922546061,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0039",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759922546629,
+  "modifieddate": 1759922546629,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0039",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759922547201,
+  "modifieddate": 1759922547201,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0039",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759922547779,
+  "modifieddate": 1759922547779,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0039",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759922548355,
+  "modifieddate": 1759922548355,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0039",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": false,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759922548977,
+  "modifieddate": 1759922548977,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for product (product): {
+  "quantity": 15,
+  "availablequantity": 13,
+  "soldquantity": 0,
+  "ecompublishedquantity": 13,
+  "productstatus": "in_stock",
+  "modifieddate": 1759922550486
+}
+Filtering data for product (product): {
+  "quantity": 15,
+  "availablequantity": 13,
+  "soldquantity": 0,
+  "ecompublishedquantity": 13,
+  "productstatus": "in_stock",
+  "modifieddate": 1759922552003
+}
+Filtering data for product (product): {
+  "quantity": 15,
+  "availablequantity": 13,
+  "soldquantity": 0,
+  "ecompublishedquantity": 13,
+  "productstatus": "in_stock",
+  "modifieddate": 1759922553483
+}
+Filtering data for product (product): {
+  "quantity": 15,
+  "availablequantity": 13,
+  "soldquantity": 0,
+  "ecompublishedquantity": 13,
+  "productstatus": "in_stock",
+  "modifieddate": 1759922554650
+}
+Filtering data for product (product): {
+  "quantity": 15,
+  "availablequantity": 13,
+  "soldquantity": 0,
+  "ecompublishedquantity": 13,
+  "productstatus": "in_stock",
+  "modifieddate": 1759922555784
+}
+Filtering data for product (product): {
+  "quantity": 15,
+  "availablequantity": 13,
+  "soldquantity": 0,
+  "ecompublishedquantity": 13,
+  "productstatus": "in_stock",
+  "modifieddate": 1759922557075
+}
+Filtering data for product (product): {
+  "quantity": 15,
+  "availablequantity": 13,
+  "soldquantity": 0,
+  "ecompublishedquantity": 13,
+  "productstatus": "in_stock",
+  "modifieddate": 1759922558208
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0039",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759922743774,
+  "modifieddate": 1759922743774,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0039",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759922746509,
+  "modifieddate": 1759922746509,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0039",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759922747078,
+  "modifieddate": 1759922747078,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0039",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759922747647,
+  "modifieddate": 1759922747647,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0039",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759922748212,
+  "modifieddate": 1759922748212,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0039",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759922748777,
+  "modifieddate": 1759922748777,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0039",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": false,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759922749343,
+  "modifieddate": 1759922749343,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for product (product): {
+  "quantity": 22,
+  "availablequantity": 19,
+  "soldquantity": 0,
+  "ecompublishedquantity": 19,
+  "productstatus": "in_stock",
+  "modifieddate": 1759922750774
+}
+Filtering data for product (product): {
+  "quantity": 22,
+  "availablequantity": 19,
+  "soldquantity": 0,
+  "ecompublishedquantity": 19,
+  "productstatus": "in_stock",
+  "modifieddate": 1759922752466
+}
+Filtering data for product (product): {
+  "quantity": 22,
+  "availablequantity": 19,
+  "soldquantity": 0,
+  "ecompublishedquantity": 19,
+  "productstatus": "in_stock",
+  "modifieddate": 1759922753598
+}
+Filtering data for product (product): {
+  "quantity": 22,
+  "availablequantity": 19,
+  "soldquantity": 0,
+  "ecompublishedquantity": 19,
+  "productstatus": "in_stock",
+  "modifieddate": 1759922755006
+}
+Filtering data for product (product): {
+  "quantity": 22,
+  "availablequantity": 19,
+  "soldquantity": 0,
+  "ecompublishedquantity": 19,
+  "productstatus": "in_stock",
+  "modifieddate": 1759922756135
+}
+Filtering data for product (product): {
+  "quantity": 22,
+  "availablequantity": 19,
+  "soldquantity": 0,
+  "ecompublishedquantity": 19,
+  "productstatus": "in_stock",
+  "modifieddate": 1759922757364
+}
+Filtering data for product (product): {
+  "quantity": 22,
+  "availablequantity": 19,
+  "soldquantity": 0,
+  "ecompublishedquantity": 19,
+  "productstatus": "in_stock",
+  "modifieddate": 1759922758584
+}
+Filtering data for platformstock (platformstock): {
+  "availableqty": 2,
+  "soldqty": 0,
+  "totalqty": 2,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "low_stock"
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0039",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759923214858,
+  "modifieddate": 1759923214858,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0039",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759923217434,
+  "modifieddate": 1759923217434,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0039",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759923218014,
+  "modifieddate": 1759923218014,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0039",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759923218586,
+  "modifieddate": 1759923218586,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0039",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759923219167,
+  "modifieddate": 1759923219167,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0039",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759923219730,
+  "modifieddate": 1759923219730,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0039",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": false,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759923220294,
+  "modifieddate": 1759923220294,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for product (product): {
+  "quantity": 29,
+  "availablequantity": 25,
+  "soldquantity": 0,
+  "ecompublishedquantity": 25,
+  "productstatus": "in_stock",
+  "modifieddate": 1759923221822
+}
+Filtering data for product (product): {
+  "quantity": 29,
+  "availablequantity": 25,
+  "soldquantity": 0,
+  "ecompublishedquantity": 25,
+  "productstatus": "in_stock",
+  "modifieddate": 1759923223512
+}
+Filtering data for product (product): {
+  "quantity": 29,
+  "availablequantity": 25,
+  "soldquantity": 0,
+  "ecompublishedquantity": 25,
+  "productstatus": "in_stock",
+  "modifieddate": 1759923224634
+}
+Filtering data for product (product): {
+  "quantity": 29,
+  "availablequantity": 25,
+  "soldquantity": 0,
+  "ecompublishedquantity": 25,
+  "productstatus": "in_stock",
+  "modifieddate": 1759923225756
+}
+Filtering data for product (product): {
+  "quantity": 29,
+  "availablequantity": 25,
+  "soldquantity": 0,
+  "ecompublishedquantity": 25,
+  "productstatus": "in_stock",
+  "modifieddate": 1759923227164
+}
+Filtering data for product (product): {
+  "quantity": 29,
+  "availablequantity": 25,
+  "soldquantity": 0,
+  "ecompublishedquantity": 25,
+  "productstatus": "in_stock",
+  "modifieddate": 1759923228290
+}
+Filtering data for product (product): {
+  "quantity": 29,
+  "availablequantity": 25,
+  "soldquantity": 0,
+  "ecompublishedquantity": 25,
+  "productstatus": "in_stock",
+  "modifieddate": 1759923229432
+}
+Filtering data for platformstock (platformstock): {
+  "availableqty": 9,
+  "soldqty": 0,
+  "totalqty": 9,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Filtering data for product (product): {
+  "name": "Nivaana - Premium Incense Sticks - Kasturi",
+  "shortdescription": "A rich, musky fragrance that creates a calm and divine atmosphere for your home or meditation space.",
+  "fulldescription": "Kasturi Premium Incense Sticks are crafted to bring a sense of warmth and serenity to your surroundings. Infused with the deep, musky aroma of natural kasturi, these sticks are perfect for prayer, meditation, or simply creating a relaxing ambiance. Each stick burns evenly, releasing a long-lasting fragrance that evokes traditional Indian spirituality and purity. Ideal for daily rituals or peaceful evenings.",
+  "category": "incense",
+  "subcategory": "premium_incense_sticks",
+  "fragnancetype": "kasturi",
+  "brand": "Nivaana",
+  "pack": "single",
+  "price": 150,
+  "discount": 10,
+  "isdealoftheday": true
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 40,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 40,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 40,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtering data for product (product): {
+  "quantity": 1,
+  "availablequantity": 1,
+  "soldquantity": 0,
+  "ecompublishedquantity": 1,
+  "productstatus": "low_stock",
+  "modifieddate": 1759923343988
+}
+Filtering data for platformstock (platformstock): {
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 1,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "low_stock"
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759923429997,
+  "modifieddate": 1759923429997,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759923430870,
+  "modifieddate": 1759923430870,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759923431446,
+  "modifieddate": 1759923431446,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759923432023,
+  "modifieddate": 1759923432023,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759923432606,
+  "modifieddate": 1759923432606,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759923433181,
+  "modifieddate": 1759923433181,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": false,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759923433803,
+  "modifieddate": 1759923433803,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for product (product): {
+  "quantity": 8,
+  "availablequantity": 7,
+  "soldquantity": 0,
+  "ecompublishedquantity": 7,
+  "productstatus": "in_stock",
+  "modifieddate": 1759923435231
+}
+Filtering data for product (product): {
+  "quantity": 8,
+  "availablequantity": 7,
+  "soldquantity": 0,
+  "ecompublishedquantity": 7,
+  "productstatus": "in_stock",
+  "modifieddate": 1759923436961
+}
+Filtering data for product (product): {
+  "quantity": 8,
+  "availablequantity": 7,
+  "soldquantity": 0,
+  "ecompublishedquantity": 7,
+  "productstatus": "in_stock",
+  "modifieddate": 1759923438113
+}
+Filtering data for product (product): {
+  "quantity": 8,
+  "availablequantity": 7,
+  "soldquantity": 0,
+  "ecompublishedquantity": 7,
+  "productstatus": "in_stock",
+  "modifieddate": 1759923439348
+}
+Filtering data for product (product): {
+  "quantity": 8,
+  "availablequantity": 7,
+  "soldquantity": 0,
+  "ecompublishedquantity": 7,
+  "productstatus": "in_stock",
+  "modifieddate": 1759923440529
+}
+Filtering data for product (product): {
+  "quantity": 8,
+  "availablequantity": 7,
+  "soldquantity": 0,
+  "ecompublishedquantity": 7,
+  "productstatus": "in_stock",
+  "modifieddate": 1759923441673
+}
+Filtering data for product (product): {
+  "quantity": 8,
+  "availablequantity": 7,
+  "soldquantity": 0,
+  "ecompublishedquantity": 7,
+  "productstatus": "in_stock",
+  "modifieddate": 1759923442814
+}
+Filtering data for platformstock (platformstock): {
+  "availableqty": 8,
+  "soldqty": 0,
+  "totalqty": 8,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": false,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtering data for product (product): {
+  "quantity": 9,
+  "availablequantity": 7,
+  "soldquantity": 0,
+  "ecompublishedquantity": 7,
+  "productstatus": "in_stock",
+  "modifieddate": 1759923688403
+}
+Filtering data for platformstock (platformstock): {
+  "availableqty": 8,
+  "soldqty": 0,
+  "totalqty": 9,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759923921885,
+  "modifieddate": 1759923921885,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759923924435,
+  "modifieddate": 1759923924435,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759923925052,
+  "modifieddate": 1759923925052,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759923925647,
+  "modifieddate": 1759923925647,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759923926212,
+  "modifieddate": 1759923926212,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759923926776,
+  "modifieddate": 1759923926776,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": false,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759923927348,
+  "modifieddate": 1759923927348,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for product (product): {
+  "quantity": 16,
+  "availablequantity": 13,
+  "soldquantity": 0,
+  "ecompublishedquantity": 13,
+  "productstatus": "in_stock",
+  "modifieddate": 1759923928843
+}
+Filtering data for product (product): {
+  "quantity": 16,
+  "availablequantity": 13,
+  "soldquantity": 0,
+  "ecompublishedquantity": 13,
+  "productstatus": "in_stock",
+  "modifieddate": 1759923930818
+}
+Filtering data for product (product): {
+  "quantity": 16,
+  "availablequantity": 13,
+  "soldquantity": 0,
+  "ecompublishedquantity": 13,
+  "productstatus": "in_stock",
+  "modifieddate": 1759923931989
+}
+Filtering data for product (product): {
+  "quantity": 16,
+  "availablequantity": 13,
+  "soldquantity": 0,
+  "ecompublishedquantity": 13,
+  "productstatus": "in_stock",
+  "modifieddate": 1759923933113
+}
+Filtering data for product (product): {
+  "quantity": 16,
+  "availablequantity": 13,
+  "soldquantity": 0,
+  "ecompublishedquantity": 13,
+  "productstatus": "in_stock",
+  "modifieddate": 1759923934285
+}
+Filtering data for product (product): {
+  "quantity": 16,
+  "availablequantity": 13,
+  "soldquantity": 0,
+  "ecompublishedquantity": 13,
+  "productstatus": "in_stock",
+  "modifieddate": 1759923935414
+}
+Filtering data for product (product): {
+  "quantity": 16,
+  "availablequantity": 13,
+  "soldquantity": 0,
+  "ecompublishedquantity": 13,
+  "productstatus": "in_stock",
+  "modifieddate": 1759923936546
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759923973071,
+  "modifieddate": 1759923973071,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759923973967,
+  "modifieddate": 1759923973967,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759923974559,
+  "modifieddate": 1759923974559,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759923975153,
+  "modifieddate": 1759923975153,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759923975748,
+  "modifieddate": 1759923975748,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759923976343,
+  "modifieddate": 1759923976343,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": false,
+  "isdeleted": false,
+  "isarchive": false,
+  "ewaste": false,
+  "createddate": 1759923976934,
+  "modifieddate": 1759923976934,
+  "createdby": 1,
+  "modifiedby": 1
+}
+Filtering data for product (product): {
+  "quantity": 23,
+  "availablequantity": 19,
+  "soldquantity": 0,
+  "ecompublishedquantity": 19,
+  "productstatus": "in_stock",
+  "modifieddate": 1759923978508
+}
+Filtering data for product (product): {
+  "quantity": 23,
+  "availablequantity": 19,
+  "soldquantity": 0,
+  "ecompublishedquantity": 19,
+  "productstatus": "in_stock",
+  "modifieddate": 1759923980333
+}
+Filtering data for product (product): {
+  "quantity": 23,
+  "availablequantity": 19,
+  "soldquantity": 0,
+  "ecompublishedquantity": 19,
+  "productstatus": "in_stock",
+  "modifieddate": 1759923981579
+}
+Filtering data for product (product): {
+  "quantity": 23,
+  "availablequantity": 19,
+  "soldquantity": 0,
+  "ecompublishedquantity": 19,
+  "productstatus": "in_stock",
+  "modifieddate": 1759923982759
+}
+Filtering data for product (product): {
+  "quantity": 23,
+  "availablequantity": 19,
+  "soldquantity": 0,
+  "ecompublishedquantity": 19,
+  "productstatus": "in_stock",
+  "modifieddate": 1759923984023
+}
+Filtering data for product (product): {
+  "quantity": 23,
+  "availablequantity": 19,
+  "soldquantity": 0,
+  "ecompublishedquantity": 19,
+  "productstatus": "in_stock",
+  "modifieddate": 1759923985563
+}
+Filtering data for product (product): {
+  "quantity": 23,
+  "availablequantity": 19,
+  "soldquantity": 0,
+  "ecompublishedquantity": 19,
+  "productstatus": "in_stock",
+  "modifieddate": 1759923986747
+}

@@ -392,24 +392,26 @@ export class PlatformStockService {
       switch (operation) {
         case 'create':
           // New stock added
+          const quantityToAdd = stockInfo.quantity || 1; // Use provided quantity or default to 1
           if (stockInfo.stockstatus === 'available') {
-            totalQtyChange = 1; // Always increase total quantity for new available stock
+            totalQtyChange = quantityToAdd; // Increase total quantity by provided quantity
             if (stockInfo.ecompublish) {
-              availableQtyChange = 1; // Only increase available quantity if e-commerce enabled
+              availableQtyChange = quantityToAdd; // Increase available quantity by provided quantity if e-commerce enabled
             }
           }
           break;
 
         case 'delete':
           // Stock deleted - decrease quantities
+          const quantityToRemove = stockInfo.quantity || 1; // Use provided quantity or default to 1
           if (stockInfo.stockstatus === 'available') {
-            totalQtyChange = -1; // Always decrease total quantity for deleted available stock
+            totalQtyChange = -quantityToRemove; // Decrease total quantity by provided quantity
             if (stockInfo.ecompublish) {
-              availableQtyChange = -1; // Only decrease available quantity if e-commerce was enabled
+              availableQtyChange = -quantityToRemove; // Decrease available quantity by provided quantity if e-commerce was enabled
             }
           } else if (stockInfo.stockstatus === 'sold') {
-            soldQtyChange = -1;
-            totalQtyChange = -1;
+            soldQtyChange = -quantityToRemove;
+            totalQtyChange = -quantityToRemove;
           }
           break;
 
