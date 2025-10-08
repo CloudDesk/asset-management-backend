@@ -14,6 +14,7 @@ async function start() {
         });
         fastify.log.info(`🚀 Server running at http://localhost:${env.PORT}`);
         fastify.log.info(`📚 API Documentation available at http://localhost:${env.PORT}/docs`);
+        fastify.log.info(`📚 API Documentation available at http://localhost:${env.PORT}/docs`);
         // Graceful shutdown
         const signals = ['SIGINT', 'SIGTERM'];
         signals.forEach((signal) => {
