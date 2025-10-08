@@ -1088,3 +1088,5 @@ Available columns for users: ["id","useremail","userpassword","createddate","mod
 Available columns for cart: ["id","productid","userid","createddate","quantity","iscart","iswishlist","modifieddate"]
 Available columns for address: ["id","userid","name","mobilenumber","pincode","doornumber","address","landmark","state","city","modifieddate","createddate","isdefaultaddress"]
 Available columns for address: ["id","userid","name","mobilenumber","pincode","doornumber","address","landmark","state","city","modifieddate","createddate","isdefaultaddress"]
+Available columns for supplier: ["id","suppliername","supplierphonenumber","supplierlandline","doornumber","streetname","city","state","pincode","isdeleted","modifieddate","createddate","gstnumber","supplieremail","suppliercode","suppliertype","country"]
+Available columns for supplier: ["id","suppliername","supplierphonenumber","supplierlandline","doornumber","streetname","city","state","pincode","isdeleted","modifieddate","createddate","gstnumber","supplieremail","suppliercode","suppliertype","country"]

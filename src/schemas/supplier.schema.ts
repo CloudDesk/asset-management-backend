@@ -5,7 +5,7 @@ export const createSupplierSchema = z.object({
   // Actual database fields
   suppliername: z.string().min(1).max(255).optional(),
   suppliercode: z.string().max(50).optional(),
-  suppliertype: z.enum(['local', 'International']).optional(),
+  suppliertype: z.enum(['local', 'international']).optional(),
   supplieremail: z.string().email().optional(),
   supplierphonenumber: z.number().optional(),
   supplierlandline: z.number().optional(),
@@ -25,7 +25,7 @@ export const updateSupplierSchema = z.object({
   // All fields optional for updates
   suppliername: z.string().min(1).max(255).optional(),
   suppliercode: z.string().max(50).optional(),
-  suppliertype: z.enum(['local', 'International']).optional(),
+  suppliertype: z.enum(['local', 'international']).optional(),
   supplieremail: z.string().email().optional(),
   supplierphonenumber: z.number().optional(),
   supplierlandline: z.number().optional(),
@@ -47,7 +47,7 @@ export const upsertSupplierSchema = z.object({
   // Actual database fields
   suppliername: z.string().min(1).max(255).optional(),
   suppliercode: z.string().max(50).optional(),
-  suppliertype: z.enum(['local', 'International']).optional(),
+  suppliertype: z.enum(['local', 'international']).optional(),
   supplieremail: z.string().email().optional(),
   supplierphonenumber: z.number().optional(),
   supplierlandline: z.number().optional(),

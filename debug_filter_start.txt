@@ -23736,3 +23736,33 @@ Filtering data for address (address): {
   "createddate": 1759822422744,
   "modifieddate": 1759822422744
 }
+Filtering data for supplier (supplier): {
+  "suppliername": "test local ",
+  "suppliercode": "3w2114",
+  "suppliertype": "local",
+  "supplieremail": "sureshpseng@gmail.com",
+  "supplierphonenumber": 9994824573,
+  "supplierlandline": 0,
+  "city": "chennai",
+  "state": "Tamil Nadu",
+  "country": "India",
+  "gstnumber": "",
+  "doornumber": "",
+  "streetname": "2nd Floor, Plot No 48, 3rd St, Santhiniketan Colony, Ramalingam Nagar",
+  "pincode": 600078
+}
+Filtering data for supplier (supplier): {
+  "suppliername": "international ",
+  "suppliercode": "124",
+  "suppliertype": "international",
+  "supplieremail": "sureshmahath@gmail.com",
+  "supplierphonenumber": 0,
+  "supplierlandline": 0,
+  "city": "perambalur",
+  "state": "tamilnadu",
+  "country": "India",
+  "gstnumber": "",
+  "doornumber": "",
+  "streetname": "",
+  "pincode": 621109
+}
