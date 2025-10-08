@@ -9,6 +9,7 @@ export declare const createUsersSchema: z.ZodObject<{
     gender: z.ZodOptional<z.ZodString>;
     gstnumber: z.ZodOptional<z.ZodString>;
     isbusinessuser: z.ZodOptional<z.ZodBoolean>;
+    isguest: z.ZodOptional<z.ZodBoolean>;
     createddate: z.ZodOptional<z.ZodNumber>;
     modifieddate: z.ZodOptional<z.ZodNumber>;
 }, "passthrough", z.ZodTypeAny, z.objectOutputType<{
@@ -21,6 +22,7 @@ export declare const createUsersSchema: z.ZodObject<{
     gender: z.ZodOptional<z.ZodString>;
     gstnumber: z.ZodOptional<z.ZodString>;
     isbusinessuser: z.ZodOptional<z.ZodBoolean>;
+    isguest: z.ZodOptional<z.ZodBoolean>;
     createddate: z.ZodOptional<z.ZodNumber>;
     modifieddate: z.ZodOptional<z.ZodNumber>;
 }, z.ZodTypeAny, "passthrough">, z.objectInputType<{
@@ -33,6 +35,29 @@ export declare const createUsersSchema: z.ZodObject<{
     gender: z.ZodOptional<z.ZodString>;
     gstnumber: z.ZodOptional<z.ZodString>;
     isbusinessuser: z.ZodOptional<z.ZodBoolean>;
+    isguest: z.ZodOptional<z.ZodBoolean>;
+    createddate: z.ZodOptional<z.ZodNumber>;
+    modifieddate: z.ZodOptional<z.ZodNumber>;
+}, z.ZodTypeAny, "passthrough">>;
+export declare const createGuestUserSchema: z.ZodObject<{
+    firstname: z.ZodString;
+    useremail: z.ZodPipeline<z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, string | undefined>, z.ZodOptional<z.ZodString>>;
+    usermobilenumber: z.ZodNumber;
+    isguest: z.ZodDefault<z.ZodBoolean>;
+    createddate: z.ZodOptional<z.ZodNumber>;
+    modifieddate: z.ZodOptional<z.ZodNumber>;
+}, "passthrough", z.ZodTypeAny, z.objectOutputType<{
+    firstname: z.ZodString;
+    useremail: z.ZodPipeline<z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, string | undefined>, z.ZodOptional<z.ZodString>>;
+    usermobilenumber: z.ZodNumber;
+    isguest: z.ZodDefault<z.ZodBoolean>;
+    createddate: z.ZodOptional<z.ZodNumber>;
+    modifieddate: z.ZodOptional<z.ZodNumber>;
+}, z.ZodTypeAny, "passthrough">, z.objectInputType<{
+    firstname: z.ZodString;
+    useremail: z.ZodPipeline<z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, string | undefined>, z.ZodOptional<z.ZodString>>;
+    usermobilenumber: z.ZodNumber;
+    isguest: z.ZodDefault<z.ZodBoolean>;
     createddate: z.ZodOptional<z.ZodNumber>;
     modifieddate: z.ZodOptional<z.ZodNumber>;
 }, z.ZodTypeAny, "passthrough">>;
@@ -46,6 +71,7 @@ export declare const updateUsersSchema: z.ZodObject<{
     gender: z.ZodOptional<z.ZodString>;
     gstnumber: z.ZodOptional<z.ZodString>;
     isbusinessuser: z.ZodOptional<z.ZodBoolean>;
+    isguest: z.ZodOptional<z.ZodBoolean>;
     createddate: z.ZodOptional<z.ZodNumber>;
     modifieddate: z.ZodOptional<z.ZodNumber>;
 }, "passthrough", z.ZodTypeAny, z.objectOutputType<{
@@ -58,6 +84,7 @@ export declare const updateUsersSchema: z.ZodObject<{
     gender: z.ZodOptional<z.ZodString>;
     gstnumber: z.ZodOptional<z.ZodString>;
     isbusinessuser: z.ZodOptional<z.ZodBoolean>;
+    isguest: z.ZodOptional<z.ZodBoolean>;
     createddate: z.ZodOptional<z.ZodNumber>;
     modifieddate: z.ZodOptional<z.ZodNumber>;
 }, z.ZodTypeAny, "passthrough">, z.objectInputType<{
@@ -70,6 +97,7 @@ export declare const updateUsersSchema: z.ZodObject<{
     gender: z.ZodOptional<z.ZodString>;
     gstnumber: z.ZodOptional<z.ZodString>;
     isbusinessuser: z.ZodOptional<z.ZodBoolean>;
+    isguest: z.ZodOptional<z.ZodBoolean>;
     createddate: z.ZodOptional<z.ZodNumber>;
     modifieddate: z.ZodOptional<z.ZodNumber>;
 }, z.ZodTypeAny, "passthrough">>;
@@ -84,6 +112,7 @@ export declare const upsertUsersSchema: z.ZodObject<{
     gender: z.ZodOptional<z.ZodString>;
     gstnumber: z.ZodOptional<z.ZodString>;
     isbusinessuser: z.ZodOptional<z.ZodBoolean>;
+    isguest: z.ZodOptional<z.ZodBoolean>;
     createddate: z.ZodOptional<z.ZodNumber>;
     modifieddate: z.ZodOptional<z.ZodNumber>;
 }, "passthrough", z.ZodTypeAny, z.objectOutputType<{
@@ -97,6 +126,7 @@ export declare const upsertUsersSchema: z.ZodObject<{
     gender: z.ZodOptional<z.ZodString>;
     gstnumber: z.ZodOptional<z.ZodString>;
     isbusinessuser: z.ZodOptional<z.ZodBoolean>;
+    isguest: z.ZodOptional<z.ZodBoolean>;
     createddate: z.ZodOptional<z.ZodNumber>;
     modifieddate: z.ZodOptional<z.ZodNumber>;
 }, z.ZodTypeAny, "passthrough">, z.objectInputType<{
@@ -110,6 +140,7 @@ export declare const upsertUsersSchema: z.ZodObject<{
     gender: z.ZodOptional<z.ZodString>;
     gstnumber: z.ZodOptional<z.ZodString>;
     isbusinessuser: z.ZodOptional<z.ZodBoolean>;
+    isguest: z.ZodOptional<z.ZodBoolean>;
     createddate: z.ZodOptional<z.ZodNumber>;
     modifieddate: z.ZodOptional<z.ZodNumber>;
 }, z.ZodTypeAny, "passthrough">>;
@@ -129,35 +160,39 @@ export declare const usersQuerySchema: z.ZodObject<{
     gender: z.ZodOptional<z.ZodString>;
     gstnumber: z.ZodOptional<z.ZodString>;
     isbusinessuser: z.ZodOptional<z.ZodString>;
+    isguest: z.ZodOptional<z.ZodString>;
     usermobilenumber: z.ZodOptional<z.ZodString>;
     createdAfter: z.ZodOptional<z.ZodString>;
     createdBefore: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    gstnumber?: string | undefined;
     useremail?: string | undefined;
     usermobilenumber?: string | undefined;
     firstname?: string | undefined;
     lastname?: string | undefined;
     gender?: string | undefined;
+    gstnumber?: string | undefined;
     isbusinessuser?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
     createdAfter?: string | undefined;
     createdBefore?: string | undefined;
+    isguest?: string | undefined;
 }, {
-    gstnumber?: string | undefined;
     useremail?: string | undefined;
     usermobilenumber?: string | undefined;
     firstname?: string | undefined;
     lastname?: string | undefined;
     gender?: string | undefined;
+    gstnumber?: string | undefined;
     isbusinessuser?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
     createdAfter?: string | undefined;
     createdBefore?: string | undefined;
+    isguest?: string | undefined;
 }>;
 export type CreateUsersInput = z.infer<typeof createUsersSchema>;
+export type CreateGuestUserInput = z.infer<typeof createGuestUserSchema>;
 export type UpdateUsersInput = z.infer<typeof updateUsersSchema>;
 export type UpsertUsersInput = z.infer<typeof upsertUsersSchema>;
 export type UsersParams = z.infer<typeof usersParamsSchema>;

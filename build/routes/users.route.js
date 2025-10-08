@@ -17,6 +17,7 @@ export async function usersRoutes(fastify) {
                     gender: { type: 'string', description: 'Filter by gender' },
                     gstnumber: { type: 'string', description: 'Filter by GST number' },
                     isbusinessuser: { type: 'string', description: 'Filter by business user status' },
+                    isguest: { type: 'string', description: 'Filter by guest user status (true/false)' },
                     createdAfter: { type: 'string', description: 'Created after date' },
                     createdBefore: { type: 'string', description: 'Created before date' },
                 },
@@ -205,6 +206,135 @@ export async function usersRoutes(fastify) {
             },
         },
     }, usersController.createUser.bind(usersController));
+    // POST /v1/users/guest - Create guest user for checkout
+    fastify.post('/guest', {
+        schema: {
+            description: 'Create a guest user for checkout without registration',
+            tags: ['Users'],
+            body: {
+                type: 'object',
+                required: ['firstname', 'usermobilenumber'],
+                properties: {
+                    firstname: { type: 'string', minLength: 1, description: 'Guest user name (required)' },
+                    useremail: { type: 'string', description: 'Guest email (optional - can be empty string, null, or valid email)' },
+                    usermobilenumber: { type: 'number', description: 'Guest phone number (required)' },
+                },
+                additionalProperties: true,
+            },
+            response: {
+                201: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        data: {
+                            type: 'object',
+                            properties: {
+                                id: { type: 'number' },
+                                firstname: { type: 'string' },
+                                useremail: { type: 'string' },
+                                usermobilenumber: { type: 'number' },
+                                isguest: { type: 'boolean' },
+                                createddate: { type: 'number' },
+                                modifieddate: { type: 'number' },
+                            },
+                            additionalProperties: true
+                        },
+                        message: { type: 'string' },
+                    },
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
+                409: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
+            },
+        },
+    }, usersController.createGuestUser.bind(usersController));
+    // POST /v1/users/:id/convert-to-registered - Convert guest user to registered user
+    fastify.post('/:id/convert-to-registered', {
+        schema: {
+            description: 'Convert a guest user to a registered user',
+            tags: ['Users'],
+            params: {
+                type: 'object',
+                properties: {
+                    id: { type: 'string', description: 'Guest User ID' },
+                },
+                required: ['id'],
+            },
+            body: {
+                type: 'object',
+                properties: {
+                    useremail: { type: 'string', format: 'email', description: 'User email address' },
+                    userpassword: { type: 'string', description: 'User password' },
+                    lastname: { type: 'string', description: 'Last name' },
+                },
+                additionalProperties: true,
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        data: {
+                            type: 'object',
+                            additionalProperties: true
+                        },
+                        message: { type: 'string' },
+                    },
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
+                404: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
+            },
+        },
+    }, usersController.convertGuestToRegistered.bind(usersController));
     // PUT /v1/users/:id - Update user
     fastify.put('/:id', {
         schema: {

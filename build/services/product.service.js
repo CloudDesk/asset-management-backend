@@ -744,7 +744,7 @@ export class ProductService {
         try {
             const numericId = typeof productId === 'string' ? parseInt(productId, 10) : Number(productId);
             const platformStatus = this.calculatePlatformStatus(availableqty);
-            await prisma.PlatformStock.updateMany({
+            await prisma.platformStock.updateMany({
                 where: {
                     productid: BigInt(numericId),
                     platform: platform
@@ -788,7 +788,7 @@ export class ProductService {
         };
         for (const platform of DEFAULT_PLATFORM_STOCK_PLATFORMS) {
             try {
-                const existing = await prisma.PlatformStock.findUnique({
+                const existing = await prisma.platformStock.findUnique({
                     where: {
                         productid_platform: {
                             productid: BigInt(numericId),

@@ -362,5 +362,134 @@ export class UsersService {
             throw error;
         }
     }
+    /**
+     * Create a guest user with minimal required fields
+     * Guest users can checkout without creating an account
+     */
+    async createGuestUser(data) {
+        try {
+            logger.debug({ originalData: data }, 'Starting guest user creation');
+            // Check if a user with this mobile number already exists
+            const existingUser = await this.findByMobileNumber(data.usermobilenumber);
+            if (existingUser) {
+                // If user exists, check if they're already a guest
+                if (existingUser.isguest) {
+                    logger.info({
+                        userId: existingUser.id,
+                        mobileNumber: data.usermobilenumber
+                    }, 'Returning existing guest user');
+                    return existingUser;
+                }
+                else {
+                    // User is already a registered user
+                    throw new Error('This phone number is already registered. Please login instead.');
+                }
+            }
+            // Create guest user with minimal fields
+            const guestUserData = {
+                firstname: data.firstname,
+                useremail: data.useremail,
+                usermobilenumber: data.usermobilenumber,
+                isguest: true,
+                createddate: Date.now(),
+                modifieddate: Date.now()
+            };
+            const guestUser = await dynamicCreate('users', guestUserData);
+            if (!guestUser) {
+                throw new Error('Failed to create guest user');
+            }
+            logger.info({
+                userId: guestUser.id,
+                mobileNumber: guestUser.usermobilenumber,
+                isGuest: guestUser.isguest
+            }, 'Guest user created successfully');
+            return guestUser;
+        }
+        catch (error) {
+            logger.error({ error, data }, 'Error creating guest user');
+            throw error;
+        }
+    }
+    /**
+     * Convert guest user to registered user
+     * Called when a guest user registers/logs in with the same phone number
+     */
+    async convertGuestToRegistered(userId, registrationData) {
+        try {
+            logger.debug({ userId, registrationData }, 'Converting guest user to registered user');
+            // Verify user exists and is a guest
+            const user = await this.findById(userId.toString());
+            if (!user) {
+                throw new Error('User not found');
+            }
+            if (!user.isguest) {
+                logger.warn({ userId }, 'User is already a registered user');
+                return user;
+            }
+            // Update user to registered status with additional data if provided
+            const updateData = {
+                isguest: false,
+                modifieddate: Date.now(),
+                ...registrationData
+            };
+            // Hash password if provided
+            if (updateData.userpassword) {
+                updateData.userpassword = await hashPassword(updateData.userpassword);
+            }
+            const updatedUser = await dynamicUpdate('users', { id: userId }, updateData);
+            logger.info({
+                userId,
+                mobileNumber: updatedUser.usermobilenumber
+            }, 'Guest user converted to registered user successfully');
+            return updatedUser;
+        }
+        catch (error) {
+            logger.error({ error, userId }, 'Error converting guest user to registered');
+            throw error;
+        }
+    }
+    /**
+     * Find all orders for a user (including when they were a guest) by mobile number
+     * This is useful when showing order history after a guest user logs in
+     */
+    async findOrdersByMobileNumber(mobileNumber) {
+        try {
+            logger.debug({ mobileNumber }, 'Finding all orders for mobile number');
+            // Find all users with this mobile number (there should only be one)
+            const user = await this.findByMobileNumber(mobileNumber);
+            if (!user) {
+                return [];
+            }
+            // Return the user ID so orders can be fetched
+            return { userId: user.id, isGuest: user.isguest };
+        }
+        catch (error) {
+            logger.error({ error, mobileNumber }, 'Error finding orders by mobile number');
+            throw error;
+        }
+    }
+    /**
+     * Merge guest user into authenticated user
+     * When a user authenticates and has previous guest orders
+     */
+    async mergeGuestUser(guestUserId, authenticatedUserId) {
+        try {
+            logger.info({ guestUserId, authenticatedUserId }, 'Starting guest user merge');
+            // This should be called by the orders service to transfer orders
+            // Just update the guest user record to point to authenticated user
+            // This is handled at the order level, not user level
+            // Mark the guest user as merged (optional - could also delete)
+            await dynamicUpdate('users', { id: guestUserId }, {
+                isguest: false,
+                modifieddate: Date.now()
+            });
+            logger.info({ guestUserId, authenticatedUserId }, 'Guest user merged successfully');
+            return true;
+        }
+        catch (error) {
+            logger.error({ error, guestUserId, authenticatedUserId }, 'Error merging guest user');
+            throw error;
+        }
+    }
 }
 //# sourceMappingURL=users.service.js.map

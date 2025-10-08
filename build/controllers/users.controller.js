@@ -1,5 +1,5 @@
 import { UsersService } from '../services/users.service.js';
-import { createUsersSchema, updateUsersSchema, upsertUsersSchema, usersParamsSchema } from '../schemas/users.schema.js';
+import { createUsersSchema, createGuestUserSchema, updateUsersSchema, upsertUsersSchema, usersParamsSchema } from '../schemas/users.schema.js';
 import { getPaginationParams } from '../utils/pagination.js';
 import { createSuccessResponse, asyncHandler } from '../utils/errorHandler.js';
 import { formatEntitiesForAPI, formatUsersForAPI } from '../utils/dynamicDbOperations.js';
@@ -77,6 +77,29 @@ export class UsersController {
         const formattedUser = formatUsersForAPI(user);
         const message = data.id ? 'User updated successfully' : 'User created successfully';
         const response = createSuccessResponse(message, formattedUser);
+        return reply.code(200).send(response);
+    });
+    /**
+     * Create a guest user for checkout without registration
+     */
+    createGuestUser = asyncHandler(async (request, reply) => {
+        const data = createGuestUserSchema.parse(request.body);
+        const guestUser = await this.usersService.createGuestUser(data);
+        // Format the created guest user data
+        const formattedUser = formatUsersForAPI(guestUser);
+        const response = createSuccessResponse('Guest user created successfully', formattedUser);
+        return reply.code(201).send(response);
+    });
+    /**
+     * Convert guest user to registered user
+     */
+    convertGuestToRegistered = asyncHandler(async (request, reply) => {
+        const { id } = usersParamsSchema.parse(request.params);
+        const registrationData = request.body;
+        const user = await this.usersService.convertGuestToRegistered(parseInt(id), registrationData);
+        // Format the updated user data
+        const formattedUser = formatUsersForAPI(user);
+        const response = createSuccessResponse('Guest user converted to registered user successfully', formattedUser);
         return reply.code(200).send(response);
     });
 }

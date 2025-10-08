@@ -115,8 +115,8 @@ export declare const platformStockQuerySchema: z.ZodObject<{
     createdAfter: z.ZodOptional<z.ZodString>;
     createdBefore: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    productid?: string | undefined;
     platform?: string | undefined;
+    productid?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
     createdAfter?: string | undefined;
@@ -130,8 +130,8 @@ export declare const platformStockQuerySchema: z.ZodObject<{
     minTotalQty?: string | undefined;
     maxTotalQty?: string | undefined;
 }, {
-    productid?: string | undefined;
     platform?: string | undefined;
+    productid?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
     createdAfter?: string | undefined;
