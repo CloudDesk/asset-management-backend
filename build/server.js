@@ -35,8 +35,8 @@ export async function buildServer() {
     });
     // Register database plugin
     await fastify.register(dbPlugin);
-    // Register Swagger documentation (only in development)
-    if (env.NODE_ENV === 'development') {
+    // Register Swagger documentation (development and production)
+    if (env.NODE_ENV === 'development' || env.NODE_ENV === 'production') {
         await fastify.register(swaggerPlugin);
     }
     // Register simplified error handler for any uncaught errors
