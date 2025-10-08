@@ -143,14 +143,14 @@ const usersResponse = await fetch('/v1/inventoryusers', {
             servers: [
                 {
                     url: `http://localhost:${env.PORT}`,
-                    description: 'Development server',
+                    description: 'Local Development server',
                 },
                 {
-                    url: `https://nivaana-374914445110.us-central1.run.app`,
-                    description: 'User Acceptance Testing server',
+                    url: `https://nivaana-dev-715569764663.asia-south1.run.app`,
+                    description: 'Devlopement server',
                 },
                 {
-                    url: `https://nivaana-374914445110.us-central1.run.app`,
+                    url: `https://nivaana-715569764663.asia-south1.run.app`,
                     description: 'Production server',
                 },
             ],

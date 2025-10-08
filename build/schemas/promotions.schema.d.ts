@@ -404,35 +404,35 @@ export declare const promotionEligibilitySchema: z.ZodObject<{
         quantity: z.ZodNumber;
         price: z.ZodNumber;
     }, "strip", z.ZodTypeAny, {
-        quantity: number;
         price: number;
+        quantity: number;
         product_id: string;
     }, {
-        quantity: number;
         price: number;
+        quantity: number;
         product_id: string;
     }>, "many">>;
     code: z.ZodOptional<z.ZodString>;
     order_date: z.ZodOptional<z.ZodString>;
     payment_method: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    user_id: string;
     platform: string;
+    user_id: string;
     code?: string | undefined;
     cart?: {
-        quantity: number;
         price: number;
+        quantity: number;
         product_id: string;
     }[] | undefined;
     order_date?: string | undefined;
     payment_method?: string | undefined;
 }, {
-    user_id: string;
     platform: string;
+    user_id: string;
     code?: string | undefined;
     cart?: {
-        quantity: number;
         price: number;
+        quantity: number;
         product_id: string;
     }[] | undefined;
     order_date?: string | undefined;
@@ -443,12 +443,12 @@ export declare const promotionEligibilityQuerySchema: z.ZodObject<{
     platform: z.ZodString;
     code: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    user_id: string;
     platform: string;
+    user_id: string;
     code?: string | undefined;
 }, {
-    user_id: string;
     platform: string;
+    user_id: string;
     code?: string | undefined;
 }>;
 export declare const lineItemSchema: z.ZodObject<{
@@ -458,13 +458,13 @@ export declare const lineItemSchema: z.ZodObject<{
     price: z.ZodNumber;
 }, "strip", z.ZodTypeAny, {
     id: string;
-    quantity: number;
     price: number;
+    quantity: number;
     sku: string;
 }, {
     id: string;
-    quantity: number;
     price: number;
+    quantity: number;
     sku: string;
 }>;
 export declare const userContextSchema: z.ZodObject<{
@@ -485,29 +485,29 @@ export declare const cartContextSchema: z.ZodObject<{
         price: z.ZodNumber;
     }, "strip", z.ZodTypeAny, {
         id: string;
-        quantity: number;
         price: number;
+        quantity: number;
         sku: string;
     }, {
         id: string;
-        quantity: number;
         price: number;
+        quantity: number;
         sku: string;
     }>, "many">;
     applied_coupon_codes: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
 }, "strip", z.ZodTypeAny, {
     line_items: {
         id: string;
-        quantity: number;
         price: number;
+        quantity: number;
         sku: string;
     }[];
     applied_coupon_codes?: string[] | undefined;
 }, {
     line_items: {
         id: string;
-        quantity: number;
         price: number;
+        quantity: number;
         sku: string;
     }[];
     applied_coupon_codes?: string[] | undefined;
@@ -541,29 +541,29 @@ export declare const evaluationContextSchema: z.ZodObject<{
             price: z.ZodNumber;
         }, "strip", z.ZodTypeAny, {
             id: string;
-            quantity: number;
             price: number;
+            quantity: number;
             sku: string;
         }, {
             id: string;
-            quantity: number;
             price: number;
+            quantity: number;
             sku: string;
         }>, "many">;
         applied_coupon_codes: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     }, "strip", z.ZodTypeAny, {
         line_items: {
             id: string;
-            quantity: number;
             price: number;
+            quantity: number;
             sku: string;
         }[];
         applied_coupon_codes?: string[] | undefined;
     }, {
         line_items: {
             id: string;
-            quantity: number;
             price: number;
+            quantity: number;
             sku: string;
         }[];
         applied_coupon_codes?: string[] | undefined;
@@ -573,8 +573,8 @@ export declare const evaluationContextSchema: z.ZodObject<{
     cart: {
         line_items: {
             id: string;
-            quantity: number;
             price: number;
+            quantity: number;
             sku: string;
         }[];
         applied_coupon_codes?: string[] | undefined;
@@ -592,8 +592,8 @@ export declare const evaluationContextSchema: z.ZodObject<{
     cart: {
         line_items: {
             id: string;
-            quantity: number;
             price: number;
+            quantity: number;
             sku: string;
         }[];
         applied_coupon_codes?: string[] | undefined;
@@ -725,29 +725,29 @@ export declare const createEvaluationSchema: z.ZodObject<{
             price: z.ZodNumber;
         }, "strip", z.ZodTypeAny, {
             id: string;
-            quantity: number;
             price: number;
+            quantity: number;
             sku: string;
         }, {
             id: string;
-            quantity: number;
             price: number;
+            quantity: number;
             sku: string;
         }>, "many">;
         applied_coupon_codes: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     }, "strip", z.ZodTypeAny, {
         line_items: {
             id: string;
-            quantity: number;
             price: number;
+            quantity: number;
             sku: string;
         }[];
         applied_coupon_codes?: string[] | undefined;
     }, {
         line_items: {
             id: string;
-            quantity: number;
             price: number;
+            quantity: number;
             sku: string;
         }[];
         applied_coupon_codes?: string[] | undefined;
@@ -757,8 +757,8 @@ export declare const createEvaluationSchema: z.ZodObject<{
     cart: {
         line_items: {
             id: string;
-            quantity: number;
             price: number;
+            quantity: number;
             sku: string;
         }[];
         applied_coupon_codes?: string[] | undefined;
@@ -776,8 +776,8 @@ export declare const createEvaluationSchema: z.ZodObject<{
     cart: {
         line_items: {
             id: string;
-            quantity: number;
             price: number;
+            quantity: number;
             sku: string;
         }[];
         applied_coupon_codes?: string[] | undefined;

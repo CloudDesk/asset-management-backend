@@ -94,7 +94,7 @@ export class StockService {
                 try {
                     const productIdRaw = productRecord.id;
                     const productId = typeof productIdRaw === 'bigint' ? productIdRaw : BigInt(productIdRaw);
-                    const platformStockRecords = await prisma.PlatformStock.findMany({
+                    const platformStockRecords = await prisma.platformStock.findMany({
                         where: { productid: productId },
                         orderBy: { platform: 'asc' },
                     });

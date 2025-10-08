@@ -10,9 +10,25 @@ export const createUsersSchema = z.object({
     gender: z.string().max(50).optional(),
     gstnumber: z.string().max(20).optional(),
     isbusinessuser: z.boolean().optional(),
+    isguest: z.boolean().optional(),
     createddate: z.coerce.number().optional(),
     modifieddate: z.coerce.number().optional(),
 }).passthrough(); // Allow any additional fields
+// Guest user schema with minimal required fields
+export const createGuestUserSchema = z.object({
+    firstname: z.string().max(500).min(1, 'Name is required'),
+    // Allow empty string, null, undefined, or valid email - converts empty/falsy to undefined
+    useremail: z.string().max(255).optional().transform(val => {
+        // Convert empty strings, null, undefined to undefined
+        if (!val || val.trim() === '')
+            return undefined;
+        return val;
+    }).pipe(z.string().email().optional()),
+    usermobilenumber: z.coerce.number().positive('Phone number is required'),
+    isguest: z.boolean().default(true),
+    createddate: z.coerce.number().optional(),
+    modifieddate: z.coerce.number().optional(),
+}).passthrough();
 export const updateUsersSchema = z.object({
     useremail: z.string().email().max(255).optional(),
     userpassword: z.string().max(255).optional(),
@@ -23,6 +39,7 @@ export const updateUsersSchema = z.object({
     gender: z.string().max(50).optional(),
     gstnumber: z.string().max(20).optional(),
     isbusinessuser: z.boolean().optional(),
+    isguest: z.boolean().optional(),
     createddate: z.coerce.number().optional(),
     modifieddate: z.coerce.number().optional(),
 }).passthrough();
@@ -37,6 +54,7 @@ export const upsertUsersSchema = z.object({
     gender: z.string().max(50).optional(),
     gstnumber: z.string().max(20).optional(),
     isbusinessuser: z.boolean().optional(),
+    isguest: z.boolean().optional(),
     createddate: z.coerce.number().optional(),
     modifieddate: z.coerce.number().optional(),
 }).passthrough();
@@ -54,6 +72,7 @@ export const usersQuerySchema = z.object({
     gender: z.string().optional(),
     gstnumber: z.string().optional(),
     isbusinessuser: z.string().optional(),
+    isguest: z.string().optional(),
     usermobilenumber: z.string().optional(),
     createdAfter: z.string().optional(),
     createdBefore: z.string().optional(),

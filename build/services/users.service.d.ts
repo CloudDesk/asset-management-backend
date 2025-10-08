@@ -1,4 +1,4 @@
-import { CreateUsersInput, UpdateUsersInput, UpsertUsersInput } from '../schemas/users.schema.js';
+import { CreateUsersInput, CreateGuestUserInput, UpdateUsersInput, UpsertUsersInput } from '../schemas/users.schema.js';
 import { PaginationResult } from '../utils/pagination.js';
 import { FilterOptions } from '../utils/filterBuilder.js';
 export declare class UsersService {
@@ -47,5 +47,28 @@ export declare class UsersService {
      */
     getOTPForTesting(mobileNumber: number): Promise<number | null>;
     upsert(data: UpsertUsersInput & Record<string, any>): Promise<any>;
+    /**
+     * Create a guest user with minimal required fields
+     * Guest users can checkout without creating an account
+     */
+    createGuestUser(data: CreateGuestUserInput & Record<string, any>): Promise<any>;
+    /**
+     * Convert guest user to registered user
+     * Called when a guest user registers/logs in with the same phone number
+     */
+    convertGuestToRegistered(userId: number, registrationData?: Partial<CreateUsersInput>): Promise<any>;
+    /**
+     * Find all orders for a user (including when they were a guest) by mobile number
+     * This is useful when showing order history after a guest user logs in
+     */
+    findOrdersByMobileNumber(mobileNumber: number): Promise<never[] | {
+        userId: any;
+        isGuest: any;
+    }>;
+    /**
+     * Merge guest user into authenticated user
+     * When a user authenticates and has previous guest orders
+     */
+    mergeGuestUser(guestUserId: number, authenticatedUserId: number): Promise<boolean>;
 }
 //# sourceMappingURL=users.service.d.ts.map
