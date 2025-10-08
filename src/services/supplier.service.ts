@@ -16,7 +16,7 @@ import {
   dynamicDelete,
   dynamicFindManyWithFilters
 } from '../utils/dynamicDbOperations.js';
-import { NotFoundError } from '../utils/errorHandler.js';
+import { NotFoundError, ValidationError } from '../utils/errorHandler.js';
 import { logger } from '../config/logger.js';
 
 export class SupplierService {
@@ -93,7 +93,24 @@ export class SupplierService {
     try {
       logger.debug({ originalData: data }, 'Starting dynamic supplier create operation');
 
-      const supplier = await dynamicCreate('supplier', data);
+      const normalizedType = (data.suppliertype ?? 'local').toLowerCase();
+      if (!['local', 'international'].includes(normalizedType)) {
+        throw new ValidationError('Invalid supplier type', 'Supplier type must be either local or international');
+      }
+
+      if (normalizedType === 'local' && (data.supplierphonenumber === undefined || data.supplierphonenumber === null)) {
+        throw new ValidationError(
+          'Supplier phone number required',
+          'Supplier phone number is mandatory for local suppliers'
+        );
+      }
+
+      const supplierData = {
+        ...data,
+        suppliertype: normalizedType
+      };
+
+      const supplier = await dynamicCreate('supplier', supplierData);
 
       if (!supplier) {
         throw new Error('Failed to create supplier - no valid fields provided');
@@ -117,11 +134,31 @@ export class SupplierService {
   async update(id: string, data: UpdateSupplierInput & Record<string, any>) {
     try {
       // Check if supplier exists first
-      await this.findById(id);
+      const existingSupplier = await this.findById(id);
 
       logger.debug({ originalData: data, supplierId: id }, 'Starting dynamic supplier update operation');
+      const normalizedType = (data.suppliertype ?? existingSupplier.suppliertype ?? 'local').toString().toLowerCase();
+      if (!['local', 'international'].includes(normalizedType)) {
+        throw new ValidationError('Invalid supplier type', 'Supplier type must be either local or international');
+      }
 
-      const supplier = await dynamicUpdate('supplier', { id }, data);
+      const finalPhone = Object.prototype.hasOwnProperty.call(data, 'supplierphonenumber')
+        ? data.supplierphonenumber
+        : existingSupplier.supplierphonenumber;
+
+      if (normalizedType === 'local' && (finalPhone === undefined || finalPhone === null)) {
+        throw new ValidationError(
+          'Supplier phone number required',
+          'Supplier phone number is mandatory for local suppliers'
+        );
+      }
+
+      const supplierData = {
+        ...data,
+        suppliertype: normalizedType
+      };
+
+      const supplier = await dynamicUpdate('supplier', { id }, supplierData);
 
       if (!supplier) {
         throw new Error('Failed to update supplier - no valid fields provided');
