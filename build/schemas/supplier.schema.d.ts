@@ -2,7 +2,7 @@ import { z } from 'zod';
 export declare const createSupplierSchema: z.ZodObject<{
     suppliername: z.ZodOptional<z.ZodString>;
     suppliercode: z.ZodOptional<z.ZodString>;
-    suppliertype: z.ZodOptional<z.ZodEnum<["local", "International"]>>;
+    suppliertype: z.ZodOptional<z.ZodEnum<["local", "international"]>>;
     supplieremail: z.ZodOptional<z.ZodString>;
     supplierphonenumber: z.ZodOptional<z.ZodNumber>;
     supplierlandline: z.ZodOptional<z.ZodNumber>;
@@ -19,7 +19,7 @@ export declare const createSupplierSchema: z.ZodObject<{
 }, "passthrough", z.ZodTypeAny, z.objectOutputType<{
     suppliername: z.ZodOptional<z.ZodString>;
     suppliercode: z.ZodOptional<z.ZodString>;
-    suppliertype: z.ZodOptional<z.ZodEnum<["local", "International"]>>;
+    suppliertype: z.ZodOptional<z.ZodEnum<["local", "international"]>>;
     supplieremail: z.ZodOptional<z.ZodString>;
     supplierphonenumber: z.ZodOptional<z.ZodNumber>;
     supplierlandline: z.ZodOptional<z.ZodNumber>;
@@ -36,7 +36,7 @@ export declare const createSupplierSchema: z.ZodObject<{
 }, z.ZodTypeAny, "passthrough">, z.objectInputType<{
     suppliername: z.ZodOptional<z.ZodString>;
     suppliercode: z.ZodOptional<z.ZodString>;
-    suppliertype: z.ZodOptional<z.ZodEnum<["local", "International"]>>;
+    suppliertype: z.ZodOptional<z.ZodEnum<["local", "international"]>>;
     supplieremail: z.ZodOptional<z.ZodString>;
     supplierphonenumber: z.ZodOptional<z.ZodNumber>;
     supplierlandline: z.ZodOptional<z.ZodNumber>;
@@ -54,7 +54,7 @@ export declare const createSupplierSchema: z.ZodObject<{
 export declare const updateSupplierSchema: z.ZodObject<{
     suppliername: z.ZodOptional<z.ZodString>;
     suppliercode: z.ZodOptional<z.ZodString>;
-    suppliertype: z.ZodOptional<z.ZodEnum<["local", "International"]>>;
+    suppliertype: z.ZodOptional<z.ZodEnum<["local", "international"]>>;
     supplieremail: z.ZodOptional<z.ZodString>;
     supplierphonenumber: z.ZodOptional<z.ZodNumber>;
     supplierlandline: z.ZodOptional<z.ZodNumber>;
@@ -71,7 +71,7 @@ export declare const updateSupplierSchema: z.ZodObject<{
 }, "passthrough", z.ZodTypeAny, z.objectOutputType<{
     suppliername: z.ZodOptional<z.ZodString>;
     suppliercode: z.ZodOptional<z.ZodString>;
-    suppliertype: z.ZodOptional<z.ZodEnum<["local", "International"]>>;
+    suppliertype: z.ZodOptional<z.ZodEnum<["local", "international"]>>;
     supplieremail: z.ZodOptional<z.ZodString>;
     supplierphonenumber: z.ZodOptional<z.ZodNumber>;
     supplierlandline: z.ZodOptional<z.ZodNumber>;
@@ -88,7 +88,7 @@ export declare const updateSupplierSchema: z.ZodObject<{
 }, z.ZodTypeAny, "passthrough">, z.objectInputType<{
     suppliername: z.ZodOptional<z.ZodString>;
     suppliercode: z.ZodOptional<z.ZodString>;
-    suppliertype: z.ZodOptional<z.ZodEnum<["local", "International"]>>;
+    suppliertype: z.ZodOptional<z.ZodEnum<["local", "international"]>>;
     supplieremail: z.ZodOptional<z.ZodString>;
     supplierphonenumber: z.ZodOptional<z.ZodNumber>;
     supplierlandline: z.ZodOptional<z.ZodNumber>;
@@ -107,7 +107,7 @@ export declare const upsertSupplierSchema: z.ZodObject<{
     id: z.ZodOptional<z.ZodString>;
     suppliername: z.ZodOptional<z.ZodString>;
     suppliercode: z.ZodOptional<z.ZodString>;
-    suppliertype: z.ZodOptional<z.ZodEnum<["local", "International"]>>;
+    suppliertype: z.ZodOptional<z.ZodEnum<["local", "international"]>>;
     supplieremail: z.ZodOptional<z.ZodString>;
     supplierphonenumber: z.ZodOptional<z.ZodNumber>;
     supplierlandline: z.ZodOptional<z.ZodNumber>;
@@ -125,7 +125,7 @@ export declare const upsertSupplierSchema: z.ZodObject<{
     id: z.ZodOptional<z.ZodString>;
     suppliername: z.ZodOptional<z.ZodString>;
     suppliercode: z.ZodOptional<z.ZodString>;
-    suppliertype: z.ZodOptional<z.ZodEnum<["local", "International"]>>;
+    suppliertype: z.ZodOptional<z.ZodEnum<["local", "international"]>>;
     supplieremail: z.ZodOptional<z.ZodString>;
     supplierphonenumber: z.ZodOptional<z.ZodNumber>;
     supplierlandline: z.ZodOptional<z.ZodNumber>;
@@ -143,7 +143,7 @@ export declare const upsertSupplierSchema: z.ZodObject<{
     id: z.ZodOptional<z.ZodString>;
     suppliername: z.ZodOptional<z.ZodString>;
     suppliercode: z.ZodOptional<z.ZodString>;
-    suppliertype: z.ZodOptional<z.ZodEnum<["local", "International"]>>;
+    suppliertype: z.ZodOptional<z.ZodEnum<["local", "international"]>>;
     supplieremail: z.ZodOptional<z.ZodString>;
     supplierphonenumber: z.ZodOptional<z.ZodNumber>;
     supplierlandline: z.ZodOptional<z.ZodNumber>;

@@ -15,7 +15,7 @@ export async function supplierRoutes(fastify) {
                     id: { type: 'string', description: 'Filter by supplier ID' },
                     suppliername: { type: 'string', description: 'Filter by supplier name' },
                     suppliercode: { type: 'string', description: 'Filter by supplier code' },
-                    suppliertype: { type: 'string', description: 'Filter by supplier type (local/International)' },
+                    suppliertype: { type: 'string', description: 'Filter by supplier type (local/international)' },
                     supplieremail: { type: 'string', description: 'Filter by supplier email' },
                     supplierphonenumber: { type: 'string', description: 'Filter by supplier phone number' },
                     supplierlandline: { type: 'string', description: 'Filter by supplier landline' },
@@ -45,7 +45,7 @@ export async function supplierRoutes(fastify) {
                                     id: { type: 'number', description: 'Supplier ID' },
                                     suppliername: { type: 'string', description: 'Supplier name' },
                                     suppliercode: { type: 'string', description: 'Supplier code' },
-                                    suppliertype: { type: 'string', description: 'Supplier type (local/International)' },
+                                    suppliertype: { type: 'string', description: 'Supplier type (local/international)' },
                                     supplieremail: { type: 'string', description: 'Supplier email' },
                                     supplierphonenumber: { type: 'number', nullable: true, description: 'Supplier phone number' },
                                     supplierlandline: { type: 'number', nullable: true, description: 'Supplier landline' },
@@ -124,7 +124,7 @@ export async function supplierRoutes(fastify) {
                                 id: { type: 'number', description: 'Supplier ID' },
                                 suppliername: { type: 'string', description: 'Supplier name' },
                                 suppliercode: { type: 'string', description: 'Supplier code' },
-                                suppliertype: { type: 'string', description: 'Supplier type (local/International)' },
+                                suppliertype: { type: 'string', description: 'Supplier type (local/international)' },
                                 supplieremail: { type: 'string', description: 'Supplier email' },
                                 supplierphonenumber: { type: 'number', nullable: true, description: 'Supplier phone number' },
                                 supplierlandline: { type: 'number', nullable: true, description: 'Supplier landline' },
@@ -188,6 +188,15 @@ export async function supplierRoutes(fastify) {
         }
         catch (error) {
             console.log('=== DIRECT ERROR HANDLER:', error.message);
+            if (error.name === 'ValidationError') {
+                const errorResponse = {
+                    success: false,
+                    message: error.message,
+                    details: error.details || 'Validation failed',
+                    statusCode: 400
+                };
+                return reply.code(400).send(errorResponse);
+            }
             if (error.message.includes('not found')) {
                 const errorResponse = {
                     success: false,
@@ -218,7 +227,7 @@ export async function supplierRoutes(fastify) {
                 properties: {
                     suppliername: { type: 'string', minLength: 1, maxLength: 255, description: 'Supplier name' },
                     suppliercode: { type: 'string', maxLength: 50, description: 'Supplier code' },
-                    suppliertype: { type: 'string', enum: ['local', 'International'], description: 'Supplier type' },
+                    suppliertype: { type: 'string', enum: ['local', 'international'], description: 'Supplier type' },
                     supplieremail: { type: 'string', format: 'email', description: 'Supplier email address' },
                     supplierphonenumber: { type: 'number', description: 'Supplier phone number' },
                     supplierlandline: { type: 'number', description: 'Supplier landline number' },
@@ -232,6 +241,19 @@ export async function supplierRoutes(fastify) {
                     isdeleted: { type: 'boolean', description: 'Deletion status' },
                 },
                 additionalProperties: true, // Allow additional dynamic fields
+                allOf: [
+                    {
+                        if: {
+                            properties: {
+                                suppliertype: { const: 'local' }
+                            },
+                            required: ['suppliertype']
+                        },
+                        then: {
+                            required: ['supplierphonenumber']
+                        }
+                    }
+                ]
             },
             response: {
                 201: {
@@ -283,7 +305,7 @@ export async function supplierRoutes(fastify) {
                 properties: {
                     suppliername: { type: 'string', minLength: 1, maxLength: 255, description: 'Supplier name' },
                     suppliercode: { type: 'string', maxLength: 50, description: 'Supplier code' },
-                    suppliertype: { type: 'string', enum: ['local', 'International'], description: 'Supplier type' },
+                    suppliertype: { type: 'string', enum: ['local', 'international'], description: 'Supplier type' },
                     supplieremail: { type: 'string', format: 'email', description: 'Supplier email address' },
                     supplierphonenumber: { type: 'number', description: 'Supplier phone number' },
                     supplierlandline: { type: 'number', description: 'Supplier landline number' },
@@ -297,6 +319,19 @@ export async function supplierRoutes(fastify) {
                     isdeleted: { type: 'boolean', description: 'Deletion status' },
                 },
                 additionalProperties: true, // Allow additional dynamic fields
+                allOf: [
+                    {
+                        if: {
+                            properties: {
+                                suppliertype: { const: 'local' }
+                            },
+                            required: ['suppliertype']
+                        },
+                        then: {
+                            required: ['supplierphonenumber']
+                        }
+                    }
+                ]
             },
             response: {
                 200: {
@@ -509,7 +544,7 @@ export async function supplierRoutes(fastify) {
                     id: { type: 'string', description: 'Supplier ID (optional for create, required for update)' },
                     suppliername: { type: 'string', minLength: 1, maxLength: 255, description: 'Supplier name' },
                     suppliercode: { type: 'string', maxLength: 50, description: 'Supplier code' },
-                    suppliertype: { type: 'string', enum: ['local', 'International'], description: 'Supplier type' },
+                    suppliertype: { type: 'string', enum: ['local', 'international'], description: 'Supplier type' },
                     supplieremail: { type: 'string', format: 'email', description: 'Supplier email address' },
                     supplierphonenumber: { type: 'number', description: 'Supplier phone number' },
                     supplierlandline: { type: 'number', description: 'Supplier landline number' },
