@@ -27,53 +27,311 @@ export class PhonePeController {
                 productIds: requestBody.transaction.productid
             }, 'Payment initiation request received with new payload structure');
             console.log("first");
-            // Step 1: Validate evaluations if provided
+            // Step 1: Validate Promotions/Evaluations if provided
             const evaluationsToProcess = requestBody.evaluation_ids || [];
             const validEvaluations = [];
             const invalidEvaluations = [];
+            const limitReachedEvaluations = [];
             // Validate all evaluations
             if (evaluationsToProcess.length > 0) {
                 const { PromotionEvaluationService } = await import('../services/promotion-evaluation.service.js');
                 const evaluationService = new PromotionEvaluationService();
+                logger.info({
+                    evaluationCount: evaluationsToProcess.length,
+                    evaluationIds: evaluationsToProcess,
+                    userId: requestBody.transaction.userId
+                }, 'Starting promotion evaluation validation');
                 // Validate each evaluation
                 for (const evaluationId of evaluationsToProcess) {
-                    const validation = await evaluationService.validateEvaluationForOrder(evaluationId, requestBody.transaction.userId.toString());
-                    if (!validation.isValid) {
-                        logger.warn({
-                            evaluationId: evaluationId,
-                            userId: requestBody.transaction.userId,
-                            reason: validation.reason
-                        }, 'Evaluation validation failed');
-                        // Check if it's expired (block order) or limit reached (continue without discount)
-                        if (typeof validation.reason === 'string' &&
-                            (validation.reason.includes('expired') || validation.reason.includes('cancelled'))) {
-                            // Expired evaluation - block the entire order
-                            return reply.code(400).send({
-                                success: false,
-                                message: `Promotion has expired: ${validation.reason}`,
-                                error_code: "EVALUATION_EXPIRED",
-                                action_required: "reapply_coupon",
-                                statusCode: 400
-                            });
+                    try {
+                        const validation = await evaluationService.validateEvaluationForOrder(evaluationId, requestBody.transaction.userId.toString());
+                        if (!validation.isValid) {
+                            const reasonStr = typeof validation.reason === 'string' ? validation.reason : JSON.stringify(validation.reason);
+                            logger.warn({
+                                evaluationId: evaluationId,
+                                userId: requestBody.transaction.userId,
+                                reason: reasonStr,
+                                isValid: false
+                            }, 'Evaluation validation failed');
+                            // Check if it's expired/cancelled (block order)
+                            if (reasonStr.includes('expired') || reasonStr.includes('cancelled') || reasonStr.includes('Promotion not found')) {
+                                // CRITICAL: Expired/cancelled/missing promotion - block the entire order
+                                return reply.code(400).send({
+                                    success: false,
+                                    message: `Promotion validation failed: ${reasonStr}`,
+                                    error_code: "PROMOTION_EXPIRED_OR_INVALID",
+                                    evaluation_id: evaluationId,
+                                    reason: reasonStr,
+                                    action_required: "remove_this_coupon_and_reapply_valid_coupon",
+                                    invalid_evaluations: [{
+                                            evaluation_id: evaluationId,
+                                            reason: reasonStr,
+                                            status: 'expired_or_invalid'
+                                        }],
+                                    statusCode: 400
+                                });
+                            }
+                            // Check if usage limit reached (continue without this promotion)
+                            else if (reasonStr.includes('limit') || reasonStr.includes('usage') || reasonStr.includes('exceeded')) {
+                                // Usage limit reached - inform user but allow order to continue
+                                limitReachedEvaluations.push({
+                                    evaluation_id: evaluationId,
+                                    reason: reasonStr,
+                                    status: 'limit_reached'
+                                });
+                                invalidEvaluations.push({
+                                    evaluationId: evaluationId,
+                                    reason: reasonStr,
+                                    type: 'limit_reached'
+                                });
+                                logger.info({
+                                    evaluationId,
+                                    reason: reasonStr,
+                                    action: 'skipped_due_to_limit'
+                                }, 'Promotion limit reached - will continue without this discount');
+                            }
+                            // Other validation failures
+                            else {
+                                invalidEvaluations.push({
+                                    evaluationId: evaluationId,
+                                    reason: reasonStr,
+                                    type: 'other'
+                                });
+                            }
                         }
                         else {
-                            // Limit reached or other issues - continue without this promotion
-                            invalidEvaluations.push({
-                                evaluationId: evaluationId,
-                                reason: validation.reason
-                            });
+                            // Evaluation is valid - include it
+                            validEvaluations.push(evaluationId);
+                            logger.info({
+                                evaluationId,
+                                userId: requestBody.transaction.userId,
+                                status: 'valid'
+                            }, 'Promotion evaluation validated successfully');
                         }
                     }
-                    else {
-                        validEvaluations.push(evaluationId);
+                    catch (evalError) {
+                        logger.error({
+                            evaluationId,
+                            error: evalError.message,
+                            stack: evalError.stack
+                        }, 'Error validating promotion evaluation');
+                        invalidEvaluations.push({
+                            evaluationId: evaluationId,
+                            reason: `Validation error: ${evalError.message}`,
+                            type: 'error'
+                        });
                     }
                 }
                 logger.info({
+                    totalEvaluations: evaluationsToProcess.length,
+                    validCount: validEvaluations.length,
+                    invalidCount: invalidEvaluations.length,
+                    limitReachedCount: limitReachedEvaluations.length,
                     validEvaluations: validEvaluations,
                     invalidEvaluations: invalidEvaluations,
+                    limitReachedEvaluations: limitReachedEvaluations,
                     userId: requestBody.transaction.userId
-                }, 'Evaluation validation completed');
+                }, 'Promotion evaluation validation completed');
+                // If promotions have limit-reached issues, inform user but continue
+                if (limitReachedEvaluations.length > 0) {
+                    logger.warn({
+                        limitReachedCount: limitReachedEvaluations.length,
+                        limitReachedEvaluations: limitReachedEvaluations,
+                        validEvaluationsCount: validEvaluations.length,
+                        message: 'Some promotions reached usage limit - proceeding without them'
+                    }, 'Promotions with usage limits will be skipped');
+                }
             }
+            // Step 2: Validate Product & PlatformStock availability BEFORE payment
+            const PLATFORM_NAME = 'nivapp';
+            const validationErrors = [];
+            logger.info({
+                platform: PLATFORM_NAME,
+                productCount: requestBody.order.length,
+                products: requestBody.order.map(item => ({
+                    productid: item.productid,
+                    quantity: item.quantity
+                }))
+            }, 'Starting product and platformstock validation before payment initiation');
+            for (const orderItem of requestBody.order) {
+                try {
+                    const productId = orderItem.productid;
+                    const requestedQuantity = orderItem.quantity;
+                    // STEP 2A: Validate Product exists and has sufficient overall quantity
+                    const product = await prisma.product.findUnique({
+                        where: { id: BigInt(productId) },
+                        select: {
+                            id: true,
+                            name: true,
+                            puc: true,
+                            availablequantity: true,
+                            orderedquantity: true,
+                            productstatus: true
+                        }
+                    });
+                    // Check if product exists
+                    if (!product) {
+                        const error = {
+                            productid: productId,
+                            productname: orderItem.productname,
+                            quantity: requestedQuantity,
+                            error: `Product not found in database`,
+                            error_code: 'PRODUCT_NOT_FOUND'
+                        };
+                        logger.error({
+                            productId,
+                            productname: orderItem.productname,
+                            requestedQuantity
+                        }, 'Product not found - payment blocked');
+                        validationErrors.push(error);
+                        continue;
+                    }
+                    // Check if product has sufficient overall available quantity
+                    const productAvailableQty = product.availablequantity || 0;
+                    if (productAvailableQty < requestedQuantity) {
+                        const error = {
+                            productid: productId,
+                            productname: product.name,
+                            puc: product.puc,
+                            quantity: requestedQuantity,
+                            available: productAvailableQty,
+                            shortage: requestedQuantity - productAvailableQty,
+                            error: `Insufficient overall product quantity. Available: ${productAvailableQty}, Requested: ${requestedQuantity}`,
+                            error_code: 'INSUFFICIENT_PRODUCT_QUANTITY'
+                        };
+                        logger.error({
+                            productId,
+                            productname: product.name,
+                            requestedQuantity,
+                            productAvailableQty,
+                            shortage: requestedQuantity - productAvailableQty
+                        }, 'Insufficient product overall quantity - payment blocked');
+                        validationErrors.push(error);
+                        continue;
+                    }
+                    logger.info({
+                        productId,
+                        productname: product.name,
+                        requestedQuantity,
+                        productAvailableQty,
+                        status: 'PRODUCT_VALIDATED'
+                    }, 'Product overall quantity validation passed');
+                    // STEP 2B: Validate PlatformStock for NIVAPP
+                    const platformStock = await prisma.platformStock.findUnique({
+                        where: {
+                            productid_platform: {
+                                productid: BigInt(productId),
+                                platform: PLATFORM_NAME
+                            }
+                        },
+                        select: {
+                            availableqty: true,
+                            lockqty: true,
+                            orderedqty: true,
+                            platformstatus: true
+                        }
+                    });
+                    // If platformstock doesn't exist, it's an error
+                    if (!platformStock) {
+                        const error = {
+                            productid: productId,
+                            productname: product.name,
+                            puc: product.puc,
+                            quantity: requestedQuantity,
+                            error: `PlatformStock record not found for product on ${PLATFORM_NAME} platform`,
+                            error_code: 'PLATFORMSTOCK_NOT_FOUND'
+                        };
+                        logger.error({
+                            productId,
+                            platform: PLATFORM_NAME,
+                            productname: product.name,
+                            requestedQuantity
+                        }, 'PlatformStock record not found - payment blocked');
+                        validationErrors.push(error);
+                        continue;
+                    }
+                    // Calculate actual available quantity (availableqty - lockqty)
+                    const currentAvailableQty = platformStock.availableqty || 0;
+                    const currentLockQty = platformStock.lockqty || 0;
+                    const actualAvailableQty = currentAvailableQty - currentLockQty;
+                    // Validate sufficient platform-specific quantity
+                    if (actualAvailableQty < requestedQuantity) {
+                        const error = {
+                            productid: productId,
+                            productname: product.name,
+                            puc: product.puc,
+                            quantity: requestedQuantity,
+                            available: actualAvailableQty,
+                            availableqty: currentAvailableQty,
+                            lockqty: currentLockQty,
+                            shortage: requestedQuantity - actualAvailableQty,
+                            error: `Insufficient stock on ${PLATFORM_NAME}. Available: ${actualAvailableQty} (Total: ${currentAvailableQty}, Locked: ${currentLockQty}), Requested: ${requestedQuantity}`,
+                            error_code: 'INSUFFICIENT_PLATFORMSTOCK'
+                        };
+                        logger.error({
+                            productId,
+                            productname: product.name,
+                            platform: PLATFORM_NAME,
+                            requestedQuantity,
+                            currentAvailableQty,
+                            currentLockQty,
+                            actualAvailableQty,
+                            shortage: requestedQuantity - actualAvailableQty
+                        }, 'Insufficient platformstock - payment blocked');
+                        validationErrors.push(error);
+                        continue;
+                    }
+                    // Product and PlatformStock both pass validation
+                    logger.info({
+                        productId,
+                        productname: product.name,
+                        platform: PLATFORM_NAME,
+                        requestedQuantity,
+                        productAvailableQty,
+                        platformActualAvailable: actualAvailableQty,
+                        platformAvailableQty: currentAvailableQty,
+                        platformLockQty: currentLockQty,
+                        status: 'ALL_VALIDATIONS_PASSED'
+                    }, 'Product and PlatformStock validation passed');
+                }
+                catch (validationError) {
+                    logger.error({
+                        productId: orderItem.productid,
+                        error: validationError.message,
+                        stack: validationError.stack
+                    }, 'Error during product/platformstock validation');
+                    validationErrors.push({
+                        productid: orderItem.productid,
+                        productname: orderItem.productname,
+                        quantity: orderItem.quantity,
+                        error: `Validation error: ${validationError.message}`,
+                        error_code: 'VALIDATION_ERROR'
+                    });
+                }
+            }
+            // If any validation errors, block payment
+            if (validationErrors.length > 0) {
+                logger.error({
+                    platform: PLATFORM_NAME,
+                    totalProducts: requestBody.order.length,
+                    failedProducts: validationErrors.length,
+                    errors: validationErrors
+                }, 'Product/PlatformStock validation failed - blocking payment');
+                return reply.code(400).send({
+                    success: false,
+                    message: `Cannot process payment. ${validationErrors.length} product(s) have validation issues`,
+                    error_code: 'PRODUCT_VALIDATION_FAILED',
+                    platform: PLATFORM_NAME,
+                    validation_errors: validationErrors,
+                    action_required: 'remove_out_of_stock_items_or_reduce_quantity',
+                    statusCode: 400
+                });
+            }
+            logger.info({
+                platform: PLATFORM_NAME,
+                totalProducts: requestBody.order.length,
+                allProductsValidated: true
+            }, 'All products passed validation (Product + PlatformStock) - proceeding with payment');
             console.log(request.body, "request body");
             // Generate unique transaction ID for both modes
             const merchantTransactionId = PhonePeService.generateMerchantTransactionId();
@@ -135,6 +393,7 @@ export class PhonePeController {
                     mode: requestBody.mode,
                     evaluation_ids: validEvaluations, // Only use valid evaluations
                     invalid_evaluations: invalidEvaluations, // Track invalid ones for user info
+                    limit_reached_evaluations: limitReachedEvaluations, // Track limit-reached promotions
                     originalPayload: requestBody,
                     paymentRequest: paymentRequest,
                     initiatedAt: new Date().toISOString(),
@@ -240,11 +499,18 @@ export class PhonePeController {
                 // Prepare response message based on evaluation status
                 let responseMessage = requestBody.mode === 'phonepe' ? 'Payment initiated successfully' : 'COD order created successfully';
                 let userMessage = requestBody.mode === 'phonepe' ? 'Redirect to PhonePe for payment' : 'Order created for cash on delivery';
-                // Add information about invalid evaluations
-                if (invalidEvaluations.length > 0) {
-                    const invalidPromotions = invalidEvaluations.map(evaluation => evaluation.reason).join(', ');
-                    responseMessage += ` (Some promotions were not applied: ${invalidPromotions})`;
-                    userMessage += ` Note: Some promotions could not be applied due to limits or other restrictions.`;
+                // Add information about limit-reached promotions
+                if (limitReachedEvaluations.length > 0) {
+                    const limitReachedCount = limitReachedEvaluations.length;
+                    responseMessage += ` (${limitReachedCount} promotion(s) reached usage limit and were not applied)`;
+                    userMessage += ` Note: ${limitReachedCount} promotion(s) reached usage limit. Please apply another coupon for discount.`;
+                }
+                // Add information about other invalid evaluations
+                if (invalidEvaluations.length > limitReachedEvaluations.length) {
+                    const otherInvalid = invalidEvaluations.filter(e => e.type !== 'limit_reached');
+                    if (otherInvalid.length > 0) {
+                        userMessage += ` Some promotions could not be applied due to other restrictions.`;
+                    }
                 }
                 const response = createSuccessResponse(responseMessage, {
                     merchantTransactionId: result.transactionId,
@@ -255,6 +521,8 @@ export class PhonePeController {
                     message: userMessage,
                     promotion_status: {
                         valid_evaluations: validEvaluations,
+                        limit_reached_evaluations: limitReachedEvaluations, // Inform user about limit-reached
+                        action_required: limitReachedEvaluations.length > 0 ? 'apply_another_coupon' : null,
                         invalid_evaluations: invalidEvaluations,
                         total_applied: validEvaluations.length,
                         total_attempted: evaluationsToProcess.length
@@ -1564,7 +1832,13 @@ export class PhonePeController {
     }
     /**
      * Update product quantities and status after successful order creation
-     * This method updates orderedquantity, availablequantity, and productstatus for each product in the order
+     * NEW: Now includes platform-specific stock updates for nivapp
+     *
+     * Flow:
+     * 1. Check platformstock for nivapp (availableqty - lockqty >= ordered quantity)
+     * 2. Update platformstock (availableqty, lockqty, orderedqty, platformstatus)
+     * 3. Update overall product quantities and status
+     *
      * Product status rules:
      * - availablequantity <= 0: "out_of_stock"
      * - availablequantity 1-5: "low_stock"
@@ -1572,6 +1846,7 @@ export class PhonePeController {
      */
     async updateProductQuantitiesAfterOrder(orderData, originalOrderItems, mode) {
         console.log(orderData, "orderData");
+        const PLATFORM_NAME = 'nivapp'; // Platform name for nivapp - defined at function level
         try {
             logger.info({
                 orderId: orderData.id,
@@ -1582,7 +1857,7 @@ export class PhonePeController {
                     quantity: item.quantity,
                     productname: item.productname
                 }))
-            }, 'Starting product quantity updates after order creation');
+            }, 'Starting product quantity updates after order creation (with platformstock support)');
             // Validate input data
             if (!originalOrderItems || !Array.isArray(originalOrderItems) || originalOrderItems.length === 0) {
                 logger.warn({
@@ -1637,9 +1912,139 @@ export class PhonePeController {
                         orderId: orderData.id,
                         productId: productId,
                         requestedQuantity: requestedQuantity,
-                        mode: mode
-                    }, 'Processing product quantity update');
-                    // Get current product data
+                        mode: mode,
+                        platform: PLATFORM_NAME
+                    }, 'Processing product quantity update with platformstock');
+                    // STEP 1: Get and validate platformstock for nivapp
+                    let platformStock = await prisma.platformStock.findUnique({
+                        where: {
+                            productid_platform: {
+                                productid: BigInt(productId),
+                                platform: PLATFORM_NAME
+                            }
+                        },
+                        select: {
+                            id: true,
+                            availableqty: true,
+                            lockqty: true,
+                            orderedqty: true,
+                            soldqty: true,
+                            totalqty: true,
+                            platformstatus: true
+                        }
+                    });
+                    // If platformstock doesn't exist, it's an error (should have been validated at initiation)
+                    if (!platformStock) {
+                        logger.error({
+                            productId,
+                            platform: PLATFORM_NAME,
+                            orderId: orderData.id,
+                            productName: orderItem.productname
+                        }, 'PlatformStock record not found - this should have been caught during payment initiation validation');
+                        updateResults.push({
+                            productId: productId,
+                            productName: orderItem.productname,
+                            success: false,
+                            error: `PlatformStock record not found for product on ${PLATFORM_NAME} platform. Payment initiation validation should have prevented this.`,
+                            error_code: 'PLATFORMSTOCK_NOT_FOUND',
+                            critical: true // This indicates a validation bypass
+                        });
+                        continue;
+                    }
+                    // STEP 2: Check if sufficient quantity is available (availableqty - lockqty >= requested)
+                    const currentAvailableQty = platformStock.availableqty || 0;
+                    const currentLockQty = platformStock.lockqty || 0;
+                    const currentOrderedQty = platformStock.orderedqty || 0;
+                    const actualAvailableQty = currentAvailableQty - currentLockQty;
+                    if (actualAvailableQty < requestedQuantity) {
+                        logger.error({
+                            productId,
+                            platform: PLATFORM_NAME,
+                            orderId: orderData.id,
+                            requestedQuantity,
+                            currentAvailableQty,
+                            currentLockQty,
+                            actualAvailableQty,
+                            shortage: requestedQuantity - actualAvailableQty
+                        }, 'Insufficient available quantity in platformstock (availableqty - lockqty < requested)');
+                        updateResults.push({
+                            productId: productId,
+                            success: false,
+                            error: `Insufficient quantity in platformstock. Available: ${actualAvailableQty}, Requested: ${requestedQuantity}`,
+                            platformStock: {
+                                availableqty: currentAvailableQty,
+                                lockqty: currentLockQty,
+                                actualAvailable: actualAvailableQty
+                            }
+                        });
+                        continue;
+                    }
+                    // STEP 3: Calculate new platformstock quantities
+                    const newPlatformAvailableQty = Math.max(0, currentAvailableQty - requestedQuantity);
+                    const newPlatformLockQty = currentLockQty + requestedQuantity;
+                    const newPlatformOrderedQty = currentOrderedQty + requestedQuantity;
+                    // Determine platform status based on new available quantity
+                    let newPlatformStatus;
+                    if (newPlatformAvailableQty <= 0) {
+                        newPlatformStatus = "out_of_stock";
+                    }
+                    else if (newPlatformAvailableQty >= 1 && newPlatformAvailableQty <= 5) {
+                        newPlatformStatus = "low_stock";
+                    }
+                    else {
+                        newPlatformStatus = "in_stock";
+                    }
+                    logger.info({
+                        orderId: orderData.id,
+                        productId: productId,
+                        platform: PLATFORM_NAME,
+                        beforePlatformUpdate: {
+                            availableqty: currentAvailableQty,
+                            lockqty: currentLockQty,
+                            orderedqty: currentOrderedQty,
+                            actualAvailable: actualAvailableQty,
+                            platformstatus: platformStock.platformstatus
+                        },
+                        afterPlatformUpdate: {
+                            availableqty: newPlatformAvailableQty,
+                            lockqty: newPlatformLockQty,
+                            orderedqty: newPlatformOrderedQty,
+                            platformstatus: newPlatformStatus
+                        },
+                        requestedQuantity: requestedQuantity
+                    }, 'About to update platformstock quantities');
+                    // STEP 4: Update platformstock
+                    const updatedPlatformStock = await prisma.platformStock.update({
+                        where: {
+                            productid_platform: {
+                                productid: BigInt(productId),
+                                platform: PLATFORM_NAME
+                            }
+                        },
+                        data: {
+                            availableqty: newPlatformAvailableQty,
+                            lockqty: newPlatformLockQty,
+                            orderedqty: newPlatformOrderedQty,
+                            platformstatus: newPlatformStatus,
+                            modifieddate: BigInt(Date.now())
+                        }
+                    });
+                    logger.info({
+                        productId,
+                        platform: PLATFORM_NAME,
+                        platformStockId: updatedPlatformStock.id,
+                        platformQuantityUpdate: {
+                            requestedQuantity,
+                            oldAvailableQty: currentAvailableQty,
+                            newAvailableQty: newPlatformAvailableQty,
+                            oldLockQty: currentLockQty,
+                            newLockQty: newPlatformLockQty,
+                            oldOrderedQty: currentOrderedQty,
+                            newOrderedQty: newPlatformOrderedQty,
+                            newPlatformStatus
+                        }
+                    }, 'PlatformStock updated successfully');
+                    // STEP 5: Get current product data
                     const product = await prisma.product.findUnique({
                         where: { id: BigInt(productId) },
                         select: {
@@ -1663,17 +2068,17 @@ export class PhonePeController {
                         });
                         continue;
                     }
-                    // Calculate new quantities
-                    const currentOrderedQuantity = product.orderedquantity || 0;
-                    const currentAvailableQuantity = product.availablequantity || 0;
-                    const newOrderedQuantity = currentOrderedQuantity + requestedQuantity;
-                    const newAvailableQuantity = Math.max(0, currentAvailableQuantity - requestedQuantity);
+                    // STEP 6: Calculate new product quantities
+                    const currentProductOrderedQuantity = product.orderedquantity || 0;
+                    const currentProductAvailableQuantity = product.availablequantity || 0;
+                    const newProductOrderedQuantity = currentProductOrderedQuantity + requestedQuantity;
+                    const newProductAvailableQuantity = Math.max(0, currentProductAvailableQuantity - requestedQuantity);
                     // Determine product status based on new available quantity
                     let newProductStatus;
-                    if (newAvailableQuantity <= 0) {
+                    if (newProductAvailableQuantity <= 0) {
                         newProductStatus = "out_of_stock";
                     }
-                    else if (newAvailableQuantity >= 1 && newAvailableQuantity <= 5) {
+                    else if (newProductAvailableQuantity >= 1 && newProductAvailableQuantity <= 5) {
                         newProductStatus = "low_stock";
                     }
                     else {
@@ -1684,28 +2089,28 @@ export class PhonePeController {
                         productId: productId,
                         productName: product.name,
                         mode: mode,
-                        beforeUpdate: {
-                            orderedquantity: currentOrderedQuantity,
-                            availablequantity: currentAvailableQuantity
+                        beforeProductUpdate: {
+                            orderedquantity: currentProductOrderedQuantity,
+                            availablequantity: currentProductAvailableQuantity
                         },
-                        afterUpdate: {
-                            orderedquantity: newOrderedQuantity,
-                            availablequantity: newAvailableQuantity,
+                        afterProductUpdate: {
+                            orderedquantity: newProductOrderedQuantity,
+                            availablequantity: newProductAvailableQuantity,
                             productstatus: newProductStatus
                         },
                         requestedQuantity: requestedQuantity
                     }, 'About to update product quantities and status');
-                    // Update product quantities and status
+                    // STEP 7: Update product quantities and status
                     const updatedProduct = await prisma.product.update({
                         where: { id: BigInt(productId) },
                         data: {
-                            orderedquantity: newOrderedQuantity,
-                            availablequantity: newAvailableQuantity,
+                            orderedquantity: newProductOrderedQuantity,
+                            availablequantity: newProductAvailableQuantity,
                             productstatus: newProductStatus,
                             modifieddate: BigInt(Date.now())
                         }
                     });
-                    // Verify the update was successful
+                    // STEP 8: Verify the updates were successful
                     const verificationProduct = await prisma.product.findUnique({
                         where: { id: BigInt(productId) },
                         select: {
@@ -1716,36 +2121,78 @@ export class PhonePeController {
                             productstatus: true
                         }
                     });
+                    const verificationPlatformStock = await prisma.platformStock.findUnique({
+                        where: {
+                            productid_platform: {
+                                productid: BigInt(productId),
+                                platform: PLATFORM_NAME
+                            }
+                        },
+                        select: {
+                            availableqty: true,
+                            lockqty: true,
+                            orderedqty: true,
+                            platformstatus: true
+                        }
+                    });
                     logger.info({
                         productId,
                         productName: product.name,
                         orderId: orderData.id,
                         mode: mode,
-                        quantityUpdate: {
+                        platform: PLATFORM_NAME,
+                        productQuantityUpdate: {
                             requestedQuantity,
-                            oldOrderedQuantity: currentOrderedQuantity,
-                            newOrderedQuantity,
-                            oldAvailableQuantity: currentAvailableQuantity,
-                            newAvailableQuantity,
+                            oldOrderedQuantity: currentProductOrderedQuantity,
+                            newOrderedQuantity: newProductOrderedQuantity,
+                            oldAvailableQuantity: currentProductAvailableQuantity,
+                            newAvailableQuantity: newProductAvailableQuantity,
                             newProductStatus
                         },
+                        platformQuantityUpdate: {
+                            oldAvailableQty: currentAvailableQty,
+                            newAvailableQty: newPlatformAvailableQty,
+                            oldLockQty: currentLockQty,
+                            newLockQty: newPlatformLockQty,
+                            oldOrderedQty: currentOrderedQty,
+                            newOrderedQty: newPlatformOrderedQty,
+                            newPlatformStatus
+                        },
                         verification: {
-                            actualOrderedQuantity: verificationProduct?.orderedquantity,
-                            actualAvailableQuantity: verificationProduct?.availablequantity,
-                            actualProductStatus: verificationProduct?.productstatus
+                            product: {
+                                actualOrderedQuantity: verificationProduct?.orderedquantity,
+                                actualAvailableQuantity: verificationProduct?.availablequantity,
+                                actualProductStatus: verificationProduct?.productstatus
+                            },
+                            platformStock: {
+                                actualAvailableQty: verificationPlatformStock?.availableqty,
+                                actualLockQty: verificationPlatformStock?.lockqty,
+                                actualOrderedQty: verificationPlatformStock?.orderedqty,
+                                actualPlatformStatus: verificationPlatformStock?.platformstatus
+                            }
                         }
-                    }, 'Product quantity and status updated successfully');
+                    }, 'Product and PlatformStock quantities updated successfully');
                     updateResults.push({
                         productId,
                         productName: product.name,
                         success: true,
-                        quantityUpdate: {
+                        productQuantityUpdate: {
                             requestedQuantity,
-                            oldOrderedQuantity: currentOrderedQuantity,
-                            newOrderedQuantity,
-                            oldAvailableQuantity: currentAvailableQuantity,
-                            newAvailableQuantity,
+                            oldOrderedQuantity: currentProductOrderedQuantity,
+                            newOrderedQuantity: newProductOrderedQuantity,
+                            oldAvailableQuantity: currentProductAvailableQuantity,
+                            newAvailableQuantity: newProductAvailableQuantity,
                             newProductStatus
+                        },
+                        platformQuantityUpdate: {
+                            platform: PLATFORM_NAME,
+                            oldAvailableQty: currentAvailableQty,
+                            newAvailableQty: newPlatformAvailableQty,
+                            oldLockQty: currentLockQty,
+                            newLockQty: newPlatformLockQty,
+                            oldOrderedQty: currentOrderedQty,
+                            newOrderedQty: newPlatformOrderedQty,
+                            newPlatformStatus
                         },
                         verification: {
                             actualOrderedQuantity: verificationProduct?.orderedquantity,
@@ -1760,12 +2207,14 @@ export class PhonePeController {
                         orderId: orderData.id,
                         error: productError.message,
                         stack: productError.stack,
-                        orderItem: orderItem
-                    }, 'Error updating product quantity');
+                        orderItem: orderItem,
+                        platform: PLATFORM_NAME
+                    }, 'Error updating product and platformstock quantities');
                     updateResults.push({
                         productId: orderItem?.productid,
                         success: false,
-                        error: productError.message
+                        error: productError.message,
+                        isPlatformStockError: productError.message.includes('platformstock')
                     });
                 }
             }
@@ -1774,30 +2223,34 @@ export class PhonePeController {
             logger.info({
                 orderId: orderData.id,
                 mode: mode,
+                platform: PLATFORM_NAME,
                 totalProducts: originalOrderItems.length,
                 successfulUpdates: successfulUpdates.length,
                 failedUpdates: failedUpdates.length,
                 updateResults: updateResults.map(r => ({
                     productId: r.productId,
                     success: r.success,
-                    error: r.error
+                    error: r.error,
+                    hasPlatformUpdate: r.platformQuantityUpdate !== undefined
                 }))
-            }, 'Product quantity update process completed');
+            }, 'Product and PlatformStock quantity update process completed');
             return {
                 success: successfulUpdates.length > 0,
                 totalProducts: originalOrderItems.length,
                 successfulUpdates: successfulUpdates.length,
                 failedUpdates: failedUpdates.length,
-                updateResults
+                updateResults,
+                platform: PLATFORM_NAME
             };
         }
         catch (error) {
             logger.error({
                 orderId: orderData.id,
                 mode: mode,
+                platform: PLATFORM_NAME,
                 error: error.message,
                 stack: error.stack
-            }, 'Error in product quantity update process');
+            }, 'Error in product and platformstock quantity update process');
             throw error;
         }
     }

@@ -906,8 +906,23 @@ export async function dynamicFindUnique(modelName, where, include) {
         try {
             let result = null;
             if (modelName === 'product') {
+                // Smart PUC/ID detection: If 'id' is a string (not numeric), treat it as PUC
+                const productWhere = { ...where };
+                if (productWhere.id && typeof productWhere.id === 'string' && !/^\d+$/.test(productWhere.id)) {
+                    // It's a PUC string (like "NIV-IS-0039"), not a numeric ID
+                    logger.debug({
+                        originalId: productWhere.id,
+                        action: 'converting_id_to_puc_lookup'
+                    }, 'Detected PUC string in id field, converting to puc lookup');
+                    productWhere.puc = productWhere.id;
+                    delete productWhere.id;
+                }
+                else if (productWhere.id && typeof productWhere.id === 'string' && /^\d+$/.test(productWhere.id)) {
+                    // It's a numeric string, convert to BigInt
+                    productWhere.id = BigInt(productWhere.id);
+                }
                 result = await prisma.product.findUnique({
-                    where,
+                    where: productWhere,
                     ...(include && { include }),
                 });
                 // Check if the result is missing the isdealoftheday field

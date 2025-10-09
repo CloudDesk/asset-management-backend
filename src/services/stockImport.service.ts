@@ -6,6 +6,7 @@ import { ValidationError } from '../utils/errorHandler.js';
 import type { StockImportCommitRow } from '../schemas/stock-import.schema.js';
 import { StockService } from './stock.service.js';
 import { ProductService } from './product.service.js';
+import { PlatformStockService } from './platformStock.service.js';
 
 export type StockImportRowStatus = 'success' | 'warning' | 'error';
 
@@ -65,6 +66,7 @@ export class StockImportService {
  
   private stockService = new StockService();
   private productService = new ProductService();
+  private platformStockService = new PlatformStockService();
   async generatePreview(fileBuffer: Buffer): Promise<StockImportEvaluation> {
     const rows = await this.parseExcel(fileBuffer);
     return this.evaluateRows(rows);
@@ -1167,6 +1169,17 @@ export class StockImportService {
         rowNumber?: number;
       }>;
     };
+    platformStockUpdates: {
+      attempted: number;
+      succeeded: number;
+      failed: number;
+      failures: Array<{
+        productId: number;
+        platform: string;
+        message: string;
+        rowNumber?: number;
+      }>;
+    };
   }> {
     try {
       logger.info({
@@ -1180,6 +1193,12 @@ export class StockImportService {
       const failures: Array<{ rowNumber: number; serialnumber?: string; rfid?: string; message: string }> = [];
       const productUpdateQueue: Array<{
         identifier: string;
+        insertedStock: { ecompublish?: boolean; stockstatus?: string; quantity?: number };
+        rowNumber?: number;
+      }> = [];
+      const platformStockUpdateQueue: Array<{
+        productId: number;
+        platform: string;
         insertedStock: { ecompublish?: boolean; stockstatus?: string; quantity?: number };
         rowNumber?: number;
       }> = [];
@@ -1226,15 +1245,30 @@ export class StockImportService {
 
           const productIdentifier = this.resolveProductIdentifier(rowData, createdStock);
           if (productIdentifier) {
+            const insertedStockInfo = {
+              ecompublish: createdStock.ecompublish ?? stockData.ecompublish ?? false,
+              stockstatus: createdStock.stockstatus ?? stockData.stockstatus ?? 'Available',
+              quantity: Number(createdStock.quantity ?? stockData.quantity ?? 1) || 1
+            };
+
+            // Queue product update
             productUpdateQueue.push({
               identifier: productIdentifier,
               rowNumber,
-              insertedStock: {
-                ecompublish: createdStock.ecompublish ?? stockData.ecompublish ?? false,
-                stockstatus: createdStock.stockstatus ?? stockData.stockstatus ?? 'Available',
-                quantity: Number(createdStock.quantity ?? stockData.quantity ?? 1) || 1
-              }
+              insertedStock: insertedStockInfo
             });
+
+            // Queue platformstock update if platform is available
+            if (createdStock.platform) {
+              // Need to get productId from the product identifier
+              // This will be resolved during the update phase
+              platformStockUpdateQueue.push({
+                productId: 0, // Will be resolved from identifier
+                platform: createdStock.platform,
+                insertedStock: insertedStockInfo,
+                rowNumber
+              });
+            }
           } else {
             logger.warn({
               rowNumber,
@@ -1269,13 +1303,26 @@ export class StockImportService {
         }
       }
 
+      // Update product quantities
       let productUpdateSuccessCount = 0;
       const productUpdateFailures: Array<{ identifier: string; message: string; rowNumber?: number }> = [];
+      const productIdMap = new Map<string, number>(); // Map identifier to productId for platformstock updates
 
       for (const task of productUpdateQueue) {
         try {
           const updateResult = await this.productService.updateStockTotals(task.identifier, task.insertedStock);
           productUpdateSuccessCount += 1;
+          
+          // Get product to extract productId for platformstock updates
+          try {
+            const product = await this.productService.findById(task.identifier);
+            if (product && product.id) {
+              productIdMap.set(task.identifier, Number(product.id));
+            }
+          } catch (error) {
+            // If we can't get the product, we'll skip platformstock update for this item
+          }
+          
           logger.debug({
             productIdentifier: task.identifier,
             rowNumber: task.rowNumber,
@@ -1301,6 +1348,180 @@ export class StockImportService {
         }
       }
 
+      // Update platformstock quantities (NEW - was missing in bulk import)
+      let platformStockUpdateSuccessCount = 0;
+      const platformStockUpdateFailures: Array<{ 
+        productId: number; 
+        platform: string; 
+        message: string; 
+        rowNumber?: number 
+      }> = [];
+
+      // Group platformstock updates by unique (productId, platform) to avoid duplicate updates
+      const platformStockGroups = new Map<string, {
+        productId: number;
+        platform: string;
+        totalQuantity: number;
+        ecompublishQuantity: number; // Separate count for ecompublish=true items
+        hasAnyEcompublish: boolean;
+        stockstatus: string;
+        rowNumbers: number[];
+      }>();
+
+      // Resolve productIds and group by (productId, platform)
+      for (let i = 0; i < platformStockUpdateQueue.length; i++) {
+        const task = platformStockUpdateQueue[i];
+        const productTask = productUpdateQueue[i];
+        
+        if (!task || !productTask) continue;
+        
+        const productIdentifier = productTask.identifier;
+        if (!productIdentifier) continue;
+
+        const productId = productIdMap.get(productIdentifier);
+        if (!productId) continue;
+
+        const groupKey = `${productId}_${task.platform}`;
+        const existing = platformStockGroups.get(groupKey);
+        const itemQuantity = task.insertedStock.quantity || 1;
+        const isEcompublish = task.insertedStock.ecompublish || false;
+
+        if (existing) {
+          // Aggregate quantities for same product-platform combination
+          existing.totalQuantity += itemQuantity;
+          // Count ecompublish items separately
+          if (isEcompublish) {
+            existing.ecompublishQuantity += itemQuantity;
+          }
+          if (task.rowNumber) existing.rowNumbers.push(task.rowNumber);
+          // Track if ANY item has ecompublish=true
+          existing.hasAnyEcompublish = existing.hasAnyEcompublish || isEcompublish;
+        } else {
+          platformStockGroups.set(groupKey, {
+            productId,
+            platform: task.platform,
+            totalQuantity: itemQuantity,
+            ecompublishQuantity: isEcompublish ? itemQuantity : 0,
+            hasAnyEcompublish: isEcompublish,
+            stockstatus: task.insertedStock.stockstatus || 'Available',
+            rowNumbers: task.rowNumber ? [task.rowNumber] : []
+          });
+        }
+      }
+
+      logger.info({
+        platformStockGroupsCount: platformStockGroups.size,
+        totalQueuedUpdates: platformStockUpdateQueue.length
+      }, 'Grouped platformstock updates by product-platform combination');
+
+      // Execute platformstock updates
+      for (const [groupKey, group] of platformStockGroups.entries()) {
+        try {
+          // Get current platformstock record
+          const currentRecord = await prisma.platformStock.findUnique({
+            where: {
+              productid_platform: {
+                productid: BigInt(group.productId),
+                platform: group.platform
+              }
+            }
+          });
+
+          // Calculate new quantities
+          const currentAvailableQty = currentRecord?.availableqty || 0;
+          const currentTotalQty = currentRecord?.totalqty || 0;
+          const currentSoldQty = currentRecord?.soldqty || 0;
+
+          // totalQty increases by ALL items (regardless of ecompublish)
+          const newTotalQty = currentTotalQty + group.totalQuantity;
+          
+          // availableQty increases ONLY by ecompublish=true items
+          const newAvailableQty = currentAvailableQty + group.ecompublishQuantity;
+          
+          // Calculate platform status based on new available quantity
+          const newPlatformStatus = this.platformStockService['calculatePlatformStatus'](newAvailableQty);
+
+          logger.debug({
+            productId: group.productId,
+            platform: group.platform,
+            before: {
+              availableqty: currentAvailableQty,
+              totalqty: currentTotalQty
+            },
+            additions: {
+              totalQuantity: group.totalQuantity,
+              ecompublishQuantity: group.ecompublishQuantity
+            },
+            after: {
+              availableqty: newAvailableQty,
+              totalqty: newTotalQty,
+              platformstatus: newPlatformStatus
+            }
+          }, 'Calculating platformstock quantities for bulk update');
+
+          // Update platformstock directly
+          await prisma.platformStock.upsert({
+            where: {
+              productid_platform: {
+                productid: BigInt(group.productId),
+                platform: group.platform
+              }
+            },
+            update: {
+              availableqty: newAvailableQty,
+              totalqty: newTotalQty,
+              soldqty: currentSoldQty,
+              platformstatus: newPlatformStatus,
+              modifieddate: BigInt(Date.now())
+            },
+            create: {
+              productid: BigInt(group.productId),
+              platform: group.platform,
+              availableqty: newAvailableQty,
+              totalqty: newTotalQty,
+              soldqty: 0,
+              orderedqty: 0,
+              lockqty: 0,
+              platformstatus: newPlatformStatus,
+              createddate: BigInt(Date.now()),
+              modifieddate: BigInt(Date.now())
+            }
+          });
+          
+          platformStockUpdateSuccessCount += 1;
+          
+          logger.debug({
+            productId: group.productId,
+            platform: group.platform,
+            totalQuantity: group.totalQuantity,
+            ecompublishQuantity: group.ecompublishQuantity,
+            rowNumbers: group.rowNumbers,
+            hasAnyEcompublish: group.hasAnyEcompublish,
+            stockstatus: group.stockstatus,
+            newAvailableQty,
+            newTotalQty,
+            newPlatformStatus
+          }, 'Updated platformstock quantities after bulk stock import');
+        } catch (error: any) {
+          const message = error.message || 'Failed to update platformstock quantities';
+          const failureRecord = {
+            productId: group.productId,
+            platform: group.platform,
+            message,
+            ...(group.rowNumbers.length > 0 ? { rowNumber: group.rowNumbers[0] } : {})
+          };
+          
+          platformStockUpdateFailures.push(failureRecord);
+          
+          logger.warn({
+            productId: group.productId,
+            platform: group.platform,
+            rowNumbers: group.rowNumbers,
+            error: message
+          }, 'Failed to update platformstock quantities after bulk stock import');
+        }
+      }
+
       const summary = {
         requested: rows.length,
         inserted: inserted.length,
@@ -1314,16 +1535,25 @@ export class StockImportService {
         failures: productUpdateFailures
       };
 
+      const platformStockUpdateSummary = {
+        attempted: platformStockGroups.size,
+        succeeded: platformStockUpdateSuccessCount,
+        failed: platformStockUpdateFailures.length,
+        failures: platformStockUpdateFailures
+      };
+
       logger.info({
         ...summary,
-        productQuantityUpdates: productUpdateSummary
-      }, 'Stock bulk insert process completed with product quantity synchronization');
+        productQuantityUpdates: productUpdateSummary,
+        platformStockUpdates: platformStockUpdateSummary
+      }, 'Stock bulk insert process completed with product and platformstock quantity synchronization');
 
       return {
         summary,
         inserted,
         failures,
-        productQuantityUpdates: productUpdateSummary
+        productQuantityUpdates: productUpdateSummary,
+        platformStockUpdates: platformStockUpdateSummary
       };
 
     } catch (error: any) {

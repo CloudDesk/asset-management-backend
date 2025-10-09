@@ -78,7 +78,13 @@ export declare class PhonePeController {
     private storeTransactionData;
     /**
      * Update product quantities and status after successful order creation
-     * This method updates orderedquantity, availablequantity, and productstatus for each product in the order
+     * NEW: Now includes platform-specific stock updates for nivapp
+     *
+     * Flow:
+     * 1. Check platformstock for nivapp (availableqty - lockqty >= ordered quantity)
+     * 2. Update platformstock (availableqty, lockqty, orderedqty, platformstatus)
+     * 3. Update overall product quantities and status
+     *
      * Product status rules:
      * - availablequantity <= 0: "out_of_stock"
      * - availablequantity 1-5: "low_stock"
@@ -91,6 +97,7 @@ export declare class PhonePeController {
         failedUpdates: number;
         updateResults: never[];
         error: string;
+        platform?: never;
     } | {
         success: boolean;
         totalProducts: number;
@@ -98,9 +105,49 @@ export declare class PhonePeController {
         failedUpdates: number;
         updateResults: ({
             productId: any;
+            success: boolean;
+            error: string;
+            productName?: never;
+            error_code?: never;
+            critical?: never;
+            platformStock?: never;
+            productQuantityUpdate?: never;
+            platformQuantityUpdate?: never;
+            verification?: never;
+            isPlatformStockError?: never;
+        } | {
+            productId: any;
+            productName: any;
+            success: boolean;
+            error: string;
+            error_code: string;
+            critical: boolean;
+            platformStock?: never;
+            productQuantityUpdate?: never;
+            platformQuantityUpdate?: never;
+            verification?: never;
+            isPlatformStockError?: never;
+        } | {
+            productId: any;
+            success: boolean;
+            error: string;
+            platformStock: {
+                availableqty: number;
+                lockqty: number;
+                actualAvailable: number;
+            };
+            productName?: never;
+            error_code?: never;
+            critical?: never;
+            productQuantityUpdate?: never;
+            platformQuantityUpdate?: never;
+            verification?: never;
+            isPlatformStockError?: never;
+        } | {
+            productId: any;
             productName: string;
             success: boolean;
-            quantityUpdate: {
+            productQuantityUpdate: {
                 requestedQuantity: any;
                 oldOrderedQuantity: number;
                 newOrderedQuantity: any;
@@ -108,20 +155,40 @@ export declare class PhonePeController {
                 newAvailableQuantity: number;
                 newProductStatus: string;
             };
+            platformQuantityUpdate: {
+                platform: string;
+                oldAvailableQty: number;
+                newAvailableQty: number;
+                oldLockQty: number;
+                newLockQty: any;
+                oldOrderedQty: number;
+                newOrderedQty: any;
+                newPlatformStatus: string;
+            };
             verification: {
                 actualOrderedQuantity: number | null | undefined;
                 actualAvailableQuantity: number | null | undefined;
                 actualProductStatus: string | null | undefined;
             };
             error?: never;
+            error_code?: never;
+            critical?: never;
+            platformStock?: never;
+            isPlatformStockError?: never;
         } | {
             productId: any;
             success: boolean;
             error: any;
+            isPlatformStockError: any;
             productName?: never;
-            quantityUpdate?: never;
+            error_code?: never;
+            critical?: never;
+            platformStock?: never;
+            productQuantityUpdate?: never;
+            platformQuantityUpdate?: never;
             verification?: never;
         })[];
+        platform: string;
         error?: never;
     }>;
 }
