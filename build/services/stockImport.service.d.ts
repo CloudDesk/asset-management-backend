@@ -42,6 +42,7 @@ export interface StockImportEvaluation {
 export declare class StockImportService {
     private stockService;
     private productService;
+    private platformStockService;
     generatePreview(fileBuffer: Buffer): Promise<StockImportEvaluation>;
     validateNormalizedRows(rows: StockImportCommitRow[]): Promise<StockImportEvaluation>;
     private evaluateRows;
@@ -95,6 +96,17 @@ export declare class StockImportService {
             failed: number;
             failures: Array<{
                 identifier: string;
+                message: string;
+                rowNumber?: number;
+            }>;
+        };
+        platformStockUpdates: {
+            attempted: number;
+            succeeded: number;
+            failed: number;
+            failures: Array<{
+                productId: number;
+                platform: string;
                 message: string;
                 rowNumber?: number;
             }>;
