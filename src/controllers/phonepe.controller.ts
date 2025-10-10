@@ -402,6 +402,148 @@ console.log("first")
         allProductsValidated: true
       }, 'All products passed validation (Product + PlatformStock) - proceeding with payment');
 
+      // STEP 3: Lock stock for order (for BOTH phonepe and cod modes)
+      // This prevents race conditions where multiple users try to buy same product
+      logger.info({
+        platform: PLATFORM_NAME,
+        totalProducts: requestBody.order.length,
+        mode: requestBody.mode
+      }, 'Starting stock locking for order items');
+
+      const lockResults: Array<{
+        productId: number;
+        productName: string;
+        quantity: number;
+        oldAvailableQty: number;
+        newAvailableQty: number;
+        oldLockQty: number;
+        newLockQty: number;
+        success: boolean;
+      }> = [];
+      
+      const lockErrors: Array<{
+        productId: number;
+        productName: string;
+        error: string;
+      }> = [];
+
+      try {
+        // Use transaction to ensure all locks are atomic
+        await prisma.$transaction(async (tx) => {
+          for (const orderItem of requestBody.order) {
+            try {
+              const productId = orderItem.productid;
+              const requestedQuantity = orderItem.quantity;
+
+              // Get current platformstock
+              const platformStock = await tx.platformStock.findUnique({
+                where: {
+                  productid_platform: {
+                    productid: BigInt(productId),
+                    platform: PLATFORM_NAME
+                  }
+                }
+              });
+
+              if (!platformStock) {
+                throw new Error(`PlatformStock not found for product ${productId} (should have been caught in validation)`);
+              }
+
+              const currentAvailableQty = platformStock.availableqty || 0;
+              const currentLockQty = platformStock.lockqty || 0;
+              const actualAvailable = currentAvailableQty - currentLockQty;
+
+              // Double-check availability (should pass since we validated earlier)
+              if (actualAvailable < requestedQuantity) {
+                throw new Error(`Insufficient stock during locking: Available ${actualAvailable}, Requested ${requestedQuantity}`);
+              }
+
+              // Calculate new quantities
+              const newAvailableQty = currentAvailableQty - requestedQuantity;
+              const newLockQty = currentLockQty + requestedQuantity;
+
+              // Update platformstock - lock the quantity
+              await tx.platformStock.update({
+                where: {
+                  productid_platform: {
+                    productid: BigInt(productId),
+                    platform: PLATFORM_NAME
+                  }
+                },
+                data: {
+                  availableqty: newAvailableQty,
+                  lockqty: newLockQty,
+                  modifieddate: BigInt(Date.now())
+                }
+              });
+
+              lockResults.push({
+                productId,
+                productName: orderItem.productname,
+                quantity: requestedQuantity,
+                oldAvailableQty: currentAvailableQty,
+                newAvailableQty: newAvailableQty,
+                oldLockQty: currentLockQty,
+                newLockQty: newLockQty,
+                success: true
+              });
+
+              logger.info({
+                productId,
+                productName: orderItem.productname,
+                platform: PLATFORM_NAME,
+                requestedQuantity,
+                oldAvailableQty: currentAvailableQty,
+                newAvailableQty: newAvailableQty,
+                oldLockQty: currentLockQty,
+                newLockQty: newLockQty
+              }, 'Stock locked successfully for product');
+
+            } catch (itemError: any) {
+              logger.error({
+                productId: orderItem.productid,
+                error: itemError.message
+              }, 'Failed to lock stock for product');
+              
+              lockErrors.push({
+                productId: orderItem.productid,
+                productName: orderItem.productname,
+                error: itemError.message
+              });
+              
+              // Rollback transaction by throwing error
+              throw itemError;
+            }
+          }
+        });
+
+        logger.info({
+          platform: PLATFORM_NAME,
+          mode: requestBody.mode,
+          totalProducts: requestBody.order.length,
+          successfulLocks: lockResults.length,
+          lockResults: lockResults
+        }, 'Stock locking completed successfully for all products');
+
+      } catch (lockError: any) {
+        logger.error({
+          platform: PLATFORM_NAME,
+          mode: requestBody.mode,
+          error: lockError.message,
+          lockErrors: lockErrors
+        }, 'Stock locking failed - rolling back all locks');
+
+        // Return error response - stock locking failed
+        return reply.code(400).send({
+          success: false,
+          message: 'Failed to lock stock for order',
+          error_code: 'STOCK_LOCKING_FAILED',
+          platform: PLATFORM_NAME,
+          errors: lockErrors,
+          statusCode: 400
+        });
+      }
+
 console.log(request.body,"request body")
       // Generate unique transaction ID for both modes
       const merchantTransactionId = PhonePeService.generateMerchantTransactionId();
@@ -2359,44 +2501,53 @@ console.log(request.body,"request body")
             continue;
           }
 
-          // STEP 2: Check if sufficient quantity is available (availableqty - lockqty >= requested)
+          // STEP 2: Get current platformstock quantities
+          // NOTE: NO availability check here - stock was already validated and locked during initiation
+          // This is a CONVERSION step (lockqty → orderedqty), not a new lock
           const currentAvailableQty = platformStock.availableqty || 0;
           const currentLockQty = platformStock.lockqty || 0;
           const currentOrderedQty = platformStock.orderedqty || 0;
           
-          const actualAvailableQty = currentAvailableQty - currentLockQty;
+          logger.info({
+            productId,
+            platform: PLATFORM_NAME,
+            orderId: orderData.id,
+            requestedQuantity,
+            currentPlatformStock: {
+              availableqty: currentAvailableQty,
+              lockqty: currentLockQty,
+              orderedqty: currentOrderedQty
+            },
+            note: 'Stock was already locked during initiation - now converting to order'
+          }, 'Retrieved platformstock for lock-to-order conversion');
 
-          if (actualAvailableQty < requestedQuantity) {
-            logger.error({
+          // STEP 3: Convert locked quantity to ordered quantity
+          // NOTE: Stock was already locked during payment initiation
+          // availableqty: NO CHANGE (already reduced during locking)
+          // lockqty: DECREASE to 0 (unlock - convert to order)
+          // orderedqty: INCREASE (confirm order)
+          
+          // Calculate quantity to convert (minimum of locked qty and requested qty)
+          const quantityToConvert = Math.min(requestedQuantity, currentLockQty);
+          
+          // Warn if trying to unlock more than locked
+          if (requestedQuantity > currentLockQty) {
+            logger.warn({
               productId,
-              platform: PLATFORM_NAME,
               orderId: orderData.id,
               requestedQuantity,
-              currentAvailableQty,
               currentLockQty,
-              actualAvailableQty,
-              shortage: requestedQuantity - actualAvailableQty
-            }, 'Insufficient available quantity in platformstock (availableqty - lockqty < requested)');
-
-            updateResults.push({
-              productId: productId,
-              success: false,
-              error: `Insufficient quantity in platformstock. Available: ${actualAvailableQty}, Requested: ${requestedQuantity}`,
-              platformStock: {
-                availableqty: currentAvailableQty,
-                lockqty: currentLockQty,
-                actualAvailable: actualAvailableQty
-              }
-            });
-            continue;
+              quantityToConvert,
+              warning: 'Requested quantity exceeds locked quantity - using locked quantity only'
+            }, 'Lock quantity mismatch detected');
           }
+          
+          // Ensure no negative values - CRITICAL for data integrity
+          const newPlatformAvailableQty = Math.max(0, currentAvailableQty); // NO CHANGE but ensure non-negative
+          const newPlatformLockQty = Math.max(0, currentLockQty - quantityToConvert); // Unlock, NEVER negative
+          const newPlatformOrderedQty = currentOrderedQty + requestedQuantity; // Confirm order
 
-          // STEP 3: Calculate new platformstock quantities
-          const newPlatformAvailableQty = Math.max(0, currentAvailableQty - requestedQuantity);
-          const newPlatformLockQty = currentLockQty + requestedQuantity;
-          const newPlatformOrderedQty = currentOrderedQty + requestedQuantity;
-
-          // Determine platform status based on new available quantity
+          // Determine platform status based on available quantity
           let newPlatformStatus: string;
           if (newPlatformAvailableQty <= 0) {
             newPlatformStatus = "out_of_stock";
@@ -2414,7 +2565,6 @@ console.log(request.body,"request body")
               availableqty: currentAvailableQty,
               lockqty: currentLockQty,
               orderedqty: currentOrderedQty,
-              actualAvailable: actualAvailableQty,
               platformstatus: platformStock.platformstatus
             },
             afterPlatformUpdate: {
@@ -2423,8 +2573,11 @@ console.log(request.body,"request body")
               orderedqty: newPlatformOrderedQty,
               platformstatus: newPlatformStatus
             },
-            requestedQuantity: requestedQuantity
-          }, 'About to update platformstock quantities');
+            requestedQuantity: requestedQuantity,
+            quantityToConvert: quantityToConvert,
+            operation: 'CONVERT_LOCK_TO_ORDER',
+            note: 'lockqty will be reset to 0 or reduced, never negative'
+          }, 'About to convert locked quantity to ordered quantity (lockqty → orderedqty)');
 
           // STEP 4: Update platformstock
           const updatedPlatformStock = await prisma.platformStock.update({
@@ -2443,21 +2596,38 @@ console.log(request.body,"request body")
             }
           });
 
+          // STEP 4A: Verify no negative values after update
+          if (newPlatformLockQty < 0 || newPlatformAvailableQty < 0 || newPlatformOrderedQty < 0) {
+            logger.error({
+              productId,
+              platform: PLATFORM_NAME,
+              orderId: orderData.id,
+              values: {
+                newPlatformAvailableQty,
+                newPlatformLockQty,
+                newPlatformOrderedQty
+              },
+              error: 'CRITICAL: Negative quantity detected - this should never happen!'
+            }, 'Negative quantity detected in platformstock update');
+          }
+
           logger.info({
             productId,
             platform: PLATFORM_NAME,
             platformStockId: updatedPlatformStock.id,
             platformQuantityUpdate: {
               requestedQuantity,
+              quantityToConvert,
               oldAvailableQty: currentAvailableQty,
               newAvailableQty: newPlatformAvailableQty,
               oldLockQty: currentLockQty,
               newLockQty: newPlatformLockQty,
               oldOrderedQty: currentOrderedQty,
               newOrderedQty: newPlatformOrderedQty,
-              newPlatformStatus
+              newPlatformStatus,
+              lockQtyResetto0: newPlatformLockQty === 0 ? 'YES ✅' : `NO (${newPlatformLockQty} remaining)`
             }
-          }, 'PlatformStock updated successfully');
+          }, 'PlatformStock updated successfully - lockqty converted to orderedqty');
 
           // STEP 5: Get current product data
           const product = await prisma.product.findUnique({
@@ -2484,10 +2654,14 @@ console.log(product,"final product")
             continue;
           }
 
-          // STEP 6: Calculate new product quantities
+          // STEP 6: Update overall product quantities
+          // NOTE: Product table tracks overall quantities across all platforms
+          // PlatformStock was already updated above (lock → order conversion)
+          // Now update overall product quantities - ensure no negative values
           const currentProductOrderedQuantity = product.orderedquantity || 0;
           const currentProductAvailableQuantity = product.availablequantity || 0;
           
+          // Ensure no negative values
           const newProductOrderedQuantity = currentProductOrderedQuantity + requestedQuantity;
           const newProductAvailableQuantity = Math.max(0, currentProductAvailableQuantity - requestedQuantity);
 

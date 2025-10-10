@@ -24436,3 +24436,958 @@ Filtered data result: {
   "createddate": 1760091701694,
   "modifieddate": 1760091701694
 }
+Filtered data result: {
+  "puc": "NIV-IS-0044",
+  "platform": "nivapp",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtered data result: {
+  "quantity": 2,
+  "availablequantity": 2,
+  "soldquantity": 0,
+  "ecompublishedquantity": 2,
+  "productstatus": "low_stock",
+  "modifieddate": 1760095396154
+}
+Filtered data result: {
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 1,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "low_stock"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0044",
+  "platform": "nivapp",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtered data result: {
+  "quantity": 3,
+  "availablequantity": 2,
+  "soldquantity": 0,
+  "ecompublishedquantity": 3,
+  "productstatus": "low_stock",
+  "modifieddate": 1760096105069
+}
+Filtered data result: {
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 2,
+  "orderedqty": 1,
+  "lockqty": 1,
+  "platformstatus": "low_stock"
+}
+Filtered data result: {
+  "userid": 24,
+  "productid": 44,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1760096341032,
+  "modifieddate": 1760096341032
+}
+Filtered data result: {
+  "transactionid": "TXN_1760096851178_9FMR88",
+  "merchanttransactionid": "TXN_1760096851178_9FMR88",
+  "userid": 24,
+  "amount": 280,
+  "mobilenumber": 9994824573,
+  "name": "Suresh",
+  "productid": [
+    44
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "INITIATED",
+    "mode": "phonepe",
+    "evaluation_ids": [],
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": [],
+    "originalPayload": {
+      "transaction": {
+        "name": "Suresh",
+        "amount": 280,
+        "mobilenumber": "9994824573",
+        "userId": 24,
+        "productid": [
+          44
+        ],
+        "transactionfor": "product"
+      },
+      "order": [
+        {
+          "productid": 44,
+          "productname": "Nivaana - Premium Incense Sticks - Black Oudh",
+          "productcategory": "incense",
+          "userid": 24,
+          "addressid": 20,
+          "productamount": 240,
+          "discountamount": 10,
+          "orderamount": 230,
+          "quantity": 1,
+          "cartId": 515
+        }
+      ],
+      "mode": "phonepe"
+    },
+    "paymentRequest": {
+      "merchantTransactionId": "TXN_1760096851178_9FMR88",
+      "amount": 280,
+      "name": "Suresh",
+      "mobileNumber": "9994824573",
+      "userId": 24,
+      "productIds": [
+        44
+      ],
+      "transactionFor": "product"
+    },
+    "initiatedAt": "2025-10-10T11:47:31.385Z",
+    "phonePeResponses": {
+      "initiation": {
+        "timestamp": "2025-10-10T11:47:31.385Z",
+        "response": {
+          "success": true,
+          "message": "Payment initiated successfully",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBYfQEcvHv7KK0tltUr89uBU9p",
+          "transactionId": "TXN_1760096851178_9FMR88"
+        },
+        "status": "INITIATED",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBYfQEcvHv7KK0tltUr89uBU9p"
+      }
+    },
+    "codData": null
+  },
+  "createddate": 1760096851386,
+  "modifieddate": 1760096851386
+}
+Filtered data result: {
+  "puc": "NIV-IS-0044",
+  "platform": "nivapp",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtered data result: {
+  "quantity": 4,
+  "availablequantity": 3,
+  "soldquantity": 0,
+  "ecompublishedquantity": 4,
+  "productstatus": "low_stock",
+  "modifieddate": 1760097347323
+}
+Filtered data result: {
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 3,
+  "orderedqty": 1,
+  "lockqty": 0,
+  "platformstatus": "low_stock"
+}
+Filtered data result: {
+  "userid": 24,
+  "productid": 44,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1760097368812,
+  "modifieddate": 1760097368812
+}
+Filtered data result: {
+  "transactionid": "TXN_1760097431680_UC99L5",
+  "merchanttransactionid": "TXN_1760097431680_UC99L5",
+  "userid": 24,
+  "amount": 280,
+  "mobilenumber": 9994824573,
+  "name": "Suresh",
+  "productid": [
+    44
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "INITIATED",
+    "mode": "phonepe",
+    "evaluation_ids": [],
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": [],
+    "originalPayload": {
+      "transaction": {
+        "name": "Suresh",
+        "amount": 280,
+        "mobilenumber": "9994824573",
+        "userId": 24,
+        "productid": [
+          44
+        ],
+        "transactionfor": "product"
+      },
+      "order": [
+        {
+          "productid": 44,
+          "productname": "Nivaana - Premium Incense Sticks - Black Oudh",
+          "productcategory": "incense",
+          "userid": 24,
+          "addressid": 20,
+          "productamount": 240,
+          "discountamount": 10,
+          "orderamount": 230,
+          "quantity": 1,
+          "cartId": 516
+        }
+      ],
+      "mode": "phonepe"
+    },
+    "paymentRequest": {
+      "merchantTransactionId": "TXN_1760097431680_UC99L5",
+      "amount": 280,
+      "name": "Suresh",
+      "mobileNumber": "9994824573",
+      "userId": 24,
+      "productIds": [
+        44
+      ],
+      "transactionFor": "product"
+    },
+    "initiatedAt": "2025-10-10T11:57:11.998Z",
+    "phonePeResponses": {
+      "initiation": {
+        "timestamp": "2025-10-10T11:57:11.998Z",
+        "response": {
+          "success": true,
+          "message": "Payment initiated successfully",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBYfQEcvOtG2hIFOoW2gmx7OCi",
+          "transactionId": "TXN_1760097431680_UC99L5"
+        },
+        "status": "INITIATED",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBYfQEcvOtG2hIFOoW2gmx7OCi"
+      }
+    },
+    "codData": null
+  },
+  "createddate": 1760097431998,
+  "modifieddate": 1760097431998
+}
+Filtered data result: {
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "initiatedAt": "2025-10-10T11:57:11.998Z",
+    "evaluation_ids": [],
+    "paymentRequest": {
+      "name": "Suresh",
+      "amount": 280,
+      "userId": 24,
+      "productIds": [
+        44
+      ],
+      "mobileNumber": "9994824573",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1760097431680_UC99L5"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 516,
+          "userid": 24,
+          "quantity": 1,
+          "addressid": 20,
+          "productid": 44,
+          "orderamount": 230,
+          "productname": "Nivaana - Premium Incense Sticks - Black Oudh",
+          "productamount": 240,
+          "discountamount": 10,
+          "productcategory": "incense"
+        }
+      ],
+      "transaction": {
+        "name": "Suresh",
+        "amount": 280,
+        "userId": 24,
+        "productid": [
+          44
+        ],
+        "mobilenumber": "9994824573",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponses": {
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBYfQEcvOtG2hIFOoW2gmx7OCi",
+          "transactionId": "TXN_1760097431680_UC99L5"
+        },
+        "timestamp": "2025-10-10T11:57:11.998Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBYfQEcvOtG2hIFOoW2gmx7OCi"
+      },
+      "success": {
+        "timestamp": "2025-10-10T11:57:42.841Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Your payment is successful.",
+          "data": {
+            "merchantId": "PGTESTPAYUAT86",
+            "merchantTransactionId": "TXN_1760097431680_UC99L5",
+            "transactionId": "T2510101727119615286034",
+            "amount": 28000,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "CARD",
+              "cardType": "CREDIT_CARD",
+              "arn": "12121214455",
+              "bankId": null,
+              "cardHolderName": "Rajesh Kumar",
+              "tokenBin": "53675463",
+              "brn": "B12345"
+            },
+            "metaInfo": null
+          }
+        },
+        "status": "SUCCESS"
+      }
+    },
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": [],
+    "paymentCompleteAt": "2025-10-10T11:57:42.841Z",
+    "updatedAt": "2025-10-10T11:57:42.841Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Your payment is successful.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1760097431680_UC99L5",
+        "transactionId": "T2510101727119615286034",
+        "amount": 28000,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "CARD",
+          "cardType": "CREDIT_CARD",
+          "arn": "12121214455",
+          "bankId": null,
+          "cardHolderName": "Rajesh Kumar",
+          "tokenBin": "53675463",
+          "brn": "B12345"
+        },
+        "metaInfo": null
+      }
+    }
+  },
+  "modifieddate": 1760097463403
+}
+Filtered data result: {
+  "userid": 24,
+  "orderamount": 280,
+  "orderid": "ORDER_TXN_1760097431680_UC99L5_1760097465462",
+  "orderstatus": "payment_completed",
+  "quantity": 1,
+  "transactionid": "NIVAANA-TRAN-00203",
+  "productamount": 240,
+  "discountamount": 0,
+  "ispaymentsucceed": true,
+  "merchanttransactionid": "TXN_1760097431680_UC99L5",
+  "productid": [
+    44
+  ],
+  "mode": "phonepe",
+  "createddate": 1760097465462,
+  "modifieddate": 1760097465462,
+  "evaluation_id": null,
+  "promotion_discount_total": 0,
+  "original_total": 240,
+  "shipping_cost": 0,
+  "tax_amount": 0
+}
+Filtered data result: {
+  "orderid": 99,
+  "productid": 44,
+  "userid": 24,
+  "addressid": 20,
+  "productamount": 240,
+  "discountamount": 10,
+  "orderamount": 230,
+  "quantity": 1,
+  "productname": "Nivaana - Premium Incense Sticks - Black Oudh",
+  "productcategory": "incense",
+  "orderstatus": "payment_completed",
+  "uniqueordderid": "NIVAANA-0000000099",
+  "createddate": 1760097465463,
+  "modifieddate": 1760097465463,
+  "ordereddate": 1760097465463
+}
+Filtered data result: {
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "updatedAt": "2025-10-10T11:57:49.608Z",
+    "initiatedAt": "2025-10-10T11:57:11.998Z",
+    "evaluation_ids": [],
+    "paymentRequest": {
+      "name": "Suresh",
+      "amount": 280,
+      "userId": 24,
+      "productIds": [
+        44
+      ],
+      "mobileNumber": "9994824573",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1760097431680_UC99L5"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 516,
+          "userid": 24,
+          "quantity": 1,
+          "addressid": 20,
+          "productid": 44,
+          "orderamount": 230,
+          "productname": "Nivaana - Premium Incense Sticks - Black Oudh",
+          "productamount": 240,
+          "discountamount": 10,
+          "productcategory": "incense"
+        }
+      ],
+      "transaction": {
+        "name": "Suresh",
+        "amount": 280,
+        "userId": 24,
+        "productid": [
+          44
+        ],
+        "mobilenumber": "9994824573",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Your payment is successful.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1760097431680_UC99L5",
+        "transactionId": "T2510101727119615286034",
+        "amount": 28000,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "CARD",
+          "cardType": "CREDIT_CARD",
+          "arn": "12121214455",
+          "bankId": null,
+          "cardHolderName": "Rajesh Kumar",
+          "tokenBin": "53675463",
+          "brn": "B12345"
+        },
+        "metaInfo": null
+      },
+      "orderCreation": {
+        "status": "success",
+        "error": null,
+        "orderId": 99,
+        "timestamp": "2025-10-10T11:57:48.988Z"
+      },
+      "paymentCompleteAt": "2025-10-10T11:57:48.988Z"
+    },
+    "phonePeResponses": {
+      "success": {
+        "timestamp": "2025-10-10T11:57:49.608Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Your payment is successful.",
+          "data": {
+            "merchantId": "PGTESTPAYUAT86",
+            "merchantTransactionId": "TXN_1760097431680_UC99L5",
+            "transactionId": "T2510101727119615286034",
+            "amount": 28000,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "CARD",
+              "cardType": "CREDIT_CARD",
+              "arn": "12121214455",
+              "bankId": null,
+              "cardHolderName": "Rajesh Kumar",
+              "tokenBin": "53675463",
+              "brn": "B12345"
+            },
+            "metaInfo": null
+          },
+          "orderCreation": {
+            "status": "success",
+            "error": null,
+            "orderId": 99,
+            "timestamp": "2025-10-10T11:57:48.988Z"
+          },
+          "paymentCompleteAt": "2025-10-10T11:57:48.988Z"
+        },
+        "status": "SUCCESS"
+      },
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBYfQEcvOtG2hIFOoW2gmx7OCi",
+          "transactionId": "TXN_1760097431680_UC99L5"
+        },
+        "timestamp": "2025-10-10T11:57:11.998Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBYfQEcvOtG2hIFOoW2gmx7OCi"
+      }
+    },
+    "paymentCompleteAt": "2025-10-10T11:57:49.608Z",
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": []
+  },
+  "modifieddate": 1760097470238
+}
+Filtered data result: {
+  "puc": "NIV-IS-0044",
+  "platform": "nivapp",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtered data result: {
+  "quantity": 5,
+  "availablequantity": 4,
+  "soldquantity": 0,
+  "ecompublishedquantity": 5,
+  "productstatus": "low_stock",
+  "modifieddate": 1760097780492
+}
+Filtered data result: {
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 4,
+  "orderedqty": 3,
+  "lockqty": 0,
+  "platformstatus": "low_stock"
+}
+Filtered data result: {
+  "userid": 24,
+  "productid": 44,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1760097819593,
+  "modifieddate": 1760097819593
+}
+Filtered data result: {
+  "transactionid": "TXN_1760097880795_WN9522",
+  "merchanttransactionid": "TXN_1760097880795_WN9522",
+  "userid": 24,
+  "amount": 280,
+  "mobilenumber": 9994824573,
+  "name": "Suresh",
+  "productid": [
+    44
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "INITIATED",
+    "mode": "phonepe",
+    "evaluation_ids": [],
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": [],
+    "originalPayload": {
+      "transaction": {
+        "name": "Suresh",
+        "amount": 280,
+        "mobilenumber": "9994824573",
+        "userId": 24,
+        "productid": [
+          44
+        ],
+        "transactionfor": "product"
+      },
+      "order": [
+        {
+          "productid": 44,
+          "productname": "Nivaana - Premium Incense Sticks - Black Oudh",
+          "productcategory": "incense",
+          "userid": 24,
+          "addressid": 20,
+          "productamount": 240,
+          "discountamount": 10,
+          "orderamount": 230,
+          "quantity": 1,
+          "cartId": 517
+        }
+      ],
+      "mode": "phonepe"
+    },
+    "paymentRequest": {
+      "merchantTransactionId": "TXN_1760097880795_WN9522",
+      "amount": 280,
+      "name": "Suresh",
+      "mobileNumber": "9994824573",
+      "userId": 24,
+      "productIds": [
+        44
+      ],
+      "transactionFor": "product"
+    },
+    "initiatedAt": "2025-10-10T12:04:41.372Z",
+    "phonePeResponses": {
+      "initiation": {
+        "timestamp": "2025-10-10T12:04:41.372Z",
+        "response": {
+          "success": true,
+          "message": "Payment initiated successfully",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBYfQEcvOmehecTFAnnySiXD6B",
+          "transactionId": "TXN_1760097880795_WN9522"
+        },
+        "status": "INITIATED",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBYfQEcvOmehecTFAnnySiXD6B"
+      }
+    },
+    "codData": null
+  },
+  "createddate": 1760097881373,
+  "modifieddate": 1760097881373
+}
+Filtered data result: {
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "initiatedAt": "2025-10-10T12:04:41.372Z",
+    "evaluation_ids": [],
+    "paymentRequest": {
+      "name": "Suresh",
+      "amount": 280,
+      "userId": 24,
+      "productIds": [
+        44
+      ],
+      "mobileNumber": "9994824573",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1760097880795_WN9522"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 517,
+          "userid": 24,
+          "quantity": 1,
+          "addressid": 20,
+          "productid": 44,
+          "orderamount": 230,
+          "productname": "Nivaana - Premium Incense Sticks - Black Oudh",
+          "productamount": 240,
+          "discountamount": 10,
+          "productcategory": "incense"
+        }
+      ],
+      "transaction": {
+        "name": "Suresh",
+        "amount": 280,
+        "userId": 24,
+        "productid": [
+          44
+        ],
+        "mobilenumber": "9994824573",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponses": {
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBYfQEcvOmehecTFAnnySiXD6B",
+          "transactionId": "TXN_1760097880795_WN9522"
+        },
+        "timestamp": "2025-10-10T12:04:41.372Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBYfQEcvOmehecTFAnnySiXD6B"
+      },
+      "success": {
+        "timestamp": "2025-10-10T12:05:17.526Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Your payment is successful.",
+          "data": {
+            "merchantId": "PGTESTPAYUAT86",
+            "merchantTransactionId": "TXN_1760097880795_WN9522",
+            "transactionId": "T2510101734413285286854",
+            "amount": 28000,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "CARD",
+              "cardType": "CREDIT_CARD",
+              "arn": "12121214455",
+              "bankId": null,
+              "cardHolderName": "Rajesh Kumar",
+              "tokenBin": "53675463",
+              "brn": "B12345"
+            },
+            "metaInfo": null
+          }
+        },
+        "status": "SUCCESS"
+      }
+    },
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": [],
+    "paymentCompleteAt": "2025-10-10T12:05:17.526Z",
+    "updatedAt": "2025-10-10T12:05:17.526Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Your payment is successful.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1760097880795_WN9522",
+        "transactionId": "T2510101734413285286854",
+        "amount": 28000,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "CARD",
+          "cardType": "CREDIT_CARD",
+          "arn": "12121214455",
+          "bankId": null,
+          "cardHolderName": "Rajesh Kumar",
+          "tokenBin": "53675463",
+          "brn": "B12345"
+        },
+        "metaInfo": null
+      }
+    }
+  },
+  "modifieddate": 1760097918086
+}
+Filtered data result: {
+  "userid": 24,
+  "orderamount": 280,
+  "orderid": "ORDER_TXN_1760097880795_WN9522_1760097920570",
+  "orderstatus": "payment_completed",
+  "quantity": 1,
+  "transactionid": "NIVAANA-TRAN-00204",
+  "productamount": 240,
+  "discountamount": 0,
+  "ispaymentsucceed": true,
+  "merchanttransactionid": "TXN_1760097880795_WN9522",
+  "productid": [
+    44
+  ],
+  "mode": "phonepe",
+  "createddate": 1760097920570,
+  "modifieddate": 1760097920570,
+  "evaluation_id": null,
+  "promotion_discount_total": 0,
+  "original_total": 240,
+  "shipping_cost": 0,
+  "tax_amount": 0
+}
+Filtered data result: {
+  "orderid": 100,
+  "productid": 44,
+  "userid": 24,
+  "addressid": 20,
+  "productamount": 240,
+  "discountamount": 10,
+  "orderamount": 230,
+  "quantity": 1,
+  "productname": "Nivaana - Premium Incense Sticks - Black Oudh",
+  "productcategory": "incense",
+  "orderstatus": "payment_completed",
+  "uniqueordderid": "NIVAANA-0000000100",
+  "createddate": 1760097920571,
+  "modifieddate": 1760097920571,
+  "ordereddate": 1760097920571
+}
+Filtered data result: {
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "updatedAt": "2025-10-10T12:05:26.323Z",
+    "initiatedAt": "2025-10-10T12:04:41.372Z",
+    "evaluation_ids": [],
+    "paymentRequest": {
+      "name": "Suresh",
+      "amount": 280,
+      "userId": 24,
+      "productIds": [
+        44
+      ],
+      "mobileNumber": "9994824573",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1760097880795_WN9522"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 517,
+          "userid": 24,
+          "quantity": 1,
+          "addressid": 20,
+          "productid": 44,
+          "orderamount": 230,
+          "productname": "Nivaana - Premium Incense Sticks - Black Oudh",
+          "productamount": 240,
+          "discountamount": 10,
+          "productcategory": "incense"
+        }
+      ],
+      "transaction": {
+        "name": "Suresh",
+        "amount": 280,
+        "userId": 24,
+        "productid": [
+          44
+        ],
+        "mobilenumber": "9994824573",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Your payment is successful.",
+      "data": {
+        "merchantId": "PGTESTPAYUAT86",
+        "merchantTransactionId": "TXN_1760097880795_WN9522",
+        "transactionId": "T2510101734413285286854",
+        "amount": 28000,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "CARD",
+          "cardType": "CREDIT_CARD",
+          "arn": "12121214455",
+          "bankId": null,
+          "cardHolderName": "Rajesh Kumar",
+          "tokenBin": "53675463",
+          "brn": "B12345"
+        },
+        "metaInfo": null
+      },
+      "orderCreation": {
+        "status": "success",
+        "error": null,
+        "orderId": 100,
+        "timestamp": "2025-10-10T12:05:26.050Z"
+      },
+      "paymentCompleteAt": "2025-10-10T12:05:26.050Z"
+    },
+    "phonePeResponses": {
+      "success": {
+        "timestamp": "2025-10-10T12:05:26.323Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Your payment is successful.",
+          "data": {
+            "merchantId": "PGTESTPAYUAT86",
+            "merchantTransactionId": "TXN_1760097880795_WN9522",
+            "transactionId": "T2510101734413285286854",
+            "amount": 28000,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "CARD",
+              "cardType": "CREDIT_CARD",
+              "arn": "12121214455",
+              "bankId": null,
+              "cardHolderName": "Rajesh Kumar",
+              "tokenBin": "53675463",
+              "brn": "B12345"
+            },
+            "metaInfo": null
+          },
+          "orderCreation": {
+            "status": "success",
+            "error": null,
+            "orderId": 100,
+            "timestamp": "2025-10-10T12:05:26.050Z"
+          },
+          "paymentCompleteAt": "2025-10-10T12:05:26.050Z"
+        },
+        "status": "SUCCESS"
+      },
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBYfQEcvOmehecTFAnnySiXD6B",
+          "transactionId": "TXN_1760097880795_WN9522"
+        },
+        "timestamp": "2025-10-10T12:04:41.372Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBYfQEcvOmehecTFAnnySiXD6B"
+      }
+    },
+    "paymentCompleteAt": "2025-10-10T12:05:26.323Z",
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": []
+  },
+  "modifieddate": 1760097926870
+}
+Filtered data result: {
+  "userid": 32,
+  "productid": 43,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1760098136402,
+  "modifieddate": 1760098136402
+}
+Filtered data result: {
+  "userid": 32,
+  "productid": 42,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1760098136589,
+  "modifieddate": 1760098136589
+}
+Filtered data result: {
+  "quantity": 1,
+  "modifieddate": 1760098139388
+}
+Filtered data result: {
+  "quantity": 1,
+  "modifieddate": 1760098140012
+}
