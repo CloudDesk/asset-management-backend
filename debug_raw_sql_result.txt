@@ -7037,3 +7037,51 @@ Update result: []
 Update result: []
 Update result: []
 Update result: []
+Update result: [
+  {
+    "id": 501,
+    "productid": 40,
+    "userid": 24,
+    "createddate": 1760029516,
+    "quantity": "20",
+    "iscart": true,
+    "iswishlist": false,
+    "modifieddate": 1760029524
+  }
+]
+Update result: [
+  {
+    "id": 501,
+    "productid": 40,
+    "userid": 24,
+    "createddate": 1760029516,
+    "quantity": "19",
+    "iscart": true,
+    "iswishlist": false,
+    "modifieddate": 1760029531
+  }
+]
+Update result: [
+  {
+    "id": 501,
+    "productid": 40,
+    "userid": 24,
+    "createddate": 1760029516,
+    "quantity": "18",
+    "iscart": true,
+    "iswishlist": false,
+    "modifieddate": 1760032156
+  }
+]
+Update result: [
+  {
+    "id": 501,
+    "productid": 40,
+    "userid": 24,
+    "createddate": 1760029516,
+    "quantity": "19",
+    "iscart": true,
+    "iswishlist": false,
+    "modifieddate": 1760032185
+  }
+]

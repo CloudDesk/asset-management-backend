@@ -25008,3 +25008,191 @@ Filtering data for product (product): {
   "productstatus": "in_stock",
   "modifieddate": 1759923986747
 }
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0044",
+  "platform": "amazon",
+  "batchno": "BLKOD004NIV",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "poid": 12,
+  "supplierid": 1,
+  "manufacturedyear": 1759190400,
+  "releaseyear": 1759276800,
+  "rfid": "",
+  "serialnumber": "8935670"
+}
+Filtering data for product (product): {
+  "quantity": 1,
+  "availablequantity": 1,
+  "soldquantity": 0,
+  "ecompublishedquantity": 1,
+  "productstatus": "low_stock",
+  "modifieddate": 1760007847434
+}
+Filtering data for platformstock (platformstock): {
+  "availableqty": 0,
+  "totalqty": 0
+}
+Filtering data for platformstock (platformstock): {
+  "availableqty": 1,
+  "totalqty": 1
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "flipkart",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtering data for product (product): {
+  "quantity": 24,
+  "availablequantity": 20,
+  "soldquantity": 0,
+  "ecompublishedquantity": 20,
+  "productstatus": "in_stock",
+  "modifieddate": 1760009219316
+}
+Filtering data for platformstock (platformstock): {
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 1,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "low_stock"
+}
+Filtering data for cart (cart): {
+  "productid": 40,
+  "userid": 24,
+  "quantity": 19,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1760009715640,
+  "modifieddate": 1760009715640
+}
+Filtering data for cart (cart): {
+  "productid": 40,
+  "userid": 24,
+  "quantity": 20,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1760009723979
+}
+Filtering data for cart (cart): {
+  "productid": 40,
+  "userid": 24,
+  "quantity": 19,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1760009730428
+}
+Filtering data for cart (cart): {
+  "productid": 40,
+  "userid": 24,
+  "quantity": 18,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1760012355933
+}
+Filtering data for cart (cart): {
+  "productid": 40,
+  "userid": 24,
+  "quantity": 19,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1760012384033
+}
+Filtering data for cart (cart): {
+  "productid": 40,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1760014897282,
+  "modifieddate": 1760014897282
+}
+Filtering data for cart (cart): {
+  "productid": 40,
+  "userid": 24,
+  "quantity": 19,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1760015622891,
+  "modifieddate": 1760015622891
+}
+Filtering data for cart (cart): {
+  "productid": 44,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": false,
+  "iswishlist": true,
+  "createddate": 1760017414469,
+  "modifieddate": 1760017414469
+}
+Filtering data for cart (cart): {
+  "productid": 43,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": false,
+  "iswishlist": true,
+  "createddate": 1760073379789,
+  "modifieddate": 1760073379789
+}
+Filtering data for cart (cart): {
+  "productid": 43,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": false,
+  "iswishlist": true,
+  "createddate": 1760073579372,
+  "modifieddate": 1760073579372
+}
+Filtering data for cart (cart): {
+  "productid": 40,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": false,
+  "iswishlist": true,
+  "createddate": 1760080432921,
+  "modifieddate": 1760080432921
+}
+Filtering data for cart (cart): {
+  "userid": 24,
+  "productid": 43,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1760091699295,
+  "modifieddate": 1760091699295
+}
+Filtering data for cart (cart): {
+  "userid": 24,
+  "productid": 41,
+  "quantity": 1,
+  "iscart": false,
+  "iswishlist": true,
+  "createddate": 1760091699324,
+  "modifieddate": 1760091699324
+}
+Filtering data for cart (cart): {
+  "userid": 24,
+  "productid": 42,
+  "quantity": 1,
+  "iscart": false,
+  "iswishlist": true,
+  "createddate": 1760091701694,
+  "modifieddate": 1760091701694
+}
+Filtering data for cart (cart): {
+  "userid": 24,
+  "productid": 41,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1760091701694,
+  "modifieddate": 1760091701694
+}
