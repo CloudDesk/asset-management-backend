@@ -26179,3 +26179,12 @@ Filtering data for cart (cart): {
   "quantity": 1,
   "modifieddate": 1760098140012
 }
+Filtering data for cart (cart): {
+  "userid": 24,
+  "productid": 43,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1760099965057,
+  "modifieddate": 1760099965057
+}

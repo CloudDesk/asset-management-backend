@@ -749,25 +749,80 @@ console.log(request.body,"request body")
         const response = createSuccessResponse(
           responseMessage, 
           {
+            // Transaction & Payment Info
             merchantTransactionId: result.transactionId,
             redirectUrl: result.redirectUrl,
             amount: paymentRequest.amount,
             status: requestBody.mode === 'phonepe' ? 'INITIATED' : 'COD_ORDER_CREATED',
             mode: requestBody.mode,
             message: userMessage,
+            
+            // Validation Summary
+            validation_summary: {
+              promotions_validated: evaluationsToProcess.length,
+              products_validated: requestBody.order.length,
+              stock_validated: requestBody.order.length,
+              all_validations_passed: true
+            },
+            
+            // Promotion Status
             promotion_status: {
               valid_evaluations: validEvaluations,
-              limit_reached_evaluations: limitReachedEvaluations, // Inform user about limit-reached
+              limit_reached_evaluations: limitReachedEvaluations,
               action_required: limitReachedEvaluations.length > 0 ? 'apply_another_coupon' : null,
               invalid_evaluations: invalidEvaluations,
               total_applied: validEvaluations.length,
               total_attempted: evaluationsToProcess.length
             },
+            
+            // Stock Locking Summary
+            stock_locking: {
+              platform: PLATFORM_NAME,
+              total_products_locked: lockResults.length,
+              lock_status: 'success',
+              products: lockResults.map(lock => ({
+                productId: lock.productId,
+                productName: lock.productName,
+                quantity_locked: lock.quantity,
+                before: {
+                  availableqty: lock.oldAvailableQty,
+                  lockqty: lock.oldLockQty
+                },
+                after: {
+                  availableqty: lock.newAvailableQty,
+                  lockqty: lock.newLockQty
+                },
+                note: 'Stock locked and reserved for this order'
+              })),
+              message: `${lockResults.length} product(s) locked successfully for ${requestBody.mode} order`
+            },
+            
+            // Order Data (COD only)
             orderData: requestBody.mode === 'cod' ? {
               orderId: orderData?.id,
               orderid: orderData?.orderid,
-              status: orderData?.orderstatus
-            } : null
+              status: orderData?.orderstatus,
+              created_at: orderData?.createddate,
+              order_created: true
+            } : null,
+            
+            // Next Steps for Frontend
+            next_steps: {
+              phonepe: requestBody.mode === 'phonepe' ? {
+                action: 'redirect_to_payment',
+                redirectUrl: result.redirectUrl,
+                instructions: 'Redirect user to PhonePe payment page',
+                stock_status: 'locked_until_payment_complete',
+                lock_duration: 'Until payment success/failure'
+              } : null,
+              cod: requestBody.mode === 'cod' ? {
+                action: 'show_order_confirmation',
+                order_id: orderData?.id,
+                instructions: 'Show order confirmation to user',
+                stock_status: 'converted_to_order',
+                lockqty_status: 'reset_to_0'
+              } : null
+            }
           }
         );
         console.log(response,"response FInal ")
