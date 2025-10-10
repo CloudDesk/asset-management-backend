@@ -5760,3 +5760,35 @@ Filtered data: {
 Filtered data: {
   "isdefaultaddress": false
 }
+Filtered data: {
+  "productid": 40,
+  "userid": 24,
+  "quantity": 20,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1760009723979
+}
+Filtered data: {
+  "productid": 40,
+  "userid": 24,
+  "quantity": 19,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1760009730428
+}
+Filtered data: {
+  "productid": 40,
+  "userid": 24,
+  "quantity": 18,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1760012355933
+}
+Filtered data: {
+  "productid": 40,
+  "userid": 24,
+  "quantity": 19,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1760012384033
+}

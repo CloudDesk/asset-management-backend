@@ -86,3 +86,7 @@ Available columns: ["id","userid","name","mobilenumber","pincode","doornumber","
 Available columns: ["id","userid","name","mobilenumber","pincode","doornumber","address","landmark","state","city","modifieddate","createddate","isdefaultaddress"]
 Available columns: ["id","userid","name","mobilenumber","pincode","doornumber","address","landmark","state","city","modifieddate","createddate","isdefaultaddress"]
 Available columns: ["id","userid","name","mobilenumber","pincode","doornumber","address","landmark","state","city","modifieddate","createddate","isdefaultaddress"]
+Available columns: ["id","productid","userid","createddate","quantity","iscart","iswishlist","modifieddate"]
+Available columns: ["id","productid","userid","createddate","quantity","iscart","iswishlist","modifieddate"]
+Available columns: ["id","productid","userid","createddate","quantity","iscart","iswishlist","modifieddate"]
+Available columns: ["id","productid","userid","createddate","quantity","iscart","iswishlist","modifieddate"]

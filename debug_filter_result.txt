@@ -24248,3 +24248,191 @@ Filtered data result: {
   "productstatus": "in_stock",
   "modifieddate": 1759923986747
 }
+Filtered data result: {
+  "puc": "NIV-IS-0044",
+  "platform": "amazon",
+  "batchno": "BLKOD004NIV",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "poid": 12,
+  "supplierid": 1,
+  "manufacturedyear": 1759190400,
+  "releaseyear": 1759276800,
+  "rfid": "",
+  "serialnumber": "8935670"
+}
+Filtered data result: {
+  "quantity": 1,
+  "availablequantity": 1,
+  "soldquantity": 0,
+  "ecompublishedquantity": 1,
+  "productstatus": "low_stock",
+  "modifieddate": 1760007847434
+}
+Filtered data result: {
+  "availableqty": 0,
+  "totalqty": 0
+}
+Filtered data result: {
+  "availableqty": 1,
+  "totalqty": 1
+}
+Filtered data result: {
+  "puc": "NIV-IS-0040",
+  "platform": "flipkart",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtered data result: {
+  "quantity": 24,
+  "availablequantity": 20,
+  "soldquantity": 0,
+  "ecompublishedquantity": 20,
+  "productstatus": "in_stock",
+  "modifieddate": 1760009219316
+}
+Filtered data result: {
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 1,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "low_stock"
+}
+Filtered data result: {
+  "productid": 40,
+  "userid": 24,
+  "quantity": 19,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1760009715640,
+  "modifieddate": 1760009715640
+}
+Filtered data result: {
+  "productid": 40,
+  "userid": 24,
+  "quantity": 20,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1760009723979
+}
+Filtered data result: {
+  "productid": 40,
+  "userid": 24,
+  "quantity": 19,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1760009730428
+}
+Filtered data result: {
+  "productid": 40,
+  "userid": 24,
+  "quantity": 18,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1760012355933
+}
+Filtered data result: {
+  "productid": 40,
+  "userid": 24,
+  "quantity": 19,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1760012384033
+}
+Filtered data result: {
+  "productid": 40,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1760014897282,
+  "modifieddate": 1760014897282
+}
+Filtered data result: {
+  "productid": 40,
+  "userid": 24,
+  "quantity": 19,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1760015622891,
+  "modifieddate": 1760015622891
+}
+Filtered data result: {
+  "productid": 44,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": false,
+  "iswishlist": true,
+  "createddate": 1760017414469,
+  "modifieddate": 1760017414469
+}
+Filtered data result: {
+  "productid": 43,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": false,
+  "iswishlist": true,
+  "createddate": 1760073379789,
+  "modifieddate": 1760073379789
+}
+Filtered data result: {
+  "productid": 43,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": false,
+  "iswishlist": true,
+  "createddate": 1760073579372,
+  "modifieddate": 1760073579372
+}
+Filtered data result: {
+  "productid": 40,
+  "userid": 24,
+  "quantity": 1,
+  "iscart": false,
+  "iswishlist": true,
+  "createddate": 1760080432921,
+  "modifieddate": 1760080432921
+}
+Filtered data result: {
+  "userid": 24,
+  "productid": 43,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1760091699295,
+  "modifieddate": 1760091699295
+}
+Filtered data result: {
+  "userid": 24,
+  "productid": 41,
+  "quantity": 1,
+  "iscart": false,
+  "iswishlist": true,
+  "createddate": 1760091699324,
+  "modifieddate": 1760091699324
+}
+Filtered data result: {
+  "userid": 24,
+  "productid": 42,
+  "quantity": 1,
+  "iscart": false,
+  "iswishlist": true,
+  "createddate": 1760091701694,
+  "modifieddate": 1760091701694
+}
+Filtered data result: {
+  "userid": 24,
+  "productid": 41,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1760091701694,
+  "modifieddate": 1760091701694
+}
