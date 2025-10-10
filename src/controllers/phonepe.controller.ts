@@ -547,6 +547,55 @@ console.log("first")
 console.log(request.body,"request body")
       // Generate unique transaction ID for both modes
       const merchantTransactionId = PhonePeService.generateMerchantTransactionId();
+
+      // ========================================
+      // CREATE GCP CLOUD TASK FOR LOCK CLEANUP
+      // ========================================
+      // Schedule lock cleanup task for PhonePe mode
+      // COD mode doesn't need cleanup as lock is converted immediately to order
+      if (requestBody.mode === 'phonepe' && lockResults.length > 0) {
+        try {
+          const { createLockCleanupTask } = await import('../services/gcpTasks.service.js');
+          
+          // Get delay from env (default: 120 seconds = 2 minutes)
+          const cleanupDelaySeconds = parseInt(
+            process.env.LOCK_CLEANUP_DELAY_SECONDS || '120'
+          );
+
+          const taskResult = await createLockCleanupTask(
+            merchantTransactionId,
+            cleanupDelaySeconds
+          );
+
+          if (taskResult.success) {
+            logger.info({
+              merchantTransactionId,
+              taskName: taskResult.taskName,
+              delaySeconds: cleanupDelaySeconds,
+              scheduledTime: new Date(Date.now() + cleanupDelaySeconds * 1000).toISOString()
+            }, 'GCP Cloud Task created successfully for lock cleanup');
+          } else {
+            logger.warn({
+              merchantTransactionId,
+              error: taskResult.error,
+              delaySeconds: cleanupDelaySeconds
+            }, 'Failed to create GCP Cloud Task for lock cleanup (non-critical)');
+          }
+
+        } catch (taskError: any) {
+          // Log but don't fail the request - lock cleanup is a safety mechanism
+          logger.warn({
+            merchantTransactionId,
+            error: taskError.message,
+            stack: taskError.stack
+          }, 'Error creating GCP Cloud Task for lock cleanup (non-critical)');
+        }
+      } else if (requestBody.mode === 'cod') {
+        logger.info({
+          merchantTransactionId,
+          mode: 'cod'
+        }, 'Skipping GCP Cloud Task creation - COD mode converts locks immediately');
+      }
       
       let result: any;
       let paymentRequest: any;
@@ -630,8 +679,10 @@ console.log(request.body,"request body")
         };
 
         console.log(transactionData,"transactionData")
-        // Store transaction with complete data (single transaction record)
-        await this.storeTransactionData(paymentRequest, transactionData);
+        // Store transaction with complete data (single transaction record) - includes status column
+        // For PhonePe: INITIATED, For COD: COD_INITIATED
+        const initialStatus = requestBody.mode === 'cod' ? 'COD_INITIATED' : 'INITIATED';
+        await this.storeTransactionDataWithStatus(paymentRequest, transactionData, initialStatus);
 
         // For COD, create order and orderlines immediately
         let orderData: any = null;
@@ -651,6 +702,38 @@ console.log(request.body,"request body")
               orderId: orderData?.id,
               mode: 'cod'
             }, 'COD order and orderlines created successfully');
+
+            // Update transaction status to COD_SUCCESS after successful order creation
+            try {
+              const transactions = await this.transactionService.findMany(
+                { merchanttransactionid: paymentRequest.merchantTransactionId },
+                1,
+                1
+              );
+
+              if (transactions.data && transactions.data.length > 0) {
+                const transaction = transactions.data[0];
+                const transactionId = typeof transaction.id === 'bigint' 
+                  ? transaction.id.toString() 
+                  : String(transaction.id);
+
+                await this.transactionService.update(transactionId, {
+                  status: 'COD_SUCCESS', // Update status to success
+                  modifieddate: Date.now()
+                });
+
+                logger.info({
+                  merchantTransactionId: paymentRequest.merchantTransactionId,
+                  transactionId,
+                  status: 'COD_SUCCESS'
+                }, 'Transaction status updated to COD_SUCCESS');
+              }
+            } catch (statusUpdateError: any) {
+              logger.warn({
+                error: statusUpdateError.message,
+                merchantTransactionId: paymentRequest.merchantTransactionId
+              }, 'Failed to update transaction status to COD_SUCCESS (non-critical)');
+            }
 
             // Update product quantities after successful order creation
             if (orderData && requestBody.order && Array.isArray(requestBody.order)) {
@@ -1483,7 +1566,16 @@ console.log(request.body,"request body")
       }
 
       // Update transaction data with enhanced structure
+      // Map PhonePe status to our status values
+      let mappedStatus = status;
+      if (status === 'PAYMENT_SUCCESS') {
+        mappedStatus = 'SUCCESS';
+      } else if (status === 'PAYMENT_ERROR' || status === 'PAYMENT_FAILED') {
+        mappedStatus = 'FAILED';
+      }
+
       const updateData = {
+        status: mappedStatus, // NEW: Update dedicated status column
         transactiondata: existingTransactionData,
         modifieddate: Date.now()
       };
@@ -2422,6 +2514,53 @@ console.log(request.body,"request body")
   }
 
   /**
+   * Store transaction data with dedicated status column (NEW METHOD)
+   * This method includes the new status column for better performance and consistency
+   */
+  private async storeTransactionDataWithStatus(paymentRequest: any, transactionData: any, status: string) {
+    try {
+      logger.info({ 
+        merchantTransactionId: paymentRequest.merchantTransactionId,
+        amount: paymentRequest.amount,
+        userId: paymentRequest.userId,
+        mode: transactionData.mode,
+        status
+      }, 'Storing transaction data with status column');
+
+      const transactionRecord = {
+        transactionid: paymentRequest.merchantTransactionId,
+        merchanttransactionid: paymentRequest.merchantTransactionId,
+        userid: paymentRequest.userId,
+        amount: paymentRequest.amount,
+        mobilenumber: parseInt(paymentRequest.mobileNumber),
+        name: paymentRequest.name,
+        productid: paymentRequest.productIds || [],
+        transactionfor: paymentRequest.transactionFor,
+        transactiondata: transactionData,
+        status: status, // NEW: Dedicated status column
+        createddate: Date.now(),
+        modifieddate: Date.now()
+      };
+
+      const result = await this.transactionService.create(transactionRecord);
+      logger.info({ 
+        merchantTransactionId: paymentRequest.merchantTransactionId,
+        transactionId: result.id,
+        status
+      }, 'Transaction data stored successfully with status');
+
+      return result;
+    } catch (error: any) {
+      logger.error({ 
+        error: error.message,
+        merchantTransactionId: paymentRequest.merchantTransactionId,
+        status
+      }, 'Error storing transaction data with status');
+      throw error;
+    }
+  }
+
+  /**
    * Update product quantities and status after successful order creation
    * NEW: Now includes platform-specific stock updates for nivapp
    * 
@@ -2910,4 +3049,304 @@ console.log(product,"final product")
       throw error;
     }
   }
+
+  /**
+   * Cleanup expired lock (called by GCP Cloud Task)
+   * POST /v1/phonepe/cleanup-lock
+   * 
+   * This endpoint is triggered by GCP Cloud Tasks after 15 minutes of payment initiation.
+   * It checks payment status and releases stock locks for abandoned/failed payments.
+   */
+  cleanupExpiredLock = asyncHandler(async (request: FastifyRequest<{
+    Body: { 
+      merchantTransactionId?: string;
+      merchantid?: string; // Legacy support
+      createdAt?: string;
+      action?: string;
+    };
+  }>, reply: FastifyReply) => {
+    try {
+      const PLATFORM_NAME = 'nivapp'; // Platform name for nivapp stock management
+      
+      // Support both new and legacy payload formats
+      const merchantTransactionId = request.body.merchantTransactionId || request.body.merchantid;
+      
+      if (!merchantTransactionId) {
+        logger.error({ body: request.body }, 'merchantTransactionId missing in cleanup request');
+        return reply.code(400).send({
+          success: false,
+          message: 'merchantTransactionId is required',
+          error: 'MISSING_TRANSACTION_ID'
+        });
+      }
+
+      logger.info({ 
+        merchantTransactionId,
+        triggeredAt: new Date().toISOString(),
+        source: 'GCP_CLOUD_TASK'
+      }, 'Lock cleanup check triggered');
+
+      // Step 1: Check current payment status from PhonePe
+      const paymentStatus = await this.phonePeService.checkPaymentStatus(merchantTransactionId);
+
+      logger.info({
+        merchantTransactionId,
+        paymentCode: paymentStatus.code,
+        paymentMessage: paymentStatus.message
+      }, 'Payment status retrieved for cleanup check');
+
+      // Step 2: If payment successful or COD success, do nothing (lock already converted to order)
+      if (paymentStatus.code === 'PAYMENT_SUCCESS' || paymentStatus.code === 'SUCCESS') {
+        logger.info({ merchantTransactionId }, 'Payment already successful - no cleanup needed');
+        return reply.code(200).send({
+          success: true,
+          message: 'Payment successful - no cleanup needed',
+          action: 'none',
+          data: {
+            merchantTransactionId,
+            paymentStatus: 'SUCCESS',
+            lockStatus: 'already_converted_to_order'
+          }
+        });
+      }
+
+      // Step 3: If payment still pending/initiated/failed, release locks
+      if (
+        paymentStatus.code === 'PAYMENT_INITIATED' || 
+        paymentStatus.code === 'PAYMENT_PENDING' ||
+        paymentStatus.code === 'PAYMENT_ERROR' ||
+        paymentStatus.code === 'PAYMENT_DECLINED' ||
+        paymentStatus.code === 'PAYMENT_FAILED'
+      ) {
+        logger.info({ 
+          merchantTransactionId,
+          paymentCode: paymentStatus.code 
+        }, 'Payment not successful - releasing locks');
+
+        // Get transaction details - now using dedicated status column for better performance
+        const transactions = await this.transactionService.findMany(
+          { merchanttransactionid: merchantTransactionId },
+          1,
+          1
+        );
+
+        if (!transactions.data || transactions.data.length === 0) {
+          logger.warn({ merchantTransactionId }, 'Transaction not found for cleanup');
+          return reply.code(404).send({
+            success: false,
+            message: 'Transaction not found',
+            error: 'TRANSACTION_NOT_FOUND'
+          });
+        }
+
+        const transaction = transactions.data[0];
+        const originalPayload = transaction.transactiondata?.originalPayload;
+        const orderItems = originalPayload?.order || [];
+
+        if (orderItems.length === 0) {
+          logger.warn({ merchantTransactionId }, 'No order items found in transaction');
+          return reply.code(400).send({
+            success: false,
+            message: 'No order items found',
+            error: 'NO_ORDER_ITEMS'
+          });
+        }
+
+        logger.info({
+          merchantTransactionId,
+          orderItemsCount: orderItems.length
+        }, 'Starting lock release for order items');
+
+        // Step 4: Release locks atomically for all products
+        const releaseResults: any[] = [];
+        
+        await prisma.$transaction(async (tx) => {
+          for (const item of orderItems) {
+            try {
+              // Get current platformstock state
+              const platformStock = await tx.platformStock.findUnique({
+                where: {
+                  productid_platform: {
+                    productid: BigInt(item.productid),
+                    platform: PLATFORM_NAME
+                  }
+                }
+              });
+
+              if (!platformStock) {
+                logger.warn({
+                  productId: item.productid,
+                  merchantTransactionId
+                }, 'PlatformStock not found - skipping');
+                
+                releaseResults.push({
+                  productId: item.productid,
+                  status: 'skipped',
+                  reason: 'platformstock_not_found'
+                });
+                continue;
+              }
+
+              // Calculate quantity to release
+              const currentLockQty = platformStock.lockqty || 0;
+              const requestedQty = item.quantity;
+              const quantityToRelease = Math.min(requestedQty, currentLockQty);
+
+              if (quantityToRelease <= 0) {
+                logger.info({
+                  productId: item.productid,
+                  currentLockQty,
+                  requestedQty,
+                  merchantTransactionId
+                }, 'No quantity to release - lock already 0 or insufficient');
+
+                releaseResults.push({
+                  productId: item.productid,
+                  productName: item.productname || 'Unknown',
+                  status: 'skipped',
+                  reason: 'no_lock_to_release',
+                  currentLockQty
+                });
+                continue;
+              }
+
+              // Calculate new quantities
+              const newAvailableQty = platformStock.availableqty + quantityToRelease;
+              const newLockQty = Math.max(0, currentLockQty - quantityToRelease);
+
+              // Update platformstock - release lock back to available
+              await tx.platformStock.update({
+                where: {
+                  productid_platform: {
+                    productid: BigInt(item.productid),
+                    platform: PLATFORM_NAME
+                  }
+                },
+                data: {
+                  availableqty: newAvailableQty,
+                  lockqty: newLockQty,
+                  modifieddate: BigInt(Date.now())
+                }
+              });
+
+              logger.info({
+                productId: item.productid,
+                productName: item.productname,
+                quantityReleased: quantityToRelease,
+                before: {
+                  availableqty: platformStock.availableqty,
+                  lockqty: currentLockQty
+                },
+                after: {
+                  availableqty: newAvailableQty,
+                  lockqty: newLockQty
+                },
+                merchantTransactionId
+              }, 'Lock released successfully for product');
+
+              releaseResults.push({
+                productId: item.productid,
+                productName: item.productname || 'Unknown',
+                status: 'released',
+                quantityReleased: quantityToRelease,
+                before: {
+                  availableqty: platformStock.availableqty,
+                  lockqty: currentLockQty
+                },
+                after: {
+                  availableqty: newAvailableQty,
+                  lockqty: newLockQty
+                }
+              });
+
+            } catch (itemError: any) {
+              logger.error({
+                error: itemError.message,
+                productId: item.productid,
+                merchantTransactionId
+              }, 'Error releasing lock for product');
+
+              releaseResults.push({
+                productId: item.productid,
+                status: 'error',
+                error: itemError.message
+              });
+            }
+          }
+        });
+
+        // Step 5: Update transaction status to EXPIRED (both dedicated column and JSON)
+        const transactionId = typeof transaction.id === 'bigint' 
+          ? transaction.id.toString() 
+          : String(transaction.id);
+        
+        await this.transactionService.update(transactionId, {
+          status: 'EXPIRED', // NEW: Update dedicated status column
+          transactiondata: {
+            ...transaction.transactiondata,
+            status: 'EXPIRED', // Keep in JSON for backward compatibility
+            expiredAt: new Date().toISOString(),
+            reason: 'payment_timeout_or_failure',
+            paymentStatusCode: paymentStatus.code,
+            cleanupExecutedAt: new Date().toISOString(),
+            lockReleaseResults: releaseResults
+          },
+          modifieddate: Date.now()
+        });
+
+        logger.info({
+          merchantTransactionId,
+          productsProcessed: orderItems.length,
+          productsReleased: releaseResults.filter((r: any) => r.status === 'released').length,
+          productsSkipped: releaseResults.filter((r: any) => r.status === 'skipped').length,
+          productsErrored: releaseResults.filter((r: any) => r.status === 'error').length
+        }, 'Lock cleanup completed successfully');
+
+        return reply.code(200).send({
+          success: true,
+          message: 'Locks released successfully',
+          action: 'locks_released',
+          data: {
+            merchantTransactionId,
+            paymentStatus: paymentStatus.code,
+            productsProcessed: orderItems.length,
+            productsReleased: releaseResults.filter((r: any) => r.status === 'released').length,
+            releaseDetails: releaseResults,
+            transactionStatus: 'EXPIRED'
+          }
+        });
+      }
+
+      // Step 6: Unknown payment status
+      logger.warn({
+        merchantTransactionId,
+        paymentCode: paymentStatus.code,
+        paymentMessage: paymentStatus.message
+      }, 'Unknown payment status - no action taken');
+
+      return reply.code(200).send({
+        success: true,
+        message: 'No action needed - unknown payment status',
+        action: 'none',
+        data: {
+          merchantTransactionId,
+          paymentStatus: paymentStatus.code,
+          paymentMessage: paymentStatus.message
+        }
+      });
+
+    } catch (error: any) {
+      logger.error({
+        error: error.message,
+        stack: error.stack,
+        body: request.body
+      }, 'Error in lock cleanup endpoint');
+
+      return reply.code(500).send({
+        success: false,
+        message: 'Lock cleanup failed',
+        error: error.message
+      });
+    }
+  });
 } 
