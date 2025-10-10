@@ -140,23 +140,232 @@ export async function phonePeRoutes(fastify) {
                         data: {
                             type: 'object',
                             properties: {
+                                // Transaction & Payment Info
                                 merchantTransactionId: {
                                     type: 'string',
                                     description: 'Unique merchant transaction ID'
                                 },
                                 redirectUrl: {
                                     type: 'string',
-                                    description: 'PhonePe payment page URL'
+                                    nullable: true,
+                                    description: 'PhonePe payment page URL (null for COD)'
                                 },
                                 amount: {
                                     type: 'number',
-                                    description: 'Transaction amount'
+                                    description: 'Transaction amount in INR'
                                 },
                                 status: {
                                     type: 'string',
-                                    description: 'Payment status'
+                                    enum: ['INITIATED', 'COD_ORDER_CREATED'],
+                                    description: 'Payment status - INITIATED for PhonePe, COD_ORDER_CREATED for COD'
+                                },
+                                mode: {
+                                    type: 'string',
+                                    enum: ['phonepe', 'cod'],
+                                    description: 'Payment mode'
+                                },
+                                message: {
+                                    type: 'string',
+                                    description: 'User-friendly message'
+                                },
+                                // Validation Summary
+                                validation_summary: {
+                                    type: 'object',
+                                    description: 'Summary of all validations performed',
+                                    properties: {
+                                        promotions_validated: {
+                                            type: 'number',
+                                            description: 'Number of promotions validated'
+                                        },
+                                        products_validated: {
+                                            type: 'number',
+                                            description: 'Number of products validated'
+                                        },
+                                        stock_validated: {
+                                            type: 'number',
+                                            description: 'Number of stock items validated'
+                                        },
+                                        all_validations_passed: {
+                                            type: 'boolean',
+                                            description: 'True if all validations passed'
+                                        }
+                                    }
+                                },
+                                // Promotion Status
+                                promotion_status: {
+                                    type: 'object',
+                                    description: 'Promotion/coupon application status',
+                                    properties: {
+                                        valid_evaluations: {
+                                            type: 'array',
+                                            items: { type: 'string' },
+                                            description: 'Array of valid promotion evaluation IDs'
+                                        },
+                                        limit_reached_evaluations: {
+                                            type: 'array',
+                                            description: 'Promotions that reached usage limits'
+                                        },
+                                        action_required: {
+                                            type: 'string',
+                                            nullable: true,
+                                            description: 'Action required from user (e.g., apply_another_coupon)'
+                                        },
+                                        invalid_evaluations: {
+                                            type: 'array',
+                                            description: 'Promotions that failed validation'
+                                        },
+                                        total_applied: {
+                                            type: 'number',
+                                            description: 'Count of successfully applied promotions'
+                                        },
+                                        total_attempted: {
+                                            type: 'number',
+                                            description: 'Count of promotions attempted'
+                                        }
+                                    }
+                                },
+                                // Stock Locking Summary
+                                stock_locking: {
+                                    type: 'object',
+                                    description: 'Stock reservation/locking details',
+                                    properties: {
+                                        platform: {
+                                            type: 'string',
+                                            description: 'Platform name (nivapp)'
+                                        },
+                                        total_products_locked: {
+                                            type: 'number',
+                                            description: 'Number of products successfully locked'
+                                        },
+                                        lock_status: {
+                                            type: 'string',
+                                            enum: ['success', 'failed'],
+                                            description: 'Overall lock status'
+                                        },
+                                        products: {
+                                            type: 'array',
+                                            description: 'Per-product lock details',
+                                            items: {
+                                                type: 'object',
+                                                properties: {
+                                                    productId: { type: 'number' },
+                                                    productName: { type: 'string' },
+                                                    quantity_locked: { type: 'number' },
+                                                    before: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            availableqty: { type: 'number' },
+                                                            lockqty: { type: 'number' }
+                                                        }
+                                                    },
+                                                    after: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            availableqty: { type: 'number' },
+                                                            lockqty: { type: 'number' }
+                                                        }
+                                                    },
+                                                    note: { type: 'string' }
+                                                }
+                                            }
+                                        },
+                                        message: {
+                                            type: 'string',
+                                            description: 'Stock locking summary message'
+                                        }
+                                    }
+                                },
+                                // Order Data (COD only)
+                                orderData: {
+                                    type: 'object',
+                                    nullable: true,
+                                    description: 'Order details (only for COD mode, null for PhonePe)',
+                                    properties: {
+                                        orderId: {
+                                            type: 'number',
+                                            description: 'Database order ID'
+                                        },
+                                        orderid: {
+                                            type: 'string',
+                                            description: 'Display order ID'
+                                        },
+                                        status: {
+                                            type: 'string',
+                                            description: 'Order status'
+                                        },
+                                        created_at: {
+                                            type: 'number',
+                                            description: 'Order creation timestamp'
+                                        },
+                                        order_created: {
+                                            type: 'boolean',
+                                            description: 'True if order was created'
+                                        }
+                                    }
+                                },
+                                // Next Steps for Frontend
+                                next_steps: {
+                                    type: 'object',
+                                    description: 'Instructions for frontend on what to do next',
+                                    properties: {
+                                        phonepe: {
+                                            type: 'object',
+                                            nullable: true,
+                                            description: 'Next steps for PhonePe mode (null for COD)',
+                                            properties: {
+                                                action: {
+                                                    type: 'string',
+                                                    description: 'Action to take (redirect_to_payment)'
+                                                },
+                                                redirectUrl: {
+                                                    type: 'string',
+                                                    description: 'URL to redirect user to'
+                                                },
+                                                instructions: {
+                                                    type: 'string',
+                                                    description: 'Human-readable instructions'
+                                                },
+                                                stock_status: {
+                                                    type: 'string',
+                                                    description: 'Current stock status (locked_until_payment_complete)'
+                                                },
+                                                lock_duration: {
+                                                    type: 'string',
+                                                    description: 'How long stock will be locked'
+                                                }
+                                            }
+                                        },
+                                        cod: {
+                                            type: 'object',
+                                            nullable: true,
+                                            description: 'Next steps for COD mode (null for PhonePe)',
+                                            properties: {
+                                                action: {
+                                                    type: 'string',
+                                                    description: 'Action to take (show_order_confirmation)'
+                                                },
+                                                order_id: {
+                                                    type: 'number',
+                                                    description: 'Created order ID'
+                                                },
+                                                instructions: {
+                                                    type: 'string',
+                                                    description: 'Human-readable instructions'
+                                                },
+                                                stock_status: {
+                                                    type: 'string',
+                                                    description: 'Current stock status (converted_to_order)'
+                                                },
+                                                lockqty_status: {
+                                                    type: 'string',
+                                                    description: 'Lock quantity status (reset_to_0)'
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
-                            }
+                            },
+                            additionalProperties: true
                         }
                     }
                 },

@@ -13,6 +13,7 @@ const PHONEPE_CONFIG = {
     REDIRECT_FAILURE: process.env.REDIRECT_URL_FAILURE || 'http://localhost:5600/payment/failure',
     REDIRECT_STATUS: process.env.REDIRECT_URL_PAYMENT_STATUS || 'http://localhost:5600'
     // REDIRECT_STATUS: 'https://foal-stirring-illegally.ngrok-free.app'
+    // REDIRECT_STATUS: 'https://85c96baef4c7.ngrok-free.app'
 };
 export class PhonePeService {
     transactionService = new TransactionService();

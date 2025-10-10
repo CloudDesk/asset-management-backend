@@ -110,7 +110,6 @@ export declare class PhonePeController {
             productName?: never;
             error_code?: never;
             critical?: never;
-            platformStock?: never;
             productQuantityUpdate?: never;
             platformQuantityUpdate?: never;
             verification?: never;
@@ -122,23 +121,6 @@ export declare class PhonePeController {
             error: string;
             error_code: string;
             critical: boolean;
-            platformStock?: never;
-            productQuantityUpdate?: never;
-            platformQuantityUpdate?: never;
-            verification?: never;
-            isPlatformStockError?: never;
-        } | {
-            productId: any;
-            success: boolean;
-            error: string;
-            platformStock: {
-                availableqty: number;
-                lockqty: number;
-                actualAvailable: number;
-            };
-            productName?: never;
-            error_code?: never;
-            critical?: never;
             productQuantityUpdate?: never;
             platformQuantityUpdate?: never;
             verification?: never;
@@ -160,7 +142,7 @@ export declare class PhonePeController {
                 oldAvailableQty: number;
                 newAvailableQty: number;
                 oldLockQty: number;
-                newLockQty: any;
+                newLockQty: number;
                 oldOrderedQty: number;
                 newOrderedQty: any;
                 newPlatformStatus: string;
@@ -173,7 +155,6 @@ export declare class PhonePeController {
             error?: never;
             error_code?: never;
             critical?: never;
-            platformStock?: never;
             isPlatformStockError?: never;
         } | {
             productId: any;
@@ -183,7 +164,6 @@ export declare class PhonePeController {
             productName?: never;
             error_code?: never;
             critical?: never;
-            platformStock?: never;
             productQuantityUpdate?: never;
             platformQuantityUpdate?: never;
             verification?: never;
