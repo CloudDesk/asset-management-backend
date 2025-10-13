@@ -3,31 +3,37 @@ import nodemailer from 'nodemailer';
 import { logger } from '../config/logger.js';
 
 // Email configuration (to be loaded from environment variables)
-const EMAIL_CONFIG = {
-  service: process.env.GMAIL_SERVICE || 'gmail',
-  host: process.env.GMAIL_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.GMAIL_PORT || '587'),
-  user: process.env.GMAIL_AUTH_USER || '',
-  password: process.env.GMAIL_AUTH_PASSWORD || '',
-  from: process.env.GMAIL_AUTH_USER || 'noreply@example.com',
+const config = {
+  GMAIL_SERVICE: process.env.GMAIL_SERVICE?.trim() || 'gmail',
+  GMAIL_HOST: process.env.GMAIL_HOST?.trim() || 'smtp.gmail.com',
+  GMAIL_PORT: process.env.GMAIL_PORT?.trim() || '465',
+  GMAIL_AUTH_USER: process.env.GMAIL_AUTH_USER?.trim() || '',
+  GMAIL_AUTH_PASSWORD: process.env.GMAIL_AUTH_PASSWORD?.trim() || '',
 };
 
 export class EmailService {
-  private transporter: any; // Using any due to potential type issues
+  private readonly transporter: nodemailer.Transporter;
 
   constructor() {
+    // Initialize nodemailer transporter with env variables
     this.transporter = nodemailer.createTransport({
-      service: EMAIL_CONFIG.service,
-      host: EMAIL_CONFIG.host,
-      port: EMAIL_CONFIG.port,
-      secure: EMAIL_CONFIG.port === 465, // Use TLS for port 587, SSL for 465
+      service: config.GMAIL_SERVICE,
+      host: config.GMAIL_HOST,
+      port: Number(config.GMAIL_PORT),
+      secure: true, // Use SSL for port 465
       auth: {
-        user: EMAIL_CONFIG.user,
-        pass: EMAIL_CONFIG.password,
+        user: config.GMAIL_AUTH_USER,
+        pass: config.GMAIL_AUTH_PASSWORD,
       },
-      tls: {
-        rejectUnauthorized: false, // For development, should be true in production
-      },
+    });
+
+    // Log configuration (without password) for debugging
+    logger.info('Email service initialized', {
+      service: config.GMAIL_SERVICE,
+      host: config.GMAIL_HOST,
+      port: config.GMAIL_PORT,
+      user: config.GMAIL_AUTH_USER,
+      passwordConfigured: !!config.GMAIL_AUTH_PASSWORD
     });
   }
 
@@ -46,7 +52,7 @@ export class EmailService {
       const displayName = userName || email.split('@')[0] || 'User';
 
       const mailOptions = {
-        from: `"Asset Management System" <${EMAIL_CONFIG.from}>`,
+        from: `"Asset Management System" <${config.GMAIL_AUTH_USER}>`,
         to: email,
         subject: 'Password Reset Request - Asset Management System',
         html: this.generatePasswordResetEmailTemplate(displayName, resetUrl),
@@ -243,7 +249,7 @@ If you have any questions, please contact our support team.
       const displayName = userName || email.split('@')[0];
 
       const mailOptions = {
-        from: `"Asset Management System" <${EMAIL_CONFIG.from}>`,
+        from: `"Asset Management System" <${config.GMAIL_AUTH_USER}>`,
         to: email,
         subject: 'Email Verification - Asset Management System',
         html: `
@@ -281,6 +287,242 @@ If you didn't create an account, please ignore this email.
       logger.error({ error, email }, 'Failed to send email verification');
       throw new Error('Failed to send email verification. Please try again later.');
     }
+  }
+
+  /**
+   * Send account deletion confirmation email with user data
+   */
+  async sendAccountDeletionEmail(
+    email: string,
+    userName: string,
+    userData: {
+      orders: any[];
+      orderlines: any[];
+    }
+  ): Promise<void> {
+    try {
+      logger.info({ email, orderCount: userData.orders.length }, 'Sending account deletion email');
+
+      const mailOptions = {
+        from: `"Asset Management System" <${config.GMAIL_AUTH_USER}>`,
+        to: email,
+        subject: 'Account Deletion Confirmation - Your Data Export',
+        html: this.generateAccountDeletionEmailTemplate(userName, userData),
+        text: this.generateAccountDeletionEmailText(userName, userData),
+        attachments: [
+          {
+            filename: 'user-orders-data.json',
+            content: JSON.stringify(userData.orders, null, 2),
+            contentType: 'application/json'
+          },
+          {
+            filename: 'user-orderlines-data.json',
+            content: JSON.stringify(userData.orderlines, null, 2),
+            contentType: 'application/json'
+          }
+        ]
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      
+      logger.info(
+        { 
+          email, 
+          messageId: result.messageId,
+          accepted: result.accepted,
+          rejected: result.rejected,
+          orderCount: userData.orders.length,
+          orderlinesCount: userData.orderlines.length
+        }, 
+        'Account deletion email sent successfully'
+      );
+    } catch (error) {
+      logger.error({ error, email }, 'Failed to send account deletion email');
+      throw new Error('Failed to send account deletion email. Please try again later.');
+    }
+  }
+
+  /**
+   * Generate HTML template for account deletion email
+   */
+  private generateAccountDeletionEmailTemplate(
+    userName: string,
+    userData: { orders: any[]; orderlines: any[] }
+  ): string {
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Account Deletion Confirmation</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+          }
+          .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+          }
+          .header {
+            text-align: center;
+            border-bottom: 2px solid #dc3545;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+          }
+          .header h1 {
+            color: #dc3545;
+            margin: 0;
+          }
+          .content {
+            margin-bottom: 30px;
+          }
+          .info-box {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #dc3545;
+            margin: 20px 0;
+          }
+          .data-summary {
+            background-color: #e7f3ff;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+            margin: 20px 0;
+          }
+          .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 4px solid #ffc107;
+            margin: 20px 0;
+          }
+          .footer {
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+            margin-top: 30px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Asset Management System</h1>
+            <p>Account Deletion Confirmation</p>
+          </div>
+          
+          <div class="content">
+            <p>Hello <strong>${userName}</strong>,</p>
+            
+            <p>Your account has been successfully deactivated as per your request.</p>
+            
+            <div class="info-box">
+              <p><strong>Account Status:</strong></p>
+              <ul>
+                <li>Your account has been marked as inactive</li>
+                <li>Your personal data has been preserved for record-keeping purposes</li>
+                <li>You will no longer be able to access the system with this account</li>
+              </ul>
+            </div>
+            
+            <div class="data-summary">
+              <p><strong>Your Data Export:</strong></p>
+              <p>We've attached your complete order history to this email:</p>
+              <ul>
+                <li><strong>Total Orders:</strong> ${userData.orders.length}</li>
+                <li><strong>Total Order Lines:</strong> ${userData.orderlines.length}</li>
+              </ul>
+              <p>Please find the following JSON files attached:</p>
+              <ul>
+                <li><code>user-orders-data.json</code> - All your orders</li>
+                <li><code>user-orderlines-data.json</code> - All your order line items</li>
+              </ul>
+            </div>
+            
+            <div class="warning">
+              <p><strong>Important Information:</strong></p>
+              <ul>
+                <li>This action cannot be undone automatically</li>
+                <li>To reactivate your account, please contact our support team</li>
+                <li>Keep the attached files for your records</li>
+              </ul>
+            </div>
+            
+            <p>If you did not request this account deletion, please contact our support team immediately.</p>
+            
+            <p>Thank you for using our services.</p>
+            
+            <p>Best regards,<br>
+            Asset Management System Team</p>
+          </div>
+          
+          <div class="footer">
+            <p>This is an automated email. Please do not reply to this message.</p>
+            <p>If you have any questions, please contact our support team.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Generate plain text version for account deletion email
+   */
+  private generateAccountDeletionEmailText(
+    userName: string,
+    userData: { orders: any[]; orderlines: any[] }
+  ): string {
+    return `
+Asset Management System - Account Deletion Confirmation
+
+Hello ${userName},
+
+Your account has been successfully deactivated as per your request.
+
+ACCOUNT STATUS:
+- Your account has been marked as inactive
+- Your personal data has been preserved for record-keeping purposes
+- You will no longer be able to access the system with this account
+
+YOUR DATA EXPORT:
+We've attached your complete order history to this email:
+- Total Orders: ${userData.orders.length}
+- Total Order Lines: ${userData.orderlines.length}
+
+Attached files:
+- user-orders-data.json - All your orders
+- user-orderlines-data.json - All your order line items
+
+IMPORTANT INFORMATION:
+- This action cannot be undone automatically
+- To reactivate your account, please contact our support team
+- Keep the attached files for your records
+
+If you did not request this account deletion, please contact our support team immediately.
+
+Thank you for using our services.
+
+Best regards,
+Asset Management System Team
+
+---
+This is an automated email. Please do not reply to this message.
+If you have any questions, please contact our support team.
+    `;
   }
 
   /**

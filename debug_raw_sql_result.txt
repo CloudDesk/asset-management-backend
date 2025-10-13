@@ -7762,3 +7762,75 @@ Update result: [
     "quotenumber": "KS-001-NIVAANA-QUOTE-00012"
   }
 ]
+Update result: [
+  {
+    "id": 36,
+    "useremail": "testuser@example.com",
+    "userpassword": null,
+    "createddate": 1760383920,
+    "modifieddate": 1760383954,
+    "usermobilenumber": 7777777777,
+    "fcmid": null,
+    "firstname": "User",
+    "lastname": null,
+    "gender": null,
+    "gstnumber": null,
+    "isbusinessuser": null,
+    "isguest": false,
+    "isactive": false
+  }
+]
+Update result: [
+  {
+    "id": 36,
+    "useremail": "testuser@example.com",
+    "userpassword": null,
+    "createddate": 1760383920,
+    "modifieddate": 1760384052,
+    "usermobilenumber": 7777777777,
+    "fcmid": null,
+    "firstname": "User",
+    "lastname": null,
+    "gender": null,
+    "gstnumber": null,
+    "isbusinessuser": null,
+    "isguest": false,
+    "isactive": false
+  }
+]
+Update result: [
+  {
+    "id": 36,
+    "useremail": "testuser@example.com",
+    "userpassword": null,
+    "createddate": 1760383920,
+    "modifieddate": 1760384155,
+    "usermobilenumber": 7777777777,
+    "fcmid": null,
+    "firstname": "User",
+    "lastname": null,
+    "gender": null,
+    "gstnumber": null,
+    "isbusinessuser": null,
+    "isguest": false,
+    "isactive": false
+  }
+]
+Update result: [
+  {
+    "id": 36,
+    "useremail": "testuser@example.com",
+    "userpassword": null,
+    "createddate": 1760383920,
+    "modifieddate": 1760384480,
+    "usermobilenumber": 7777777777,
+    "fcmid": null,
+    "firstname": "User",
+    "lastname": null,
+    "gender": null,
+    "gstnumber": null,
+    "isbusinessuser": null,
+    "isguest": false,
+    "isactive": false
+  }
+]

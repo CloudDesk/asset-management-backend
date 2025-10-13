@@ -25661,3 +25661,37 @@ Filtered data result: {
   },
   "prstatus": "Draft"
 }
+Filtered data result: {
+  "usermobilenumber": 8888888888,
+  "firstname": "User",
+  "createddate": 1760362726117,
+  "modifieddate": 1760362726117
+}
+Filtered data result: {
+  "usermobilenumber": 7777777777,
+  "firstname": "User",
+  "createddate": 1760364119741,
+  "modifieddate": 1760364119741
+}
+Filtered data result: {
+  "isactive": false,
+  "modifieddate": 1760364153297,
+  "useremail": "testuser@example.com"
+}
+Filtered data result: {
+  "isactive": false,
+  "modifieddate": 1760364251083
+}
+Filtered data result: {
+  "isactive": false,
+  "modifieddate": 1760364354887
+}
+Filtered data result: {
+  "isactive": false,
+  "modifieddate": 1760364678913
+}
+Filtered data result: {
+  "isactive": false,
+  "modifieddate": 1760365213248,
+  "useremail": "xtpdskuqujstevvtrx@nespf.com"
+}

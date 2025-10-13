@@ -6323,3 +6323,25 @@ Filtered data: {
   "prnumber": "KS-001-NIVAANA-PR-00009",
   "modifieddate": 1760341950060
 }
+Filtered data: {
+  "isactive": false,
+  "modifieddate": 1760364153297,
+  "useremail": "testuser@example.com"
+}
+Filtered data: {
+  "isactive": false,
+  "modifieddate": 1760364251083
+}
+Filtered data: {
+  "isactive": false,
+  "modifieddate": 1760364354887
+}
+Filtered data: {
+  "isactive": false,
+  "modifieddate": 1760364678913
+}
+Filtered data: {
+  "isactive": false,
+  "modifieddate": 1760365213248,
+  "useremail": "xtpdskuqujstevvtrx@nespf.com"
+}

@@ -645,6 +645,7 @@ model users {
   gstnumber        String?     @db.VarChar(20)
   isbusinessuser   Boolean?    @default(false)
   isguest          Boolean?    @default(false)
+  isactive         Boolean?    @default(true)
   address          address[]
   orderline        orderline[]
   orders           orders[]

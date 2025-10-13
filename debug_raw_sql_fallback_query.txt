@@ -244,3 +244,9 @@ Fallback query:
         WHERE "id" = $1 
         RETURNING id, name, shortdescription, fulldescription, fragnancetype, soldquantity, availablequantity, quantity, ecompublishedquantity, productstatus, puc, averagerating, discount, price, orderedquantity, createddate, modifieddate, category, subcategory, large, medium, small, brand, pack
       
+Fallback query: 
+        UPDATE "users" 
+        SET "isactive" = $2, "modifieddate" = $3, "useremail" = $4 
+        WHERE "id" = $1 
+        RETURNING id, useremail, userpassword, createddate, modifieddate, usermobilenumber, fcmid, firstname, lastname, gender, gstnumber, isbusinessuser, isguest, isactive
+      

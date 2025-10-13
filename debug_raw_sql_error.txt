@@ -1,0 +1,19 @@
+SQL Error: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `23505`. Message: `Key (useremail)=(xtpdskuqujstevvtrx@nespf.com) already exists.`
+Stack: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `23505`. Message: `Key (useremail)=(xtpdskuqujstevvtrx@nespf.com) already exists.`
+    at Zn.handleRequestError (/Users/jeyakumarn/Documents/GitHub/Suresh-on-cloud/asset-management-backend/node_modules/@prisma/client/runtime/library.js:121:7459)
+    at Zn.handleAndLogRequestError (/Users/jeyakumarn/Documents/GitHub/Suresh-on-cloud/asset-management-backend/node_modules/@prisma/client/runtime/library.js:121:6784)
+    at Zn.request (/Users/jeyakumarn/Documents/GitHub/Suresh-on-cloud/asset-management-backend/node_modules/@prisma/client/runtime/library.js:121:6491)
+    at async l (/Users/jeyakumarn/Documents/GitHub/Suresh-on-cloud/asset-management-backend/node_modules/@prisma/client/runtime/library.js:130:9778)
+    at async <anonymous> (/Users/jeyakumarn/Documents/GitHub/Suresh-on-cloud/asset-management-backend/src/models/prisma.ts:30:14)
+    at async dynamicUpdate (/Users/jeyakumarn/Documents/GitHub/Suresh-on-cloud/asset-management-backend/src/utils/dynamicDbOperations.ts:1463:30)
+    at async UsersService.deactivateAccount (/Users/jeyakumarn/Documents/GitHub/Suresh-on-cloud/asset-management-backend/src/services/users.service.ts:244:27)
+    at async <anonymous> (/Users/jeyakumarn/Documents/GitHub/Suresh-on-cloud/asset-management-backend/src/routes/mobile-auth.route.ts:681:7)
+    at async Object.<anonymous> (/Users/jeyakumarn/Documents/GitHub/Suresh-on-cloud/asset-management-backend/src/utils/errorHandler.ts:550:14)

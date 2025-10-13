@@ -363,3 +363,9 @@ Fallback values: [
   "low_stock",
   1758883303
 ]
+Fallback values: [
+  33,
+  false,
+  1760365214,
+  "xtpdskuqujstevvtrx@nespf.com"
+]
