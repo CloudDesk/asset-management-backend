@@ -26188,3 +26188,171 @@ Filtering data for cart (cart): {
   "createddate": 1760099965057,
   "modifieddate": 1760099965057
 }
+Filtering data for cart (cart): {
+  "userid": 1,
+  "productid": 42,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1760336909834,
+  "modifieddate": 1760336909834
+}
+Filtering data for transaction (transaction): {
+  "transactionid": "TXN_1760337072715_HT1NF1",
+  "merchanttransactionid": "TXN_1760337072715_HT1NF1",
+  "userid": 1,
+  "amount": 152,
+  "mobilenumber": 9944626003,
+  "name": "harishraja411@gmail.com",
+  "productid": [
+    42
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "INITIATED",
+    "mode": "phonepe",
+    "evaluation_ids": [],
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": [],
+    "originalPayload": {
+      "transaction": {
+        "name": "harishraja411@gmail.com",
+        "amount": 152,
+        "mobilenumber": "9944626003",
+        "userId": 1,
+        "productid": [
+          42
+        ],
+        "transactionfor": "product"
+      },
+      "order": [
+        {
+          "productid": 42,
+          "productname": "Nivaana - Premium Incense Sticks - Wild Canopy",
+          "productcategory": "incense",
+          "userid": 1,
+          "addressid": 2,
+          "productamount": 102,
+          "discountamount": 0,
+          "orderamount": 102,
+          "quantity": 1,
+          "cartId": 525
+        }
+      ],
+      "mode": "phonepe"
+    },
+    "paymentRequest": {
+      "merchantTransactionId": "TXN_1760337072715_HT1NF1",
+      "amount": 152,
+      "name": "harishraja411@gmail.com",
+      "mobileNumber": "9944626003",
+      "userId": 1,
+      "productIds": [
+        42
+      ],
+      "transactionFor": "product"
+    },
+    "initiatedAt": "2025-10-13T06:31:15.178Z",
+    "phonePeResponses": {
+      "initiation": {
+        "timestamp": "2025-10-13T06:31:15.178Z",
+        "response": {
+          "success": true,
+          "message": "Payment initiated successfully",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBYfQGYevmO7X01miNtxYh0Exs",
+          "transactionId": "TXN_1760337072715_HT1NF1"
+        },
+        "status": "INITIATED",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBYfQGYevmO7X01miNtxYh0Exs"
+      }
+    },
+    "codData": null
+  },
+  "status": "INITIATED",
+  "createddate": 1760337075179,
+  "modifieddate": 1760337075179
+}
+Filtering data for cart (cart): {
+  "userid": 1,
+  "productid": 42,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1760337597656,
+  "modifieddate": 1760337597656
+}
+Filtering data for transaction (transaction): {
+  "transactionid": "TXN_1760337620033_SQ8WTR",
+  "merchanttransactionid": "TXN_1760337620033_SQ8WTR",
+  "userid": 1,
+  "amount": 152,
+  "mobilenumber": 9944626003,
+  "name": "harishraja411@gmail.com",
+  "productid": [
+    42
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "INITIATED",
+    "mode": "phonepe",
+    "evaluation_ids": [],
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": [],
+    "originalPayload": {
+      "transaction": {
+        "name": "harishraja411@gmail.com",
+        "amount": 152,
+        "mobilenumber": "9944626003",
+        "userId": 1,
+        "productid": [
+          42
+        ],
+        "transactionfor": "product"
+      },
+      "order": [
+        {
+          "productid": 42,
+          "productname": "Nivaana - Premium Incense Sticks - Wild Canopy",
+          "productcategory": "incense",
+          "userid": 1,
+          "addressid": 2,
+          "productamount": 102,
+          "discountamount": 0,
+          "orderamount": 102,
+          "quantity": 1,
+          "cartId": 526
+        }
+      ],
+      "mode": "phonepe"
+    },
+    "paymentRequest": {
+      "merchantTransactionId": "TXN_1760337620033_SQ8WTR",
+      "amount": 152,
+      "name": "harishraja411@gmail.com",
+      "mobileNumber": "9944626003",
+      "userId": 1,
+      "productIds": [
+        42
+      ],
+      "transactionFor": "product"
+    },
+    "initiatedAt": "2025-10-13T06:40:20.858Z",
+    "phonePeResponses": {
+      "initiation": {
+        "timestamp": "2025-10-13T06:40:20.858Z",
+        "response": {
+          "success": true,
+          "message": "Payment initiated successfully",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBYfQGYevcRtlNKpwXUbYL6Ygt",
+          "transactionId": "TXN_1760337620033_SQ8WTR"
+        },
+        "status": "INITIATED",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/simulator?token=3GobA5RNrRCwUWUccUwvuCgqAKUEBYfQGYevcRtlNKpwXUbYL6Ygt"
+      }
+    },
+    "codData": null
+  },
+  "status": "INITIATED",
+  "createddate": 1760337620859,
+  "modifieddate": 1760337620859
+}
