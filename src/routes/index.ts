@@ -22,6 +22,9 @@ import { transactionRoutes } from './transaction.route.js';
 import { phonePeRoutes } from './phonepe.route.js';
 import { promotionsRoutes } from './promotions.route.js';
 import { ratingRoutes } from './rating.route.js';
+import { smsRoutes } from './sms.route.js';
+import { firebaseSmsRoutes } from './firebaseSms.route.js';
+import { firebaseRestSmsRoutes } from './firebaseRestSms.route.js';
 import { requireAuthentication } from '../middleware/auth.middleware.js';
 import { createSuccessResponse } from '../utils/errorHandler.js';
 
@@ -90,6 +93,11 @@ export async function routes(fastify: FastifyInstance) {
     // Promotion system routes (public for guest users)
     await fastify.register(promotionsRoutes, { prefix: '/promotions' });
     await fastify.register(ratingRoutes, { prefix: '/ratings' });
+    // SMS routes (public for OTP sending)
+    await fastify.register(smsRoutes, { prefix: '/sms' });
+    // Firebase SMS Authentication routes (public for OTP sending)
+    await fastify.register(firebaseSmsRoutes, { prefix: '/firebase-sms' });
+  await fastify.register(firebaseRestSmsRoutes, { prefix: '/firebase-rest-sms' });
 
     await fastify.register(async function (fastify) {
       // Apply authentication middleware to all routes in this scope
