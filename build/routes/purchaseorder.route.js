@@ -424,6 +424,7 @@ export async function purchaseOrderRoutes(fastify) {
                         description: 'Type of supplier'
                     }
                 },
+                //local,international
                 required: [],
                 additionalProperties: true
             },

@@ -163,6 +163,42 @@ export class UsersService {
         }
     }
     /**
+     * Soft delete user (deactivate account)
+     * @param userId - The user ID to deactivate
+     * @param email - Optional email to update before deactivation
+     */
+    async deactivateAccount(userId, email) {
+        try {
+            logger.debug({ userId, email }, 'Starting user account deactivation');
+            // Check if user exists
+            const user = await dynamicFindUnique('users', { id: userId });
+            if (!user) {
+                throw new Error('User not found');
+            }
+            // Prepare update data
+            const updateData = {
+                isactive: false,
+                modifieddate: Date.now()
+            };
+            // Update email if provided
+            if (email) {
+                updateData.useremail = email;
+            }
+            // Update user to deactivate
+            const updatedUser = await dynamicUpdate('users', { id: userId }, updateData);
+            logger.info({
+                userId,
+                emailUpdated: !!email,
+                newEmail: email
+            }, 'User account deactivated successfully');
+            return updatedUser;
+        }
+        catch (error) {
+            logger.error({ error, userId, email }, 'Error in user account deactivation');
+            throw error;
+        }
+    }
+    /**
      * Authenticate user with email and password
      */
     async authenticate(email, password) {
@@ -228,15 +264,22 @@ export class UsersService {
     }
     /**
      * Generate OTP for mobile number (passwordless login step 1)
+     * @param mobileNumber - The mobile number to generate OTP for
+     * @param verifyOnly - If true, only generate OTP if user exists (for delete account flow)
      */
-    async generateMobileOTP(mobileNumber) {
+    async generateMobileOTP(mobileNumber, verifyOnly = false) {
         try {
-            logger.debug({ mobileNumber }, 'Generating OTP for mobile number');
+            logger.debug({ mobileNumber, verifyOnly }, 'Generating OTP for mobile number');
             // Check if user exists
             let user = await this.findByMobileNumber(mobileNumber);
             let isNewUser = false;
             if (!user) {
-                // User doesn't exist, create a new user automatically
+                // If verifyOnly is true, don't create user - just return null (for delete account flow)
+                if (verifyOnly) {
+                    logger.warn({ mobileNumber }, 'User not found and verifyOnly is true - OTP not generated');
+                    return null;
+                }
+                // User doesn't exist, create a new user automatically (for sign-in flow)
                 logger.info({ mobileNumber }, 'Mobile number not found, creating new user automatically');
                 try {
                     const newUserData = {

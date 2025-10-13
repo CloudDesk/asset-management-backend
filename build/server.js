@@ -2,10 +2,12 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import formbody from '@fastify/formbody';
 import multipart, { ajvFilePlugin } from '@fastify/multipart';
+import fastifyCookie from 'fastify-cookie';
 import { env } from './config/env.js';
 import { logger } from './config/logger.js';
 import loggerPlugin from './plugins/logger.js';
 import dbPlugin from './plugins/db.js';
+import firebasePlugin from './plugins/firebase.js';
 import swaggerPlugin from './plugins/swagger.js';
 import { routes } from './routes/index.js';
 import { errorHandler, createErrorResponse } from './utils/errorHandler.js';
@@ -33,8 +35,13 @@ export async function buildServer() {
     await fastify.register(multipart, {
         attachFieldsToBody: true,
     });
+    // Register cookie support for session management
+    // @ts-expect-error - fastify-cookie type definitions mismatch with Fastify v5
+    await fastify.register(fastifyCookie);
     // Register database plugin
     await fastify.register(dbPlugin);
+    // Register Firebase Admin plugin
+    await fastify.register(firebasePlugin);
     // Register Swagger documentation (development and production)
     if (env.NODE_ENV === 'development' || env.NODE_ENV === 'production') {
         await fastify.register(swaggerPlugin);

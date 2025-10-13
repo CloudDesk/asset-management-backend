@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase OTP - Simple Methods</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; background: #f0f8ff; }
+        .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { color: #1976d2; text-align: center; margin-bottom: 30px; }
+        .method { margin: 20px 0; padding: 20px; border: 2px solid #e3f2fd; border-radius: 8px; background: #fafafa; }
+        .method.active { border-color: #2196f3; background: #e3f2fd; }
+        input, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; }
+        button { background: #2196f3; color: white; border: none; cursor: pointer; font-weight: bold; }
+        button:hover { background: #1976f2; }
+        button:disabled { background: #ccc; }
+        .error { background: #ffebee; color: #c62828; padding: 15px; border-radius: 6px; margin: 15px 0; border-left: 4px solid #f44336; }
+        .success { background: #e8f5e8; color: #2e7d32; padding: 15px; border-radius: 6px; margin: 15px 0; border-left: 4px solid #4caf50; }
+        .info { background: #e3f2fd; color: #1565c0; padding: 15px; border-radius: 6px; margin: 15px 0; border-left: 4px solid #2196f3; }
+        .warning { background: #fff3e0; color: #e65100; padding: 15px; border-radius: 6px; margin: 15px 0; border-left: 4px solid #ff9800; }
+        .hidden { display: none; }
+        pre { background: #f5f5f5; padding: 15px; border-radius: 6px; overflow-x: auto; font-size: 13px; border: 1px solid #e0e0e0; }
+        .diagnostic-box { background: #f3e5f5; border: 1px solid #ba68c8; padding: 15px; border-radius: 6px; margin: 15px 0; }
+        .diagnostic-box h4 { margin: 0 0 10px 0; color: #7b1fa2; }
+        .solution-box { background: #e8f5e8; border: 1px solid #4caf50; padding: 15px; border-radius: 6px; margin: 15px 0; }
+        .solution-box h4 { margin: 0 0 10px 0; color: #2e7d32; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 Firebase OTP - Simple Methods</h1>
+        
+        <div class="diagnostic-box">
+            <h4>🔍 DIAGNOSIS: Assessment Count = 0</h4>
+            <p><strong>Problem:</strong> reCAPTCHA widget is not communicating with Firebase.</p>
+        </div>
+
+        <div class="solution-box">
+            <h4>✅ SOLUTION: Try These Methods</h4>
+            <p>Try Method 1 first. If it fails, try Method 2, then Method 3.</p>
+        </div>
+
+        <div class="error" id="errorMsg" style="display: none;"></div>
+        <div class="success" id="successMsg" style="display: none;"></div>
+        <div class="info" id="infoMsg" style="display: none;"></div>
+        <div class="warning" id="warningMsg" style="display: none;"></div>
+
+        <!-- Method 1: Standard Firebase -->
+        <div class="method" id="method1">
+            <h3>🔧 Method 1: Standard Firebase OTP</h3>
+            <input type="tel" id="phoneNumber1" placeholder="+918870339850" value="+918870339850">
+            <button onclick="tryMethod1()">Send OTP (Standard)</button>
+            <p><small>💡 Uses standard Firebase Phone Auth with visible reCAPTCHA</small></p>
+        </div>
+
+        <!-- Method 2: Invisible reCAPTCHA -->
+        <div class="method" id="method2">
+            <h3>🔧 Method 2: Invisible reCAPTCHA</h3>
+            <input type="tel" id="phoneNumber2" placeholder="+918870339850" value="+918870339850">
+            <button onclick="tryMethod2()">Send OTP (Invisible)</button>
+            <p><small>💡 Uses invisible reCAPTCHA to avoid widget issues</small></p>
+        </div>
+
+        <!-- Method 3: Manual reCAPTCHA -->
+        <div class="method" id="method3">
+            <h3>🔧 Method 3: Manual reCAPTCHA</h3>
+            <input type="tel" id="phoneNumber3" placeholder="+918870339850" value="+918870339850">
+            <div id="manual-recaptcha" style="margin: 10px 0;"></div>
+            <button onclick="tryMethod3()">Send OTP (Manual)</button>
+            <p><small>💡 Manually creates reCAPTCHA widget</small></p>
+        </div>
+
+        <!-- Method 4: Backend Test -->
+        <div class="method" id="method4">
+            <h3>🔧 Method 4: Backend Test Only</h3>
+            <button onclick="testBackend()">Test Backend (No Firebase)</button>
+            <div id="backendResults"></div>
+            <p><small>💡 Tests your backend directly - proves it works</small></p>
+        </div>
+
+        <!-- Verify OTP -->
+        <div class="method hidden" id="verifyStep">
+            <h3>🔢 Verify OTP</h3>
+            <input type="text" id="otpCode" placeholder="123456" value="123456">
+            <button onclick="verifyOTP()">Verify Code</button>
+            <p><small>💡 Use test code 123456</small></p>
+        </div>
+
+        <!-- Success -->
+        <div class="method hidden" id="successStep">
+            <h3>✅ Success!</h3>
+            <button onclick="getProfile()">Get Profile</button>
+            <button onclick="logout()" style="background: #f44336;">Logout</button>
+            <div id="userInfo" class="hidden"></div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+    <script>
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyDyuK7MkjyKO4CppchllGk_SFw6ilnYZSo",
+            authDomain: "docblitz-437213.firebaseapp.com",
+            projectId: "docblitz-437213",
+            storageBucket: "docblitz-437213.firebasestorage.app",
+            messagingSenderId: "1066464674690",
+            appId: "1:1066464674690:web:2f52360633df725bd8059b",
+            measurementId: "G-VHD6Z5B7NK"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        window.auth = firebase.auth();
+
+        const API_URL = 'http://localhost:5600';
+        let currentConfirmationResult = null;
+
+        async function tryMethod1() {
+            const phoneNumber = document.getElementById('phoneNumber1').value;
+            hideMessages();
+            
+            try {
+                showInfo('Trying Method 1: Standard Firebase OTP...');
+                
+                const recaptchaVerifier = new firebase.auth.RecaptchaVerifier('method1', {
+                    'size': 'normal',
+                    'callback': () => {
+                        console.log('reCAPTCHA solved (Method 1)');
+                        showSuccess('reCAPTCHA verified!');
+                    },
+                    'expired-callback': () => {
+                        console.log('reCAPTCHA expired');
+                        showWarning('reCAPTCHA expired. Please try again.');
+                    }
+                });
+
+                await recaptchaVerifier.render();
+                
+                const confirmationResult = await auth.signInWithPhoneNumber(phoneNumber, recaptchaVerifier);
+                currentConfirmationResult = confirmationResult;
+
+                showSuccess('✅ Method 1 SUCCESS! OTP sent.');
+                showInfo('📱 Use test code 123456');
+                showVerifyStep();
+
+            } catch (error) {
+                console.error('Method 1 failed:', error);
+                showError(`❌ Method 1 failed: ${error.message}`);
+                showWarning('Try Method 2 (Invisible reCAPTCHA)');
+            }
+        }
+
+        async function tryMethod2() {
+            const phoneNumber = document.getElementById('phoneNumber2').value;
+            hideMessages();
+            
+            try {
+                showInfo('Trying Method 2: Invisible reCAPTCHA...');
+                
+                const recaptchaVerifier = new firebase.auth.RecaptchaVerifier('method2', {
+                    'size': 'invisible',
+                    'callback': () => {
+                        console.log('reCAPTCHA solved (Method 2)');
+                        showSuccess('reCAPTCHA verified!');
+                    },
+                    'expired-callback': () => {
+                        console.log('reCAPTCHA expired');
+                        showWarning('reCAPTCHA expired. Please try again.');
+                    }
+                });
+
+                const confirmationResult = await auth.signInWithPhoneNumber(phoneNumber, recaptchaVerifier);
+                currentConfirmationResult = confirmationResult;
+
+                showSuccess('✅ Method 2 SUCCESS! OTP sent.');
+                showInfo('📱 Use test code 123456');
+                showVerifyStep();
+
+            } catch (error) {
+                console.error('Method 2 failed:', error);
+                showError(`❌ Method 2 failed: ${error.message}`);
+                showWarning('Try Method 3 (Manual reCAPTCHA)');
+            }
+        }
+
+        async function tryMethod3() {
+            const phoneNumber = document.getElementById('phoneNumber3').value;
+            hideMessages();
+            
+            try {
+                showInfo('Trying Method 3: Manual reCAPTCHA...');
+                
+                const recaptchaVerifier = new firebase.auth.RecaptchaVerifier('manual-recaptcha', {
+                    'size': 'normal',
+                    'callback': () => {
+                        console.log('reCAPTCHA solved (Method 3)');
+                        showSuccess('reCAPTCHA verified!');
+                    },
+                    'expired-callback': () => {
+                        console.log('reCAPTCHA expired');
+                        showWarning('reCAPTCHA expired. Please try again.');
+                    }
+                });
+
+                await recaptchaVerifier.render();
+                
+                const confirmationResult = await auth.signInWithPhoneNumber(phoneNumber, recaptchaVerifier);
+                currentConfirmationResult = confirmationResult;
+
+                showSuccess('✅ Method 3 SUCCESS! OTP sent.');
+                showInfo('📱 Use test code 123456');
+                showVerifyStep();
+
+            } catch (error) {
+                console.error('Method 3 failed:', error);
+                showError(`❌ Method 3 failed: ${error.message}`);
+                showWarning('Try Method 4 (Backend Test) to confirm backend works');
+            }
+        }
+
+        async function testBackend() {
+            hideMessages();
+            const resultsDiv = document.getElementById('backendResults');
+            resultsDiv.innerHTML = '<p>Testing backend...</p>';
+            
+            try {
+                showInfo('Testing backend endpoints...');
+                
+                // Test 1: Send OTP
+                const response1 = await fetch(`${API_URL}/v1/firebase-otp/send`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phoneNumber: '+918870339850' })
+                });
+                const data1 = await response1.json();
+                
+                // Test 2: Logout
+                const response2 = await fetch(`${API_URL}/v1/firebase-otp/logout`, {
+                    method: 'POST'
+                });
+                const data2 = await response2.json();
+                
+                // Test 3: Get Me (should fail)
+                const response3 = await fetch(`${API_URL}/v1/firebase-otp/me`, {
+                    method: 'GET'
+                });
+                const data3 = await response3.json();
+                
+                let results = '<h4>Backend Test Results:</h4>';
+                results += `<p style="color: ${data1.success ? 'green' : 'red'}">✓ Send OTP: ${data1.success ? 'PASS' : 'FAIL'}</p>`;
+                results += `<p style="color: ${data2.success ? 'green' : 'red'}">✓ Logout: ${data2.success ? 'PASS' : 'FAIL'}</p>`;
+                results += `<p style="color: ${response3.status === 401 ? 'green' : 'red'}">✓ Get Me (Unauth): ${response3.status === 401 ? 'PASS' : 'FAIL'}</p>`;
+                
+                if (data1.success && data2.success && response3.status === 401) {
+                    results += '<p style="color: green; font-weight: bold;">✅ Backend is working perfectly!</p>';
+                    results += '<p style="color: blue;">🎯 CONCLUSION: Your backend is 100% working! The issue is only with Firebase Client SDK reCAPTCHA.</p>';
+                    showSuccess('✅ Backend is working perfectly!');
+                } else {
+                    results += '<p style="color: red; font-weight: bold;">❌ Some backend issues found</p>';
+                    showError('❌ Backend has issues');
+                }
+                
+                resultsDiv.innerHTML = results;
+
+            } catch (error) {
+                resultsDiv.innerHTML = `<p style="color: red;">❌ Backend test failed: ${error.message}</p>`;
+                showError(`Backend test failed: ${error.message}`);
+            }
+        }
+
+        async function verifyOTP() {
+            const code = document.getElementById('otpCode').value;
+            hideMessages();
+            
+            try {
+                showInfo('Verifying OTP...');
+                
+                const result = await currentConfirmationResult.confirm(code);
+                const idToken = await result.user.getIdToken();
+
+                showInfo('Creating session...');
+
+                const response = await fetch(`${API_URL}/v1/firebase-otp/session`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idToken }),
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showSuccess(`🎉 SUCCESS! Logged in with UID: ${data.data.uid}`);
+                    showSuccessStep();
+                } else {
+                    showError(`Failed to create session: ${data.message}`);
+                }
+
+            } catch (error) {
+                showError(`Failed to verify OTP: ${error.message}`);
+            }
+        }
+
+        async function getProfile() {
+            hideMessages();
+            
+            try {
+                const response = await fetch(`${API_URL}/v1/firebase-otp/me`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('userInfo').innerHTML = 
+                        '<h4>👤 Your Profile:</h4><pre>' + 
+                        JSON.stringify(data.data.user, null, 2) + 
+                        '</pre>';
+                    document.getElementById('userInfo').classList.remove('hidden');
+                    showSuccess('✅ Profile loaded!');
+                } else {
+                    showError(`Failed to get profile: ${data.message}`);
+                }
+                
+            } catch (error) {
+                showError(`Failed to get profile: ${error.message}`);
+            }
+        }
+
+        async function logout() {
+            hideMessages();
+            
+            try {
+                await fetch(`${API_URL}/v1/firebase-otp/logout`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                localStorage.removeItem('authToken');
+                showSuccess('✅ Logged out!');
+                setTimeout(() => location.reload(), 1500);
+                
+            } catch (error) {
+                showError(`Failed to logout: ${error.message}`);
+            }
+        }
+
+        function showVerifyStep() {
+            document.getElementById('verifyStep').classList.remove('hidden');
+            document.getElementById('verifyStep').scrollIntoView();
+        }
+
+        function showSuccessStep() {
+            document.getElementById('successStep').classList.remove('hidden');
+            document.getElementById('successStep').scrollIntoView();
+        }
+
+        // Helper functions
+        function showSuccess(msg) {
+            const el = document.getElementById('successMsg');
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('errorMsg');
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
+
+        function showInfo(msg) {
+            const el = document.getElementById('infoMsg');
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
+
+        function showWarning(msg) {
+            const el = document.getElementById('warningMsg');
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
+
+        function hideMessages() {
+            document.getElementById('successMsg').style.display = 'none';
+            document.getElementById('errorMsg').style.display = 'none';
+            document.getElementById('infoMsg').style.display = 'none';
+            document.getElementById('warningMsg').style.display = 'none';
+        }
+
+        // Page load
+        window.addEventListener('load', () => {
+            showInfo('🚀 Try Method 1 first. If it fails, try Method 2, then Method 3.');
+        });
+    </script>
+</body>
+</html>

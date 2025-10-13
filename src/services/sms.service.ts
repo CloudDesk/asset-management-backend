@@ -10,6 +10,7 @@ interface SendSmsResponse {
   success: boolean;
   messageId?: string;
   status?: string;
+  formattedNumber?: string;
   errorMessage?: string;
   infobipResponse?: any;
 }
