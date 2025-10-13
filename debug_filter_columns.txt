@@ -1259,3 +1259,7 @@ Available columns for cart: ["id","productid","userid","createddate","quantity",
 Available columns for cart: ["id","productid","userid","createddate","quantity","iscart","iswishlist","modifieddate"]
 Available columns for cart: ["id","productid","userid","createddate","quantity","iscart","iswishlist","modifieddate"]
 Available columns for cart: ["id","productid","userid","createddate","quantity","iscart","iswishlist","modifieddate"]
+Available columns for cart: ["id","productid","userid","createddate","quantity","iscart","iswishlist","modifieddate"]
+Available columns for transaction: ["id","transactionid","createddate","modifieddate","transactiondata","userid","productid","merchanttransactionid","name","amount","mobilenumber","transactionfor","status"]
+Available columns for cart: ["id","productid","userid","createddate","quantity","iscart","iswishlist","modifieddate"]
+Available columns for transaction: ["id","transactionid","createddate","modifieddate","transactiondata","userid","productid","merchanttransactionid","name","amount","mobilenumber","transactionfor","status"]
