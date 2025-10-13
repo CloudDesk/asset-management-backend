@@ -38,6 +38,15 @@ export const createProductSchema = z.object({
   medium: z.array(z.string()).optional(),
   small: z.array(z.string()).optional(),
   
+  // Additional Product Information
+  material: z.string().max(255).optional(),
+  itemlength: z.string().max(255).optional(),
+  manufacturer: z.string().max(255).optional(),
+  netform: z.string().max(255).optional(),
+  netquantity: z.string().max(255).optional(),
+  numberofitems: z.number().int().min(0).optional(),
+  itemthickness: z.string().max(255).optional(),
+  
   // Timestamps
   createddate: z.union([z.number(), z.bigint()]).optional(),
   modifieddate: z.union([z.number(), z.bigint()]).optional(),
@@ -84,6 +93,15 @@ export const updateProductSchema = z.object({
   large: z.array(z.string()).optional(),
   medium: z.array(z.string()).optional(),
   small: z.array(z.string()).optional(),
+  
+  // Additional Product Information
+  material: z.string().max(255).optional(),
+  itemlength: z.string().max(255).optional(),
+  manufacturer: z.string().max(255).optional(),
+  netform: z.string().max(255).optional(),
+  netquantity: z.string().max(255).optional(),
+  numberofitems: z.number().int().min(0).optional(),
+  itemthickness: z.string().max(255).optional(),
   
   // Timestamps
   createddate: z.union([z.number(), z.bigint()]).optional(),
@@ -134,6 +152,15 @@ export const upsertProductSchema = z.object({
   medium: z.array(z.string()).optional(),
   small: z.array(z.string()).optional(),
   
+  // Additional Product Information
+  material: z.string().max(255).optional(),
+  itemlength: z.string().max(255).optional(),
+  manufacturer: z.string().max(255).optional(),
+  netform: z.string().max(255).optional(),
+  netquantity: z.string().max(255).optional(),
+  numberofitems: z.number().int().min(0).optional(),
+  itemthickness: z.string().max(255).optional(),
+  
   // Timestamps
   createddate: z.union([z.number(), z.bigint()]).optional(),
   modifieddate: z.union([z.number(), z.bigint()]).optional(),
@@ -175,6 +202,15 @@ export const productQuerySchema = z.object({
   createdAfter: z.string().optional(),
   createdBefore: z.string().optional(),
   isdealoftheday: z.string().optional(),
+  
+  // Additional Product Information filters
+  material: z.string().optional(),
+  itemlength: z.string().optional(),
+  manufacturer: z.string().optional(),
+  netform: z.string().optional(),
+  netquantity: z.string().optional(),
+  numberofitems: z.string().optional(),
+  itemthickness: z.string().optional(),
 });
 
 // Dynamic field validation - now more permissive
