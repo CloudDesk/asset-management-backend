@@ -1,5 +1,5 @@
 export declare class EmailService {
-    private transporter;
+    private readonly transporter;
     constructor();
     /**
      * Send password reset email
@@ -17,6 +17,21 @@ export declare class EmailService {
      * Send email verification (for future use)
      */
     sendEmailVerification(email: string, verificationToken: string, userName?: string): Promise<void>;
+    /**
+     * Send account deletion confirmation email with user data
+     */
+    sendAccountDeletionEmail(email: string, userName: string, userData: {
+        orders: any[];
+        orderlines: any[];
+    }): Promise<void>;
+    /**
+     * Generate HTML template for account deletion email
+     */
+    private generateAccountDeletionEmailTemplate;
+    /**
+     * Generate plain text version for account deletion email
+     */
+    private generateAccountDeletionEmailText;
     /**
      * Test email connection
      */

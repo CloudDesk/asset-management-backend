@@ -54,7 +54,7 @@ export class TwilioSmsService {
       logger.info({ originalNumber: phoneNumber, formattedNumber }, 'Phone number formatting for Twilio');
 
       // Send SMS via Twilio
-      const messageOptions = {
+      const messageOptions: { body: string; to: string; from?: string } = {
         body: message,
         to: formattedNumber
       };

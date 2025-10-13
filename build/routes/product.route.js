@@ -101,6 +101,35 @@ export async function productRoutes(fastify) {
                         type: "string",
                         description: "Filter by small size options",
                     },
+                    // Additional Product Information filters
+                    material: {
+                        type: "string",
+                        description: "Filter by material",
+                    },
+                    itemlength: {
+                        type: "string",
+                        description: "Filter by item length",
+                    },
+                    manufacturer: {
+                        type: "string",
+                        description: "Filter by manufacturer",
+                    },
+                    netform: {
+                        type: "string",
+                        description: "Filter by net form",
+                    },
+                    netquantity: {
+                        type: "string",
+                        description: "Filter by net quantity",
+                    },
+                    numberofitems: {
+                        type: "string",
+                        description: "Filter by number of items",
+                    },
+                    itemthickness: {
+                        type: "string",
+                        description: "Filter by item thickness",
+                    },
                 },
                 additionalProperties: true, // Allow any query parameters for dynamic filtering
             },
@@ -370,6 +399,42 @@ export async function productRoutes(fastify) {
                                         nullable: true,
                                         description: "Small size options",
                                     },
+                                    // Additional Product Information
+                                    material: {
+                                        type: "string",
+                                        nullable: true,
+                                        description: "Product material",
+                                    },
+                                    itemlength: {
+                                        type: "string",
+                                        nullable: true,
+                                        description: "Item length",
+                                    },
+                                    manufacturer: {
+                                        type: "string",
+                                        nullable: true,
+                                        description: "Manufacturer",
+                                    },
+                                    netform: {
+                                        type: "string",
+                                        nullable: true,
+                                        description: "Net form (e.g., stick, bottle)",
+                                    },
+                                    netquantity: {
+                                        type: "string",
+                                        nullable: true,
+                                        description: "Net quantity (e.g., 30 sticks, 500ml)",
+                                    },
+                                    numberofitems: {
+                                        type: "number",
+                                        nullable: true,
+                                        description: "Number of items",
+                                    },
+                                    itemthickness: {
+                                        type: "string",
+                                        nullable: true,
+                                        description: "Item thickness",
+                                    },
                                 },
                                 additionalProperties: true, // Allow additional dynamic fields
                             },
@@ -566,6 +631,42 @@ export async function productRoutes(fastify) {
                                     items: { type: "string" },
                                     nullable: true,
                                     description: "Small size options",
+                                },
+                                // Additional Product Information
+                                material: {
+                                    type: "string",
+                                    nullable: true,
+                                    description: "Product material",
+                                },
+                                itemlength: {
+                                    type: "string",
+                                    nullable: true,
+                                    description: "Item length",
+                                },
+                                manufacturer: {
+                                    type: "string",
+                                    nullable: true,
+                                    description: "Manufacturer",
+                                },
+                                netform: {
+                                    type: "string",
+                                    nullable: true,
+                                    description: "Net form (e.g., stick, bottle)",
+                                },
+                                netquantity: {
+                                    type: "string",
+                                    nullable: true,
+                                    description: "Net quantity (e.g., 30 sticks, 500ml)",
+                                },
+                                numberofitems: {
+                                    type: "number",
+                                    nullable: true,
+                                    description: "Number of items",
+                                },
+                                itemthickness: {
+                                    type: "string",
+                                    nullable: true,
+                                    description: "Item thickness",
                                 },
                             },
                             additionalProperties: true, // Allow additional dynamic fields
@@ -901,6 +1002,42 @@ export async function productRoutes(fastify) {
                         type: "boolean",
                         description: "Mark product as deal of the day",
                     },
+                    // Additional Product Information
+                    material: {
+                        type: "string",
+                        maxLength: 255,
+                        description: "Product material",
+                    },
+                    itemlength: {
+                        type: "string",
+                        maxLength: 255,
+                        description: "Item length",
+                    },
+                    manufacturer: {
+                        type: "string",
+                        maxLength: 255,
+                        description: "Manufacturer",
+                    },
+                    netform: {
+                        type: "string",
+                        maxLength: 255,
+                        description: "Net form (e.g., stick, bottle)",
+                    },
+                    netquantity: {
+                        type: "string",
+                        maxLength: 255,
+                        description: "Net quantity (e.g., 30 sticks, 500ml)",
+                    },
+                    numberofitems: {
+                        type: "integer",
+                        minimum: 0,
+                        description: "Number of items",
+                    },
+                    itemthickness: {
+                        type: "string",
+                        maxLength: 255,
+                        description: "Item thickness",
+                    },
                 },
                 required: ["name"], // Only name is required as per schema
                 additionalProperties: false, // Strict validation - only allow specified fields
@@ -1033,6 +1170,42 @@ export async function productRoutes(fastify) {
                                     items: { type: "string" },
                                     nullable: true,
                                     description: "Small size options",
+                                },
+                                // Additional Product Information
+                                material: {
+                                    type: "string",
+                                    nullable: true,
+                                    description: "Product material",
+                                },
+                                itemlength: {
+                                    type: "string",
+                                    nullable: true,
+                                    description: "Item length",
+                                },
+                                manufacturer: {
+                                    type: "string",
+                                    nullable: true,
+                                    description: "Manufacturer",
+                                },
+                                netform: {
+                                    type: "string",
+                                    nullable: true,
+                                    description: "Net form (e.g., stick, bottle)",
+                                },
+                                netquantity: {
+                                    type: "string",
+                                    nullable: true,
+                                    description: "Net quantity (e.g., 30 sticks, 500ml)",
+                                },
+                                numberofitems: {
+                                    type: "number",
+                                    nullable: true,
+                                    description: "Number of items",
+                                },
+                                itemthickness: {
+                                    type: "string",
+                                    nullable: true,
+                                    description: "Item thickness",
                                 },
                             },
                             additionalProperties: true, // Allow additional dynamic fields
@@ -1179,6 +1352,42 @@ export async function productRoutes(fastify) {
                         items: { type: "string" },
                         description: "Small size options",
                     },
+                    // Additional Product Information
+                    material: {
+                        type: "string",
+                        maxLength: 255,
+                        description: "Product material",
+                    },
+                    itemlength: {
+                        type: "string",
+                        maxLength: 255,
+                        description: "Item length",
+                    },
+                    manufacturer: {
+                        type: "string",
+                        maxLength: 255,
+                        description: "Manufacturer",
+                    },
+                    netform: {
+                        type: "string",
+                        maxLength: 255,
+                        description: "Net form (e.g., stick, bottle)",
+                    },
+                    netquantity: {
+                        type: "string",
+                        maxLength: 255,
+                        description: "Net quantity (e.g., 30 sticks, 500ml)",
+                    },
+                    numberofitems: {
+                        type: "integer",
+                        minimum: 0,
+                        description: "Number of items",
+                    },
+                    itemthickness: {
+                        type: "string",
+                        maxLength: 255,
+                        description: "Item thickness",
+                    },
                 },
                 additionalProperties: true, // Allow additional dynamic fields
             },
@@ -1323,6 +1532,42 @@ export async function productRoutes(fastify) {
                                     items: { type: "string" },
                                     nullable: true,
                                     description: "Small size options",
+                                },
+                                // Additional Product Information
+                                material: {
+                                    type: "string",
+                                    nullable: true,
+                                    description: "Product material",
+                                },
+                                itemlength: {
+                                    type: "string",
+                                    nullable: true,
+                                    description: "Item length",
+                                },
+                                manufacturer: {
+                                    type: "string",
+                                    nullable: true,
+                                    description: "Manufacturer",
+                                },
+                                netform: {
+                                    type: "string",
+                                    nullable: true,
+                                    description: "Net form (e.g., stick, bottle)",
+                                },
+                                netquantity: {
+                                    type: "string",
+                                    nullable: true,
+                                    description: "Net quantity (e.g., 30 sticks, 500ml)",
+                                },
+                                numberofitems: {
+                                    type: "number",
+                                    nullable: true,
+                                    description: "Number of items",
+                                },
+                                itemthickness: {
+                                    type: "string",
+                                    nullable: true,
+                                    description: "Item thickness",
                                 },
                             },
                             additionalProperties: true, // Allow additional dynamic fields
@@ -1774,6 +2019,42 @@ export async function productRoutes(fastify) {
                         items: { type: "string" },
                         description: "Small size options",
                     },
+                    // Additional Product Information
+                    material: {
+                        type: "string",
+                        maxLength: 255,
+                        description: "Product material",
+                    },
+                    itemlength: {
+                        type: "string",
+                        maxLength: 255,
+                        description: "Item length",
+                    },
+                    manufacturer: {
+                        type: "string",
+                        maxLength: 255,
+                        description: "Manufacturer",
+                    },
+                    netform: {
+                        type: "string",
+                        maxLength: 255,
+                        description: "Net form (e.g., stick, bottle)",
+                    },
+                    netquantity: {
+                        type: "string",
+                        maxLength: 255,
+                        description: "Net quantity (e.g., 30 sticks, 500ml)",
+                    },
+                    numberofitems: {
+                        type: "integer",
+                        minimum: 0,
+                        description: "Number of items",
+                    },
+                    itemthickness: {
+                        type: "string",
+                        maxLength: 255,
+                        description: "Item thickness",
+                    },
                 },
                 additionalProperties: true, // Allow additional dynamic fields
             },
@@ -2013,6 +2294,42 @@ export async function productRoutes(fastify) {
                                             type: "boolean",
                                             nullable: true,
                                             description: "Is deal of the day",
+                                        },
+                                        // Additional Product Information
+                                        material: {
+                                            type: "string",
+                                            nullable: true,
+                                            description: "Product material",
+                                        },
+                                        itemlength: {
+                                            type: "string",
+                                            nullable: true,
+                                            description: "Item length",
+                                        },
+                                        manufacturer: {
+                                            type: "string",
+                                            nullable: true,
+                                            description: "Manufacturer",
+                                        },
+                                        netform: {
+                                            type: "string",
+                                            nullable: true,
+                                            description: "Net form (e.g., stick, bottle)",
+                                        },
+                                        netquantity: {
+                                            type: "string",
+                                            nullable: true,
+                                            description: "Net quantity (e.g., 30 sticks, 500ml)",
+                                        },
+                                        numberofitems: {
+                                            type: "number",
+                                            nullable: true,
+                                            description: "Number of items",
+                                        },
+                                        itemthickness: {
+                                            type: "string",
+                                            nullable: true,
+                                            description: "Item thickness",
                                         },
                                     },
                                     additionalProperties: true,

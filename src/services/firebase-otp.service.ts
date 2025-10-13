@@ -102,18 +102,32 @@ export class FirebaseOTPService {
         throw new Error('Phone number not found in Firebase token');
       }
 
-      // Create app session JWT
-      const token = jwtService.sign({ uid, phone, email });
+      // Create app session JWT with conditional email
+      const jwtPayload: { uid: string; phone: string; email?: string } = { uid, phone };
+      if (email) {
+        jwtPayload.email = email;
+      }
+      const token = jwtService.sign(jwtPayload);
 
       logger.info({ uid, phone, email }, 'Session created successfully');
 
-      return {
+      const sessionData: {
+        ok: boolean;
+        uid: string;
+        phone: string;
+        email?: string;
+        token: string;
+      } = {
         ok: true,
         uid,
         phone,
-        email,
         token,
       };
+      if (email) {
+        sessionData.email = email;
+      }
+
+      return sessionData;
     } catch (error) {
       logger.error({ error }, 'Error creating session');
       throw error;

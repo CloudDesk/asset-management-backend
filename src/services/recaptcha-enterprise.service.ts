@@ -105,7 +105,7 @@ export class RecaptchaEnterpriseService {
   /**
    * Verify reCAPTCHA token for OTP sending
    */
-  async verifyOTPToken(token: string): Promise<{ success: boolean; message?: string }> {
+  async verifyOTPToken(token: string): Promise<{ success: boolean; score?: number; message?: string }> {
     return this.createAssessment({
       token,
       recaptchaAction: 'send_otp'
@@ -115,7 +115,7 @@ export class RecaptchaEnterpriseService {
   /**
    * Verify reCAPTCHA token for general actions
    */
-  async verifyActionToken(token: string, action: string): Promise<{ success: boolean; message?: string }> {
+  async verifyActionToken(token: string, action: string): Promise<{ success: boolean; score?: number; message?: string }> {
     return this.createAssessment({
       token,
       recaptchaAction: action

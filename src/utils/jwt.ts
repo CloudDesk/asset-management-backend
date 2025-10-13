@@ -78,6 +78,10 @@ export class JWTService {
 
       const [encodedHeader, encodedPayload, signature] = parts;
 
+      if (!encodedHeader || !encodedPayload || !signature) {
+        throw new Error('Invalid token format: missing parts');
+      }
+
       // Verify signature
       const signatureInput = `${encodedHeader}.${encodedPayload}`;
       const expectedSignature = crypto
