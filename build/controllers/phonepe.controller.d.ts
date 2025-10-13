@@ -77,6 +77,11 @@ export declare class PhonePeController {
      */
     private storeTransactionData;
     /**
+     * Store transaction data with dedicated status column (NEW METHOD)
+     * This method includes the new status column for better performance and consistency
+     */
+    private storeTransactionDataWithStatus;
+    /**
      * Update product quantities and status after successful order creation
      * NEW: Now includes platform-specific stock updates for nivapp
      *
@@ -171,5 +176,13 @@ export declare class PhonePeController {
         platform: string;
         error?: never;
     }>;
+    /**
+     * Cleanup expired lock (called by GCP Cloud Task)
+     * POST /v1/phonepe/cleanup-lock
+     *
+     * This endpoint is triggered by GCP Cloud Tasks after 15 minutes of payment initiation.
+     * It checks payment status and releases stock locks for abandoned/failed payments.
+     */
+    cleanupExpiredLock: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
 }
 //# sourceMappingURL=phonepe.controller.d.ts.map

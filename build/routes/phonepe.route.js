@@ -1336,5 +1336,148 @@ export async function phonePeRoutes(fastify) {
             });
         }
     });
+    // ========================================
+    // GCP Cloud Task Endpoint - Lock Cleanup
+    // ========================================
+    /**
+     * Lock cleanup endpoint (called by GCP Cloud Tasks)
+     * POST /v1/phonepe/cleanup-lock
+     *
+     * Triggered by GCP Cloud Tasks after 15 minutes of payment initiation.
+     * Checks payment status and releases locks for abandoned/failed payments.
+     */
+    fastify.post('/cleanup-lock', {
+        schema: {
+            description: 'Cleanup expired stock locks (GCP Cloud Tasks webhook)',
+            tags: ['PhonePe Payment', 'Internal'],
+            summary: 'Release locks for abandoned/failed payments',
+            body: {
+                type: 'object',
+                properties: {
+                    merchantTransactionId: {
+                        type: 'string',
+                        description: 'Merchant transaction ID to cleanup'
+                    },
+                    merchantid: {
+                        type: 'string',
+                        description: 'Legacy: Merchant transaction ID (backward compatibility)'
+                    },
+                    createdAt: {
+                        type: 'string',
+                        description: 'Task creation timestamp (ISO 8601)'
+                    },
+                    action: {
+                        type: 'string',
+                        description: 'Action type (e.g., release_expired_lock)'
+                    }
+                }
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: {
+                            type: 'boolean',
+                            description: 'Operation success status'
+                        },
+                        message: {
+                            type: 'string',
+                            description: 'Human-readable message'
+                        },
+                        action: {
+                            type: 'string',
+                            enum: ['none', 'locks_released'],
+                            description: 'Action taken by cleanup task'
+                        },
+                        data: {
+                            type: 'object',
+                            properties: {
+                                merchantTransactionId: {
+                                    type: 'string',
+                                    description: 'Transaction ID'
+                                },
+                                paymentStatus: {
+                                    type: 'string',
+                                    description: 'Current payment status code'
+                                },
+                                lockStatus: {
+                                    type: 'string',
+                                    description: 'Lock status (for successful payments)'
+                                },
+                                productsProcessed: {
+                                    type: 'number',
+                                    description: 'Number of products processed'
+                                },
+                                productsReleased: {
+                                    type: 'number',
+                                    description: 'Number of products with locks released'
+                                },
+                                releaseDetails: {
+                                    type: 'array',
+                                    description: 'Detailed release results per product',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            productId: { type: 'number' },
+                                            productName: { type: 'string' },
+                                            status: {
+                                                type: 'string',
+                                                enum: ['released', 'skipped', 'error']
+                                            },
+                                            quantityReleased: { type: 'number' },
+                                            before: {
+                                                type: 'object',
+                                                properties: {
+                                                    availableqty: { type: 'number' },
+                                                    lockqty: { type: 'number' }
+                                                }
+                                            },
+                                            after: {
+                                                type: 'object',
+                                                properties: {
+                                                    availableqty: { type: 'number' },
+                                                    lockqty: { type: 'number' }
+                                                }
+                                            },
+                                            reason: { type: 'string' },
+                                            error: { type: 'string' }
+                                        }
+                                    }
+                                },
+                                transactionStatus: {
+                                    type: 'string',
+                                    description: 'Updated transaction status (EXPIRED if locks released)'
+                                }
+                            }
+                        }
+                    }
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        error: { type: 'string' }
+                    }
+                },
+                404: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        error: { type: 'string' }
+                    }
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        error: { type: 'string' }
+                    }
+                }
+            }
+        }
+    }, phonePeController.cleanupExpiredLock);
 }
 //# sourceMappingURL=phonepe.route.js.map
