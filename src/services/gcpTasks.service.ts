@@ -10,7 +10,7 @@ const __dirname = dirname(__filename);
 const GCP_PROJECT_ID = process.env.GCP_PROJECT_ID || 'nivaana';
 const GCP_PROJECT_QUEUE = process.env.GCP_PROJECT_QUEUE || 'nivaana-dev';
 const GCP_PROJECT_LOCATION = process.env.GCP_PROJECT_LOCATION || 'asia-south1';
-const API_BASE_URL = process.env.API_BASE_URL || '=https://nivaana-dev-715569764663.asia-south1.run.app';
+const API_BASE_URL = process.env.API_BASE_URL || 'https://nivaana-dev-715569764663.asia-south1.run.app';
 
 // Lock cleanup configuration
 const LOCK_CLEANUP_DELAY_SECONDS = parseInt(process.env.LOCK_CLEANUP_DELAY_SECONDS || '120'); // 2 minutes default (changed from 15 minutes)
