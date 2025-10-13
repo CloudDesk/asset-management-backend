@@ -7471,3 +7471,98 @@ Updated record: {
   "iswishlist": false,
   "modifieddate": 1760117940
 }
+Updated record: {
+  "id": 2,
+  "createddate": 1760361162,
+  "modifieddate": 1760361171,
+  "quotenumber": "KS-001-NIVAANA-QUOTE-00021",
+  "comment": "Initiate Negotiations with team",
+  "title": "Initiate",
+  "ispinned": true
+}
+Updated record: {
+  "id": 3,
+  "createddate": 1760361205,
+  "modifieddate": 1760361215,
+  "quotenumber": "KS-001-NIVAANA-QUOTE-00021",
+  "comment": "Meeting with Manager",
+  "title": "Meeting",
+  "ispinned": true
+}
+Updated record: {
+  "id": 2,
+  "createddate": 1760361162,
+  "modifieddate": 1760361223,
+  "quotenumber": "KS-001-NIVAANA-QUOTE-00021",
+  "comment": "Initiate Negotiations with team",
+  "title": "Initiate",
+  "ispinned": false
+}
+Updated record: {
+  "id": 21,
+  "createddate": 1760361053,
+  "modifieddate": 1760361231,
+  "status": "closed_won",
+  "prnumber": "KS-001-NIVAANA-PR-00011",
+  "quoteurl": "https://storage.googleapis.com/niv-pr-quote-dev/KS-001-NIVAANA-PR-00011/2mb-jpg-example-file.jpg",
+  "quotenumber": "KS-001-NIVAANA-QUOTE-00021"
+}
+Updated record: {
+  "id": 11,
+  "createddate": 1757422610,
+  "modifieddate": 1760361233,
+  "prstatus": "Completed",
+  "companyname": "HPSA",
+  "companyaddress": "chennai",
+  "contactname": "madhav",
+  "phonenumber": 8899556655,
+  "gstnumber": "",
+  "companymail": "madhav@gmail.com",
+  "supplierid": 1,
+  "prurl": "https://storage.cloud.google.com/niv-pr-dev/KS-001-NIVAANA-PR-00011.pdf",
+  "prdata": {
+    "items": [
+      {
+        "id": 1,
+        "name": "FLower Pot",
+        "quantity": 14
+      }
+    ]
+  },
+  "prnumber": "KS-001-NIVAANA-PR-00011",
+  "supplieremail": "pravinsf24@gmail.com"
+}
+Updated record: {
+  "id": 11,
+  "createddate": 1757422610,
+  "modifieddate": 1760361234,
+  "prstatus": "Completed",
+  "companyname": "HPSA",
+  "companyaddress": "chennai",
+  "contactname": "madhav",
+  "phonenumber": 8899556655,
+  "gstnumber": "",
+  "companymail": "madhav@gmail.com",
+  "supplierid": 1,
+  "prurl": "https://storage.cloud.google.com/niv-pr-dev/KS-001-NIVAANA-PR-00011.pdf",
+  "prdata": {
+    "items": [
+      {
+        "id": 1,
+        "name": "FLower Pot",
+        "quantity": 14
+      }
+    ]
+  },
+  "prnumber": "KS-001-NIVAANA-PR-00011",
+  "supplieremail": "pravinsf24@gmail.com"
+}
+Updated record: {
+  "id": 12,
+  "createddate": 1757328940,
+  "modifieddate": 1760361750,
+  "status": "in_progress",
+  "prnumber": "KS-001-NIVAANA-PR-00009",
+  "quoteurl": "https://storage.cloud.google.com/niv-pr-quotes-dev/KS-001-NIVAANA-PR-00009/quote_Q-2025-001.pdf",
+  "quotenumber": "KS-001-NIVAANA-QUOTE-00012"
+}

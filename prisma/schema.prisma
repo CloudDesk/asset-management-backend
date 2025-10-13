@@ -37,6 +37,15 @@ model Product {
   ecompublishedquantity Int?
   productstatus        String?     @db.VarChar(255)
 
+  // Additional Product Information
+  material             String?     @db.VarChar(255)
+  itemlength           String?     @db.VarChar(255)
+  manufacturer         String?     @db.VarChar(255)
+  netform              String?     @db.VarChar(255)
+  netquantity          String?     @db.VarChar(255)
+  numberofitems        Int?
+  itemthickness        String?     @db.VarChar(255)
+
   platformStocks       PlatformStock[]
   orderline             orderline[]
   stock                 Stock[]
