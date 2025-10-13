@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Phone OTP Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .step {
+            background: #f7f7f7;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .step.active {
+            background: #e3f2fd;
+            border: 2px solid #2196F3;
+        }
+
+        .step-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .step-number {
+            background: #667eea;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 10px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .success {
+            background: #4caf50;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error {
+            background: #f44336;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .info {
+            background: #2196F3;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        #recaptcha-container {
+            margin: 15px 0;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .user-info {
+            background: #f7f7f7;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .user-info pre {
+            background: #333;
+            color: #0f0;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+
+        .note {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #856404;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔥 Firebase Phone OTP Test</h1>
+        <p class="subtitle">Test your Firebase Phone Authentication</p>
+
+        <div class="note">
+            ⚠️ <strong>Important:</strong> You need to configure Firebase Web App credentials below before testing!
+        </div>
+
+        <!-- Step 1: Send OTP -->
+        <div class="step active" id="step1">
+            <div class="step-title">
+                <span class="step-number">1</span>
+                Send OTP
+            </div>
+            <input type="tel" id="phoneNumber" placeholder="+918825727948" value="+918825727948" />
+            <div id="recaptcha-container"></div>
+            <button id="sendOtpBtn" onclick="sendOTP()">Send OTP</button>
+        </div>
+
+        <!-- Step 2: Verify OTP -->
+        <div class="step hidden" id="step2">
+            <div class="step-title">
+                <span class="step-number">2</span>
+                Enter OTP
+            </div>
+            <input type="text" id="otpCode" placeholder="Enter 6-digit OTP" maxlength="6" />
+            <button id="verifyOtpBtn" onclick="verifyOTP()">Verify OTP</button>
+        </div>
+
+        <!-- Step 3: Session Created -->
+        <div class="step hidden" id="step3">
+            <div class="step-title">
+                <span class="step-number">3</span>
+                Session Created
+            </div>
+            <button onclick="getProfile()">Get My Profile</button>
+            <button onclick="logout()" style="background: #f44336; margin-top: 10px;">Logout</button>
+            <div class="user-info hidden" id="userInfo"></div>
+        </div>
+
+        <!-- Messages -->
+        <div class="success" id="successMsg"></div>
+        <div class="error" id="errorMsg"></div>
+        <div class="info" id="infoMsg"></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+    <script>
+        // ⚠️ IMPORTANT: Replace with YOUR Firebase Web App Config
+        // Get it from: https://console.firebase.google.com/project/docblitz-437213/settings/general
+        const firebaseConfig = {
+            apiKey: "AIzaSyDyuK7MkjyKO4CppchllGk_SFw6ilnYZSo",
+            authDomain: "docblitz-437213.firebaseapp.com",
+            projectId: "docblitz-437213",
+            storageBucket: "docblitz-437213.firebasestorage.app",
+            messagingSenderId: "1066464674690",
+            appId: "1:1066464674690:web:2f52360633df725bd8059b",
+            measurementId: "G-VHD6Z5B7NK"
+        };
+
+        // Check if Firebase config is set
+        if (firebaseConfig.apiKey === "YOUR_API_KEY_HERE") {
+            showError("⚠️ Please configure Firebase credentials in the HTML file first!\n\nGet your config from:\nhttps://console.firebase.google.com/project/docblitz-437213/settings/general\n\nLook for 'Your apps' → Web app → Config");
+            document.getElementById('sendOtpBtn').disabled = true;
+        } else {
+            // Initialize Firebase
+            firebase.initializeApp(firebaseConfig);
+            window.auth = firebase.auth();
+
+            // Set up reCAPTCHA
+            window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier(
+                'recaptcha-container',
+                {
+                    'size': 'normal',
+                    'callback': (response) => {
+                        console.log('reCAPTCHA solved');
+                    },
+                    'expired-callback': () => {
+                        console.log('reCAPTCHA expired');
+                    }
+                }
+            );
+
+            window.recaptchaVerifier.render().then(function (widgetId) {
+                window.recaptchaWidgetId = widgetId;
+            });
+        }
+
+        // Backend API URL
+        const API_URL = 'http://localhost:5600';
+
+        // Send OTP
+        async function sendOTP() {
+            const phoneNumber = document.getElementById('phoneNumber').value;
+            const sendBtn = document.getElementById('sendOtpBtn');
+
+            if (!phoneNumber || !phoneNumber.startsWith('+')) {
+                showError('Please enter phone number in E.164 format (e.g., +918825727948)');
+                return;
+            }
+
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Sending OTP...';
+            hideMessages();
+
+            try {
+                // Send OTP via Firebase
+                const appVerifier = window.recaptchaVerifier;
+                window.confirmationResult = await auth.signInWithPhoneNumber(phoneNumber, appVerifier);
+
+                showSuccess('✓ OTP sent successfully! Check your phone.');
+                showInfo('📱 Enter the 6-digit code you received');
+
+                // Move to step 2
+                document.getElementById('step1').classList.remove('active');
+                document.getElementById('step2').classList.remove('hidden');
+                document.getElementById('step2').classList.add('active');
+                document.getElementById('otpCode').focus();
+
+            } catch (error) {
+                console.error('Error sending OTP:', error);
+                showError(`Failed to send OTP: ${error.message}`);
+                sendBtn.disabled = false;
+                sendBtn.textContent = 'Send OTP';
+
+                // Reset reCAPTCHA
+                if (window.recaptchaWidgetId !== undefined) {
+                    grecaptcha.reset(window.recaptchaWidgetId);
+                }
+            }
+        }
+
+        // Verify OTP
+        async function verifyOTP() {
+            const code = document.getElementById('otpCode').value;
+            const verifyBtn = document.getElementById('verifyOtpBtn');
+
+            if (!code || code.length !== 6) {
+                showError('Please enter the 6-digit OTP code');
+                return;
+            }
+
+            verifyBtn.disabled = true;
+            verifyBtn.textContent = 'Verifying...';
+            hideMessages();
+
+            try {
+                // Verify OTP with Firebase
+                const result = await window.confirmationResult.confirm(code);
+                const user = result.user;
+
+                showInfo('✓ OTP verified! Getting Firebase token...');
+
+                // Get Firebase ID token
+                const idToken = await user.getIdToken();
+
+                showInfo('✓ Got Firebase token! Creating session...');
+
+                // Create session on backend
+                const response = await fetch(`${API_URL}/v1/firebase-otp/session`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idToken }),
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showSuccess(`✓ Logged in successfully!\n\nUID: ${data.data.uid}\nPhone: ${data.data.phone}`);
+
+                    // Move to step 3
+                    document.getElementById('step2').classList.remove('active');
+                    document.getElementById('step3').classList.remove('hidden');
+                    document.getElementById('step3').classList.add('active');
+
+                    // Store token
+                    localStorage.setItem('authToken', data.data.token);
+                } else {
+                    showError(`Failed to create session: ${data.message}`);
+                    verifyBtn.disabled = false;
+                    verifyBtn.textContent = 'Verify OTP';
+                }
+
+            } catch (error) {
+                console.error('Error verifying OTP:', error);
+                showError(`Failed to verify OTP: ${error.message}`);
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = 'Verify OTP';
+            }
+        }
+
+        // Get user profile
+        async function getProfile() {
+            hideMessages();
+
+            try {
+                const response = await fetch(`${API_URL}/v1/firebase-otp/me`, {
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('userInfo').innerHTML =
+                        '<strong>Your Profile:</strong><pre>' +
+                        JSON.stringify(data.data.user, null, 2) +
+                        '</pre>';
+                    document.getElementById('userInfo').classList.remove('hidden');
+                    showSuccess('✓ Profile loaded!');
+                } else {
+                    showError(`Failed to get profile: ${data.message}`);
+                }
+
+            } catch (error) {
+                console.error('Error getting profile:', error);
+                showError(`Failed to get profile: ${error.message}`);
+            }
+        }
+
+        // Logout
+        async function logout() {
+            hideMessages();
+
+            try {
+                await fetch(`${API_URL}/v1/firebase-otp/logout`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+
+                localStorage.removeItem('authToken');
+                showSuccess('✓ Logged out successfully!');
+
+                // Reset to step 1
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+
+            } catch (error) {
+                console.error('Error logging out:', error);
+                showError(`Failed to logout: ${error.message}`);
+            }
+        }
+
+        // Helper functions
+        function showSuccess(msg) {
+            const el = document.getElementById('successMsg');
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('errorMsg');
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
+
+        function showInfo(msg) {
+            const el = document.getElementById('infoMsg');
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
+
+        function hideMessages() {
+            document.getElementById('successMsg').style.display = 'none';
+            document.getElementById('errorMsg').style.display = 'none';
+            document.getElementById('infoMsg').style.display = 'none';
+        }
+    </script>
+</body>
+
+</html>
