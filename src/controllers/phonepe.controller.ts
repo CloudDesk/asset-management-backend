@@ -3803,7 +3803,8 @@ export class PhonePeController {
         // Step 2: If payment successful or COD success, do nothing (lock already converted to order)
         if (
           paymentStatus.code === "PAYMENT_SUCCESS" ||
-          paymentStatus.code === "SUCCESS"
+          paymentStatus.code === "SUCCESS" ||
+          paymentStatus.code === "COMPLETED"
         ) {
           logger.info(
             { merchantTransactionId },
@@ -3827,7 +3828,11 @@ export class PhonePeController {
           paymentStatus.code === "PAYMENT_PENDING" ||
           paymentStatus.code === "PAYMENT_ERROR" ||
           paymentStatus.code === "PAYMENT_DECLINED" ||
-          paymentStatus.code === "PAYMENT_FAILED"
+          paymentStatus.code === "PAYMENT_FAILED" ||
+          paymentStatus.code === "PENDING" ||
+          paymentStatus.code === "FAILED" ||
+          paymentStatus.code === "CANCELLED" ||
+          paymentStatus.code === "EXPIRED"
         ) {
           logger.info(
             {
