@@ -511,8 +511,8 @@ export declare const healthCheckResponseSchema: z.ZodObject<{
         status: string;
         version: string;
         timestamp: string;
-        service: string;
         environment: string;
+        service: string;
         configuration: {
             merchantId: string;
             saltKey: string;
@@ -527,8 +527,8 @@ export declare const healthCheckResponseSchema: z.ZodObject<{
         status: string;
         version: string;
         timestamp: string;
-        service: string;
         environment: string;
+        service: string;
         configuration: {
             merchantId: string;
             saltKey: string;
@@ -549,8 +549,8 @@ export declare const healthCheckResponseSchema: z.ZodObject<{
         status: string;
         version: string;
         timestamp: string;
-        service: string;
         environment: string;
+        service: string;
         configuration: {
             merchantId: string;
             saltKey: string;
@@ -570,8 +570,8 @@ export declare const healthCheckResponseSchema: z.ZodObject<{
         status: string;
         version: string;
         timestamp: string;
-        service: string;
         environment: string;
+        service: string;
         configuration: {
             merchantId: string;
             saltKey: string;

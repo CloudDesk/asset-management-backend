@@ -6245,3 +6245,2670 @@ Final rawData: {
   "quantity": 1,
   "modifieddate": 1760098140012
 }
+Final rawData: {
+  "status": "FAILED",
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "FAILED",
+    "codData": null,
+    "initiatedAt": "2025-10-13T11:34:16.954Z",
+    "evaluation_ids": [],
+    "paymentRequest": {
+      "name": "harishraja411@gmail.com",
+      "amount": 190,
+      "userId": 1,
+      "productIds": [
+        40
+      ],
+      "mobileNumber": "9944626003",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1760355256821_YIAZFD"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 547,
+          "userid": 1,
+          "quantity": 1,
+          "addressid": 2,
+          "productid": 40,
+          "orderamount": 140,
+          "productname": "Nivaana - Premium Incense Sticks - Kasturi",
+          "productamount": 150,
+          "discountamount": 10,
+          "productcategory": "incense"
+        }
+      ],
+      "transaction": {
+        "name": "harishraja411@gmail.com",
+        "amount": 190,
+        "userId": 1,
+        "productid": [
+          40
+        ],
+        "mobilenumber": "9944626003",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponses": {
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzNzg2NTY5NjUsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM1NTI1NjgyMV9ZSUFaRkQifQ.cTcCmCTgZU9ddj8aSSe8N8XGoX_OlOCFcDC6nGgFhDk",
+          "transactionId": "TXN_1760355256821_YIAZFD"
+        },
+        "timestamp": "2025-10-13T11:34:16.954Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzNzg2NTY5NjUsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM1NTI1NjgyMV9ZSUFaRkQifQ.cTcCmCTgZU9ddj8aSSe8N8XGoX_OlOCFcDC6nGgFhDk"
+      },
+      "failed": {
+        "timestamp": "2025-10-13T11:34:53.762Z",
+        "response": "",
+        "status": "FAILED"
+      }
+    },
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": [],
+    "paymentCompleteAt": "2025-10-13T11:34:53.762Z",
+    "updatedAt": "2025-10-13T11:34:53.762Z",
+    "phonePeResponse": {
+      "error": "Payment failed"
+    }
+  },
+  "modifieddate": 1760355294794
+}
+Final rawData: {
+  "orderstatus": "cancelled",
+  "modifieddate": 1760355325946,
+  "cancelleddate": 1760355325946
+}
+Final rawData: {
+  "status": "FAILED",
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "FAILED",
+    "codData": null,
+    "initiatedAt": "2025-10-13T11:38:04.792Z",
+    "evaluation_ids": [],
+    "paymentRequest": {
+      "name": "harishraja411@gmail.com",
+      "amount": 190,
+      "userId": 1,
+      "productIds": [
+        40
+      ],
+      "mobileNumber": "9944626003",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1760355484581_JF4BHS"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 547,
+          "userid": 1,
+          "quantity": 1,
+          "addressid": 2,
+          "productid": 40,
+          "orderamount": 140,
+          "productname": "Nivaana - Premium Incense Sticks - Kasturi",
+          "productamount": 150,
+          "discountamount": 10,
+          "productcategory": "incense"
+        }
+      ],
+      "transaction": {
+        "name": "harishraja411@gmail.com",
+        "amount": 190,
+        "userId": 1,
+        "productid": [
+          40
+        ],
+        "mobilenumber": "9944626003",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponses": {
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzNzg4ODQ3ODcsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM1NTQ4NDU4MV9KRjRCSFMifQ.VPGJGXfSkbF8t9ic-uV4aOjrqmG5XTTd2bB5PM67LRE",
+          "transactionId": "TXN_1760355484581_JF4BHS"
+        },
+        "timestamp": "2025-10-13T11:38:04.792Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzNzg4ODQ3ODcsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM1NTQ4NDU4MV9KRjRCSFMifQ.VPGJGXfSkbF8t9ic-uV4aOjrqmG5XTTd2bB5PM67LRE"
+      },
+      "failed": {
+        "timestamp": "2025-10-13T11:38:58.154Z",
+        "response": "",
+        "status": "FAILED"
+      }
+    },
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": [],
+    "paymentCompleteAt": "2025-10-13T11:38:58.154Z",
+    "updatedAt": "2025-10-13T11:38:58.154Z",
+    "phonePeResponse": {
+      "error": "Payment failed"
+    }
+  },
+  "modifieddate": 1760355538700
+}
+Final rawData: {
+  "status": "FAILED",
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "FAILED",
+    "codData": null,
+    "initiatedAt": "2025-10-13T11:51:18.068Z",
+    "evaluation_ids": [],
+    "paymentRequest": {
+      "name": "harishraja411@gmail.com",
+      "amount": 190,
+      "userId": 1,
+      "productIds": [
+        40
+      ],
+      "mobileNumber": "9944626003",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1760356277307_WBVVPA"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 547,
+          "userid": 1,
+          "quantity": 1,
+          "addressid": 2,
+          "productid": 40,
+          "orderamount": 140,
+          "productname": "Nivaana - Premium Incense Sticks - Kasturi",
+          "productamount": 150,
+          "discountamount": 10,
+          "productcategory": "incense"
+        }
+      ],
+      "transaction": {
+        "name": "harishraja411@gmail.com",
+        "amount": 190,
+        "userId": 1,
+        "productid": [
+          40
+        ],
+        "mobilenumber": "9944626003",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponses": {
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzNzk2NzgwNzUsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM1NjI3NzMwN19XQlZWUEEifQ.tD7CfEmte46l6QmE0U1eXTrnOKg_15dGmWcyNK07b_s",
+          "transactionId": "TXN_1760356277307_WBVVPA"
+        },
+        "timestamp": "2025-10-13T11:51:18.068Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzNzk2NzgwNzUsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM1NjI3NzMwN19XQlZWUEEifQ.tD7CfEmte46l6QmE0U1eXTrnOKg_15dGmWcyNK07b_s"
+      },
+      "failed": {
+        "timestamp": "2025-10-13T11:51:58.291Z",
+        "response": "",
+        "status": "FAILED"
+      }
+    },
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": [],
+    "paymentCompleteAt": "2025-10-13T11:51:58.291Z",
+    "updatedAt": "2025-10-13T11:51:58.291Z",
+    "phonePeResponse": {
+      "error": "Payment failed"
+    }
+  },
+  "modifieddate": 1760356318905
+}
+Final rawData: {
+  "status": "FAILED",
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "FAILED",
+    "codData": null,
+    "initiatedAt": "2025-10-13T11:56:09.354Z",
+    "evaluation_ids": [],
+    "paymentRequest": {
+      "name": "harishraja411@gmail.com",
+      "amount": 190,
+      "userId": 1,
+      "productIds": [
+        40
+      ],
+      "mobileNumber": "9944626003",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1760356568510_NC7Z2P"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 547,
+          "userid": 1,
+          "quantity": 1,
+          "addressid": 2,
+          "productid": 40,
+          "orderamount": 140,
+          "productname": "Nivaana - Premium Incense Sticks - Kasturi",
+          "productamount": 150,
+          "discountamount": 10,
+          "productcategory": "incense"
+        }
+      ],
+      "transaction": {
+        "name": "harishraja411@gmail.com",
+        "amount": 190,
+        "userId": 1,
+        "productid": [
+          40
+        ],
+        "mobilenumber": "9944626003",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponses": {
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzNzk5NjkzNDEsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM1NjU2ODUxMF9OQzdaMlAifQ.41Vqg3IMXyLTA9HsWpvExnA87htxCDKjrJJZTgHtQC8",
+          "transactionId": "TXN_1760356568510_NC7Z2P"
+        },
+        "timestamp": "2025-10-13T11:56:09.354Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzNzk5NjkzNDEsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM1NjU2ODUxMF9OQzdaMlAifQ.41Vqg3IMXyLTA9HsWpvExnA87htxCDKjrJJZTgHtQC8"
+      },
+      "failed": {
+        "timestamp": "2025-10-13T11:57:07.533Z",
+        "response": "",
+        "status": "FAILED"
+      }
+    },
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": [],
+    "paymentCompleteAt": "2025-10-13T11:57:07.533Z",
+    "updatedAt": "2025-10-13T11:57:07.533Z",
+    "phonePeResponse": {
+      "error": "Payment failed"
+    }
+  },
+  "modifieddate": 1760356628473
+}
+Final rawData: {
+  "status": "SUCCESS",
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "initiatedAt": "2025-10-13T12:34:19.374Z",
+    "evaluation_ids": [],
+    "paymentRequest": {
+      "name": "harishraja411@gmail.com",
+      "amount": 190,
+      "userId": 1,
+      "productIds": [
+        40
+      ],
+      "mobileNumber": "9944626003",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1760358858569_W7RI9Q"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 547,
+          "userid": 1,
+          "quantity": 1,
+          "addressid": 2,
+          "productid": 40,
+          "orderamount": 140,
+          "productname": "Nivaana - Premium Incense Sticks - Kasturi",
+          "productamount": 150,
+          "discountamount": 10,
+          "productcategory": "incense"
+        }
+      ],
+      "transaction": {
+        "name": "harishraja411@gmail.com",
+        "amount": 190,
+        "userId": 1,
+        "productid": [
+          40
+        ],
+        "mobilenumber": "9944626003",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponses": {
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzODIyNTkzODMsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM1ODg1ODU2OV9XN1JJOVEifQ.22hiPmf4nWpndDkU5A2X234qOssw4wYFB5kdSyyUs14",
+          "transactionId": "TXN_1760358858569_W7RI9Q"
+        },
+        "timestamp": "2025-10-13T12:34:19.374Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzODIyNTkzODMsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM1ODg1ODU2OV9XN1JJOVEifQ.22hiPmf4nWpndDkU5A2X234qOssw4wYFB5kdSyyUs14"
+      },
+      "success": {
+        "timestamp": "2025-10-13T12:35:02.925Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Payment successful",
+          "data": {
+            "merchantId": "TEST-M23QE5328H4MV_25101",
+            "merchantTransactionId": "OMO2510131804193835286304",
+            "transactionId": "OMO2510131804193835286304",
+            "amount": 19000,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "UNKNOWN"
+            }
+          }
+        },
+        "status": "SUCCESS"
+      }
+    },
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": [],
+    "paymentCompleteAt": "2025-10-13T12:35:02.925Z",
+    "updatedAt": "2025-10-13T12:35:02.925Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Payment successful",
+      "data": {
+        "merchantId": "TEST-M23QE5328H4MV_25101",
+        "merchantTransactionId": "OMO2510131804193835286304",
+        "transactionId": "OMO2510131804193835286304",
+        "amount": 19000,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "UNKNOWN"
+        }
+      }
+    }
+  },
+  "modifieddate": 1760358903884
+}
+Final rawData: {
+  "status": "SUCCESS",
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "updatedAt": "2025-10-13T12:35:21.068Z",
+    "initiatedAt": "2025-10-13T12:34:19.374Z",
+    "evaluation_ids": [],
+    "paymentRequest": {
+      "name": "harishraja411@gmail.com",
+      "amount": 190,
+      "userId": 1,
+      "productIds": [
+        40
+      ],
+      "mobileNumber": "9944626003",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1760358858569_W7RI9Q"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 547,
+          "userid": 1,
+          "quantity": 1,
+          "addressid": 2,
+          "productid": 40,
+          "orderamount": 140,
+          "productname": "Nivaana - Premium Incense Sticks - Kasturi",
+          "productamount": 150,
+          "discountamount": 10,
+          "productcategory": "incense"
+        }
+      ],
+      "transaction": {
+        "name": "harishraja411@gmail.com",
+        "amount": 190,
+        "userId": 1,
+        "productid": [
+          40
+        ],
+        "mobilenumber": "9944626003",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Payment successful",
+      "data": {
+        "merchantId": "TEST-M23QE5328H4MV_25101",
+        "merchantTransactionId": "OMO2510131804193835286304",
+        "transactionId": "OMO2510131804193835286304",
+        "amount": 19000,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "UNKNOWN"
+        }
+      },
+      "orderCreation": {
+        "status": "success",
+        "error": null,
+        "orderId": 111,
+        "timestamp": "2025-10-13T12:35:20.520Z"
+      },
+      "paymentCompleteAt": "2025-10-13T12:35:20.520Z"
+    },
+    "phonePeResponses": {
+      "success": {
+        "timestamp": "2025-10-13T12:35:21.068Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Payment successful",
+          "data": {
+            "merchantId": "TEST-M23QE5328H4MV_25101",
+            "merchantTransactionId": "OMO2510131804193835286304",
+            "transactionId": "OMO2510131804193835286304",
+            "amount": 19000,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "UNKNOWN"
+            }
+          },
+          "orderCreation": {
+            "status": "success",
+            "error": null,
+            "orderId": 111,
+            "timestamp": "2025-10-13T12:35:20.520Z"
+          },
+          "paymentCompleteAt": "2025-10-13T12:35:20.520Z"
+        },
+        "status": "SUCCESS"
+      },
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzODIyNTkzODMsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM1ODg1ODU2OV9XN1JJOVEifQ.22hiPmf4nWpndDkU5A2X234qOssw4wYFB5kdSyyUs14",
+          "transactionId": "TXN_1760358858569_W7RI9Q"
+        },
+        "timestamp": "2025-10-13T12:34:19.374Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzODIyNTkzODMsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM1ODg1ODU2OV9XN1JJOVEifQ.22hiPmf4nWpndDkU5A2X234qOssw4wYFB5kdSyyUs14"
+      }
+    },
+    "paymentCompleteAt": "2025-10-13T12:35:21.068Z",
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": []
+  },
+  "modifieddate": 1760358921716
+}
+Final rawData: {
+  "status": "SUCCESS",
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "initiatedAt": "2025-10-13T12:52:08.532Z",
+    "evaluation_ids": [],
+    "paymentRequest": {
+      "name": "harishraja411@gmail.com",
+      "amount": 250,
+      "userId": 1,
+      "productIds": [
+        47
+      ],
+      "mobileNumber": "9944626003",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1760359927741_T0ZT1G"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 550,
+          "userid": 1,
+          "quantity": 1,
+          "addressid": 2,
+          "productid": 47,
+          "orderamount": 200,
+          "productname": "Nivaana - Premium Incense Sticks - Spiritual Harmony",
+          "productamount": 200,
+          "discountamount": 0,
+          "productcategory": "incense"
+        }
+      ],
+      "transaction": {
+        "name": "harishraja411@gmail.com",
+        "amount": 250,
+        "userId": 1,
+        "productid": [
+          47
+        ],
+        "mobilenumber": "9944626003",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponses": {
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzODMzMjg1MzcsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM1OTkyNzc0MV9UMFpUMUcifQ.rpT5NIj5ow0DSEhP8RAMG85zsEEcTSEwHUiKvjb2qkU",
+          "transactionId": "TXN_1760359927741_T0ZT1G"
+        },
+        "timestamp": "2025-10-13T12:52:08.532Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzODMzMjg1MzcsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM1OTkyNzc0MV9UMFpUMUcifQ.rpT5NIj5ow0DSEhP8RAMG85zsEEcTSEwHUiKvjb2qkU"
+      },
+      "success": {
+        "timestamp": "2025-10-13T12:52:57.074Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Payment successful",
+          "data": {
+            "merchantId": "TEST-M23QE5328H4MV_25101",
+            "merchantTransactionId": "OMO2510131822085375286007",
+            "transactionId": "OMO2510131822085375286007",
+            "amount": 25000,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "UNKNOWN"
+            }
+          }
+        },
+        "status": "SUCCESS"
+      }
+    },
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": [],
+    "paymentCompleteAt": "2025-10-13T12:52:57.074Z",
+    "updatedAt": "2025-10-13T12:52:57.074Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Payment successful",
+      "data": {
+        "merchantId": "TEST-M23QE5328H4MV_25101",
+        "merchantTransactionId": "OMO2510131822085375286007",
+        "transactionId": "OMO2510131822085375286007",
+        "amount": 25000,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "UNKNOWN"
+        }
+      }
+    }
+  },
+  "modifieddate": 1760359978103
+}
+Final rawData: {
+  "status": "SUCCESS",
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "updatedAt": "2025-10-13T12:53:13.568Z",
+    "initiatedAt": "2025-10-13T12:52:08.532Z",
+    "evaluation_ids": [],
+    "paymentRequest": {
+      "name": "harishraja411@gmail.com",
+      "amount": 250,
+      "userId": 1,
+      "productIds": [
+        47
+      ],
+      "mobileNumber": "9944626003",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1760359927741_T0ZT1G"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 550,
+          "userid": 1,
+          "quantity": 1,
+          "addressid": 2,
+          "productid": 47,
+          "orderamount": 200,
+          "productname": "Nivaana - Premium Incense Sticks - Spiritual Harmony",
+          "productamount": 200,
+          "discountamount": 0,
+          "productcategory": "incense"
+        }
+      ],
+      "transaction": {
+        "name": "harishraja411@gmail.com",
+        "amount": 250,
+        "userId": 1,
+        "productid": [
+          47
+        ],
+        "mobilenumber": "9944626003",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Payment successful",
+      "data": {
+        "merchantId": "TEST-M23QE5328H4MV_25101",
+        "merchantTransactionId": "OMO2510131822085375286007",
+        "transactionId": "OMO2510131822085375286007",
+        "amount": 25000,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "UNKNOWN"
+        }
+      },
+      "orderCreation": {
+        "status": "success",
+        "error": null,
+        "orderId": 112,
+        "timestamp": "2025-10-13T12:53:13.000Z"
+      },
+      "paymentCompleteAt": "2025-10-13T12:53:13.000Z"
+    },
+    "phonePeResponses": {
+      "success": {
+        "timestamp": "2025-10-13T12:53:13.568Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Payment successful",
+          "data": {
+            "merchantId": "TEST-M23QE5328H4MV_25101",
+            "merchantTransactionId": "OMO2510131822085375286007",
+            "transactionId": "OMO2510131822085375286007",
+            "amount": 25000,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "UNKNOWN"
+            }
+          },
+          "orderCreation": {
+            "status": "success",
+            "error": null,
+            "orderId": 112,
+            "timestamp": "2025-10-13T12:53:13.000Z"
+          },
+          "paymentCompleteAt": "2025-10-13T12:53:13.000Z"
+        },
+        "status": "SUCCESS"
+      },
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzODMzMjg1MzcsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM1OTkyNzc0MV9UMFpUMUcifQ.rpT5NIj5ow0DSEhP8RAMG85zsEEcTSEwHUiKvjb2qkU",
+          "transactionId": "TXN_1760359927741_T0ZT1G"
+        },
+        "timestamp": "2025-10-13T12:52:08.532Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzODMzMjg1MzcsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM1OTkyNzc0MV9UMFpUMUcifQ.rpT5NIj5ow0DSEhP8RAMG85zsEEcTSEwHUiKvjb2qkU"
+      }
+    },
+    "paymentCompleteAt": "2025-10-13T12:53:13.568Z",
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": []
+  },
+  "modifieddate": 1760359994137
+}
+Final rawData: {
+  "orderstatus": "cancelled",
+  "modifieddate": 1760360605840,
+  "cancelleddate": 1760360605840
+}
+Final rawData: {
+  "status": "SUCCESS",
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "initiatedAt": "2025-10-13T13:05:09.384Z",
+    "evaluation_ids": [],
+    "paymentRequest": {
+      "name": "harishraja411@gmail.com",
+      "amount": 250,
+      "userId": 1,
+      "productIds": [
+        47
+      ],
+      "mobileNumber": "9944626003",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1760360708602_9JNNB5"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 550,
+          "userid": 1,
+          "quantity": 1,
+          "addressid": 2,
+          "productid": 47,
+          "orderamount": 200,
+          "productname": "Nivaana - Premium Incense Sticks - Spiritual Harmony",
+          "productamount": 200,
+          "discountamount": 0,
+          "productcategory": "incense"
+        }
+      ],
+      "transaction": {
+        "name": "harishraja411@gmail.com",
+        "amount": 250,
+        "userId": 1,
+        "productid": [
+          47
+        ],
+        "mobilenumber": "9944626003",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponses": {
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzODQxMDkzODYsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM2MDcwODYwMl85Sk5OQjUifQ.DYOEMjS8ZnwODs0YCg0qHL4VZzREpd5eye-ub0A6WYc",
+          "transactionId": "TXN_1760360708602_9JNNB5"
+        },
+        "timestamp": "2025-10-13T13:05:09.384Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzODQxMDkzODYsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM2MDcwODYwMl85Sk5OQjUifQ.DYOEMjS8ZnwODs0YCg0qHL4VZzREpd5eye-ub0A6WYc"
+      },
+      "success": {
+        "timestamp": "2025-10-13T13:05:45.394Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Payment successful",
+          "data": {
+            "merchantId": "TEST-M23QE5328H4MV_25101",
+            "merchantTransactionId": "OMO2510131835093865286465",
+            "transactionId": "OMO2510131835093865286465",
+            "amount": 25000,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "UNKNOWN"
+            }
+          }
+        },
+        "status": "SUCCESS"
+      }
+    },
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": [],
+    "paymentCompleteAt": "2025-10-13T13:05:45.394Z",
+    "updatedAt": "2025-10-13T13:05:45.394Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Payment successful",
+      "data": {
+        "merchantId": "TEST-M23QE5328H4MV_25101",
+        "merchantTransactionId": "OMO2510131835093865286465",
+        "transactionId": "OMO2510131835093865286465",
+        "amount": 25000,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "UNKNOWN"
+        }
+      }
+    }
+  },
+  "modifieddate": 1760360746550
+}
+Final rawData: {
+  "status": "SUCCESS",
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "updatedAt": "2025-10-13T13:06:03.415Z",
+    "initiatedAt": "2025-10-13T13:05:09.384Z",
+    "evaluation_ids": [],
+    "paymentRequest": {
+      "name": "harishraja411@gmail.com",
+      "amount": 250,
+      "userId": 1,
+      "productIds": [
+        47
+      ],
+      "mobileNumber": "9944626003",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1760360708602_9JNNB5"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 550,
+          "userid": 1,
+          "quantity": 1,
+          "addressid": 2,
+          "productid": 47,
+          "orderamount": 200,
+          "productname": "Nivaana - Premium Incense Sticks - Spiritual Harmony",
+          "productamount": 200,
+          "discountamount": 0,
+          "productcategory": "incense"
+        }
+      ],
+      "transaction": {
+        "name": "harishraja411@gmail.com",
+        "amount": 250,
+        "userId": 1,
+        "productid": [
+          47
+        ],
+        "mobilenumber": "9944626003",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Payment successful",
+      "data": {
+        "merchantId": "TEST-M23QE5328H4MV_25101",
+        "merchantTransactionId": "OMO2510131835093865286465",
+        "transactionId": "OMO2510131835093865286465",
+        "amount": 25000,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "UNKNOWN"
+        }
+      },
+      "orderCreation": {
+        "status": "success",
+        "error": null,
+        "orderId": 113,
+        "timestamp": "2025-10-13T13:06:02.388Z"
+      },
+      "paymentCompleteAt": "2025-10-13T13:06:02.388Z"
+    },
+    "phonePeResponses": {
+      "success": {
+        "timestamp": "2025-10-13T13:06:03.415Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Payment successful",
+          "data": {
+            "merchantId": "TEST-M23QE5328H4MV_25101",
+            "merchantTransactionId": "OMO2510131835093865286465",
+            "transactionId": "OMO2510131835093865286465",
+            "amount": 25000,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "UNKNOWN"
+            }
+          },
+          "orderCreation": {
+            "status": "success",
+            "error": null,
+            "orderId": 113,
+            "timestamp": "2025-10-13T13:06:02.388Z"
+          },
+          "paymentCompleteAt": "2025-10-13T13:06:02.388Z"
+        },
+        "status": "SUCCESS"
+      },
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzODQxMDkzODYsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM2MDcwODYwMl85Sk5OQjUifQ.DYOEMjS8ZnwODs0YCg0qHL4VZzREpd5eye-ub0A6WYc",
+          "transactionId": "TXN_1760360708602_9JNNB5"
+        },
+        "timestamp": "2025-10-13T13:05:09.384Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzODQxMDkzODYsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM2MDcwODYwMl85Sk5OQjUifQ.DYOEMjS8ZnwODs0YCg0qHL4VZzREpd5eye-ub0A6WYc"
+      }
+    },
+    "paymentCompleteAt": "2025-10-13T13:06:03.415Z",
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": []
+  },
+  "modifieddate": 1760360764560
+}
+Final rawData: {
+  "status": "SUCCESS",
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "initiatedAt": "2025-10-13T14:08:34.687Z",
+    "evaluation_ids": [],
+    "paymentRequest": {
+      "name": "harishraja411@gmail.com",
+      "amount": 190,
+      "userId": 1,
+      "productIds": [
+        40
+      ],
+      "mobileNumber": "9944626003",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1760364514537_EPTGCP"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 553,
+          "userid": 1,
+          "quantity": 1,
+          "addressid": 2,
+          "productid": 40,
+          "orderamount": 140,
+          "productname": "Nivaana - Premium Incense Sticks - Kasturi",
+          "productamount": 150,
+          "discountamount": 10,
+          "productcategory": "incense"
+        }
+      ],
+      "transaction": {
+        "name": "harishraja411@gmail.com",
+        "amount": 190,
+        "userId": 1,
+        "productid": [
+          40
+        ],
+        "mobilenumber": "9944626003",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponses": {
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzODc5MTQ2OTUsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM2NDUxNDUzN19FUFRHQ1AifQ.oZO5Rk8aMJoq8JhHbTg3BOWypPYhuiCp5JaO2FdrJuA",
+          "transactionId": "TXN_1760364514537_EPTGCP"
+        },
+        "timestamp": "2025-10-13T14:08:34.687Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzODc5MTQ2OTUsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM2NDUxNDUzN19FUFRHQ1AifQ.oZO5Rk8aMJoq8JhHbTg3BOWypPYhuiCp5JaO2FdrJuA"
+      },
+      "success": {
+        "timestamp": "2025-10-13T14:09:13.316Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Payment successful",
+          "data": {
+            "merchantId": "TEST-M23QE5328H4MV_25101",
+            "merchantTransactionId": "OMO2510131938346945286231",
+            "transactionId": "OMO2510131938346945286231",
+            "amount": 19000,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "UNKNOWN"
+            }
+          }
+        },
+        "status": "SUCCESS"
+      }
+    },
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": [],
+    "paymentCompleteAt": "2025-10-13T14:09:13.316Z",
+    "updatedAt": "2025-10-13T14:09:13.316Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Payment successful",
+      "data": {
+        "merchantId": "TEST-M23QE5328H4MV_25101",
+        "merchantTransactionId": "OMO2510131938346945286231",
+        "transactionId": "OMO2510131938346945286231",
+        "amount": 19000,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "UNKNOWN"
+        }
+      }
+    }
+  },
+  "modifieddate": 1760364554266
+}
+Final rawData: {
+  "status": "SUCCESS",
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "initiatedAt": "2025-10-13T14:08:34.687Z",
+    "evaluation_ids": [],
+    "paymentRequest": {
+      "name": "harishraja411@gmail.com",
+      "amount": 190,
+      "userId": 1,
+      "productIds": [
+        40
+      ],
+      "mobileNumber": "9944626003",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1760364514537_EPTGCP"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 553,
+          "userid": 1,
+          "quantity": 1,
+          "addressid": 2,
+          "productid": 40,
+          "orderamount": 140,
+          "productname": "Nivaana - Premium Incense Sticks - Kasturi",
+          "productamount": 150,
+          "discountamount": 10,
+          "productcategory": "incense"
+        }
+      ],
+      "transaction": {
+        "name": "harishraja411@gmail.com",
+        "amount": 190,
+        "userId": 1,
+        "productid": [
+          40
+        ],
+        "mobilenumber": "9944626003",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponses": {
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzODc5MTQ2OTUsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM2NDUxNDUzN19FUFRHQ1AifQ.oZO5Rk8aMJoq8JhHbTg3BOWypPYhuiCp5JaO2FdrJuA",
+          "transactionId": "TXN_1760364514537_EPTGCP"
+        },
+        "timestamp": "2025-10-13T14:08:34.687Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzODc5MTQ2OTUsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM2NDUxNDUzN19FUFRHQ1AifQ.oZO5Rk8aMJoq8JhHbTg3BOWypPYhuiCp5JaO2FdrJuA"
+      },
+      "success": {
+        "timestamp": "2025-10-13T14:09:14.756Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Payment successful",
+          "data": {
+            "merchantId": "TEST-M23QE5328H4MV_25101",
+            "merchantTransactionId": "OMO2510131938346945286231",
+            "transactionId": "OMO2510131938346945286231",
+            "amount": 19000,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "UNKNOWN"
+            }
+          }
+        },
+        "status": "SUCCESS"
+      }
+    },
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": [],
+    "paymentCompleteAt": "2025-10-13T14:09:14.756Z",
+    "updatedAt": "2025-10-13T14:09:14.756Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Payment successful",
+      "data": {
+        "merchantId": "TEST-M23QE5328H4MV_25101",
+        "merchantTransactionId": "OMO2510131938346945286231",
+        "transactionId": "OMO2510131938346945286231",
+        "amount": 19000,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "UNKNOWN"
+        }
+      }
+    }
+  },
+  "modifieddate": 1760364555321
+}
+Final rawData: {
+  "status": "SUCCESS",
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "updatedAt": "2025-10-13T14:09:27.140Z",
+    "initiatedAt": "2025-10-13T14:08:34.687Z",
+    "evaluation_ids": [],
+    "paymentRequest": {
+      "name": "harishraja411@gmail.com",
+      "amount": 190,
+      "userId": 1,
+      "productIds": [
+        40
+      ],
+      "mobileNumber": "9944626003",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1760364514537_EPTGCP"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 553,
+          "userid": 1,
+          "quantity": 1,
+          "addressid": 2,
+          "productid": 40,
+          "orderamount": 140,
+          "productname": "Nivaana - Premium Incense Sticks - Kasturi",
+          "productamount": 150,
+          "discountamount": 10,
+          "productcategory": "incense"
+        }
+      ],
+      "transaction": {
+        "name": "harishraja411@gmail.com",
+        "amount": 190,
+        "userId": 1,
+        "productid": [
+          40
+        ],
+        "mobilenumber": "9944626003",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Payment successful",
+      "data": {
+        "merchantId": "TEST-M23QE5328H4MV_25101",
+        "merchantTransactionId": "OMO2510131938346945286231",
+        "transactionId": "OMO2510131938346945286231",
+        "amount": 19000,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "UNKNOWN"
+        }
+      },
+      "orderCreation": {
+        "status": "success",
+        "error": null,
+        "orderId": 114,
+        "timestamp": "2025-10-13T14:09:26.665Z"
+      },
+      "paymentCompleteAt": "2025-10-13T14:09:26.665Z"
+    },
+    "phonePeResponses": {
+      "success": {
+        "timestamp": "2025-10-13T14:09:27.140Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Payment successful",
+          "data": {
+            "merchantId": "TEST-M23QE5328H4MV_25101",
+            "merchantTransactionId": "OMO2510131938346945286231",
+            "transactionId": "OMO2510131938346945286231",
+            "amount": 19000,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "UNKNOWN"
+            }
+          },
+          "orderCreation": {
+            "status": "success",
+            "error": null,
+            "orderId": 114,
+            "timestamp": "2025-10-13T14:09:26.665Z"
+          },
+          "paymentCompleteAt": "2025-10-13T14:09:26.665Z"
+        },
+        "status": "SUCCESS"
+      },
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzODc5MTQ2OTUsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM2NDUxNDUzN19FUFRHQ1AifQ.oZO5Rk8aMJoq8JhHbTg3BOWypPYhuiCp5JaO2FdrJuA",
+          "transactionId": "TXN_1760364514537_EPTGCP"
+        },
+        "timestamp": "2025-10-13T14:08:34.687Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzODc5MTQ2OTUsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM2NDUxNDUzN19FUFRHQ1AifQ.oZO5Rk8aMJoq8JhHbTg3BOWypPYhuiCp5JaO2FdrJuA"
+      }
+    },
+    "paymentCompleteAt": "2025-10-13T14:09:27.140Z",
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": []
+  },
+  "modifieddate": 1760364567615
+}
+Final rawData: {
+  "status": "SUCCESS",
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "updatedAt": "2025-10-13T14:09:28.629Z",
+    "initiatedAt": "2025-10-13T14:08:34.687Z",
+    "evaluation_ids": [],
+    "paymentRequest": {
+      "name": "harishraja411@gmail.com",
+      "amount": 190,
+      "userId": 1,
+      "productIds": [
+        40
+      ],
+      "mobileNumber": "9944626003",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1760364514537_EPTGCP"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 553,
+          "userid": 1,
+          "quantity": 1,
+          "addressid": 2,
+          "productid": 40,
+          "orderamount": 140,
+          "productname": "Nivaana - Premium Incense Sticks - Kasturi",
+          "productamount": 150,
+          "discountamount": 10,
+          "productcategory": "incense"
+        }
+      ],
+      "transaction": {
+        "name": "harishraja411@gmail.com",
+        "amount": 190,
+        "userId": 1,
+        "productid": [
+          40
+        ],
+        "mobilenumber": "9944626003",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Payment successful",
+      "data": {
+        "merchantId": "TEST-M23QE5328H4MV_25101",
+        "merchantTransactionId": "OMO2510131938346945286231",
+        "transactionId": "OMO2510131938346945286231",
+        "amount": 19000,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "UNKNOWN"
+        }
+      },
+      "orderCreation": {
+        "status": "success",
+        "error": null,
+        "orderId": 115,
+        "timestamp": "2025-10-13T14:09:27.671Z"
+      },
+      "paymentCompleteAt": "2025-10-13T14:09:27.671Z"
+    },
+    "phonePeResponses": {
+      "success": {
+        "timestamp": "2025-10-13T14:09:28.629Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Payment successful",
+          "data": {
+            "merchantId": "TEST-M23QE5328H4MV_25101",
+            "merchantTransactionId": "OMO2510131938346945286231",
+            "transactionId": "OMO2510131938346945286231",
+            "amount": 19000,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "UNKNOWN"
+            }
+          },
+          "orderCreation": {
+            "status": "success",
+            "error": null,
+            "orderId": 115,
+            "timestamp": "2025-10-13T14:09:27.671Z"
+          },
+          "paymentCompleteAt": "2025-10-13T14:09:27.671Z"
+        },
+        "status": "SUCCESS"
+      },
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzODc5MTQ2OTUsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM2NDUxNDUzN19FUFRHQ1AifQ.oZO5Rk8aMJoq8JhHbTg3BOWypPYhuiCp5JaO2FdrJuA",
+          "transactionId": "TXN_1760364514537_EPTGCP"
+        },
+        "timestamp": "2025-10-13T14:08:34.687Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzODc5MTQ2OTUsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM2NDUxNDUzN19FUFRHQ1AifQ.oZO5Rk8aMJoq8JhHbTg3BOWypPYhuiCp5JaO2FdrJuA"
+      }
+    },
+    "paymentCompleteAt": "2025-10-13T14:09:28.629Z",
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": []
+  },
+  "modifieddate": 1760364569586
+}
+Final rawData: {
+  "orderstatus": "cancelled",
+  "modifieddate": 1760364600591,
+  "cancelleddate": 1760364600591
+}
+Final rawData: {
+  "status": "SUCCESS",
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "initiatedAt": "2025-10-13T14:10:44.165Z",
+    "evaluation_ids": [],
+    "paymentRequest": {
+      "name": "harishraja411@gmail.com",
+      "amount": 170,
+      "userId": 1,
+      "productIds": [
+        41
+      ],
+      "mobileNumber": "9944626003",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1760364644037_51008C"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 554,
+          "userid": 1,
+          "quantity": 1,
+          "addressid": 2,
+          "productid": 41,
+          "orderamount": 120,
+          "productname": "Nivaana - Premium Incense Sticks - Vanilla",
+          "productamount": 120,
+          "discountamount": 0,
+          "productcategory": "incense"
+        }
+      ],
+      "transaction": {
+        "name": "harishraja411@gmail.com",
+        "amount": 170,
+        "userId": 1,
+        "productid": [
+          41
+        ],
+        "mobilenumber": "9944626003",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponses": {
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzODgwNDQxNzIsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM2NDY0NDAzN181MTAwOEMifQ.RtyPfE6U27GPYmRYGoIbP4U0zkANLA8Gu8VZFRJX35k",
+          "transactionId": "TXN_1760364644037_51008C"
+        },
+        "timestamp": "2025-10-13T14:10:44.165Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzODgwNDQxNzIsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM2NDY0NDAzN181MTAwOEMifQ.RtyPfE6U27GPYmRYGoIbP4U0zkANLA8Gu8VZFRJX35k"
+      },
+      "success": {
+        "timestamp": "2025-10-13T14:11:17.002Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Payment successful",
+          "data": {
+            "merchantId": "TEST-M23QE5328H4MV_25101",
+            "merchantTransactionId": "OMO2510131940441725286624",
+            "transactionId": "OMO2510131940441725286624",
+            "amount": 17000,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "UNKNOWN"
+            }
+          }
+        },
+        "status": "SUCCESS"
+      }
+    },
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": [],
+    "paymentCompleteAt": "2025-10-13T14:11:17.002Z",
+    "updatedAt": "2025-10-13T14:11:17.002Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Payment successful",
+      "data": {
+        "merchantId": "TEST-M23QE5328H4MV_25101",
+        "merchantTransactionId": "OMO2510131940441725286624",
+        "transactionId": "OMO2510131940441725286624",
+        "amount": 17000,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "UNKNOWN"
+        }
+      }
+    }
+  },
+  "modifieddate": 1760364677966
+}
+Final rawData: {
+  "status": "SUCCESS",
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "updatedAt": "2025-10-13T14:11:32.134Z",
+    "initiatedAt": "2025-10-13T14:10:44.165Z",
+    "evaluation_ids": [],
+    "paymentRequest": {
+      "name": "harishraja411@gmail.com",
+      "amount": 170,
+      "userId": 1,
+      "productIds": [
+        41
+      ],
+      "mobileNumber": "9944626003",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1760364644037_51008C"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 554,
+          "userid": 1,
+          "quantity": 1,
+          "addressid": 2,
+          "productid": 41,
+          "orderamount": 120,
+          "productname": "Nivaana - Premium Incense Sticks - Vanilla",
+          "productamount": 120,
+          "discountamount": 0,
+          "productcategory": "incense"
+        }
+      ],
+      "transaction": {
+        "name": "harishraja411@gmail.com",
+        "amount": 170,
+        "userId": 1,
+        "productid": [
+          41
+        ],
+        "mobilenumber": "9944626003",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Payment successful",
+      "data": {
+        "merchantId": "TEST-M23QE5328H4MV_25101",
+        "merchantTransactionId": "OMO2510131940441725286624",
+        "transactionId": "OMO2510131940441725286624",
+        "amount": 17000,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "UNKNOWN"
+        }
+      },
+      "orderCreation": {
+        "status": "success",
+        "error": null,
+        "orderId": 116,
+        "timestamp": "2025-10-13T14:11:31.157Z"
+      },
+      "paymentCompleteAt": "2025-10-13T14:11:31.157Z"
+    },
+    "phonePeResponses": {
+      "success": {
+        "timestamp": "2025-10-13T14:11:32.134Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Payment successful",
+          "data": {
+            "merchantId": "TEST-M23QE5328H4MV_25101",
+            "merchantTransactionId": "OMO2510131940441725286624",
+            "transactionId": "OMO2510131940441725286624",
+            "amount": 17000,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "UNKNOWN"
+            }
+          },
+          "orderCreation": {
+            "status": "success",
+            "error": null,
+            "orderId": 116,
+            "timestamp": "2025-10-13T14:11:31.157Z"
+          },
+          "paymentCompleteAt": "2025-10-13T14:11:31.157Z"
+        },
+        "status": "SUCCESS"
+      },
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzODgwNDQxNzIsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM2NDY0NDAzN181MTAwOEMifQ.RtyPfE6U27GPYmRYGoIbP4U0zkANLA8Gu8VZFRJX35k",
+          "transactionId": "TXN_1760364644037_51008C"
+        },
+        "timestamp": "2025-10-13T14:10:44.165Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzODgwNDQxNzIsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM2NDY0NDAzN181MTAwOEMifQ.RtyPfE6U27GPYmRYGoIbP4U0zkANLA8Gu8VZFRJX35k"
+      }
+    },
+    "paymentCompleteAt": "2025-10-13T14:11:32.134Z",
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": []
+  },
+  "modifieddate": 1760364693113
+}
+Final rawData: {
+  "orderstatus": "cancelled",
+  "modifieddate": 1760364774951,
+  "cancelleddate": 1760364774951
+}
+Final rawData: {
+  "status": "FAILED",
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "FAILED",
+    "codData": null,
+    "initiatedAt": "2025-10-13T14:14:33.393Z",
+    "evaluation_ids": [],
+    "paymentRequest": {
+      "name": "harishraja411@gmail.com",
+      "amount": 170,
+      "userId": 1,
+      "productIds": [
+        41
+      ],
+      "mobileNumber": "9944626003",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1760364873239_B1CT4P"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 555,
+          "userid": 1,
+          "quantity": 1,
+          "addressid": 2,
+          "productid": 41,
+          "orderamount": 120,
+          "productname": "Nivaana - Premium Incense Sticks - Vanilla",
+          "productamount": 120,
+          "discountamount": 0,
+          "productcategory": "incense"
+        }
+      ],
+      "transaction": {
+        "name": "harishraja411@gmail.com",
+        "amount": 170,
+        "userId": 1,
+        "productid": [
+          41
+        ],
+        "mobilenumber": "9944626003",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponses": {
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzODgyNzM0MDAsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM2NDg3MzIzOV9CMUNUNFAifQ.Y5QTMBA281eTcXWfcY0mtES09kFCmVIZoZ88dx8ASuQ",
+          "transactionId": "TXN_1760364873239_B1CT4P"
+        },
+        "timestamp": "2025-10-13T14:14:33.393Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzODgyNzM0MDAsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM2NDg3MzIzOV9CMUNUNFAifQ.Y5QTMBA281eTcXWfcY0mtES09kFCmVIZoZ88dx8ASuQ"
+      },
+      "failed": {
+        "timestamp": "2025-10-13T14:14:42.309Z",
+        "response": {
+          "success": false,
+          "code": "PENDING",
+          "message": "Payment PENDING",
+          "data": {
+            "merchantId": "TEST-M23QE5328H4MV_25101",
+            "merchantTransactionId": "OMO2510131944334005286905",
+            "transactionId": "OMO2510131944334005286905",
+            "amount": 17000,
+            "state": "PENDING",
+            "responseCode": "PENDING",
+            "paymentInstrument": {
+              "type": "UNKNOWN"
+            }
+          }
+        },
+        "status": "FAILED"
+      }
+    },
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": [],
+    "paymentCompleteAt": "2025-10-13T14:14:42.309Z",
+    "updatedAt": "2025-10-13T14:14:42.309Z",
+    "phonePeResponse": {
+      "error": "Payment PENDING"
+    }
+  },
+  "modifieddate": 1760364883345
+}
+Final rawData: {
+  "status": "FAILED",
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "FAILED",
+    "codData": null,
+    "initiatedAt": "2025-10-13T14:34:34.934Z",
+    "evaluation_ids": [],
+    "paymentRequest": {
+      "name": "harishraja411@gmail.com",
+      "amount": 152,
+      "userId": 1,
+      "productIds": [
+        42
+      ],
+      "mobileNumber": "9944626003",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1760366074762_ZHTCTB"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 557,
+          "userid": 1,
+          "quantity": 1,
+          "addressid": 2,
+          "productid": 42,
+          "orderamount": 102,
+          "productname": "Nivaana - Premium Incense Sticks - Wild Canopy",
+          "productamount": 102,
+          "discountamount": 0,
+          "productcategory": "incense"
+        }
+      ],
+      "transaction": {
+        "name": "harishraja411@gmail.com",
+        "amount": 152,
+        "userId": 1,
+        "productid": [
+          42
+        ],
+        "mobilenumber": "9944626003",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponses": {
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzODk0NzQ5NTYsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM2NjA3NDc2Ml9aSFRDVEIifQ.Bt9-1tdCd66_t4f592MiVRFalW2K-FvS7hZONABMt2s",
+          "transactionId": "TXN_1760366074762_ZHTCTB"
+        },
+        "timestamp": "2025-10-13T14:34:34.934Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzODk0NzQ5NTYsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM2NjA3NDc2Ml9aSFRDVEIifQ.Bt9-1tdCd66_t4f592MiVRFalW2K-FvS7hZONABMt2s"
+      },
+      "failed": {
+        "timestamp": "2025-10-13T14:34:51.176Z",
+        "response": {
+          "success": false,
+          "code": "PENDING",
+          "message": "Payment PENDING",
+          "data": {
+            "merchantId": "TEST-M23QE5328H4MV_25101",
+            "merchantTransactionId": "OMO2510132004349565286328",
+            "transactionId": "OMO2510132004349565286328",
+            "amount": 15200,
+            "state": "PENDING",
+            "responseCode": "PENDING",
+            "paymentInstrument": {
+              "type": "UNKNOWN"
+            }
+          }
+        },
+        "status": "FAILED"
+      }
+    },
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": [],
+    "paymentCompleteAt": "2025-10-13T14:34:51.176Z",
+    "updatedAt": "2025-10-13T14:34:51.176Z",
+    "phonePeResponse": {
+      "error": "Payment PENDING"
+    }
+  },
+  "modifieddate": 1760366092140
+}
+Final rawData: {
+  "status": "CANCELLED",
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "CANCELLED",
+    "codData": null,
+    "updatedAt": "2025-10-13T14:34:53.265Z",
+    "initiatedAt": "2025-10-13T14:34:34.934Z",
+    "evaluation_ids": [],
+    "paymentRequest": {
+      "name": "harishraja411@gmail.com",
+      "amount": 152,
+      "userId": 1,
+      "productIds": [
+        42
+      ],
+      "mobileNumber": "9944626003",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1760366074762_ZHTCTB"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 557,
+          "userid": 1,
+          "quantity": 1,
+          "addressid": 2,
+          "productid": 42,
+          "orderamount": 102,
+          "productname": "Nivaana - Premium Incense Sticks - Wild Canopy",
+          "productamount": 102,
+          "discountamount": 0,
+          "productcategory": "incense"
+        }
+      ],
+      "transaction": {
+        "name": "harishraja411@gmail.com",
+        "amount": 152,
+        "userId": 1,
+        "productid": [
+          42
+        ],
+        "mobilenumber": "9944626003",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponse": {
+      "success": false,
+      "code": "TRANSACTION_NOT_FOUND",
+      "message": "Transaction not found or expired"
+    },
+    "phonePeResponses": {
+      "failed": {
+        "status": "FAILED",
+        "response": {
+          "code": "PENDING",
+          "data": {
+            "state": "PENDING",
+            "amount": 15200,
+            "merchantId": "TEST-M23QE5328H4MV_25101",
+            "responseCode": "PENDING",
+            "transactionId": "OMO2510132004349565286328",
+            "paymentInstrument": {
+              "type": "UNKNOWN"
+            },
+            "merchantTransactionId": "OMO2510132004349565286328"
+          },
+          "message": "Payment PENDING",
+          "success": false
+        },
+        "timestamp": "2025-10-13T14:34:51.176Z"
+      },
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzODk0NzQ5NTYsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM2NjA3NDc2Ml9aSFRDVEIifQ.Bt9-1tdCd66_t4f592MiVRFalW2K-FvS7hZONABMt2s",
+          "transactionId": "TXN_1760366074762_ZHTCTB"
+        },
+        "timestamp": "2025-10-13T14:34:34.934Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjAzODk0NzQ5NTYsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDM2NjA3NDc2Ml9aSFRDVEIifQ.Bt9-1tdCd66_t4f592MiVRFalW2K-FvS7hZONABMt2s"
+      },
+      "cancelled": {
+        "timestamp": "2025-10-13T14:34:53.265Z",
+        "response": {
+          "success": false,
+          "code": "TRANSACTION_NOT_FOUND",
+          "message": "Transaction not found or expired"
+        },
+        "status": "CANCELLED"
+      }
+    },
+    "paymentCompleteAt": "2025-10-13T14:34:53.265Z",
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": []
+  },
+  "modifieddate": 1760366094219
+}
+Final rawData: {
+  "quantity": 1,
+  "modifieddate": 1760366112332
+}
+Final rawData: {
+  "status": "SUCCESS",
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "initiatedAt": "2025-10-14T06:57:17.435Z",
+    "evaluation_ids": [],
+    "paymentRequest": {
+      "name": "Harish Raja",
+      "amount": 152,
+      "userId": 1,
+      "productIds": [
+        42
+      ],
+      "mobileNumber": "9944626003",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1760425036723_X89YAA"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 561,
+          "userid": 1,
+          "quantity": 1,
+          "addressid": 2,
+          "productid": 42,
+          "orderamount": 102,
+          "productname": "Nivaana - Premium Incense Sticks - Wild Canopy",
+          "productamount": 102,
+          "discountamount": 0,
+          "productcategory": "incense"
+        }
+      ],
+      "transaction": {
+        "name": "Harish Raja",
+        "amount": 152,
+        "userId": 1,
+        "productid": [
+          42
+        ],
+        "mobilenumber": "9944626003",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponses": {
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjA0NDg0Mzc0MjUsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDQyNTAzNjcyM19YODlZQUEifQ.qPkX3InCvLNBcMPH2spV4WRRJOE1szTA6qhXq7wpzqk",
+          "transactionId": "TXN_1760425036723_X89YAA"
+        },
+        "timestamp": "2025-10-14T06:57:17.435Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjA0NDg0Mzc0MjUsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDQyNTAzNjcyM19YODlZQUEifQ.qPkX3InCvLNBcMPH2spV4WRRJOE1szTA6qhXq7wpzqk"
+      },
+      "success": {
+        "timestamp": "2025-10-14T06:57:53.504Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Payment successful",
+          "data": {
+            "merchantId": "TEST-M23QE5328H4MV_25101",
+            "merchantTransactionId": "OMO2510141227174259519228",
+            "transactionId": "OMO2510141227174259519228",
+            "amount": 15200,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "UNKNOWN"
+            }
+          }
+        },
+        "status": "SUCCESS"
+      }
+    },
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": [],
+    "paymentCompleteAt": "2025-10-14T06:57:53.504Z",
+    "updatedAt": "2025-10-14T06:57:53.504Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Payment successful",
+      "data": {
+        "merchantId": "TEST-M23QE5328H4MV_25101",
+        "merchantTransactionId": "OMO2510141227174259519228",
+        "transactionId": "OMO2510141227174259519228",
+        "amount": 15200,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "UNKNOWN"
+        }
+      }
+    }
+  },
+  "modifieddate": 1760425074069
+}
+Final rawData: {
+  "status": "SUCCESS",
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "updatedAt": "2025-10-14T06:58:10.988Z",
+    "initiatedAt": "2025-10-14T06:57:17.435Z",
+    "evaluation_ids": [],
+    "paymentRequest": {
+      "name": "Harish Raja",
+      "amount": 152,
+      "userId": 1,
+      "productIds": [
+        42
+      ],
+      "mobileNumber": "9944626003",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1760425036723_X89YAA"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 561,
+          "userid": 1,
+          "quantity": 1,
+          "addressid": 2,
+          "productid": 42,
+          "orderamount": 102,
+          "productname": "Nivaana - Premium Incense Sticks - Wild Canopy",
+          "productamount": 102,
+          "discountamount": 0,
+          "productcategory": "incense"
+        }
+      ],
+      "transaction": {
+        "name": "Harish Raja",
+        "amount": 152,
+        "userId": 1,
+        "productid": [
+          42
+        ],
+        "mobilenumber": "9944626003",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Payment successful",
+      "data": {
+        "merchantId": "TEST-M23QE5328H4MV_25101",
+        "merchantTransactionId": "OMO2510141227174259519228",
+        "transactionId": "OMO2510141227174259519228",
+        "amount": 15200,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "UNKNOWN"
+        }
+      },
+      "orderCreation": {
+        "status": "success",
+        "error": null,
+        "orderId": 117,
+        "timestamp": "2025-10-14T06:58:10.414Z"
+      },
+      "paymentCompleteAt": "2025-10-14T06:58:10.414Z"
+    },
+    "phonePeResponses": {
+      "success": {
+        "timestamp": "2025-10-14T06:58:10.988Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Payment successful",
+          "data": {
+            "merchantId": "TEST-M23QE5328H4MV_25101",
+            "merchantTransactionId": "OMO2510141227174259519228",
+            "transactionId": "OMO2510141227174259519228",
+            "amount": 15200,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "UNKNOWN"
+            }
+          },
+          "orderCreation": {
+            "status": "success",
+            "error": null,
+            "orderId": 117,
+            "timestamp": "2025-10-14T06:58:10.414Z"
+          },
+          "paymentCompleteAt": "2025-10-14T06:58:10.414Z"
+        },
+        "status": "SUCCESS"
+      },
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjA0NDg0Mzc0MjUsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDQyNTAzNjcyM19YODlZQUEifQ.qPkX3InCvLNBcMPH2spV4WRRJOE1szTA6qhXq7wpzqk",
+          "transactionId": "TXN_1760425036723_X89YAA"
+        },
+        "timestamp": "2025-10-14T06:57:17.435Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjA0NDg0Mzc0MjUsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDQyNTAzNjcyM19YODlZQUEifQ.qPkX3InCvLNBcMPH2spV4WRRJOE1szTA6qhXq7wpzqk"
+      }
+    },
+    "paymentCompleteAt": "2025-10-14T06:58:10.988Z",
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": []
+  },
+  "modifieddate": 1760425091626
+}
+Final rawData: {
+  "status": "SUCCESS",
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "initiatedAt": "2025-10-14T07:07:12.488Z",
+    "evaluation_ids": [],
+    "paymentRequest": {
+      "name": "Harish Raja",
+      "amount": 190,
+      "userId": 1,
+      "productIds": [
+        40
+      ],
+      "mobileNumber": "9944626003",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1760425631701_5JXTP4"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 562,
+          "userid": 1,
+          "quantity": 1,
+          "addressid": 2,
+          "productid": 40,
+          "orderamount": 150,
+          "productname": "Nivaana - Premium Incense Sticks - Kasturi",
+          "productamount": 150,
+          "discountamount": 10,
+          "productcategory": "incense"
+        }
+      ],
+      "transaction": {
+        "name": "Harish Raja",
+        "amount": 190,
+        "userId": 1,
+        "productid": [
+          40
+        ],
+        "mobilenumber": "9944626003",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponses": {
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjA0NDkwMzI0NzgsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDQyNTYzMTcwMV81SlhUUDQifQ.G4x8q22c601eoXQb10KR73R7TI2CwNzi48wxGOpilnA",
+          "transactionId": "TXN_1760425631701_5JXTP4"
+        },
+        "timestamp": "2025-10-14T07:07:12.488Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjA0NDkwMzI0NzgsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDQyNTYzMTcwMV81SlhUUDQifQ.G4x8q22c601eoXQb10KR73R7TI2CwNzi48wxGOpilnA"
+      },
+      "success": {
+        "timestamp": "2025-10-14T07:08:41.136Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Payment successful",
+          "data": {
+            "merchantId": "TEST-M23QE5328H4MV_25101",
+            "merchantTransactionId": "OMO2510141237124789519023",
+            "transactionId": "OMO2510141237124789519023",
+            "amount": 19000,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "UNKNOWN"
+            }
+          }
+        },
+        "status": "SUCCESS"
+      }
+    },
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": [],
+    "paymentCompleteAt": "2025-10-14T07:08:41.136Z",
+    "updatedAt": "2025-10-14T07:08:41.136Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Payment successful",
+      "data": {
+        "merchantId": "TEST-M23QE5328H4MV_25101",
+        "merchantTransactionId": "OMO2510141237124789519023",
+        "transactionId": "OMO2510141237124789519023",
+        "amount": 19000,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "UNKNOWN"
+        }
+      }
+    }
+  },
+  "modifieddate": 1760425721680
+}
+Final rawData: {
+  "status": "SUCCESS",
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "updatedAt": "2025-10-14T07:08:50.806Z",
+    "initiatedAt": "2025-10-14T07:07:12.488Z",
+    "evaluation_ids": [],
+    "paymentRequest": {
+      "name": "Harish Raja",
+      "amount": 190,
+      "userId": 1,
+      "productIds": [
+        40
+      ],
+      "mobileNumber": "9944626003",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1760425631701_5JXTP4"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 562,
+          "userid": 1,
+          "quantity": 1,
+          "addressid": 2,
+          "productid": 40,
+          "orderamount": 150,
+          "productname": "Nivaana - Premium Incense Sticks - Kasturi",
+          "productamount": 150,
+          "discountamount": 10,
+          "productcategory": "incense"
+        }
+      ],
+      "transaction": {
+        "name": "Harish Raja",
+        "amount": 190,
+        "userId": 1,
+        "productid": [
+          40
+        ],
+        "mobilenumber": "9944626003",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Payment successful",
+      "data": {
+        "merchantId": "TEST-M23QE5328H4MV_25101",
+        "merchantTransactionId": "OMO2510141237124789519023",
+        "transactionId": "OMO2510141237124789519023",
+        "amount": 19000,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "UNKNOWN"
+        }
+      },
+      "orderCreation": {
+        "status": "success",
+        "error": null,
+        "orderId": 118,
+        "timestamp": "2025-10-14T07:08:50.214Z"
+      },
+      "paymentCompleteAt": "2025-10-14T07:08:50.214Z"
+    },
+    "phonePeResponses": {
+      "success": {
+        "timestamp": "2025-10-14T07:08:50.806Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Payment successful",
+          "data": {
+            "merchantId": "TEST-M23QE5328H4MV_25101",
+            "merchantTransactionId": "OMO2510141237124789519023",
+            "transactionId": "OMO2510141237124789519023",
+            "amount": 19000,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "UNKNOWN"
+            }
+          },
+          "orderCreation": {
+            "status": "success",
+            "error": null,
+            "orderId": 118,
+            "timestamp": "2025-10-14T07:08:50.214Z"
+          },
+          "paymentCompleteAt": "2025-10-14T07:08:50.214Z"
+        },
+        "status": "SUCCESS"
+      },
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjA0NDkwMzI0NzgsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDQyNTYzMTcwMV81SlhUUDQifQ.G4x8q22c601eoXQb10KR73R7TI2CwNzi48wxGOpilnA",
+          "transactionId": "TXN_1760425631701_5JXTP4"
+        },
+        "timestamp": "2025-10-14T07:07:12.488Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjA0NDkwMzI0NzgsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDQyNTYzMTcwMV81SlhUUDQifQ.G4x8q22c601eoXQb10KR73R7TI2CwNzi48wxGOpilnA"
+      }
+    },
+    "paymentCompleteAt": "2025-10-14T07:08:50.806Z",
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": []
+  },
+  "modifieddate": 1760425731374
+}
+Final rawData: {
+  "status": "SUCCESS",
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "initiatedAt": "2025-10-14T07:13:15.342Z",
+    "evaluation_ids": [
+      "eval_1760425192302_kp4fay60i"
+    ],
+    "paymentRequest": {
+      "name": "harishraja411@gmail.com",
+      "amount": 190,
+      "userId": 1,
+      "productIds": [
+        40
+      ],
+      "mobileNumber": "9944626003",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1760425994500_G99TNX"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 563,
+          "userid": 1,
+          "quantity": 1,
+          "addressid": 2,
+          "productid": 40,
+          "orderamount": 140,
+          "productname": "Nivaana - Premium Incense Sticks - Kasturi",
+          "productamount": 150,
+          "discountamount": 10,
+          "productcategory": "incense"
+        }
+      ],
+      "transaction": {
+        "name": "harishraja411@gmail.com",
+        "amount": 190,
+        "userId": 1,
+        "productid": [
+          40
+        ],
+        "mobilenumber": "9944626003",
+        "transactionfor": "product"
+      },
+      "evaluation_ids": [
+        "eval_1760425192302_kp4fay60i"
+      ]
+    },
+    "phonePeResponses": {
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjA0NDkzOTUzNTUsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDQyNTk5NDUwMF9HOTlUTlgifQ.wOS-BpUsyC0Z6j_TsNkkyqkdW3-ZrpygbwXix10HiuY",
+          "transactionId": "TXN_1760425994500_G99TNX"
+        },
+        "timestamp": "2025-10-14T07:13:15.342Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjA0NDkzOTUzNTUsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDQyNTk5NDUwMF9HOTlUTlgifQ.wOS-BpUsyC0Z6j_TsNkkyqkdW3-ZrpygbwXix10HiuY"
+      },
+      "success": {
+        "timestamp": "2025-10-14T07:13:49.271Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Payment successful",
+          "data": {
+            "merchantId": "TEST-M23QE5328H4MV_25101",
+            "merchantTransactionId": "OMO2510141243153559519583",
+            "transactionId": "OMO2510141243153559519583",
+            "amount": 19000,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "UNKNOWN"
+            }
+          }
+        },
+        "status": "SUCCESS"
+      }
+    },
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": [],
+    "paymentCompleteAt": "2025-10-14T07:13:49.271Z",
+    "updatedAt": "2025-10-14T07:13:49.271Z",
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Payment successful",
+      "data": {
+        "merchantId": "TEST-M23QE5328H4MV_25101",
+        "merchantTransactionId": "OMO2510141243153559519583",
+        "transactionId": "OMO2510141243153559519583",
+        "amount": 19000,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "UNKNOWN"
+        }
+      }
+    }
+  },
+  "modifieddate": 1760426030233
+}
+Final rawData: {
+  "status": "SUCCESS",
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "SUCCESS",
+    "codData": null,
+    "updatedAt": "2025-10-14T07:14:21.230Z",
+    "initiatedAt": "2025-10-14T07:13:15.342Z",
+    "evaluation_ids": [
+      "eval_1760425192302_kp4fay60i"
+    ],
+    "paymentRequest": {
+      "name": "harishraja411@gmail.com",
+      "amount": 190,
+      "userId": 1,
+      "productIds": [
+        40
+      ],
+      "mobileNumber": "9944626003",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1760425994500_G99TNX"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 563,
+          "userid": 1,
+          "quantity": 1,
+          "addressid": 2,
+          "productid": 40,
+          "orderamount": 140,
+          "productname": "Nivaana - Premium Incense Sticks - Kasturi",
+          "productamount": 150,
+          "discountamount": 10,
+          "productcategory": "incense"
+        }
+      ],
+      "transaction": {
+        "name": "harishraja411@gmail.com",
+        "amount": 190,
+        "userId": 1,
+        "productid": [
+          40
+        ],
+        "mobilenumber": "9944626003",
+        "transactionfor": "product"
+      },
+      "evaluation_ids": [
+        "eval_1760425192302_kp4fay60i"
+      ]
+    },
+    "phonePeResponse": {
+      "success": true,
+      "code": "PAYMENT_SUCCESS",
+      "message": "Payment successful",
+      "data": {
+        "merchantId": "TEST-M23QE5328H4MV_25101",
+        "merchantTransactionId": "OMO2510141243153559519583",
+        "transactionId": "OMO2510141243153559519583",
+        "amount": 19000,
+        "state": "COMPLETED",
+        "responseCode": "SUCCESS",
+        "paymentInstrument": {
+          "type": "UNKNOWN"
+        }
+      },
+      "orderCreation": {
+        "status": "success",
+        "error": null,
+        "orderId": 119,
+        "timestamp": "2025-10-14T07:14:20.170Z"
+      },
+      "paymentCompleteAt": "2025-10-14T07:14:20.170Z"
+    },
+    "phonePeResponses": {
+      "success": {
+        "timestamp": "2025-10-14T07:14:21.230Z",
+        "response": {
+          "success": true,
+          "code": "PAYMENT_SUCCESS",
+          "message": "Payment successful",
+          "data": {
+            "merchantId": "TEST-M23QE5328H4MV_25101",
+            "merchantTransactionId": "OMO2510141243153559519583",
+            "transactionId": "OMO2510141243153559519583",
+            "amount": 19000,
+            "state": "COMPLETED",
+            "responseCode": "SUCCESS",
+            "paymentInstrument": {
+              "type": "UNKNOWN"
+            }
+          },
+          "orderCreation": {
+            "status": "success",
+            "error": null,
+            "orderId": 119,
+            "timestamp": "2025-10-14T07:14:20.170Z"
+          },
+          "paymentCompleteAt": "2025-10-14T07:14:20.170Z"
+        },
+        "status": "SUCCESS"
+      },
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjA0NDkzOTUzNTUsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDQyNTk5NDUwMF9HOTlUTlgifQ.wOS-BpUsyC0Z6j_TsNkkyqkdW3-ZrpygbwXix10HiuY",
+          "transactionId": "TXN_1760425994500_G99TNX"
+        },
+        "timestamp": "2025-10-14T07:13:15.342Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjA0NDkzOTUzNTUsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDQyNTk5NDUwMF9HOTlUTlgifQ.wOS-BpUsyC0Z6j_TsNkkyqkdW3-ZrpygbwXix10HiuY"
+      }
+    },
+    "paymentCompleteAt": "2025-10-14T07:14:21.230Z",
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": []
+  },
+  "modifieddate": 1760426062209
+}
+Final rawData: {
+  "status": "FAILED",
+  "transactiondata": {
+    "mode": "phonepe",
+    "status": "FAILED",
+    "codData": null,
+    "initiatedAt": "2025-10-14T07:16:14.095Z",
+    "evaluation_ids": [],
+    "paymentRequest": {
+      "name": "Harish Raja",
+      "amount": 152,
+      "userId": 1,
+      "productIds": [
+        42
+      ],
+      "mobileNumber": "9944626003",
+      "transactionFor": "product",
+      "merchantTransactionId": "TXN_1760426173385_LMUX6K"
+    },
+    "originalPayload": {
+      "mode": "phonepe",
+      "order": [
+        {
+          "cartId": 564,
+          "userid": 1,
+          "quantity": 1,
+          "addressid": 2,
+          "productid": 42,
+          "orderamount": 102,
+          "productname": "Nivaana - Premium Incense Sticks - Wild Canopy",
+          "productamount": 102,
+          "discountamount": 0,
+          "productcategory": "incense"
+        }
+      ],
+      "transaction": {
+        "name": "Harish Raja",
+        "amount": 152,
+        "userId": 1,
+        "productid": [
+          42
+        ],
+        "mobilenumber": "9944626003",
+        "transactionfor": "product"
+      }
+    },
+    "phonePeResponses": {
+      "initiation": {
+        "status": "INITIATED",
+        "response": {
+          "message": "Payment initiated successfully",
+          "success": true,
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjA0NDk1NzQxMTcsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDQyNjE3MzM4NV9MTVVYNksifQ.8fdHsx0YmZ1zEHptIkMFwhUaiu1VVTfHBFoCgdCZaM8",
+          "transactionId": "TXN_1760426173385_LMUX6K"
+        },
+        "timestamp": "2025-10-14T07:16:14.095Z",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3NjA0NDk1NzQxMTcsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc2MDQyNjE3MzM4NV9MTVVYNksifQ.8fdHsx0YmZ1zEHptIkMFwhUaiu1VVTfHBFoCgdCZaM8"
+      },
+      "failed": {
+        "timestamp": "2025-10-14T07:17:43.002Z",
+        "response": {
+          "success": false,
+          "code": "PENDING",
+          "message": "Payment PENDING",
+          "data": {
+            "merchantId": "TEST-M23QE5328H4MV_25101",
+            "merchantTransactionId": "OMO2510141246141179519035",
+            "transactionId": "OMO2510141246141179519035",
+            "amount": 15200,
+            "state": "PENDING",
+            "responseCode": "PENDING",
+            "paymentInstrument": {
+              "type": "UNKNOWN"
+            }
+          }
+        },
+        "status": "FAILED"
+      }
+    },
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": [],
+    "paymentCompleteAt": "2025-10-14T07:17:43.002Z",
+    "updatedAt": "2025-10-14T07:17:43.002Z",
+    "phonePeResponse": {
+      "error": "Payment PENDING"
+    }
+  },
+  "modifieddate": 1760426263966
+}
+Final rawData: {
+  "status": "COD_SUCCESS",
+  "modifieddate": 1760428066064
+}
+Final rawData: {
+  "status": "COD_SUCCESS",
+  "modifieddate": 1760428069029
+}

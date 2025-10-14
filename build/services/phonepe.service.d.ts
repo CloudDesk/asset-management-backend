@@ -49,8 +49,14 @@ export interface PaymentStatusResponse {
 }
 export declare class PhonePeService {
     private transactionService;
+    private sdkClient;
+    constructor();
     /**
-     * Initialize payment with PhonePe
+     * Initialize PhonePe SDK Client
+     */
+    private initializeSDKClient;
+    /**
+     * Initialize payment with PhonePe (using SDK or legacy method)
      */
     initiatePayment(paymentRequest: PhonePePaymentRequest): Promise<{
         success: boolean;
@@ -60,9 +66,25 @@ export declare class PhonePeService {
         error?: string;
     }>;
     /**
-     * Check payment status with PhonePe
+     * Initialize payment using PhonePe SDK (NEW)
+     */
+    private initiatePaymentWithSDK;
+    /**
+     * Initialize payment using legacy method (FALLBACK)
+     */
+    private initiatePaymentLegacy;
+    /**
+     * Check payment status with PhonePe using SDK
      */
     checkPaymentStatus(merchantTransactionId: string): Promise<PaymentStatusResponse>;
+    /**
+     * Check payment status using PhonePe SDK
+     */
+    private checkPaymentStatusWithSDK;
+    /**
+     * Legacy payment status check (fallback)
+     */
+    private checkPaymentStatusLegacy;
     /**
      * Handle payment callback from PhonePe
      */
@@ -73,12 +95,44 @@ export declare class PhonePeService {
         transactionData?: any;
     }>;
     /**
-     * Refund payment
+     * Create SDK Order (for mobile app integration)
+     */
+    createSdkOrder(orderData: {
+        merchantOrderId: string;
+        amount: number;
+        redirectUrl: string;
+        userId?: number;
+        productIds?: number[];
+        transactionFor?: string;
+    }): Promise<{
+        success: boolean;
+        message: string;
+        orderToken?: string;
+        error?: string;
+    }>;
+    /**
+     * Refund payment using SDK
      */
     refundPayment(merchantTransactionId: string, refundAmount?: number, reason?: string): Promise<{
         success: boolean;
         message: string;
         refundId?: string;
+    }>;
+    /**
+     * Refund payment using SDK (simplified for now)
+     */
+    private refundPaymentWithSDK;
+    /**
+     * Legacy refund payment method
+     */
+    private refundPaymentLegacy;
+    /**
+     * Check refund status using SDK (simplified for now)
+     */
+    checkRefundStatus(refundId: string): Promise<{
+        success: boolean;
+        message: string;
+        refundData?: any;
     }>;
     /**
      * Get transaction history for a user
@@ -96,8 +150,16 @@ export declare class PhonePeService {
      */
     static generateMerchantTransactionId(prefix?: string): string;
     /**
-     * Validate PhonePe webhook signature
+     * Validate PhonePe webhook signature using SDK
      */
-    static validateWebhookSignature(payload: string, signature: string): boolean;
+    validateWebhookSignature(payload: string, authHeader: string): Promise<{
+        isValid: boolean;
+        callbackResponse?: any;
+        error?: string;
+    }>;
+    /**
+     * Legacy webhook signature validation
+     */
+    private validateWebhookSignatureLegacy;
 }
 //# sourceMappingURL=phonepe.service.d.ts.map
