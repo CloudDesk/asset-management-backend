@@ -75,6 +75,7 @@
     "perf_hooks": "^0.0.1",
     "pg": "^8.11.3",
     "pg-protocol": "^1.6.1",
+    "pg-sdk-node": "^2.0.2",
     "pino": "^9.5.0",
     "pino-pretty": "^11.3.0",
     "pizzip": "^3.1.7",
