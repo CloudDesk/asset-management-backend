@@ -1,13 +1,19 @@
 import { UsersService } from '../services/users.service.js';
+import { OrdersService } from '../services/orders.service.js';
+import { OrderlineService } from '../services/orderline.service.js';
+import { EmailService } from '../services/email.service.js';
 import { authRateLimit } from '../utils/auth.js';
 import { logger } from '../config/logger.js';
 import { createSuccessResponse, asyncHandler } from '../utils/errorHandler.js';
 export async function mobileAuthRoutes(fastify) {
     const usersService = new UsersService();
+    const ordersService = new OrdersService();
+    const orderlineService = new OrderlineService();
+    const emailService = new EmailService();
     // POST /v1/mobile-auth/request-otp - Step 1: Request OTP for mobile number
     fastify.post('/request-otp', {
         schema: {
-            description: 'Request OTP for mobile number (passwordless login step 1)',
+            description: 'Request OTP for mobile number (passwordless login step 1, or verify for delete account)',
             tags: ['Mobile Authentication'],
             body: {
                 type: 'object',
@@ -19,11 +25,20 @@ export async function mobileAuthRoutes(fastify) {
                         maximum: 99999999999,
                         description: 'User mobile number (10-11 digits)'
                     },
+                    verifyOnly: {
+                        type: 'boolean',
+                        description: 'If true, only verify user exists without creating new user (for delete account flow). Default: false',
+                        default: false
+                    }
                 },
                 additionalProperties: false,
                 examples: [
                     {
                         usermobilenumber: 9344715431
+                    },
+                    {
+                        usermobilenumber: 9344715431,
+                        verifyOnly: true
                     }
                 ]
             },
@@ -51,7 +66,9 @@ export async function mobileAuthRoutes(fastify) {
                     properties: {
                         success: { type: 'boolean' },
                         message: { type: 'string' },
+                        details: { type: 'string' },
                         statusCode: { type: 'number' },
+                        remainingAttempts: { type: 'number' },
                     },
                 },
                 429: {
@@ -76,7 +93,7 @@ export async function mobileAuthRoutes(fastify) {
             },
         },
     }, asyncHandler(async (request, reply) => {
-        const { usermobilenumber } = request.body;
+        const { usermobilenumber, verifyOnly = false } = request.body;
         // Rate limiting check using mobile number
         const identifier = `${request.ip}-${usermobilenumber}`;
         if (authRateLimit.isRateLimited(identifier)) {
@@ -84,7 +101,8 @@ export async function mobileAuthRoutes(fastify) {
             logger.warn({
                 ip: request.ip,
                 mobileNumber: usermobilenumber,
-                remainingAttempts
+                remainingAttempts,
+                verifyOnly
             }, 'OTP request rate limited');
             return reply.code(429).send({
                 success: false,
@@ -95,34 +113,54 @@ export async function mobileAuthRoutes(fastify) {
             });
         }
         try {
-            const result = await usersService.generateMobileOTP(usermobilenumber);
+            const result = await usersService.generateMobileOTP(usermobilenumber, verifyOnly);
             if (!result) {
                 // Record failed attempt
                 authRateLimit.recordAttempt(identifier);
                 const remainingAttempts = authRateLimit.getRemainingAttempts(identifier);
-                logger.warn({
-                    ip: request.ip,
-                    mobileNumber: usermobilenumber,
-                    remainingAttempts
-                }, 'OTP request failed: User creation failed');
-                return reply.code(500).send({
-                    success: false,
-                    message: 'Failed to process request',
-                    details: 'Unable to create user or generate OTP. Please try again.',
-                    statusCode: 500,
-                    remainingAttempts,
-                });
+                // Different error messages based on verifyOnly flag
+                if (verifyOnly) {
+                    logger.warn({
+                        ip: request.ip,
+                        mobileNumber: usermobilenumber,
+                        remainingAttempts
+                    }, 'OTP request failed: User not found (verifyOnly mode)');
+                    return reply.code(404).send({
+                        success: false,
+                        message: 'User not found',
+                        details: 'No account exists with this mobile number.',
+                        statusCode: 404,
+                        remainingAttempts,
+                    });
+                }
+                else {
+                    logger.warn({
+                        ip: request.ip,
+                        mobileNumber: usermobilenumber,
+                        remainingAttempts
+                    }, 'OTP request failed: User creation failed');
+                    return reply.code(500).send({
+                        success: false,
+                        message: 'Failed to process request',
+                        details: 'Unable to create user or generate OTP. Please try again.',
+                        statusCode: 500,
+                        remainingAttempts,
+                    });
+                }
             }
             // Clear rate limiting on successful OTP generation
             authRateLimit.clearAttempts(identifier);
             logger.info({
                 mobileNumber: usermobilenumber,
                 ip: request.ip,
-                isNewUser: result.isNewUser
-            }, `OTP generated successfully for mobile number ${result.isNewUser ? '(new user created)' : '(existing user)'}`);
-            const responseMessage = result.isNewUser
-                ? 'New account created and OTP sent successfully'
-                : 'OTP sent successfully';
+                isNewUser: result.isNewUser,
+                verifyOnly
+            }, `OTP generated successfully for mobile number ${result.isNewUser ? '(new user created)' : '(existing user)'}${verifyOnly ? ' [verify mode]' : ''}`);
+            const responseMessage = verifyOnly
+                ? 'OTP sent successfully for verification'
+                : (result.isNewUser
+                    ? 'New account created and OTP sent successfully'
+                    : 'OTP sent successfully');
             const response = createSuccessResponse(responseMessage, {
                 mobileNumber: usermobilenumber,
                 otpSent: true,
@@ -135,7 +173,7 @@ export async function mobileAuthRoutes(fastify) {
         }
         catch (error) {
             authRateLimit.recordAttempt(identifier);
-            logger.error({ error, mobileNumber: usermobilenumber, ip: request.ip }, 'Error during OTP generation');
+            logger.error({ error, mobileNumber: usermobilenumber, verifyOnly, ip: request.ip }, 'Error during OTP generation');
             throw error;
         }
     }));
@@ -474,6 +512,157 @@ export async function mobileAuthRoutes(fastify) {
         catch (error) {
             logger.error({ error, mobileNumber }, 'Error looking up user by mobile');
             throw error;
+        }
+    }));
+    // POST /v1/mobile-auth/delete-account - Delete user account (soft delete)
+    fastify.post('/delete-account', {
+        schema: {
+            description: 'Deactivate user account and send account data via email',
+            tags: ['Mobile Authentication'],
+            body: {
+                type: 'object',
+                required: ['userid'],
+                properties: {
+                    userid: {
+                        type: 'number',
+                        description: 'User ID to deactivate'
+                    },
+                    useremail: {
+                        type: 'string',
+                        format: 'email',
+                        description: 'Email address (required if user does not have email in DB)'
+                    }
+                },
+                additionalProperties: false,
+                examples: [
+                    {
+                        userid: 123,
+                        useremail: 'user@example.com'
+                    },
+                    {
+                        userid: 123
+                    }
+                ]
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        data: {
+                            type: 'object',
+                            properties: {
+                                userId: { type: 'number' },
+                                email: { type: 'string' },
+                                isActive: { type: 'boolean' },
+                                ordersCount: { type: 'number' },
+                                orderlinesCount: { type: 'number' },
+                                emailSent: { type: 'boolean' }
+                            }
+                        },
+                        message: { type: 'string' }
+                    }
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' }
+                    }
+                },
+                404: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' }
+                    }
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' }
+                    }
+                }
+            }
+        }
+    }, asyncHandler(async (request, reply) => {
+        const { userid, useremail } = request.body;
+        try {
+            // 1. Check if user exists
+            const user = await usersService.findById(userid.toString());
+            if (!user) {
+                return reply.code(404).send({
+                    success: false,
+                    message: 'User not found',
+                    details: `No user found with ID ${userid}`,
+                    statusCode: 404
+                });
+            }
+            // 2. Check if email exists in DB or provided in request
+            const userEmail = user.useremail || useremail;
+            if (!userEmail) {
+                return reply.code(400).send({
+                    success: false,
+                    message: 'Email required',
+                    details: 'User does not have an email in the database. Please provide email address in the request.',
+                    statusCode: 400
+                });
+            }
+            // 3. Get all orders and orderlines for the user
+            logger.info({ userId: userid }, 'Fetching user orders and orderlines for account deletion');
+            const ordersResult = await ordersService.findMany({ userid: userid.toString() }, 1, 10000);
+            const orders = ordersResult.data || [];
+            // Get all orderlines for all orders
+            let allOrderlines = [];
+            for (const order of orders) {
+                const orderlines = await orderlineService.findByOrderId(order.id);
+                allOrderlines = [...allOrderlines, ...orderlines];
+            }
+            logger.info({
+                userId: userid,
+                ordersCount: orders.length,
+                orderlinesCount: allOrderlines.length
+            }, 'Retrieved user data for deletion email');
+            // 4. Deactivate user account (and update email if provided and different)
+            const emailToUpdate = useremail && useremail !== user.useremail ? useremail : undefined;
+            await usersService.deactivateAccount(userid, emailToUpdate);
+            // 5. Send email with user data
+            const userName = user.firstname || 'User';
+            await emailService.sendAccountDeletionEmail(userEmail, userName, {
+                orders,
+                orderlines: allOrderlines
+            });
+            logger.info({
+                userId: userid,
+                email: userEmail,
+                ordersCount: orders.length,
+                orderlinesCount: allOrderlines.length
+            }, 'Account deleted and confirmation email sent successfully');
+            const response = createSuccessResponse('Account deactivated successfully', {
+                userId: userid,
+                email: userEmail,
+                isActive: false,
+                ordersCount: orders.length,
+                orderlinesCount: allOrderlines.length,
+                emailSent: true
+            });
+            return reply.code(200).send(response);
+        }
+        catch (error) {
+            logger.error({ error, userId: userid }, 'Error during account deletion');
+            return reply.code(500).send({
+                success: false,
+                message: 'Failed to delete account',
+                details: error.message || 'An unexpected error occurred',
+                statusCode: 500
+            });
         }
     }));
 }

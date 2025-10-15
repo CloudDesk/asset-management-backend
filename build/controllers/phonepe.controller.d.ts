@@ -1,7 +1,7 @@
-import { FastifyRequest, FastifyReply } from 'fastify';
-import { PhonePeService } from '../services/phonepe.service.js';
-import { TransactionService } from '../services/transaction.service.js';
-import { OrderlineService } from '../services/orderline.service.js';
+import { FastifyRequest, FastifyReply } from "fastify";
+import { PhonePeService } from "../services/phonepe.service.js";
+import { TransactionService } from "../services/transaction.service.js";
+import { OrderlineService } from "../services/orderline.service.js";
 export declare class PhonePeController {
     phonePeService: PhonePeService;
     transactionService: TransactionService;
@@ -31,10 +31,6 @@ export declare class PhonePeController {
      * Get transaction statistics
      */
     getTransactionStats: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
-    /**
-     * Handle PhonePe webhook
-     */
-    handleWebhook: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     /**
      * Generate merchant transaction ID
      */
@@ -77,6 +73,11 @@ export declare class PhonePeController {
      */
     private storeTransactionData;
     /**
+     * Store transaction data with dedicated status column (NEW METHOD)
+     * This method includes the new status column for better performance and consistency
+     */
+    private storeTransactionDataWithStatus;
+    /**
      * Update product quantities and status after successful order creation
      * NEW: Now includes platform-specific stock updates for nivapp
      *
@@ -110,7 +111,6 @@ export declare class PhonePeController {
             productName?: never;
             error_code?: never;
             critical?: never;
-            platformStock?: never;
             productQuantityUpdate?: never;
             platformQuantityUpdate?: never;
             verification?: never;
@@ -122,23 +122,6 @@ export declare class PhonePeController {
             error: string;
             error_code: string;
             critical: boolean;
-            platformStock?: never;
-            productQuantityUpdate?: never;
-            platformQuantityUpdate?: never;
-            verification?: never;
-            isPlatformStockError?: never;
-        } | {
-            productId: any;
-            success: boolean;
-            error: string;
-            platformStock: {
-                availableqty: number;
-                lockqty: number;
-                actualAvailable: number;
-            };
-            productName?: never;
-            error_code?: never;
-            critical?: never;
             productQuantityUpdate?: never;
             platformQuantityUpdate?: never;
             verification?: never;
@@ -160,7 +143,7 @@ export declare class PhonePeController {
                 oldAvailableQty: number;
                 newAvailableQty: number;
                 oldLockQty: number;
-                newLockQty: any;
+                newLockQty: number;
                 oldOrderedQty: number;
                 newOrderedQty: any;
                 newPlatformStatus: string;
@@ -173,7 +156,6 @@ export declare class PhonePeController {
             error?: never;
             error_code?: never;
             critical?: never;
-            platformStock?: never;
             isPlatformStockError?: never;
         } | {
             productId: any;
@@ -183,7 +165,6 @@ export declare class PhonePeController {
             productName?: never;
             error_code?: never;
             critical?: never;
-            platformStock?: never;
             productQuantityUpdate?: never;
             platformQuantityUpdate?: never;
             verification?: never;
@@ -191,5 +172,33 @@ export declare class PhonePeController {
         platform: string;
         error?: never;
     }>;
+    /**
+     * Cleanup expired lock (called by GCP Cloud Task)
+     * POST /v1/phonepe/cleanup-lock
+     *
+     * This endpoint is triggered by GCP Cloud Tasks after 15 minutes of payment initiation.
+     * It checks payment status and releases stock locks for abandoned/failed payments.
+     */
+    cleanupExpiredLock: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    /**
+     * Check refund status
+     */
+    checkRefundStatus: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    /**
+     * Create SDK Order for mobile app integration
+     */
+    createSdkOrder: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    /**
+     * Handle PhonePe webhook notifications
+     */
+    handleWebhook: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    /**
+     * Handle payment webhook
+     */
+    private handlePaymentWebhook;
+    /**
+     * Handle refund webhook
+     */
+    private handleRefundWebhook;
 }
 //# sourceMappingURL=phonepe.controller.d.ts.map

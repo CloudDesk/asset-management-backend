@@ -109,23 +109,193 @@ export class CartService {
             throw error;
         }
     }
+    /**
+     * Upsert cart/wishlist item with duplicate prevention
+     * Business Rules:
+     * - If ID provided: UPDATE that specific record by ID (direct update)
+     * - If no ID:
+     *   - Cart items (iscart=true): UPDATE quantity if exists, INSERT if not
+     *   - Wishlist items (iswishlist=true): SKIP if exists, INSERT if not
+     * - Same product CAN be in both cart and wishlist (different records)
+     * - Uniqueness check at service level, not database level
+     */
     async upsert(data) {
         try {
-            const { id, ...updateData } = data;
+            // STEP 1: Check if ID is provided (direct update by ID)
+            const { id, ...restData } = data;
             if (id) {
-                // Update existing cart item
-                logger.debug({ cartId: id, data: updateData }, 'Upserting existing cart item');
-                return this.update(id.toString(), updateData);
+                // DIRECT UPDATE BY ID
+                logger.info({ cartId: id, updateData: restData }, 'Updating cart item by ID');
+                // Validate the update data
+                this.validateCartRequest(restData);
+                // Check if cart item exists
+                const existingItem = await this.findById(id.toString());
+                if (!existingItem) {
+                    throw new Error(`Cart item with ID ${id} not found`);
+                }
+                // Update the item
+                const updateData = {
+                    ...restData,
+                    modifieddate: BigInt(Date.now())
+                };
+                const updatedCart = await dynamicUpdate('cart', { id: parseInt(id.toString()) }, updateData);
+                logger.info({
+                    cartId: id,
+                    userid: updatedCart.userid,
+                    productid: updatedCart.productid
+                }, 'Cart item updated successfully by ID');
+                return updatedCart;
             }
-            else {
-                // Create new cart item
-                logger.debug({ data: updateData }, 'Upserting new cart item');
-                return this.create(updateData);
+            // STEP 2: No ID provided - Use duplicate prevention logic
+            this.validateCartRequest(restData);
+            const { userid, productid, quantity, iscart, iswishlist } = restData;
+            logger.debug({
+                userid,
+                productid,
+                quantity,
+                iscart,
+                iswishlist
+            }, 'Starting cart upsert with duplicate prevention (no ID provided)');
+            // STEP 3: Check for existing record based on combination
+            let existingRecord = null;
+            if (iscart === true) {
+                // CART ITEM: Check for existing cart record (userid, productid, iscart=true)
+                const filters = {
+                    userid: userid,
+                    productid: productid,
+                    iscart: true
+                };
+                const { data: cartItems } = await dynamicFindManyWithFilters('cart', filters, {
+                    useAllColumns: true
+                });
+                existingRecord = cartItems.length > 0 ? cartItems[0] : null;
+                if (existingRecord) {
+                    // UPDATE: Cart record exists, update quantity
+                    logger.info({
+                        cartId: existingRecord.id,
+                        userid,
+                        productid,
+                        oldQuantity: existingRecord.quantity,
+                        newQuantity: quantity
+                    }, 'Cart item exists - Updating quantity');
+                    const updateData = {
+                        quantity: quantity,
+                        modifieddate: BigInt(Date.now())
+                    };
+                    const updatedCart = await dynamicUpdate('cart', { id: existingRecord.id }, updateData);
+                    logger.info({
+                        cartId: existingRecord.id,
+                        userid,
+                        productid
+                    }, 'Cart item updated successfully');
+                    return updatedCart;
+                }
+                else {
+                    // INSERT: Create new cart record
+                    logger.info({
+                        userid,
+                        productid,
+                        quantity
+                    }, 'Cart item does not exist - Creating new record');
+                    const newCartItem = {
+                        userid: userid,
+                        productid: productid,
+                        quantity: quantity,
+                        iscart: true,
+                        iswishlist: false,
+                        createddate: BigInt(Date.now()),
+                        modifieddate: BigInt(Date.now())
+                    };
+                    const createdCart = await dynamicCreate('cart', newCartItem);
+                    logger.info({
+                        cartId: createdCart.id,
+                        userid,
+                        productid
+                    }, 'Cart item created successfully');
+                    return createdCart;
+                }
             }
+            else if (iswishlist === true) {
+                // WISHLIST ITEM: Check for existing wishlist record (userid, productid, iswishlist=true)
+                const filters = {
+                    userid: userid,
+                    productid: productid,
+                    iswishlist: true
+                };
+                const { data: wishlistItems } = await dynamicFindManyWithFilters('cart', filters, {
+                    useAllColumns: true
+                });
+                existingRecord = wishlistItems.length > 0 ? wishlistItems[0] : null;
+                if (existingRecord) {
+                    // SKIP: Wishlist record already exists, return existing
+                    logger.info({
+                        wishlistId: existingRecord.id,
+                        userid,
+                        productid
+                    }, 'Wishlist item already exists - Returning existing record (no update)');
+                    return existingRecord;
+                }
+                else {
+                    // INSERT: Create new wishlist record
+                    logger.info({
+                        userid,
+                        productid
+                    }, 'Wishlist item does not exist - Creating new record');
+                    const newWishlistItem = {
+                        userid: userid,
+                        productid: productid,
+                        quantity: 1, // Always 1 for wishlist
+                        iscart: false,
+                        iswishlist: true,
+                        createddate: BigInt(Date.now()),
+                        modifieddate: BigInt(Date.now())
+                    };
+                    const createdWishlist = await dynamicCreate('cart', newWishlistItem);
+                    logger.info({
+                        wishlistId: createdWishlist.id,
+                        userid,
+                        productid
+                    }, 'Wishlist item created successfully');
+                    return createdWishlist;
+                }
+            }
+            // This should never be reached due to validation, but handle it anyway
+            throw new Error('Invalid cart/wishlist flags');
         }
         catch (error) {
             logger.error({ error, data }, 'Error in cart upsert operation');
             throw error;
+        }
+    }
+    /**
+     * Validate cart/wishlist request
+     * Ensures data integrity before insert/update
+     */
+    validateCartRequest(data) {
+        // 1. Validate userid exists
+        if (!data.userid) {
+            throw new Error('userid is required');
+        }
+        // 2. Validate productid exists
+        if (!data.productid) {
+            throw new Error('productid is required');
+        }
+        // 3. Validate quantity for cart items
+        if (data.iscart === true && (!data.quantity || data.quantity < 1)) {
+            throw new Error('quantity must be at least 1 for cart items');
+        }
+        // 4. Validate flags (at least one must be true)
+        if (!data.iscart && !data.iswishlist) {
+            throw new Error('Either iscart or iswishlist must be true');
+        }
+        // 5. Validate mutual exclusivity (both cannot be true)
+        if (data.iscart === true && data.iswishlist === true) {
+            throw new Error('iscart and iswishlist cannot both be true');
+        }
+        // 6. Force quantity = 1 for wishlist items
+        if (data.iswishlist === true) {
+            data.quantity = 1;
+            logger.debug({ userid: data.userid, productid: data.productid }, 'Forced quantity to 1 for wishlist item');
         }
     }
     // Additional cart-specific methods

@@ -10,6 +10,12 @@ export declare class UsersService {
     update(id: string, data: UpdateUsersInput & Record<string, any>): Promise<any>;
     delete(id: string): Promise<void>;
     /**
+     * Soft delete user (deactivate account)
+     * @param userId - The user ID to deactivate
+     * @param email - Optional email to update before deactivation
+     */
+    deactivateAccount(userId: number, email?: string): Promise<any>;
+    /**
      * Authenticate user with email and password
      */
     authenticate(email: string, password: string): Promise<{
@@ -25,8 +31,10 @@ export declare class UsersService {
     } | null>;
     /**
      * Generate OTP for mobile number (passwordless login step 1)
+     * @param mobileNumber - The mobile number to generate OTP for
+     * @param verifyOnly - If true, only generate OTP if user exists (for delete account flow)
      */
-    generateMobileOTP(mobileNumber: number): Promise<{
+    generateMobileOTP(mobileNumber: number, verifyOnly?: boolean): Promise<{
         otp: number;
         expiresAt: Date;
         isNewUser?: boolean;
