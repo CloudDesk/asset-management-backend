@@ -3,7 +3,8 @@ import { UsersService } from '../services/users.service.js';
 import { OrdersService } from '../services/orders.service.js';
 import { OrderlineService } from '../services/orderline.service.js';
 import { EmailService } from '../services/email.service.js';
-import { authRateLimit } from '../utils/auth.js';
+import { FirebaseOTPService } from '../services/firebase-otp.service.js';
+import { authRateLimit, generateSessionToken, sanitizeUserData } from '../utils/auth.js';
 import { logger } from '../config/logger.js';
 import { 
   createSuccessResponse,
@@ -15,8 +16,169 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
   const ordersService = new OrdersService();
   const orderlineService = new OrderlineService();
   const emailService = new EmailService();
+  const firebaseOTPService = new FirebaseOTPService();
 
-  // POST /v1/mobile-auth/request-otp - Step 1: Request OTP for mobile number
+  // POST /v1/mobile-auth/firebase-login - Firebase OTP Authentication
+  fastify.post('/firebase-login', {
+    schema: {
+      description: 'Login with Firebase OTP - Verify Firebase ID token and create/get user',
+      tags: ['Mobile Authentication'],
+      body: {
+        type: 'object',
+        required: ['idToken'],
+        properties: {
+          idToken: {
+            type: 'string',
+            description: 'Firebase ID token obtained after OTP verification on client side',
+            minLength: 1
+          }
+        },
+        additionalProperties: false,
+        examples: [
+          {
+            idToken: 'eyJhbGciOiJSUzI1NiIsImtpZCI6...'
+          }
+        ]
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            data: {
+              type: 'object',
+              properties: {
+                user: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'number' },
+                    usermobilenumber: { type: 'number' },
+                    firstname: { type: 'string' },
+                    lastname: { type: 'string' },
+                    useremail: { type: 'string' }
+                  },
+                  additionalProperties: true
+                },
+                token: { type: 'string' },
+                isNewUser: { type: 'boolean' }
+              }
+            },
+            message: { type: 'string' }
+          }
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' }
+          }
+        },
+        401: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' }
+          }
+        }
+      }
+    }
+  }, asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    const { idToken } = request.body as { idToken: string };
+    
+    try {
+      // 1. Verify Firebase ID token
+      logger.debug({ ip: request.ip }, 'Verifying Firebase ID token');
+      const decodedToken = await firebaseOTPService.verifyFirebaseToken(idToken);
+      
+      // 2. Extract phone number from Firebase token
+      const firebasePhoneNumber = decodedToken.phone_number;
+      
+      if (!firebasePhoneNumber) {
+        return reply.code(400).send({
+          success: false,
+          message: 'Phone number not found in Firebase token',
+          details: 'Firebase token must contain a valid phone number',
+          statusCode: 400
+        });
+      }
+      
+      // 3. Convert Firebase phone number (+919876543210) to number (9876543210)
+      // Handle both +91 (India) and other country codes
+      const phoneNumber = parseInt(firebasePhoneNumber.replace(/^\+91/, '').replace(/^\+/, ''));
+      
+      logger.info({ 
+        firebaseUid: decodedToken.uid,
+        phoneNumber,
+        ip: request.ip 
+      }, 'Firebase token verified, processing user login');
+      
+      // 4. Check if user exists
+      let user = await usersService.findByMobileNumber(phoneNumber);
+      let isNewUser = false;
+      
+      if (!user) {
+        // Create new user
+        logger.info({ phoneNumber }, 'Creating new user from Firebase authentication');
+        
+        const newUserData = {
+          usermobilenumber: phoneNumber,
+          firstname: 'User',
+          useremail: decodedToken.email || undefined,
+          createddate: Date.now(),
+          modifieddate: Date.now()
+        };
+        
+        user = await usersService.create(newUserData);
+        isNewUser = true;
+        
+        logger.info({ 
+          userId: user.id,
+          phoneNumber 
+        }, 'New user created from Firebase authentication');
+      }
+      
+      // 5. Generate session token
+      const sessionToken = generateSessionToken();
+      
+      // 6. Sanitize user data (remove sensitive information)
+      const sanitizedUser = sanitizeUserData(user);
+      
+      logger.info({ 
+        userId: user.id,
+        phoneNumber,
+        isNewUser,
+        ip: request.ip 
+      }, 'User authenticated successfully via Firebase OTP');
+      
+      const message = isNewUser 
+        ? 'New account created and authenticated successfully' 
+        : 'Authentication successful';
+      
+      const response = createSuccessResponse(message, {
+        user: sanitizedUser,
+        token: sessionToken,
+        isNewUser
+      });
+      
+      return reply.code(200).send(response);
+      
+    } catch (error: any) {
+      logger.error({ error, ip: request.ip }, 'Error during Firebase authentication');
+      
+      return reply.code(401).send({
+        success: false,
+        message: 'Authentication failed',
+        details: error.message || 'Invalid or expired Firebase token',
+        statusCode: 401
+      });
+    }
+  }));
+
+  // POST /v1/mobile-auth/request-otp - Step 1: Request OTP for mobile number (Legacy - Hardcoded OTP)
   fastify.post('/request-otp', {
     schema: {
       description: 'Request OTP for mobile number (passwordless login step 1, or verify for delete account)',
