@@ -1,11 +1,12 @@
 import twilio from 'twilio';
 import { logger } from '../config/logger.js';
+import { env } from '../config/env.js';
 
-// Twilio Configuration (hardcoded as per requirement)
-const TWILIO_ACCOUNT_SID = 'ACbec90816980e03561f55ad7974990aa8';
-const TWILIO_AUTH_TOKEN = '3ed2c97fd12cbd109383f21e97e00b8d';
-// Note: You need to get a Twilio phone number from your account or use the default
-const TWILIO_PHONE_NUMBER = '+16205298067'; // Your Twilio phone number
+// Twilio Configuration from environment variables
+// IMPORTANT: These must be set in .env file for the service to work
+const TWILIO_ACCOUNT_SID = env.TWILIO_ACCOUNT_SID;
+const TWILIO_AUTH_TOKEN = env.TWILIO_AUTH_TOKEN;
+const TWILIO_PHONE_NUMBER = env.TWILIO_PHONE_NUMBER;
 
 interface SendSmsResponse {
   success: boolean;
@@ -20,8 +21,39 @@ export class TwilioSmsService {
   private client: twilio.Twilio;
 
   constructor() {
-    // Initialize Twilio client
-    this.client = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+    // Validate Twilio credentials before initialization
+    if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
+      const missingVars = [];
+      if (!TWILIO_ACCOUNT_SID) missingVars.push('TWILIO_ACCOUNT_SID');
+      if (!TWILIO_AUTH_TOKEN) missingVars.push('TWILIO_AUTH_TOKEN');
+      if (!TWILIO_PHONE_NUMBER) missingVars.push('TWILIO_PHONE_NUMBER');
+      
+      throw new Error(
+        `Missing required Twilio environment variables: ${missingVars.join(', ')}\n` +
+        `Please add these to your .env file. See QUICK_ENV_SETUP.md for details.`
+      );
+    }
+
+    // Validate Account SID format
+    if (!TWILIO_ACCOUNT_SID.startsWith('AC')) {
+      throw new Error(
+        `Invalid TWILIO_ACCOUNT_SID format. It must start with 'AC'.\n` +
+        `Current value: '${TWILIO_ACCOUNT_SID}'\n` +
+        `Please check your .env file.`
+      );
+    }
+
+    try {
+      // Initialize Twilio client
+      this.client = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+      logger.info('Twilio SMS service initialized successfully');
+    } catch (error: any) {
+      logger.error({ error: error.message }, 'Failed to initialize Twilio client');
+      throw new Error(
+        `Failed to initialize Twilio: ${error.message}\n` +
+        `Please verify your Twilio credentials in .env file.`
+      );
+    }
   }
 
   /**
@@ -54,13 +86,17 @@ export class TwilioSmsService {
       logger.info({ originalNumber: phoneNumber, formattedNumber }, 'Phone number formatting for Twilio');
 
       // Send SMS via Twilio
-      const messageOptions: { body: string; to: string; from?: string } = {
+      const messageOptions: { body: string; to: string; from?: string; messagingServiceSid?: string } = {
         body: message,
         to: formattedNumber
       };
 
-      // Only add 'from' if we have a valid Twilio phone number
-      if (TWILIO_PHONE_NUMBER) {
+      // Use Messaging Service SID if available, otherwise use phone number
+      const MESSAGING_SERVICE_SID = env.TWILIO_MESSAGING_SERVICE_SID;
+      
+      if (MESSAGING_SERVICE_SID) {
+        messageOptions.messagingServiceSid = MESSAGING_SERVICE_SID;
+      } else if (TWILIO_PHONE_NUMBER) {
         messageOptions.from = TWILIO_PHONE_NUMBER;
       }
 

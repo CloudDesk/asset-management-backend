@@ -7834,3 +7834,21 @@ Update result: [
     "isactive": false
   }
 ]
+Update result: [
+  {
+    "id": 41,
+    "useremail": "user@example.com",
+    "userpassword": null,
+    "createddate": 1760533672,
+    "modifieddate": 1760533978,
+    "usermobilenumber": 9994824573,
+    "fcmid": null,
+    "firstname": "User",
+    "lastname": null,
+    "gender": null,
+    "gstnumber": null,
+    "isbusinessuser": null,
+    "isguest": false,
+    "isactive": false
+  }
+]
