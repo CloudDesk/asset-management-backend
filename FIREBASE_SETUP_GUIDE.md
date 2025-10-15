@@ -86,3 +86,4 @@
 ✅ Real phone number receives SMS
 ✅ Backend creates session successfully
 ✅ `/me` endpoint returns user profile
+
