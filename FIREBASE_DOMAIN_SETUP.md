@@ -28,3 +28,4 @@ Sometimes browser extensions or settings interfere:
 1. Go to: https://console.firebase.google.com/project/docblitz-437213/settings/general
 2. Check if there are any billing issues
 3. Verify the project is active
+

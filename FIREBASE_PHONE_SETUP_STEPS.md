@@ -52,3 +52,4 @@ If you still get errors, you might need to configure reCAPTCHA:
 ### Issue: reCAPTCHA not loading
 - **Solution**: Check browser console for network errors
 
+

@@ -290,6 +290,64 @@ export class OrderlineService {
                     newProductStatus
                 }
             }, 'Product quantities adjusted successfully for orderline cancellation');
+            // Update platformstock for NIVAPP platform
+            try {
+                const platformStock = await dynamicFindManyWithFilters('platformstock', {
+                    productid: productId.toString(),
+                    platform: 'nivapp'
+                }, { useAllColumns: true });
+                if (platformStock.data && platformStock.data.length > 0) {
+                    const nivappStock = platformStock.data[0];
+                    const currentPlatformOrderedQty = nivappStock.orderedqty || 0;
+                    const currentPlatformAvailableQty = nivappStock.availableqty || 0;
+                    // Calculate new platformstock quantities
+                    const newPlatformOrderedQty = Math.max(0, currentPlatformOrderedQty - cancelledQuantity);
+                    const newPlatformAvailableQty = currentPlatformAvailableQty + cancelledQuantity;
+                    // Determine platform status
+                    let platformStatus = 'out_of_stock';
+                    if (newPlatformAvailableQty > 5) {
+                        platformStatus = 'in_stock';
+                    }
+                    else if (newPlatformAvailableQty >= 1) {
+                        platformStatus = 'low_stock';
+                    }
+                    // Update platformstock
+                    await dynamicUpdate('platformstock', { id: nivappStock.id }, {
+                        orderedqty: newPlatformOrderedQty,
+                        availableqty: newPlatformAvailableQty,
+                        platformstatus: platformStatus,
+                        modifieddate: Date.now()
+                    });
+                    logger.info({
+                        orderlineId: orderline.id,
+                        productId,
+                        platform: 'nivapp',
+                        platformStockAdjustment: {
+                            cancelledQuantity,
+                            oldOrderedQty: currentPlatformOrderedQty,
+                            newOrderedQty: newPlatformOrderedQty,
+                            oldAvailableQty: currentPlatformAvailableQty,
+                            newAvailableQty: newPlatformAvailableQty,
+                            oldPlatformStatus: nivappStock.platformstatus,
+                            newPlatformStatus: platformStatus
+                        }
+                    }, 'PlatformStock (NIVAPP) quantities adjusted successfully for orderline cancellation');
+                }
+                else {
+                    logger.warn({
+                        productId,
+                        platform: 'nivapp'
+                    }, 'No platformstock found for NIVAPP, skipping platformstock adjustment');
+                }
+            }
+            catch (platformError) {
+                logger.error({
+                    error: platformError,
+                    productId,
+                    platform: 'nivapp'
+                }, 'Error adjusting platformstock quantities on cancellation');
+                // Don't throw error, continue with product update success
+            }
             return updatedProduct;
         }
         catch (error) {

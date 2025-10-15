@@ -1,7 +1,7 @@
-import { FastifyRequest, FastifyReply } from 'fastify';
-import { PhonePeService } from '../services/phonepe.service.js';
-import { TransactionService } from '../services/transaction.service.js';
-import { OrderlineService } from '../services/orderline.service.js';
+import { FastifyRequest, FastifyReply } from "fastify";
+import { PhonePeService } from "../services/phonepe.service.js";
+import { TransactionService } from "../services/transaction.service.js";
+import { OrderlineService } from "../services/orderline.service.js";
 export declare class PhonePeController {
     phonePeService: PhonePeService;
     transactionService: TransactionService;
@@ -31,10 +31,6 @@ export declare class PhonePeController {
      * Get transaction statistics
      */
     getTransactionStats: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
-    /**
-     * Handle PhonePe webhook
-     */
-    handleWebhook: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     /**
      * Generate merchant transaction ID
      */
@@ -184,5 +180,25 @@ export declare class PhonePeController {
      * It checks payment status and releases stock locks for abandoned/failed payments.
      */
     cleanupExpiredLock: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    /**
+     * Check refund status
+     */
+    checkRefundStatus: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    /**
+     * Create SDK Order for mobile app integration
+     */
+    createSdkOrder: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    /**
+     * Handle PhonePe webhook notifications
+     */
+    handleWebhook: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    /**
+     * Handle payment webhook
+     */
+    private handlePaymentWebhook;
+    /**
+     * Handle refund webhook
+     */
+    private handleRefundWebhook;
 }
 //# sourceMappingURL=phonepe.controller.d.ts.map
