@@ -17,5 +17,20 @@ export declare class SmsController {
      * POST /v1/sms/send-otp-with-fallback
      */
     sendOtpWithFallback: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    /**
+     * Send OTP SMS with Redis storage and rate limiting
+     * POST /v1/sms/send-otp-with-storage
+     */
+    sendOtpWithStorage: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    /**
+     * Verify OTP
+     * POST /v1/sms/verify-otp
+     */
+    verifyOtp: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    /**
+     * Resend OTP
+     * POST /v1/sms/resend-otp
+     */
+    resendOtp: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
 }
 //# sourceMappingURL=sms.controller.d.ts.map
