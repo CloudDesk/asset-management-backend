@@ -108,3 +108,4 @@ Available columns: ["id","useremail","userpassword","createddate","modifieddate"
 Available columns: ["id","useremail","userpassword","createddate","modifieddate","usermobilenumber","fcmid","firstname","lastname","gender","gstnumber","isbusinessuser","isguest","isactive"]
 Available columns: ["id","useremail","userpassword","createddate","modifieddate","usermobilenumber","fcmid","firstname","lastname","gender","gstnumber","isbusinessuser","isguest","isactive"]
 Available columns: ["id","useremail","userpassword","createddate","modifieddate","usermobilenumber","fcmid","firstname","lastname","gender","gstnumber","isbusinessuser","isguest","isactive"]
+Available columns: ["id","useremail","userpassword","createddate","modifieddate","usermobilenumber","fcmid","firstname","lastname","gender","gstnumber","isbusinessuser","isguest","isactive"]

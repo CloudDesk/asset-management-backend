@@ -6345,3 +6345,8 @@ Filtered data: {
   "modifieddate": 1760365213248,
   "useremail": "xtpdskuqujstevvtrx@nespf.com"
 }
+Filtered data: {
+  "isactive": false,
+  "modifieddate": 1760514177311,
+  "useremail": "user@example.com"
+}

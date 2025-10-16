@@ -658,3 +658,9 @@ Update query:
         WHERE "id" = $1 
         RETURNING id, useremail, userpassword, createddate, modifieddate, usermobilenumber, fcmid, firstname, lastname, gender, gstnumber, isbusinessuser, isguest, isactive
       
+Update query: 
+        UPDATE "users" 
+        SET "isactive" = $2, "modifieddate" = $3, "useremail" = $4 
+        WHERE "id" = $1 
+        RETURNING id, useremail, userpassword, createddate, modifieddate, usermobilenumber, fcmid, firstname, lastname, gender, gstnumber, isbusinessuser, isguest, isactive
+      
