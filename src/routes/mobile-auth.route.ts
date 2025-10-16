@@ -499,7 +499,7 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
     },
   }, asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const { usermobilenumber, otp } = request.body as { usermobilenumber: number; otp?: number | string };
-
+console.log(request.body)
     // Custom OTP validation with user-friendly messages
     if (otp === undefined || otp === null) {
       return reply.code(400).send({
