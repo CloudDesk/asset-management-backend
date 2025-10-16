@@ -513,28 +513,76 @@ export class PhonePeController {
                 const productId = orderItem.productid;
                 const requestedQuantity = orderItem.quantity;
 
-                // Get current platformstock
-                const platformStock = await tx.platformStock.findUnique({
-                  where: {
-                    productid_platform: {
-                      productid: BigInt(productId),
-                      platform: PLATFORM_NAME,
-                    },
-                  },
-                });
+                // ========================================
+                // FIX: Use SELECT FOR UPDATE to acquire row lock
+                // ========================================
+                // This prevents concurrent transactions from reading stale data
+                // Ensures that only one transaction can lock stock at a time
+                // Second transaction will wait and read fresh data after first commits
+                
+                const platformStockResult = await tx.$queryRaw<Array<{
+                  id: bigint;
+                  productid: bigint;
+                  platform: string;
+                  availableqty: number;
+                  lockqty: number;
+                  orderedqty: number;
+                  platformstatus: string | null;
+                  modifieddate: bigint;
+                }>>`
+                  SELECT * FROM "platformstock"
+                  WHERE "productid" = ${BigInt(productId)}
+                    AND "platform" = ${PLATFORM_NAME}
+                  FOR UPDATE
+                `;
 
-                if (!platformStock) {
+                if (!platformStockResult || platformStockResult.length === 0) {
                   throw new Error(
                     `PlatformStock not found for product ${productId} (should have been caught in validation)`
                   );
                 }
 
-                const currentAvailableQty = platformStock.availableqty || 0;
-                const currentLockQty = platformStock.lockqty || 0;
+                const platformStock = platformStockResult[0];
+                
+                if (!platformStock) {
+                  throw new Error(
+                    `PlatformStock data is empty for product ${productId}`
+                  );
+                }
+
+                // Convert to numbers for calculations (raw query returns numbers)
+                const currentAvailableQty = Number(platformStock.availableqty) || 0;
+                const currentLockQty = Number(platformStock.lockqty) || 0;
                 const actualAvailable = currentAvailableQty - currentLockQty;
 
-                // Double-check availability (should pass since we validated earlier)
+                logger.info(
+                  {
+                    productId,
+                    productName: orderItem.productname,
+                    platform: PLATFORM_NAME,
+                    currentAvailableQty,
+                    currentLockQty,
+                    actualAvailable,
+                    requestedQuantity,
+                    lockAcquired: true, // ← Important: Row lock acquired
+                  },
+                  "Row lock acquired for platformStock - reading fresh data"
+                );
+
+                // Double-check availability (with FRESH data from row lock)
                 if (actualAvailable < requestedQuantity) {
+                  logger.error(
+                    {
+                      productId,
+                      productName: orderItem.productname,
+                      platform: PLATFORM_NAME,
+                      actualAvailable,
+                      requestedQuantity,
+                      shortage: requestedQuantity - actualAvailable,
+                    },
+                    "Insufficient stock during locking WITH row lock - another transaction consumed stock"
+                  );
+
                   throw new Error(
                     `Insufficient stock during locking: Available ${actualAvailable}, Requested ${requestedQuantity}`
                   );
