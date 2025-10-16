@@ -172,11 +172,11 @@ export declare const usersQuerySchema: z.ZodObject<{
     gender?: string | undefined;
     gstnumber?: string | undefined;
     isbusinessuser?: string | undefined;
+    isguest?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
     createdAfter?: string | undefined;
     createdBefore?: string | undefined;
-    isguest?: string | undefined;
 }, {
     useremail?: string | undefined;
     usermobilenumber?: string | undefined;
@@ -185,11 +185,11 @@ export declare const usersQuerySchema: z.ZodObject<{
     gender?: string | undefined;
     gstnumber?: string | undefined;
     isbusinessuser?: string | undefined;
+    isguest?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
     createdAfter?: string | undefined;
     createdBefore?: string | undefined;
-    isguest?: string | undefined;
 }>;
 export type CreateUsersInput = z.infer<typeof createUsersSchema>;
 export type CreateGuestUserInput = z.infer<typeof createGuestUserSchema>;
