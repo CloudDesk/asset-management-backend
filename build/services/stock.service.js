@@ -280,6 +280,20 @@ export class StockService {
             throw error;
         }
     }
+    async createBulk(dataArray) {
+        const inserted = [];
+        const failures = [];
+        for (let i = 0; i < dataArray.length; i++) {
+            try {
+                const stock = await this.create(dataArray[i]);
+                inserted.push(stock);
+            }
+            catch (err) {
+                failures.push({ index: i, error: err.message || "Failed to insert stock" });
+            }
+        }
+        return { inserted, failures };
+    }
     async update(id, data) {
         try {
             // Check if stock exists

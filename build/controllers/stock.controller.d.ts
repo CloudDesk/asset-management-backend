@@ -7,6 +7,7 @@ export declare class StockController {
     getStocks: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     getStock: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     createStock: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    createBulkStocks: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     updateStock: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     deleteStock: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     upsertStock: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;

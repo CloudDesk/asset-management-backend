@@ -41,6 +41,13 @@ export declare class StockService {
         }>;
     } | null>;
     create(data: CreateStockInput & Record<string, any>, options?: CreateStockOptions): Promise<any>;
+    createBulk(dataArray: (CreateStockInput & Record<string, any>)[]): Promise<{
+        inserted: any[];
+        failures: {
+            index: number;
+            error: string;
+        }[];
+    }>;
     update(id: string, data: UpdateStockInput & Record<string, any>): Promise<any>;
     private updateProductByPuc;
     delete(id: string): Promise<void>;
