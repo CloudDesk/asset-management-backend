@@ -3,7 +3,7 @@ import { env } from './config/env.js';
 import { redisClient } from './config/redis.js';
 
 // Global BigInt serialization fix
-(BigInt.prototype as any).toJSON = function() {
+(BigInt.prototype as any).toJSON = function () {
   return Number(this);
 };
 async function start() {
@@ -15,11 +15,17 @@ async function start() {
 
     const fastify = await buildServer();
 
-    // Start the server
+    const port = process.env.PORT || env.PORT || 5600;
+
     await fastify.listen({
-      port: env.PORT,
+      port: Number(port),
       host: '0.0.0.0',
     });
+    // Start the server
+    // await fastify.listen({
+    //  port: env.PORT,
+    //  host: '0.0.0.0',
+    //});
 
     fastify.log.info(`🚀 Server running at http://localhost:${env.PORT}`);
     fastify.log.info(`📚 API Documentation available at http://localhost:${env.PORT}/docs`);
@@ -29,11 +35,11 @@ async function start() {
     signals.forEach((signal) => {
       process.on(signal, async () => {
         fastify.log.info(`Received ${signal}, shutting down gracefully...`);
-        
+
         // Disconnect Redis
         fastify.log.info('Disconnecting from Redis...');
         await redisClient.disconnect();
-        
+
         await fastify.close();
         process.exit(0);
       });
@@ -41,14 +47,14 @@ async function start() {
 
   } catch (error) {
     console.error('Error starting server:', error);
-    
+
     // Disconnect Redis on error
     try {
       await redisClient.disconnect();
     } catch (redisError) {
       console.error('Error disconnecting from Redis:', redisError);
     }
-    
+
     process.exit(1);
   }
 }
