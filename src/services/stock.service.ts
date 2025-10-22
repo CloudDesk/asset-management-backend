@@ -442,6 +442,24 @@ export class StockService {
     }
   }
 
+  async createBulk(
+    dataArray: (CreateStockInput & Record<string, any>)[]
+  ): Promise<{ inserted: any[]; failures: { index: number; error: string }[] }> {
+    const inserted = [];
+    const failures = [];
+  
+    for (let i = 0; i < dataArray.length; i++) {
+      try {
+        const stock = await this.create(dataArray[i] as any);
+        inserted.push(stock);
+      } catch (err: any) {
+        failures.push({ index: i, error: err.message || "Failed to insert stock" });
+      }
+    }
+  
+    return { inserted, failures };
+  }
+  
   async update(id: string, data: UpdateStockInput & Record<string, any>) {
     try {
       // Check if stock exists
