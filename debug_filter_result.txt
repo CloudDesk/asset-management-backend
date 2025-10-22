@@ -26516,3 +26516,461 @@ Filtered data result: {
   },
   "modifieddate": 1760610802713
 }
+Filtered data result: {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "serialnumber": "",
+  "batchno": "10/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtered data result: {
+  "quantity": 28,
+  "availablequantity": 2,
+  "soldquantity": 0,
+  "ecompublishedquantity": 24,
+  "productstatus": "in_stock",
+  "modifieddate": 1761130218502
+}
+Filtered data result: {
+  "availableqty": 8,
+  "soldqty": 0,
+  "totalqty": 27,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "10/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": "",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 29,
+  "availablequantity": 3,
+  "soldquantity": 0,
+  "ecompublishedquantity": 25,
+  "productstatus": "in_stock",
+  "modifieddate": 1761131204221
+}
+Filtered data result: {
+  "availableqty": 9,
+  "soldqty": 0,
+  "totalqty": 28,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "10/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": "",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 30,
+  "availablequantity": 4,
+  "soldquantity": 0,
+  "ecompublishedquantity": 26,
+  "productstatus": "in_stock",
+  "modifieddate": 1761131209455
+}
+Filtered data result: {
+  "availableqty": 10,
+  "soldqty": 0,
+  "totalqty": 29,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "10/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": "",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 31,
+  "availablequantity": 5,
+  "soldquantity": 0,
+  "ecompublishedquantity": 27,
+  "productstatus": "in_stock",
+  "modifieddate": 1761131213356
+}
+Filtered data result: {
+  "availableqty": 11,
+  "soldqty": 0,
+  "totalqty": 30,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "10/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": "",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 32,
+  "availablequantity": 6,
+  "soldquantity": 0,
+  "ecompublishedquantity": 28,
+  "productstatus": "in_stock",
+  "modifieddate": 1761131216507
+}
+Filtered data result: {
+  "availableqty": 12,
+  "soldqty": 0,
+  "totalqty": 31,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "10/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": "",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 33,
+  "availablequantity": 7,
+  "soldquantity": 0,
+  "ecompublishedquantity": 29,
+  "productstatus": "in_stock",
+  "modifieddate": 1761131220094
+}
+Filtered data result: {
+  "availableqty": 13,
+  "soldqty": 0,
+  "totalqty": 32,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "10/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": "",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 34,
+  "availablequantity": 8,
+  "soldquantity": 0,
+  "ecompublishedquantity": 30,
+  "productstatus": "in_stock",
+  "modifieddate": 1761131223790
+}
+Filtered data result: {
+  "availableqty": 14,
+  "soldqty": 0,
+  "totalqty": 33,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "10/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": "",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 35,
+  "availablequantity": 9,
+  "soldquantity": 0,
+  "ecompublishedquantity": 31,
+  "productstatus": "in_stock",
+  "modifieddate": 1761131228386
+}
+Filtered data result: {
+  "availableqty": 15,
+  "soldqty": 0,
+  "totalqty": 34,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "10/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": "",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 36,
+  "availablequantity": 10,
+  "soldquantity": 0,
+  "ecompublishedquantity": 32,
+  "productstatus": "in_stock",
+  "modifieddate": 1761131233205
+}
+Filtered data result: {
+  "availableqty": 16,
+  "soldqty": 0,
+  "totalqty": 35,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "10/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": "",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 37,
+  "availablequantity": 11,
+  "soldquantity": 0,
+  "ecompublishedquantity": 33,
+  "productstatus": "in_stock",
+  "modifieddate": 1761131236272
+}
+Filtered data result: {
+  "availableqty": 17,
+  "soldqty": 0,
+  "totalqty": 36,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "10/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": "",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 38,
+  "availablequantity": 12,
+  "soldquantity": 0,
+  "ecompublishedquantity": 34,
+  "productstatus": "in_stock",
+  "modifieddate": 1761131240471
+}
+Filtered data result: {
+  "availableqty": 18,
+  "soldqty": 0,
+  "totalqty": 37,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0040",
+  "platform": "amazon",
+  "batchno": "11/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "poid": 14,
+  "supplierid": 1,
+  "rfid": "",
+  "serialnumber": "",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 39,
+  "availablequantity": 13,
+  "soldquantity": 0,
+  "ecompublishedquantity": 35,
+  "productstatus": "in_stock",
+  "modifieddate": 1761131497632
+}
+Filtered data result: {
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 1,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "low_stock"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0040",
+  "platform": "amazon",
+  "batchno": "11/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "poid": 14,
+  "supplierid": 1,
+  "rfid": "",
+  "serialnumber": "",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 40,
+  "availablequantity": 14,
+  "soldquantity": 0,
+  "ecompublishedquantity": 36,
+  "productstatus": "in_stock",
+  "modifieddate": 1761131501902
+}
+Filtered data result: {
+  "availableqty": 2,
+  "soldqty": 0,
+  "totalqty": 2,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "low_stock"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0040",
+  "platform": "amazon",
+  "batchno": "11/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "poid": 14,
+  "supplierid": 1,
+  "rfid": "",
+  "serialnumber": "",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 41,
+  "availablequantity": 15,
+  "soldquantity": 0,
+  "ecompublishedquantity": 37,
+  "productstatus": "in_stock",
+  "modifieddate": 1761131505445
+}
+Filtered data result: {
+  "availableqty": 3,
+  "soldqty": 0,
+  "totalqty": 3,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "low_stock"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0040",
+  "platform": "amazon",
+  "batchno": "11/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "poid": 14,
+  "supplierid": 1,
+  "rfid": "",
+  "serialnumber": "",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 42,
+  "availablequantity": 16,
+  "soldquantity": 0,
+  "ecompublishedquantity": 38,
+  "productstatus": "in_stock",
+  "modifieddate": 1761131508452
+}
+Filtered data result: {
+  "availableqty": 4,
+  "soldqty": 0,
+  "totalqty": 4,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "low_stock"
+}
+Filtered data result: {
+  "puc": "NIV-IS-0040",
+  "platform": "amazon",
+  "batchno": "11/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "poid": 14,
+  "supplierid": 1,
+  "rfid": "",
+  "serialnumber": "",
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false
+}
+Filtered data result: {
+  "quantity": 43,
+  "availablequantity": 17,
+  "soldquantity": 0,
+  "ecompublishedquantity": 39,
+  "productstatus": "in_stock",
+  "modifieddate": 1761131511323
+}
+Filtered data result: {
+  "availableqty": 5,
+  "soldqty": 0,
+  "totalqty": 5,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "low_stock"
+}

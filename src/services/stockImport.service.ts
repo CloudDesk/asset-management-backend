@@ -1560,5 +1560,5 @@ export class StockImportService {
       logger.error({ error: error.message }, 'Error in insertValidatedRows');
       throw error;
     }
-  }
+  }  
 }

@@ -1499,3 +1499,515 @@ Filtered data: {
 }
 Ignored fields: []
 
+PlatformStock filter debug:
+Input data: {
+  "availableqty": 8,
+  "soldqty": 0,
+  "totalqty": 27,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Available columns: [
+  "id",
+  "productid",
+  "platform",
+  "availableqty",
+  "orderedqty",
+  "soldqty",
+  "totalqty",
+  "lockqty",
+  "createddate",
+  "modifieddate",
+  "platformstatus"
+]
+Filtered data: {
+  "availableqty": 8,
+  "soldqty": 0,
+  "totalqty": 27,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Ignored fields: []
+
+PlatformStock filter debug:
+Input data: {
+  "availableqty": 9,
+  "soldqty": 0,
+  "totalqty": 28,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Available columns: [
+  "id",
+  "productid",
+  "platform",
+  "availableqty",
+  "orderedqty",
+  "soldqty",
+  "totalqty",
+  "lockqty",
+  "createddate",
+  "modifieddate",
+  "platformstatus"
+]
+Filtered data: {
+  "availableqty": 9,
+  "soldqty": 0,
+  "totalqty": 28,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Ignored fields: []
+
+PlatformStock filter debug:
+Input data: {
+  "availableqty": 10,
+  "soldqty": 0,
+  "totalqty": 29,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Available columns: [
+  "id",
+  "productid",
+  "platform",
+  "availableqty",
+  "orderedqty",
+  "soldqty",
+  "totalqty",
+  "lockqty",
+  "createddate",
+  "modifieddate",
+  "platformstatus"
+]
+Filtered data: {
+  "availableqty": 10,
+  "soldqty": 0,
+  "totalqty": 29,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Ignored fields: []
+
+PlatformStock filter debug:
+Input data: {
+  "availableqty": 11,
+  "soldqty": 0,
+  "totalqty": 30,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Available columns: [
+  "id",
+  "productid",
+  "platform",
+  "availableqty",
+  "orderedqty",
+  "soldqty",
+  "totalqty",
+  "lockqty",
+  "createddate",
+  "modifieddate",
+  "platformstatus"
+]
+Filtered data: {
+  "availableqty": 11,
+  "soldqty": 0,
+  "totalqty": 30,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Ignored fields: []
+
+PlatformStock filter debug:
+Input data: {
+  "availableqty": 12,
+  "soldqty": 0,
+  "totalqty": 31,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Available columns: [
+  "id",
+  "productid",
+  "platform",
+  "availableqty",
+  "orderedqty",
+  "soldqty",
+  "totalqty",
+  "lockqty",
+  "createddate",
+  "modifieddate",
+  "platformstatus"
+]
+Filtered data: {
+  "availableqty": 12,
+  "soldqty": 0,
+  "totalqty": 31,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Ignored fields: []
+
+PlatformStock filter debug:
+Input data: {
+  "availableqty": 13,
+  "soldqty": 0,
+  "totalqty": 32,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Available columns: [
+  "id",
+  "productid",
+  "platform",
+  "availableqty",
+  "orderedqty",
+  "soldqty",
+  "totalqty",
+  "lockqty",
+  "createddate",
+  "modifieddate",
+  "platformstatus"
+]
+Filtered data: {
+  "availableqty": 13,
+  "soldqty": 0,
+  "totalqty": 32,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Ignored fields: []
+
+PlatformStock filter debug:
+Input data: {
+  "availableqty": 14,
+  "soldqty": 0,
+  "totalqty": 33,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Available columns: [
+  "id",
+  "productid",
+  "platform",
+  "availableqty",
+  "orderedqty",
+  "soldqty",
+  "totalqty",
+  "lockqty",
+  "createddate",
+  "modifieddate",
+  "platformstatus"
+]
+Filtered data: {
+  "availableqty": 14,
+  "soldqty": 0,
+  "totalqty": 33,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Ignored fields: []
+
+PlatformStock filter debug:
+Input data: {
+  "availableqty": 15,
+  "soldqty": 0,
+  "totalqty": 34,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Available columns: [
+  "id",
+  "productid",
+  "platform",
+  "availableqty",
+  "orderedqty",
+  "soldqty",
+  "totalqty",
+  "lockqty",
+  "createddate",
+  "modifieddate",
+  "platformstatus"
+]
+Filtered data: {
+  "availableqty": 15,
+  "soldqty": 0,
+  "totalqty": 34,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Ignored fields: []
+
+PlatformStock filter debug:
+Input data: {
+  "availableqty": 16,
+  "soldqty": 0,
+  "totalqty": 35,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Available columns: [
+  "id",
+  "productid",
+  "platform",
+  "availableqty",
+  "orderedqty",
+  "soldqty",
+  "totalqty",
+  "lockqty",
+  "createddate",
+  "modifieddate",
+  "platformstatus"
+]
+Filtered data: {
+  "availableqty": 16,
+  "soldqty": 0,
+  "totalqty": 35,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Ignored fields: []
+
+PlatformStock filter debug:
+Input data: {
+  "availableqty": 17,
+  "soldqty": 0,
+  "totalqty": 36,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Available columns: [
+  "id",
+  "productid",
+  "platform",
+  "availableqty",
+  "orderedqty",
+  "soldqty",
+  "totalqty",
+  "lockqty",
+  "createddate",
+  "modifieddate",
+  "platformstatus"
+]
+Filtered data: {
+  "availableqty": 17,
+  "soldqty": 0,
+  "totalqty": 36,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Ignored fields: []
+
+PlatformStock filter debug:
+Input data: {
+  "availableqty": 18,
+  "soldqty": 0,
+  "totalqty": 37,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Available columns: [
+  "id",
+  "productid",
+  "platform",
+  "availableqty",
+  "orderedqty",
+  "soldqty",
+  "totalqty",
+  "lockqty",
+  "createddate",
+  "modifieddate",
+  "platformstatus"
+]
+Filtered data: {
+  "availableqty": 18,
+  "soldqty": 0,
+  "totalqty": 37,
+  "orderedqty": 22,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Ignored fields: []
+
+PlatformStock filter debug:
+Input data: {
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 1,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "low_stock"
+}
+Available columns: [
+  "id",
+  "productid",
+  "platform",
+  "availableqty",
+  "orderedqty",
+  "soldqty",
+  "totalqty",
+  "lockqty",
+  "createddate",
+  "modifieddate",
+  "platformstatus"
+]
+Filtered data: {
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 1,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "low_stock"
+}
+Ignored fields: []
+
+PlatformStock filter debug:
+Input data: {
+  "availableqty": 2,
+  "soldqty": 0,
+  "totalqty": 2,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "low_stock"
+}
+Available columns: [
+  "id",
+  "productid",
+  "platform",
+  "availableqty",
+  "orderedqty",
+  "soldqty",
+  "totalqty",
+  "lockqty",
+  "createddate",
+  "modifieddate",
+  "platformstatus"
+]
+Filtered data: {
+  "availableqty": 2,
+  "soldqty": 0,
+  "totalqty": 2,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "low_stock"
+}
+Ignored fields: []
+
+PlatformStock filter debug:
+Input data: {
+  "availableqty": 3,
+  "soldqty": 0,
+  "totalqty": 3,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "low_stock"
+}
+Available columns: [
+  "id",
+  "productid",
+  "platform",
+  "availableqty",
+  "orderedqty",
+  "soldqty",
+  "totalqty",
+  "lockqty",
+  "createddate",
+  "modifieddate",
+  "platformstatus"
+]
+Filtered data: {
+  "availableqty": 3,
+  "soldqty": 0,
+  "totalqty": 3,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "low_stock"
+}
+Ignored fields: []
+
+PlatformStock filter debug:
+Input data: {
+  "availableqty": 4,
+  "soldqty": 0,
+  "totalqty": 4,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "low_stock"
+}
+Available columns: [
+  "id",
+  "productid",
+  "platform",
+  "availableqty",
+  "orderedqty",
+  "soldqty",
+  "totalqty",
+  "lockqty",
+  "createddate",
+  "modifieddate",
+  "platformstatus"
+]
+Filtered data: {
+  "availableqty": 4,
+  "soldqty": 0,
+  "totalqty": 4,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "low_stock"
+}
+Ignored fields: []
+
+PlatformStock filter debug:
+Input data: {
+  "availableqty": 5,
+  "soldqty": 0,
+  "totalqty": 5,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "low_stock"
+}
+Available columns: [
+  "id",
+  "productid",
+  "platform",
+  "availableqty",
+  "orderedqty",
+  "soldqty",
+  "totalqty",
+  "lockqty",
+  "createddate",
+  "modifieddate",
+  "platformstatus"
+]
+Filtered data: {
+  "availableqty": 5,
+  "soldqty": 0,
+  "totalqty": 5,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "low_stock"
+}
+Ignored fields: []
+
