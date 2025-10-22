@@ -12,11 +12,16 @@ async function start() {
         await redisClient.connect();
         console.log('✅ Redis connected successfully');
         const fastify = await buildServer();
-        // Start the server
+        const port = process.env.PORT || env.PORT || 5600;
         await fastify.listen({
-            port: env.PORT,
+            port: Number(port),
             host: '0.0.0.0',
         });
+        // Start the server
+        // await fastify.listen({
+        //  port: env.PORT,
+        //  host: '0.0.0.0',
+        //});
         fastify.log.info(`🚀 Server running at http://localhost:${env.PORT}`);
         fastify.log.info(`📚 API Documentation available at http://localhost:${env.PORT}/docs`);
         // Graceful shutdown
