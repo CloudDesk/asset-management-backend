@@ -1,3 +1,4 @@
+// src/utils/dynamicDbOperations.ts
 import { prisma } from '../models/prisma.js';
 import { logger } from '../config/logger.js';
 import { randomUUID } from 'crypto';
@@ -1187,6 +1188,202 @@ export async function dynamicFindUnique(
   } catch (error: any) {
     logger.error({ error: error.message, modelName, where }, 'Error in dynamic findUnique operation');
     return null;
+  }
+}
+
+/**
+ * Performs a dynamic bulk create operation using database-level bulk insert
+ * Uses raw SQL with VALUES clause for maximum performance
+ */
+export async function dynamicBulkCreate(
+  modelName: string,
+  dataArray: Record<string, any>[]
+): Promise<{ inserted: any[]; failures: { index: number; error: string }[] }> {
+  if (!dataArray || dataArray.length === 0) {
+    return { inserted: [], failures: [] };
+  }
+
+  try {
+    const tableName = getTableName(modelName);
+    const availableColumns = await discoverTableColumns(tableName);
+    
+    if (availableColumns.length === 0) {
+      logger.warn({ modelName, tableName }, 'No columns available for bulk create');
+      return { 
+        inserted: [], 
+        failures: dataArray.map((_, index) => ({ 
+          index, 
+          error: 'No columns available for bulk create' 
+        })) 
+      };
+    }
+
+    // Process first record to get column structure
+    const firstRecord = dataArray[0];
+    if (!firstRecord) {
+      logger.warn({ modelName }, 'No records provided for bulk create');
+      return { inserted: [], failures: [] };
+    }
+    const filteredFirstRecord = await filterInputDataBySchema(firstRecord, modelName, 'create');
+    
+    if (Object.keys(filteredFirstRecord).length === 0) {
+      logger.warn({ modelName, originalData: firstRecord }, 'No valid fields for bulk create operation');
+      return { 
+        inserted: [], 
+        failures: dataArray.map((_, index) => ({ 
+          index, 
+          error: 'No valid fields provided for bulk create' 
+        })) 
+      };
+    }
+
+    // Build column list from first record, excluding timestamp columns
+    const columns: string[] = [];
+    for (const [key, value] of Object.entries(filteredFirstRecord)) {
+      if (availableColumns.includes(key)) {
+        // Exclude timestamp columns - let database triggers handle them
+        if (key !== 'createddate' && key !== 'modifieddate' && key !== 'sku') {
+          columns.push(key);
+        }
+      }
+    }
+
+    if (columns.length === 0) {
+      logger.warn({ modelName, tableName }, 'No valid columns for bulk create');
+      return { 
+        inserted: [], 
+        failures: dataArray.map((_, index) => ({ 
+          index, 
+          error: 'No valid columns found for bulk create' 
+        })) 
+      };
+    }
+
+    // Process all records
+    const processedRecords: Record<string, any>[] = [];
+    const failures: { index: number; error: string }[] = [];
+
+    for (let i = 0; i < dataArray.length; i++) {
+      try {
+        const record = dataArray[i];
+        if (!record) {
+          failures.push({ 
+            index: i, 
+            error: 'Record is undefined' 
+          });
+          continue;
+        }
+        const filteredRecord = await filterInputDataBySchema(record, modelName, 'create');
+        
+        const rawData: Record<string, any> = {};
+        for (const [key, value] of Object.entries(filteredRecord)) {
+          // Only include columns that are in our filtered columns list
+          if (columns.includes(key)) {
+            // Handle JSON fields properly for PostgreSQL
+            if ((key === 'paymentdata' || key === 'items' || key === 'content' || key === 'conditions' || key === 'action') && value !== null && value !== undefined) {
+              rawData[key] = typeof value === 'string' ? value : JSON.stringify(value);
+            } else {
+              rawData[key] = value;
+            }
+          }
+        }
+
+        processedRecords.push(rawData);
+      } catch (error: any) {
+        failures.push({ 
+          index: i, 
+          error: error.message || 'Failed to process record for bulk create' 
+        });
+      }
+    }
+
+    if (processedRecords.length === 0) {
+      logger.warn({ modelName }, 'No valid records for bulk create');
+      return { inserted: [], failures };
+    }
+
+    // Build bulk INSERT query with VALUES clause
+    const columnsList = columns.map(col => `"${col}"`).join(', ');
+    
+    // Build VALUES clause for all records
+    const valuesClauses: string[] = [];
+    const allValues: any[] = [];
+    
+    for (let i = 0; i < processedRecords.length; i++) {
+      const record = processedRecords[i];
+      if (!record) continue;
+      const recordValues: any[] = [];
+      
+      for (const col of columns) {
+        const value = record[col];
+        
+        // Handle JSON fields with explicit casting
+        if ((col === 'paymentdata' || col === 'items' || col === 'conditions' || col === 'action') && value !== null && value !== undefined) {
+          recordValues.push(value);
+        } else {
+          recordValues.push(value);
+        }
+      }
+      
+      const placeholders = recordValues.map((_, index) => {
+        const col = columns[index];
+        if ((col === 'paymentdata' || col === 'items' || col === 'conditions' || col === 'action') && recordValues[index] !== null && recordValues[index] !== undefined) {
+          return `$${allValues.length + index + 1}::jsonb`;
+        }
+        return `$${allValues.length + index + 1}`;
+      }).join(', ');
+      
+      valuesClauses.push(`(${placeholders})`);
+      allValues.push(...recordValues);
+    }
+
+    // Use safe columns for RETURNING to avoid tsvector issues
+    const { columnList: safeColumnsList } = await getSafeColumnsForTable(tableName);
+    
+    const bulkInsertQuery = `
+      INSERT INTO "${tableName}" (${columnsList}) 
+      VALUES ${valuesClauses.join(', ')} 
+      RETURNING ${safeColumnsList}
+    `;
+    
+    logger.debug({ 
+      modelName, 
+      tableName, 
+      recordCount: processedRecords.length,
+      columnCount: columns.length,
+      query: bulkInsertQuery.substring(0, 200) + '...'
+    }, 'Executing dynamic bulk create query');
+    
+    const result = await prisma.$queryRawUnsafe(bulkInsertQuery, ...allValues);
+    const insertedRecords = Array.isArray(result) ? result : [];
+    
+    logger.info({ 
+      modelName, 
+      insertedCount: insertedRecords.length,
+      totalProcessed: processedRecords.length,
+      failures: failures.length
+    }, 'Dynamic bulk create completed successfully');
+    
+    return { 
+      inserted: insertedRecords.map(record => convertBigIntToNumber(record)), 
+      failures 
+    };
+    
+  } catch (error: any) {
+    logger.error({ 
+      error: error.message, 
+      modelName, 
+      recordCount: dataArray.length 
+    }, 'Error in dynamic bulk create operation');
+    
+    // Return all records as failures
+    return { 
+      inserted: [], 
+      failures: dataArray.map((_, index) => ({ 
+        index, 
+        error: error.message || 'Bulk create operation failed' 
+      })) 
+    };
   }
 }
 

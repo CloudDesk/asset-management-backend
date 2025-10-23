@@ -1,3 +1,4 @@
+//src/services/stock.service.ts
 import { prisma } from "../models/prisma.js";
 import {
   CreateStockInput,
@@ -16,6 +17,7 @@ import {
   dynamicCount,
   dynamicFindUnique,
   dynamicCreate,
+  dynamicBulkCreate,
   dynamicUpdate,
   dynamicDelete,
   dynamicFindManyWithFilters,
@@ -458,6 +460,804 @@ export class StockService {
     }
   
     return { inserted, failures };
+  }
+
+  /**
+   * Direct bulk insert using database-level operations
+   * Uses single SQL query with VALUES clause for maximum performance
+   */
+  async createBulkDirect(
+    dataArray: (CreateStockInput & Record<string, any>)[],
+    options: {
+      batchSize?: number;
+    } = {}
+  ): Promise<{ 
+    inserted: any[]; 
+    failures: { index: number; error: string }[];
+    summary: {
+      total: number;
+      processed: number;
+      successful: number;
+      failed: number;
+      batchesProcessed: number;
+    };
+    productUpdates: {
+      attempted: number;
+      succeeded: number;
+      failed: number;
+      failures: Array<{ identifier: string; message: string; }>;
+    };
+    platformStockUpdates: {
+      attempted: number;
+      succeeded: number;
+      failed: number;
+      failures: Array<{ productId: number; platform: string; message: string; }>;
+    };
+  }> {
+    // Apply safe batch size limits for createMany operations
+    const MAX_BATCH_SIZE = 1000;  // Higher limit for createMany
+    const DEFAULT_BATCH_SIZE = 500;  // Optimal for most databases
+    const MIN_BATCH_SIZE = 50;   // Minimum for createMany efficiency
+    
+    let { batchSize = DEFAULT_BATCH_SIZE } = options;
+    
+    // Enforce batch size limits
+    if (batchSize > MAX_BATCH_SIZE) {
+      logger.warn({
+        requestedBatchSize: batchSize,
+        maxAllowedBatchSize: MAX_BATCH_SIZE,
+        appliedBatchSize: MAX_BATCH_SIZE
+      }, 'Batch size exceeds maximum limit for createMany, applying safe limit');
+      batchSize = MAX_BATCH_SIZE;
+    }
+    
+    if (batchSize < MIN_BATCH_SIZE) {
+      logger.warn({
+        requestedBatchSize: batchSize,
+        minAllowedBatchSize: MIN_BATCH_SIZE,
+        appliedBatchSize: MIN_BATCH_SIZE
+      }, 'Batch size below minimum limit for createMany, applying minimum limit');
+      batchSize = MIN_BATCH_SIZE;
+    }
+
+    const inserted: any[] = [];
+    const failures: { index: number; error: string }[] = [];
+    let batchesProcessed = 0;
+
+    logger.info({
+      totalRecords: dataArray.length,
+      batchSize,
+      method: 'databaseLevelBulkInsert'
+    }, 'Starting bulk stock insert using database-level bulk operations');
+
+    // Process in batches using database-level bulk operations
+    for (let i = 0; i < dataArray.length; i += batchSize) {
+      const batch = dataArray.slice(i, i + batchSize);
+      const batchNumber = Math.floor(i / batchSize) + 1;
+      
+      logger.info({
+        batchNumber,
+        batchSize: batch.length,
+        startIndex: i,
+        endIndex: i + batch.length - 1
+      }, 'Processing batch with createMany');
+
+      try {
+        // Prepare data for createMany (remove instances field and expand)
+        const expandedBatch: any[] = [];
+        let currentIndex = i;
+        
+        for (const item of batch) {
+          const { instances, ...stockData } = item;
+          const instanceCount = instances || 1;
+          
+          // Create multiple identical records
+          for (let j = 0; j < instanceCount; j++) {
+            expandedBatch.push({
+              ...stockData,
+              // Let database triggers handle timestamps
+              createddate: undefined,
+              modifieddate: undefined
+            });
+            currentIndex++;
+          }
+        }
+
+        // Use database-agnostic bulk insert through dynamicDbOperations
+        const bulkInsertResult = await this.dynamicBulkCreate('stock', expandedBatch);
+
+        // Process the results
+        const batchInserted = bulkInsertResult.inserted || [];
+        const batchFailures = bulkInsertResult.failures || [];
+
+        inserted.push(...batchInserted);
+        failures.push(...batchFailures);
+        batchesProcessed++;
+
+        logger.info({
+          batchNumber,
+          recordsCreated: batchInserted.length,
+          recordsFailed: batchFailures.length,
+          batchSize: expandedBatch.length
+        }, 'Batch database-level bulk insert completed successfully');
+
+      } catch (error: any) {
+        logger.error({
+          batchNumber,
+          error: error.message,
+          batchSize: batch.length
+        }, 'Batch database-level bulk insert failed');
+
+        // Add all records in this batch as failures
+        batch.forEach((_, index) => {
+          failures.push({
+            index: i + index,
+            error: `Batch database-level bulk insert failed: ${error.message}`
+          });
+        });
+      }
+    }
+
+    // Update product and platform stock quantities for successful inserts
+    let productUpdates: {
+      attempted: number;
+      succeeded: number;
+      failed: number;
+      failures: Array<{ identifier: string; message: string; }>;
+    };
+    let platformStockUpdates: {
+      attempted: number;
+      succeeded: number;
+      failed: number;
+      failures: Array<{ productId: number; platform: string; message: string; }>;
+    };
+    
+    if (inserted.length > 0) {
+      logger.info({
+        successfulInserts: inserted.length
+      }, 'Updating product quantities and platform stock for successful inserts');
+      
+      try {
+        const updateResults = await this.updateProductAndPlatformStockForBulkInsert(inserted);
+        productUpdates = updateResults.productUpdates;
+        platformStockUpdates = updateResults.platformStockUpdates;
+        
+        logger.info({
+          productUpdates: productUpdates,
+          platformStockUpdates: platformStockUpdates
+        }, 'Product and platform stock updates completed successfully');
+      } catch (error: any) {
+        logger.error({
+          error: error.message,
+          successfulInserts: inserted.length
+        }, 'Failed to update product quantities and platform stock');
+        
+        productUpdates = {
+          attempted: inserted.length,
+          succeeded: 0,
+          failed: inserted.length,
+          failures: [{ identifier: 'bulk_update', message: error.message }]
+        };
+        platformStockUpdates = {
+          attempted: inserted.length,
+          succeeded: 0,
+          failed: inserted.length,
+          failures: [{ productId: 0, platform: 'unknown', message: error.message }]
+        };
+      }
+    } else {
+      productUpdates = {
+        attempted: 0,
+        succeeded: 0,
+        failed: 0,
+        failures: []
+      };
+      platformStockUpdates = {
+        attempted: 0,
+        succeeded: 0,
+        failed: 0,
+        failures: []
+      };
+    }
+
+    const summary = {
+      total: dataArray.length,
+      processed: inserted.length + failures.length,
+      successful: inserted.length,
+      failed: failures.length,
+      batchesProcessed
+    };
+
+    logger.info({
+      summary,
+      productUpdates: productUpdates,
+      platformStockUpdates: platformStockUpdates,
+      method: 'databaseLevelBulkInsert'
+    }, 'bulk insert completed');
+
+    return {
+      inserted,
+      failures,
+      summary,
+      productUpdates,
+      platformStockUpdates
+    };
+  }
+
+  /**
+   * Optimized bulk insert with batch processing
+   * Processes records in configurable batches to avoid timeouts
+   */
+  async createBulkOptimized(
+    dataArray: (CreateStockInput & Record<string, any>)[],
+    options: {
+      batchSize?: number;
+      maxConcurrency?: number;
+    } = {}
+  ): Promise<{ 
+    inserted: any[]; 
+    failures: { index: number; error: string }[];
+    summary: {
+      total: number;
+      processed: number;
+      successful: number;
+      failed: number;
+      batchesProcessed: number;
+    };
+    productUpdates: {
+      attempted: number;
+      succeeded: number;
+      failed: number;
+      failures: Array<{ identifier: string; message: string; }>;
+    };
+    platformStockUpdates: {
+      attempted: number;
+      succeeded: number;
+      failed: number;
+      failures: Array<{ productId: number; platform: string; message: string; }>;
+    };
+  }> {
+    // Apply safe batch size limits based on GCP Cloud Run performance
+    const MAX_BATCH_SIZE = 200;  // Maximum safe batch size
+    const DEFAULT_BATCH_SIZE = 100;  // Conservative default for reliability
+    const MIN_BATCH_SIZE = 10;   // Minimum batch size
+    
+    let { batchSize = DEFAULT_BATCH_SIZE, maxConcurrency = 3 } = options;
+    
+    // Enforce batch size limits
+    if (batchSize > MAX_BATCH_SIZE) {
+      logger.warn({
+        requestedBatchSize: batchSize,
+        maxAllowedBatchSize: MAX_BATCH_SIZE,
+        appliedBatchSize: MAX_BATCH_SIZE
+      }, 'Batch size exceeds maximum limit, applying safe limit');
+      batchSize = MAX_BATCH_SIZE;
+    }
+    
+    if (batchSize < MIN_BATCH_SIZE) {
+      logger.warn({
+        requestedBatchSize: batchSize,
+        minAllowedBatchSize: MIN_BATCH_SIZE,
+        appliedBatchSize: MIN_BATCH_SIZE
+      }, 'Batch size below minimum limit, applying minimum limit');
+      batchSize = MIN_BATCH_SIZE;
+    }
+    const inserted = [];
+    const failures = [];
+    let batchesProcessed = 0;
+
+    logger.info({
+      totalRecords: dataArray.length,
+      batchSize,
+      maxConcurrency
+    }, 'Starting optimized bulk stock insert with automatic product/platform stock updates');
+
+    // Process in batches
+    for (let i = 0; i < dataArray.length; i += batchSize) {
+      const batch = dataArray.slice(i, i + batchSize);
+      const batchNumber = Math.floor(i / batchSize) + 1;
+      
+      logger.info({
+        batchNumber,
+        batchSize: batch.length,
+        startIndex: i,
+        endIndex: i + batch.length - 1
+      }, 'Processing batch');
+
+      try {
+        // Process batch with controlled concurrency
+        const batchResults = await this.processBatchWithConcurrency(
+          batch, 
+          i, // starting index for error reporting
+          { maxConcurrency }
+        );
+
+        inserted.push(...batchResults.inserted);
+        failures.push(...batchResults.failures);
+        batchesProcessed++;
+
+        logger.info({
+          batchNumber,
+          batchInserted: batchResults.inserted.length,
+          batchFailures: batchResults.failures.length
+        }, 'Batch completed');
+
+      } catch (error: any) {
+        logger.error({
+          batchNumber,
+          error: error.message,
+          batchSize: batch.length
+        }, 'Batch processing failed');
+
+        // Add all records in this batch as failures
+        batch.forEach((_, index) => {
+          failures.push({
+            index: i + index,
+            error: `Batch processing failed: ${error.message}`
+          });
+        });
+      }
+    }
+
+    // Always update product quantities and platform stock for successful inserts
+    // This ensures data integrity in inventory management
+    let productUpdates: {
+      attempted: number;
+      succeeded: number;
+      failed: number;
+      failures: Array<{ identifier: string; message: string; }>;
+    };
+    let platformStockUpdates: {
+      attempted: number;
+      succeeded: number;
+      failed: number;
+      failures: Array<{ productId: number; platform: string; message: string; }>;
+    };
+    
+    if (inserted.length > 0) {
+      logger.info({
+        successfulInserts: inserted.length
+      }, 'Updating product quantities and platform stock for successful inserts (inventory integrity)');
+      
+      try {
+        const updateResults = await this.updateProductAndPlatformStockForBulkInsert(inserted);
+        productUpdates = updateResults.productUpdates;
+        platformStockUpdates = updateResults.platformStockUpdates;
+        
+        logger.info({
+          productUpdates: productUpdates,
+          platformStockUpdates: platformStockUpdates
+        }, 'Product and platform stock updates completed successfully');
+      } catch (error: any) {
+        logger.error({
+          error: error.message,
+          successfulInserts: inserted.length
+        }, 'Failed to update product quantities and platform stock - CRITICAL for inventory integrity');
+        
+        // Don't fail the entire operation, but log as critical error
+        productUpdates = {
+          attempted: inserted.length,
+          succeeded: 0,
+          failed: inserted.length,
+          failures: [{ identifier: 'bulk_update', message: error.message }]
+        };
+        platformStockUpdates = {
+          attempted: inserted.length,
+          succeeded: 0,
+          failed: inserted.length,
+          failures: [{ productId: 0, platform: 'unknown', message: error.message }]
+        };
+      }
+    } else {
+      // No successful inserts, no updates needed
+      productUpdates = {
+        attempted: 0,
+        succeeded: 0,
+        failed: 0,
+        failures: []
+      };
+      platformStockUpdates = {
+        attempted: 0,
+        succeeded: 0,
+        failed: 0,
+        failures: []
+      };
+    }
+
+    const summary = {
+      total: dataArray.length,
+      processed: inserted.length + failures.length,
+      successful: inserted.length,
+      failed: failures.length,
+      batchesProcessed
+    };
+
+    logger.info({
+      summary,
+      productUpdates: productUpdates,
+      platformStockUpdates: platformStockUpdates
+    }, 'Bulk insert completed');
+
+    return {
+      inserted,
+      failures,
+      summary,
+      productUpdates,
+      platformStockUpdates
+    };
+  }
+
+  /**
+   * Database-level bulk create using dynamicDbOperations
+   * Uses single SQL query with VALUES clause for maximum performance
+   */
+  private async dynamicBulkCreate(
+    modelName: string,
+    dataArray: any[]
+  ): Promise<{ inserted: any[]; failures: { index: number; error: string }[] }> {
+    logger.debug({
+      modelName,
+      recordCount: dataArray.length
+    }, 'Starting database-level bulk create');
+
+    // Use the new dynamicBulkCreate function from dynamicDbOperations
+    const result = await dynamicBulkCreate(modelName, dataArray);
+
+    logger.debug({
+      modelName,
+      insertedCount: result.inserted.length,
+      failureCount: result.failures.length,
+      totalCount: dataArray.length
+    }, 'Database-level bulk create completed');
+
+    return result;
+  }
+
+  /**
+   * Process a batch with controlled concurrency to avoid overwhelming the database
+   */
+  private async processBatchWithConcurrency(
+    batch: (CreateStockInput & Record<string, any>)[],
+    startIndex: number,
+    options: { maxConcurrency?: number }
+  ): Promise<{ inserted: any[]; failures: { index: number; error: string }[] }> {
+    const { maxConcurrency = 3 } = options;
+    const inserted: any[] = [];
+    const failures: { index: number; error: string }[] = [];
+
+    // Process records in chunks to control concurrency
+    for (let i = 0; i < batch.length; i += maxConcurrency) {
+      const chunk = batch.slice(i, i + maxConcurrency);
+      
+      const chunkPromises = chunk.map(async (record, chunkIndex) => {
+        const actualIndex = startIndex + i + chunkIndex;
+        try {
+          const stock = await this.create(record as any, { skipProductUpdate: true });
+          return { success: true, data: stock, index: actualIndex };
+        } catch (err: any) {
+          return { 
+            success: false, 
+            error: err.message || "Failed to insert stock", 
+            index: actualIndex 
+          };
+        }
+      });
+
+      const chunkResults = await Promise.all(chunkPromises);
+      
+      chunkResults.forEach(result => {
+        if (result.success) {
+          inserted.push(result.data);
+        } else {
+          failures.push({ index: result.index, error: result.error });
+        }
+      });
+    }
+
+    return { inserted, failures };
+  }
+
+  /**
+   * Async bulk insert for very large datasets (>1000 records)
+   * Returns immediately with job ID, processes in background
+   */
+  async createBulkAsync(
+    dataArray: (CreateStockInput & Record<string, any>)[],
+    options: {
+      batchSize?: number;
+      maxConcurrency?: number;
+    } = {}
+  ): Promise<{ 
+    jobId: string;
+    status: 'queued';
+    totalRecords: number;
+    estimatedBatches: number;
+  }> {
+    // Apply same safe batch size limits for async processing
+    const MAX_BATCH_SIZE = 200;
+    const DEFAULT_BATCH_SIZE = 100;
+    const MIN_BATCH_SIZE = 10;
+    
+    let { batchSize = DEFAULT_BATCH_SIZE } = options;
+    
+    // Enforce batch size limits
+    if (batchSize > MAX_BATCH_SIZE) {
+      batchSize = MAX_BATCH_SIZE;
+    }
+    if (batchSize < MIN_BATCH_SIZE) {
+      batchSize = MIN_BATCH_SIZE;
+    }
+    const jobId = `bulk_stock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const estimatedBatches = Math.ceil(dataArray.length / batchSize);
+
+    logger.info({
+      jobId,
+      totalRecords: dataArray.length,
+      estimatedBatches,
+      batchSize
+    }, 'Queuing async bulk insert job');
+
+    // Queue the job for background processing
+    setImmediate(async () => {
+      try {
+        await this.processAsyncBulkJob(jobId, dataArray, options);
+      } catch (error: any) {
+        logger.error({
+          jobId,
+          error: error.message
+        }, 'Async bulk insert job failed');
+      }
+    });
+
+    return {
+      jobId,
+      status: 'queued',
+      totalRecords: dataArray.length,
+      estimatedBatches
+    };
+  }
+
+  /**
+   * Update product quantities and platform stock for successful bulk inserts
+   */
+  private async updateProductAndPlatformStockForBulkInsert(
+    insertedStocks: any[]
+  ): Promise<{
+    productUpdates: {
+      attempted: number;
+      succeeded: number;
+      failed: number;
+      failures: Array<{ identifier: string; message: string; }>;
+    };
+    platformStockUpdates: {
+      attempted: number;
+      succeeded: number;
+      failed: number;
+      failures: Array<{ productId: number; platform: string; message: string; }>;
+    };
+  }> {
+    const productService = new ProductService();
+    const platformStockService = new PlatformStockService();
+    
+    const productUpdateFailures: Array<{ identifier: string; message: string; }> = [];
+    const platformStockUpdateFailures: Array<{ productId: number; platform: string; message: string; }> = [];
+    
+    let productUpdatesSucceeded = 0;
+    let platformStockUpdatesSucceeded = 0;
+    
+    logger.info({
+      totalInsertedStocks: insertedStocks.length
+    }, 'Starting product and platform stock updates for bulk insert');
+
+    // Group stocks by product for efficient updates
+    const stocksByProduct = new Map<string, any[]>();
+    
+    for (const stock of insertedStocks) {
+      if (stock.puc) {
+        if (!stocksByProduct.has(stock.puc)) {
+          stocksByProduct.set(stock.puc, []);
+        }
+        stocksByProduct.get(stock.puc)!.push(stock);
+      }
+    }
+
+    // Update product quantities using the same logic as single stock insert
+    for (const [puc, stocks] of stocksByProduct) {
+      try {
+        // Find the product by PUC
+        const products = await dynamicFindMany('product', {
+          where: { puc: puc },
+          take: 1
+        });
+        
+        if (products && products.length > 0) {
+          const product = products[0];
+          
+          // Use the same logic as single stock insert: each stock record counts as 1 unit
+          // Call updateStockTotals to recalculate all quantities based on actual stock records
+          const updateResult = await productService.updateStockTotals(puc);
+          
+          productUpdatesSucceeded++;
+          
+          logger.debug({
+            puc,
+            productId: product.id,
+            stocksCount: stocks.length,
+            updateResult
+          }, 'Product quantities updated successfully using updateStockTotals');
+        } else {
+          productUpdateFailures.push({
+            identifier: puc,
+            message: 'Product not found by PUC'
+          });
+        }
+      } catch (error: any) {
+        productUpdateFailures.push({
+          identifier: puc,
+          message: error.message || 'Failed to update product quantities'
+        });
+        
+        logger.error({
+          puc,
+          error: error.message,
+          stocksCount: stocks.length
+        }, 'Failed to update product quantities');
+      }
+    }
+
+    // Update platform stock quantities - GROUPED BY (productId, platform) for efficiency
+    const platformStockGroups = new Map<string, any[]>();
+    
+    // Group stocks by (puc, platform) combination
+    for (const stock of insertedStocks) {
+      if (stock.puc && stock.platform) {
+        const groupKey = `${stock.puc}-${stock.platform}`;
+        if (!platformStockGroups.has(groupKey)) {
+          platformStockGroups.set(groupKey, []);
+        }
+        platformStockGroups.get(groupKey)!.push(stock);
+      }
+    }
+    
+    // Process each group with a single update
+    for (const [groupKey, stocks] of platformStockGroups) {
+      try {
+        const firstStock = stocks[0];
+        const puc = firstStock.puc;
+        const platform = firstStock.platform;
+        
+        // Find the product by PUC
+        const products = await dynamicFindMany('product', {
+          where: { puc: puc },
+          take: 1
+        });
+        
+        if (products && products.length > 0) {
+          const product = products[0];
+          
+          // Calculate aggregated quantities for this group - each stock record counts as 1 unit
+          const totalQuantity = stocks.length; // Count of stock records
+          const availableQuantity = stocks.filter(s => s.stockstatus === 'available').length;
+          const soldQuantity = stocks.filter(s => s.stockstatus === 'sold').length;
+          const ecompublishedQuantity = stocks.filter(s => s.ecompublish === true).length;
+          
+          // Determine the most common status and ecompublish setting
+          const statusCounts = stocks.reduce((acc, stock) => {
+            acc[stock.stockstatus] = (acc[stock.stockstatus] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>);
+          const mostCommonStatus = Object.keys(statusCounts).reduce((a, b) => statusCounts[a] > statusCounts[b] ? a : b);
+          const mostCommonEcompublish = stocks.filter(s => s.ecompublish === true).length > stocks.length / 2;
+          
+          // Update platform stock with aggregated data - each stock record counts as 1 unit
+          await platformStockService.updatePlatformStockQuantities(
+            product.id,
+            platform,
+            {
+              ecompublish: mostCommonEcompublish,
+              stockstatus: mostCommonStatus,
+              quantity: totalQuantity, // Use count of stock records
+              isNewStock: true,
+              operation: 'create'
+            }
+          );
+          
+          platformStockUpdatesSucceeded++;
+          
+          logger.debug({
+            productId: product.id,
+            platform: platform,
+            totalQuantity: totalQuantity,
+            availableQuantity: availableQuantity,
+            soldQuantity: soldQuantity,
+            ecompublishedQuantity: ecompublishedQuantity,
+            stocksInGroup: stocks.length,
+            mostCommonStatus: mostCommonStatus,
+            mostCommonEcompublish: mostCommonEcompublish
+          }, 'Platform stock quantities updated successfully for group');
+        } else {
+          platformStockUpdateFailures.push({
+            productId: 0,
+            platform: platform,
+            message: `Product not found for PUC: ${puc}`
+          });
+        }
+      } catch (error: any) {
+        const firstStock = stocks[0];
+        platformStockUpdateFailures.push({
+          productId: 0,
+          platform: firstStock.platform,
+          message: error.message || 'Failed to update platform stock quantities'
+        });
+        
+        logger.error({
+          groupKey: groupKey,
+          stocksInGroup: stocks.length,
+          error: error.message
+        }, 'Failed to update platform stock quantities for group');
+      }
+    }
+
+    const result = {
+      productUpdates: {
+        attempted: stocksByProduct.size,
+        succeeded: productUpdatesSucceeded,
+        failed: productUpdateFailures.length,
+        failures: productUpdateFailures
+      },
+      platformStockUpdates: {
+        attempted: platformStockGroups.size,
+        succeeded: platformStockUpdatesSucceeded,
+        failed: platformStockUpdateFailures.length,
+        failures: platformStockUpdateFailures
+      }
+    };
+
+    logger.info({
+      productUpdates: result.productUpdates,
+      platformStockUpdates: result.platformStockUpdates
+    }, 'Product and platform stock updates completed');
+
+    return result;
+  }
+
+  /**
+   * Process async bulk job in background
+   */
+  private async processAsyncBulkJob(
+    jobId: string,
+    dataArray: (CreateStockInput & Record<string, any>)[],
+    options: any
+  ): Promise<void> {
+    const startTime = Date.now();
+    
+    try {
+      logger.info({ jobId }, 'Starting async bulk insert job');
+      
+      const result = await this.createBulkDirect(dataArray, options);
+      
+      const duration = Date.now() - startTime;
+      logger.info({
+        jobId,
+        duration,
+        summary: result.summary,
+        productUpdates: result.productUpdates,
+        platformStockUpdates: result.platformStockUpdates
+      }, 'Async bulk insert job completed');
+
+      // Here you could store the result in Redis or database for status checking
+      // await this.storeJobResult(jobId, result);
+
+    } catch (error: any) {
+      const duration = Date.now() - startTime;
+      logger.error({
+        jobId,
+        duration,
+        error: error.message
+      }, 'Async bulk insert job failed');
+      
+      throw error;
+    }
   }
   
   async update(id: string, data: UpdateStockInput & Record<string, any>) {
