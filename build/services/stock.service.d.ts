@@ -48,6 +48,115 @@ export declare class StockService {
             error: string;
         }[];
     }>;
+    /**
+     * Direct bulk insert using database-level operations
+     * Uses single SQL query with VALUES clause for maximum performance
+     */
+    createBulkDirect(dataArray: (CreateStockInput & Record<string, any>)[], options?: {
+        batchSize?: number;
+    }): Promise<{
+        inserted: any[];
+        failures: {
+            index: number;
+            error: string;
+        }[];
+        summary: {
+            total: number;
+            processed: number;
+            successful: number;
+            failed: number;
+            batchesProcessed: number;
+        };
+        productUpdates: {
+            attempted: number;
+            succeeded: number;
+            failed: number;
+            failures: Array<{
+                identifier: string;
+                message: string;
+            }>;
+        };
+        platformStockUpdates: {
+            attempted: number;
+            succeeded: number;
+            failed: number;
+            failures: Array<{
+                productId: number;
+                platform: string;
+                message: string;
+            }>;
+        };
+    }>;
+    /**
+     * Optimized bulk insert with batch processing
+     * Processes records in configurable batches to avoid timeouts
+     */
+    createBulkOptimized(dataArray: (CreateStockInput & Record<string, any>)[], options?: {
+        batchSize?: number;
+        maxConcurrency?: number;
+    }): Promise<{
+        inserted: any[];
+        failures: {
+            index: number;
+            error: string;
+        }[];
+        summary: {
+            total: number;
+            processed: number;
+            successful: number;
+            failed: number;
+            batchesProcessed: number;
+        };
+        productUpdates: {
+            attempted: number;
+            succeeded: number;
+            failed: number;
+            failures: Array<{
+                identifier: string;
+                message: string;
+            }>;
+        };
+        platformStockUpdates: {
+            attempted: number;
+            succeeded: number;
+            failed: number;
+            failures: Array<{
+                productId: number;
+                platform: string;
+                message: string;
+            }>;
+        };
+    }>;
+    /**
+     * Database-level bulk create using dynamicDbOperations
+     * Uses single SQL query with VALUES clause for maximum performance
+     */
+    private dynamicBulkCreate;
+    /**
+     * Process a batch with controlled concurrency to avoid overwhelming the database
+     */
+    private processBatchWithConcurrency;
+    /**
+     * Async bulk insert for very large datasets (>1000 records)
+     * Returns immediately with job ID, processes in background
+     */
+    createBulkAsync(dataArray: (CreateStockInput & Record<string, any>)[], options?: {
+        batchSize?: number;
+        maxConcurrency?: number;
+    }): Promise<{
+        jobId: string;
+        status: 'queued';
+        totalRecords: number;
+        estimatedBatches: number;
+    }>;
+    /**
+     * Update product quantities and platform stock for successful bulk inserts
+     */
+    private updateProductAndPlatformStockForBulkInsert;
+    /**
+     * Process async bulk job in background
+     */
+    private processAsyncBulkJob;
     update(id: string, data: UpdateStockInput & Record<string, any>): Promise<any>;
     private updateProductByPuc;
     delete(id: string): Promise<void>;

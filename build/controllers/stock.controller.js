@@ -52,7 +52,11 @@ export class StockController {
         const response = createSuccessResponse('Stock created successfully', formatStockForAPI(stock));
         return reply.code(201).send(response);
     });
-    createBulkStocks = asyncHandler(async (request, reply) => {
+    /**
+     * Legacy bulk insert method (old approach)
+     * Uses individual record creation - slower but more reliable for small datasets
+     */
+    createBulkStocksLegacy = asyncHandler(async (request, reply) => {
         const stockArray = request.body;
         if (!Array.isArray(stockArray) || stockArray.length === 0) {
             throw new Error("Request body must be a non-empty array");
@@ -64,6 +68,65 @@ export class StockController {
             success,
             insertedCount: result.inserted.length,
             failures: result.failures,
+        });
+    });
+    /**
+     * Expand records with instances field for efficient bulk operations
+     * Converts single objects with instances into multiple identical records
+     * instances field is now mandatory (minimum: 1)
+     */
+    expandRecordsWithInstances(stockArray) {
+        const expandedArray = [];
+        for (const stockRecord of stockArray) {
+            const { instances, ...stockData } = stockRecord;
+            // instances is now mandatory, validate it
+            if (typeof instances !== 'number' || instances < 1) {
+                throw new Error(`instances field is mandatory and must be a positive number (received: ${instances})`);
+            }
+            // Validate instances limits
+            const instanceCount = Math.min(Math.max(instances, 1), 10000);
+            if (instanceCount !== instances) {
+                console.warn(`instances ${instances} was clamped to ${instanceCount} (min: 1, max: 10000)`);
+            }
+            // Create multiple identical records
+            for (let i = 0; i < instanceCount; i++) {
+                expandedArray.push({ ...stockData });
+            }
+        }
+        return expandedArray;
+    }
+    /**
+     * Optimized bulk insert with direct DB operations
+     * Uses createMany for maximum performance with batch processing
+     */
+    createBulkStocks = asyncHandler(async (request, reply) => {
+        const stockArray = request.body;
+        const query = request.query;
+        if (!Array.isArray(stockArray) || stockArray.length === 0) {
+            throw new Error("Request body must be a non-empty array");
+        }
+        // Expand records with instances field
+        const expandedStockArray = this.expandRecordsWithInstances(stockArray);
+        const options = {};
+        if (query.batchSize) {
+            const requestedBatchSize = parseInt(query.batchSize, 10);
+            // Validate batch size limits
+            if (isNaN(requestedBatchSize) || requestedBatchSize <= 0) {
+                throw new Error("Invalid batchSize parameter. Must be a positive number.");
+            }
+            options.batchSize = requestedBatchSize;
+        }
+        // Always use synchronous direct DB processing for immediate results
+        const result = await this.stockService.createBulkDirect(expandedStockArray, options);
+        const success = result.failures.length === 0;
+        const code = success ? 201 : 207;
+        return reply.code(code).send({
+            success,
+            insertedCount: result.inserted.length,
+            failures: result.failures,
+            summary: result.summary,
+            productUpdates: result.productUpdates,
+            platformStockUpdates: result.platformStockUpdates,
         });
     });
     updateStock = asyncHandler(async (request, reply) => {
