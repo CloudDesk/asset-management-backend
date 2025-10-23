@@ -323,8 +323,9 @@ export async function stockRoutes(fastify: FastifyInstance) {
     },
   }, stockController.createStock.bind(stockController));
 
+  // Legacy bulk insert endpoint (old method)
   fastify.post(
-    '/bulk-insert',
+    '/bulk-insert-old',
     {
       schema: {
         description: 'Create multiple stock entries in bulk',
@@ -387,12 +388,12 @@ export async function stockRoutes(fastify: FastifyInstance) {
         },
       },
     },
-    stockController.createBulkStocks.bind(stockController)
+    stockController.createBulkStocksLegacy.bind(stockController)
   );
 
-  // New optimized bulk insert endpoint
+  // New optimized bulk insert endpoint (direct DB insert)
   fastify.post(
-    '/bulk-insert-optimized',
+    '/bulk-insert',
     {
       schema: {
         description: 'Create multiple stock entries in bulk with optimized batch processing and quantity-based expansion',
@@ -401,7 +402,6 @@ export async function stockRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             batchSize: { type: 'string', description: 'Number of records per batch (default: 100, max: 200, min: 10)' },
-            async: { type: 'string', enum: ['true', 'false'], description: 'Force async processing for large datasets' },
           },
         },
         body: {
@@ -495,17 +495,6 @@ export async function stockRoutes(fastify: FastifyInstance) {
             },
             required: ['success', 'insertedCount', 'failures', 'summary', 'productUpdates', 'platformStockUpdates'],
           },
-          202: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean' },
-              status: { type: 'string' },
-              jobId: { type: 'string' },
-              totalRecords: { type: 'number' },
-              estimatedBatches: { type: 'number' },
-              message: { type: 'string' },
-            },
-          },
           207: {
             type: 'object',
             properties: {
@@ -576,7 +565,7 @@ export async function stockRoutes(fastify: FastifyInstance) {
         },
       },
     },
-    stockController.createBulkStocksOptimized.bind(stockController)
+    stockController.createBulkStocks.bind(stockController)
   );
 
 

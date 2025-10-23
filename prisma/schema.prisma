@@ -90,7 +90,7 @@ model Stock {
   searchtext           Unsupported("tsvector")?
   stockstatus          String      @default("available") @db.VarChar(500) // Available, Sold
   serialnumber         String?     @db.VarChar(500)
-  sku                  String      @unique @db.VarChar(255)
+  sku                  String     @unique @db.VarChar(255)
   createddate          BigInt?
   modifieddate         BigInt?
   poid                 Int?

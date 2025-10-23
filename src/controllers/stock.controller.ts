@@ -87,7 +87,11 @@ export class StockController {
     return reply.code(201).send(response);
   });
 
-  createBulkStocks = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+  /**
+   * Legacy bulk insert method (old approach)
+   * Uses individual record creation - slower but more reliable for small datasets
+   */
+  createBulkStocksLegacy = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const stockArray = request.body as (CreateStockInput & Record<string, any>)[];
   
     if (!Array.isArray(stockArray) || stockArray.length === 0) {
@@ -139,14 +143,13 @@ export class StockController {
   }
 
   /**
-   * Optimized bulk insert with batch processing
-   * Handles large datasets efficiently with configurable batch sizes
+   * Optimized bulk insert with direct DB operations
+   * Uses createMany for maximum performance with batch processing
    */
-  createBulkStocksOptimized = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+  createBulkStocks = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const stockArray = request.body as (CreateStockInput & Record<string, any>)[];
     const query = request.query as { 
       batchSize?: string; 
-      async?: string;
     };
   
     if (!Array.isArray(stockArray) || stockArray.length === 0) {
@@ -171,22 +174,8 @@ export class StockController {
       options.batchSize = requestedBatchSize;
     }
 
-    // For large datasets (>200), use async processing
-    if (query.async === 'true' || expandedStockArray.length > 200) {
-      const result = await this.stockService.createBulkAsync(expandedStockArray, options);
-      
-      return reply.code(202).send({
-        success: true,
-        status: 'queued',
-        jobId: result.jobId,
-        totalRecords: result.totalRecords,
-        estimatedBatches: result.estimatedBatches,
-        message: 'Bulk insert job queued for background processing'
-      });
-    }
-
-    // For smaller datasets, use optimized synchronous processing
-    const result = await this.stockService.createBulkOptimized(expandedStockArray, options);
+        // Always use synchronous direct DB processing for immediate results
+        const result = await this.stockService.createBulkDirect(expandedStockArray, options);
   
     const success = result.failures.length === 0;
     const code = success ? 201 : 207;
