@@ -1,3 +1,4 @@
+//src/services/stock.service.ts
 import { prisma } from "../models/prisma.js";
 import {
   CreateStockInput,

@@ -1,3 +1,4 @@
+// src/routes/stock.route.ts
 import { FastifyInstance } from 'fastify';
 import { StockController } from '../controllers/stock.controller.js';
 import { createStockSchema } from '../schemas/stock.schema.js';

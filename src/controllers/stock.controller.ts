@@ -1,3 +1,4 @@
+//src/controllers/stock.controller.ts
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { StockService } from '../services/stock.service.js';
 import { ExcelService } from '../services/excel.service.js';

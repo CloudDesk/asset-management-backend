@@ -40,6 +40,17 @@ export declare function dynamicCount(modelName: string, where?: any): Promise<nu
  */
 export declare function dynamicFindUnique(modelName: string, where: any, include?: any): Promise<any | null>;
 /**
+ * Performs a dynamic bulk create operation using database-level bulk insert
+ * Uses raw SQL with VALUES clause for maximum performance
+ */
+export declare function dynamicBulkCreate(modelName: string, dataArray: Record<string, any>[]): Promise<{
+    inserted: any[];
+    failures: {
+        index: number;
+        error: string;
+    }[];
+}>;
+/**
  * Performs a dynamic create operation
  */
 export declare function dynamicCreate(modelName: string, data: Record<string, any>, include?: any): Promise<any | null>;
