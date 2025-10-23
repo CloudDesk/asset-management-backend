@@ -390,6 +390,195 @@ export async function stockRoutes(fastify: FastifyInstance) {
     stockController.createBulkStocks.bind(stockController)
   );
 
+  // New optimized bulk insert endpoint
+  fastify.post(
+    '/bulk-insert-optimized',
+    {
+      schema: {
+        description: 'Create multiple stock entries in bulk with optimized batch processing and quantity-based expansion',
+        tags: ['Stocks'],
+        querystring: {
+          type: 'object',
+          properties: {
+            batchSize: { type: 'string', description: 'Number of records per batch (default: 100, max: 200, min: 10)' },
+            async: { type: 'string', enum: ['true', 'false'], description: 'Force async processing for large datasets' },
+          },
+        },
+        body: {
+          type: 'array',
+          minItems: 1,
+          items: {
+            type: 'object',
+            properties: {
+              puc: { type: 'string', maxLength: 255, description: 'Product unique code (required)' },
+              platform: { type: 'string', maxLength: 100, description: 'Platform (amazon, flipkart, nivapp) (required)' },
+              serialnumber: { type: 'string', maxLength: 500, description: 'Serial number (unique)', nullable: true },
+              stockstatus: { type: 'string', maxLength: 500, description: 'Stock status', default: 'available' },
+              manufacturedyear: { type: 'number', description: 'Manufactured year', nullable: true },
+              releaseyear: { type: 'number', description: 'Release year', nullable: true },
+              ecompublish: { type: 'boolean', description: 'E-commerce publish status', default: false },
+              poid: { type: 'number', description: 'Purchase order ID', nullable: true },
+              supplierid: { type: 'number', description: 'Supplier ID', nullable: true },
+              batchno: { type: 'string', maxLength: 255, description: 'Batch number', nullable: true },
+                // Enhanced field for instance-based bulk insert
+              instances: { type: 'number', minimum: 1, maximum: 10000, description: 'Number of identical records to create (1-10000). This object will be replicated N times.', nullable: false },
+            },
+            required: ['puc', 'platform', 'instances'],
+            additionalProperties: true,
+          },
+        },
+        response: {
+          201: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              insertedCount: { type: 'number' },
+              failures: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    index: { type: 'number' },
+                    error: { type: 'string' },
+                  },
+                },
+              },
+              summary: {
+                type: 'object',
+                properties: {
+                  total: { type: 'number' },
+                  processed: { type: 'number' },
+                  successful: { type: 'number' },
+                  failed: { type: 'number' },
+                  batchesProcessed: { type: 'number' },
+                },
+              },
+              productUpdates: {
+                type: 'object',
+                properties: {
+                  attempted: { type: 'number' },
+                  succeeded: { type: 'number' },
+                  failed: { type: 'number' },
+                  failures: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        identifier: { type: 'string' },
+                        message: { type: 'string' },
+                      },
+                    },
+                  },
+                },
+                required: ['attempted', 'succeeded', 'failed', 'failures'],
+              },
+              platformStockUpdates: {
+                type: 'object',
+                properties: {
+                  attempted: { type: 'number' },
+                  succeeded: { type: 'number' },
+                  failed: { type: 'number' },
+                  failures: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        productId: { type: 'number' },
+                        platform: { type: 'string' },
+                        message: { type: 'string' },
+                      },
+                    },
+                  },
+                },
+                required: ['attempted', 'succeeded', 'failed', 'failures'],
+              },
+            },
+            required: ['success', 'insertedCount', 'failures', 'summary', 'productUpdates', 'platformStockUpdates'],
+          },
+          202: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              status: { type: 'string' },
+              jobId: { type: 'string' },
+              totalRecords: { type: 'number' },
+              estimatedBatches: { type: 'number' },
+              message: { type: 'string' },
+            },
+          },
+          207: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              insertedCount: { type: 'number' },
+              failures: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    index: { type: 'number' },
+                    error: { type: 'string' },
+                  },
+                },
+              },
+              summary: {
+                type: 'object',
+                properties: {
+                  total: { type: 'number' },
+                  processed: { type: 'number' },
+                  successful: { type: 'number' },
+                  failed: { type: 'number' },
+                  batchesProcessed: { type: 'number' },
+                },
+              },
+              productUpdates: {
+                type: 'object',
+                properties: {
+                  attempted: { type: 'number' },
+                  succeeded: { type: 'number' },
+                  failed: { type: 'number' },
+                  failures: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        identifier: { type: 'string' },
+                        message: { type: 'string' },
+                      },
+                    },
+                  },
+                },
+                required: ['attempted', 'succeeded', 'failed', 'failures'],
+              },
+              platformStockUpdates: {
+                type: 'object',
+                properties: {
+                  attempted: { type: 'number' },
+                  succeeded: { type: 'number' },
+                  failed: { type: 'number' },
+                  failures: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        productId: { type: 'number' },
+                        platform: { type: 'string' },
+                        message: { type: 'string' },
+                      },
+                    },
+                  },
+                },
+                required: ['attempted', 'succeeded', 'failed', 'failures'],
+              },
+            },
+            required: ['success', 'insertedCount', 'failures', 'summary', 'productUpdates', 'platformStockUpdates'],
+          },
+        },
+      },
+    },
+    stockController.createBulkStocksOptimized.bind(stockController)
+  );
+
 
 
   // PUT /v1/stocks/:id - Update stock

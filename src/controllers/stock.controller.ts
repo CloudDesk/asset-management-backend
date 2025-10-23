@@ -104,6 +104,101 @@ export class StockController {
       insertedCount: result.inserted.length,
       failures: result.failures,
     });
+  });
+
+  /**
+   * Expand records with instances field for efficient bulk operations
+   * Converts single objects with instances into multiple identical records
+   * instances field is now mandatory (minimum: 1)
+   */
+  private expandRecordsWithInstances(stockArray: (CreateStockInput & Record<string, any>)[]): (CreateStockInput & Record<string, any>)[] {
+    const expandedArray: (CreateStockInput & Record<string, any>)[] = [];
+    
+    for (const stockRecord of stockArray) {
+      const { instances, ...stockData } = stockRecord;
+      
+      // instances is now mandatory, validate it
+      if (typeof instances !== 'number' || instances < 1) {
+        throw new Error(`instances field is mandatory and must be a positive number (received: ${instances})`);
+      }
+      
+      // Validate instances limits
+      const instanceCount = Math.min(Math.max(instances, 1), 10000);
+      
+      if (instanceCount !== instances) {
+        console.warn(`instances ${instances} was clamped to ${instanceCount} (min: 1, max: 10000)`);
+      }
+      
+      // Create multiple identical records
+      for (let i = 0; i < instanceCount; i++) {
+        expandedArray.push({ ...stockData });
+      }
+    }
+    
+    return expandedArray;
+  }
+
+  /**
+   * Optimized bulk insert with batch processing
+   * Handles large datasets efficiently with configurable batch sizes
+   */
+  createBulkStocksOptimized = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    const stockArray = request.body as (CreateStockInput & Record<string, any>)[];
+    const query = request.query as { 
+      batchSize?: string; 
+      async?: string;
+    };
+  
+    if (!Array.isArray(stockArray) || stockArray.length === 0) {
+      throw new Error("Request body must be a non-empty array");
+    }
+
+    // Expand records with instances field
+    const expandedStockArray = this.expandRecordsWithInstances(stockArray);
+
+    const options: {
+      batchSize?: number;
+    } = {};
+
+    if (query.batchSize) {
+      const requestedBatchSize = parseInt(query.batchSize, 10);
+      
+      // Validate batch size limits
+      if (isNaN(requestedBatchSize) || requestedBatchSize <= 0) {
+        throw new Error("Invalid batchSize parameter. Must be a positive number.");
+      }
+      
+      options.batchSize = requestedBatchSize;
+    }
+
+    // For large datasets (>200), use async processing
+    if (query.async === 'true' || expandedStockArray.length > 200) {
+      const result = await this.stockService.createBulkAsync(expandedStockArray, options);
+      
+      return reply.code(202).send({
+        success: true,
+        status: 'queued',
+        jobId: result.jobId,
+        totalRecords: result.totalRecords,
+        estimatedBatches: result.estimatedBatches,
+        message: 'Bulk insert job queued for background processing'
+      });
+    }
+
+    // For smaller datasets, use optimized synchronous processing
+    const result = await this.stockService.createBulkOptimized(expandedStockArray, options);
+  
+    const success = result.failures.length === 0;
+    const code = success ? 201 : 207;
+  
+    return reply.code(code).send({
+      success,
+      insertedCount: result.inserted.length,
+      failures: result.failures,
+      summary: result.summary,
+      productUpdates: result.productUpdates,
+      platformStockUpdates: result.platformStockUpdates,
+    });
   });  
 
   updateStock = asyncHandler(async (request: FastifyRequest<{ Params: StockParams }>, reply: FastifyReply) => {
