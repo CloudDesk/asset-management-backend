@@ -1,5 +1,5 @@
-# Use Node.js 20 as the base image
-FROM node:20-slim
+# Use Node.js 20 as the base image with AMD64 architecture for GCP compatibility
+FROM --platform=linux/amd64 node:20-slim
 
 # Install system dependencies including LibreOffice
 RUN apt-get update && \
@@ -29,7 +29,10 @@ COPY tsconfig.json ./
 RUN npm run build
 
 # Expose the port that your application will run on
-EXPOSE 5600
+EXPOSE 8080
+
+# Set PORT environment variable for Cloud Run
+ENV PORT=8080
 
 # Start the application
 CMD ["node", "build/index.js"]

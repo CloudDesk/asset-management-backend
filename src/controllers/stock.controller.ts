@@ -11,7 +11,8 @@ import {
   bulkRfidUpdateStockSchema,
   StockParams,
   RfidUpdateStockInput,
-  BulkRfidUpdateStockInput
+  BulkRfidUpdateStockInput,
+  CreateStockInput
 } from '../schemas/stock.schema.js';
 import { getPaginationParams } from '../utils/pagination.js';
 import { 
@@ -85,6 +86,25 @@ export class StockController {
     const response = createSuccessResponse('Stock created successfully', formatStockForAPI(stock));
     return reply.code(201).send(response);
   });
+
+  createBulkStocks = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    const stockArray = request.body as (CreateStockInput & Record<string, any>)[];
+  
+    if (!Array.isArray(stockArray) || stockArray.length === 0) {
+      throw new Error("Request body must be a non-empty array");
+    }
+  
+    const result = await this.stockService.createBulk(stockArray);
+  
+    const success = result.failures.length === 0;
+    const code = success ? 201 : 207;
+  
+    return reply.code(code).send({
+      success,
+      insertedCount: result.inserted.length,
+      failures: result.failures,
+    });
+  });  
 
   updateStock = asyncHandler(async (request: FastifyRequest<{ Params: StockParams }>, reply: FastifyReply) => {
     const { id } = stockParamsSchema.parse(request.params);

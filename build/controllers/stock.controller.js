@@ -52,6 +52,20 @@ export class StockController {
         const response = createSuccessResponse('Stock created successfully', formatStockForAPI(stock));
         return reply.code(201).send(response);
     });
+    createBulkStocks = asyncHandler(async (request, reply) => {
+        const stockArray = request.body;
+        if (!Array.isArray(stockArray) || stockArray.length === 0) {
+            throw new Error("Request body must be a non-empty array");
+        }
+        const result = await this.stockService.createBulk(stockArray);
+        const success = result.failures.length === 0;
+        const code = success ? 201 : 207;
+        return reply.code(code).send({
+            success,
+            insertedCount: result.inserted.length,
+            failures: result.failures,
+        });
+    });
     updateStock = asyncHandler(async (request, reply) => {
         const { id } = stockParamsSchema.parse(request.params);
         const data = updateStockSchema.parse(request.body);

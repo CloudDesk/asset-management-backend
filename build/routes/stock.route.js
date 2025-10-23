@@ -312,6 +312,68 @@ export async function stockRoutes(fastify) {
             },
         },
     }, stockController.createStock.bind(stockController));
+    fastify.post('/bulk-insert', {
+        schema: {
+            description: 'Create multiple stock entries in bulk',
+            tags: ['Stocks'],
+            body: {
+                type: 'array',
+                minItems: 1,
+                items: {
+                    type: 'object',
+                    properties: {
+                        puc: { type: 'string', maxLength: 255, description: 'Product unique code (required)' },
+                        platform: { type: 'string', maxLength: 100, description: 'Platform (amazon, flipkart, nivapp) (required)' },
+                        sku: { type: 'string', maxLength: 255, description: 'Stock keeping unit (auto-generated)', nullable: true },
+                        serialnumber: { type: 'string', maxLength: 500, description: 'Serial number (unique)', nullable: true },
+                        stockstatus: { type: 'string', maxLength: 500, description: 'Stock status', default: 'available' },
+                        manufacturedyear: { type: 'number', description: 'Manufactured year', nullable: true },
+                        releaseyear: { type: 'number', description: 'Release year', nullable: true },
+                        isdeleted: { type: 'boolean', description: 'Deletion status', default: false },
+                        isarchive: { type: 'boolean', description: 'Archive status', default: false },
+                        removefromrecyclebin: { type: 'boolean', description: 'Recycle bin status', default: false },
+                        ecompublish: { type: 'boolean', description: 'E-commerce publish status', default: false },
+                        solddate: { type: 'number', description: 'Sold date timestamp', nullable: true },
+                        orderlinenumber: { type: 'string', maxLength: 500, description: 'Order line number', nullable: true },
+                        orderid: { type: 'string', maxLength: 500, description: 'Order ID', nullable: true },
+                        poid: { type: 'number', description: 'Purchase order ID', nullable: true },
+                        supplierid: { type: 'number', description: 'Supplier ID', nullable: true },
+                        batchno: { type: 'string', maxLength: 255, description: 'Batch number', nullable: true },
+                        platformhistory: { type: 'object', description: 'Platform transfer history (JSON)', nullable: true },
+                        rfid: { type: 'string', maxLength: 500, description: 'RFID tag', nullable: true },
+                        rfidscannedtime: { type: 'number', description: 'RFID scan timestamp', nullable: true },
+                        productId: { type: 'string', description: 'Product ID (legacy)', nullable: true },
+                        batchNumber: { type: 'string', description: 'Batch number (legacy)', nullable: true },
+                        warehouseLocation: { type: 'string', description: 'Warehouse location (legacy)', nullable: true },
+                        quantity: { type: 'number', description: 'Quantity (legacy)', nullable: true },
+                        availableQuantity: { type: 'number', description: 'Available quantity (legacy)', nullable: true },
+                        soldQuantity: { type: 'number', description: 'Sold quantity (legacy)', nullable: true },
+                    },
+                    required: ['puc', 'platform'],
+                    additionalProperties: true,
+                },
+            },
+            response: {
+                201: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        insertedCount: { type: 'number' },
+                        failures: {
+                            type: 'array',
+                            items: {
+                                type: 'object',
+                                properties: {
+                                    index: { type: 'number' },
+                                    error: { type: 'string' },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    }, stockController.createBulkStocks.bind(stockController));
     // PUT /v1/stocks/:id - Update stock
     fastify.put('/:id', {
         schema: {
