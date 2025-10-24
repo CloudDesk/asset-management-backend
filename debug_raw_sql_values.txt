@@ -6891,3 +6891,135 @@ Values: [
   },
   1760610802
 ]
+Values: [
+  580,
+  50,
+  41,
+  2,
+  true,
+  false,
+  1761288059
+]
+Values: [
+  580,
+  50,
+  41,
+  2,
+  true,
+  false,
+  1761288060
+]
+Values: [
+  580,
+  50,
+  41,
+  3,
+  true,
+  false,
+  1761288066
+]
+Values: [
+  580,
+  50,
+  41,
+  4,
+  true,
+  false,
+  1761289120
+]
+Values: [
+  581,
+  48,
+  41,
+  2,
+  true,
+  false,
+  1761289120
+]
+Values: [
+  582,
+  47,
+  41,
+  2,
+  true,
+  false,
+  1761289120
+]
+Values: [
+  580,
+  50,
+  41,
+  5,
+  true,
+  false,
+  1761289126
+]
+Values: [
+  581,
+  48,
+  41,
+  3,
+  true,
+  false,
+  1761289126
+]
+Values: [
+  582,
+  47,
+  41,
+  3,
+  true,
+  false,
+  1761289127
+]
+Values: [
+  62,
+  "New User First Order Discount Flat 15%",
+  "New User First Order Discount Flat 15% with max ₹500",
+  "PERCENT_OFF_CART",
+  "WELCOME15",
+  false,
+  1735689600,
+  1767225599,
+  "active",
+  2,
+  "public",
+  3000,
+  1,
+  false,
+  300000,
+  "Asia/Kolkata",
+  15,
+  "[{\"value\":[\"first_order\",\"new_user\"],\"operator\":\"IN\",\"attribute\":\"user.segment\"},{\"value\":\"1000\",\"operator\":\"GTE\",\"attribute\":\"cart.total_value\"}]",
+  "{\"type\":\"PERCENT_OFF\",\"value\":15,\"max_discount\":500}",
+  62,
+  1756981504,
+  1761303547
+]
+Values: [
+  581,
+  48,
+  41,
+  4,
+  true,
+  false,
+  1761307682
+]
+Values: [
+  583,
+  47,
+  41,
+  2,
+  true,
+  false,
+  1761307691
+]
+Values: [
+  583,
+  47,
+  41,
+  3,
+  true,
+  false,
+  1761307695
+]

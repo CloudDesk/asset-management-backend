@@ -8369,3 +8369,190 @@ Update result: [
     "status": "SUCCESS"
   }
 ]
+Update result: [
+  {
+    "id": 580,
+    "productid": 50,
+    "userid": 41,
+    "createddate": 1761307853,
+    "quantity": "2",
+    "iscart": true,
+    "iswishlist": false,
+    "modifieddate": 1761307860
+  }
+]
+Update result: [
+  {
+    "id": 580,
+    "productid": 50,
+    "userid": 41,
+    "createddate": 1761307853,
+    "quantity": "2",
+    "iscart": true,
+    "iswishlist": false,
+    "modifieddate": 1761307860
+  }
+]
+Update result: [
+  {
+    "id": 580,
+    "productid": 50,
+    "userid": 41,
+    "createddate": 1761307853,
+    "quantity": "3",
+    "iscart": true,
+    "iswishlist": false,
+    "modifieddate": 1761307867
+  }
+]
+Update result: [
+  {
+    "id": 580,
+    "productid": 50,
+    "userid": 41,
+    "createddate": 1761307853,
+    "quantity": "4",
+    "iscart": true,
+    "iswishlist": false,
+    "modifieddate": 1761308921
+  }
+]
+Update result: [
+  {
+    "id": 581,
+    "productid": 48,
+    "userid": 41,
+    "createddate": 1761308905,
+    "quantity": "2",
+    "iscart": true,
+    "iswishlist": false,
+    "modifieddate": 1761308921
+  }
+]
+Update result: [
+  {
+    "id": 582,
+    "productid": 47,
+    "userid": 41,
+    "createddate": 1761308905,
+    "quantity": "2",
+    "iscart": true,
+    "iswishlist": false,
+    "modifieddate": 1761308921
+  }
+]
+Update result: [
+  {
+    "id": 580,
+    "productid": 50,
+    "userid": 41,
+    "createddate": 1761307853,
+    "quantity": "5",
+    "iscart": true,
+    "iswishlist": false,
+    "modifieddate": 1761308926
+  }
+]
+Update result: [
+  {
+    "id": 581,
+    "productid": 48,
+    "userid": 41,
+    "createddate": 1761308905,
+    "quantity": "3",
+    "iscart": true,
+    "iswishlist": false,
+    "modifieddate": 1761308927
+  }
+]
+Update result: [
+  {
+    "id": 582,
+    "productid": 47,
+    "userid": 41,
+    "createddate": 1761308905,
+    "quantity": "3",
+    "iscart": true,
+    "iswishlist": false,
+    "modifieddate": 1761308928
+  }
+]
+Update result: [
+  {
+    "id": 62,
+    "name": "New User First Order Discount Flat 15%",
+    "type": "PERCENT_OFF_CART",
+    "code": "WELCOME15",
+    "auto_apply": false,
+    "status": "active",
+    "priority": 2,
+    "visibility": "public",
+    "max_redemptions": 3000,
+    "per_user_limit": 1,
+    "stackable": false,
+    "createddate": 1756981504,
+    "modifieddate": 1761323348,
+    "description": "New User First Order Discount Flat 15% with max ₹500",
+    "budget": "300000",
+    "timezone": "Asia/Kolkata",
+    "evaluation_expiry_minutes": 15,
+    "conditions": [
+      {
+        "value": [
+          "first_order",
+          "new_user"
+        ],
+        "operator": "IN",
+        "attribute": "user.segment"
+      },
+      {
+        "value": "1000",
+        "operator": "GTE",
+        "attribute": "cart.total_value"
+      }
+    ],
+    "start_date": 1735689600,
+    "end_date": 1767225599,
+    "action": {
+      "type": "PERCENT_OFF",
+      "value": 15,
+      "max_discount": 500
+    }
+  }
+]
+Update result: [
+  {
+    "id": 581,
+    "productid": 48,
+    "userid": 41,
+    "createddate": 1761308905,
+    "quantity": "4",
+    "iscart": true,
+    "iswishlist": false,
+    "modifieddate": 1761327483
+  }
+]
+Update result: [
+  {
+    "id": 583,
+    "productid": 47,
+    "userid": 41,
+    "createddate": 1761327487,
+    "quantity": "2",
+    "iscart": true,
+    "iswishlist": false,
+    "modifieddate": 1761327492
+  }
+]
+Update result: [
+  {
+    "id": 583,
+    "productid": 47,
+    "userid": 41,
+    "createddate": 1761327487,
+    "quantity": "3",
+    "iscart": true,
+    "iswishlist": false,
+    "modifieddate": 1761327496
+  }
+]

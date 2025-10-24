@@ -6762,3 +6762,122 @@ Final rawData: {
   },
   "modifieddate": 1760610802713
 }
+Final rawData: {
+  "productid": 50,
+  "userid": 41,
+  "quantity": 2,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1761288059770
+}
+Final rawData: {
+  "productid": 50,
+  "userid": 41,
+  "quantity": 2,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1761288060023
+}
+Final rawData: {
+  "productid": 50,
+  "userid": 41,
+  "quantity": 3,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1761288066090
+}
+Final rawData: {
+  "productid": 50,
+  "userid": 41,
+  "quantity": 4,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1761289120154
+}
+Final rawData: {
+  "productid": 48,
+  "userid": 41,
+  "quantity": 2,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1761289120877
+}
+Final rawData: {
+  "productid": 47,
+  "userid": 41,
+  "quantity": 2,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1761289120885
+}
+Final rawData: {
+  "productid": 50,
+  "userid": 41,
+  "quantity": 5,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1761289126052
+}
+Final rawData: {
+  "productid": 48,
+  "userid": 41,
+  "quantity": 3,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1761289126353
+}
+Final rawData: {
+  "productid": 47,
+  "userid": 41,
+  "quantity": 3,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1761289127636
+}
+Final rawData: {
+  "name": "New User First Order Discount Flat 15%",
+  "description": "New User First Order Discount Flat 15% with max ₹500",
+  "type": "PERCENT_OFF_CART",
+  "code": "WELCOME15",
+  "auto_apply": false,
+  "start_date": 1735689600,
+  "end_date": 1767225599,
+  "status": "active",
+  "priority": 2,
+  "visibility": "public",
+  "max_redemptions": 3000,
+  "per_user_limit": 1,
+  "stackable": false,
+  "budget": 300000,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "conditions": "[{\"value\":[\"first_order\",\"new_user\"],\"operator\":\"IN\",\"attribute\":\"user.segment\"},{\"value\":\"1000\",\"operator\":\"GTE\",\"attribute\":\"cart.total_value\"}]",
+  "action": "{\"type\":\"PERCENT_OFF\",\"value\":15,\"max_discount\":500}",
+  "id": 62,
+  "createddate": 1756981504,
+  "modifieddate": 1761303546971
+}
+Final rawData: {
+  "productid": 48,
+  "userid": 41,
+  "quantity": 4,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1761307682776
+}
+Final rawData: {
+  "productid": 47,
+  "userid": 41,
+  "quantity": 2,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1761307691071
+}
+Final rawData: {
+  "productid": 47,
+  "userid": 41,
+  "quantity": 3,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1761307695337
+}
