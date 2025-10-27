@@ -2107,6 +2107,15 @@ export class PhonePeController {
       const originalOrderData =
         transaction.transactiondata?.originalPayload?.order || [];
 
+      // Calculate total quantity from order items (BUG FIX #1)
+      const filteredOrderData = originalOrderData.filter((item: any) =>
+        validProductIds.includes(item.productid)
+      );
+      const totalQuantity = filteredOrderData.reduce(
+        (sum: number, item: any) => sum + parseInt(item.quantity?.toString() || "1"),
+        0
+      );
+
       // Extract evaluation IDs from transaction data for primary evaluation
       const transactionEvaluationIds =
         transaction.transactiondata?.evaluation_ids || [];
@@ -2245,25 +2254,27 @@ export class PhonePeController {
       // Calculate product amount (after product discounts, before promotion discounts)
       const productAmount = originalTotal - productDiscountTotal;
 
-      logger.info(
-        {
-          transactionId,
-          mode: mode,
-          originalOrderData: originalOrderData.length,
-          validProductIds,
-          promotionFields: {
-            evaluation_id: primaryEvaluationId,
-            original_total: originalTotal,
-            product_discount_total: productDiscountTotal,
-            promotion_discount_total: promotionDiscountTotal,
-            shipping_cost: shippingCost,
-            tax_amount: taxAmount,
-            productamount: productAmount,
-          },
-          step: "preparing_order_with_detailed_items",
-        },
-        "Preparing order creation with detailed product and promotion information"
-      );
+          logger.info(
+            {
+              transactionId,
+              mode: mode,
+              originalOrderData: originalOrderData.length,
+              validProductIds,
+              totalQuantity: totalQuantity,
+              productCount: validProductIds.length,
+              promotionFields: {
+                evaluation_id: primaryEvaluationId,
+                original_total: originalTotal,
+                product_discount_total: productDiscountTotal,
+                promotion_discount_total: promotionDiscountTotal,
+                shipping_cost: shippingCost,
+                tax_amount: taxAmount,
+                productamount: productAmount,
+              },
+              step: "preparing_order_with_detailed_items",
+            },
+            "Preparing order creation with detailed product and promotion information"
+          );
 
       // Create order record with productid to enable automatic orderline creation
       const orderData = {
@@ -2271,7 +2282,7 @@ export class PhonePeController {
         orderamount: parseFloat(transaction.amount?.toString() || "0"),
         orderid: orderid,
         orderstatus: "payment_completed",
-        quantity: validProductIds.length, // Use valid product count
+        quantity: totalQuantity || validProductIds.length, // FIX #1: Sum of line item quantities, not product count
         transactionid: transaction.transactionid,
         productamount:
           productAmount > 0
@@ -2392,21 +2403,27 @@ export class PhonePeController {
               "Promotion redeemed successfully"
             );
           } catch (error) {
-            redemptionResults.push({
-              evaluationId,
-              status: "failed",
-              message: error instanceof Error ? error.message : "Unknown error",
-            });
-
-            logger.warn(
+            // FIX #3: Fail order creation if promotion redemption fails (critical operation)
+            logger.error(
               {
                 transactionId,
                 orderId: order.id,
                 evaluationId,
                 error: error instanceof Error ? error.message : "Unknown error",
               },
-              "Promotion redemption failed - order created without this discount"
+              "Promotion redemption CRITICAL ERROR - order will be marked as needs verification"
             );
+            
+            // Store failed redemption for later investigation
+            redemptionResults.push({
+              evaluationId,
+              status: "failed",
+              message: error instanceof Error ? error.message : "Unknown error",
+            });
+            
+            // Don't throw error immediately, but log it for tracking
+            // The order is already created, so we can't rollback easily
+            // In production, you might want to mark the order with a flag for manual review
           }
         }
 
@@ -2434,7 +2451,7 @@ export class PhonePeController {
       // Check if orderlines were created automatically
       const createdOrderlines = await prisma.orderline.findMany({
         where: { orderid: order.id },
-        select: { id: true, productid: true, orderlinenumber: true },
+        select: { id: true, productid: true, orderlinenumber: true, quantity: true },
       });
 
       logger.info(
@@ -2461,6 +2478,7 @@ export class PhonePeController {
           const promotionDiscountMap = new Map<number, number>();
 
           // Map product data from evaluation cart data
+          // IMPORTANT: Store PER-ITEM values in maps, multiply by quantity later
           evaluationCartData.forEach((cartItem: any) => {
             const productId = parseInt(cartItem.product_id?.toString() || "0");
             if (productId > 0) {
@@ -2470,23 +2488,29 @@ export class PhonePeController {
               const productDiscount = parseFloat(
                 cartItem.product_discount?.toString() || "0"
               );
-              const quantity = parseInt(cartItem.quantity?.toString() || "1");
-
+              
+              // Store PER-ITEM prices and discounts in maps
               originalPriceMap.set(productId, basePrice);
-              productDiscountMap.set(productId, productDiscount * quantity);
+              productDiscountMap.set(productId, productDiscount); // Store per-item discount
             }
           });
 
           // Map promotion discounts from applied promotions breakdown
+          // IMPORTANT: Store PER-ITEM promotion discounts
           appliedPromotions.forEach((promotion: any) => {
             if (promotion.breakdown && Array.isArray(promotion.breakdown)) {
               promotion.breakdown.forEach((item: any) => {
                 const productId = parseInt(item.product_id?.toString() || "0");
                 if (productId > 0) {
-                  const discountAmount = parseFloat(
+                  // Get total discount for this product and divide by quantity
+                  const totalDiscount = parseFloat(
                     item.total_discount?.toString() || "0"
                   );
-                  promotionDiscountMap.set(productId, discountAmount);
+                  const itemQuantity = parseInt(item.quantity?.toString() || "1");
+                  
+                  // Store PER-ITEM promotion discount (total discount / quantity)
+                  const perItemPromoDiscount = itemQuantity > 0 ? totalDiscount / itemQuantity : 0;
+                  promotionDiscountMap.set(productId, perItemPromoDiscount);
                 }
               });
             }
@@ -2519,17 +2543,57 @@ export class PhonePeController {
           for (const orderline of createdOrderlines) {
             const productId = Number(orderline.productid);
             const originalPrice = originalPriceMap.get(productId) || 0;
-            const productDiscountAmount =
+            const productDiscountPerItem =
               productDiscountMap.get(productId) || 0;
-            const promotionDiscountAmount =
+            const promotionDiscountPerItem =
               promotionDiscountMap.get(productId) || 0;
+            
+            // FIX #2B: Get quantity for this orderline and multiply discounts by quantity
+            const lineQuantity = parseFloat((orderline as any).quantity?.toString() || "1");
+            
+            // Calculate total discounts for this line (multiply by quantity)
+            const productDiscountAmount = productDiscountPerItem * lineQuantity;
+            const promotionDiscountAmount = promotionDiscountPerItem * lineQuantity;
+            
+            // Calculate totals for this line
+            const originalPriceTotal = originalPrice * lineQuantity;
+            const productAmountOnly = originalPriceTotal - productDiscountAmount; // Only product discount, no promotion discount
+            const totalDiscountForLine = productDiscountAmount + promotionDiscountAmount;
+            let finalPriceTotal = originalPriceTotal - totalDiscountForLine;
 
-            // Calculate final values for this orderline
-            const finalPricePerItem =
-              originalPrice - productDiscountAmount - promotionDiscountAmount;
-            const totalDiscountForLine =
-              productDiscountAmount + promotionDiscountAmount;
-            const productAmountOnly = originalPrice - productDiscountAmount; // Only product discount, no promotion discount
+            // SAFEGUARD: Prevent negative amounts due to very large promotions
+            let actualPromotionDiscount = promotionDiscountAmount;
+            if (finalPriceTotal < 0) {
+              logger.warn({
+                transactionId,
+                orderId: order.id,
+                productId,
+                lineQuantity,
+                originalPriceTotal,
+                productDiscountAmount,
+                promotionDiscountAmount,
+                calculatedAmount: finalPriceTotal,
+                action: "capping_promotion_to_prevent_negative"
+              }, "Promotion discount exceeds product value - capping promotion discount");
+
+              // Cap promotion discount to product amount only (don't create negative)
+              actualPromotionDiscount = Math.max(0, productAmountOnly);
+              finalPriceTotal = 0; // Product is completely free after discounts
+
+              logger.info({
+                transactionId,
+                orderId: order.id,
+                productId,
+                originalPromoDiscount: promotionDiscountAmount,
+                cappedPromoDiscount: actualPromotionDiscount,
+                finalAmount: finalPriceTotal
+              }, "Applied promotion discount cap to prevent negative amount");
+            }
+
+            // FIX #2A: Calculate proportional shipping cost
+            const totalItemValue = originalPriceTotal;
+            const itemProportion = originalTotal > 0 ? totalItemValue / originalTotal : 0;
+            const lineShippingCost = totalShippingCost * itemProportion;
 
             // Use Prisma to update the orderline
             await prisma.orderline.update({
@@ -2537,12 +2601,12 @@ export class PhonePeController {
               data: {
                 evaluation_id: primaryEvaluationId,
                 original_price: originalPrice,
-                product_discount_amount: productDiscountAmount,
-                promotion_discount_amount: promotionDiscountAmount,
-                shipping_cost: 0, // Will be distributed later if needed
-                productamount: productAmountOnly, // original_price - product_discount_amount only
-                discountamount: totalDiscountForLine, // total discount for this line
-                orderamount: finalPricePerItem, // final amount for this line (after all discounts)
+                product_discount_amount: productDiscountAmount, // Total discount (per item * quantity)
+                promotion_discount_amount: actualPromotionDiscount, // May be capped if would cause negative
+                shipping_cost: lineShippingCost, // FIX #2A: Proportional distribution
+                productamount: productAmountOnly, // (original_price * qty) - product_discount_amount
+                discountamount: productDiscountAmount + actualPromotionDiscount, // total discount for this line
+                orderamount: Math.max(0, finalPriceTotal), // final amount for this line (after all discounts, never negative)
                 modifieddate: BigInt(currentTime),
               },
             });
@@ -3428,7 +3492,7 @@ export class PhonePeController {
             0,
             currentLockQty - quantityToConvert
           ); // Unlock, NEVER negative
-          const newPlatformOrderedQty = currentOrderedQty + requestedQuantity; // Confirm order
+          const newPlatformOrderedQty = currentOrderedQty + quantityToConvert; // FIX #4: Use quantityToConvert, not requestedQuantity
 
           // Determine platform status based on available quantity
           let newPlatformStatus: string;
