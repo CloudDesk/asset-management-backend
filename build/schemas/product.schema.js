@@ -173,6 +173,7 @@ export const productQuerySchema = z.object({
     netquantity: z.string().optional(),
     numberofitems: z.string().optional(),
     itemthickness: z.string().optional(),
+    searchtext: z.string().optional(),
 });
 // Dynamic field validation - now more permissive
 export function validateProductDynamicFields(data) {

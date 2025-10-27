@@ -823,39 +823,6 @@ export async function promotionsRoutes(fastify) {
             }
         }
     }, evaluationController.evaluatePromotion.bind(evaluationController));
-    // // POST /v1/promotions/evaluate/remove - Remove/cancel evaluation
-    // fastify.post('/evaluate/remove', {
-    //   schema: {
-    //     description: 'Remove/cancel a promotion evaluation',
-    //     tags: ['Promotions', 'Evaluation'],
-    //     body: {
-    //       type: 'object',
-    //       properties: {
-    //         evaluation_id: { type: 'string', description: 'Evaluation ID to remove' },
-    //         user_id: { type: 'string', description: 'User ID' }
-    //       },
-    //       required: ['evaluation_id', 'user_id']
-    //     },
-    //     response: {
-    //       200: {
-    //         type: 'object',
-    //         properties: {
-    //           success: { type: 'boolean' },
-    //           message: { type: 'string' }
-    //         }
-    //       },
-    //       404: {
-    //         type: 'object',
-    //         properties: {
-    //           success: { type: 'boolean' },
-    //           message: { type: 'string' },
-    //           details: { type: 'string' }
-    //         }
-    //       }
-    //     }
-    //   }
-    // }, evaluationController.removeEvaluation.bind(evaluationController));
-    // GET /v1/promotions/evaluations/:id - Get evaluation details
     fastify.get('/evaluations/:id', {
         schema: {
             description: 'Get evaluation details by ID',

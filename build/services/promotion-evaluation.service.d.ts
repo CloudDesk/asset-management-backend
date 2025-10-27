@@ -8,6 +8,7 @@ export declare class PromotionEvaluationService {
     private isStackablePromotion;
     private calculateBogoDetails;
     private calculateFreeProductDetails;
+    private checkProductStockAvailability;
     private getUtcTimestamp;
     private getUtcTimestampWithOffset;
     private convertUnixTimestampToDate;
