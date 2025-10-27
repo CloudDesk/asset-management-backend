@@ -612,6 +612,18 @@ async function buildDynamicWhereClause(
       continue;
     }
 
+    // Handle full-text search for searchtext field
+    if (key === 'searchtext' && tableName === 'product') {
+      const searchQuery = Array.isArray(value) ? value[0] : value;
+      if (searchQuery && typeof searchQuery === 'string' && searchQuery.trim()) {
+        // Use PostgreSQL full-text search with plainto_tsquery for user-friendly search
+        conditions.push(`searchtext @@ plainto_tsquery('english', $${paramIndex})`);
+        values.push(searchQuery.trim());
+        paramIndex++;
+        continue;
+      }
+    }
+
     // Normalize value (handle arrays and objects)
     let processedValue: any = value;
     if (Array.isArray(processedValue)) {

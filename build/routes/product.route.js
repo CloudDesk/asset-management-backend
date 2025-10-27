@@ -130,6 +130,10 @@ export async function productRoutes(fastify) {
                         type: "string",
                         description: "Filter by item thickness",
                     },
+                    searchtext: {
+                        type: "string",
+                        description: "Full-text search across product fields (name, description, category, etc.)",
+                    },
                 },
                 additionalProperties: true, // Allow any query parameters for dynamic filtering
             },

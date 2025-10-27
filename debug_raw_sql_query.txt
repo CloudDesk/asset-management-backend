@@ -706,3 +706,81 @@ Update query:
         WHERE "id" = $1 
         RETURNING id, transactionid, createddate, modifieddate, transactiondata, userid, productid, merchanttransactionid, name, amount, mobilenumber, transactionfor, status
       
+Update query: 
+        UPDATE "cart" 
+        SET "productid" = $2, "userid" = $3, "quantity" = $4, "iscart" = $5, "iswishlist" = $6, "modifieddate" = $7 
+        WHERE "id" = $1 
+        RETURNING id, productid, userid, createddate, quantity, iscart, iswishlist, modifieddate
+      
+Update query: 
+        UPDATE "cart" 
+        SET "productid" = $2, "userid" = $3, "quantity" = $4, "iscart" = $5, "iswishlist" = $6, "modifieddate" = $7 
+        WHERE "id" = $1 
+        RETURNING id, productid, userid, createddate, quantity, iscart, iswishlist, modifieddate
+      
+Update query: 
+        UPDATE "cart" 
+        SET "productid" = $2, "userid" = $3, "quantity" = $4, "iscart" = $5, "iswishlist" = $6, "modifieddate" = $7 
+        WHERE "id" = $1 
+        RETURNING id, productid, userid, createddate, quantity, iscart, iswishlist, modifieddate
+      
+Update query: 
+        UPDATE "cart" 
+        SET "productid" = $2, "userid" = $3, "quantity" = $4, "iscart" = $5, "iswishlist" = $6, "modifieddate" = $7 
+        WHERE "id" = $1 
+        RETURNING id, productid, userid, createddate, quantity, iscart, iswishlist, modifieddate
+      
+Update query: 
+        UPDATE "cart" 
+        SET "productid" = $2, "userid" = $3, "quantity" = $4, "iscart" = $5, "iswishlist" = $6, "modifieddate" = $7 
+        WHERE "id" = $1 
+        RETURNING id, productid, userid, createddate, quantity, iscart, iswishlist, modifieddate
+      
+Update query: 
+        UPDATE "cart" 
+        SET "productid" = $2, "userid" = $3, "quantity" = $4, "iscart" = $5, "iswishlist" = $6, "modifieddate" = $7 
+        WHERE "id" = $1 
+        RETURNING id, productid, userid, createddate, quantity, iscart, iswishlist, modifieddate
+      
+Update query: 
+        UPDATE "cart" 
+        SET "productid" = $2, "userid" = $3, "quantity" = $4, "iscart" = $5, "iswishlist" = $6, "modifieddate" = $7 
+        WHERE "id" = $1 
+        RETURNING id, productid, userid, createddate, quantity, iscart, iswishlist, modifieddate
+      
+Update query: 
+        UPDATE "cart" 
+        SET "productid" = $2, "userid" = $3, "quantity" = $4, "iscart" = $5, "iswishlist" = $6, "modifieddate" = $7 
+        WHERE "id" = $1 
+        RETURNING id, productid, userid, createddate, quantity, iscart, iswishlist, modifieddate
+      
+Update query: 
+        UPDATE "cart" 
+        SET "productid" = $2, "userid" = $3, "quantity" = $4, "iscart" = $5, "iswishlist" = $6, "modifieddate" = $7 
+        WHERE "id" = $1 
+        RETURNING id, productid, userid, createddate, quantity, iscart, iswishlist, modifieddate
+      
+Update query: 
+        UPDATE "promotions" 
+        SET "name" = $2, "description" = $3, "type" = $4, "code" = $5, "auto_apply" = $6, "start_date" = $7, "end_date" = $8, "status" = $9, "priority" = $10, "visibility" = $11, "max_redemptions" = $12, "per_user_limit" = $13, "stackable" = $14, "budget" = $15, "timezone" = $16, "evaluation_expiry_minutes" = $17, "conditions" = $18::jsonb, "action" = $19::jsonb, "id" = $20, "createddate" = $21, "modifieddate" = $22 
+        WHERE "id" = $1 
+        RETURNING id, name, type, code, auto_apply, status, priority, visibility, max_redemptions, per_user_limit, stackable, createddate, modifieddate, description, budget, timezone, evaluation_expiry_minutes, conditions, start_date, end_date, action
+      
+Update query: 
+        UPDATE "cart" 
+        SET "productid" = $2, "userid" = $3, "quantity" = $4, "iscart" = $5, "iswishlist" = $6, "modifieddate" = $7 
+        WHERE "id" = $1 
+        RETURNING id, productid, userid, createddate, quantity, iscart, iswishlist, modifieddate
+      
+Update query: 
+        UPDATE "cart" 
+        SET "productid" = $2, "userid" = $3, "quantity" = $4, "iscart" = $5, "iswishlist" = $6, "modifieddate" = $7 
+        WHERE "id" = $1 
+        RETURNING id, productid, userid, createddate, quantity, iscart, iswishlist, modifieddate
+      
+Update query: 
+        UPDATE "cart" 
+        SET "productid" = $2, "userid" = $3, "quantity" = $4, "iscart" = $5, "iswishlist" = $6, "modifieddate" = $7 
+        WHERE "id" = $1 
+        RETURNING id, productid, userid, createddate, quantity, iscart, iswishlist, modifieddate
+      

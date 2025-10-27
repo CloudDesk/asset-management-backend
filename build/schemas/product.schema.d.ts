@@ -348,6 +348,7 @@ export declare const productQuerySchema: z.ZodObject<{
     netquantity: z.ZodOptional<z.ZodString>;
     numberofitems: z.ZodOptional<z.ZodString>;
     itemthickness: z.ZodOptional<z.ZodString>;
+    searchtext: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     name?: string | undefined;
     category?: string | undefined;
@@ -378,6 +379,7 @@ export declare const productQuerySchema: z.ZodObject<{
     maxEcompublishedQuantity?: string | undefined;
     createdAfter?: string | undefined;
     createdBefore?: string | undefined;
+    searchtext?: string | undefined;
 }, {
     name?: string | undefined;
     category?: string | undefined;
@@ -408,6 +410,7 @@ export declare const productQuerySchema: z.ZodObject<{
     maxEcompublishedQuantity?: string | undefined;
     createdAfter?: string | undefined;
     createdBefore?: string | undefined;
+    searchtext?: string | undefined;
 }>;
 export declare function validateProductDynamicFields(data: Record<string, any>): Record<string, any>;
 export type CreateProductInput = z.infer<typeof createProductSchema>;

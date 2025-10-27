@@ -3,6 +3,11 @@ import { createPaginationResult } from '../utils/pagination.js';
 import { dynamicFindManyWithFilters, dynamicFindUnique, dynamicCreate, dynamicUpdate, dynamicDelete } from '../utils/dynamicDbOperations.js';
 import { getTimezoneFromGeo } from '../utils/geoUtils.js';
 import { logger } from '../config/logger.js';
+// Configuration constants for user segments
+const USER_SEGMENT_CONFIG = {
+    NEW_USER_DAYS: parseInt(process.env.NEW_USER_DAYS || '30'), // Default 30 days, configurable via env
+    FIRST_ORDER_THRESHOLD: parseInt(process.env.FIRST_ORDER_THRESHOLD || '0'), // Default 0 orders
+};
 export class PromotionsService {
     prisma = new PrismaClient();
     // Get auto-applied promotions from user's active evaluation record
@@ -265,9 +270,9 @@ export class PromotionsService {
                 return ['guest'];
             }
             const segments = ['authenticated_user'];
-            // Check if new user (created within 30 days)
+            // Check if new user (created within configured days)
             const daysSinceCreation = Math.floor((Date.now() - Number(user.createddate)) / (1000 * 60 * 60 * 24));
-            if (daysSinceCreation <= 30) {
+            if (daysSinceCreation <= USER_SEGMENT_CONFIG.NEW_USER_DAYS) {
                 segments.push('new_user');
             }
             // Check order count
@@ -594,16 +599,20 @@ export class PromotionsService {
                 break;
             case 'PERCENT_OFF_ITEM':
                 // Apply percentage to eligible items
+                let totalItemDiscount = 0;
                 for (const item of cartInfo.items) {
                     if (this.isItemEligibleForRecommendation(item, promotion)) {
                         const percentage = discountValue / 100;
-                        let itemDiscount = (item.price * item.qty) * percentage;
-                        // Apply max_discount cap if specified in action
-                        if (promotion.action && promotion.action.max_discount) {
-                            itemDiscount = Math.min(itemDiscount, promotion.action.max_discount);
-                        }
-                        discountAmount += itemDiscount;
+                        const itemDiscount = (item.price * item.qty) * percentage;
+                        totalItemDiscount += itemDiscount;
                     }
+                }
+                // Apply max_discount cap at promotion level (not per item)
+                if (promotion.action && promotion.action.max_discount) {
+                    discountAmount = Math.min(totalItemDiscount, promotion.action.max_discount);
+                }
+                else {
+                    discountAmount = totalItemDiscount;
                 }
                 discountPercentage = discountValue;
                 savingsAmount = discountAmount;
@@ -698,8 +707,80 @@ export class PromotionsService {
         }
     }
     evaluateDateCondition(condition, date) {
-        // Implement date condition logic
-        return true;
+        try {
+            const { operator, value, comparison, compare_with } = condition;
+            switch (operator) {
+                case 'DATE_ADD_DAYS':
+                    // Handle DATE_ADD_DAYS: Add specified days to user's created date
+                    const targetDate = new Date(date.getTime() + (value * 24 * 60 * 60 * 1000));
+                    const currentDate = new Date();
+                    switch (comparison) {
+                        case 'GTE': // Greater than or equal
+                            return currentDate >= targetDate;
+                        case 'GT': // Greater than
+                            return currentDate > targetDate;
+                        case 'LTE': // Less than or equal
+                            return currentDate <= targetDate;
+                        case 'LT': // Less than
+                            return currentDate < targetDate;
+                        case 'EQ': // Equal
+                            return Math.abs(currentDate.getTime() - targetDate.getTime()) < (24 * 60 * 60 * 1000); // Within 1 day
+                        default:
+                            logger.warn({ operator, comparison }, 'Unknown date comparison operator');
+                            return false;
+                    }
+                case 'DATE_SUBTRACT_DAYS':
+                    // Handle DATE_SUBTRACT_DAYS: Subtract specified days from current date
+                    const referenceDate = new Date(Date.now() - (value * 24 * 60 * 60 * 1000));
+                    switch (comparison) {
+                        case 'GTE': // User created date >= reference date (user is newer than X days ago)
+                            return date >= referenceDate;
+                        case 'GT': // User created date > reference date
+                            return date > referenceDate;
+                        case 'LTE': // User created date <= reference date (user is older than X days ago)
+                            return date <= referenceDate;
+                        case 'LT': // User created date < reference date
+                            return date < referenceDate;
+                        case 'EQ': // User created date equals reference date (within 1 day)
+                            return Math.abs(date.getTime() - referenceDate.getTime()) < (24 * 60 * 60 * 1000);
+                        default:
+                            logger.warn({ operator, comparison }, 'Unknown date comparison operator');
+                            return false;
+                    }
+                case 'GTE':
+                case 'GT':
+                case 'LTE':
+                case 'LT':
+                case 'EQ':
+                    // Direct date comparison
+                    const compareDate = new Date(value);
+                    if (isNaN(compareDate.getTime())) {
+                        logger.warn({ value }, 'Invalid date value for comparison');
+                        return false;
+                    }
+                    switch (operator) {
+                        case 'GTE':
+                            return date >= compareDate;
+                        case 'GT':
+                            return date > compareDate;
+                        case 'LTE':
+                            return date <= compareDate;
+                        case 'LT':
+                            return date < compareDate;
+                        case 'EQ':
+                            return Math.abs(date.getTime() - compareDate.getTime()) < (24 * 60 * 60 * 1000);
+                        default:
+                            return false;
+                    }
+                default:
+                    logger.warn({ operator }, 'Unknown date condition operator');
+                    return false;
+            }
+        }
+        catch (error) {
+            logger.error({ error, condition }, 'Error evaluating date condition');
+            return false;
+        }
     }
     // Database helper methods
     async getUserCreatedDate(userId) {

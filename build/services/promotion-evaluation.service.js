@@ -65,7 +65,7 @@ export class PromotionEvaluationService {
         this.prisma = new PrismaClient();
     }
     // Helper function to build enhanced applied promotion object with new fields
-    buildAppliedPromotion(promotion, discountAmount, cartItems, isAuto = false) {
+    async buildAppliedPromotion(promotion, discountAmount, cartItems, isAuto = false, platform = 'nivapp') {
         const basePromotion = {
             promotion_id: promotion.id,
             promotion_name: promotion.name || `Promotion ${promotion.id}`,
@@ -77,14 +77,14 @@ export class PromotionEvaluationService {
         };
         // Add BOGO-specific details
         if (promotion.type === 'BOGO' && promotion.action) {
-            const bogoDetails = this.calculateBogoDetails(promotion, cartItems);
+            const bogoDetails = await this.calculateBogoDetails(promotion, cartItems, platform);
             if (bogoDetails) {
                 basePromotion.bogo_details = bogoDetails;
             }
         }
         // Add FREE_PRODUCT-specific details
         if (promotion.type === 'FREE_PRODUCT' && promotion.action) {
-            const freeProductDetails = this.calculateFreeProductDetails(promotion, cartItems);
+            const freeProductDetails = await this.calculateFreeProductDetails(promotion, cartItems, platform);
             if (freeProductDetails) {
                 basePromotion.free_product_details = freeProductDetails;
             }
@@ -97,7 +97,7 @@ export class PromotionEvaluationService {
         return stackableTypes.includes(promotionType);
     }
     // Helper function to calculate BOGO details
-    calculateBogoDetails(promotion, cartItems) {
+    async calculateBogoDetails(promotion, cartItems, platform = 'nivapp') {
         if (!promotion.action || promotion.action.type !== 'BOGO') {
             return null;
         }
@@ -112,15 +112,19 @@ export class PromotionEvaluationService {
             // Check if item is eligible (either no product_ids specified or item is in the list)
             const isEligible = productIds.length === 0 || productIds.includes(item.product_id);
             if (isEligible && item.quantity >= buyQuantity) {
-                const freeItems = Math.floor(item.quantity / buyQuantity) * getQuantity;
-                let actualFreeItems = freeItems;
-                // Apply max_free_items limit if specified
-                if (maxFreeItems && totalFreeItems + freeItems > maxFreeItems) {
-                    actualFreeItems = Math.max(0, maxFreeItems - totalFreeItems);
-                }
-                if (actualFreeItems > 0) {
-                    totalFreeItems += actualFreeItems;
-                    affectedProducts.push(item.product_id);
+                // Check stock availability for BOGO products
+                const isStockAvailable = await this.checkProductStockAvailability(item.product_id, platform);
+                if (isStockAvailable) {
+                    const freeItems = Math.floor(item.quantity / buyQuantity) * getQuantity;
+                    let actualFreeItems = freeItems;
+                    // Apply max_free_items limit if specified
+                    if (maxFreeItems && totalFreeItems + freeItems > maxFreeItems) {
+                        actualFreeItems = Math.max(0, maxFreeItems - totalFreeItems);
+                    }
+                    if (actualFreeItems > 0) {
+                        totalFreeItems += actualFreeItems;
+                        affectedProducts.push(item.product_id);
+                    }
                 }
             }
         }
@@ -132,7 +136,7 @@ export class PromotionEvaluationService {
         };
     }
     // Helper function to calculate FREE_PRODUCT details
-    calculateFreeProductDetails(promotion, cartItems) {
+    async calculateFreeProductDetails(promotion, cartItems, platform = 'nivapp') {
         if (!promotion.action || promotion.action.type !== 'FREE_PRODUCT') {
             return null;
         }
@@ -146,6 +150,13 @@ export class PromotionEvaluationService {
         if (cartTotal < minPurchase) {
             return null;
         }
+        // Check stock availability for the free product
+        if (freeProductId) {
+            const isStockAvailable = await this.checkProductStockAvailability(freeProductId, platform);
+            if (!isStockAvailable) {
+                return null; // Free product is not available in stock
+            }
+        }
         // Grant the free product (default to 1 item, up to max_free_items)
         const grantedItems = Math.min(1, maxFreeItems);
         return {
@@ -153,6 +164,82 @@ export class PromotionEvaluationService {
             max_free_items: maxFreeItems,
             granted_items_count: grantedItems
         };
+    }
+    // Helper method to check product and platform stock availability
+    async checkProductStockAvailability(productId, platform) {
+        try {
+            // Check product status - must be 'in_stock'
+            const product = await this.prisma.product.findFirst({
+                where: {
+                    OR: [
+                        { id: parseInt(productId) },
+                        { puc: productId }
+                    ]
+                },
+                select: {
+                    id: true,
+                    puc: true,
+                    productstatus: true
+                }
+            });
+            if (!product || product.productstatus !== 'in_stock') {
+                logger.info({
+                    productId,
+                    platform,
+                    productStatus: product?.productstatus,
+                    reason: 'Product not in stock'
+                }, 'Product stock availability check failed - product status');
+                return false;
+            }
+            // Check platform stock status - must be 'in_stock'
+            const platformStock = await this.prisma.platformStock.findFirst({
+                where: {
+                    productid: product.id,
+                    platform: platform
+                },
+                select: {
+                    platformstatus: true,
+                    availableqty: true
+                }
+            });
+            if (!platformStock || platformStock.platformstatus !== 'in_stock') {
+                logger.info({
+                    productId,
+                    platform,
+                    platformStatus: platformStock?.platformstatus,
+                    availableQuantity: platformStock?.availableqty,
+                    reason: 'Platform stock not in stock'
+                }, 'Product stock availability check failed - platform status');
+                return false;
+            }
+            // Additional check: ensure there's available quantity
+            if (platformStock.availableqty <= 0) {
+                logger.info({
+                    productId,
+                    platform,
+                    availableQuantity: platformStock.availableqty,
+                    reason: 'No available quantity'
+                }, 'Product stock availability check failed - no available quantity');
+                return false;
+            }
+            logger.info({
+                productId,
+                platform,
+                productStatus: product.productstatus,
+                platformStatus: platformStock.platformstatus,
+                availableQuantity: platformStock.availableqty,
+                reason: 'Stock available'
+            }, 'Product stock availability check passed');
+            return true;
+        }
+        catch (error) {
+            logger.error({
+                error,
+                productId,
+                platform
+            }, 'Error checking product stock availability');
+            return false; // Fail safe - if we can't check, assume not available
+        }
     }
     // Helper methods for date handling with Unix timestamps
     getUtcTimestamp() {
@@ -205,8 +292,8 @@ export class PromotionEvaluationService {
                 original_total: request.cart_data.subtotal + request.cart_data.shipping_cost + request.cart_data.tax_amount,
                 discounted_total: discountResult.discounted_total,
                 total_discount: discountResult.total_discount,
-                applied_promotions: [this.buildAppliedPromotion(promotion, discountResult.total_discount, request.cart_data.items || [], false // is_auto = false (manual evaluation)
-                    )],
+                applied_promotions: [await this.buildAppliedPromotion(promotion, discountResult.total_discount, request.cart_data.items || [], false, // is_auto = false (manual evaluation)
+                    request.context?.channel === 'mobile_app' ? 'nivapp' : 'nivapp')],
                 ineligible_reasons: [],
                 expires_at: expiresAtUtc.toString()
             };
@@ -418,11 +505,12 @@ export class PromotionEvaluationService {
                 break;
             case 'PERCENT_OFF_ITEM':
                 // Apply percentage to specific items
+                let totalItemDiscount = 0;
                 for (const item of cartData.items) {
                     if (this.isItemEligible(item, promotion)) {
                         const percentage = this.getDiscountValue(promotion) / 100;
                         const itemDiscount = (item.price * item.quantity) * percentage;
-                        totalDiscount += itemDiscount;
+                        totalItemDiscount += itemDiscount;
                         affectedItems.push(item.product_id);
                         itemDiscounts.push({
                             product_id: item.product_id,
@@ -431,6 +519,16 @@ export class PromotionEvaluationService {
                             discount_amount: itemDiscount
                         });
                     }
+                }
+                // Apply max_discount cap at promotion level (not per item)
+                if (promotion.action &&
+                    promotion.action.max_discount &&
+                    typeof promotion.action.max_discount === 'number' &&
+                    totalItemDiscount > promotion.action.max_discount) {
+                    totalDiscount = promotion.action.max_discount;
+                }
+                else {
+                    totalDiscount = totalItemDiscount;
                 }
                 discountedTotal = totalValue - totalDiscount;
                 break;
@@ -487,8 +585,80 @@ export class PromotionEvaluationService {
         }
     }
     evaluateDateCondition(condition, date) {
-        // Implement date condition logic
-        return true;
+        try {
+            const { operator, value, comparison, compare_with } = condition;
+            switch (operator) {
+                case 'DATE_ADD_DAYS':
+                    // Handle DATE_ADD_DAYS: Add specified days to user's created date
+                    const targetDate = new Date(date.getTime() + (value * 24 * 60 * 60 * 1000));
+                    const currentDate = new Date();
+                    switch (comparison) {
+                        case 'GTE': // Greater than or equal
+                            return currentDate >= targetDate;
+                        case 'GT': // Greater than
+                            return currentDate > targetDate;
+                        case 'LTE': // Less than or equal
+                            return currentDate <= targetDate;
+                        case 'LT': // Less than
+                            return currentDate < targetDate;
+                        case 'EQ': // Equal
+                            return Math.abs(currentDate.getTime() - targetDate.getTime()) < (24 * 60 * 60 * 1000); // Within 1 day
+                        default:
+                            logger.warn({ operator, comparison }, 'Unknown date comparison operator');
+                            return false;
+                    }
+                case 'DATE_SUBTRACT_DAYS':
+                    // Handle DATE_SUBTRACT_DAYS: Subtract specified days from current date
+                    const referenceDate = new Date(Date.now() - (value * 24 * 60 * 60 * 1000));
+                    switch (comparison) {
+                        case 'GTE': // User created date >= reference date (user is newer than X days ago)
+                            return date >= referenceDate;
+                        case 'GT': // User created date > reference date
+                            return date > referenceDate;
+                        case 'LTE': // User created date <= reference date (user is older than X days ago)
+                            return date <= referenceDate;
+                        case 'LT': // User created date < reference date
+                            return date < referenceDate;
+                        case 'EQ': // User created date equals reference date (within 1 day)
+                            return Math.abs(date.getTime() - referenceDate.getTime()) < (24 * 60 * 60 * 1000);
+                        default:
+                            logger.warn({ operator, comparison }, 'Unknown date comparison operator');
+                            return false;
+                    }
+                case 'GTE':
+                case 'GT':
+                case 'LTE':
+                case 'LT':
+                case 'EQ':
+                    // Direct date comparison
+                    const compareDate = new Date(value);
+                    if (isNaN(compareDate.getTime())) {
+                        logger.warn({ value }, 'Invalid date value for comparison');
+                        return false;
+                    }
+                    switch (operator) {
+                        case 'GTE':
+                            return date >= compareDate;
+                        case 'GT':
+                            return date > compareDate;
+                        case 'LTE':
+                            return date <= compareDate;
+                        case 'LT':
+                            return date < compareDate;
+                        case 'EQ':
+                            return Math.abs(date.getTime() - compareDate.getTime()) < (24 * 60 * 60 * 1000);
+                        default:
+                            return false;
+                    }
+                default:
+                    logger.warn({ operator }, 'Unknown date condition operator');
+                    return false;
+            }
+        }
+        catch (error) {
+            logger.error({ error, condition }, 'Error evaluating date condition');
+            return false;
+        }
     }
     // Database helper methods
     async getUserSegments(userId) {
@@ -1441,8 +1611,8 @@ export class PromotionEvaluationService {
                 discountAmount = totalDiscount;
             }
             // Add the new manual promotion to existing ones
-            const newPromotion = this.buildAppliedPromotion(promotion, discountAmount, request.cart_items, false // is_auto = false (manual)
-            );
+            const newPromotion = await this.buildAppliedPromotion(promotion, discountAmount, request.cart_items, false, // is_auto = false (manual)
+            request.context?.channel === 'mobile_app' ? 'nivapp' : 'web');
             // Add backward compatibility fields
             newPromotion.breakdown = discountBreakdown;
             newPromotion.is_shipping_discount = promotion.type === 'FREE_SHIPPING' || false;
@@ -1575,8 +1745,8 @@ export class PromotionEvaluationService {
                             tax_amount: 0,
                             total: cartTotal
                         });
-                        const enhancedPromotion = this.buildAppliedPromotion(promotion, discountResult.total_discount, request.cart_items, true // is_auto = true
-                        );
+                        const enhancedPromotion = await this.buildAppliedPromotion(promotion, discountResult.total_discount, request.cart_items, true, // is_auto = true
+                        request.context?.channel === 'mobile_app' ? 'nivapp' : 'web');
                         appliedPromotions.push(enhancedPromotion);
                         totalDiscount += discountResult.total_discount;
                         logger.info({
@@ -1721,7 +1891,8 @@ export class PromotionEvaluationService {
                 throw new Error('Promotion is already applied');
             }
             // Add new promotion
-            const enhancedPromotion = this.buildAppliedPromotion(promotion, discountResult.total_discount, request.cart_items, false // is_auto = false (manual)
+            const enhancedPromotion = await this.buildAppliedPromotion(promotion, discountResult.total_discount, request.cart_items, false, // is_auto = false (manual)
+            'web' // Default platform for manual coupons
             );
             appliedPromotions.push(enhancedPromotion);
             // Re-run automatic promotions to ensure consistency

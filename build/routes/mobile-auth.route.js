@@ -241,6 +241,7 @@ export async function mobileAuthRoutes(fastify) {
         },
     }, asyncHandler(async (request, reply) => {
         const { usermobilenumber, verifyOnly = false } = request.body;
+        console.log("request otp");
         // Rate limiting check using mobile number
         const identifier = `${request.ip}-${usermobilenumber}`;
         if (authRateLimit.isRateLimited(identifier)) {
