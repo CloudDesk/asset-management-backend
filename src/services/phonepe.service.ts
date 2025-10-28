@@ -33,7 +33,7 @@ const PHONEPE_CONFIG = {
   CLIENT_SECRET: process.env.PHONEPE_CLIENT_SECRET || "",
   CLIENT_VERSION: parseInt(process.env.PHONEPE_CLIENT_VERSION || "1"),
   USE_SDK: process.env.PHONEPE_USE_SDK === "true" || true, // Default to SDK if credentials present
-  ENVIRONMENT: (process.env.PHONEPE_ENVIRONMENT || "SANDBOX") as
+  ENVIRONMENT: (process.env.PHONEPE_ENVIRONMENT || "PRODUCTION") as
     | "SANDBOX"
     | "PRODUCTION",
 
