@@ -2451,7 +2451,7 @@ export class PhonePeController {
       // Check if orderlines were created automatically
       const createdOrderlines = await prisma.orderline.findMany({
         where: { orderid: order.id },
-        select: { id: true, productid: true, orderlinenumber: true, quantity: true },
+        select: { id: true, productid: true, orderlinenumber: true, quantity: true, orderamount: true, promotion_discount_amount: true, product_discount_amount: true },
       });
 
       logger.info(
@@ -2463,6 +2463,27 @@ export class PhonePeController {
           step: "automatic_orderlines_verified",
         },
         "Automatic orderline creation completed and verified"
+      );
+
+      // FIX: Reload order from database to get ALL fields including promotion_discount_total
+      // Don't use select - get ALL fields to ensure promotion_discount_total is included
+      const fullOrder = await prisma.orders.findUnique({
+        where: { id: order.id },
+      });
+
+      if (!fullOrder) {
+        throw new Error(`Failed to reload order ${order.id} from database`);
+      }
+
+      logger.info(
+        {
+          transactionId,
+          orderId: order.id,
+          promotion_discount_total: fullOrder.promotion_discount_total ? parseFloat(fullOrder.promotion_discount_total.toString()) : 0,
+          hasPromotionDiscount: !!(fullOrder.promotion_discount_total && parseFloat(fullOrder.promotion_discount_total.toString()) > 0),
+          orderKeys: Object.keys(fullOrder),
+        },
+        "Order reloaded from database with ALL fields"
       );
 
       // Update orderlines with promotion data
@@ -2504,7 +2525,23 @@ export class PhonePeController {
           );
 
           // Get order-level promotion discount total for proportional distribution
-          const orderPromotionDiscountTotal = order.promotion_discount_total || 0;
+          // Use fullOrder (reloaded from database) instead of order
+          const orderPromotionDiscountTotal = fullOrder.promotion_discount_total 
+            ? parseFloat(fullOrder.promotion_discount_total.toString()) 
+            : 0;
+          
+          logger.info(
+            {
+              transactionId,
+              orderId: fullOrder.id,
+              orderPromotionDiscountTotal,
+              promotion_discount_total_raw: fullOrder.promotion_discount_total,
+              promotion_discount_total_type: fullOrder.promotion_discount_total ? typeof fullOrder.promotion_discount_total : 'null',
+              hasPromotionDiscount: !!fullOrder.promotion_discount_total && orderPromotionDiscountTotal > 0,
+              willDistribute: orderPromotionDiscountTotal > 0,
+            },
+            "Using promotion_discount_total from reloaded order"
+          );
           
           // Calculate total order amount from all orderlines (for proportional distribution)
           let totalOrderAmount = 0;
@@ -2663,7 +2700,30 @@ export class PhonePeController {
               where: { id: orderline.id },
               data: updateData,
             });
+            
+            logger.info(
+              {
+                transactionId,
+                orderId: order.id,
+                orderlineId: orderline.id,
+                productId,
+                updatedFields: Object.keys(updateData),
+                promotion_discount_amount: actualPromotionDiscount,
+                discountamount: productDiscountAmount + actualPromotionDiscount,
+              },
+              "Orderline updated with promotion discount"
+            );
           }
+          
+          logger.info(
+            {
+              transactionId,
+              orderId: order.id,
+              totalOrderlines: createdOrderlines.length,
+              promotion_discount_total: fullOrder.promotion_discount_total,
+            },
+            "Completed updating all orderlines with promotion discounts"
+          );
         } catch (updateError: any) {
           logger.warn(
             {
