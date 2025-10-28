@@ -2663,12 +2663,136 @@ export class PhonePeController {
             "Failed to update orderlines with promotion data - orderlines created without promotion details"
           );
         }
+      } else if (createdOrderlines.length > 0 && order.promotion_discount_total && order.promotion_discount_total > 0) {
+        // FALLBACK: If evaluation data is not available but order has promotion_discount_total, distribute it proportionally
+        try {
+          logger.info(
+            {
+              transactionId,
+              orderId: order.id,
+              hasEvaluationData: false,
+              orderPromotionDiscountTotal: order.promotion_discount_total,
+              orderlinesCount: createdOrderlines.length,
+            },
+            "Evaluation data missing - distributing promotion discount from order-level total"
+          );
+
+          const orderPromotionDiscountTotal = parseFloat(order.promotion_discount_total.toString()) || 0;
+          
+          // Calculate total order amount from all orderlines (for proportional distribution)
+          let totalOrderAmount = 0;
+          const orderlineAmounts: Array<{ id: any; productId: number; orderamount: number; quantity: number }> = [];
+          
+          for (const orderline of createdOrderlines) {
+            const lineOrderAmount = parseFloat((orderline as any).orderamount?.toString() || "0");
+            const lineQuantity = parseFloat((orderline as any).quantity?.toString() || "1");
+            totalOrderAmount += lineOrderAmount;
+            orderlineAmounts.push({
+              id: orderline.id,
+              productId: Number(orderline.productid),
+              orderamount: lineOrderAmount,
+              quantity: lineQuantity
+            });
+          }
+
+          // Distribute promotion discount proportionally
+          let allocatedPromoDiscount = 0;
+          const promoDiscounts: Array<{ lineId: any; discount: number }> = [];
+
+          if (orderPromotionDiscountTotal > 0 && totalOrderAmount > 0) {
+            for (let i = 0; i < orderlineAmounts.length; i++) {
+              const line = orderlineAmounts[i];
+              
+              if (!line) continue;
+              
+              // Calculate proportional discount for this line
+              const proportion = line.orderamount / totalOrderAmount;
+              let linePromoDiscount = proportion * orderPromotionDiscountTotal;
+              
+              // Round to 2 decimal places to avoid floating point issues
+              linePromoDiscount = Math.round(linePromoDiscount * 100) / 100;
+              
+              // For the last line, ensure total allocated equals order promotion_discount_total
+              if (i === orderlineAmounts.length - 1) {
+                linePromoDiscount = orderPromotionDiscountTotal - allocatedPromoDiscount;
+              }
+              
+              allocatedPromoDiscount += linePromoDiscount;
+              promoDiscounts.push({ lineId: line.id, discount: linePromoDiscount });
+            }
+          }
+
+          logger.info(
+            {
+              transactionId,
+              orderId: order.id,
+              totalOrderAmount,
+              orderPromotionDiscountTotal,
+              allocatedPromoDiscount,
+              promoDiscounts,
+              match: Math.abs(allocatedPromoDiscount - orderPromotionDiscountTotal) < 0.01
+            },
+            "Promotion discount distribution calculated (fallback without evaluation data)"
+          );
+
+          // Update each orderline with promotion data
+          for (let i = 0; i < createdOrderlines.length; i++) {
+            const orderline = createdOrderlines[i];
+            
+            if (!orderline) continue;
+            
+            // Get the proportional promotion discount for this line
+            const proportionalPromoDiscount = promoDiscounts[i]?.discount || 0;
+            
+            // Get current product discount amount
+            const currentProductDiscount = parseFloat((orderline as any).product_discount_amount?.toString() || "0");
+            
+            // Calculate updated discountamount
+            const updatedDiscountAmount = currentProductDiscount + proportionalPromoDiscount;
+            
+            // Calculate updated orderamount
+            const currentOrderAmount = parseFloat((orderline as any).orderamount?.toString() || "0");
+            const updatedOrderAmount = Math.max(0, currentOrderAmount - proportionalPromoDiscount);
+
+            // Use Prisma to update the orderline
+            await prisma.orderline.update({
+              where: { id: orderline.id },
+              data: {
+                evaluation_id: primaryEvaluationId,
+                promotion_discount_amount: proportionalPromoDiscount,
+                discountamount: updatedDiscountAmount,
+                orderamount: updatedOrderAmount,
+                modifieddate: BigInt(currentTime),
+              },
+            });
+          }
+
+          logger.info(
+            {
+              transactionId,
+              orderId: order.id,
+              totalOrderlines: createdOrderlines.length,
+              promotionDiscountDistributed: allocatedPromoDiscount
+            },
+            "Promotion discount distributed to orderlines (fallback method)"
+          );
+        } catch (updateError: any) {
+          logger.warn(
+            {
+              transactionId,
+              orderId: order.id,
+              error: updateError.message,
+            },
+            "Failed to update orderlines with promotion data using fallback method"
+          );
+        }
       } else {
         logger.warn(
           {
             transactionId,
             orderId: order.id,
             hasEvaluationData: !!evaluationData,
+            hasPromotionDiscount: !!(order.promotion_discount_total && order.promotion_discount_total > 0),
             orderlinesCount: createdOrderlines.length,
           },
           "Cannot update orderlines - missing evaluation data or no orderlines created"
