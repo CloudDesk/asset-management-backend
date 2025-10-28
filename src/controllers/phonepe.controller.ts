@@ -2465,20 +2465,22 @@ export class PhonePeController {
         "Automatic orderline creation completed and verified"
       );
 
-      // Update orderlines with promotion data if evaluation data is available
-      if (evaluationData && createdOrderlines.length > 0) {
+      // Update orderlines with promotion data
+      // Always run this if we have orderlines, regardless of evaluation data
+      if (createdOrderlines.length > 0) {
         try {
-          const evaluationCartData = (evaluationData.cart_data as any[]) || [];
+          const evaluationCartData = evaluationData ? ((evaluationData as any).cart_data as any[]) || [] : [];
           const appliedPromotions =
-            (evaluationData.applied_promotions as any[]) || [];
+            evaluationData ? ((evaluationData as any).applied_promotions as any[]) || [] : [];
 
           // Create maps for promotion data
           const originalPriceMap = new Map<number, number>();
           const productDiscountMap = new Map<number, number>();
 
-          // Map product data from evaluation cart data
+          // Map product data from evaluation cart data (if available)
           // IMPORTANT: Store PER-ITEM values in maps, multiply by quantity later
-          evaluationCartData.forEach((cartItem: any) => {
+          if (evaluationCartData && evaluationCartData.length > 0) {
+            evaluationCartData.forEach((cartItem: any) => {
             const productId = parseInt(cartItem.product_id?.toString() || "0");
             if (productId > 0) {
               const basePrice = parseFloat(
@@ -2493,6 +2495,7 @@ export class PhonePeController {
               productDiscountMap.set(productId, productDiscount); // Store per-item discount
             }
           });
+          }
 
           // Calculate shipping cost per item
           const totalShippingCost = parseFloat(
@@ -2637,20 +2640,28 @@ export class PhonePeController {
             const itemProportion = originalTotal > 0 ? totalItemValue / originalTotal : 0;
             const lineShippingCost = totalShippingCost * itemProportion;
 
+            // Determine which fields to update based on whether evaluation data exists
+            const updateData: any = {
+              evaluation_id: primaryEvaluationId,
+              promotion_discount_amount: actualPromotionDiscount,
+              discountamount: productDiscountAmount + actualPromotionDiscount,
+              modifieddate: BigInt(currentTime),
+            };
+
+            // Only update detailed fields if evaluation data exists
+            if (evaluationData) {
+              updateData.original_price = originalPrice;
+              updateData.product_discount_amount = productDiscountAmount;
+              updateData.shipping_cost = lineShippingCost;
+              updateData.productamount = productAmountOnly;
+              updateData.orderamount = Math.max(0, finalPriceTotal);
+            }
+            // If no evaluation data, don't touch orderamount/productamount - they're already correct from creation
+
             // Use Prisma to update the orderline
             await prisma.orderline.update({
               where: { id: orderline.id },
-              data: {
-                evaluation_id: primaryEvaluationId,
-                original_price: originalPrice,
-                product_discount_amount: productDiscountAmount, // Total discount (per item * quantity)
-                promotion_discount_amount: actualPromotionDiscount, // Proportional promotion discount
-                shipping_cost: lineShippingCost, // FIX #2A: Proportional distribution
-                productamount: productAmountOnly, // (original_price * qty) - product_discount_amount
-                discountamount: productDiscountAmount + actualPromotionDiscount, // total discount for this line
-                orderamount: Math.max(0, finalPriceTotal), // final amount for this line (after all discounts, never negative)
-                modifieddate: BigInt(currentTime),
-              },
+              data: updateData,
             });
           }
         } catch (updateError: any) {
@@ -2663,139 +2674,14 @@ export class PhonePeController {
             "Failed to update orderlines with promotion data - orderlines created without promotion details"
           );
         }
-      } else if (createdOrderlines.length > 0 && order.promotion_discount_total && order.promotion_discount_total > 0) {
-        // FALLBACK: If evaluation data is not available but order has promotion_discount_total, distribute it proportionally
-        try {
-          logger.info(
-            {
-              transactionId,
-              orderId: order.id,
-              hasEvaluationData: false,
-              orderPromotionDiscountTotal: order.promotion_discount_total,
-              orderlinesCount: createdOrderlines.length,
-            },
-            "Evaluation data missing - distributing promotion discount from order-level total"
-          );
-
-          const orderPromotionDiscountTotal = parseFloat(order.promotion_discount_total.toString()) || 0;
-          
-          // Calculate total order amount from all orderlines (for proportional distribution)
-          let totalOrderAmount = 0;
-          const orderlineAmounts: Array<{ id: any; productId: number; orderamount: number; quantity: number }> = [];
-          
-          for (const orderline of createdOrderlines) {
-            const lineOrderAmount = parseFloat((orderline as any).orderamount?.toString() || "0");
-            const lineQuantity = parseFloat((orderline as any).quantity?.toString() || "1");
-            totalOrderAmount += lineOrderAmount;
-            orderlineAmounts.push({
-              id: orderline.id,
-              productId: Number(orderline.productid),
-              orderamount: lineOrderAmount,
-              quantity: lineQuantity
-            });
-          }
-
-          // Distribute promotion discount proportionally
-          let allocatedPromoDiscount = 0;
-          const promoDiscounts: Array<{ lineId: any; discount: number }> = [];
-
-          if (orderPromotionDiscountTotal > 0 && totalOrderAmount > 0) {
-            for (let i = 0; i < orderlineAmounts.length; i++) {
-              const line = orderlineAmounts[i];
-              
-              if (!line) continue;
-              
-              // Calculate proportional discount for this line
-              const proportion = line.orderamount / totalOrderAmount;
-              let linePromoDiscount = proportion * orderPromotionDiscountTotal;
-              
-              // Round to 2 decimal places to avoid floating point issues
-              linePromoDiscount = Math.round(linePromoDiscount * 100) / 100;
-              
-              // For the last line, ensure total allocated equals order promotion_discount_total
-              if (i === orderlineAmounts.length - 1) {
-                linePromoDiscount = orderPromotionDiscountTotal - allocatedPromoDiscount;
-              }
-              
-              allocatedPromoDiscount += linePromoDiscount;
-              promoDiscounts.push({ lineId: line.id, discount: linePromoDiscount });
-            }
-          }
-
-          logger.info(
-            {
-              transactionId,
-              orderId: order.id,
-              totalOrderAmount,
-              orderPromotionDiscountTotal,
-              allocatedPromoDiscount,
-              promoDiscounts,
-              match: Math.abs(allocatedPromoDiscount - orderPromotionDiscountTotal) < 0.01
-            },
-            "Promotion discount distribution calculated (fallback without evaluation data)"
-          );
-
-          // Update each orderline with promotion data
-          for (let i = 0; i < createdOrderlines.length; i++) {
-            const orderline = createdOrderlines[i];
-            
-            if (!orderline) continue;
-            
-            // Get the proportional promotion discount for this line
-            const proportionalPromoDiscount = promoDiscounts[i]?.discount || 0;
-            
-            // Get current product discount amount
-            const currentProductDiscount = parseFloat((orderline as any).product_discount_amount?.toString() || "0");
-            
-            // Calculate updated discountamount
-            const updatedDiscountAmount = currentProductDiscount + proportionalPromoDiscount;
-            
-            // Calculate updated orderamount
-            const currentOrderAmount = parseFloat((orderline as any).orderamount?.toString() || "0");
-            const updatedOrderAmount = Math.max(0, currentOrderAmount - proportionalPromoDiscount);
-
-            // Use Prisma to update the orderline
-            await prisma.orderline.update({
-              where: { id: orderline.id },
-              data: {
-                evaluation_id: primaryEvaluationId,
-                promotion_discount_amount: proportionalPromoDiscount,
-                discountamount: updatedDiscountAmount,
-                orderamount: updatedOrderAmount,
-                modifieddate: BigInt(currentTime),
-              },
-            });
-          }
-
-          logger.info(
-            {
-              transactionId,
-              orderId: order.id,
-              totalOrderlines: createdOrderlines.length,
-              promotionDiscountDistributed: allocatedPromoDiscount
-            },
-            "Promotion discount distributed to orderlines (fallback method)"
-          );
-        } catch (updateError: any) {
-          logger.warn(
-            {
-              transactionId,
-              orderId: order.id,
-              error: updateError.message,
-            },
-            "Failed to update orderlines with promotion data using fallback method"
-          );
-        }
       } else {
         logger.warn(
           {
             transactionId,
             orderId: order.id,
-            hasEvaluationData: !!evaluationData,
-            hasPromotionDiscount: !!(order.promotion_discount_total && order.promotion_discount_total > 0),
             orderlinesCount: createdOrderlines.length,
           },
-          "Cannot update orderlines - missing evaluation data or no orderlines created"
+          "No orderlines to update with promotion data"
         );
       }
 
