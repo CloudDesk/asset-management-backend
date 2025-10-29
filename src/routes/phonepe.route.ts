@@ -691,7 +691,8 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
 
           // Redirect to success page regardless of order creation status
           // Payment was successful, order creation is secondary
-          return reply.redirect("http://localhost:5600/health");
+          const successUrl = process.env.REDIRECT_URL_SUCCESS || "com.Nivaana.app://profile/orders";
+          return reply.redirect(successUrl);
         } else if (paymentStatus.code === "TRANSACTION_NOT_FOUND") {
           fastify.log.warn(
             `Payment transaction not found or expired for: ${transactionId}`,
@@ -706,7 +707,8 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
           );
 
           // Redirect to failure page with appropriate message
-          return reply.redirect("http://localhost:5600/docs#/");
+          const failureUrl = process.env.REDIRECT_URL_FAILURE || "com.Nivaana.app://profile/orders";
+          return reply.redirect(failureUrl);
         } else {
           fastify.log.warn(
             `Payment failed for transaction: ${transactionId}`,
@@ -721,7 +723,8 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
           );
 
           // Redirect to failure page
-          return reply.redirect("http://localhost:5600/docs#/");
+          const failureUrl = process.env.REDIRECT_URL_FAILURE || "com.Nivaana.app://profile/orders";
+          return reply.redirect(failureUrl);
         }
       } catch (error: any) {
         fastify.log.error(
@@ -755,7 +758,8 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
         }
 
         // Redirect to failure page
-        return reply.redirect("http://localhost:5600/docs#/");
+        const failureUrl = process.env.REDIRECT_URL_FAILURE || "com.Nivaana.app://profile/orders";
+        return reply.redirect(failureUrl);
       }
     }
   );

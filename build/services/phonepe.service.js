@@ -17,11 +17,11 @@ const PHONEPE_CONFIG = {
     CLIENT_SECRET: process.env.PHONEPE_CLIENT_SECRET || "",
     CLIENT_VERSION: parseInt(process.env.PHONEPE_CLIENT_VERSION || "1"),
     USE_SDK: process.env.PHONEPE_USE_SDK === "true" || true, // Default to SDK if credentials present
-    ENVIRONMENT: (process.env.PHONEPE_ENVIRONMENT || "SANDBOX"),
+    ENVIRONMENT: (process.env.PHONEPE_ENVIRONMENT || "PRODUCTION"),
     // Redirect URLs
-    REDIRECT_SUCCESS: process.env.REDIRECT_URL_SUCCESS || "http://localhost:5600/payment/success",
-    REDIRECT_FAILURE: process.env.REDIRECT_URL_FAILURE || "http://localhost:5600/payment/failure",
-    REDIRECT_STATUS: process.env.REDIRECT_URL_PAYMENT_STATUS || "http://localhost:5600",
+    REDIRECT_SUCCESS: process.env.REDIRECT_URL_SUCCESS || "com.Nivaana.app://profile/orders",
+    REDIRECT_FAILURE: process.env.REDIRECT_URL_FAILURE || "com.Nivaana.app://profile/orders",
+    REDIRECT_STATUS: process.env.REDIRECT_URL_PAYMENT_STATUS || "https://nivaana-715569764663.asia-south1.run.app",
     // REDIRECT_STATUS: 'https://foal-stirring-illegally.ngrok-free.app'
     // REDIRECT_STATUS: 'https://85c96baef4c7.ngrok-free.app'
 };
