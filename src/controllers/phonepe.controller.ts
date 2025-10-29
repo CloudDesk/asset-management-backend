@@ -19,7 +19,7 @@ import { logger } from "../config/logger.js";
 export class PhonePeController {
   public phonePeService = new PhonePeService();
   public transactionService = new TransactionService();
-  private ordersService = new OrdersService();
+  public ordersService = new OrdersService();
   public orderlineService = new OrderlineService();
 
   /**
