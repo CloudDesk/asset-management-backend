@@ -1409,7 +1409,7 @@ export class PhonePeController {
         // Redirect to failure page on error
         const failureUrl =
           process.env.REDIRECT_URL_FAILURE ||
-          "http://localhost:5600/payment/failure";
+          "com.Nivaana.app://profile/orders";
         return reply.redirect(failureUrl);
       }
     }

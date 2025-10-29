@@ -145,7 +145,7 @@ export declare class PhonePeController {
                 oldLockQty: number;
                 newLockQty: number;
                 oldOrderedQty: number;
-                newOrderedQty: any;
+                newOrderedQty: number;
                 newPlatformStatus: string;
             };
             verification: {
