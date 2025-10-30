@@ -160755,3 +160755,46 @@ Filtering data for cart (cart): {
   "modifieddate": 1761307695337
 }
 >>>>>>> Stashed changes
+Filtering data for product (product): {
+  "name": "Nivaana - Dhoop Sticks - Kasturi",
+  "shortdescription": "Dhoop Sticks",
+  "category": "home_fragrance",
+  "subcategory": "dhoop_sticks",
+  "fragnancetype": "kasturi",
+  "brand": "Nivaana",
+  "pack": "single",
+  "price": 100,
+  "discount": 0,
+  "numberofitems": 0,
+  "isdealoftheday": false
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 51,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 51,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 51,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}

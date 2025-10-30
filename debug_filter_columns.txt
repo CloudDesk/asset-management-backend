@@ -1414,3 +1414,7 @@ Available columns for cart: ["id","productid","userid","createddate","quantity",
 Available columns for cart: ["id","productid","userid","createddate","quantity","iscart","iswishlist","modifieddate"]
 Available columns for cart: ["id","productid","userid","createddate","quantity","iscart","iswishlist","modifieddate"]
 Available columns for cart: ["id","productid","userid","createddate","quantity","iscart","iswishlist","modifieddate"]
+Available columns for product: ["id","name","shortdescription","fulldescription","fragnancetype","soldquantity","availablequantity","quantity","ecompublishedquantity","productstatus","puc","averagerating","discount","price","orderedquantity","createddate","modifieddate","category","subcategory","large","medium","small","searchtext","brand","pack","isdealoftheday","material","itemlength","manufacturer","netform","netquantity","numberofitems","itemthickness"]
+Available columns for platformstock: ["id","productid","platform","availableqty","orderedqty","soldqty","totalqty","lockqty","createddate","modifieddate","platformstatus"]
+Available columns for platformstock: ["id","productid","platform","availableqty","orderedqty","soldqty","totalqty","lockqty","createddate","modifieddate","platformstatus"]
+Available columns for platformstock: ["id","productid","platform","availableqty","orderedqty","soldqty","totalqty","lockqty","createddate","modifieddate","platformstatus"]

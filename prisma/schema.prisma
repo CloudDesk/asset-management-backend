@@ -46,6 +46,15 @@ model Product {
   numberofitems        Int?
   itemthickness        String?     @db.VarChar(255)
 
+  purpose              String?     @db.VarChar(255)
+  burntime             String?     @db.VarChar(255)
+  power                String?     @db.VarChar(255)
+  usage                String?     @db.VarChar(255)
+  longevity            String?     @db.VarChar(255)
+  gender               String?     @db.VarChar(50)
+
+  
+
   platformStocks       PlatformStock[]
   orderline             orderline[]
   stock                 Stock[]
@@ -129,7 +138,8 @@ model Picklist {
   fieldname           String? @db.VarChar(255)
   controlledlabel     String? @db.VarChar(255)
   controlledfieldname String? @db.VarChar(255)
-  parent              String? @db.VarChar(20)
+  parent              String? @db.VarChar(255)
+  description         String? @db.VarChar(255)
   createddate          BigInt?
   modifieddate         BigInt?
 

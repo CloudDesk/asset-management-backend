@@ -43,6 +43,7 @@ export async function picklistRoutes(fastify: FastifyInstance) {
                   controlledlabel: { type: 'string', description: 'Controlled label' },
                   controlledfieldname: { type: 'string', description: 'Controlled field name' },
                   parent: { type: 'string', description: 'Parent reference' },
+                  description: { type: 'string', description: 'Description' },
                 }
               }
             },
@@ -100,6 +101,7 @@ export async function picklistRoutes(fastify: FastifyInstance) {
                 controlledlabel: { type: 'string', description: 'Controlled label' },
                 controlledfieldname: { type: 'string', description: 'Controlled field name' },
                 parent: { type: 'string', description: 'Parent reference' },
+                description: { type: 'string', description: 'Description' },
               }
             },
             message: { type: 'string' },
@@ -218,6 +220,7 @@ export async function picklistRoutes(fastify: FastifyInstance) {
                 controlledlabel: { type: 'string', description: 'Controlled label' },
                 controlledfieldname: { type: 'string', description: 'Controlled field name' },
                 parent: { type: 'string', description: 'Parent reference' },
+                description: { type: 'string', description: 'Description' },
               }
             },
             message: { type: 'string' },
@@ -287,6 +290,7 @@ export async function picklistRoutes(fastify: FastifyInstance) {
                 controlledlabel: { type: 'string', description: 'Controlled label' },
                 controlledfieldname: { type: 'string', description: 'Controlled field name' },
                 parent: { type: 'string', description: 'Parent reference' },
+                description: { type: 'string', description: 'Description' },
               }
             },
             message: { type: 'string' },

@@ -2075,3 +2075,111 @@ Filtered data: {
 }
 Ignored fields: []
 
+PlatformStock filter debug:
+Input data: {
+  "productid": 51,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Available columns: [
+  "id",
+  "productid",
+  "platform",
+  "availableqty",
+  "orderedqty",
+  "soldqty",
+  "totalqty",
+  "lockqty",
+  "createddate",
+  "modifieddate",
+  "platformstatus"
+]
+Filtered data: {
+  "productid": 51,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Ignored fields: []
+
+PlatformStock filter debug:
+Input data: {
+  "productid": 51,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Available columns: [
+  "id",
+  "productid",
+  "platform",
+  "availableqty",
+  "orderedqty",
+  "soldqty",
+  "totalqty",
+  "lockqty",
+  "createddate",
+  "modifieddate",
+  "platformstatus"
+]
+Filtered data: {
+  "productid": 51,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Ignored fields: []
+
+PlatformStock filter debug:
+Input data: {
+  "productid": 51,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Available columns: [
+  "id",
+  "productid",
+  "platform",
+  "availableqty",
+  "orderedqty",
+  "soldqty",
+  "totalqty",
+  "lockqty",
+  "createddate",
+  "modifieddate",
+  "platformstatus"
+]
+Filtered data: {
+  "productid": 51,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Ignored fields: []
+
