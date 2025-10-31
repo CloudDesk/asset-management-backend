@@ -160798,3 +160798,503 @@ Filtering data for platformstock (platformstock): {
   "platformstatus": "out_of_stock",
   "platform": "nivapp"
 }
+Filtering data for product (product): {
+  "name": "New Is - Incense Sticks - Kasturi",
+  "shortdescription": "new Incense stick form",
+  "category": "home_fragrance",
+  "subcategory": "incense_sticks",
+  "fragnancetype": "kasturi",
+  "brand": "New-IS",
+  "pack": "single",
+  "price": 100,
+  "discount": 0,
+  "numberofitems": 0,
+  "isdealoftheday": false,
+  "purpose": "Enhance living spaces"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 52,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 52,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 52,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtering data for product (product): {
+  "name": "New Is - Incense Sticks - Kasturi",
+  "category": "home_fragrance",
+  "subcategory": "incense_sticks",
+  "fragnancetype": "kasturi",
+  "brand": "New-IS",
+  "pack": "single",
+  "price": 10,
+  "discount": 0,
+  "numberofitems": 0,
+  "isdealoftheday": false,
+  "purpose": "Enhance living spaces",
+  "burntime": "30 mins"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 53,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 53,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 53,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtering data for product (product): {
+  "name": "New Is - Incense Sticks - Kasturi",
+  "category": "home_fragrance",
+  "subcategory": "incense_sticks",
+  "fragnancetype": "kasturi",
+  "brand": "New-IS",
+  "pack": "single",
+  "price": 100,
+  "discount": 0,
+  "numberofitems": 0,
+  "isdealoftheday": false,
+  "purpose": "Enhance living spaces"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 54,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 54,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 54,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtering data for product (product): {
+  "name": "New Is - Incense Sticks - Kasturi",
+  "shortdescription": "",
+  "fulldescription": "",
+  "price": 100,
+  "discount": 0,
+  "isdealoftheday": false,
+  "fragnancetype": "kasturi",
+  "brand": "New-IS",
+  "pack": "single",
+  "material": "",
+  "manufacturer": "",
+  "netform": "",
+  "netquantity": "",
+  "usage": "",
+  "burntime": "30 mins",
+  "itemlength": "",
+  "itemthickness": "",
+  "numberofitems": 0,
+  "category": "home_fragrance",
+  "subcategory": "incense_sticks"
+}
+Filtering data for product (product): {
+  "name": "Dhoop - Dhoop Sticks - Kasturi",
+  "category": "home_fragrance",
+  "subcategory": "dhoop_sticks",
+  "fragnancetype": "kasturi",
+  "brand": "Dhoop",
+  "pack": "single",
+  "price": 50,
+  "discount": 0,
+  "numberofitems": 10,
+  "isdealoftheday": false,
+  "purpose": "Enhance living spaces",
+  "burntime": "30 mins"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 55,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 55,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 55,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtering data for product (product): {
+  "name": "Fragrance - Fragrance Sachets - Kesar Chandan",
+  "category": "personal_fragrance",
+  "subcategory": "fragrance_sachets",
+  "fragnancetype": "kesar_chandan",
+  "brand": "Fragrance",
+  "pack": "single",
+  "price": 100,
+  "discount": 0,
+  "numberofitems": 0,
+  "isdealoftheday": false,
+  "purpose": "Keep personal and travel spaces fresh",
+  "longevity": "lasts upto 30 days",
+  "gender": "unisex"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 56,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 56,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 56,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtering data for product (product): {
+  "name": "Car - Car Fragrance - Kesar Chandan",
+  "category": "personal_fragrance",
+  "subcategory": "car_fragrance",
+  "fragnancetype": "kesar_chandan",
+  "brand": "Car",
+  "pack": "single",
+  "price": 100,
+  "discount": 0,
+  "isdealoftheday": false,
+  "purpose": "Keep personal and travel spaces fresh"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 57,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 57,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 57,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtering data for product (product): {
+  "name": "Essential Oil - Essential Oils - Davana",
+  "category": "wellness_aromatherapy",
+  "subcategory": "essential_oils",
+  "fragnancetype": "davana",
+  "brand": "Essential oil",
+  "pack": "single",
+  "price": 100,
+  "discount": 0,
+  "isdealoftheday": false,
+  "purpose": "Promote balance and well-being"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 58,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 58,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 58,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtering data for product (product): {
+  "name": "Diffusers - Diffusers - Spiritual Harmony",
+  "category": "wellness_aromatherapy",
+  "subcategory": "diffusers",
+  "fragnancetype": "spiritual_harmony",
+  "brand": "Diffusers",
+  "pack": "single",
+  "price": 100,
+  "discount": 0,
+  "isdealoftheday": false,
+  "purpose": "Promote balance and well-being",
+  "power": "usb"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 59,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 59,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 59,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtering data for product (product): {
+  "name": "Fragrance - Fragrance Oils - Davana",
+  "category": "wellness_aromatherapy",
+  "subcategory": "fragrance_oils",
+  "fragnancetype": "davana",
+  "brand": "Fragrance",
+  "pack": "single",
+  "price": 100,
+  "discount": 0,
+  "isdealoftheday": false,
+  "purpose": "Promote balance and well-being"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 60,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 60,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 60,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtering data for product (product): {
+  "name": "Toiletries Fragrance - Toiletries - Kesar Chandan",
+  "category": "personal_fragrance",
+  "subcategory": "toiletries",
+  "fragnancetype": "kesar_chandan",
+  "brand": "Toiletries Fragrance",
+  "pack": "single",
+  "price": 100,
+  "discount": 0,
+  "numberofitems": 0,
+  "isdealoftheday": false,
+  "purpose": "Keep personal and travel spaces fresh",
+  "longevity": "lasts upto 30 days",
+  "gender": "unisex"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 61,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 61,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 61,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtering data for product (product): {
+  "name": "Havan - Havan Cups - Paradise Garden",
+  "category": "home_fragrance",
+  "subcategory": "havan_cups",
+  "fragnancetype": "paradise_garden",
+  "brand": "Havan",
+  "pack": "single",
+  "price": 200,
+  "discount": 0,
+  "numberofitems": 0,
+  "isdealoftheday": false,
+  "purpose": "Enhance living spaces",
+  "burntime": "30 mins"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 62,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 62,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 62,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
