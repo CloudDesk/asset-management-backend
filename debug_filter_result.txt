@@ -160464,3 +160464,10 @@ Filtered data result: {
   "platformstatus": "out_of_stock",
   "platform": "nivapp"
 }
+Filtered data result: {
+  "large": [
+    "https://storage.googleapis.com/niv-products-images-dev/48/large/large_10mb-example-jpg.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/48/large/large_8mb.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/48/large/large_generated-image2.jpeg"
+  ]
+}

@@ -140,6 +140,7 @@ model Picklist {
   controlledfieldname String? @db.VarChar(255)
   parent              String? @db.VarChar(255)
   description         String? @db.VarChar(255)
+  sortorder           Int?
   createddate          BigInt?
   modifieddate         BigInt?
 
