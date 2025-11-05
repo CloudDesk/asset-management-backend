@@ -17,6 +17,8 @@ export declare function dynamicFindManyWithFilters(modelName: string, filters?: 
     skip?: number;
     take?: number;
     useAllColumns?: boolean;
+    orderBy?: string | string[];
+    orderDirection?: 'ASC' | 'DESC' | ('ASC' | 'DESC')[];
 }): Promise<{
     data: any[];
     total: number;

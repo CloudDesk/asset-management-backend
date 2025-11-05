@@ -1,172 +1,79 @@
-# 🚀 Quick Fix Summary - Race Condition Fixed!
+# ⚡ Quick Fix Summary - Orderline Promotion Discount Bug
 
-**Date**: October 16, 2025  
-**Status**: ✅ FIXED AND READY TO TEST  
+## What Was Wrong
+Your orderlines had `promotion_discount_amount = 0` even though the order had `promotion_discount_total > 0`.
 
----
+## What Was Fixed
+Added a **pro-rata fallback** that distributes promotion discounts across orderlines when `evaluationData` doesn't provide per-product breakdown.
 
-## ✅ What Was Fixed
+**File**: `src/controllers/phonepe.controller.ts` (lines 2361-2382)
 
-### Issue 1: Race Condition (Your Original Problem)
-- **Problem**: Both User1(7qty) and User2(6qty) succeeded when only 10 available
-- **Fix**: Added `SELECT FOR UPDATE` row-level locking
-- **Result**: Now only User1 succeeds, User2 gets error ✅
+## Before vs After
 
-### Issue 2: Table Name Error (Just Fixed)
-- **Error**: `relation "platformStock" does not exist`
-- **Cause**: PostgreSQL table is `platformstock` (lowercase), not `platformStock` (camelCase)
-- **Fix**: Changed query to use correct table name
-- **Result**: Query now works ✅
+### Before (WRONG):
+```
+Order: promotion_discount_total = 500
+Orderlines:
+- Product 44: promotion_discount_amount = 0 ❌
+- Product 40: promotion_discount_amount = 0 ❌
+- Product 47: promotion_discount_amount = 0 ❌
+Total: 0 ❌
+```
 
----
+### After (CORRECT):
+```
+Order: promotion_discount_total = 500
+Orderlines:
+- Product 44 (amount 1150): promotion = 221.15 ✅ (1150/2600 × 500)
+- Product 40 (amount 700):  promotion = 134.62 ✅ (700/2600 × 500)
+- Product 47 (amount 750):  promotion = 144.23 ✅ (750/2600 × 500)
+Total: 500 ✅
+```
 
-## 🎯 What Changed
+## Quick Test
 
-**File**: `src/controllers/phonepe.controller.ts`  
-**Line**: 533
+1. **Deploy the updated backend**
 
-**Changed FROM**:
+2. **Create a new PhonePe order with a promotion**
+
+3. **Check the database**:
 ```sql
-SELECT * FROM "platformStock"  -- ❌ Wrong case
+SELECT 
+  o.id,
+  o.promotion_discount_total,
+  SUM(ol.promotion_discount_amount) AS sum_promotion
+FROM orders o
+LEFT JOIN orderline ol ON o.id = ol.orderid
+WHERE o.id = [your_new_order_id]
+GROUP BY o.id;
 ```
 
-**Changed TO**:
+**Expected**: `promotion_discount_total` = `sum_promotion`
+
+4. **Check orderline calculations**:
 ```sql
-SELECT * FROM "platformstock"  -- ✅ Correct
-```
-
----
-
-## 🧪 Ready to Test Now!
-
-Your error is fixed. The code should now work correctly.
-
-### Test Steps:
-
-```bash
-# 1. Server should already be running
-# Just make a new request
-
-# 2. Test with your product (productid: 48)
-# Available: 2, Lock: 0
-
-# 3. Make your PhonePe initiate request
-curl -X POST https://your-ngrok-url/v1/phonepe/initiate \
-  -H "Content-Type: application/json" \
-  -d '{
-    "mode": "phonepe",
-    "order": [{
-      "productid": 48,
-      "quantity": 1,
-      ...
-    }],
-    "transaction": {...}
-  }'
-```
-
-### Expected Results:
-
-✅ **Should See in Logs**:
-```json
-{
-  "msg": "Row lock acquired for platformstock - reading fresh data",
-  "lockAcquired": true,
-  "productId": 48,
-  "currentAvailableQty": 2,
-  "currentLockQty": 0,
-  "actualAvailable": 2
-}
-
-{
-  "msg": "Stock locked successfully for product"
-}
-```
-
-✅ **Should Get Response**:
-```json
-{
-  "success": true,
-  "message": "Payment initiated successfully",
-  "data": {
-    "merchantTransactionId": "TXN_...",
-    "redirectUrl": "https://...",
-    "stock_locking": {
-      "lock_status": "success",
-      "total_products_locked": 1
-    }
-  }
-}
-```
-
----
-
-## 🔍 Verify Database
-
-```sql
--- Check that lock was created
 SELECT 
   productid,
-  platform,
-  availableqty,
-  lockqty,
-  (availableqty - lockqty) as actual_available
-FROM "platformstock"
-WHERE productid = 48 AND platform = 'nivapp';
+  productamount,
+  promotion_discount_amount,
+  discountamount,
+  orderamount,
+  -- Should equal discountamount:
+  (product_discount_amount + promotion_discount_amount) AS calc_discount,
+  -- Should equal orderamount:
+  (productamount - promotion_discount_amount) AS calc_orderamount
+FROM orderline
+WHERE orderid = [your_new_order_id];
 ```
 
-**Expected**:
-```
-productid | platform | availableqty | lockqty | actual_available
-----------|----------|--------------|---------|------------------
-   48     |  nivapp  |      1       |    1    |        0
-```
+**Expected**: 
+- `discountamount` = `calc_discount`
+- `orderamount` = `calc_orderamount`
 
----
+## Status
+✅ **Fixed and ready to deploy**
 
-## 🎯 Test Race Condition
-
-Once the single request works, test the race condition fix:
-
-```bash
-# Reset
-psql $DATABASE_URL -c "
-UPDATE \"platformstock\" 
-SET availableqty = 2, lockqty = 0 
-WHERE productid = 48 AND platform = 'nivapp';
-"
-
-# User 1: Request 1 qty
-curl ... (quantity: 1) &
-
-# User 2: Request 2 qty (immediately)
-curl ... (quantity: 2) &
-
-wait
-
-# Expected:
-# User 1: Success ✅
-# User 2: Error "Insufficient stock" ✅
-```
-
----
-
-## ✅ Summary
-
-1. ✅ Race condition fix applied (SELECT FOR UPDATE)
-2. ✅ Table name error fixed (platformstock)
-3. ✅ No linting errors
-4. ✅ Ready to test
-
-**You can now test your PhonePe payment flow!** 🚀
-
----
-
-## 📚 Full Documentation
-
-For complete details, see:
-- `RACE_CONDITION_FIX_APPLIED.md` - Complete implementation guide
-- `RACE_CONDITION_ANALYSIS.md` - Problem analysis
-- `LOCAL_TESTING_SETUP_PHONEPE.md` - Ngrok setup guide
-
----
-
+## Documents
+- 📄 `CRITICAL_FIX_PROMOTION_DISCOUNT.md` - Detailed explanation
+- 📄 `ORDERLINE_FIX_SUMMARY.md` - Complete summary
+- 📄 `PHONEPE_ORDERLINE_FIX_COMPLETE.md` - Technical documentation

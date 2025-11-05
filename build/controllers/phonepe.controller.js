@@ -1471,6 +1471,216 @@ export class PhonePeController {
             }
             // Calculate product amount (after product discounts, before promotion discounts)
             const productAmount = originalTotal - productDiscountTotal;
+            // ============================================
+            // BUGFIX: Enrich orderItems with per-line discount data
+            // Issue: PHONEPE-ORDERLINE-001
+            // Date: 2025-11-05
+            // ============================================
+            logger.info({
+                transactionId,
+                hasEvaluationData: !!evaluationData,
+                primaryEvaluationId,
+                originalOrderDataCount: originalOrderData.length,
+                validProductIdsCount: validProductIds.length,
+                orderLevelTotals: {
+                    originalTotal,
+                    productDiscountTotal,
+                    promotionDiscountTotal,
+                    shippingCost
+                },
+                evaluationDataStructure: evaluationData ? {
+                    hasCartData: !!(evaluationData.cart_data),
+                    cartDataLength: evaluationData.cart_data?.length || 0,
+                    hasAppliedPromotions: !!(evaluationData.applied_promotions),
+                    appliedPromotionsLength: evaluationData.applied_promotions?.length || 0
+                } : null
+            }, "Starting orderItems enrichment with per-line discount data");
+            const enrichedOrderItems = originalOrderData
+                .filter((item) => validProductIds.includes(item.productid))
+                .map((item, index) => {
+                const productId = item.productid;
+                const quantity = parseInt(item.quantity?.toString() || '1');
+                const itemProductAmount = parseFloat(item.productamount?.toString() || '0');
+                // Initialize discount values
+                let productDiscountAmount = 0;
+                let promotionDiscountAmount = 0;
+                let originalPrice = itemProductAmount; // Default to productamount
+                logger.debug({
+                    transactionId,
+                    productId,
+                    index,
+                    hasEvaluationData: !!evaluationData,
+                    itemProductAmount,
+                    initialState: {
+                        productDiscountAmount,
+                        promotionDiscountAmount,
+                        originalPrice
+                    }
+                }, "Starting enrichment for product");
+                // Try to get accurate data from evaluationData
+                if (evaluationData) {
+                    // Get from evaluation cart_data (most accurate source)
+                    const evaluationCartData = evaluationData.cart_data || [];
+                    const cartItem = evaluationCartData.find((ci) => parseInt(ci.product_id?.toString() || '0') === productId);
+                    if (cartItem) {
+                        const basePrice = parseFloat(cartItem.base_price?.toString() || '0');
+                        const productDiscount = parseFloat(cartItem.product_discount?.toString() || '0');
+                        originalPrice = basePrice * quantity;
+                        productDiscountAmount = productDiscount * quantity;
+                        logger.debug({
+                            transactionId,
+                            productId,
+                            basePrice,
+                            productDiscount,
+                            quantity,
+                            calculatedOriginalPrice: originalPrice,
+                            calculatedProductDiscount: productDiscountAmount
+                        }, "Extracted product discount from evaluation cart_data");
+                    }
+                    // Get promotion discount from applied_promotions breakdown
+                    const appliedPromotions = evaluationData.applied_promotions || [];
+                    let foundPromotionBreakdown = false;
+                    for (const promo of appliedPromotions) {
+                        if (promo.breakdown && Array.isArray(promo.breakdown)) {
+                            const promoItem = promo.breakdown.find((b) => parseInt(b.product_id?.toString() || '0') === productId);
+                            if (promoItem) {
+                                const itemPromoDiscount = parseFloat(promoItem.total_discount?.toString() || '0');
+                                promotionDiscountAmount += itemPromoDiscount;
+                                foundPromotionBreakdown = true;
+                                logger.debug({
+                                    transactionId,
+                                    productId,
+                                    promotionId: promo.promotion_id,
+                                    promotionDiscount: itemPromoDiscount,
+                                    totalPromotionDiscount: promotionDiscountAmount
+                                }, "Extracted promotion discount from applied_promotions breakdown");
+                            }
+                        }
+                    }
+                    // If no breakdown found but we have promotionDiscountTotal, use pro-rata distribution
+                    if (!foundPromotionBreakdown && promotionDiscountTotal > 0) {
+                        const totalProductAmount = originalOrderData
+                            .filter((i) => validProductIds.includes(i.productid))
+                            .reduce((sum, i) => sum + parseFloat(i.productamount?.toString() || '0'), 0);
+                        if (totalProductAmount > 0) {
+                            promotionDiscountAmount = (promotionDiscountTotal * itemProductAmount) / totalProductAmount;
+                            logger.warn({
+                                transactionId,
+                                productId,
+                                promotionDiscountTotal,
+                                itemProductAmount,
+                                totalProductAmount,
+                                calculatedPromotionDiscount: promotionDiscountAmount,
+                                reason: "applied_promotions has no per-product breakdown"
+                            }, "Using pro-rata distribution for promotion discount (evaluationData exists but no breakdown)");
+                        }
+                    }
+                }
+                else {
+                    // Fallback: Pro-rata distribution if evaluationData not available
+                    logger.warn({
+                        transactionId,
+                        productId,
+                        message: "No evaluationData - using pro-rata distribution (less accurate)"
+                    }, "Falling back to pro-rata discount distribution");
+                    const totalProductAmount = originalOrderData
+                        .filter((i) => validProductIds.includes(i.productid))
+                        .reduce((sum, i) => sum + parseFloat(i.productamount?.toString() || '0'), 0);
+                    if (totalProductAmount > 0) {
+                        const proRataFactor = itemProductAmount / totalProductAmount;
+                        productDiscountAmount = productDiscountTotal * proRataFactor;
+                        promotionDiscountAmount = promotionDiscountTotal * proRataFactor;
+                        originalPrice = itemProductAmount + (productDiscountAmount + promotionDiscountAmount);
+                    }
+                }
+                // Calculate pro-rata shipping cost based on product amount
+                const totalProductAmount = originalOrderData
+                    .filter((i) => validProductIds.includes(i.productid))
+                    .reduce((sum, i) => sum + parseFloat(i.productamount?.toString() || '0'), 0);
+                const shippingCostForItem = totalProductAmount > 0
+                    ? (shippingCost * itemProductAmount) / totalProductAmount
+                    : 0;
+                // Recalculate discountamount and orderamount based on enriched values
+                const totalDiscountAmount = productDiscountAmount + promotionDiscountAmount;
+                const finalOrderAmount = itemProductAmount - promotionDiscountAmount;
+                logger.debug({
+                    transactionId,
+                    productId,
+                    index,
+                    enrichment: {
+                        original_price: originalPrice,
+                        product_discount_amount: productDiscountAmount,
+                        promotion_discount_amount: promotionDiscountAmount,
+                        shipping_cost: shippingCostForItem,
+                        evaluation_id: primaryEvaluationId
+                    },
+                    recalculated: {
+                        discountamount: totalDiscountAmount,
+                        orderamount: finalOrderAmount,
+                        calculation: `${itemProductAmount} - ${promotionDiscountAmount} = ${finalOrderAmount}`
+                    }
+                }, "Order item enriched with discount data and recalculated amounts");
+                return {
+                    ...item,
+                    original_price: originalPrice,
+                    product_discount_amount: productDiscountAmount,
+                    promotion_discount_amount: promotionDiscountAmount,
+                    shipping_cost: shippingCostForItem,
+                    evaluation_id: primaryEvaluationId,
+                    // ✅ CRITICAL: Recalculate discountamount and orderamount
+                    discountamount: totalDiscountAmount,
+                    orderamount: finalOrderAmount
+                };
+            });
+            // Validation: Log enrichment results
+            const enrichmentSummary = {
+                totalItems: enrichedOrderItems.length,
+                totalOriginalPrice: enrichedOrderItems.reduce((sum, i) => sum + (i.original_price || 0), 0),
+                totalProductAmount: enrichedOrderItems.reduce((sum, i) => sum + (parseFloat(i.productamount?.toString() || '0') || 0), 0),
+                totalProductDiscount: enrichedOrderItems.reduce((sum, i) => sum + (i.product_discount_amount || 0), 0),
+                totalPromotionDiscount: enrichedOrderItems.reduce((sum, i) => sum + (i.promotion_discount_amount || 0), 0),
+                totalDiscountAmount: enrichedOrderItems.reduce((sum, i) => sum + (parseFloat(i.discountamount?.toString() || '0') || 0), 0),
+                totalOrderAmount: enrichedOrderItems.reduce((sum, i) => sum + (parseFloat(i.orderamount?.toString() || '0') || 0), 0),
+                totalShipping: enrichedOrderItems.reduce((sum, i) => sum + (i.shipping_cost || 0), 0),
+                totalQuantity: enrichedOrderItems.reduce((sum, i) => sum + (parseInt(i.quantity?.toString() || '0') || 0), 0)
+            };
+            // Calculate expected order-level orderamount (productAmount - promotionDiscountTotal)
+            const expectedOrderAmount = productAmount - promotionDiscountTotal;
+            logger.info({
+                transactionId,
+                enrichmentSummary,
+                expectedOrderLevelTotals: {
+                    quantity: totalQuantity,
+                    productamount: productAmount,
+                    discountamount: productDiscountTotal + promotionDiscountTotal,
+                    orderamount: expectedOrderAmount,
+                    promotion_discount_total: promotionDiscountTotal,
+                    original_total: originalTotal,
+                    shipping_cost: shippingCost
+                },
+                discrepancies: {
+                    quantity: Math.abs(enrichmentSummary.totalQuantity - totalQuantity),
+                    productAmount: Math.abs(enrichmentSummary.totalProductAmount - productAmount),
+                    productDiscount: Math.abs(enrichmentSummary.totalProductDiscount - productDiscountTotal),
+                    promotionDiscount: Math.abs(enrichmentSummary.totalPromotionDiscount - promotionDiscountTotal),
+                    discountAmount: Math.abs(enrichmentSummary.totalDiscountAmount - (productDiscountTotal + promotionDiscountTotal)),
+                    orderAmount: Math.abs(enrichmentSummary.totalOrderAmount - expectedOrderAmount),
+                    shipping: Math.abs(enrichmentSummary.totalShipping - shippingCost)
+                },
+                validations: {
+                    quantityMatch: Math.abs(enrichmentSummary.totalQuantity - totalQuantity) < 0.01,
+                    productAmountMatch: Math.abs(enrichmentSummary.totalProductAmount - productAmount) < 0.01,
+                    promotionDiscountMatch: Math.abs(enrichmentSummary.totalPromotionDiscount - promotionDiscountTotal) < 0.01,
+                    orderAmountMatch: Math.abs(enrichmentSummary.totalOrderAmount - expectedOrderAmount) < 0.01,
+                    allValid: Math.abs(enrichmentSummary.totalQuantity - totalQuantity) < 0.01 &&
+                        Math.abs(enrichmentSummary.totalProductAmount - productAmount) < 0.01 &&
+                        Math.abs(enrichmentSummary.totalPromotionDiscount - promotionDiscountTotal) < 0.01 &&
+                        Math.abs(enrichmentSummary.totalOrderAmount - expectedOrderAmount) < 0.01
+                }
+            }, "Order items enrichment completed - validating orderline totals match order totals");
+            // ============================================
+            // END BUGFIX
+            // ============================================
             logger.info({
                 transactionId,
                 mode: mode,
@@ -1513,8 +1723,8 @@ export class PhonePeController {
                 original_total: originalTotal,
                 shipping_cost: shippingCost,
                 tax_amount: taxAmount,
-                // Add original order items for detailed orderline creation
-                orderItems: originalOrderData.filter((item) => validProductIds.includes(item.productid)),
+                // Add enriched order items with discount data for detailed orderline creation
+                orderItems: enrichedOrderItems, // BUGFIX: Use enriched items with per-line discount data
             };
             console.log(orderData, "orderData-final");
             // Log the orderData being sent to OrdersService
@@ -1616,7 +1826,17 @@ export class PhonePeController {
             // Check if orderlines were created automatically
             const createdOrderlines = await prisma.orderline.findMany({
                 where: { orderid: order.id },
-                select: { id: true, productid: true, orderlinenumber: true, quantity: true },
+                select: {
+                    id: true,
+                    productid: true,
+                    orderlinenumber: true,
+                    quantity: true,
+                    orderamount: true,
+                    productamount: true,
+                    product_discount_amount: true,
+                    promotion_discount_amount: true,
+                    discountamount: true,
+                },
             });
             logger.info({
                 transactionId,

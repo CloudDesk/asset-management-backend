@@ -19,6 +19,25 @@ export async function picklistRoutes(fastify) {
                     controlledlabel: { type: 'string', description: 'Filter by controlled label' },
                     controlledfieldname: { type: 'string', description: 'Filter by controlled field name' },
                     parent: { type: 'string', description: 'Filter by parent' },
+                    searchtext: {
+                        type: 'string',
+                        description: 'Search text to find records matching object, fieldname, label, value, or parent fields (case-insensitive). Example: /v1/picklists/?searchtext=category'
+                    },
+                    sortorder: {
+                        type: 'string',
+                        enum: ['ASC', 'DESC', 'asc', 'desc'],
+                        description: 'Sort direction for sortorder field (default: ASC). Always used as the last sort column. Records with null sortorder will appear after sorted records.'
+                    },
+                    fieldnameOrder: {
+                        type: 'string',
+                        enum: ['ASC', 'DESC', 'asc', 'desc'],
+                        description: 'Sort direction for fieldname field (optional). When provided, overrides default fieldname ASC ordering. Used in combination 2 and 3.'
+                    },
+                    objectOrder: {
+                        type: 'string',
+                        enum: ['ASC', 'DESC', 'asc', 'desc'],
+                        description: 'Sort direction for object field (optional). When provided, enables combination 3: object first, then fieldname, then sortorder.'
+                    },
                 },
             },
             response: {
@@ -27,24 +46,12 @@ export async function picklistRoutes(fastify) {
                     properties: {
                         success: { type: 'boolean' },
                         data: {
-                            type: 'array',
-                            items: {
-                                type: 'object',
-                                properties: {
-                                    id: { type: 'integer', description: 'Picklist ID' },
-                                    label: { type: 'string', description: 'Display label' },
-                                    value: { type: 'string', description: 'Stored value' },
-                                    object: { type: 'string', description: 'Object reference' },
-                                    controlledvalue: { type: 'string', description: 'Controlled value' },
-                                    fieldname: { type: 'string', description: 'Field name' },
-                                    controlledlabel: { type: 'string', description: 'Controlled label' },
-                                    controlledfieldname: { type: 'string', description: 'Controlled field name' },
-                                    parent: { type: 'string', description: 'Parent reference' },
-                                }
-                            }
+                            description: 'Array of picklist records. Ordering depends on query parameters: Combination 1 (default): fieldname ASC, sortorder ASC/DESC. Combination 2: fieldname ASC/DESC, sortorder ASC/DESC. Combination 3: object ASC/DESC, fieldname ASC/DESC, sortorder ASC/DESC.',
                         },
                         pagination: {
                             type: 'object',
+                            description: 'Pagination information',
+                            nullable: true,
                             properties: {
                                 page: { type: 'number' },
                                 limit: { type: 'number' },
@@ -56,13 +63,18 @@ export async function picklistRoutes(fastify) {
                         },
                         meta: {
                             type: 'object',
+                            description: 'Metadata about the query',
+                            nullable: true,
                             properties: {
                                 filters: { type: 'array', items: { type: 'string' } },
                                 total: { type: 'number' },
                                 filtered: { type: 'boolean' },
                             },
                         },
+                        message: { type: 'string' },
                     },
+                    required: ['success'],
+                    additionalProperties: true,
                 },
             },
         },
@@ -96,6 +108,8 @@ export async function picklistRoutes(fastify) {
                                 controlledlabel: { type: 'string', description: 'Controlled label' },
                                 controlledfieldname: { type: 'string', description: 'Controlled field name' },
                                 parent: { type: 'string', description: 'Parent reference' },
+                                description: { type: 'string', description: 'Description' },
+                                sortorder: { type: 'integer', nullable: true, description: 'Sort order for display (null values sorted last)' },
                             }
                         },
                         message: { type: 'string' },
@@ -189,6 +203,7 @@ export async function picklistRoutes(fastify) {
                     controlledlabel: { type: 'string', maxLength: 255, description: 'Controlled label' },
                     controlledfieldname: { type: 'string', maxLength: 255, description: 'Controlled field name' },
                     parent: { type: 'string', maxLength: 20, description: 'Parent reference' },
+                    sortorder: { type: 'integer', description: 'Sort order for display' },
                 },
                 required: ['label', 'value'],
             },
@@ -209,6 +224,8 @@ export async function picklistRoutes(fastify) {
                                 controlledlabel: { type: 'string', description: 'Controlled label' },
                                 controlledfieldname: { type: 'string', description: 'Controlled field name' },
                                 parent: { type: 'string', description: 'Parent reference' },
+                                description: { type: 'string', description: 'Description' },
+                                sortorder: { type: 'integer', nullable: true, description: 'Sort order for display (null values sorted last)' },
                             }
                         },
                         message: { type: 'string' },
@@ -258,6 +275,7 @@ export async function picklistRoutes(fastify) {
                     controlledlabel: { type: 'string', maxLength: 255, description: 'Controlled label' },
                     controlledfieldname: { type: 'string', maxLength: 255, description: 'Controlled field name' },
                     parent: { type: 'string', maxLength: 20, description: 'Parent reference' },
+                    sortorder: { type: 'integer', description: 'Sort order for display' },
                 },
             },
             response: {
@@ -277,6 +295,8 @@ export async function picklistRoutes(fastify) {
                                 controlledlabel: { type: 'string', description: 'Controlled label' },
                                 controlledfieldname: { type: 'string', description: 'Controlled field name' },
                                 parent: { type: 'string', description: 'Parent reference' },
+                                description: { type: 'string', description: 'Description' },
+                                sortorder: { type: 'integer', nullable: true, description: 'Sort order for display (null values sorted last)' },
                             }
                         },
                         message: { type: 'string' },
