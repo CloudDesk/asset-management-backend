@@ -1849,6 +1849,7 @@ export class PhonePeController {
             // Always run this if we have orderlines, regardless of evaluation data
             if (createdOrderlines.length > 0) {
                 try {
+                    const roundToTwo = (value) => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
                     const evaluationCartData = evaluationData ? evaluationData.cart_data || [] : [];
                     const appliedPromotions = evaluationData ? evaluationData.applied_promotions || [] : [];
                     // Create maps for promotion data
@@ -1869,22 +1870,33 @@ export class PhonePeController {
                         });
                     }
                     // Calculate shipping cost per item
-                    const totalShippingCost = parseFloat(transaction.transactiondata?.originalPayload?.shippingCost?.toString() ||
-                        "0");
+                    const totalShippingCost = roundToTwo(parseFloat(transaction.transactiondata?.originalPayload?.shippingCost?.toString() ||
+                        "0"));
                     // Get order-level promotion discount total for proportional distribution
-                    const orderPromotionDiscountTotal = order.promotion_discount_total || 0;
+                    const orderPromotionDiscountTotal = roundToTwo(parseFloat(order.promotion_discount_total?.toString() || "0"));
+                    const orderProductDiscountTotal = roundToTwo(Number(productDiscountTotal) || 0);
+                    const orderTotalDiscountAmount = roundToTwo(parseFloat(order.discountamount?.toString() || "0"));
+                    const orderProductAmountTotal = roundToTwo(parseFloat(order.productamount?.toString() || "0"));
+                    const orderOrderAmountTotal = roundToTwo(parseFloat(order.orderamount?.toString() || "0"));
+                    const orderShippingTotal = roundToTwo(parseFloat(order.shipping_cost?.toString() || "0"));
                     // Calculate total order amount from all orderlines (for proportional distribution)
                     let totalOrderAmount = 0;
+                    let totalProductAmountFromLines = 0;
                     const orderlineAmounts = [];
                     for (const orderline of createdOrderlines) {
-                        const lineOrderAmount = parseFloat(orderline.orderamount?.toString() || "0");
+                        const lineOrderAmount = roundToTwo(parseFloat(orderline.orderamount?.toString() || "0"));
+                        const lineProductAmount = roundToTwo(parseFloat(orderline.productamount?.toString() || "0"));
                         const lineQuantity = parseFloat(orderline.quantity?.toString() || "1");
-                        totalOrderAmount += lineOrderAmount;
+                        const lineShipping = roundToTwo(parseFloat(orderline.shipping_cost?.toString() || "0"));
+                        totalOrderAmount = roundToTwo(totalOrderAmount + lineOrderAmount);
+                        totalProductAmountFromLines = roundToTwo(totalProductAmountFromLines + lineProductAmount);
                         orderlineAmounts.push({
                             id: orderline.id,
                             productId: Number(orderline.productid),
                             orderamount: lineOrderAmount,
-                            quantity: lineQuantity
+                            productamount: lineProductAmount,
+                            quantity: lineQuantity,
+                            shipping: lineShipping,
                         });
                     }
                     logger.info({
@@ -1895,27 +1907,35 @@ export class PhonePeController {
                         orderlineAmounts,
                         totalOrderAmount,
                         orderPromotionDiscountTotal,
+                        orderProductDiscountTotal,
+                        orderTotalDiscountAmount,
+                        orderProductAmountTotal,
                         orderlinesCount: createdOrderlines.length,
                     }, "Orderline promotion data mapping completed with order-level totals");
                     // FIX: Distribute promotion discount proportionally across orderlines
                     let allocatedPromoDiscount = 0;
                     const promoDiscounts = [];
-                    // If there's a promotion discount and order amount > 0, distribute it proportionally
-                    if (orderPromotionDiscountTotal > 0 && totalOrderAmount > 0) {
+                    const promotionDistributionBasis = orderPromotionDiscountTotal > 0
+                        ? totalOrderAmount > 0
+                            ? totalOrderAmount
+                            : totalProductAmountFromLines
+                        : 0;
+                    // If there's a promotion discount and we have a basis, distribute it proportionally
+                    if (orderPromotionDiscountTotal > 0 && promotionDistributionBasis > 0) {
                         for (let i = 0; i < orderlineAmounts.length; i++) {
                             const line = orderlineAmounts[i];
                             if (!line)
                                 continue;
                             // Calculate proportional discount for this line
-                            const proportion = line.orderamount / totalOrderAmount;
-                            let linePromoDiscount = proportion * orderPromotionDiscountTotal;
+                            const basisValue = totalOrderAmount > 0 ? line.orderamount : line.productamount;
+                            const proportion = basisValue / promotionDistributionBasis;
+                            let linePromoDiscount = roundToTwo(proportion * orderPromotionDiscountTotal);
                             // Round to 2 decimal places to avoid floating point issues
-                            linePromoDiscount = Math.round(linePromoDiscount * 100) / 100;
                             // For the last line, ensure total allocated equals order promotion_discount_total
                             if (i === orderlineAmounts.length - 1) {
-                                linePromoDiscount = orderPromotionDiscountTotal - allocatedPromoDiscount;
+                                linePromoDiscount = roundToTwo(orderPromotionDiscountTotal - allocatedPromoDiscount);
                             }
-                            allocatedPromoDiscount += linePromoDiscount;
+                            allocatedPromoDiscount = roundToTwo(allocatedPromoDiscount + linePromoDiscount);
                             promoDiscounts.push({ lineId: line.id, discount: linePromoDiscount });
                         }
                     }
@@ -1929,28 +1949,42 @@ export class PhonePeController {
                         match: Math.abs(allocatedPromoDiscount - orderPromotionDiscountTotal) < 0.01
                     }, "Promotion discount distribution calculated");
                     // Update each orderline with promotion data using Prisma
+                    let accumulatedPromotion = 0;
+                    let accumulatedProductDiscount = 0;
+                    let accumulatedDiscountAmount = 0;
+                    let accumulatedOrderAmount = 0;
+                    let accumulatedProductAmount = 0;
+                    let accumulatedShippingAmount = 0;
                     for (let i = 0; i < createdOrderlines.length; i++) {
                         const orderline = createdOrderlines[i];
                         if (!orderline)
                             continue;
                         const productId = Number(orderline.productid);
-                        const originalPrice = originalPriceMap.get(productId) || 0;
-                        const productDiscountPerItem = productDiscountMap.get(productId) || 0;
-                        // Get the proportional promotion discount for this line
-                        const proportionalPromoDiscount = promoDiscounts[i]?.discount || 0;
-                        // FIX #2B: Get quantity for this orderline and multiply discounts by quantity
                         const lineQuantity = parseFloat(orderline.quantity?.toString() || "1");
-                        // Calculate total discounts for this line (multiply by quantity for product discount)
-                        const productDiscountAmount = productDiscountPerItem * lineQuantity;
-                        // Use the proportional promotion discount directly (already calculated for the line)
-                        const promotionDiscountAmount = proportionalPromoDiscount;
-                        // Calculate totals for this line
-                        const originalPriceTotal = originalPrice * lineQuantity;
-                        const productAmountOnly = originalPriceTotal - productDiscountAmount; // Only product discount, no promotion discount
-                        const totalDiscountForLine = productDiscountAmount + promotionDiscountAmount;
-                        let finalPriceTotal = originalPriceTotal - totalDiscountForLine;
+                        const isLastLine = i === createdOrderlines.length - 1;
+                        const originalPricePerItem = roundToTwo(originalPriceMap.get(productId) ||
+                            (lineQuantity > 0
+                                ? (orderlineAmounts[i]?.productamount || 0) / lineQuantity
+                                : 0));
+                        const productDiscountPerItem = roundToTwo(productDiscountMap.get(productId) || 0);
+                        let productDiscountAmount = roundToTwo(productDiscountPerItem * lineQuantity);
+                        let promotionDiscountAmount = roundToTwo(promoDiscounts[i]?.discount || 0);
+                        const originalPriceTotal = roundToTwo(originalPricePerItem * lineQuantity);
+                        let productAmountOnly = roundToTwo(originalPriceTotal - productDiscountAmount);
+                        let totalDiscountForLine = roundToTwo(productDiscountAmount + promotionDiscountAmount);
+                        let finalPriceTotal = roundToTwo(productAmountOnly - promotionDiscountAmount);
+                        let lineShippingCost = roundToTwo(orderProductAmountTotal > 0
+                            ? totalShippingCost * (productAmountOnly / orderProductAmountTotal)
+                            : 0);
+                        if (isLastLine) {
+                            promotionDiscountAmount = roundToTwo(orderPromotionDiscountTotal - accumulatedPromotion);
+                            productDiscountAmount = roundToTwo(orderProductDiscountTotal - accumulatedProductDiscount);
+                            totalDiscountForLine = roundToTwo(orderTotalDiscountAmount - accumulatedDiscountAmount);
+                            productAmountOnly = roundToTwo(orderProductAmountTotal - accumulatedProductAmount);
+                            finalPriceTotal = roundToTwo(orderOrderAmountTotal - accumulatedOrderAmount);
+                            lineShippingCost = roundToTwo(orderShippingTotal - accumulatedShippingAmount);
+                        }
                         // SAFEGUARD: Prevent negative amounts due to very large promotions
-                        let actualPromotionDiscount = promotionDiscountAmount;
                         if (finalPriceTotal < 0) {
                             logger.warn({
                                 transactionId,
@@ -1961,45 +1995,35 @@ export class PhonePeController {
                                 productDiscountAmount,
                                 promotionDiscountAmount,
                                 calculatedAmount: finalPriceTotal,
-                                action: "capping_promotion_to_prevent_negative"
+                                action: "capping_promotion_to_prevent_negative",
                             }, "Promotion discount exceeds product value - capping promotion discount");
-                            // Cap promotion discount to product amount only (don't create negative)
-                            actualPromotionDiscount = Math.max(0, productAmountOnly);
-                            finalPriceTotal = 0; // Product is completely free after discounts
-                            logger.info({
-                                transactionId,
-                                orderId: order.id,
-                                productId,
-                                originalPromoDiscount: promotionDiscountAmount,
-                                cappedPromoDiscount: actualPromotionDiscount,
-                                finalAmount: finalPriceTotal
-                            }, "Applied promotion discount cap to prevent negative amount");
+                            promotionDiscountAmount = roundToTwo(Math.max(0, productAmountOnly));
+                            totalDiscountForLine = roundToTwo(productDiscountAmount + promotionDiscountAmount);
+                            finalPriceTotal = 0;
                         }
-                        // FIX #2A: Calculate proportional shipping cost
-                        const totalItemValue = originalPriceTotal;
-                        const itemProportion = originalTotal > 0 ? totalItemValue / originalTotal : 0;
-                        const lineShippingCost = totalShippingCost * itemProportion;
-                        // Determine which fields to update based on whether evaluation data exists
                         const updateData = {
                             evaluation_id: primaryEvaluationId,
-                            promotion_discount_amount: actualPromotionDiscount,
-                            discountamount: productDiscountAmount + actualPromotionDiscount,
+                            promotion_discount_amount: promotionDiscountAmount,
+                            discountamount: totalDiscountForLine,
                             modifieddate: BigInt(currentTime),
+                            orderamount: Math.max(0, finalPriceTotal),
                         };
-                        // Only update detailed fields if evaluation data exists
-                        if (evaluationData) {
-                            updateData.original_price = originalPrice;
-                            updateData.product_discount_amount = productDiscountAmount;
-                            updateData.shipping_cost = lineShippingCost;
-                            updateData.productamount = productAmountOnly;
-                            updateData.orderamount = Math.max(0, finalPriceTotal);
-                        }
-                        // If no evaluation data, don't touch orderamount/productamount - they're already correct from creation
+                        // Persist detailed fields (including when evaluationData is not available for rounding consistency)
+                        updateData.original_price = originalPricePerItem;
+                        updateData.product_discount_amount = productDiscountAmount;
+                        updateData.shipping_cost = lineShippingCost;
+                        updateData.productamount = productAmountOnly;
                         // Use Prisma to update the orderline
                         await prisma.orderline.update({
                             where: { id: orderline.id },
                             data: updateData,
                         });
+                        accumulatedPromotion = roundToTwo(accumulatedPromotion + promotionDiscountAmount);
+                        accumulatedProductDiscount = roundToTwo(accumulatedProductDiscount + productDiscountAmount);
+                        accumulatedDiscountAmount = roundToTwo(accumulatedDiscountAmount + totalDiscountForLine);
+                        accumulatedOrderAmount = roundToTwo(accumulatedOrderAmount + finalPriceTotal);
+                        accumulatedProductAmount = roundToTwo(accumulatedProductAmount + productAmountOnly);
+                        accumulatedShippingAmount = roundToTwo(accumulatedShippingAmount + lineShippingCost);
                     }
                 }
                 catch (updateError) {
