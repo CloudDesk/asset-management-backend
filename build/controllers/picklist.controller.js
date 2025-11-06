@@ -8,6 +8,7 @@ export class PicklistController {
     getPicklists = asyncHandler(async (request, reply) => {
         // Get all query parameters as filters (not just schema-validated ones)
         const allFilters = request.query || {};
+        // Regular paginated mode - orders by fieldname first, then sortorder
         const { page, limit } = getPaginationParams(allFilters);
         // Remove pagination params from filters
         const { page: _, limit: __, ...filters } = allFilters;

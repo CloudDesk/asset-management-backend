@@ -457,6 +457,46 @@ export async function phonePeRoutes(fastify) {
         console.log(transactionId, "Payment callback received for transaction:");
         try {
             fastify.log.info(`Payment callback received for transaction: ${transactionId}`);
+            // CRITICAL: Check existing transaction status before processing PhonePe callback
+            const existingTransactions = await phonePeController.transactionService.findMany({ merchanttransactionid: transactionId }, 1, 1);
+            if (existingTransactions.data && existingTransactions.data.length > 0) {
+                const existingTransaction = existingTransactions.data[0];
+                const existingStatus = existingTransaction.transactiondata?.status;
+                fastify.log.info({
+                    transactionId,
+                    existingStatus,
+                    hasTransaction: true,
+                }, "Found existing transaction, checking status before processing callback");
+                // If transaction is already EXPIRED or FAILED, reject immediately
+                if (existingStatus === "EXPIRED" || existingStatus === "FAILED" || existingStatus === "CANCELLED") {
+                    fastify.log.warn({
+                        transactionId,
+                        existingStatus,
+                    }, `Transaction already ${existingStatus} - rejecting callback, redirecting to failure page`);
+                    const failureUrl = process.env.REDIRECT_URL_FAILURE || "com.Nivaana.app://profile/orders";
+                    return reply.redirect(failureUrl);
+                }
+                // If transaction is already SUCCESS and order exists, redirect to success immediately (idempotent)
+                if (existingStatus === "SUCCESS") {
+                    const existingOrders = await phonePeController.ordersService.findMany({ merchanttransactionid: transactionId }, 1, 1);
+                    if (existingOrders.data && existingOrders.data.length > 0) {
+                        fastify.log.info({
+                            transactionId,
+                            existingStatus,
+                            existingOrderId: existingOrders.data[0].id,
+                        }, "Transaction already SUCCESS and order exists - redirecting to success page (idempotent)");
+                        const successUrl = process.env.REDIRECT_URL_SUCCESS || "com.Nivaana.app://profile/orders";
+                        return reply.redirect(successUrl);
+                    }
+                }
+                // If transaction is INITIATED, allow processing (PhonePe callback might update status)
+                if (existingStatus === "INITIATED") {
+                    fastify.log.info({
+                        transactionId,
+                        existingStatus,
+                    }, "Transaction is INITIATED - allowing callback processing (may update to SUCCESS/FAILED)");
+                }
+            }
             // Get payment status from PhonePe
             const paymentStatus = await phonePeController.phonePeService.checkPaymentStatus(transactionId);
             // Enhanced logging for debugging
@@ -481,56 +521,92 @@ export async function phonePeRoutes(fastify) {
                 let orderId = null;
                 try {
                     fastify.log.info(`Calling createOrderAfterPayment for transaction: ${transactionId}`);
-                    // Get evaluation IDs from transaction data for promotion redemption
-                    const transactions = await phonePeController.transactionService.findMany({ merchanttransactionid: transactionId }, 1, 1);
-                    let evaluationIds = [];
-                    if (transactions.data && transactions.data.length > 0) {
-                        const transaction = transactions.data[0];
-                        evaluationIds = transaction.transactiondata?.evaluation_ids || [];
-                        fastify.log.info({
+                    // CRITICAL: Check if order already exists for this transaction (prevent duplicates on refresh)
+                    const existingOrders = await phonePeController.ordersService.findMany({ merchanttransactionid: transactionId }, 1, 1);
+                    if (existingOrders.data && existingOrders.data.length > 0) {
+                        const existingOrder = existingOrders.data[0];
+                        orderId = existingOrder.id;
+                        fastify.log.warn({
                             transactionId,
-                            evaluationIds,
-                            evaluationCount: evaluationIds.length,
-                        }, "Retrieved evaluation IDs from transaction for promotion redemption");
-                    }
-                    // Force mode to "phonepe" since this is PhonePe webhook callback
-                    const order = await phonePeController.createOrderAfterPayment(transactionId, "phonepe", evaluationIds);
-                    orderId = order.id;
-                    fastify.log.info(`Order created successfully for transaction: ${transactionId}`, {
-                        orderId: order.id,
-                        orderIdString: order.orderid,
-                    });
-                    // Update product quantities after successful order creation
-                    try {
-                        fastify.log.info(`Starting product quantity updates for PhonePe order: ${transactionId}`);
-                        // Get orderlines for quantity update
-                        const orderlines = await phonePeController.orderlineService.findMany({ orderid: order.id }, 1, 100);
-                        if (orderlines.data && orderlines.data.length > 0) {
-                            // Convert orderlines to the format expected by updateProductQuantitiesAfterOrder
-                            const orderItems = orderlines.data.map((orderline) => ({
-                                productid: Number(orderline.productid),
-                                quantity: orderline.quantity || 1,
-                                productname: orderline.productname || null,
-                            }));
-                            // Update product quantities
-                            const quantityUpdateResult = await phonePeController.updateProductQuantitiesAfterOrder(order, orderItems, "phonepe");
-                            fastify.log.info(`Product quantities updated successfully for order: ${order.id}`, {
-                                orderId: order.id,
-                                updatedProducts: quantityUpdateResult.updateResults?.length || 0,
-                                results: quantityUpdateResult,
-                            });
-                        }
-                        else {
-                            fastify.log.warn(`No orderlines found for order: ${order.id} - skipping quantity update`);
-                        }
-                    }
-                    catch (quantityError) {
-                        fastify.log.error(`Error updating product quantities for order: ${order.id}`, {
-                            error: quantityError.message,
-                            stack: quantityError.stack,
-                            orderId: order.id,
+                            existingOrderId: existingOrder.id,
+                            existingOrderOrderId: existingOrder.orderid,
+                        }, "Order already exists for this transaction - skipping duplicate creation");
+                        // Still update transaction with order info (idempotent operation)
+                        await phonePeController.updateTransactionStatus(transactionId, "SUCCESS", {
+                            ...paymentStatus,
+                            orderCreation: {
+                                status: "already_exists",
+                                orderId: existingOrder.id,
+                                existingOrderOrderId: existingOrder.orderid,
+                                timestamp: new Date().toISOString(),
+                            },
+                            paymentCompleteAt: new Date().toISOString(),
                         });
-                        // Don't fail the entire callback for quantity update errors
+                        // Skip order creation - use existing order
+                        orderCreationStatus = "already_exists";
+                    }
+                    else {
+                        // Get evaluation IDs from transaction data for promotion redemption
+                        const transactions = await phonePeController.transactionService.findMany({ merchanttransactionid: transactionId }, 1, 1);
+                        let evaluationIds = [];
+                        if (transactions.data && transactions.data.length > 0) {
+                            const transaction = transactions.data[0];
+                            evaluationIds =
+                                transaction.transactiondata?.evaluation_ids || [];
+                            fastify.log.info({
+                                transactionId,
+                                evaluationIds,
+                                evaluationCount: evaluationIds.length,
+                            }, "Retrieved evaluation IDs from transaction for promotion redemption");
+                        }
+                        // Force mode to "phonepe" since this is PhonePe webhook callback
+                        const order = await phonePeController.createOrderAfterPayment(transactionId, "phonepe", evaluationIds);
+                        orderId = order.id;
+                    }
+                    if (orderCreationStatus !== "already_exists") {
+                        fastify.log.info(`Order created successfully for transaction: ${transactionId}`, {
+                            orderId: orderId,
+                            transactionId: transactionId,
+                        });
+                    }
+                    // Update product quantities after successful order creation (only if order was just created)
+                    if (orderCreationStatus !== "already_exists" && orderId) {
+                        try {
+                            fastify.log.info(`Starting product quantity updates for PhonePe order: ${transactionId}`);
+                            // Get orderlines for quantity update
+                            const orderlines = await phonePeController.orderlineService.findMany({ orderid: orderId }, 1, 100);
+                            if (orderlines.data && orderlines.data.length > 0) {
+                                // Convert orderlines to the format expected by updateProductQuantitiesAfterOrder
+                                const orderItems = orderlines.data.map((orderline) => ({
+                                    productid: Number(orderline.productid),
+                                    quantity: orderline.quantity || 1,
+                                    productname: orderline.productname || null,
+                                }));
+                                // Get order object for quantity update
+                                const orders = await phonePeController.ordersService.findMany({ id: orderId }, 1, 1);
+                                if (orders.data && orders.data.length > 0) {
+                                    const orderForUpdate = orders.data[0];
+                                    // Update product quantities
+                                    const quantityUpdateResult = await phonePeController.updateProductQuantitiesAfterOrder(orderForUpdate, orderItems, "phonepe");
+                                    fastify.log.info(`Product quantities updated successfully for order: ${orderId}`, {
+                                        orderId: orderId,
+                                        updatedProducts: quantityUpdateResult.updateResults?.length || 0,
+                                        results: quantityUpdateResult,
+                                    });
+                                }
+                            }
+                            else {
+                                fastify.log.warn(`No orderlines found for order: ${orderId} - skipping quantity update`);
+                            }
+                        }
+                        catch (quantityError) {
+                            fastify.log.error(`Error updating product quantities for order: ${orderId}`, {
+                                error: quantityError.message,
+                                stack: quantityError.stack,
+                                orderId: orderId,
+                            });
+                            // Don't fail the entire callback for quantity update errors
+                        }
                     }
                 }
                 catch (orderError) {

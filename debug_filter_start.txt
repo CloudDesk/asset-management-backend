@@ -27800,86 +27800,14 @@ Filtering data for platformstock (platformstock): {
   "lockqty": 0,
   "platformstatus": "low_stock"
 }
-Filtering data for product (product): {
-  "name": "Test - Premium Incense Sticks - Wild Canopy",
-  "category": "incense",
-  "subcategory": "premium_incense_sticks",
-  "fragnancetype": "wild_canopy",
-  "brand": "TEST",
-  "pack": "single",
-  "price": 100,
-  "discount": 0,
-  "numberofitems": 0,
-  "isdealoftheday": false
-}
-Filtering data for platformstock (platformstock): {
-  "productid": 50,
-  "availableqty": 0,
-  "orderedqty": 0,
-  "soldqty": 0,
-  "totalqty": 0,
-  "lockqty": 0,
-  "platformstatus": "out_of_stock",
-  "platform": "amazon"
-}
-Filtering data for platformstock (platformstock): {
-  "productid": 50,
-  "availableqty": 0,
-  "orderedqty": 0,
-  "soldqty": 0,
-  "totalqty": 0,
-  "lockqty": 0,
-  "platformstatus": "out_of_stock",
-  "platform": "flipkart"
-}
-Filtering data for platformstock (platformstock): {
-  "productid": 50,
-  "availableqty": 0,
-  "orderedqty": 0,
-  "soldqty": 0,
-  "totalqty": 0,
-  "lockqty": 0,
-  "platformstatus": "out_of_stock",
-  "platform": "nivapp"
-}
 Filtering data for stock (stock): {
-  "puc": "NIV-IS-0050",
+  "puc": "TES-0050",
   "platform": "nivapp",
   "batchno": "07/0001",
   "stockstatus": "available",
   "ecompublish": true,
   "rfid": "",
-  "serialnumber": "",
-  "quantity": 100,
-  "isdeleted": false,
-  "isarchive": false,
-  "removefromrecyclebin": false
-}
-Filtering data for stock (stock): {
-  "puc": "NIV-IS-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": "",
-  "quantity": 5,
-  "isdeleted": false,
-  "isarchive": false,
-  "removefromrecyclebin": false
-}
-Filtering data for stock (stock): {
-  "puc": "NIV-IS-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": "",
-  "quantity": 5,
-  "isdeleted": false,
-  "isarchive": false,
-  "removefromrecyclebin": false
+  "serialnumber": ""
 }
 Filtering data for stock (stock): {
   "puc": "TES-0050",
@@ -27888,4990 +27816,87 @@ Filtering data for stock (stock): {
   "stockstatus": "available",
   "ecompublish": true,
   "rfid": "",
-  "serialnumber": "",
-  "isdeleted": false,
-  "isarchive": false,
-  "removefromrecyclebin": false
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "TES-0050",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "TES-0050",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "TES-0050",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "TES-0050",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "TES-0050",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "TES-0050",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "TES-0050",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "TES-0050",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
 }
 Filtering data for product (product): {
-  "quantity": 1,
-  "availablequantity": 1,
+  "quantity": 22,
+  "availablequantity": 22,
   "soldquantity": 0,
-  "ecompublishedquantity": 1,
-  "productstatus": "low_stock",
-  "modifieddate": 1761210196306
-}
-Filtering data for platformstock (platformstock): {
-  "availableqty": 1,
-  "soldqty": 0,
-  "totalqty": 1,
-  "orderedqty": 0,
-  "lockqty": 0,
-  "platformstatus": "low_stock"
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": "",
-  "isdeleted": false,
-  "isarchive": false,
-  "removefromrecyclebin": false
-}
-Filtering data for product (product): {
-  "quantity": 2,
-  "availablequantity": 2,
-  "soldquantity": 0,
-  "ecompublishedquantity": 2,
-  "productstatus": "low_stock",
-  "modifieddate": 1761210199959
-}
-Filtering data for platformstock (platformstock): {
-  "availableqty": 2,
-  "soldqty": 0,
-  "totalqty": 2,
-  "orderedqty": 0,
-  "lockqty": 0,
-  "platformstatus": "low_stock"
-}
-Filtering data for stock (stock): {
-  "puc": "NIV-IS-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "NIV-IS-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "NIV-IS-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "NIV-IS-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "NIV-IS-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "NIV-IS-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "NIV-IS-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "NIV-IS-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "NIV-IS-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "NIV-IS-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "NIV-IS-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "NIV-IS-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "NIV-IS-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "NIV-IS-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "NIV-IS-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for product (product): {
-  "quantity": 17,
-  "availablequantity": 17,
-  "soldquantity": 0,
-  "ecompublishedquantity": 17,
-  "modifieddate": 1761211392
-}
-Filtering data for platformstock (platformstock): {
-  "availableqty": 3,
-  "soldqty": 0,
-  "totalqty": 3,
-  "orderedqty": 0,
-  "lockqty": 0,
-  "platformstatus": "low_stock"
-}
-Filtering data for platformstock (platformstock): {
-  "availableqty": 4,
-  "soldqty": 0,
-  "totalqty": 4,
-  "orderedqty": 0,
-  "lockqty": 0,
-  "platformstatus": "low_stock"
-}
-Filtering data for platformstock (platformstock): {
-  "availableqty": 5,
-  "soldqty": 0,
-  "totalqty": 5,
-  "orderedqty": 0,
-  "lockqty": 0,
-  "platformstatus": "low_stock"
-}
-Filtering data for platformstock (platformstock): {
-  "availableqty": 6,
-  "soldqty": 0,
-  "totalqty": 6,
-  "orderedqty": 0,
-  "lockqty": 0,
-  "platformstatus": "in_stock"
-}
-Filtering data for platformstock (platformstock): {
-  "availableqty": 7,
-  "soldqty": 0,
-  "totalqty": 7,
-  "orderedqty": 0,
-  "lockqty": 0,
-  "platformstatus": "in_stock"
-}
-Filtering data for platformstock (platformstock): {
-  "availableqty": 8,
-  "soldqty": 0,
-  "totalqty": 8,
-  "orderedqty": 0,
-  "lockqty": 0,
-  "platformstatus": "in_stock"
-}
-Filtering data for platformstock (platformstock): {
-  "availableqty": 9,
-  "soldqty": 0,
-  "totalqty": 9,
-  "orderedqty": 0,
-  "lockqty": 0,
-  "platformstatus": "in_stock"
-}
-Filtering data for platformstock (platformstock): {
-  "availableqty": 10,
-  "soldqty": 0,
-  "totalqty": 10,
-  "orderedqty": 0,
-  "lockqty": 0,
-  "platformstatus": "in_stock"
-}
-Filtering data for platformstock (platformstock): {
-  "availableqty": 11,
-  "soldqty": 0,
-  "totalqty": 11,
-  "orderedqty": 0,
-  "lockqty": 0,
-  "platformstatus": "in_stock"
-}
-Filtering data for platformstock (platformstock): {
-  "availableqty": 12,
-  "soldqty": 0,
-  "totalqty": 12,
-  "orderedqty": 0,
-  "lockqty": 0,
-  "platformstatus": "in_stock"
-}
-Filtering data for platformstock (platformstock): {
-  "availableqty": 13,
-  "soldqty": 0,
-  "totalqty": 13,
-  "orderedqty": 0,
-  "lockqty": 0,
-  "platformstatus": "in_stock"
-}
-Filtering data for platformstock (platformstock): {
-  "availableqty": 14,
-  "soldqty": 0,
-  "totalqty": 14,
-  "orderedqty": 0,
-  "lockqty": 0,
-  "platformstatus": "in_stock"
-}
-Filtering data for platformstock (platformstock): {
-  "availableqty": 15,
-  "soldqty": 0,
-  "totalqty": 15,
-  "orderedqty": 0,
-  "lockqty": 0,
-  "platformstatus": "in_stock"
-}
-Filtering data for platformstock (platformstock): {
-  "availableqty": 16,
-  "soldqty": 0,
-  "totalqty": 16,
-  "orderedqty": 0,
-  "lockqty": 0,
-  "platformstatus": "in_stock"
-}
-Filtering data for platformstock (platformstock): {
-  "availableqty": 17,
-  "soldqty": 0,
-  "totalqty": 17,
-  "orderedqty": 0,
-  "lockqty": 0,
-  "platformstatus": "in_stock"
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for stock (stock): {
-  "puc": "TES-0050",
-  "platform": "nivapp",
-  "batchno": "07/0001",
-  "stockstatus": "available",
-  "ecompublish": true,
-  "rfid": "",
-  "serialnumber": ""
-}
-Filtering data for product (product): {
-  "quantity": 441,
-  "availablequantity": 441,
-  "soldquantity": 0,
-  "ecompublishedquantity": 441,
-  "modifieddate": 1761211651
-}
-Filtering data for platformstock (platformstock): {
-  "availableqty": 18,
-  "soldqty": 0,
-  "totalqty": 18,
-  "orderedqty": 0,
-  "lockqty": 0,
-  "platformstatus": "in_stock"
-}
-Filtering data for platformstock (platformstock): {
-  "availableqty": 19,
-  "soldqty": 0,
-  "totalqty": 19,
-  "orderedqty": 0,
-  "lockqty": 0,
-  "platformstatus": "in_stock"
-}
-Filtering data for platformstock (platformstock): {
-  "availableqty": 20,
-  "soldqty": 0,
-  "totalqty": 20,
-  "orderedqty": 0,
-  "lockqty": 0,
-  "platformstatus": "in_stock"
-}
-Filtering data for platformstock (platformstock): {
-  "availableqty": 21,
-  "soldqty": 0,
-  "totalqty": 21,
-  "orderedqty": 0,
-  "lockqty": 0,
-  "platformstatus": "in_stock"
+  "ecompublishedquantity": 22,
+  "productstatus": "in_stock",
+  "modifieddate": 1761227826427
 }
 Filtering data for platformstock (platformstock): {
   "availableqty": 22,
@@ -32881,6 +27906,8 @@ Filtering data for platformstock (platformstock): {
   "lockqty": 0,
   "platformstatus": "in_stock"
 }
+<<<<<<< Updated upstream
+=======
 Filtering data for platformstock (platformstock): {
   "availableqty": 23,
   "soldqty": 0,
@@ -165224,4 +160251,1684 @@ Filtering data for platformstock (platformstock): {
   "orderedqty": 0,
   "lockqty": 0,
   "platformstatus": "in_stock"
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_pexels-fotios-photos-1540258.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_10mb-example-jpg.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_Pizigani_1367_Chart_10MB.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_pexels-fotios-photos-1540258.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_10mb-example-jpg.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_pexels-fotios-photos-1540258.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": []
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_10mb-example-jpg.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_pexels-tomfisk-1519753.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_Pizigani_1367_Chart_10MB.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_10mb-example-jpg.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_pexels-tomfisk-1519753.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_10mb-example-jpg.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": []
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_10mb-example-jpg.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_19mb.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_pexels-tomfisk-1519753.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_Pizigani_1367_Chart_10MB.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_10mb-example-jpg.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_pexels-tomfisk-1519753.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_Pizigani_1367_Chart_10MB.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_10mb-example-jpg.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_Pizigani_1367_Chart_10MB.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_10mb-example-jpg.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": []
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_19mb.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_BlackMarble_2016_1200m_africa_s_labeled.png",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_10mb-example-jpg.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_pexels-fotios-photos-1540258.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_Pizigani_1367_Chart_10MB.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_BlackMarble_2016_1200m_africa_s_labeled.png",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_19mb.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_10mb-example-jpg.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_pexels-fotios-photos-1540258.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_Pizigani_1367_Chart_10MB.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_BlackMarble_2016_1200m_africa_s_labeled.png",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_19mb.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_10mb-example-jpg.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_pexels-fotios-photos-1540258.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_BlackMarble_2016_1200m_africa_s_labeled.png",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_10mb-example-jpg.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_pexels-fotios-photos-1540258.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_BlackMarble_2016_1200m_africa_s_labeled.png",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_10mb-example-jpg.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_pexels-fotios-photos-1540258.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_Pizigani_1367_Chart_10MB.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_BlackMarble_2016_1200m_africa_s_labeled.png",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_10mb-example-jpg.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_pexels-fotios-photos-1540258.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_BlackMarble_2016_1200m_africa_s_labeled.png",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_10mb-example-jpg.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_pexels-fotios-photos-1540258.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_10mb-example-jpg.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_BlackMarble_2016_1200m_africa_s_labeled.png",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_pexels-fotios-photos-1540258.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_BlackMarble_2016_1200m_africa_s_labeled.png",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_pexels-fotios-photos-1540258.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_8mb.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_19mb.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_BlackMarble_2016_1200m_africa_s_labeled.png",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_pexels-fotios-photos-1540258.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_8mb.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_BlackMarble_2016_1200m_africa_s_labeled.png",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_pexels-fotios-photos-1540258.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_BlackMarble_2016_1200m_africa_s_labeled.png"
+  ]
+}
+Filtering data for product (product): {
+  "large": []
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_8mb.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_10mb-example-jpg.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_19mb.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_file_example_JPG_1MB.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_8mb.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_10mb-example-jpg.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_19mb.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_8mb.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_10mb-example-jpg.jpg"
+  ]
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-products-images-dev/50/large/large_10mb-example-jpg.jpg"
+  ]
+}
+Filtering data for cart (cart): {
+  "userid": 41,
+  "productid": 50,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1761288052053,
+  "modifieddate": 1761288052053
+}
+Filtering data for cart (cart): {
+  "productid": 50,
+  "userid": 41,
+  "quantity": 2,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1761288059770
+}
+Filtering data for cart (cart): {
+  "productid": 50,
+  "userid": 41,
+  "quantity": 2,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1761288060023
+}
+Filtering data for cart (cart): {
+  "productid": 50,
+  "userid": 41,
+  "quantity": 3,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1761288066090
+}
+Filtering data for cart (cart): {
+  "userid": 41,
+  "productid": 48,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1761289104279,
+  "modifieddate": 1761289104279
+}
+Filtering data for cart (cart): {
+  "userid": 41,
+  "productid": 47,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1761289104418,
+  "modifieddate": 1761289104418
+}
+Filtering data for cart (cart): {
+  "productid": 50,
+  "userid": 41,
+  "quantity": 4,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1761289120154
+}
+Filtering data for cart (cart): {
+  "productid": 48,
+  "userid": 41,
+  "quantity": 2,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1761289120877
+}
+Filtering data for cart (cart): {
+  "productid": 47,
+  "userid": 41,
+  "quantity": 2,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1761289120885
+}
+Filtering data for cart (cart): {
+  "productid": 50,
+  "userid": 41,
+  "quantity": 5,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1761289126052
+}
+Filtering data for cart (cart): {
+  "productid": 48,
+  "userid": 41,
+  "quantity": 3,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1761289126353
+}
+Filtering data for cart (cart): {
+  "productid": 47,
+  "userid": 41,
+  "quantity": 3,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1761289127636
+}
+Filtering data for promotions (promotions): {
+  "name": "NEW CART over 1000Rs,100 Off",
+  "description": "",
+  "type": "FIXED_AMOUNT_OFF_CART",
+  "code": "",
+  "auto_apply": false,
+  "start_date": 1759259400,
+  "end_date": 1769238600,
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "max_redemptions": 100,
+  "per_user_limit": 10,
+  "stackable": false,
+  "budget": 10000,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "discount_type": "FIXED_AMOUNT_OFF",
+  "conditions": [
+    {
+      "attribute": "cart.total_value",
+      "operator": "GTE",
+      "value": "1000"
+    }
+  ],
+  "action": {
+    "type": "FIXED_AMOUNT_OFF",
+    "value": 100
+  },
+  "createddate": 1761289905456,
+  "modifieddate": 1761289905456
+}
+Filtering data for promotions (promotions): {
+  "name": "Flash Sale - 25% OFF Everything",
+  "description": "Limited time flash sale! Get 25% off on all products. Hurry, offer ends soon!",
+  "type": "PERCENT_OFF_ITEM",
+  "code": "FLASH25",
+  "auto_apply": false,
+  "start_date": 1759257000,
+  "end_date": 1767205740,
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "max_redemptions": 1000,
+  "per_user_limit": 1,
+  "stackable": false,
+  "budget": 25000,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "discount_type": "PERCENT_OFF",
+  "conditions": [
+    {
+      "attribute": "cart.total_value",
+      "operator": "GTE",
+      "value": "1000"
+    }
+  ],
+  "action": {
+    "type": "PERCENT_OFF",
+    "value": 25,
+    "max_discount": 500
+  },
+  "createddate": 1761301253896,
+  "modifieddate": 1761301253896
+}
+Filtering data for promotions (promotions): {
+  "name": "New User Welcome - ₹150 OFF (30 Days)",
+  "description": "New User Welcome - ₹150 OFF (30 Days)",
+  "type": "FIXED_AMOUNT_OFF_CART",
+  "code": "NEW150",
+  "auto_apply": false,
+  "start_date": 1735669800,
+  "end_date": 1788200940,
+  "status": "active",
+  "priority": 1,
+  "visibility": "private",
+  "max_redemptions": 750,
+  "per_user_limit": 1,
+  "stackable": false,
+  "budget": 75000,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "discount_type": "FIXED_AMOUNT_OFF",
+  "conditions": [
+    {
+      "attribute": "user.segment",
+      "operator": "IN",
+      "value": "new_user"
+    },
+    {
+      "attribute": "cart.total_value",
+      "operator": "GTE",
+      "value": "600"
+    }
+  ],
+  "action": {
+    "type": "FIXED_AMOUNT_OFF",
+    "value": 150
+  },
+  "createddate": 1761302865743,
+  "modifieddate": 1761302865743
+}
+Filtering data for promotions (promotions): {
+  "name": "20% OFF on Incense Products",
+  "description": "20% OFF on Incense Products",
+  "type": "PERCENT_OFF_CART",
+  "code": "",
+  "auto_apply": false,
+  "start_date": 1753986600,
+  "end_date": 1798741740,
+  "status": "active",
+  "priority": 2,
+  "visibility": "public",
+  "max_redemptions": 5000,
+  "per_user_limit": 3,
+  "stackable": false,
+  "budget": 50000,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "discount_type": "PERCENT_OFF",
+  "conditions": [
+    {
+      "attribute": "cart.items.category",
+      "operator": "IN",
+      "value": "incense"
+    },
+    {
+      "attribute": "cart.total_value",
+      "operator": "GTE",
+      "value": "2500"
+    }
+  ],
+  "action": {
+    "type": "PERCENT_OFF",
+    "value": 20,
+    "max_discount": 500
+  },
+  "createddate": 1761303248539,
+  "modifieddate": 1761303248539
+}
+Filtering data for promotions (promotions): {
+  "name": "New User First Order Discount Flat 15%",
+  "description": "New User First Order Discount Flat 15% with max ₹500",
+  "type": "PERCENT_OFF_CART",
+  "code": "WELCOME15",
+  "auto_apply": false,
+  "start_date": 1735689600,
+  "end_date": 1767225599,
+  "status": "active",
+  "priority": 2,
+  "visibility": "public",
+  "max_redemptions": 3000,
+  "per_user_limit": 1,
+  "stackable": false,
+  "budget": 300000,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "discount_type": "PERCENT_OFF",
+  "conditions": [
+    {
+      "value": [
+        "first_order",
+        "new_user"
+      ],
+      "operator": "IN",
+      "attribute": "user.segment"
+    },
+    {
+      "value": "1000",
+      "operator": "GTE",
+      "attribute": "cart.total_value"
+    }
+  ],
+  "action": {
+    "type": "PERCENT_OFF",
+    "value": 15,
+    "max_discount": 500
+  },
+  "id": 62,
+  "createddate": 1756981504,
+  "modifieddate": 1761303546971
+}
+Filtering data for cart (cart): {
+  "productid": 48,
+  "userid": 41,
+  "quantity": 4,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1761307682776
+}
+Filtering data for cart (cart): {
+  "userid": 41,
+  "productid": 47,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1761307686171,
+  "modifieddate": 1761307686171
+}
+Filtering data for cart (cart): {
+  "productid": 47,
+  "userid": 41,
+  "quantity": 2,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1761307691071
+}
+Filtering data for cart (cart): {
+  "productid": 47,
+  "userid": 41,
+  "quantity": 3,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1761307695337
+}
+>>>>>>> Stashed changes
+Filtering data for product (product): {
+  "name": "Nivaana - Dhoop Sticks - Kasturi",
+  "shortdescription": "Dhoop Sticks",
+  "category": "home_fragrance",
+  "subcategory": "dhoop_sticks",
+  "fragnancetype": "kasturi",
+  "brand": "Nivaana",
+  "pack": "single",
+  "price": 100,
+  "discount": 0,
+  "numberofitems": 0,
+  "isdealoftheday": false
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 51,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 51,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 51,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtering data for product (product): {
+  "name": "New Is - Incense Sticks - Kasturi",
+  "shortdescription": "new Incense stick form",
+  "category": "home_fragrance",
+  "subcategory": "incense_sticks",
+  "fragnancetype": "kasturi",
+  "brand": "New-IS",
+  "pack": "single",
+  "price": 100,
+  "discount": 0,
+  "numberofitems": 0,
+  "isdealoftheday": false,
+  "purpose": "Enhance living spaces"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 52,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 52,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 52,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtering data for product (product): {
+  "name": "New Is - Incense Sticks - Kasturi",
+  "category": "home_fragrance",
+  "subcategory": "incense_sticks",
+  "fragnancetype": "kasturi",
+  "brand": "New-IS",
+  "pack": "single",
+  "price": 10,
+  "discount": 0,
+  "numberofitems": 0,
+  "isdealoftheday": false,
+  "purpose": "Enhance living spaces",
+  "burntime": "30 mins"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 53,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 53,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 53,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtering data for product (product): {
+  "name": "New Is - Incense Sticks - Kasturi",
+  "category": "home_fragrance",
+  "subcategory": "incense_sticks",
+  "fragnancetype": "kasturi",
+  "brand": "New-IS",
+  "pack": "single",
+  "price": 100,
+  "discount": 0,
+  "numberofitems": 0,
+  "isdealoftheday": false,
+  "purpose": "Enhance living spaces"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 54,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 54,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 54,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtering data for product (product): {
+  "name": "New Is - Incense Sticks - Kasturi",
+  "shortdescription": "",
+  "fulldescription": "",
+  "price": 100,
+  "discount": 0,
+  "isdealoftheday": false,
+  "fragnancetype": "kasturi",
+  "brand": "New-IS",
+  "pack": "single",
+  "material": "",
+  "manufacturer": "",
+  "netform": "",
+  "netquantity": "",
+  "usage": "",
+  "burntime": "30 mins",
+  "itemlength": "",
+  "itemthickness": "",
+  "numberofitems": 0,
+  "category": "home_fragrance",
+  "subcategory": "incense_sticks"
+}
+Filtering data for product (product): {
+  "name": "Dhoop - Dhoop Sticks - Kasturi",
+  "category": "home_fragrance",
+  "subcategory": "dhoop_sticks",
+  "fragnancetype": "kasturi",
+  "brand": "Dhoop",
+  "pack": "single",
+  "price": 50,
+  "discount": 0,
+  "numberofitems": 10,
+  "isdealoftheday": false,
+  "purpose": "Enhance living spaces",
+  "burntime": "30 mins"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 55,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 55,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 55,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtering data for product (product): {
+  "name": "Fragrance - Fragrance Sachets - Kesar Chandan",
+  "category": "personal_fragrance",
+  "subcategory": "fragrance_sachets",
+  "fragnancetype": "kesar_chandan",
+  "brand": "Fragrance",
+  "pack": "single",
+  "price": 100,
+  "discount": 0,
+  "numberofitems": 0,
+  "isdealoftheday": false,
+  "purpose": "Keep personal and travel spaces fresh",
+  "longevity": "lasts upto 30 days",
+  "gender": "unisex"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 56,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 56,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 56,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtering data for product (product): {
+  "name": "Car - Car Fragrance - Kesar Chandan",
+  "category": "personal_fragrance",
+  "subcategory": "car_fragrance",
+  "fragnancetype": "kesar_chandan",
+  "brand": "Car",
+  "pack": "single",
+  "price": 100,
+  "discount": 0,
+  "isdealoftheday": false,
+  "purpose": "Keep personal and travel spaces fresh"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 57,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 57,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 57,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtering data for product (product): {
+  "name": "Essential Oil - Essential Oils - Davana",
+  "category": "wellness_aromatherapy",
+  "subcategory": "essential_oils",
+  "fragnancetype": "davana",
+  "brand": "Essential oil",
+  "pack": "single",
+  "price": 100,
+  "discount": 0,
+  "isdealoftheday": false,
+  "purpose": "Promote balance and well-being"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 58,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 58,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 58,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtering data for product (product): {
+  "name": "Diffusers - Diffusers - Spiritual Harmony",
+  "category": "wellness_aromatherapy",
+  "subcategory": "diffusers",
+  "fragnancetype": "spiritual_harmony",
+  "brand": "Diffusers",
+  "pack": "single",
+  "price": 100,
+  "discount": 0,
+  "isdealoftheday": false,
+  "purpose": "Promote balance and well-being",
+  "power": "usb"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 59,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 59,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 59,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtering data for product (product): {
+  "name": "Fragrance - Fragrance Oils - Davana",
+  "category": "wellness_aromatherapy",
+  "subcategory": "fragrance_oils",
+  "fragnancetype": "davana",
+  "brand": "Fragrance",
+  "pack": "single",
+  "price": 100,
+  "discount": 0,
+  "isdealoftheday": false,
+  "purpose": "Promote balance and well-being"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 60,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 60,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 60,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtering data for product (product): {
+  "name": "Toiletries Fragrance - Toiletries - Kesar Chandan",
+  "category": "personal_fragrance",
+  "subcategory": "toiletries",
+  "fragnancetype": "kesar_chandan",
+  "brand": "Toiletries Fragrance",
+  "pack": "single",
+  "price": 100,
+  "discount": 0,
+  "numberofitems": 0,
+  "isdealoftheday": false,
+  "purpose": "Keep personal and travel spaces fresh",
+  "longevity": "lasts upto 30 days",
+  "gender": "unisex"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 61,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 61,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 61,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtering data for product (product): {
+  "name": "Havan - Havan Cups - Paradise Garden",
+  "category": "home_fragrance",
+  "subcategory": "havan_cups",
+  "fragnancetype": "paradise_garden",
+  "brand": "Havan",
+  "pack": "single",
+  "price": 200,
+  "discount": 0,
+  "numberofitems": 0,
+  "isdealoftheday": false,
+  "purpose": "Enhance living spaces",
+  "burntime": "30 mins"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 62,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 62,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 62,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtering data for product (product): {
+  "large": [
+    "https://storage.googleapis.com/niv-products-images-dev/48/large/large_10mb-example-jpg.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/48/large/large_8mb.jpg",
+    "https://storage.googleapis.com/niv-products-images-dev/48/large/large_generated-image2.jpeg"
+  ]
+}
+Filtering data for inventoryusers (inventoryusers): {
+  "sessiontoken": "e360323d73740e0b835bf77d5b9236270de877f4d243d89d7b5a771b62913c65",
+  "modifieddate": 1762264709547
+}
+Filtering data for cart (cart): {
+  "userid": 41,
+  "productid": 47,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1762335331761,
+  "modifieddate": 1762335331761
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0044",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0044",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0044",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0044",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0044",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0044",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0044",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0044",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0044",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0044",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0044",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0044",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0044",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0044",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0044",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0044",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0044",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0044",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0044",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0044",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0044",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0044",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0044",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0044",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0044",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0044",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for product (product): {
+  "quantity": 412,
+  "availablequantity": 393,
+  "soldquantity": 0,
+  "ecompublishedquantity": 412,
+  "productstatus": "in_stock",
+  "modifieddate": 1762335369615
+}
+Filtering data for platformstock (platformstock): {
+  "availableqty": 393,
+  "soldqty": 0,
+  "totalqty": 411,
+  "orderedqty": 20,
+  "lockqty": 1,
+  "platformstatus": "in_stock"
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-IS-0040",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for product (product): {
+  "quantity": 69,
+  "availablequantity": 28,
+  "soldquantity": 0,
+  "ecompublishedquantity": 65,
+  "productstatus": "in_stock",
+  "modifieddate": 1762335395347
+}
+Filtering data for platformstock (platformstock): {
+  "availableqty": 29,
+  "soldqty": 0,
+  "totalqty": 63,
+  "orderedqty": 37,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Filtering data for cart (cart): {
+  "userid": 41,
+  "productid": 40,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1762335425323,
+  "modifieddate": 1762335425323
+}
+Filtering data for cart (cart): {
+  "userid": 41,
+  "productid": 44,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1762335430273,
+  "modifieddate": 1762335430273
+}
+Filtering data for cart (cart): {
+  "productid": 44,
+  "userid": 41,
+  "quantity": 2,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1762335436451
+}
+Filtering data for cart (cart): {
+  "productid": 40,
+  "userid": 41,
+  "quantity": 2,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1762335477610
+}
+Filtering data for cart (cart): {
+  "productid": 47,
+  "userid": 41,
+  "quantity": 2,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1762335477926
+}
+Filtering data for cart (cart): {
+  "productid": 44,
+  "userid": 41,
+  "quantity": 3,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1762335479134
+}
+Filtering data for cart (cart): {
+  "productid": 40,
+  "userid": 41,
+  "quantity": 3,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1762335483464
+}
+Filtering data for cart (cart): {
+  "productid": 47,
+  "userid": 41,
+  "quantity": 3,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1762335484304
+}
+Filtering data for cart (cart): {
+  "productid": 47,
+  "userid": 41,
+  "quantity": 4,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1762335496376
+}
+Filtering data for cart (cart): {
+  "productid": 40,
+  "userid": 41,
+  "quantity": 4,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1762335497259
+}
+Filtering data for cart (cart): {
+  "productid": 44,
+  "userid": 41,
+  "quantity": 4,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1762335498098
+}
+Filtering data for cart (cart): {
+  "productid": 44,
+  "userid": 41,
+  "quantity": 5,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1762335503992
+}
+Filtering data for cart (cart): {
+  "productid": 47,
+  "userid": 41,
+  "quantity": 5,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1762335505675
+}
+Filtering data for cart (cart): {
+  "productid": 40,
+  "userid": 41,
+  "quantity": 5,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1762335506285
 }

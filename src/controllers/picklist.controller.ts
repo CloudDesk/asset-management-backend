@@ -20,6 +20,8 @@ export class PicklistController {
   getPicklists = asyncHandler(async (request: FastifyRequest<{ Querystring: Record<string, any> }>, reply: FastifyReply) => {
     // Get all query parameters as filters (not just schema-validated ones)
     const allFilters: Record<string, any> = request.query || {};
+    
+    // Regular paginated mode - orders by fieldname first, then sortorder
     const { page, limit } = getPaginationParams(allFilters);
     
     // Remove pagination params from filters

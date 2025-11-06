@@ -165,11 +165,11 @@ export declare const usersQuerySchema: z.ZodObject<{
     createdAfter: z.ZodOptional<z.ZodString>;
     createdBefore: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
+    gender?: string | undefined;
     useremail?: string | undefined;
     usermobilenumber?: string | undefined;
     firstname?: string | undefined;
     lastname?: string | undefined;
-    gender?: string | undefined;
     gstnumber?: string | undefined;
     isbusinessuser?: string | undefined;
     isguest?: string | undefined;
@@ -178,11 +178,11 @@ export declare const usersQuerySchema: z.ZodObject<{
     createdAfter?: string | undefined;
     createdBefore?: string | undefined;
 }, {
+    gender?: string | undefined;
     useremail?: string | undefined;
     usermobilenumber?: string | undefined;
     firstname?: string | undefined;
     lastname?: string | undefined;
-    gender?: string | undefined;
     gstnumber?: string | undefined;
     isbusinessuser?: string | undefined;
     isguest?: string | undefined;

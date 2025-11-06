@@ -1,11 +1,12 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { PhonePeService } from "../services/phonepe.service.js";
 import { TransactionService } from "../services/transaction.service.js";
+import { OrdersService } from "../services/orders.service.js";
 import { OrderlineService } from "../services/orderline.service.js";
 export declare class PhonePeController {
     phonePeService: PhonePeService;
     transactionService: TransactionService;
-    private ordersService;
+    ordersService: OrdersService;
     orderlineService: OrderlineService;
     /**
      * Initiate payment with PhonePe

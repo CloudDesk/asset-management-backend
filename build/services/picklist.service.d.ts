@@ -9,5 +9,15 @@ export declare class PicklistService {
     create(data: CreatePicklistInput): Promise<any>;
     update(id: string, data: UpdatePicklistInput): Promise<any>;
     delete(id: string): Promise<void>;
+    /**
+     * Fetch picklists grouped by fieldName for a given object
+     * Optimized query that fetches all records in one query and groups in memory
+     *
+     * @param object - Object name (e.g., 'product')
+     * @param sortBy - Field to sort by: 'sortorder' (default) or 'label'
+     * @param order - Sort direction: 'asc' (default) or 'desc'
+     * @returns Object with fieldName as keys and arrays of picklist records as values
+     */
+    findGroupedByObject(object: string, sortBy?: 'sortorder' | 'label', order?: 'asc' | 'desc'): Promise<Record<string, any[]>>;
 }
 //# sourceMappingURL=picklist.service.d.ts.map

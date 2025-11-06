@@ -10,11 +10,19 @@ const envSchema = z.object({
     FIREBASE_PRIVATE_KEY: z.string().min(1, 'FIREBASE_PRIVATE_KEY is required'),
     // JWT Secret for app sessions
     APP_JWT_SECRET: z.string().default('your-secret-key-change-this-in-production'),
-    // Twilio Configuration (required for OTP SMS)
+    // Twilio Configuration (required for OTP SMS - kept for backward compatibility)
     TWILIO_ACCOUNT_SID: z.string().min(1, 'TWILIO_ACCOUNT_SID is required'),
     TWILIO_AUTH_TOKEN: z.string().min(1, 'TWILIO_AUTH_TOKEN is required'),
     TWILIO_PHONE_NUMBER: z.string().min(1, 'TWILIO_PHONE_NUMBER is required'),
     TWILIO_MESSAGING_SERVICE_SID: z.string().optional(),
+    // Exotel Configuration (required for OTP SMS migration)
+    EXOTEL_ACCOUNT_SID: z.string().min(1, 'EXOTEL_ACCOUNT_SID is required'),
+    EXOTEL_API_KEY: z.string().min(1, 'EXOTEL_API_KEY is required'),
+    EXOTEL_API_TOKEN: z.string().min(1, 'EXOTEL_API_TOKEN is required'),
+    EXOTEL_SUBDOMAIN: z.string().optional().default('api'),
+    EXOTEL_SENDER_ID: z.string().min(1, 'EXOTEL_SENDER_ID is required'),
+    EXOTEL_DLT_TEMPLATE_ID: z.string().optional(),
+    EXOTEL_ENTITY_ID: z.string().optional(),
     // Redis Configuration (required for OTP storage)
     // Use either REDIS_URL or REDIS_HOST+REDIS_PORT+REDIS_PASSWORD
     REDIS_URL: z.string().optional(),

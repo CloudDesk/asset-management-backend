@@ -181,3 +181,6 @@ Ignored field: discount_type (not in available columns)
 Ignored field: discount_type (not in available columns)
 Ignored field: discount_type (not in available columns)
 >>>>>>> Stashed changes
+Ignored field: purpose (not in available columns)
+Ignored field: purpose (not in available columns)
+Ignored field: burntime (not in available columns)

@@ -22,8 +22,6 @@ const PHONEPE_CONFIG = {
     REDIRECT_SUCCESS: process.env.REDIRECT_URL_SUCCESS || "com.Nivaana.app://profile/orders",
     REDIRECT_FAILURE: process.env.REDIRECT_URL_FAILURE || "com.Nivaana.app://profile/orders",
     REDIRECT_STATUS: process.env.REDIRECT_URL_PAYMENT_STATUS || "https://nivaana-715569764663.asia-south1.run.app",
-    // REDIRECT_STATUS: 'https://foal-stirring-illegally.ngrok-free.app'
-    // REDIRECT_STATUS: 'https://85c96baef4c7.ngrok-free.app'
 };
 export class PhonePeService {
     transactionService = new TransactionService();

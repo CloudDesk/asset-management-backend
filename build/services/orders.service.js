@@ -283,6 +283,19 @@ export class OrdersService {
     }
     async createOrderlinesFromOrderItems(orderId, orderItems, orderidString, currentTime) {
         const orderlines = [];
+        logger.info({
+            orderId,
+            orderidString,
+            orderItemsCount: orderItems.length,
+            sampleOrderItem: orderItems.length > 0 ? {
+                productid: orderItems[0].productid,
+                hasOriginalPrice: 'original_price' in orderItems[0],
+                hasProductDiscount: 'product_discount_amount' in orderItems[0],
+                hasPromotionDiscount: 'promotion_discount_amount' in orderItems[0],
+                hasShippingCost: 'shipping_cost' in orderItems[0],
+                hasEvaluationId: 'evaluation_id' in orderItems[0]
+            } : null
+        }, 'Starting orderline creation from enriched order items');
         for (let i = 0; i < orderItems.length; i++) {
             const orderItem = orderItems[i];
             const orderlineData = {
@@ -300,31 +313,83 @@ export class OrdersService {
                 uniqueordderid: orderidString, // Use the string orderid
                 createddate: currentTime,
                 modifieddate: currentTime,
-                ordereddate: currentTime
+                ordereddate: currentTime,
+                // ✅ BUGFIX: Add promotion/discount fields with proper null handling
+                original_price: orderItem.original_price !== undefined
+                    ? parseFloat(orderItem.original_price?.toString() || '0')
+                    : null,
+                product_discount_amount: orderItem.product_discount_amount !== undefined
+                    ? parseFloat(orderItem.product_discount_amount?.toString() || '0')
+                    : null,
+                promotion_discount_amount: orderItem.promotion_discount_amount !== undefined
+                    ? parseFloat(orderItem.promotion_discount_amount?.toString() || '0')
+                    : null,
+                shipping_cost: orderItem.shipping_cost !== undefined
+                    ? parseFloat(orderItem.shipping_cost?.toString() || '0')
+                    : null,
+                evaluation_id: orderItem.evaluation_id || null,
+                merchanttransactionid: orderItem.merchanttransactionid || null
             };
             try {
+                logger.debug({
+                    orderId,
+                    productid: orderItem.productid,
+                    orderlineIndex: i,
+                    discountFields: {
+                        original_price: orderlineData.original_price,
+                        product_discount_amount: orderlineData.product_discount_amount,
+                        promotion_discount_amount: orderlineData.promotion_discount_amount,
+                        shipping_cost: orderlineData.shipping_cost,
+                        evaluation_id: orderlineData.evaluation_id
+                    }
+                }, 'Creating orderline with discount fields');
                 const orderline = await dynamicCreate('orderline', orderlineData);
                 if (orderline) {
                     orderlines.push(orderline);
-                    logger.debug({
+                    logger.info({
                         orderlineId: orderline.id,
                         orderlineNumber: orderline.orderlinenumber,
                         productId: orderItem.productid,
                         productName: orderItem.productname,
                         orderAmount: orderItem.orderamount,
-                        discountAmount: orderItem.discountamount
-                    }, 'Orderline created successfully from order item');
+                        discountAmount: orderItem.discountamount,
+                        savedDiscountFields: {
+                            original_price: orderline.original_price,
+                            product_discount_amount: orderline.product_discount_amount,
+                            promotion_discount_amount: orderline.promotion_discount_amount,
+                            shipping_cost: orderline.shipping_cost,
+                            evaluation_id: orderline.evaluation_id
+                        }
+                    }, 'Orderline created successfully with discount fields');
                 }
             }
             catch (orderlineError) {
                 logger.error({
-                    error: orderlineError,
+                    error: orderlineError.message,
+                    stack: orderlineError.stack,
                     orderlineData,
-                    orderItem
+                    orderItem,
+                    orderId,
+                    productid: orderItem.productid
                 }, 'Failed to create orderline for order item');
                 // Continue with other orderlines even if one fails
             }
         }
+        // Calculate and log totals for validation
+        const successfulOrderlines = orderlines.filter(ol => ol.id);
+        const totals = {
+            totalOriginalPrice: successfulOrderlines.reduce((sum, ol) => sum + (parseFloat(ol.original_price?.toString() || '0') || 0), 0),
+            totalProductDiscount: successfulOrderlines.reduce((sum, ol) => sum + (parseFloat(ol.product_discount_amount?.toString() || '0') || 0), 0),
+            totalPromotionDiscount: successfulOrderlines.reduce((sum, ol) => sum + (parseFloat(ol.promotion_discount_amount?.toString() || '0') || 0), 0),
+            totalShipping: successfulOrderlines.reduce((sum, ol) => sum + (parseFloat(ol.shipping_cost?.toString() || '0') || 0), 0)
+        };
+        logger.info({
+            orderId,
+            orderidString,
+            orderlinesCreated: successfulOrderlines.length,
+            orderlinesFailed: orderlines.length - successfulOrderlines.length,
+            calculatedTotals: totals
+        }, 'Orderline creation completed with discount field distribution');
         return orderlines;
     }
     async update(id, data) {

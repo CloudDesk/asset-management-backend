@@ -613,13 +613,41 @@ async function buildDynamicWhereClause(
     }
 
     // Handle full-text search for searchtext field
-    if (key === 'searchtext' && tableName === 'product') {
+    if (key === 'searchtext') {
       const searchQuery = Array.isArray(value) ? value[0] : value;
       if (searchQuery && typeof searchQuery === 'string' && searchQuery.trim()) {
-        // Use PostgreSQL full-text search with plainto_tsquery for user-friendly search
-        conditions.push(`searchtext @@ plainto_tsquery('english', $${paramIndex})`);
-        values.push(searchQuery.trim());
-        paramIndex++;
+        const trimmedQuery = searchQuery.trim().toLowerCase();
+        
+        if (tableName === 'product') {
+          // Use PostgreSQL full-text search with plainto_tsquery for product
+          conditions.push(`searchtext @@ plainto_tsquery('english', $${paramIndex})`);
+          values.push(trimmedQuery);
+          paramIndex++;
+        } else if (tableName === 'picklist') {
+          // For picklist, search across multiple fields with case-insensitive matching
+          // Search in: object, fieldname, label, value, parent
+          // Normalize spaces and underscores for better matching (e.g., "personal fragrance" matches "personal_fragrance")
+          // Note: Uses PostgreSQL-specific REGEXP_REPLACE function (same as product search uses tsvector)
+          // This is consistent with the project's PostgreSQL-only approach
+          const normalizedSearch = trimmedQuery.replace(/[\s_]+/g, '_');
+          conditions.push(`(
+            LOWER(REGEXP_REPLACE(COALESCE(object, ''), '[\\s_]+', '_', 'g')) LIKE $${paramIndex} OR
+            LOWER(REGEXP_REPLACE(COALESCE(fieldname, ''), '[\\s_]+', '_', 'g')) LIKE $${paramIndex} OR
+            LOWER(REGEXP_REPLACE(COALESCE(label, ''), '[\\s_]+', '_', 'g')) LIKE $${paramIndex} OR
+            LOWER(REGEXP_REPLACE(COALESCE(value, ''), '[\\s_]+', '_', 'g')) LIKE $${paramIndex} OR
+            LOWER(REGEXP_REPLACE(COALESCE(parent, ''), '[\\s_]+', '_', 'g')) LIKE $${paramIndex}
+          )`);
+          values.push(`%${normalizedSearch}%`);
+          paramIndex++;
+        } else {
+          // For other tables, use generic search if searchtext column exists
+          const availableColumns = await discoverTableColumns(tableName);
+          if (availableColumns.includes('searchtext')) {
+            conditions.push(`searchtext @@ plainto_tsquery('english', $${paramIndex})`);
+            values.push(trimmedQuery);
+            paramIndex++;
+          }
+        }
         continue;
       }
     }
@@ -751,11 +779,13 @@ export async function dynamicFindManyWithFilters(
     skip?: number;
     take?: number;
     useAllColumns?: boolean;
+    orderBy?: string | string[];
+    orderDirection?: 'ASC' | 'DESC' | ('ASC' | 'DESC')[];
   } = {}
 ): Promise<{ data: any[]; total: number }> {
   try {
     const tableName = getTableName(modelName);
-    const { skip = 0, take = 10, useAllColumns = false } = options;
+    const { skip = 0, take = 10, useAllColumns = false, orderBy, orderDirection = 'ASC' } = options;
     
     // Build WHERE clause
     const { whereClause, values } = await buildDynamicWhereClause(tableName, filters);
@@ -765,12 +795,70 @@ export async function dynamicFindManyWithFilters(
       (await getSafeColumnsForTable(tableName)).columnList : 
       getFastColumns(tableName);
     
+    // Build ORDER BY clause - support multiple columns
+    let orderByClause = '';
+    const availableColumns = await discoverTableColumns(tableName);
+    
+    if (orderBy) {
+      // Handle array of orderBy columns
+      const orderByColumns = Array.isArray(orderBy) ? orderBy : [orderBy];
+      const orderDirections = Array.isArray(orderDirection) ? orderDirection : [orderDirection];
+      
+      const orderParts: string[] = [];
+      
+      for (let i = 0; i < orderByColumns.length; i++) {
+        const column = orderByColumns[i];
+        if (!column) continue; // Skip undefined/null columns
+        
+        const direction = (orderDirections[i] || orderDirections[0] || 'ASC').toUpperCase();
+        
+        // Check if the column exists in the table
+        const columnExists = availableColumns.some(col => col.toLowerCase() === column.toLowerCase());
+        
+        if (columnExists) {
+          // For sortorder field, handle nulls (nulls should appear after sorted records)
+          if (column.toLowerCase() === 'sortorder') {
+            // Use CASE to put nulls last: CASE WHEN sortorder IS NULL THEN 1 ELSE 0 END, then sortorder
+            orderParts.push(`CASE WHEN ${column} IS NULL THEN 1 ELSE 0 END, ${column} ${direction}`);
+          } else {
+            // For other fields, use standard ordering
+            orderParts.push(`${column} ${direction}`);
+          }
+        } else {
+          logger.warn({ column, tableName, availableColumns }, `OrderBy column '${column}' not found, skipping`);
+        }
+      }
+      
+      if (orderParts.length > 0) {
+        orderByClause = `ORDER BY ${orderParts.join(', ')}`;
+      } else {
+        // Fallback to default ordering if no valid columns found
+        logger.warn({ orderBy, tableName, availableColumns }, 'No valid OrderBy columns found, using default ordering');
+        orderByClause = availableColumns.includes('modifieddate') 
+          ? 'ORDER BY COALESCE(modifieddate, createddate, id) DESC'
+          : availableColumns.includes('createddate')
+          ? 'ORDER BY createddate DESC'
+          : availableColumns.includes('id')
+          ? 'ORDER BY id DESC'
+          : '';
+      }
+    } else {
+      // Default ordering if no orderBy specified
+      orderByClause = availableColumns.includes('modifieddate') 
+        ? 'ORDER BY COALESCE(modifieddate, createddate, id) DESC'
+        : availableColumns.includes('createddate')
+        ? 'ORDER BY createddate DESC'
+        : availableColumns.includes('id')
+        ? 'ORDER BY id DESC'
+        : '';
+    }
+    
     // Build queries
     const dataQuery = `
       SELECT ${columnList} 
       FROM ${tableName} 
       ${whereClause}
-      ORDER BY COALESCE(modifieddate, createddate, id) DESC 
+      ${orderByClause}
       LIMIT ${take} OFFSET ${skip}
     `;
     
@@ -785,7 +873,9 @@ export async function dynamicFindManyWithFilters(
       countQuery, 
       values,
       tableName,
-      filters: Object.keys(filters)
+      filters: Object.keys(filters),
+      orderBy,
+      orderDirection
     }, 'Executing dynamic filtered queries');
     
     // Execute both queries in parallel
@@ -812,7 +902,9 @@ export async function dynamicFindManyWithFilters(
       filters: Object.keys(filters),
       total,  
       returned: data.length,
-      filtered: whereClause !== ''
+      filtered: whereClause !== '',
+      orderBy,
+      orderDirection
     }, 'Dynamic filtered findMany completed');
     
     return { data, total };

@@ -8312,3 +8312,139 @@ Updated record: {
   "iswishlist": false,
   "modifieddate": 1761327496
 }
+Updated record: {
+  "id": 2,
+  "useremail": "harish@mail.com",
+  "userpassword": "$2a$12$so.ymfCoVsAVlnB5GvSo5.gXz0VKpmlA8lBKrE2EcBbzx/.dPhbVm",
+  "createddate": 1754579214,
+  "modifieddate": 1762284510,
+  "role": null,
+  "usersphonenumber": null,
+  "firstname": null,
+  "lastname": null,
+  "location": null,
+  "fcmid": null,
+  "sessiontoken": "e360323d73740e0b835bf77d5b9236270de877f4d243d89d7b5a771b62913c65",
+  "resettoken": null,
+  "resettokenexpires": null
+}
+Updated record: {
+  "id": 622,
+  "productid": 44,
+  "userid": 41,
+  "createddate": 1762355231,
+  "quantity": "2",
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1762355237
+}
+Updated record: {
+  "id": 621,
+  "productid": 40,
+  "userid": 41,
+  "createddate": 1762355226,
+  "quantity": "2",
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1762355278
+}
+Updated record: {
+  "id": 620,
+  "productid": 47,
+  "userid": 41,
+  "createddate": 1762355132,
+  "quantity": "2",
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1762355278
+}
+Updated record: {
+  "id": 622,
+  "productid": 44,
+  "userid": 41,
+  "createddate": 1762355231,
+  "quantity": "3",
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1762355280
+}
+Updated record: {
+  "id": 621,
+  "productid": 40,
+  "userid": 41,
+  "createddate": 1762355226,
+  "quantity": "3",
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1762355284
+}
+Updated record: {
+  "id": 620,
+  "productid": 47,
+  "userid": 41,
+  "createddate": 1762355132,
+  "quantity": "3",
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1762355285
+}
+Updated record: {
+  "id": 620,
+  "productid": 47,
+  "userid": 41,
+  "createddate": 1762355132,
+  "quantity": "4",
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1762355297
+}
+Updated record: {
+  "id": 621,
+  "productid": 40,
+  "userid": 41,
+  "createddate": 1762355226,
+  "quantity": "4",
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1762355297
+}
+Updated record: {
+  "id": 622,
+  "productid": 44,
+  "userid": 41,
+  "createddate": 1762355231,
+  "quantity": "4",
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1762355298
+}
+Updated record: {
+  "id": 622,
+  "productid": 44,
+  "userid": 41,
+  "createddate": 1762355231,
+  "quantity": "5",
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1762355304
+}
+Updated record: {
+  "id": 620,
+  "productid": 47,
+  "userid": 41,
+  "createddate": 1762355132,
+  "quantity": "5",
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1762355306
+}
+Updated record: {
+  "id": 621,
+  "productid": 40,
+  "userid": 41,
+  "createddate": 1762355226,
+  "quantity": "5",
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1762355306
+}
