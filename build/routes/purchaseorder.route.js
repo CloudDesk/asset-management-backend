@@ -79,7 +79,9 @@ export async function purchaseOrderRoutes(fastify) {
                                                     properties: {
                                                         id: { type: 'number', description: 'Item ID' },
                                                         name: { type: 'string', description: 'Item name' },
-                                                        quantity: { type: 'number', description: 'Item quantity' }
+                                                        quantity: { type: 'number', description: 'Item quantity' },
+                                                        unitprice: { type: 'number', description: 'Item unit price' },
+                                                        totalprice: { type: 'number', description: 'Item total price' }
                                                     }
                                                 }
                                             }
