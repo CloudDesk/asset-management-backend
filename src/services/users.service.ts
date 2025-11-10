@@ -15,6 +15,8 @@ import {
 } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
 import { hashPassword, verifyPassword, generateSessionToken, sanitizeUserData } from '../utils/auth.js';
+import { prisma } from '../models/prisma.js';
+import type { Prisma } from '@prisma/client';
 
 export class UsersService {
   async findMany(
@@ -644,6 +646,181 @@ export class UsersService {
       return true;
     } catch (error) {
       logger.error({ error, guestUserId, authenticatedUserId }, 'Error merging guest user');
+      throw error;
+    }
+  }
+
+  // ============================================
+  // Amazon Connection Methods (Step 4)
+  // ============================================
+
+  /**
+   * Store Amazon refresh token and seller ID for a user
+   * @param userId - User ID
+   * @param refreshToken - Refresh token from Amazon (will be encrypted in Step 8)
+   * @param sellerId - Seller ID from Amazon
+   * @param userType - User type: "inventoryusers" or "users" (default: "inventoryusers")
+   * @param marketplaceId - Marketplace ID (default: "A21TJRUUN4KGV" for India)
+   * @returns Amazon connection record
+   */
+  async storeAmazonRefreshToken(
+    userId: number,
+    refreshToken: string,
+    sellerId: string,
+    userType: string = 'inventoryusers',
+    marketplaceId: string = 'A21TJRUUN4KGV'
+  ) {
+    try {
+      logger.info({ userId, sellerId, userType }, 'Storing Amazon refresh token');
+
+      // TODO: Step 8 - Encrypt refresh token before storing
+      // const encryptedToken = this.encrypt(refreshToken);
+      const encryptedToken = refreshToken; // Temporary: store as-is until encryption is implemented
+
+      const now = Date.now();
+
+      // Upsert: create if doesn't exist, update if exists
+      // Note: Prisma client uses camelCase: AmazonConnection -> amazonConnection
+      // TypeScript may show errors until language server refreshes after Prisma generate
+      // First, try to find existing connection
+      const existing = await (prisma as any).amazonConnection.findFirst({
+        where: {
+          userId,
+          sellerId,
+          userType,
+        },
+      });
+
+      let connection;
+      if (existing) {
+        // Update existing
+        connection = await (prisma as any).amazonConnection.update({
+          where: { id: existing.id },
+          data: {
+            refreshToken: encryptedToken,
+            marketplaceId,
+            updatedAt: now,
+          },
+        });
+      } else {
+        // Create new
+        connection = await (prisma as any).amazonConnection.create({
+          data: {
+            userId,
+            userType,
+            sellerId,
+            refreshToken: encryptedToken,
+            marketplaceId,
+            createdAt: now,
+            updatedAt: now,
+          },
+        });
+      }
+
+      logger.info({ userId, sellerId, connectionId: connection.id }, 'Amazon refresh token stored successfully');
+
+      return connection;
+    } catch (error) {
+      logger.error({ error, userId, sellerId }, 'Error storing Amazon refresh token');
+      throw error;
+    }
+  }
+
+  /**
+   * Get Amazon refresh token for a user
+   * @param userId - User ID
+   * @param userType - User type: "inventoryusers" or "users" (default: "inventoryusers")
+   * @returns Refresh token (decrypted) or null if not found
+   */
+  async getAmazonRefreshToken(
+    userId: number,
+    userType: string = 'inventoryusers'
+  ): Promise<string | null> {
+    try {
+      const connection = await (prisma as any).amazonConnection.findFirst({
+        where: {
+          userId,
+          userType,
+        },
+      });
+
+      if (!connection) {
+        logger.debug({ userId, userType }, 'No Amazon connection found for user');
+        return null;
+      }
+
+      // TODO: Step 8 - Decrypt refresh token
+      // const decryptedToken = this.decrypt(connection.refreshToken);
+      const decryptedToken = connection.refreshToken; // Temporary: return as-is until encryption is implemented
+
+      logger.debug({ userId, userType }, 'Amazon refresh token retrieved successfully');
+
+      return decryptedToken;
+    } catch (error) {
+      logger.error({ error, userId, userType }, 'Error retrieving Amazon refresh token');
+      throw error;
+    }
+  }
+
+  /**
+   * Get full Amazon connection data for a user
+   * @param userId - User ID
+   * @param userType - User type: "inventoryusers" or "users" (default: "inventoryusers")
+   * @returns Amazon connection record or null if not found
+   */
+  async getAmazonConnection(
+    userId: number,
+    userType: string = 'inventoryusers'
+  ) {
+    try {
+      const connection = await (prisma as any).amazonConnection.findFirst({
+        where: {
+          userId,
+          userType,
+        },
+      });
+
+      if (!connection) {
+        logger.debug({ userId, userType }, 'No Amazon connection found for user');
+        return null;
+      }
+
+      return connection;
+    } catch (error) {
+      logger.error({ error, userId, userType }, 'Error retrieving Amazon connection');
+      throw error;
+    }
+  }
+
+  /**
+   * Delete Amazon connection for a user (disconnect)
+   * @param userId - User ID
+   * @param userType - User type: "inventoryusers" or "users" (default: "inventoryusers")
+   * @returns true if deleted, false if not found
+   */
+  async deleteAmazonConnection(
+    userId: number,
+    userType: string = 'inventoryusers'
+  ): Promise<boolean> {
+    try {
+      const result = await (prisma as any).amazonConnection.deleteMany({
+        where: {
+          userId,
+          userType,
+        },
+      });
+
+      const deleted = result.count > 0;
+
+      if (deleted) {
+        logger.info({ userId, userType }, 'Amazon connection deleted successfully');
+      } else {
+        logger.debug({ userId, userType }, 'No Amazon connection found to delete');
+      }
+
+      return deleted;
+    } catch (error) {
+      logger.error({ error, userId, userType }, 'Error deleting Amazon connection');
       throw error;
     }
   }

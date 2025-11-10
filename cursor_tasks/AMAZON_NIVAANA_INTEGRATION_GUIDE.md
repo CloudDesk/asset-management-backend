@@ -6,6 +6,13 @@
 **Target Audience:** Software Developers, Integration Engineers, Solution Architects, QA Engineers, Business Stakeholders  
 **Marketplace:** Amazon India (Marketplace ID: A21TJRUUN4KGV)
 
+> **📌 NEW: This guide has been split into focused versions for easier navigation:**
+> - **[Main Overview Guide](./AMAZON_INTEGRATION_MAIN.md)** - Quick start and decision guide
+> - **[Sandbox Implementation Guide](./AMAZON_INTEGRATION_SANDBOX.md)** - Testing & development (no verification needed)
+> - **[Production Implementation Guide](./AMAZON_INTEGRATION_PRODUCTION.md)** - Live integration (requires verification)
+>
+> **This document remains as a comprehensive reference covering both environments.**
+
 ---
 
 ## Table of Contents
@@ -94,6 +101,46 @@ Maintain a SKU/ASIN mapping and a reconciliation job to handle discrepancies.
 **For Nivaana Integration:**
 - If integrating for your own company's seller account → Use **Private App**
 - If building a platform to serve multiple sellers → Use **Solution Provider Portal**
+- **If you're a developer building for a client (like NIVAANA) who has a seller account → Use Solution Provider Portal** ✅
+
+### 2.3.1 Solution Provider Workflow: Developer Building for Client
+
+**Your Scenario:**
+- ✅ You have created your own SP-API developer account (Solution Provider Portal)
+- ✅ Client (NIVAANA) has their own Amazon Seller Account
+- ✅ You've created an app client and got LWA credentials
+- ❓ Need to connect your app to client's seller account
+
+**Quick Answers to Your Questions:**
+
+| Question | Answer |
+|----------|--------|
+| **Q1: Will I need to create a Private SP-API application for my client's seller account?** | ❌ **NO** - You DON'T need to create a Private App. Your Solution Provider Portal app can connect to ANY seller account (including NIVAANA's) via OAuth authorization. |
+| **Q2: Where to give API role access?** | ✅ **In YOUR Solution Provider Portal app settings** - Go to your app → "Roles" or "API Access" section → Enable required roles. These roles apply to all sellers that authorize your app. |
+| **Q3: Will AWS account be needed?** | ✅ **YES** - AWS account is required for SigV4 signing. |
+| **Q4: Which email to create AWS account?** | ✅ **YOUR email** (same as SP-API developer account). AWS account is linked to YOUR developer profile, not client's seller account. |
+
+**Answer: You DON'T need to create a Private App. Here's what you need to do:**
+
+1. **Your App (Solution Provider Portal)** - Already done ✅
+   - You created app client in Solution Provider Portal
+   - You have LWA credentials (Client ID, Client Secret)
+   - This is YOUR developer account
+
+2. **Connect to Client's Seller Account** - Next step ⬇️
+   - You need to get **OAuth authorization** from the client's seller account
+   - Client (NIVAANA) will authorize your app to access their seller account
+   - This gives you a **Refresh Token** for that specific seller account
+
+3. **API Role Access** - Set in YOUR app
+   - API roles are configured in **YOUR Solution Provider Portal app**
+   - When you created the app, you assigned roles (Orders, Listings, Feeds, etc.)
+   - These roles apply to ALL seller accounts that authorize your app
+
+4. **AWS Account** - Required for SigV4 signing
+   - You need an AWS account to sign SP-API requests
+   - Can be created with YOUR email (the one you used for SP-API developer account)
+   - You'll create an IAM role and link it to your developer profile
 
 ### 2.4 Sandbox vs Production: Key Differences
 
@@ -165,25 +212,434 @@ A: **Immediate** - Once you create the app, it's automatically in "Sandbox" stat
 
 1. In Developer Central/Solution Provider Portal, create a new app
 2. **App Status:** Will be automatically set to **"Sandbox"** (no verification needed)
-3. Assign roles:
-   - `sellingpartnerapi::orders::read/write`
-   - `sellingpartnerapi::feeds::write`
-   - `sellingpartnerapi::notifications::read`
-   - `sellingpartnerapi::listings::read/write`
-   - `sellingpartnerapi::shipping::read/write`
+3. **Assign API Roles** (This is where you set role access):
+   - Go to your app settings in Solution Provider Portal
+   - Navigate to "Roles" or "API Access" section
+   - Enable these roles:
+     - `sellingpartnerapi::orders::read/write`
+     - `sellingpartnerapi::feeds::write`
+     - `sellingpartnerapi::notifications::read`
+     - `sellingpartnerapi::listings::read/write`
+     - `sellingpartnerapi::shipping::read/write`
+   - **Note:** These roles apply to ALL seller accounts that authorize your app
 4. Obtain **Sandbox Credentials:**
    - **Client ID** (Sandbox)
    - **Client Secret** (Sandbox)
-   - **AWS IAM Role ARN**
+   - **AWS IAM Role ARN** (You'll get this after AWS setup)
    - **View sandbox credentials** link available immediately
 
 **Note:** You can test ALL APIs and flows in sandbox without identity verification!
 
-#### Step 3: Configure AWS IAM Role
+### ✅ Next Steps After Getting Sandbox LWA Credentials
 
-1. Create an IAM role with trust policy allowing SP-API
-2. Attach required SP-API permissions (listed in AWS docs)
-3. Link IAM role ARN in your developer profile
+**You've completed:**
+- ✅ Created sandbox app "Nivaana"
+- ✅ Got LWA credentials (Client ID and Client Secret)
+
+**What to do next (in order):**
+
+#### Step 1: Save Your Credentials Securely
+
+1. **Copy your credentials:**
+   - **Client Identifier:** `amzn1.application-oa2-client.xxxxx` (from the modal)
+   - **Client Secret:** Click to reveal and copy (keep it secure!)
+   - **Rotation Deadline:** Note the date (2026-05-06) - you'll need to rotate before this
+
+2. **Store in environment variables:**
+   ```env
+   # Sandbox Credentials
+   AMAZON_CLIENT_ID_SANDBOX=amzn1.application-oa2-client.7ad6031534434413abf37ff84645fc21
+   AMAZON_CLIENT_SECRET_SANDBOX=your_client_secret_here
+   AMAZON_ENVIRONMENT=SANDBOX
+   AMAZON_MARKETPLACE_ID=A21TJRUUN4KGV
+   ```
+
+#### Step 2: Set Up API Roles in Your App
+
+**⚠️ Important for Sandbox Apps:**
+
+When you click "Edit App" for a **Sandbox app**, you'll see this message:
+> **"Sandbox apps have access to all static sandbox APIs. Your production data access may be different as role requests are approved or denied based on evaluation of information submitted during developer registration."**
+
+**What This Means:**
+- ✅ **For Sandbox:** You DON'T need to select roles - you automatically have access to ALL sandbox APIs!
+- ✅ **All APIs work in sandbox** without explicit role selection:
+  - Orders API ✅
+  - Feeds API ✅
+  - Notifications API ✅
+  - Listings API ✅
+  - Shipping API ✅
+- ⏳ **For Production:** Role selection will be required after identity verification
+
+**Action Required:**
+- **For Sandbox:** ✅ **Nothing to do!** You can skip this step - all APIs are already available.
+- **For Production:** You'll set up roles later when you complete identity verification.
+
+**Why This Happens:**
+- Sandbox is a testing environment with all APIs enabled by default
+- Production requires explicit role approval based on your use case and verification
+- This allows you to test everything in sandbox without restrictions
+
+**Next Step:** Since sandbox has all APIs enabled, you can proceed directly to Step 3 (AWS Setup)!
+
+#### Step 3: Set Up AWS Account and IAM Role
+
+**Why:** SP-API requires AWS SigV4 signing for all requests.
+
+1. **Create AWS Account** (if you don't have one):
+   - Go to https://aws.amazon.com/
+   - Sign up with YOUR email (same as SP-API developer account)
+   - Complete verification
+
+2. **Create IAM Role:**
+   - AWS Console → IAM → Roles → Create Role
+   - Trusted entity: "AWS Account"
+   - Enter Amazon's account ID: `589160054188`
+   - Attach policy: `AmazonSellingPartnerAPIFullAccess`
+   - Name: `SP-API-Role`
+   - **Copy the Role ARN** (format: `arn:aws:iam::YOUR_ACCOUNT_ID:role/SP-API-Role`)
+
+3. **Link IAM Role to Developer Profile:**
+   - Solution Provider Portal → Developer Profile Settings
+   - Find "AWS IAM Role ARN" field
+   - Paste the IAM Role ARN
+   - Save
+
+4. **Add to environment variables:**
+   ```env
+   AMAZON_AWS_IAM_ROLE_ARN=arn:aws:iam::YOUR_ACCOUNT_ID:role/SP-API-Role
+   AMAZON_REGION=ap-south-1  # Mumbai region for India marketplace
+   AWS_ACCESS_KEY_ID=your_aws_access_key
+   AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+   ```
+
+#### Step 4: Get Refresh Token (For Sandbox Testing)
+
+**For sandbox, you need a refresh token to make API calls:**
+
+1. **Option A: Use Test Seller Account (Recommended for Sandbox)**
+   - Amazon provides test seller accounts for sandbox
+   - Use OAuth authorization flow with test seller
+   - Get refresh token for testing
+
+2. **Option B: Use Real Seller Account (NIVAANA)**
+   - Generate OAuth URL:
+     ```
+     https://sellercentral.amazon.in/apps/authorize/consent?
+       application_id={YOUR_APP_ID}&
+       state={UNIQUE_STATE}&
+       version=beta
+     ```
+   - Share URL with NIVAANA
+   - They authorize → you get refresh token
+   - **Note:** Even in sandbox, you can connect to real seller account for testing
+
+3. **Store refresh token:**
+   ```env
+   AMAZON_REFRESH_TOKEN_SANDBOX=your_refresh_token_here
+   ```
+
+#### Step 5: Implement Authentication Code
+
+**Create token refresh function:**
+
+```javascript
+// amazon-auth.service.js
+import axios from 'axios';
+
+const AMAZON_LWA_TOKEN_URL = 'https://api.amazon.com/auth/o2/token';
+
+let cachedToken = null;
+let tokenExpiry = null;
+
+async function refreshAccessToken() {
+  const response = await axios.post(AMAZON_LWA_TOKEN_URL, {
+    grant_type: 'refresh_token',
+    refresh_token: process.env.AMAZON_REFRESH_TOKEN_SANDBOX,
+    client_id: process.env.AMAZON_CLIENT_ID_SANDBOX,
+    client_secret: process.env.AMAZON_CLIENT_SECRET_SANDBOX
+  });
+  
+  return response.data.access_token;
+}
+
+export async function getAccessToken() {
+  const now = Date.now();
+  // Refresh 1 minute before expiry (tokens valid for 1 hour)
+  if (!cachedToken || now >= tokenExpiry - 60000) {
+    cachedToken = await refreshAccessToken();
+    tokenExpiry = now + 3600000; // 1 hour
+  }
+  return cachedToken;
+}
+```
+
+#### Step 6: Test Your First API Call
+
+**Test inventory update (simple test):**
+
+```javascript
+// test-amazon-api.js
+import { getAccessToken } from './amazon-auth.service.js';
+import { SignatureV4 } from '@aws-sdk/signature-v4';
+import { Sha256 } from '@aws-crypto/sha256-js';
+import axios from 'axios';
+
+async function testInventoryUpdate() {
+  try {
+    // 1. Get access token
+    const accessToken = await getAccessToken();
+    
+    // 2. Prepare request
+    const sellerId = 'YOUR_SELLER_ID'; // Get from seller account
+    const sku = 'TEST-SKU-001';
+    const request = {
+      method: 'PATCH',
+      url: `https://sandbox.sellingpartnerapi-eu.amazon.com/listings/2021-08-01/items/${sellerId}/${sku}`,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-amz-access-token': accessToken
+      },
+      body: JSON.stringify({
+        productType: 'PRODUCT',
+        patches: [{
+          op: 'replace',
+          path: '/attributes/fulfillment_availability',
+          value: [{
+            fulfillment_channel_code: 'DEFAULT',
+            quantity: 100
+          }]
+        }]
+      })
+    };
+    
+    // 3. Sign with AWS SigV4
+    const signer = new SignatureV4({
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+      },
+      region: process.env.AMAZON_REGION,
+      service: 'execute-api',
+      sha256: Sha256
+    });
+    
+    const signedRequest = await signer.sign(request);
+    
+    // 4. Make API call
+    const response = await axios(signedRequest);
+    console.log('✅ Success!', response.data);
+    
+  } catch (error) {
+    console.error('❌ Error:', error.response?.data || error.message);
+  }
+}
+
+testInventoryUpdate();
+```
+
+#### Step 7: Verify Everything Works
+
+**Checklist:**
+- [ ] Credentials saved in environment variables
+- [ ] API roles (Sandbox: ✅ Auto-enabled, Production: ⏳ Will set later)
+- [ ] AWS IAM role created and linked
+- [ ] Refresh token obtained
+- [ ] Authentication code implemented
+- [ ] First API call successful
+
+**Note:** For sandbox, API roles are automatically enabled - no action needed!
+
+**Common Issues:**
+- **401 Unauthorized:** Check refresh token is valid
+- **403 Forbidden:** (Sandbox: Shouldn't happen - all APIs enabled. Production: Check role approval)
+- **Signature errors:** Check AWS credentials and IAM role ARN
+
+#### Step 8: Build Your Integration
+
+Now you can start building:
+1. **Inventory sync service** - Update Amazon inventory from Nivaana
+2. **Order fetch service** - Get orders from Amazon
+3. **Shipment confirmation service** - Update tracking info
+4. **Error handling and retry logic**
+5. **Webhook receiver** - For notifications
+
+**Next:** See Section 5 (Integration Flows) for detailed implementation.
+
+### ⚠️ Important: Understanding Sandbox vs Production Apps
+
+**Your Goal:**
+- ✅ **Sandbox App** - For testing all APIs and integration flows
+- ✅ **Production App** - To connect to NIVAANA's real seller account and actual inventory
+
+**Current Situation:**
+- ✅ You have a **Sandbox app** (Nivaana) - Status: "Sandbox"
+- ⏳ You need a **Production app** - Requires identity verification
+
+### Workflow: Sandbox First, Then Production
+
+#### Phase 1: Sandbox Testing (Do This Now) ✅
+
+**What You Can Do in Sandbox:**
+1. **Test ALL APIs** without identity verification:
+   - ✅ Inventory updates (Listings Items API, Feeds API)
+   - ✅ Order fetching (Orders API)
+   - ✅ Shipment confirmations (Shipments API)
+   - ✅ Notifications (Notifications API)
+   - ✅ All authentication flows (LWA, SigV4)
+
+2. **Set Up API Roles:**
+   - Go to "Developer Central" page
+   - Click "Edit App" button next to your "Nivaana" app
+   - In app settings, find "Roles" or "API Access" section
+   - Enable required roles:
+     - `sellingpartnerapi::orders::read/write`
+     - `sellingpartnerapi::feeds::write`
+     - `sellingpartnerapi::notifications::read`
+     - `sellingpartnerapi::listings::read/write`
+     - `sellingpartnerapi::shipping::read/write`
+
+3. **Get Sandbox Credentials:**
+   - Click "View sandbox credentials" link
+   - Get Client ID, Client Secret
+   - Use these for testing
+
+4. **Test Integration:**
+   - Build and test your integration code
+   - Validate all API calls work correctly
+   - Test error handling and retry logic
+   - **No real data** - Uses test/mock data
+
+#### Phase 2: Production App (For Real Inventory) ⏳
+
+**When Ready for Production:**
+
+1. **Complete Identity Verification:**
+   - Go to "Steps to create production apps" page
+   - Click "Verify your Identity"
+   - **Options for documents:**
+     - **Option A:** Use your personal identity document (if individual developer)
+     - **Option B:** Use client's (NIVAANA) business registration documents
+     - **Option C:** If you have your own business, use business registration
+   - Approval takes **20 minutes to 5-10 business days**
+
+2. **After Identity Verification Approved:**
+   - "Set up Solution Provider Account Profile and Permissions" becomes available
+   - Set up roles, use cases, and security controls
+   - Your app status changes from "Sandbox" to "Production"
+   - You'll receive **production credentials** (different from sandbox)
+
+3. **Connect to Real Seller Account:**
+   - Use OAuth authorization to connect to NIVAANA's seller account
+   - Get refresh token for their real seller account
+   - Now you can access:
+     - ✅ Real inventory from NIVAANA's seller account
+     - ✅ Real orders from Amazon customers
+     - ✅ Real shipment confirmations
+     - ✅ All production data
+
+### Key Differences: Sandbox vs Production
+
+| Aspect | Sandbox App | Production App |
+|--------|-------------|----------------|
+| **Identity Verification** | ❌ Not required | ✅ Required |
+| **API Testing** | ✅ All APIs work | ✅ All APIs work |
+| **Data** | Test/mock data | Real seller account data |
+| **Inventory** | Test inventory | Real NIVAANA inventory |
+| **Orders** | Test orders | Real customer orders |
+| **Credentials** | Sandbox Client ID/Secret | Production Client ID/Secret |
+| **Status** | "Sandbox" | "Production" |
+| **When to Use** | Development & Testing | Live integration |
+
+### Recommended Approach
+
+**Now (Development Phase):**
+1. ✅ Use **Sandbox app** for all testing
+2. ✅ Set API roles in sandbox app settings
+3. ✅ Build and test your integration
+4. ✅ Validate all flows work correctly
+
+**Later (Production Phase):**
+1. ⏳ Complete identity verification (when ready)
+2. ⏳ Get production app credentials
+3. ⏳ Connect to NIVAANA's real seller account
+4. ⏳ Switch from sandbox to production credentials in your code
+5. ⏳ Start syncing real inventory and orders
+
+**Important:** You can keep both sandbox and production apps active. Use sandbox for testing new features, production for live operations.
+
+#### Step 2.1: Connect Your App to Client's Seller Account (OAuth Authorization)
+
+**This is the critical step to connect your app to NIVAANA's seller account:**
+
+1. **Generate OAuth Authorization URL:**
+   ```
+   https://sellercentral.amazon.in/apps/authorize/consent?
+     application_id={YOUR_APP_ID}&
+     state={UNIQUE_STATE_VALUE}&
+     version=beta
+   ```
+
+2. **Client (NIVAANA) Authorization Process:**
+   - Share the authorization URL with your client (NIVAANA)
+   - Client logs into their Amazon Seller Central account
+   - Client reviews and approves the permissions your app requests
+   - Client clicks "Authorize" or "Confirm"
+
+3. **Get Refresh Token:**
+   - After client authorizes, Amazon redirects to your callback URL with an authorization code
+   - Exchange authorization code for refresh token:
+     ```javascript
+     POST https://api.amazon.com/auth/o2/token
+     Body: {
+       grant_type: "authorization_code",
+       code: "{AUTHORIZATION_CODE}",
+       client_id: "{YOUR_CLIENT_ID}",
+       client_secret: "{YOUR_CLIENT_SECRET}",
+       redirect_uri: "{YOUR_CALLBACK_URL}"
+     }
+     ```
+   - Response contains `refresh_token` - **Store this securely!**
+   - This refresh token is specific to NIVAANA's seller account
+
+4. **Use Refresh Token:**
+   - Use this refresh token to get access tokens for SP-API calls
+   - Each seller account that authorizes your app will have its own refresh token
+
+#### Step 3: Configure AWS Account and IAM Role
+
+**Q: Do I need AWS account?**  
+**A: ✅ YES** - AWS account is required for SigV4 signing of SP-API requests.
+
+**Q: Which email should I use to create AWS account?**  
+**A:** Use **YOUR email** (the same email you used for SP-API developer registration). The AWS account is linked to YOUR developer profile, not the client's seller account.
+
+**Steps to Set Up AWS:**
+
+1. **Create AWS Account** (if you don't have one):
+   - Go to https://aws.amazon.com/
+   - Sign up with YOUR email (same as SP-API developer account)
+   - Complete AWS account verification
+   - **Note:** AWS has a free tier, but you may need to provide payment method
+
+2. **Create IAM Role for SP-API:**
+   - Login to AWS Console → IAM → Roles → Create Role
+   - Select "AWS Account" as trusted entity
+   - Enter Amazon's account ID: `589160054188` (for SP-API)
+   - Attach policy: `AmazonSellingPartnerAPIFullAccess` (or create custom policy with required permissions)
+   - Name the role (e.g., `SP-API-Role`)
+   - **Copy the Role ARN** (format: `arn:aws:iam::YOUR_ACCOUNT_ID:role/SP-API-Role`)
+
+3. **Link IAM Role to Your Developer Profile:**
+   - Go back to Solution Provider Portal
+   - Navigate to your developer profile settings
+   - Find "AWS IAM Role ARN" field
+   - Paste the IAM Role ARN you just created
+   - Save
+
+4. **Verify Setup:**
+   - Your app should now show the AWS IAM Role ARN in credentials
+   - This role will be used to sign all SP-API requests
 
 #### Step 4: OAuth 2.0 Authorization (Login With Amazon)
 
@@ -208,19 +664,108 @@ A: **Immediate** - Once you create the app, it's automatically in "Sandbox" stat
 3. Use sandbox credentials (separate from production)
 4. **Sandbox allows full testing** - You can validate your entire integration before moving to production
 
-#### Step 7: Production Access (When Ready)
+#### Step 7: Production App Setup (For Real Inventory)
 
-1. **Complete Identity Verification:**
-   - Go to "Steps to create production apps"
-   - Click "Verify your Identity"
-   - Upload required documents:
-     - **Business registration info** (if company)
-     - **Identity document** (personal ID)
+**Goal:** Create production app to connect to NIVAANA's real seller account and actual inventory.
+
+**Step 7.1: Complete Identity Verification**
+
+1. **Go to "Steps to create production apps" page**
+2. **Click "Verify your Identity"**
+3. **Choose Document Option:**
+   
+   **Option A: Individual Developer (You)**
+   - Upload your personal identity document (Aadhaar, PAN, Passport, etc.)
+   - This works if you're developing as an individual
+   
+   **Option B: Client's Business Documents (NIVAANA)**
+   - Ask NIVAANA to provide their business registration documents
+   - Use their business info for verification
+   - This is common when developer builds for client
+   
+   **Option C: Your Own Business**
+   - If you have a registered business, use your business documents
+   
+4. **Upload Required Documents:**
+   - Business registration info (if using business option)
+   - Identity document (personal ID)
+5. **Submit and Wait:**
    - Approval takes **20 minutes to 5-10 business days**
-2. **After verification approved:**
+   - You'll receive email notification when approved
+
+**Step 7.2: Set Up Production Profile**
+
+1. **After Identity Verification Approved:**
+   - "Set up Solution Provider Account Profile and Permissions" step becomes active
+   - Click "Get started after your identity verified" button
+   
+2. **Configure Production Settings:**
+   - Set up roles (same as sandbox: Orders, Listings, Feeds, Notifications, Shipping)
+   - Define use cases (describe how you'll use the API)
+   - Configure security controls
+   
+3. **App Status Changes:**
    - Your app status changes from "Sandbox" to "Production"
-   - You'll receive production credentials
-   - Can now handle real customer orders and inventory
+   - You'll see production credentials (different from sandbox)
+
+**Step 7.3: Connect to Real Seller Account**
+
+1. **Get Production Credentials:**
+   - Production Client ID
+   - Production Client Secret
+   - Production AWS IAM Role ARN
+   
+2. **OAuth Authorization for Real Account:**
+   - Generate OAuth URL using production credentials
+   - Share with NIVAANA (client)
+   - Client authorizes your production app
+   - Get refresh token for their real seller account
+   
+3. **Switch to Production in Your Code:**
+   ```javascript
+   // Environment configuration
+   const config = {
+     environment: 'PRODUCTION', // or 'SANDBOX'
+     clientId: process.env.AMAZON_CLIENT_ID_PROD, // Production credentials
+     clientSecret: process.env.AMAZON_CLIENT_SECRET_PROD,
+     refreshToken: process.env.AMAZON_REFRESH_TOKEN_PROD, // From real seller account
+     marketplaceId: 'A21TJRUUN4KGV' // India
+   };
+   ```
+
+4. **Now You Have Access to:**
+   - ✅ Real inventory from NIVAANA's seller account
+   - ✅ Real orders from Amazon customers
+   - ✅ Real shipment confirmations
+   - ✅ All production data
+
+**Step 7.4: Maintain Both Sandbox and Production**
+
+**Best Practice:** Keep both environments active
+
+- **Sandbox:** Use for testing new features, debugging, development
+- **Production:** Use for live operations, real inventory sync, real orders
+
+**Code Example - Environment Switching:**
+```javascript
+// Check environment
+const isProduction = process.env.AMAZON_ENVIRONMENT === 'PRODUCTION';
+
+const amazonConfig = {
+  baseURL: isProduction 
+    ? 'https://sellingpartnerapi-eu.amazon.com'  // Production
+    : 'https://sandbox.sellingpartnerapi-eu.amazon.com', // Sandbox
+  clientId: isProduction 
+    ? process.env.AMAZON_CLIENT_ID_PROD 
+    : process.env.AMAZON_CLIENT_ID_SANDBOX,
+  clientSecret: isProduction 
+    ? process.env.AMAZON_CLIENT_SECRET_PROD 
+    : process.env.AMAZON_CLIENT_SECRET_SANDBOX,
+  refreshToken: isProduction 
+    ? process.env.AMAZON_REFRESH_TOKEN_PROD  // Real seller account
+    : process.env.AMAZON_REFRESH_TOKEN_SANDBOX  // Test account
+};
+```
 
 ---
 
@@ -262,7 +807,7 @@ AMAZON_CLIENT_SECRET=your_client_secret
 AMAZON_REFRESH_TOKEN=your_refresh_token
 AMAZON_AWS_IAM_ROLE_ARN=arn:aws:iam::123456789012:role/SP-API-Role
 AMAZON_MARKETPLACE_ID=A21TJRUUN4KGV  # India
-AMAZON_REGION=eu-west-1  # or appropriate region
+AMAZON_REGION=ap-south-1  # Mumbai region for India marketplace
 
 # API Endpoints
 AMAZON_SP_API_BASE_URL=https://sellingpartnerapi-eu.amazon.com
