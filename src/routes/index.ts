@@ -23,7 +23,6 @@ import { phonePeRoutes } from './phonepe.route.js';
 import { promotionsRoutes } from './promotions.route.js';
 import { ratingRoutes } from './rating.route.js';
 import { smsRoutes } from './sms.route.js';
-import { firebaseOTPRoutes } from './firebase-otp.route.js';
 import { amazonRoutes } from './amazon.route.js';
 import { requireAuthentication } from '../middleware/auth.middleware.js';
 import { createSuccessResponse } from '../utils/errorHandler.js';
@@ -95,8 +94,6 @@ export async function routes(fastify: FastifyInstance) {
     await fastify.register(ratingRoutes, { prefix: '/ratings' });
     // SMS routes (public for OTP sending)
     await fastify.register(smsRoutes, { prefix: '/sms' });
-    // Firebase OTP Authentication routes (public for phone authentication)
-    await fastify.register(firebaseOTPRoutes, { prefix: '/firebase-otp' });
     // Amazon SP-API routes
     await fastify.register(amazonRoutes, { prefix: '/amazon' });
 

@@ -12,6 +12,34 @@ const RATE_LIMIT_VERIFY_MAX = parseInt(process.env.RATE_LIMIT_VERIFY_MAX || '5')
 const RATE_LIMIT_VERIFY_WINDOW = parseInt(process.env.RATE_LIMIT_VERIFY_WINDOW || '3600'); // 1 hour
 const BLOCK_DURATION = parseInt(process.env.BLOCK_DURATION || '3600'); // 1 hour
 
+// Provider-specific configurations
+export type OtpProvider = 'twilio' | 'exotel';
+
+export interface ProviderConfig {
+  otpLength: number;
+  expirySeconds: number;
+  resendCooldownSeconds: number;
+  noLeadingZero: boolean; // For Exotel: OTP should not start with 0
+  messageTemplate: string; // OTP message template with {otp} placeholder
+}
+
+const PROVIDER_CONFIGS: Record<OtpProvider, ProviderConfig> = {
+  twilio: {
+    otpLength: 6,
+    expirySeconds: 60, // 60 seconds
+    resendCooldownSeconds: 30, // 30 seconds
+    noLeadingZero: false,
+    messageTemplate: 'Your verification code is: {otp}. Valid for 60 seconds. Do not share this code.'
+  },
+  exotel: {
+    otpLength: 4,
+    expirySeconds: 300, // 5 minutes (300 seconds)
+    resendCooldownSeconds: 60, // 1 minute (60 seconds)
+    noLeadingZero: true, // Exotel OTP should not start with 0
+    messageTemplate: 'Dear Customer, your one-time password (OTP) for logging in to your NIVAANA account is {otp}. This code is valid for 5 minutes. Please do not share it with anyone. Visit https://nivaana.in/ for further details.'
+  }
+};
+
 interface OtpData {
   otp: string;
   attempts: number;
@@ -26,6 +54,7 @@ interface OtpGenerateResult {
   expiresAt?: number;
   error?: string;
   retryAfter?: number;
+  expiresIn?: number; // Expiry in seconds for response
 }
 
 interface OtpVerifyResult {
@@ -72,14 +101,29 @@ export class OtpService {
 
   /**
    * Generate a cryptographically secure random OTP
+   * @param provider - Provider type ('twilio' or 'exotel')
+   * @returns Generated OTP string
    */
-  private generateSecureOtp(): string {
-    // Use crypto.randomInt for cryptographically secure random numbers
-    const otp = crypto.randomInt(0, 10 ** OTP_LENGTH)
-      .toString()
-      .padStart(OTP_LENGTH, '0');
+  private generateSecureOtp(provider: OtpProvider = 'twilio'): string {
+    const config = PROVIDER_CONFIGS[provider];
     
-    return otp;
+    if (config.noLeadingZero) {
+      // For Exotel: Generate OTP that doesn't start with 0
+      // Generate first digit (1-9), then remaining digits (0-9)
+      const firstDigit = crypto.randomInt(1, 10); // 1 to 9
+      const remainingDigits = crypto.randomInt(0, 10 ** (config.otpLength - 1))
+        .toString()
+        .padStart(config.otpLength - 1, '0');
+      
+      return `${firstDigit}${remainingDigits}`;
+    } else {
+      // For Twilio: Standard OTP generation (can start with 0)
+      const otp = crypto.randomInt(0, 10 ** config.otpLength)
+        .toString()
+        .padStart(config.otpLength, '0');
+      
+      return otp;
+    }
   }
 
   /**
@@ -240,7 +284,7 @@ export class OtpService {
   }
 
   /**
-   * Set resend cooldown (30 seconds between resend requests)
+   * Set resend cooldown (provider-specific duration)
    */
   async setResendCooldown(phoneNumber: string, duration: number = 30): Promise<void> {
     try {
@@ -253,12 +297,13 @@ export class OtpService {
 
   /**
    * Generate and store OTP
+   * @param phoneNumber - Phone number in E.164 format
+   * @param provider - Provider type ('twilio' or 'exotel'), defaults to 'twilio'
    */
-  async generateAndStoreOtp(phoneNumber: string): Promise<OtpGenerateResult> {
+  async generateAndStoreOtp(phoneNumber: string, provider: OtpProvider = 'twilio'): Promise<OtpGenerateResult> {
     try {
       // 1. Check if phone is blocked
       const blockStatus = await this.isBlocked(phoneNumber);
-      console.log(blockStatus,"blockStatus")
       if (blockStatus.blocked) {
         logger.warn({ phoneNumber, reason: blockStatus.reason }, 'Blocked phone tried to request OTP');
         const result: OtpGenerateResult = {
@@ -299,12 +344,15 @@ export class OtpService {
         return result;
       }
 
-      // 4. Generate OTP
-      const otp = this.generateSecureOtp();
-      const now = Date.now();
-      const expiresAt = now + (OTP_EXPIRY_SECONDS * 1000);
+      // 4. Get provider-specific configuration
+      const config = PROVIDER_CONFIGS[provider];
 
-      // 5. Store OTP in Redis
+      // 5. Generate OTP with provider-specific settings
+      const otp = this.generateSecureOtp(provider);
+      const now = Date.now();
+      const expiresAt = now + (config.expirySeconds * 1000);
+
+      // 6. Store OTP in Redis with provider-specific TTL
       const otpKey = this.getOtpKey(phoneNumber);
       const otpData: OtpData = {
         otp,
@@ -314,23 +362,26 @@ export class OtpService {
         phoneNumber
       };
 
-      await this.redis.setEx(otpKey, OTP_EXPIRY_SECONDS, JSON.stringify(otpData));
+      await this.redis.setEx(otpKey, config.expirySeconds, JSON.stringify(otpData));
 
-      // 6. Increment send rate limit
+      // 7. Increment send rate limit
       await this.incrementSendRateLimit(phoneNumber);
 
-      // 7. Set resend cooldown
-      await this.setResendCooldown(phoneNumber);
+      // 8. Set resend cooldown with provider-specific duration
+      await this.setResendCooldown(phoneNumber, config.resendCooldownSeconds);
 
       logger.info({ 
         phoneNumber: phoneNumber.replace(/(\d{2})(\d+)(\d{4})/, '$1****$3'), // Mask phone number in logs
-        expiresIn: OTP_EXPIRY_SECONDS 
+        provider,
+        otpLength: config.otpLength,
+        expiresIn: config.expirySeconds 
       }, 'OTP generated and stored');
 
       return {
         success: true,
         otp, // Will be sent via SMS, not returned to client
-        expiresAt
+        expiresAt,
+        expiresIn: config.expirySeconds
       };
 
     } catch (error: any) {
@@ -521,6 +572,27 @@ export class OtpService {
     } catch (error: any) {
       logger.error({ error: error.message, phoneNumber }, 'Error clearing limits');
     }
+  }
+
+  /**
+   * Get OTP message template with OTP bound in
+   * @param provider - Provider type ('twilio' or 'exotel')
+   * @param otp - OTP code to bind into the message
+   * @returns Message with OTP bound in
+   */
+  getOtpMessage(provider: OtpProvider, otp: string): string {
+    const config = PROVIDER_CONFIGS[provider];
+    // Replace {otp} placeholder with actual OTP
+    return config.messageTemplate.replace(/\{otp\}/gi, otp);
+  }
+
+  /**
+   * Get provider configuration
+   * @param provider - Provider type ('twilio' or 'exotel')
+   * @returns Provider configuration
+   */
+  getProviderConfig(provider: OtpProvider): ProviderConfig {
+    return PROVIDER_CONFIGS[provider];
   }
 }
 
