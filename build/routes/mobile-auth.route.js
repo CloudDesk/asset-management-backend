@@ -2,7 +2,6 @@ import { UsersService } from '../services/users.service.js';
 import { OrdersService } from '../services/orders.service.js';
 import { OrderlineService } from '../services/orderline.service.js';
 import { EmailService } from '../services/email.service.js';
-import { FirebaseOTPService } from '../services/firebase-otp.service.js';
 import { TwilioSmsService } from '../services/twilioSms.service.js';
 import { exotelSmsService } from '../services/exotelSms.service.js';
 import { otpService } from '../services/otp.service.js';
@@ -14,154 +13,11 @@ export async function mobileAuthRoutes(fastify) {
     const ordersService = new OrdersService();
     const orderlineService = new OrderlineService();
     const emailService = new EmailService();
-    const firebaseOTPService = new FirebaseOTPService();
     const twilioSmsService = new TwilioSmsService();
-    // POST /v1/mobile-auth/firebase-login - Firebase OTP Authentication
-    fastify.post('/firebase-login', {
-        schema: {
-            description: 'Login with Firebase OTP - Verify Firebase ID token and create/get user',
-            tags: ['Mobile Authentication'],
-            body: {
-                type: 'object',
-                required: ['idToken'],
-                properties: {
-                    idToken: {
-                        type: 'string',
-                        description: 'Firebase ID token obtained after OTP verification on client side',
-                        minLength: 1
-                    }
-                },
-                additionalProperties: false,
-                examples: [
-                    {
-                        idToken: 'eyJhbGciOiJSUzI1NiIsImtpZCI6...'
-                    }
-                ]
-            },
-            response: {
-                200: {
-                    type: 'object',
-                    properties: {
-                        success: { type: 'boolean' },
-                        data: {
-                            type: 'object',
-                            properties: {
-                                user: {
-                                    type: 'object',
-                                    properties: {
-                                        id: { type: 'number' },
-                                        usermobilenumber: { type: 'number' },
-                                        firstname: { type: 'string' },
-                                        lastname: { type: 'string' },
-                                        useremail: { type: 'string' }
-                                    },
-                                    additionalProperties: true
-                                },
-                                token: { type: 'string' },
-                                isNewUser: { type: 'boolean' }
-                            }
-                        },
-                        message: { type: 'string' }
-                    }
-                },
-                400: {
-                    type: 'object',
-                    properties: {
-                        success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        details: { type: 'string' },
-                        statusCode: { type: 'number' }
-                    }
-                },
-                401: {
-                    type: 'object',
-                    properties: {
-                        success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        details: { type: 'string' },
-                        statusCode: { type: 'number' }
-                    }
-                }
-            }
-        }
-    }, asyncHandler(async (request, reply) => {
-        const { idToken } = request.body;
-        try {
-            // 1. Verify Firebase ID token
-            logger.debug({ ip: request.ip }, 'Verifying Firebase ID token');
-            const decodedToken = await firebaseOTPService.verifyFirebaseToken(idToken);
-            // 2. Extract phone number from Firebase token
-            const firebasePhoneNumber = decodedToken.phone_number;
-            if (!firebasePhoneNumber) {
-                return reply.code(400).send({
-                    success: false,
-                    message: 'Phone number not found in Firebase token',
-                    details: 'Firebase token must contain a valid phone number',
-                    statusCode: 400
-                });
-            }
-            // 3. Convert Firebase phone number (+919876543210) to number (9876543210)
-            // Handle both +91 (India) and other country codes
-            const phoneNumber = parseInt(firebasePhoneNumber.replace(/^\+91/, '').replace(/^\+/, ''));
-            logger.info({
-                firebaseUid: decodedToken.uid,
-                phoneNumber,
-                ip: request.ip
-            }, 'Firebase token verified, processing user login');
-            // 4. Check if user exists
-            let user = await usersService.findByMobileNumber(phoneNumber);
-            let isNewUser = false;
-            if (!user) {
-                // Create new user
-                logger.info({ phoneNumber }, 'Creating new user from Firebase authentication');
-                const newUserData = {
-                    usermobilenumber: phoneNumber,
-                    firstname: 'User',
-                    useremail: decodedToken.email || undefined,
-                    createddate: Date.now(),
-                    modifieddate: Date.now()
-                };
-                user = await usersService.create(newUserData);
-                isNewUser = true;
-                logger.info({
-                    userId: user.id,
-                    phoneNumber
-                }, 'New user created from Firebase authentication');
-            }
-            // 5. Generate session token
-            const sessionToken = generateSessionToken();
-            // 6. Sanitize user data (remove sensitive information)
-            const sanitizedUser = sanitizeUserData(user);
-            logger.info({
-                userId: user.id,
-                phoneNumber,
-                isNewUser,
-                ip: request.ip
-            }, 'User authenticated successfully via Firebase OTP');
-            const message = isNewUser
-                ? 'New account created and authenticated successfully'
-                : 'Authentication successful';
-            const response = createSuccessResponse(message, {
-                user: sanitizedUser,
-                token: sessionToken,
-                isNewUser
-            });
-            return reply.code(200).send(response);
-        }
-        catch (error) {
-            logger.error({ error, ip: request.ip }, 'Error during Firebase authentication');
-            return reply.code(401).send({
-                success: false,
-                message: 'Authentication failed',
-                details: error.message || 'Invalid or expired Firebase token',
-                statusCode: 401
-            });
-        }
-    }));
-    // POST /v1/mobile-auth/request-otp - Request OTP using Twilio SMS
+    // POST /v1/mobile-auth/request-otp - Request OTP using Exotel SMS
     fastify.post('/request-otp', {
         schema: {
-            description: 'Request OTP for mobile number using Twilio SMS (passwordless login step 1, or verify for delete account)',
+            description: 'Request OTP for mobile number using Exotel SMS (passwordless login step 1, or verify for delete account)',
             tags: ['Mobile Authentication'],
             body: {
                 type: 'object',
@@ -200,9 +56,8 @@ export async function mobileAuthRoutes(fastify) {
                             properties: {
                                 mobileNumber: { type: 'number' },
                                 otpSent: { type: 'boolean' },
-                                expiresAt: { type: 'string' },
-                                // For development only - remove in production
-                                otp: { type: 'integer', description: 'Development only - hardcoded OTP' },
+                                expiresIn: { type: 'number', description: 'OTP expiry time in seconds' },
+                                canResendAfter: { type: 'number', description: 'Cooldown period in seconds before OTP can be resent' },
                                 isNewUser: { type: 'boolean', description: 'Whether a new user was created automatically' }
                             },
                         },
@@ -287,18 +142,18 @@ export async function mobileAuthRoutes(fastify) {
                 mobileNumber: usermobilenumber,
                 userExists: !!user,
                 verifyOnly,
-                provider: 'twilio'
-            }, `OTP requested for ${user ? 'existing user' : 'new registration'} (Twilio)`);
-            // Step 4: Generate OTP using Redis service
+                provider: 'exotel'
+            }, `OTP requested for ${user ? 'existing user' : 'new registration'} (Exotel)`);
+            // Step 4: Generate OTP using Redis service (Exotel: 4-digit, 5 min expiry, 1 min cooldown)
             const phoneNumberString = `+91${usermobilenumber}`; // Convert to string with country code
-            const otpResult = await otpService.generateAndStoreOtp(phoneNumberString);
+            const otpResult = await otpService.generateAndStoreOtp(phoneNumberString, 'exotel');
             if (!otpResult.success) {
                 // Handle rate limiting or other errors from OTP service
                 const statusCode = otpResult.retryAfter ? 429 : 400;
                 logger.warn({
                     mobileNumber: usermobilenumber,
                     error: otpResult.error
-                }, 'OTP generation failed (Twilio)');
+                }, 'OTP generation failed (Exotel)');
                 if (otpResult.retryAfter) {
                     reply.header('Retry-After', otpResult.retryAfter.toString());
                 }
@@ -309,16 +164,17 @@ export async function mobileAuthRoutes(fastify) {
                     statusCode
                 });
             }
-            // Step 5: Send SMS via Twilio
-            const otpMessage = `Your verification code is: ${otpResult.otp}. Valid for 60 seconds. Do not share this code.`;
-            const smsResult = await twilioSmsService.sendOtp(phoneNumberString, otpMessage);
+            // Step 5: Send SMS via Exotel
+            // Get OTP message template from config (OTP will be bound into the message)
+            const otpMessage = otpService.getOtpMessage('exotel', otpResult.otp);
+            const smsResult = await exotelSmsService.sendOtp(phoneNumberString, otpMessage, otpResult.otp);
             if (!smsResult.success) {
                 // SMS sending failed - delete OTP from Redis
                 await otpService.deleteOtp(phoneNumberString);
                 logger.error({
                     mobileNumber: usermobilenumber,
                     error: smsResult.errorMessage
-                }, 'Failed to send OTP SMS via Twilio');
+                }, 'Failed to send OTP SMS via Exotel');
                 return reply.code(500).send({
                     success: false,
                     message: 'Failed to send OTP',
@@ -334,34 +190,37 @@ export async function mobileAuthRoutes(fastify) {
                 isNewUser,
                 verifyOnly,
                 messageId: smsResult.messageId,
-                provider: 'twilio'
-            }, `OTP sent successfully via Twilio for mobile number ${isNewUser ? '(new user created)' : '(existing user)'}${verifyOnly ? ' [verify mode]' : ''}`);
+                provider: 'exotel'
+            }, `OTP sent successfully via Exotel for mobile number ${isNewUser ? '(new user created)' : '(existing user)'}${verifyOnly ? ' [verify mode]' : ''}`);
             const responseMessage = verifyOnly
                 ? 'OTP sent successfully for verification'
                 : (isNewUser
                     ? 'New account created and OTP sent successfully'
                     : 'OTP sent successfully');
+            // Get provider config for response values
+            const exotelConfig = otpService.getProviderConfig('exotel');
+            // Ensure expiresIn and canResendAfter are always present (even if 0)
+            const expiresIn = otpResult.expiresIn ?? exotelConfig?.expirySeconds ?? 0;
+            const canResendAfter = exotelConfig?.resendCooldownSeconds ?? 0;
             const response = createSuccessResponse(responseMessage, {
                 mobileNumber: usermobilenumber,
                 otpSent: true,
-                expiresIn: 60,
-                canResendAfter: 30,
-                isNewUser,
-                // For development only - you can remove this in production
-                // otp: otpResult.otp
+                expiresIn: expiresIn,
+                canResendAfter: canResendAfter,
+                isNewUser
             });
             return reply.code(200).send(response);
         }
         catch (error) {
             authRateLimit.recordAttempt(identifier);
-            logger.error({ error, mobileNumber: usermobilenumber, verifyOnly, ip: request.ip, provider: 'twilio' }, 'Error during OTP generation (Twilio)');
+            logger.error({ error, mobileNumber: usermobilenumber, verifyOnly, ip: request.ip, provider: 'exotel' }, 'Error during OTP generation (Exotel)');
             throw error;
         }
     }));
-    // POST /v1/mobile-auth/verify-otp - Verify OTP and authenticate using Twilio SMS
+    // POST /v1/mobile-auth/verify-otp - Verify OTP and authenticate using Exotel SMS
     fastify.post('/verify-otp', {
         schema: {
-            description: 'Verify OTP and authenticate user using Twilio SMS (passwordless login step 2)',
+            description: 'Verify OTP and authenticate user using Exotel SMS (passwordless login step 2)',
             tags: ['Mobile Authentication'],
             body: {
                 type: 'object',
@@ -374,14 +233,14 @@ export async function mobileAuthRoutes(fastify) {
                         description: 'User mobile number (10-11 digits)'
                     },
                     otp: {
-                        description: '6-digit OTP received via SMS'
+                        description: '4-digit OTP received via SMS (Exotel)'
                     },
                 },
                 additionalProperties: false,
                 examples: [
                     {
                         usermobilenumber: 9344715431,
-                        otp: 123456
+                        otp: 1234
                     }
                 ]
             },
@@ -455,7 +314,438 @@ export async function mobileAuthRoutes(fastify) {
         },
     }, asyncHandler(async (request, reply) => {
         const { usermobilenumber, otp } = request.body;
-        // Custom OTP validation with user-friendly messages
+        // Custom OTP validation with user-friendly messages (Exotel: 4-digit OTP)
+        if (otp === undefined || otp === null) {
+            return reply.code(400).send({
+                success: false,
+                message: 'OTP is required',
+                details: 'Please enter the 4-digit OTP you received',
+                statusCode: 400
+            });
+        }
+        // Convert OTP to string for Redis validation
+        const otpString = otp.toString();
+        if (otpString.length !== 4) {
+            return reply.code(400).send({
+                success: false,
+                message: 'Invalid OTP format',
+                details: 'OTP must be exactly 4 digits',
+                statusCode: 400
+            });
+        }
+        if (!/^\d{4}$/.test(otpString)) {
+            return reply.code(400).send({
+                success: false,
+                message: 'Invalid OTP format',
+                details: 'OTP must contain only digits',
+                statusCode: 400
+            });
+        }
+        // Rate limiting check using mobile number
+        const identifier = `${request.ip}-${usermobilenumber}`;
+        if (authRateLimit.isRateLimited(identifier)) {
+            const remainingAttempts = authRateLimit.getRemainingAttempts(identifier);
+            logger.warn({
+                ip: request.ip,
+                mobileNumber: usermobilenumber,
+                remainingAttempts
+            }, 'OTP verification rate limited (Exotel)');
+            return reply.code(429).send({
+                success: false,
+                message: 'Too many verification attempts',
+                details: 'Please try again later',
+                statusCode: 429,
+                remainingAttempts,
+            });
+        }
+        try {
+            // Step 1: Verify OTP using Redis service FIRST
+            const phoneNumberString = `+91${usermobilenumber}`;
+            const verifyResult = await otpService.verifyOtp(phoneNumberString, otpString);
+            if (!verifyResult.success || !verifyResult.verified) {
+                // Record failed attempt
+                authRateLimit.recordAttempt(identifier);
+                const remainingAttempts = authRateLimit.getRemainingAttempts(identifier);
+                logger.warn({
+                    ip: request.ip,
+                    mobileNumber: usermobilenumber,
+                    remainingAttempts,
+                    error: verifyResult.error
+                }, 'OTP verification failed (Exotel)');
+                const statusCode = verifyResult.canResend === false ? 429 : 401;
+                return reply.code(statusCode).send({
+                    success: false,
+                    message: 'OTP verification failed',
+                    details: verifyResult.error || 'Invalid or expired OTP',
+                    statusCode,
+                    remainingAttempts,
+                    attemptsRemaining: verifyResult.attemptsRemaining,
+                    canResend: verifyResult.canResend
+                });
+            }
+            // Step 2: OTP is valid! Now check if user exists or create new one
+            let user = await usersService.findByMobileNumber(usermobilenumber);
+            let isNewUser = false;
+            if (!user) {
+                // Create new user AFTER successful OTP verification
+                logger.info({ mobileNumber: usermobilenumber }, 'Creating new verified user after OTP verification (Exotel)');
+                try {
+                    const newUserData = {
+                        usermobilenumber: usermobilenumber,
+                        firstname: `User`,
+                        createddate: Date.now(),
+                        modifieddate: Date.now()
+                    };
+                    user = await usersService.create(newUserData);
+                    isNewUser = true;
+                    logger.info({
+                        userId: user.id,
+                        mobileNumber: usermobilenumber
+                    }, 'New verified user created successfully (Exotel)');
+                }
+                catch (error) {
+                    logger.error({ error, mobileNumber: usermobilenumber }, 'Failed to create new user after OTP verification (Exotel)');
+                    return reply.code(500).send({
+                        success: false,
+                        message: 'Authentication failed',
+                        details: 'OTP verified but failed to create account. Please try again.',
+                        statusCode: 500
+                    });
+                }
+            }
+            // Clear rate limiting on successful authentication
+            authRateLimit.clearAttempts(identifier);
+            // Step 3: Generate session token
+            const sessionToken = generateSessionToken();
+            // Step 4: Sanitize user data
+            const sanitizedUser = sanitizeUserData(user);
+            logger.info({
+                userId: user.id,
+                mobileNumber: usermobilenumber,
+                isNewUser,
+                ip: request.ip,
+                provider: 'exotel'
+            }, `User authenticated successfully via Exotel OTP ${isNewUser ? '(new account created)' : '(existing account)'}`);
+            const result = {
+                user: sanitizedUser,
+                token: sessionToken,
+                isNewUser // Include isNewUser flag in response
+            };
+            const message = isNewUser
+                ? 'Account created and authenticated successfully'
+                : 'Authentication successful';
+            const response = createSuccessResponse(message, result);
+            return reply.code(200).send(response);
+        }
+        catch (error) {
+            authRateLimit.recordAttempt(identifier);
+            logger.error({ error, mobileNumber: usermobilenumber, ip: request.ip, provider: 'exotel' }, 'Error during OTP verification (Exotel)');
+            throw error;
+        }
+    }));
+    // POST /v1/mobile-auth/twilio/request-otp - Step 1: Request OTP for mobile number (Twilio)
+    fastify.post('/twilio/request-otp', {
+        schema: {
+            description: 'Request OTP for mobile number using Twilio SMS (passwordless login step 1, or verify for delete account)',
+            tags: ['Mobile Authentication'],
+            body: {
+                type: 'object',
+                required: ['usermobilenumber'],
+                properties: {
+                    usermobilenumber: {
+                        type: 'number',
+                        minimum: 1000000000,
+                        maximum: 99999999999,
+                        description: 'User mobile number (10-11 digits)'
+                    },
+                    verifyOnly: {
+                        type: 'boolean',
+                        description: 'If true, only verify user exists without creating new user (for delete account flow). Default: false',
+                        default: false
+                    }
+                },
+                additionalProperties: false,
+                examples: [
+                    {
+                        usermobilenumber: 9344715431
+                    },
+                    {
+                        usermobilenumber: 9344715431,
+                        verifyOnly: true
+                    }
+                ]
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        data: {
+                            type: 'object',
+                            properties: {
+                                mobileNumber: { type: 'number' },
+                                otpSent: { type: 'boolean' },
+                                expiresIn: { type: 'number' },
+                                canResendAfter: { type: 'number' },
+                                isNewUser: { type: 'boolean', description: 'Whether a new user was created automatically' }
+                            },
+                        },
+                        message: { type: 'string' },
+                    },
+                },
+                404: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                        remainingAttempts: { type: 'number' },
+                    },
+                },
+                429: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                        remainingAttempts: { type: 'number' },
+                    },
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
+            },
+        },
+    }, asyncHandler(async (request, reply) => {
+        const { usermobilenumber, verifyOnly = false } = request.body;
+        // Rate limiting check using mobile number
+        const identifier = `${request.ip}-${usermobilenumber}`;
+        if (authRateLimit.isRateLimited(identifier)) {
+            const remainingAttempts = authRateLimit.getRemainingAttempts(identifier);
+            logger.warn({
+                ip: request.ip,
+                mobileNumber: usermobilenumber,
+                remainingAttempts,
+                verifyOnly
+            }, 'OTP request rate limited (Twilio)');
+            return reply.code(429).send({
+                success: false,
+                message: 'Too many OTP requests',
+                details: 'Please try again later',
+                statusCode: 429,
+                remainingAttempts,
+            });
+        }
+        try {
+            // Step 1: Check if user exists
+            const user = await usersService.findByMobileNumber(usermobilenumber);
+            // Step 2: Handle verifyOnly mode (for delete account flow)
+            if (!user && verifyOnly) {
+                authRateLimit.recordAttempt(identifier);
+                const remainingAttempts = authRateLimit.getRemainingAttempts(identifier);
+                logger.warn({
+                    ip: request.ip,
+                    mobileNumber: usermobilenumber,
+                    remainingAttempts
+                }, 'OTP request failed: User not found (verifyOnly mode - Twilio)');
+                return reply.code(404).send({
+                    success: false,
+                    message: 'User not found',
+                    details: 'No account exists with this mobile number.',
+                    statusCode: 404,
+                    remainingAttempts,
+                });
+            }
+            // Step 3: For normal flow, we DON'T create user yet
+            // User will be created AFTER OTP verification
+            const isNewUser = !user; // Track if this will be a new user
+            logger.info({
+                mobileNumber: usermobilenumber,
+                userExists: !!user,
+                verifyOnly,
+                provider: 'twilio'
+            }, `OTP requested for ${user ? 'existing user' : 'new registration'} (Twilio)`);
+            // Step 4: Generate OTP using Redis service (Twilio: 6-digit, 60s expiry, 30s cooldown)
+            const phoneNumberString = `+91${usermobilenumber}`; // Convert to string with country code
+            const otpResult = await otpService.generateAndStoreOtp(phoneNumberString, 'twilio');
+            if (!otpResult.success) {
+                // Handle rate limiting or other errors from OTP service
+                const statusCode = otpResult.retryAfter ? 429 : 400;
+                logger.warn({
+                    mobileNumber: usermobilenumber,
+                    error: otpResult.error
+                }, 'OTP generation failed (Twilio)');
+                if (otpResult.retryAfter) {
+                    reply.header('Retry-After', otpResult.retryAfter.toString());
+                }
+                return reply.code(statusCode).send({
+                    success: false,
+                    message: 'Failed to generate OTP',
+                    details: otpResult.error || 'Could not generate OTP',
+                    statusCode
+                });
+            }
+            // Step 5: Send SMS via Twilio
+            // Get OTP message template from config
+            const otpMessage = otpService.getOtpMessage('twilio', otpResult.otp);
+            const smsResult = await twilioSmsService.sendOtp(phoneNumberString, otpMessage);
+            if (!smsResult.success) {
+                // SMS sending failed - delete OTP from Redis
+                await otpService.deleteOtp(phoneNumberString);
+                logger.error({
+                    mobileNumber: usermobilenumber,
+                    error: smsResult.errorMessage
+                }, 'Failed to send OTP SMS via Twilio');
+                return reply.code(500).send({
+                    success: false,
+                    message: 'Failed to send OTP',
+                    details: smsResult.errorMessage || 'Could not send SMS',
+                    statusCode: 500
+                });
+            }
+            // Clear rate limiting on successful OTP generation and sending
+            authRateLimit.clearAttempts(identifier);
+            logger.info({
+                mobileNumber: usermobilenumber,
+                ip: request.ip,
+                isNewUser,
+                verifyOnly,
+                messageId: smsResult.messageId,
+                provider: 'twilio'
+            }, `OTP sent successfully via Twilio for mobile number ${isNewUser ? '(new user created)' : '(existing user)'}${verifyOnly ? ' [verify mode]' : ''}`);
+            const responseMessage = verifyOnly
+                ? 'OTP sent successfully for verification'
+                : (isNewUser
+                    ? 'New account created and OTP sent successfully'
+                    : 'OTP sent successfully');
+            // Get provider config for response values
+            const twilioConfig = otpService.getProviderConfig('twilio');
+            // Ensure expiresIn and canResendAfter are always present (even if 0)
+            const expiresIn = otpResult.expiresIn ?? twilioConfig?.expirySeconds ?? 0;
+            const canResendAfter = twilioConfig?.resendCooldownSeconds ?? 0;
+            const response = createSuccessResponse(responseMessage, {
+                mobileNumber: usermobilenumber,
+                otpSent: true,
+                expiresIn: expiresIn,
+                canResendAfter: canResendAfter,
+                isNewUser
+            });
+            return reply.code(200).send(response);
+        }
+        catch (error) {
+            authRateLimit.recordAttempt(identifier);
+            logger.error({ error, mobileNumber: usermobilenumber, verifyOnly, ip: request.ip, provider: 'twilio' }, 'Error during OTP generation (Twilio)');
+            throw error;
+        }
+    }));
+    // POST /v1/mobile-auth/twilio/verify-otp - Step 2: Verify OTP and authenticate (Twilio)
+    fastify.post('/twilio/verify-otp', {
+        schema: {
+            description: 'Verify OTP and authenticate user using Twilio SMS (passwordless login step 2)',
+            tags: ['Mobile Authentication'],
+            body: {
+                type: 'object',
+                required: ['usermobilenumber', 'otp'],
+                properties: {
+                    usermobilenumber: {
+                        type: 'number',
+                        minimum: 1000000000,
+                        maximum: 99999999999,
+                        description: 'User mobile number (10-11 digits)'
+                    },
+                    otp: {
+                        type: 'string',
+                        pattern: '^[0-9]{6}$',
+                        description: '6-digit OTP received via SMS (Twilio)'
+                    },
+                },
+                additionalProperties: false,
+                examples: [
+                    {
+                        usermobilenumber: 9344715431,
+                        otp: '123456'
+                    }
+                ]
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        data: {
+                            type: 'object',
+                            properties: {
+                                user: {
+                                    type: 'object',
+                                    properties: {
+                                        id: { type: 'number' },
+                                        useremail: { type: 'string' },
+                                        usermobilenumber: { type: 'number' },
+                                        firstname: { type: 'string' },
+                                        lastname: { type: 'string' },
+                                        gender: { type: 'string' },
+                                        gstnumber: { type: 'string' },
+                                        isbusinessuser: { type: 'boolean' },
+                                    },
+                                    additionalProperties: true
+                                },
+                                token: { type: 'string' },
+                                isNewUser: { type: 'boolean', description: 'True if account was just created after OTP verification' },
+                            },
+                        },
+                        message: { type: 'string' },
+                    },
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
+                401: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
+                429: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                        remainingAttempts: { type: 'number' },
+                    },
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' },
+                    },
+                },
+            },
+        },
+    }, asyncHandler(async (request, reply) => {
+        const { usermobilenumber, otp } = request.body;
+        // Custom OTP validation with user-friendly messages (Twilio: 6-digit OTP)
         if (otp === undefined || otp === null) {
             return reply.code(400).send({
                 success: false,
@@ -581,434 +871,6 @@ export async function mobileAuthRoutes(fastify) {
         catch (error) {
             authRateLimit.recordAttempt(identifier);
             logger.error({ error, mobileNumber: usermobilenumber, ip: request.ip, provider: 'twilio' }, 'Error during OTP verification (Twilio)');
-            throw error;
-        }
-    }));
-    // POST /v1/mobile-auth/exotel/request-otp - Step 1: Request OTP for mobile number (Exotel)
-    fastify.post('/exotel/request-otp', {
-        schema: {
-            description: 'Request OTP for mobile number using Exotel SMS (passwordless login step 1, or verify for delete account)',
-            tags: ['Mobile Authentication'],
-            body: {
-                type: 'object',
-                required: ['usermobilenumber'],
-                properties: {
-                    usermobilenumber: {
-                        type: 'number',
-                        minimum: 1000000000,
-                        maximum: 99999999999,
-                        description: 'User mobile number (10-11 digits)'
-                    },
-                    verifyOnly: {
-                        type: 'boolean',
-                        description: 'If true, only verify user exists without creating new user (for delete account flow). Default: false',
-                        default: false
-                    }
-                },
-                additionalProperties: false,
-                examples: [
-                    {
-                        usermobilenumber: 9344715431
-                    },
-                    {
-                        usermobilenumber: 9344715431,
-                        verifyOnly: true
-                    }
-                ]
-            },
-            response: {
-                200: {
-                    type: 'object',
-                    properties: {
-                        success: { type: 'boolean' },
-                        data: {
-                            type: 'object',
-                            properties: {
-                                mobileNumber: { type: 'number' },
-                                otpSent: { type: 'boolean' },
-                                expiresIn: { type: 'number' },
-                                canResendAfter: { type: 'number' },
-                                isNewUser: { type: 'boolean', description: 'Whether a new user was created automatically' }
-                            },
-                        },
-                        message: { type: 'string' },
-                    },
-                },
-                404: {
-                    type: 'object',
-                    properties: {
-                        success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        details: { type: 'string' },
-                        statusCode: { type: 'number' },
-                        remainingAttempts: { type: 'number' },
-                    },
-                },
-                429: {
-                    type: 'object',
-                    properties: {
-                        success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        details: { type: 'string' },
-                        statusCode: { type: 'number' },
-                        remainingAttempts: { type: 'number' },
-                    },
-                },
-                500: {
-                    type: 'object',
-                    properties: {
-                        success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        details: { type: 'string' },
-                        statusCode: { type: 'number' },
-                    },
-                },
-            },
-        },
-    }, asyncHandler(async (request, reply) => {
-        const { usermobilenumber, verifyOnly = false } = request.body;
-        // Rate limiting check using mobile number
-        const identifier = `${request.ip}-${usermobilenumber}`;
-        if (authRateLimit.isRateLimited(identifier)) {
-            const remainingAttempts = authRateLimit.getRemainingAttempts(identifier);
-            logger.warn({
-                ip: request.ip,
-                mobileNumber: usermobilenumber,
-                remainingAttempts,
-                verifyOnly
-            }, 'OTP request rate limited (Exotel)');
-            return reply.code(429).send({
-                success: false,
-                message: 'Too many OTP requests',
-                details: 'Please try again later',
-                statusCode: 429,
-                remainingAttempts,
-            });
-        }
-        try {
-            // Step 1: Check if user exists
-            const user = await usersService.findByMobileNumber(usermobilenumber);
-            // Step 2: Handle verifyOnly mode (for delete account flow)
-            if (!user && verifyOnly) {
-                authRateLimit.recordAttempt(identifier);
-                const remainingAttempts = authRateLimit.getRemainingAttempts(identifier);
-                logger.warn({
-                    ip: request.ip,
-                    mobileNumber: usermobilenumber,
-                    remainingAttempts
-                }, 'OTP request failed: User not found (verifyOnly mode - Exotel)');
-                return reply.code(404).send({
-                    success: false,
-                    message: 'User not found',
-                    details: 'No account exists with this mobile number.',
-                    statusCode: 404,
-                    remainingAttempts,
-                });
-            }
-            // Step 3: For normal flow, we DON'T create user yet
-            // User will be created AFTER OTP verification
-            const isNewUser = !user; // Track if this will be a new user
-            logger.info({
-                mobileNumber: usermobilenumber,
-                userExists: !!user,
-                verifyOnly,
-                provider: 'exotel'
-            }, `OTP requested for ${user ? 'existing user' : 'new registration'} (Exotel)`);
-            // Step 4: Generate OTP using Redis service
-            const phoneNumberString = `+91${usermobilenumber}`; // Convert to string with country code
-            const otpResult = await otpService.generateAndStoreOtp(phoneNumberString);
-            if (!otpResult.success) {
-                // Handle rate limiting or other errors from OTP service
-                const statusCode = otpResult.retryAfter ? 429 : 400;
-                logger.warn({
-                    mobileNumber: usermobilenumber,
-                    error: otpResult.error
-                }, 'OTP generation failed (Exotel)');
-                if (otpResult.retryAfter) {
-                    reply.header('Retry-After', otpResult.retryAfter.toString());
-                }
-                return reply.code(statusCode).send({
-                    success: false,
-                    message: 'Failed to generate OTP',
-                    details: otpResult.error || 'Could not generate OTP',
-                    statusCode
-                });
-            }
-            // Step 5: Send SMS via Exotel
-            // Note: If EXOTEL_DLT_TEMPLATE_ID is configured, the otpMessage is NOT sent
-            //       Instead, Exotel uses the DLT template text and replaces {#var#} with the OTP
-            //       The message is kept only as a fallback if DLT template is not configured
-            const otpMessage = `Your verification code is: ${otpResult.otp}. Valid for 60 seconds. Do not share this code.`;
-            const smsResult = await exotelSmsService.sendOtp(phoneNumberString, otpMessage, otpResult.otp);
-            if (!smsResult.success) {
-                // SMS sending failed - delete OTP from Redis
-                await otpService.deleteOtp(phoneNumberString);
-                logger.error({
-                    mobileNumber: usermobilenumber,
-                    error: smsResult.errorMessage
-                }, 'Failed to send OTP SMS via Exotel');
-                return reply.code(500).send({
-                    success: false,
-                    message: 'Failed to send OTP',
-                    details: smsResult.errorMessage || 'Could not send SMS',
-                    statusCode: 500
-                });
-            }
-            // Clear rate limiting on successful OTP generation and sending
-            authRateLimit.clearAttempts(identifier);
-            logger.info({
-                mobileNumber: usermobilenumber,
-                ip: request.ip,
-                isNewUser,
-                verifyOnly,
-                messageId: smsResult.messageId,
-                provider: 'exotel'
-            }, `OTP sent successfully via Exotel for mobile number ${isNewUser ? '(new user created)' : '(existing user)'}${verifyOnly ? ' [verify mode]' : ''}`);
-            const responseMessage = verifyOnly
-                ? 'OTP sent successfully for verification'
-                : (isNewUser
-                    ? 'New account created and OTP sent successfully'
-                    : 'OTP sent successfully');
-            const response = createSuccessResponse(responseMessage, {
-                mobileNumber: usermobilenumber,
-                otpSent: true,
-                expiresIn: 60,
-                canResendAfter: 30,
-                isNewUser
-            });
-            return reply.code(200).send(response);
-        }
-        catch (error) {
-            authRateLimit.recordAttempt(identifier);
-            logger.error({ error, mobileNumber: usermobilenumber, verifyOnly, ip: request.ip, provider: 'exotel' }, 'Error during OTP generation (Exotel)');
-            throw error;
-        }
-    }));
-    // POST /v1/mobile-auth/exotel/verify-otp - Step 2: Verify OTP and authenticate (Exotel)
-    fastify.post('/exotel/verify-otp', {
-        schema: {
-            description: 'Verify OTP and authenticate user using Exotel SMS (passwordless login step 2)',
-            tags: ['Mobile Authentication'],
-            body: {
-                type: 'object',
-                required: ['usermobilenumber', 'otp'],
-                properties: {
-                    usermobilenumber: {
-                        type: 'number',
-                        minimum: 1000000000,
-                        maximum: 99999999999,
-                        description: 'User mobile number (10-11 digits)'
-                    },
-                    otp: {
-                        type: 'string',
-                        pattern: '^[0-9]{6}$',
-                        description: '6-digit OTP received via SMS'
-                    },
-                },
-                additionalProperties: false,
-                examples: [
-                    {
-                        usermobilenumber: 9344715431,
-                        otp: '123456'
-                    }
-                ]
-            },
-            response: {
-                200: {
-                    type: 'object',
-                    properties: {
-                        success: { type: 'boolean' },
-                        data: {
-                            type: 'object',
-                            properties: {
-                                user: {
-                                    type: 'object',
-                                    properties: {
-                                        id: { type: 'number' },
-                                        useremail: { type: 'string' },
-                                        usermobilenumber: { type: 'number' },
-                                        firstname: { type: 'string' },
-                                        lastname: { type: 'string' },
-                                        gender: { type: 'string' },
-                                        gstnumber: { type: 'string' },
-                                        isbusinessuser: { type: 'boolean' },
-                                    },
-                                    additionalProperties: true
-                                },
-                                token: { type: 'string' },
-                                isNewUser: { type: 'boolean', description: 'True if account was just created after OTP verification' },
-                            },
-                        },
-                        message: { type: 'string' },
-                    },
-                },
-                400: {
-                    type: 'object',
-                    properties: {
-                        success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        details: { type: 'string' },
-                        statusCode: { type: 'number' },
-                    },
-                },
-                401: {
-                    type: 'object',
-                    properties: {
-                        success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        details: { type: 'string' },
-                        statusCode: { type: 'number' },
-                    },
-                },
-                429: {
-                    type: 'object',
-                    properties: {
-                        success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        details: { type: 'string' },
-                        statusCode: { type: 'number' },
-                        remainingAttempts: { type: 'number' },
-                    },
-                },
-                500: {
-                    type: 'object',
-                    properties: {
-                        success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        details: { type: 'string' },
-                        statusCode: { type: 'number' },
-                    },
-                },
-            },
-        },
-    }, asyncHandler(async (request, reply) => {
-        const { usermobilenumber, otp } = request.body;
-        // Custom OTP validation with user-friendly messages
-        if (otp === undefined || otp === null) {
-            return reply.code(400).send({
-                success: false,
-                message: 'OTP is required',
-                details: 'Please enter the 6-digit OTP you received',
-                statusCode: 400
-            });
-        }
-        // Convert OTP to string for Redis validation
-        const otpString = otp.toString();
-        if (otpString.length !== 6) {
-            return reply.code(400).send({
-                success: false,
-                message: 'Invalid OTP format',
-                details: 'OTP must be exactly 6 digits',
-                statusCode: 400
-            });
-        }
-        if (!/^\d{6}$/.test(otpString)) {
-            return reply.code(400).send({
-                success: false,
-                message: 'Invalid OTP format',
-                details: 'OTP must contain only digits',
-                statusCode: 400
-            });
-        }
-        // Rate limiting check using mobile number
-        const identifier = `${request.ip}-${usermobilenumber}`;
-        if (authRateLimit.isRateLimited(identifier)) {
-            const remainingAttempts = authRateLimit.getRemainingAttempts(identifier);
-            logger.warn({
-                ip: request.ip,
-                mobileNumber: usermobilenumber,
-                remainingAttempts
-            }, 'OTP verification rate limited (Exotel)');
-            return reply.code(429).send({
-                success: false,
-                message: 'Too many verification attempts',
-                details: 'Please try again later',
-                statusCode: 429,
-                remainingAttempts,
-            });
-        }
-        try {
-            // Step 1: Verify OTP using Redis service FIRST
-            const phoneNumberString = `+91${usermobilenumber}`;
-            const verifyResult = await otpService.verifyOtp(phoneNumberString, otpString);
-            if (!verifyResult.success || !verifyResult.verified) {
-                // Record failed attempt
-                authRateLimit.recordAttempt(identifier);
-                const remainingAttempts = authRateLimit.getRemainingAttempts(identifier);
-                logger.warn({
-                    ip: request.ip,
-                    mobileNumber: usermobilenumber,
-                    remainingAttempts,
-                    error: verifyResult.error
-                }, 'OTP verification failed (Exotel)');
-                const statusCode = verifyResult.canResend === false ? 429 : 401;
-                return reply.code(statusCode).send({
-                    success: false,
-                    message: 'OTP verification failed',
-                    details: verifyResult.error || 'Invalid or expired OTP',
-                    statusCode,
-                    remainingAttempts,
-                    attemptsRemaining: verifyResult.attemptsRemaining,
-                    canResend: verifyResult.canResend
-                });
-            }
-            // Step 2: OTP is valid! Now check if user exists or create new one
-            let user = await usersService.findByMobileNumber(usermobilenumber);
-            let isNewUser = false;
-            if (!user) {
-                // Create new user AFTER successful OTP verification
-                logger.info({ mobileNumber: usermobilenumber }, 'Creating new verified user after OTP verification (Exotel)');
-                try {
-                    const newUserData = {
-                        usermobilenumber: usermobilenumber,
-                        firstname: `User`,
-                        createddate: Date.now(),
-                        modifieddate: Date.now()
-                    };
-                    user = await usersService.create(newUserData);
-                    isNewUser = true;
-                    logger.info({
-                        userId: user.id,
-                        mobileNumber: usermobilenumber
-                    }, 'New verified user created successfully (Exotel)');
-                }
-                catch (error) {
-                    logger.error({ error, mobileNumber: usermobilenumber }, 'Failed to create new user after OTP verification (Exotel)');
-                    return reply.code(500).send({
-                        success: false,
-                        message: 'Authentication failed',
-                        details: 'OTP verified but failed to create account. Please try again.',
-                        statusCode: 500
-                    });
-                }
-            }
-            // Clear rate limiting on successful authentication
-            authRateLimit.clearAttempts(identifier);
-            // Step 3: Generate session token
-            const sessionToken = generateSessionToken();
-            // Step 4: Sanitize user data
-            const sanitizedUser = sanitizeUserData(user);
-            logger.info({
-                userId: user.id,
-                mobileNumber: usermobilenumber,
-                isNewUser,
-                ip: request.ip,
-                provider: 'exotel'
-            }, `User authenticated successfully via Exotel OTP ${isNewUser ? '(new account created)' : '(existing account)'}`);
-            const result = {
-                user: sanitizedUser,
-                token: sessionToken,
-                isNewUser // Include isNewUser flag in response
-            };
-            const message = isNewUser
-                ? 'Account created and authenticated successfully'
-                : 'Authentication successful';
-            const response = createSuccessResponse(message, result);
-            return reply.code(200).send(response);
-        }
-        catch (error) {
-            authRateLimit.recordAttempt(identifier);
-            logger.error({ error, mobileNumber: usermobilenumber, ip: request.ip, provider: 'exotel' }, 'Error during OTP verification (Exotel)');
             throw error;
         }
     }));

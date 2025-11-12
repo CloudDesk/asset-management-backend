@@ -294,6 +294,7 @@ model inventoryusers {
   sessiontoken      String? @db.VarChar(255)
   resettoken        String? @db.VarChar(255)
   resettokenexpires BigInt?
+  // Note: amazonConnections relation removed - using userType field instead
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
@@ -662,6 +663,7 @@ model users {
   orders           orders[]
   tickets          tickets[]   @ignore
   rating           rating[]
+  // Note: amazonConnections relation removed - using userType field instead
 
   @@map("users")
 }
@@ -742,6 +744,25 @@ model promotion_redemptions {
   @@index([evaluation_id])
   @@index([order_id])
   @@map("promotion_redemptions")
+}
+
+model AmazonConnection {
+  id            Int      @id @default(autoincrement())
+  userId        Int      // Can reference either inventoryusers.id or users.id
+  userType      String   @default("inventoryusers") @db.VarChar(50) // "inventoryusers" or "users"
+  sellerId      String   @db.VarChar(255)
+  refreshToken  String   @db.Text // Encrypted refresh token
+  marketplaceId String   @default("A21TJRUUN4KGV") @db.VarChar(50)
+  createdAt     BigInt?
+  updatedAt     BigInt?
+  
+  // Relations - Note: We'll use userId + userType to determine which table to reference
+  // Prisma doesn't support conditional relations, so we'll handle this in application code
+  
+  @@unique([userId, sellerId, userType])
+  @@index([userId, userType])
+  @@index([sellerId])
+  @@map("amazon_connections")
 }
 
 

@@ -57,7 +57,8 @@ export class ExotelSmsService {
       // Remove .exotel.com if already included
       subdomain = subdomain.replace('.exotel.com', '');
     }
-    this.apiUrl = `https://${subdomain}.exotel.com/v1/Accounts/${EXOTEL_ACCOUNT_SID}/Sms/send`;
+    // Use .json endpoint for JSON response format
+    this.apiUrl = `https://${subdomain}.exotel.com/v1/Accounts/${EXOTEL_ACCOUNT_SID}/Sms/send.json`;
     
     logger.debug({
       subdomain: subdomain,
@@ -87,25 +88,32 @@ export class ExotelSmsService {
   /**
    * Format phone number for Exotel API
    * @param phoneNumber - Phone number in any format
-   * @returns Formatted phone number with country code
+   * @param includeCountryCode - Whether to include country code (default: false for Exotel)
+   * @returns Formatted phone number (10 digits for Indian numbers)
    */
-  private formatPhoneNumber(phoneNumber: string): string {
+  private formatPhoneNumber(phoneNumber: string, includeCountryCode: boolean = false): string {
     // Remove any non-digit characters
     let formatted = phoneNumber.replace(/\D/g, '');
     
     // Handle various input formats
     if (formatted.length === 10) {
-      // 10-digit Indian number
-      formatted = '+91' + formatted;
-    } else if (formatted.startsWith('91')) {
-      // Already has country code without +
-      formatted = '+' + formatted;
-    } else if (formatted.startsWith('0')) {
-      // Starts with 0 (Indian format)
-      formatted = '+91' + formatted.substring(1);
-    } else if (!formatted.startsWith('+')) {
-      // Missing + prefix
-      formatted = '+91' + formatted;
+      // 10-digit Indian number - return as is for Exotel
+      return formatted;
+    } else if (formatted.startsWith('91') && formatted.length === 12) {
+      // Has country code 91 - remove it
+      formatted = formatted.substring(2);
+    } else if (formatted.startsWith('0') && formatted.length === 11) {
+      // Starts with 0 (Indian format) - remove leading 0
+      formatted = formatted.substring(1);
+    } else if (formatted.startsWith('+91')) {
+      // Has +91 prefix - remove it
+      formatted = formatted.substring(3);
+    }
+    
+    // For Exotel, return 10-digit number without country code
+    // Based on curl example: To="9994824573" (no country code)
+    if (includeCountryCode && formatted.length === 10) {
+      return '+91' + formatted;
     }
     
     return formatted;
@@ -139,91 +147,86 @@ export class ExotelSmsService {
   /**
    * Send SMS using Exotel API
    * @param phoneNumber - Recipient phone number
-   * @param message - SMS message content (ONLY used as fallback when DLT template is not configured or fails)
-   *                  When DLT template is configured, this message is NOT sent - only the template is used
-   * @param otpCode - OTP code to use with DLT template variables (maps to {#var#} placeholder)
+   * @param message - SMS message content with OTP placeholder (will be replaced with actual OTP)
+   * @param otpCode - OTP code to bind into the message body
    * @returns Promise with send result
    */
   async sendOtp(phoneNumber: string, message: string, otpCode?: string): Promise<SendSmsResponse> {
     try {
-      logger.info({ phoneNumber, messageLength: message.length, hasTemplate: !!EXOTEL_DLT_TEMPLATE_ID }, 'Attempting to send SMS via Exotel');
+      logger.info({ phoneNumber, messageLength: message.length, hasOtp: !!otpCode }, 'Attempting to send SMS via Exotel');
 
-      // Format phone number for international SMS
+      // Format phone number for Exotel (10 digits, no country code)
       const formattedNumber = this.formatPhoneNumber(phoneNumber);
       
       logger.info({ originalNumber: phoneNumber, formattedNumber }, 'Phone number formatting for Exotel');
 
-      // Prepare request payload
+      // Prepare message body with OTP bound in
+      let messageBody = message;
+      if (otpCode) {
+        // Replace OTP placeholder in message with actual OTP
+        // Strategy: Replace OTP in context (after "is", ":", or placeholder patterns)
+        
+        // First, try placeholder patterns
+        messageBody = messageBody.replace(/\{otp\}/gi, otpCode);
+        messageBody = messageBody.replace(/\{OTP\}/gi, otpCode);
+        
+        // Then, replace OTP in context (e.g., "is 1234" -> "is {actualOTP}")
+        // Match pattern: "is " followed by 4-digit number (for Exotel) or 6-digit (for Twilio)
+        const otpLength = otpCode.length;
+        if (otpLength === 4) {
+          // Exotel: 4-digit OTP - replace "is 1234" pattern
+          messageBody = messageBody.replace(/\bis\s+\d{4}\b/i, `is ${otpCode}`);
+          // Also replace standalone 4-digit number if placeholder wasn't found
+          if (!messageBody.includes(otpCode)) {
+            messageBody = messageBody.replace(/\b\d{4}\b/, otpCode);
+          }
+        } else if (otpLength === 6) {
+          // Twilio: 6-digit OTP - replace "is 123456" pattern
+          messageBody = messageBody.replace(/\bis\s+\d{6}\b/i, `is ${otpCode}`);
+          // Also replace standalone 6-digit number if placeholder wasn't found
+          if (!messageBody.includes(otpCode)) {
+            messageBody = messageBody.replace(/\b\d{6}\b/, otpCode);
+          }
+        }
+        
+        logger.debug({ 
+          originalMessage: message.substring(0, 100) + '...', // Truncate for logs
+          otpLength: otpCode.length,
+          finalMessage: messageBody.substring(0, 100) + '...' // Truncate for logs
+        }, 'OTP bound into message body');
+      }
+
+      // Prepare request payload (form data format)
+      // Format: From, To, Body (as per curl example)
       const requestData: any = {
         From: EXOTEL_SENDER_ID,
-        To: formattedNumber
+        To: formattedNumber,
+        Body: messageBody
       };
 
-      // If DLT Template ID is configured, use template with variables
-      if (EXOTEL_DLT_TEMPLATE_ID) {
-        // Extract OTP from message if not provided directly
-        const otp = otpCode || this.extractOtpFromMessage(message);
+      // Optional: If DLT Template ID is configured, add DLT parameters
+      // This is for DLT compliance but the Body with OTP will still be sent
+      if (EXOTEL_DLT_TEMPLATE_ID && otpCode) {
+        requestData.DLTTemplateId = EXOTEL_DLT_TEMPLATE_ID;
         
-        if (otp) {
-          // Set DLT Template ID (required)
-          requestData.DLTTemplateId = EXOTEL_DLT_TEMPLATE_ID;
-          
-          // IMPORTANT: Entity ID comes from Sender ID settings (NOT from template)
-          // Location: SMS Settings → Sender IDs → "Entity ID" column
-          // The template's "DLT Entity ID" column may be empty (awaiting DLT approval) - that's okay
-          // We use the Entity ID from the Sender ID row, which is linked to your DLT registration
-          if (EXOTEL_ENTITY_ID && EXOTEL_ENTITY_ID.trim() !== '') {
-            // Entity ID from Sender ID settings (required for DLT compliance)
-            // This works even if template's Entity ID column is empty/pending approval
-            requestData.DltEntityId = EXOTEL_ENTITY_ID;
-            logger.debug({ 
-              entityId: EXOTEL_ENTITY_ID,
-              senderId: EXOTEL_SENDER_ID,
-              note: 'Entity ID from Sender ID settings (works even if template Entity ID is pending approval)'
-            }, 'Including DLT Entity ID from Sender ID');
-          } else {
-            // Entity ID should be configured from Sender ID settings
-            logger.warn({ 
-              senderId: EXOTEL_SENDER_ID,
-              note: 'Entity ID not configured - should be set from SMS Settings → Sender IDs → Entity ID column. ' +
-                    'Template Entity ID column can be empty (awaiting approval) - use Sender ID Entity ID instead.'
-            }, 'DLT Entity ID missing - may cause template matching issues');
-          }
-          
-          // Exotel DLT variables format - trying multiple formats
-          // Format 1: JSON string (what we're trying now)
-          // The placeholder {#var#} in template needs variable named "var"
-          requestData.DLTVariables = JSON.stringify({ var: otp });
-          
-          // IMPORTANT: Exotel API REQUIRES Body parameter even when using DLT template
-          // The Body parameter is mandatory, but Exotel will use the DLT template text
-          // We include the message here as required by API, but template text takes precedence
-          requestData.Body = message;
-          
-          logger.info({ 
-            templateId: EXOTEL_DLT_TEMPLATE_ID,
-            entityId: EXOTEL_ENTITY_ID || 'not configured',
-            otpMasked: otp.replace(/./g, '*'),
-            variableName: 'var',
-            usingTemplate: true,
-            variablesFormat: 'JSON string',
-            hasBody: true,
-            note: 'Body parameter included as required by Exotel API (template text takes precedence)'
-          }, 'Using DLT template with OTP variable');
-          
-          logger.debug({
-            dltVariables: requestData.DLTVariables,
-            dltEntityId: requestData.DltEntityId
-          }, 'DLT Variables payload');
-        } else {
-          // Fallback: If OTP extraction fails, use plain message
-          logger.warn('DLT template configured but OTP could not be extracted - falling back to plain message');
-          requestData.Body = message;
+        if (EXOTEL_ENTITY_ID && EXOTEL_ENTITY_ID.trim() !== '') {
+          requestData.DltEntityId = EXOTEL_ENTITY_ID;
+          logger.debug({ 
+            entityId: EXOTEL_ENTITY_ID,
+            senderId: EXOTEL_SENDER_ID
+          }, 'Including DLT Entity ID');
         }
+        
+        // DLT variables for template (if template uses {#var#} placeholder)
+        requestData.DLTVariables = JSON.stringify({ var: otpCode });
+        
+        logger.info({ 
+          templateId: EXOTEL_DLT_TEMPLATE_ID,
+          usingDltTemplate: true,
+          note: 'DLT template configured - Body message will be sent with DLT compliance'
+        }, 'Using DLT template (Body message still sent)');
       } else {
-        // No DLT template configured - use plain message body
-        requestData.Body = message;
-        logger.debug('Using plain message body (no DLT template configured)');
+        logger.debug('Sending plain message body with OTP bound in');
       }
 
       // Convert to URL-encoded format
@@ -257,13 +260,29 @@ export class ExotelSmsService {
         timeout: 10000 // 10 second timeout
       });
 
-      // Parse XML response to extract actual status
+      // Parse response (JSON format from .json endpoint)
       let parsedResponse: any = response.data;
       let messageStatus = 'unknown';
-      let detailedStatus = '';
-      let detailedStatusCode = '';
+      let messageId = null;
       
-      if (typeof response.data === 'string' && response.data.includes('<TwilioResponse>')) {
+      // Handle JSON response from .json endpoint
+      if (response.data && typeof response.data === 'object') {
+        // JSON response format
+        if (response.data.SMSMessage) {
+          messageStatus = response.data.SMSMessage.Status || 'unknown';
+          messageId = response.data.SMSMessage.Sid;
+        } else if (response.data.Status) {
+          messageStatus = response.data.Status;
+          messageId = response.data.Sid;
+        } else {
+          // Direct response object
+          messageStatus = response.data.status || response.data.Status || 'queued';
+          messageId = response.data.sid || response.data.Sid || response.data.messageId;
+        }
+        
+        parsedResponse = response.data;
+      } else if (typeof response.data === 'string' && response.data.includes('<TwilioResponse>')) {
+        // Fallback: XML response (for backward compatibility)
         // Parse XML response
         const statusMatch = response.data.match(/<Status>(.*?)<\/Status>/);
         const detailedStatusMatch = response.data.match(/<DetailedStatus>(.*?)<\/DetailedStatus>/);
@@ -273,95 +292,62 @@ export class ExotelSmsService {
         const fromMatch = response.data.match(/<From>(.*?)<\/From>/);
         
         if (statusMatch && statusMatch[1]) messageStatus = statusMatch[1];
-        if (detailedStatusMatch && detailedStatusMatch[1]) detailedStatus = detailedStatusMatch[1];
-        if (detailedStatusCodeMatch && detailedStatusCodeMatch[1]) detailedStatusCode = detailedStatusCodeMatch[1];
+        if (sidMatch && sidMatch[1]) messageId = sidMatch[1];
         
         parsedResponse = {
           Status: messageStatus,
-          DetailedStatus: detailedStatus || '',
-          DetailedStatusCode: detailedStatusCode || '',
+          DetailedStatus: detailedStatusMatch && detailedStatusMatch[1] ? detailedStatusMatch[1] : '',
+          DetailedStatusCode: detailedStatusCodeMatch && detailedStatusCodeMatch[1] ? detailedStatusCodeMatch[1] : '',
           Body: bodyMatch && bodyMatch[1] ? bodyMatch[1] : null,
-          Sid: sidMatch && sidMatch[1] ? sidMatch[1] : null,
+          Sid: messageId,
           From: fromMatch && fromMatch[1] ? fromMatch[1] : null,
           xml: response.data
         };
-        
-        // Check for DLT_TEMPLATE_NOT_FOUND error
-        if (detailedStatus && detailedStatus.includes('DLT_TEMPLATE_NOT_FOUND')) {
-          logger.error({
-            detailedStatus: detailedStatus,
-            detailedStatusCode: detailedStatusCode,
-            templateId: EXOTEL_DLT_TEMPLATE_ID,
-            entityId: EXOTEL_ENTITY_ID,
-            senderId: EXOTEL_SENDER_ID,
-            fromInResponse: parsedResponse.From,
-            bodyReceived: parsedResponse.Body,
-            critical: true,
-            action: 'Verify in Exotel Dashboard: SMS Settings → SMS Templates → Check Template ID matches exactly. ' +
-                   'Ensure Template Status is "Approved". Verify Sender ID "NIVNAA" is approved for DLT. ' +
-                   'Check Entity ID matches Sender ID row in SMS Settings → Sender IDs.'
-          }, '❌ DLT_TEMPLATE_NOT_FOUND - Template configuration mismatch');
-        }
-        
-        // Check if DLT template was used (Body should match template, not our plain message)
-        const bodyText = parsedResponse.Body || '';
-        if (bodyText && EXOTEL_DLT_TEMPLATE_ID) {
-          if (!bodyText.includes('Dear Customer') && !bodyText.includes('NIVAANA') && bodyText.includes('verification code')) {
-            logger.warn({
-              bodyReceived: bodyText,
-              note: 'DLT template may not be applied - plain message body returned'
-            }, 'Possible DLT template issue');
-          }
-        }
       }
       
       // Log full response for debugging
       logger.debug({
         responseStatus: response.status,
         parsedStatus: messageStatus,
-        detailedStatus: detailedStatus,
-        detailedStatusCode: detailedStatusCode,
+        messageId: messageId,
         responseData: parsedResponse,
         responseHeaders: response.headers
       }, 'Exotel API full response');
       
-      // Check message status - warn if queued for too long or failed
-      if (messageStatus === 'queued' && detailedStatusCode === '21010') {
+      // Check message status
+      if (messageStatus === 'queued' || messageStatus === 'sent' || messageStatus === 'delivered') {
         logger.info({
           status: messageStatus,
-          detailedStatus: detailedStatus,
-          note: 'Message queued and pending operator processing (normal for DLT)'
-        }, 'Exotel message queued');
-      } else if (detailedStatus && detailedStatus.includes('NOT_FOUND') || detailedStatus.includes('FAILED')) {
+          messageId: messageId,
+          phoneNumber: formattedNumber
+        }, 'Exotel message sent successfully');
+      } else if (messageStatus === 'failed' || messageStatus === 'undelivered') {
         logger.error({
           status: messageStatus,
-          detailedStatus: detailedStatus,
-          detailedStatusCode: detailedStatusCode,
+          messageId: messageId,
           responseData: parsedResponse
-        }, 'Exotel message failed - DLT configuration issue');
-      } else if (messageStatus !== 'sent' && messageStatus !== 'delivered' && messageStatus !== 'queued') {
+        }, 'Exotel message failed');
+      } else {
         logger.warn({
           status: messageStatus,
-          detailedStatus: detailedStatus,
-          detailedStatusCode: detailedStatusCode,
+          messageId: messageId,
           responseData: parsedResponse
-        }, 'Exotel message may not be sent - check status');
+        }, 'Exotel message status unknown - check response');
       }
 
       logger.info({ 
         phoneNumber: formattedNumber, 
-        messageId: response.data?.SMSMessage?.Sid,
-        status: response.data?.SMSMessage?.Status,
-        responseStatusCode: response.status,
-        fullResponse: response.data
+        messageId: messageId,
+        status: messageStatus,
+        responseStatusCode: response.status
       }, 'Exotel SMS sent successfully');
 
       return {
         success: true,
-        messageId: response.data?.SMSMessage?.Sid,
-        status: response.data?.SMSMessage?.Status || 'queued',
+        messageId: messageId || parsedResponse?.Sid || parsedResponse?.sid,
+        status: messageStatus || 'queued',
         provider: 'exotel',
-        exotelResponse: response.data
+        exotelResponse: parsedResponse
       };
 
     } catch (error: any) {

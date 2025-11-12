@@ -78,5 +78,36 @@ export declare class UsersService {
      * When a user authenticates and has previous guest orders
      */
     mergeGuestUser(guestUserId: number, authenticatedUserId: number): Promise<boolean>;
+    /**
+     * Store Amazon refresh token and seller ID for a user
+     * @param userId - User ID
+     * @param refreshToken - Refresh token from Amazon (will be encrypted in Step 8)
+     * @param sellerId - Seller ID from Amazon
+     * @param userType - User type: "inventoryusers" or "users" (default: "inventoryusers")
+     * @param marketplaceId - Marketplace ID (default: "A21TJRUUN4KGV" for India)
+     * @returns Amazon connection record
+     */
+    storeAmazonRefreshToken(userId: number, refreshToken: string, sellerId: string, userType?: string, marketplaceId?: string): Promise<any>;
+    /**
+     * Get Amazon refresh token for a user
+     * @param userId - User ID
+     * @param userType - User type: "inventoryusers" or "users" (default: "inventoryusers")
+     * @returns Refresh token (decrypted) or null if not found
+     */
+    getAmazonRefreshToken(userId: number, userType?: string): Promise<string | null>;
+    /**
+     * Get full Amazon connection data for a user
+     * @param userId - User ID
+     * @param userType - User type: "inventoryusers" or "users" (default: "inventoryusers")
+     * @returns Amazon connection record or null if not found
+     */
+    getAmazonConnection(userId: number, userType?: string): Promise<any>;
+    /**
+     * Delete Amazon connection for a user (disconnect)
+     * @param userId - User ID
+     * @param userType - User type: "inventoryusers" or "users" (default: "inventoryusers")
+     * @returns true if deleted, false if not found
+     */
+    deleteAmazonConnection(userId: number, userType?: string): Promise<boolean>;
 }
 //# sourceMappingURL=users.service.d.ts.map

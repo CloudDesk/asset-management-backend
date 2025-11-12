@@ -153,13 +153,13 @@ export declare const platformTransferSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     stockId: string | number;
     newPlatform: string;
-    reason?: string | undefined;
     userId?: string | number | bigint | undefined;
+    reason?: string | undefined;
 }, {
     stockId: string | number;
     newPlatform: string;
-    reason?: string | undefined;
     userId?: string | number | bigint | undefined;
+    reason?: string | undefined;
 }>;
 export declare const bulkPlatformStockUpdateSchema: z.ZodObject<{
     productid: z.ZodUnion<[z.ZodString, z.ZodNumber]>;

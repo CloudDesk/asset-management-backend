@@ -82,6 +82,20 @@ const envSchema = z.object({
   RATE_LIMIT_VERIFY_MAX: z.string().optional().default('5'),
   RATE_LIMIT_VERIFY_WINDOW: z.string().optional().default('3600'),
   BLOCK_DURATION: z.string().optional().default('3600'),
+  
+  // Amazon SP-API Configuration (Global keys - change values for sandbox/production)
+  AMAZON_CLIENT_ID: z.string().optional(),
+  AMAZON_CLIENT_SECRET: z.string().optional(),
+  AMAZON_REFRESH_TOKEN: z.string().optional(),
+  AMAZON_ENVIRONMENT: z.enum(['SANDBOX', 'PRODUCTION']).optional().default('SANDBOX'),
+  AMAZON_MARKETPLACE_ID: z.string().optional().default('A21TJRUUN4KGV'), // Fixed for India
+  AMAZON_SP_API_BASE_URL: z.string().optional(),
+  AMAZON_AWS_IAM_ROLE_ARN: z.string().optional(),
+  AMAZON_REGION: z.string().optional().default('eu-west-1'),
+  AMAZON_SELLER_CENTRAL_URL: z.string().optional().default('https://sellercentral.amazon.in'),
+  AMAZON_REDIRECT_URI: z.string().optional(),
+  AWS_ACCESS_KEY_ID: z.string().optional(),
+  AWS_SECRET_ACCESS_KEY: z.string().optional(),
 
 });
 
