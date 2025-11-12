@@ -57,7 +57,7 @@ export async function amazonRoutes(fastify: FastifyInstance) {
   // GET /v1/amazon/products/:sellerId/:sku - Get product by SKU
   fastify.get('/products/:sellerId/:sku', {
     schema: {
-      description: 'Get product by SKU',
+      description: 'Get product by SKU (Listings Items API - seller\'s own listing)',
       tags: ['Amazon SP-API'],
       params: {
         type: 'object',
@@ -103,6 +103,120 @@ export async function amazonRoutes(fastify: FastifyInstance) {
       },
     },
   }, amazonController.getProductBySku.bind(amazonController));
+
+  // GET /v1/amazon/catalog/search - Search catalog items
+  fastify.get('/catalog/search', {
+    schema: {
+      description: 'Search Amazon catalog items (Catalog Items API - search Amazon catalog)',
+      tags: ['Amazon SP-API'],
+      querystring: {
+        type: 'object',
+        properties: {
+          keywords: { 
+            type: 'string', 
+            description: 'Comma-delimited list of words or identifiers to search for (required)' 
+          },
+          marketplaceIds: { 
+            type: 'string', 
+            description: 'Comma-separated marketplace IDs (default: A21TJRUUN4KGV for India)' 
+          },
+          pageSize: { 
+            type: 'number', 
+            description: 'Number of results per page (max 20, default 20)' 
+          },
+          pageToken: { 
+            type: 'string', 
+            description: 'Token for pagination' 
+          },
+        },
+        required: ['keywords'],
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: { type: 'object' },
+          },
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+      },
+    },
+  }, amazonController.searchCatalogItems.bind(amazonController));
+
+  // GET /v1/amazon/catalog/items/:asin - Get catalog item by ASIN
+  fastify.get('/catalog/items/:asin', {
+    schema: {
+      description: 'Get catalog item by ASIN (Catalog Items API)',
+      tags: ['Amazon SP-API'],
+      params: {
+        type: 'object',
+        properties: {
+          asin: { type: 'string', description: 'Amazon Standard Identification Number (ASIN)' },
+        },
+        required: ['asin'],
+      },
+      querystring: {
+        type: 'object',
+        properties: {
+          marketplaceIds: { 
+            type: 'string', 
+            description: 'Comma-separated marketplace IDs (default: A21TJRUUN4KGV for India)' 
+          },
+          includedData: { 
+            type: 'string', 
+            description: 'Comma-separated list of data sets to include (e.g., summaries,attributes)' 
+          },
+        },
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: { type: 'object' },
+          },
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+      },
+    },
+  }, amazonController.getCatalogItem.bind(amazonController));
 
   // PATCH /v1/amazon/inventory/:sellerId/:sku - Update inventory
   fastify.patch('/inventory/:sellerId/:sku', {
@@ -243,6 +357,129 @@ export async function amazonRoutes(fastify: FastifyInstance) {
       },
     },
   }, amazonController.getOrderItems.bind(amazonController));
+
+  // ============================================
+  // Token Management Routes
+  // ============================================
+
+  // GET /v1/amazon/auth/token - Get or refresh access token
+  fastify.get('/auth/token', {
+    schema: {
+      description: 'Get or refresh Amazon SP-API access token',
+      tags: ['Amazon SP-API'],
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {
+              type: 'object',
+              properties: {
+                accessToken: { type: 'string', description: 'Access token for SP-API calls' },
+                expiresIn: { type: 'number', description: 'Token expiry time in seconds (3600 = 1 hour)' },
+                note: { type: 'string', description: 'Additional information about token' },
+              },
+            },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+      },
+    },
+  }, amazonController.getAccessToken.bind(amazonController));
+
+  // GET /v1/amazon/auth/authenticated-seller-id - Get the authenticated seller ID
+  fastify.get('/auth/authenticated-seller-id', {
+    schema: {
+      description: 'Get the authenticated seller ID (the seller associated with your refresh token). This is the sellerId that must be used in Listings Items API calls.',
+      tags: ['Amazon SP-API'],
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {
+              type: 'object',
+              properties: {
+                sellerId: { type: 'string', description: 'The authenticated seller ID' },
+                note: { type: 'string', description: 'Usage instructions' },
+              },
+            },
+          },
+        },
+        404: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+      },
+    },
+  }, amazonController.getAuthenticatedSellerId.bind(amazonController));
+
+  // GET /v1/amazon/auth/seller-info - Get seller ID and marketplace information
+  fastify.get('/auth/seller-info', {
+    schema: {
+      description: 'Get Amazon seller ID and marketplace participations. You can also provide sellerId manually as query parameter if found from Amazon URL.',
+      tags: ['Amazon SP-API'],
+      querystring: {
+        type: 'object',
+        properties: {
+          sellerId: {
+            type: 'string',
+            description: 'Optional: Manually provide seller ID if found from Amazon URL (e.g., from https://www.amazon.in/sp?seller=APCBEZW09ZM60)'
+          },
+        },
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {
+              type: 'object',
+              properties: {
+                sellerId: { type: 'string', description: 'Amazon Seller ID' },
+                sellerInfo: { type: 'object', description: 'Seller information' },
+                marketplaces: { type: 'array', description: 'List of marketplaces the seller participates in' },
+              },
+            },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+      },
+    },
+  }, amazonController.getSellerInfo.bind(amazonController));
 
   // ============================================
   // OAuth Flow Routes (Step 5)

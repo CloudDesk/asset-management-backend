@@ -83,19 +83,20 @@ const envSchema = z.object({
   RATE_LIMIT_VERIFY_WINDOW: z.string().optional().default('3600'),
   BLOCK_DURATION: z.string().optional().default('3600'),
   
-  // Amazon SP-API Configuration (Global keys - change values for sandbox/production)
-  AMAZON_CLIENT_ID: z.string().optional(),
-  AMAZON_CLIENT_SECRET: z.string().optional(),
-  AMAZON_REFRESH_TOKEN: z.string().optional(),
-  AMAZON_ENVIRONMENT: z.enum(['SANDBOX', 'PRODUCTION']).optional().default('SANDBOX'),
-  AMAZON_MARKETPLACE_ID: z.string().optional().default('A21TJRUUN4KGV'), // Fixed for India
-  AMAZON_SP_API_BASE_URL: z.string().optional(),
-  AMAZON_AWS_IAM_ROLE_ARN: z.string().optional(),
-  AMAZON_REGION: z.string().optional().default('eu-west-1'),
-  AMAZON_SELLER_CENTRAL_URL: z.string().optional().default('https://sellercentral.amazon.in'),
-  AMAZON_REDIRECT_URI: z.string().optional(),
-  AWS_ACCESS_KEY_ID: z.string().optional(),
-  AWS_SECRET_ACCESS_KEY: z.string().optional(),
+  // Amazon SP-API Configuration
+  // Required for basic SP-API operations (manual token setup)
+  AMAZON_CLIENT_ID: z.string().optional().describe('Amazon LWA Client ID (amzn1.application-oa2-client.xxxxx)'),
+  AMAZON_CLIENT_SECRET: z.string().optional().describe('Amazon LWA Client Secret'),
+  AMAZON_REFRESH_TOKEN: z.string().optional().describe('Amazon Refresh Token (manually obtained until OAuth is configured)'),
+  
+  // SP-API Environment Configuration
+  AMAZON_ENVIRONMENT: z.enum(['SANDBOX', 'PRODUCTION']).optional().default('SANDBOX').describe('Amazon SP-API environment: SANDBOX or PRODUCTION'),
+  AMAZON_MARKETPLACE_ID: z.string().optional().default('A21TJRUUN4KGV').describe('Amazon Marketplace ID (default: A21TJRUUN4KGV for India)'),
+  AMAZON_SP_API_BASE_URL: z.string().optional().describe('Amazon SP-API base URL (auto-determined by environment if not provided)'),
+  AMAZON_SELLER_CENTRAL_URL: z.string().optional().default('https://sellercentral.amazon.in').describe('Amazon Seller Central URL (default: India)'),
+  
+  // OAuth Configuration (for future OAuth flow)
+  AMAZON_REDIRECT_URI: z.string().optional().describe('OAuth redirect URI (must match registered URI in Seller Portal)'),
 
 });
 

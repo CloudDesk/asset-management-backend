@@ -48,6 +48,73 @@ export class AmazonController {
     return reply.code(200).send(response);
   });
 
+  /**
+   * Search catalog items (Catalog Items API - search Amazon catalog)
+   */
+  searchCatalogItems = asyncHandler(async (
+    request: FastifyRequest<{ 
+      Querystring: { 
+        keywords: string;
+        marketplaceIds?: string;
+        pageSize?: number;
+        pageToken?: string;
+      };
+    }>, 
+    reply: FastifyReply
+  ) => {
+    const { keywords, marketplaceIds, pageSize, pageToken } = request.query;
+
+    if (!keywords) {
+      return reply.code(400).send({
+        success: false,
+        message: 'Missing required parameter',
+        details: 'keywords is required',
+        statusCode: 400,
+      });
+    }
+
+    const marketplaceArray = marketplaceIds ? marketplaceIds.split(',') : undefined;
+
+    logger.info({ keywords, marketplaceIds: marketplaceArray, pageSize, pageToken }, 'Searching Amazon catalog items');
+
+    const items = await this.amazonService.searchCatalogItems(
+      keywords,
+      marketplaceArray,
+      pageSize || 20,
+      pageToken
+    );
+
+    const response = createSuccessResponse('Catalog items retrieved successfully', items);
+    return reply.code(200).send(response);
+  });
+
+  /**
+   * Get catalog item by ASIN (Catalog Items API)
+   */
+  getCatalogItem = asyncHandler(async (
+    request: FastifyRequest<{ 
+      Params: { asin: string };
+      Querystring: { 
+        marketplaceIds?: string;
+        includedData?: string;
+      };
+    }>, 
+    reply: FastifyReply
+  ) => {
+    const { asin } = request.params;
+    const { marketplaceIds, includedData } = request.query;
+
+    const marketplaceArray = marketplaceIds ? marketplaceIds.split(',') : undefined;
+    const includedDataArray = includedData ? includedData.split(',') : undefined;
+
+    logger.info({ asin, marketplaceIds: marketplaceArray, includedData: includedDataArray }, 'Getting Amazon catalog item by ASIN');
+
+    const item = await this.amazonService.getCatalogItem(asin, marketplaceArray, includedDataArray);
+
+    const response = createSuccessResponse('Catalog item retrieved successfully', item);
+    return reply.code(200).send(response);
+  });
+
   updateInventory = asyncHandler(async (
     request: FastifyRequest<{ 
       Params: { sellerId: string; sku: string };
@@ -143,6 +210,200 @@ export class AmazonController {
   });
 
   // ============================================
+  // Token Management Methods
+  // ============================================
+
+  /**
+   * Get or refresh access token
+   * Returns the current access token (refreshes if needed)
+   */
+  getAccessToken = asyncHandler(async (
+    request: FastifyRequest,
+    reply: FastifyReply
+  ) => {
+    logger.info('Getting Amazon access token');
+
+    try {
+      const accessToken = await this.amazonService.getAccessToken();
+      
+      return reply.code(200).send({
+        success: true,
+        message: 'Access token retrieved successfully',
+        data: {
+          accessToken,
+          expiresIn: 3600, // Access tokens are valid for 1 hour
+          note: 'Token is automatically refreshed 1 minute before expiry'
+        },
+      });
+    } catch (error: any) {
+      logger.error({ error: error.message }, 'Error getting access token');
+      
+      return reply.code(500).send({
+        success: false,
+        message: 'Failed to get access token',
+        details: error.message || 'An error occurred while retrieving access token',
+        statusCode: 500,
+      });
+    }
+  });
+
+  /**
+   * Get authenticated seller ID (the seller associated with the refresh token)
+   * This is the sellerId that must be used in Listings Items API calls
+   */
+  getAuthenticatedSellerId = asyncHandler(async (
+    request: FastifyRequest,
+    reply: FastifyReply
+  ) => {
+    logger.info('Getting authenticated seller ID');
+
+    try {
+      const sellerId = await this.amazonService.getAuthenticatedSellerId();
+      
+      if (!sellerId) {
+        return reply.code(404).send({
+          success: false,
+          message: 'Could not determine authenticated seller ID',
+          details: 'The sellerId could not be retrieved from Fees API or marketplaceParticipations. Make sure your refresh token is valid and has the necessary permissions.',
+          statusCode: 404,
+        });
+      }
+      
+      return reply.code(200).send({
+        success: true,
+        message: 'Authenticated seller ID retrieved successfully',
+        data: {
+          sellerId,
+          note: 'This is the sellerId associated with your refresh token. Use this sellerId in Listings Items API calls (e.g., GET /v1/amazon/products/{sellerId}).',
+        },
+      });
+    } catch (error: any) {
+      logger.error({ error: error.message }, 'Error getting authenticated seller ID');
+      
+      return reply.code(500).send({
+        success: false,
+        message: 'Failed to get authenticated seller ID',
+        details: error.message || 'An error occurred while retrieving the authenticated seller ID',
+        statusCode: 500,
+      });
+    }
+  });
+
+  /**
+   * Get seller ID and marketplace information
+   * Returns seller ID and marketplace participations
+   */
+  getSellerInfo = asyncHandler(async (
+    request: FastifyRequest<{
+      Querystring: {
+        sellerId?: string; // Optional: manually provide sellerId if found from Amazon URL
+      };
+    }>,
+    reply: FastifyReply
+  ) => {
+    logger.info('Getting Amazon seller information');
+
+    try {
+      const { sellerId: manualSellerId } = request.query;
+      
+      // If sellerId is provided manually (e.g., from Amazon URL), use it
+      if (manualSellerId) {
+        logger.info({ manualSellerId }, 'Using manually provided seller ID');
+        const sellerInfo = await this.amazonService.getSellerInfo();
+        const marketplaces = sellerInfo?.payload || [];
+        
+        return reply.code(200).send({
+          success: true,
+          message: 'Seller information retrieved successfully',
+          data: {
+            sellerId: manualSellerId,
+            marketplaces: marketplaces.map((mp: any) => ({
+              sellerId: manualSellerId,
+              marketplaceId: mp.marketplace?.id || mp.marketplace?.marketplaceId,
+              marketplaceName: mp.marketplace?.name,
+              countryCode: mp.marketplace?.countryCode,
+              defaultCurrencyCode: mp.marketplace?.defaultCurrencyCode,
+              defaultLanguageCode: mp.marketplace?.defaultLanguageCode,
+              domainName: mp.marketplace?.domainName,
+              storeName: mp.storeName,
+              participation: {
+                isParticipating: mp.participation?.isParticipating,
+                hasSuspendedListings: mp.participation?.hasSuspendedListings,
+              },
+            })),
+            note: 'Seller ID provided manually. You can now use this sellerId to get products.',
+          },
+        });
+      }
+      
+      const sellerInfo = await this.amazonService.getSellerInfo();
+      
+      // Log full response for debugging
+      logger.debug({ sellerInfo }, 'Full seller info response from Amazon');
+      
+      // Extract seller ID from response
+      // Response structure: { payload: [{ sellerId: "...", marketplace: {...}, participation: {...} }] }
+      const firstParticipation = sellerInfo?.payload?.[0];
+      // Try multiple possible locations for sellerId
+      let sellerId = firstParticipation?.sellerId || 
+                     firstParticipation?.seller?.sellerId || 
+                     sellerInfo?.sellerId ||
+                     sellerInfo?.payload?.[0]?.sellerId;
+      
+      // If sellerId is not in marketplaceParticipations response, try Fees API as fallback
+      if (!sellerId) {
+        logger.info('Seller ID not found in marketplaceParticipations, trying Fees API...');
+        const marketplaceId = firstParticipation?.marketplace?.id || 'ATVPDKIKX0DER';
+        sellerId = await this.amazonService.getSellerIdFromFeesApi(undefined, marketplaceId);
+        
+        if (sellerId) {
+          logger.info({ sellerId }, 'Successfully retrieved seller ID from Fees API');
+        } else {
+          logger.warn({ 
+            payload: sellerInfo?.payload,
+            fullResponse: sellerInfo 
+          }, 'Seller ID not found in both marketplaceParticipations and Fees API. You may need to find it manually in Seller Central.');
+        }
+      }
+      
+      const marketplaces = sellerInfo?.payload || [];
+      
+      return reply.code(200).send({
+        success: true,
+        message: 'Seller information retrieved successfully',
+        data: {
+          sellerId: sellerId || null,
+          marketplaces: marketplaces.map((mp: any) => ({
+            sellerId: mp.sellerId || sellerId, // Include sellerId from item or fallback
+            marketplaceId: mp.marketplace?.id || mp.marketplace?.marketplaceId,
+            marketplaceName: mp.marketplace?.name,
+            countryCode: mp.marketplace?.countryCode,
+            defaultCurrencyCode: mp.marketplace?.defaultCurrencyCode,
+            defaultLanguageCode: mp.marketplace?.defaultLanguageCode,
+            domainName: mp.marketplace?.domainName,
+            storeName: mp.storeName, // Include storeName if available
+            participation: {
+              isParticipating: mp.participation?.isParticipating,
+              hasSuspendedListings: mp.participation?.hasSuspendedListings,
+            },
+          })),
+          fullResponse: sellerInfo, // Include full response for debugging
+          note: sellerId ? undefined : 'Seller ID not found. You can provide it manually: GET /v1/amazon/auth/seller-info?sellerId=YOUR_SELLER_ID, or find it in Seller Central: Settings → Account Info, or from Amazon URL: https://www.amazon.in/sp?seller=YOUR_SELLER_ID',
+        },
+      });
+    } catch (error: any) {
+      logger.error({ error: error.message }, 'Error getting seller info');
+      
+      return reply.code(500).send({
+        success: false,
+        message: 'Failed to get seller information',
+        details: error.message || 'An error occurred while retrieving seller information',
+        statusCode: 500,
+      });
+    }
+  });
+
+  // ============================================
   // OAuth Flow Methods (Step 5)
   // ============================================
 
@@ -151,7 +412,7 @@ export class AmazonController {
    * Generates OAuth URL for user to authorize Amazon access
    */
   initiateOAuth = asyncHandler(async (
-    request: AuthenticatedRequest<{
+    request: AuthenticatedRequest & FastifyRequest<{
       Body: {
         redirectUri: string;
         state?: string;
@@ -209,7 +470,7 @@ export class AmazonController {
    * Exchanges authorization code for refresh token and stores it
    */
   handleOAuthCallback = asyncHandler(async (
-    request: AuthenticatedRequest<{
+    request: AuthenticatedRequest & FastifyRequest<{
       Body: {
         code: string;
         sellingPartnerId?: string;
