@@ -58,6 +58,18 @@ declare const envSchema: z.ZodObject<{
     RATE_LIMIT_VERIFY_MAX: z.ZodDefault<z.ZodOptional<z.ZodString>>;
     RATE_LIMIT_VERIFY_WINDOW: z.ZodDefault<z.ZodOptional<z.ZodString>>;
     BLOCK_DURATION: z.ZodDefault<z.ZodOptional<z.ZodString>>;
+    AMAZON_CLIENT_ID: z.ZodOptional<z.ZodString>;
+    AMAZON_CLIENT_SECRET: z.ZodOptional<z.ZodString>;
+    AMAZON_REFRESH_TOKEN: z.ZodOptional<z.ZodString>;
+    AMAZON_ENVIRONMENT: z.ZodDefault<z.ZodOptional<z.ZodEnum<["SANDBOX", "PRODUCTION"]>>>;
+    AMAZON_MARKETPLACE_ID: z.ZodDefault<z.ZodOptional<z.ZodString>>;
+    AMAZON_SP_API_BASE_URL: z.ZodOptional<z.ZodString>;
+    AMAZON_AWS_IAM_ROLE_ARN: z.ZodOptional<z.ZodString>;
+    AMAZON_REGION: z.ZodDefault<z.ZodOptional<z.ZodString>>;
+    AMAZON_SELLER_CENTRAL_URL: z.ZodDefault<z.ZodOptional<z.ZodString>>;
+    AMAZON_REDIRECT_URI: z.ZodOptional<z.ZodString>;
+    AWS_ACCESS_KEY_ID: z.ZodOptional<z.ZodString>;
+    AWS_SECRET_ACCESS_KEY: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     DATABASE_URL: string;
     PORT: number;
@@ -89,6 +101,10 @@ declare const envSchema: z.ZodObject<{
     RATE_LIMIT_VERIFY_MAX: string;
     RATE_LIMIT_VERIFY_WINDOW: string;
     BLOCK_DURATION: string;
+    AMAZON_ENVIRONMENT: "SANDBOX" | "PRODUCTION";
+    AMAZON_MARKETPLACE_ID: string;
+    AMAZON_REGION: string;
+    AMAZON_SELLER_CENTRAL_URL: string;
     TWILIO_MESSAGING_SERVICE_SID?: string | undefined;
     EXOTEL_DLT_TEMPLATE_ID?: string | undefined;
     EXOTEL_ENTITY_ID?: string | undefined;
@@ -116,6 +132,14 @@ declare const envSchema: z.ZodObject<{
     REDIRECT_URL_SUCCESS?: string | undefined;
     REDIRECT_URL_FAILURE?: string | undefined;
     REDIRECT_INVENTORY_URL?: string | undefined;
+    AMAZON_CLIENT_ID?: string | undefined;
+    AMAZON_CLIENT_SECRET?: string | undefined;
+    AMAZON_REFRESH_TOKEN?: string | undefined;
+    AMAZON_SP_API_BASE_URL?: string | undefined;
+    AMAZON_AWS_IAM_ROLE_ARN?: string | undefined;
+    AMAZON_REDIRECT_URI?: string | undefined;
+    AWS_ACCESS_KEY_ID?: string | undefined;
+    AWS_SECRET_ACCESS_KEY?: string | undefined;
 }, {
     DATABASE_URL: string;
     FIREBASE_PROJECT_ID: string;
@@ -174,6 +198,18 @@ declare const envSchema: z.ZodObject<{
     RATE_LIMIT_VERIFY_MAX?: string | undefined;
     RATE_LIMIT_VERIFY_WINDOW?: string | undefined;
     BLOCK_DURATION?: string | undefined;
+    AMAZON_CLIENT_ID?: string | undefined;
+    AMAZON_CLIENT_SECRET?: string | undefined;
+    AMAZON_REFRESH_TOKEN?: string | undefined;
+    AMAZON_ENVIRONMENT?: "SANDBOX" | "PRODUCTION" | undefined;
+    AMAZON_MARKETPLACE_ID?: string | undefined;
+    AMAZON_SP_API_BASE_URL?: string | undefined;
+    AMAZON_AWS_IAM_ROLE_ARN?: string | undefined;
+    AMAZON_REGION?: string | undefined;
+    AMAZON_SELLER_CENTRAL_URL?: string | undefined;
+    AMAZON_REDIRECT_URI?: string | undefined;
+    AWS_ACCESS_KEY_ID?: string | undefined;
+    AWS_SECRET_ACCESS_KEY?: string | undefined;
 }>;
 export declare const env: {
     DATABASE_URL: string;
@@ -206,6 +242,10 @@ export declare const env: {
     RATE_LIMIT_VERIFY_MAX: string;
     RATE_LIMIT_VERIFY_WINDOW: string;
     BLOCK_DURATION: string;
+    AMAZON_ENVIRONMENT: "SANDBOX" | "PRODUCTION";
+    AMAZON_MARKETPLACE_ID: string;
+    AMAZON_REGION: string;
+    AMAZON_SELLER_CENTRAL_URL: string;
     TWILIO_MESSAGING_SERVICE_SID?: string | undefined;
     EXOTEL_DLT_TEMPLATE_ID?: string | undefined;
     EXOTEL_ENTITY_ID?: string | undefined;
@@ -233,6 +273,14 @@ export declare const env: {
     REDIRECT_URL_SUCCESS?: string | undefined;
     REDIRECT_URL_FAILURE?: string | undefined;
     REDIRECT_INVENTORY_URL?: string | undefined;
+    AMAZON_CLIENT_ID?: string | undefined;
+    AMAZON_CLIENT_SECRET?: string | undefined;
+    AMAZON_REFRESH_TOKEN?: string | undefined;
+    AMAZON_SP_API_BASE_URL?: string | undefined;
+    AMAZON_AWS_IAM_ROLE_ARN?: string | undefined;
+    AMAZON_REDIRECT_URI?: string | undefined;
+    AWS_ACCESS_KEY_ID?: string | undefined;
+    AWS_SECRET_ACCESS_KEY?: string | undefined;
 };
 export type Env = z.infer<typeof envSchema>;
 export {};

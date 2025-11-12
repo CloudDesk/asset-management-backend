@@ -412,13 +412,13 @@ export declare const transactionHistoryResponseSchema: z.ZodObject<{
         page: z.ZodNumber;
         limit: z.ZodNumber;
     }, "strip", z.ZodTypeAny, {
+        userId: number;
         page: number;
         limit: number;
-        userId: number;
     }, {
+        userId: number;
         page: number;
         limit: number;
-        userId: number;
     }>>;
     errors: z.ZodNull;
 }, "strip", z.ZodTypeAny, {
@@ -426,9 +426,9 @@ export declare const transactionHistoryResponseSchema: z.ZodObject<{
     success: boolean;
     errors: null;
     meta?: {
+        userId: number;
         page: number;
         limit: number;
-        userId: number;
     } | undefined;
     data?: {
         data: any[];
@@ -446,9 +446,9 @@ export declare const transactionHistoryResponseSchema: z.ZodObject<{
     success: boolean;
     errors: null;
     meta?: {
+        userId: number;
         page: number;
         limit: number;
-        userId: number;
     } | undefined;
     data?: {
         data: any[];
