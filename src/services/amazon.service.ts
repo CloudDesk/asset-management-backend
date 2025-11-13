@@ -1,913 +1,976 @@
-import axios, { AxiosRequestConfig } from 'axios';
+import { SellingPartnerApiAuth } from '@sp-api-sdk/auth';
+import { ListingsItemsApiClient } from '@sp-api-sdk/listings-items-api-2021-08-01';
+import { CatalogItemsApiClient } from '@sp-api-sdk/catalog-items-api-2020-12-01';
+import { SellersApiClient } from '@sp-api-sdk/sellers-api-v1';
+import { OrdersApiClient } from '@sp-api-sdk/orders-api-v0';
+import { FbaInventoryApiClient } from '@sp-api-sdk/fba-inventory-api-v1';
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
-import crypto from 'crypto';
 
-interface AmazonAccessTokenResponse {
-  access_token: string;
-  token_type: string;
-  expires_in: number;
-}
-
-interface AmazonTokenExchangeResponse {
-  access_token: string;
-  refresh_token: string;
-  token_type: string;
-  expires_in: number;
-}
-
+/**
+ * AmazonService using Official Amazon SP-API SDK
+ * Phase 1: Authentication & Access Token Management ✅
+ * Phase 2: Product Operations (Read) ✅
+ * Phase 3: Order Operations (Read) ✅
+ * 
+ * The SDK handles all token refresh and management automatically.
+ * Access tokens are cached internally by the SDK - no manual storage needed.
+ */
 export class AmazonService {
-  private cachedToken: string | null = null;
-  private tokenExpiry: number | null = null;
-  private readonly AMAZON_LWA_TOKEN_URL = 'https://api.amazon.com/auth/o2/token';
+  private auth: SellingPartnerApiAuth | null = null;
+  private listingsClient: ListingsItemsApiClient | null = null;
+  private catalogClient: CatalogItemsApiClient | null = null;
+  private sellersClient: SellersApiClient | null = null;
+  private ordersClient: OrdersApiClient | null = null;
+  private fbaInventoryClient: FbaInventoryApiClient | null = null;
   
-  // User-specific access token cache (userId -> { token, expiresAt })
-  private userAccessTokenCache = new Map<string, { token: string; expiresAt: number }>();
-  
-  // State storage for OAuth CSRF protection (state -> userId, expires in 10 minutes)
-  private stateStore = new Map<string, { userId: number; expiresAt: number }>();
+  // Default marketplace ID for India
+  private readonly DEFAULT_MARKETPLACE_ID = env.AMAZON_MARKETPLACE_ID || 'A21TJRUUN4KGV';
+  private readonly REGION = 'eu' as const; // India uses EU region endpoint
 
   /**
-   * Get or refresh Amazon SP-API access token
+   * Initialize the SDK authentication instance
+   * This is called lazily on first use
+   */
+  private getAuth(): SellingPartnerApiAuth {
+    if (!this.auth) {
+      if (!env.AMAZON_CLIENT_ID || !env.AMAZON_CLIENT_SECRET || !env.AMAZON_REFRESH_TOKEN) {
+        throw new Error(
+          'Amazon credentials not configured. Please set AMAZON_CLIENT_ID, AMAZON_CLIENT_SECRET, and AMAZON_REFRESH_TOKEN'
+        );
+      }
+
+      this.auth = new SellingPartnerApiAuth({
+        clientId: env.AMAZON_CLIENT_ID,
+        clientSecret: env.AMAZON_CLIENT_SECRET,
+        refreshToken: env.AMAZON_REFRESH_TOKEN,
+      });
+
+      logger.info('Amazon SP-API SDK authentication initialized');
+    }
+
+    return this.auth;
+  }
+
+  /**
+   * Get or refresh Amazon SP-API access token using SDK
+   * The SDK automatically handles token refresh and caching
+   * 
+   * @returns Access token string
    */
   async getAccessToken(): Promise<string> {
-    const now = Date.now();
-    
-    // Refresh 1 minute before expiry (tokens valid for 1 hour)
-    if (!this.cachedToken || !this.tokenExpiry || now >= this.tokenExpiry - 60000) {
-      logger.debug('Refreshing Amazon access token');
-      this.cachedToken = await this.refreshAccessToken();
-      this.tokenExpiry = now + 3600000; // 1 hour
-    }
-    
-    return this.cachedToken;
-  }
-
-  /**
-   * Refresh access token using refresh token (legacy - uses env variable)
-   * @deprecated Use refreshAccessTokenForUser() for user-specific tokens
-   */
-  private async refreshAccessToken(): Promise<string> {
     try {
-      if (!env.AMAZON_CLIENT_ID || !env.AMAZON_CLIENT_SECRET || !env.AMAZON_REFRESH_TOKEN) {
-        throw new Error('Amazon credentials not configured. Please set AMAZON_CLIENT_ID, AMAZON_CLIENT_SECRET, and AMAZON_REFRESH_TOKEN');
-      }
-
-      return await this.refreshAccessTokenForUser(env.AMAZON_REFRESH_TOKEN);
-    } catch (error: any) {
-      logger.error({ error: error.response?.data || error.message }, 'Error refreshing Amazon access token');
-      throw new Error(`Failed to refresh Amazon access token: ${error.response?.data?.error_description || error.message}`);
-    }
-  }
-
-  /**
-   * Refresh access token using refresh token (user-specific)
-   * @param refreshToken - Refresh token from database
-   * @returns Access token
-   */
-  async refreshAccessTokenForUser(refreshToken: string): Promise<string> {
-    try {
-      if (!env.AMAZON_CLIENT_ID || !env.AMAZON_CLIENT_SECRET) {
-        throw new Error('Amazon credentials not configured. Please set AMAZON_CLIENT_ID and AMAZON_CLIENT_SECRET');
-      }
-
-      if (!refreshToken) {
-        throw new Error('Refresh token is required');
-      }
-
-      // Amazon LWA token endpoint (same for sandbox and production)
-      const tokenUrl = 'https://api.amazon.com/auth/o2/token';
-
-      const response = await axios.post<AmazonAccessTokenResponse>(
-        tokenUrl,
-        {
-          grant_type: 'refresh_token', // For authorized operations
-          refresh_token: refreshToken,
-          client_id: env.AMAZON_CLIENT_ID,
-          client_secret: env.AMAZON_CLIENT_SECRET,
-        },
-        {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-        }
-      );
-console.log(response.data,"RESPONSE_DATA")
-      logger.info('Amazon access token refreshed successfully');
-      return response.data.access_token;
-    } catch (error: any) {
-      logger.error({ error: error.response?.data || error.message }, 'Error refreshing Amazon access token');
+      const auth = this.getAuth();
       
-      // Check if refresh token is expired/revoked
-      // Amazon returns 'invalid_grant' (HTTP 400) when refresh token is expired or revoked
-      if (error.response?.status === 400 && error.response?.data?.error === 'invalid_grant') {
-        throw new Error('REFRESH_TOKEN_EXPIRED'); // Special error for expired/revoked refresh token
+      // SDK automatically handles token refresh and caching
+      // The getAccessToken method automatically refreshes when needed
+      const accessToken = await auth.getAccessToken();
+      
+      logger.debug('Amazon access token retrieved successfully (via SDK)');
+      return accessToken;
+    } catch (error: any) {
+      logger.error({ error: error.message || error }, 'Error getting access token from SDK');
+      
+      // Check for specific error types
+      if (error.message?.includes('invalid_grant') || error.message?.includes('REFRESH_TOKEN_EXPIRED')) {
+        throw new Error('REFRESH_TOKEN_EXPIRED');
       }
       
-      throw new Error(`Failed to refresh Amazon access token: ${error.response?.data?.error_description || error.message}`);
+      throw new Error(`Failed to get access token: ${error.message || 'Unknown error'}`);
     }
   }
 
   /**
-   * Sign request (deprecated - AWS SigV4 signing removed from SP-API as of Oct 2, 2023)
-   * This method is kept for backward compatibility but no longer performs signing
-   * SP-API now only requires x-amz-access-token header
+   * Get the SDK auth instance (for use with other SDK clients)
+   * This allows other services to use the same auth instance
+   * 
+   * @returns SellingPartnerApiAuth instance
    */
-  private async signRequest(request: AxiosRequestConfig): Promise<AxiosRequestConfig> {
-    // AWS SigV4 signing was removed from SP-API as of October 2, 2023
-    // SP-API now only requires the x-amz-access-token header (added in makeApiCall)
-    // This method is kept for backward compatibility but returns request as-is
-    return request;
+  getAuthInstance(): SellingPartnerApiAuth {
+    return this.getAuth();
   }
 
   /**
-   * Make authenticated API call to Amazon SP-API
+   * Get Listings Items API client (lazy initialization)
+   * Uses the same auth instance - SDK handles token caching automatically
    */
-  private async makeApiCall<T>(config: AxiosRequestConfig): Promise<T> {
+  private getListingsClient(): ListingsItemsApiClient {
+    if (!this.listingsClient) {
+      this.listingsClient = new ListingsItemsApiClient({
+        auth: this.getAuth(),
+        region: this.REGION,
+      });
+      logger.debug('Listings Items API client initialized');
+    }
+    return this.listingsClient;
+  }
+
+  /**
+   * Get Catalog Items API client (lazy initialization)
+   * Uses the same auth instance - SDK handles token caching automatically
+   */
+  private getCatalogClient(): CatalogItemsApiClient {
+    if (!this.catalogClient) {
+      this.catalogClient = new CatalogItemsApiClient({
+        auth: this.getAuth(),
+        region: this.REGION,
+      });
+      logger.debug('Catalog Items API client initialized');
+    }
+    return this.catalogClient;
+  }
+
+  /**
+   * Get Sellers API client (lazy initialization)
+   * Uses the same auth instance - SDK handles token caching automatically
+   */
+  private getSellersClient(): SellersApiClient {
+    if (!this.sellersClient) {
+      this.sellersClient = new SellersApiClient({
+        auth: this.getAuth(),
+        region: this.REGION,
+      });
+      logger.debug('Sellers API client initialized');
+    }
+    return this.sellersClient;
+  }
+
+  /**
+   * Get Orders API client (lazy initialization)
+   * Uses the same auth instance - SDK handles token caching automatically
+   */
+  private getOrdersClient(): OrdersApiClient {
+    if (!this.ordersClient) {
+      this.ordersClient = new OrdersApiClient({
+        auth: this.getAuth(),
+        region: this.REGION,
+      });
+      logger.debug('Orders API client initialized');
+    }
+    return this.ordersClient;
+  }
+
+  /**
+   * Get FBA Inventory API client (lazy initialization)
+   * Uses the same auth instance - SDK handles token caching automatically
+   */
+  private getFbaInventoryClient(): FbaInventoryApiClient {
+    if (!this.fbaInventoryClient) {
+      this.fbaInventoryClient = new FbaInventoryApiClient({
+        auth: this.getAuth(),
+        region: this.REGION,
+      });
+      logger.debug('FBA Inventory API client initialized');
+    }
+    return this.fbaInventoryClient;
+  }
+
+  /**
+   * Get seller account details
+   * Note: getAccount is only available in EU marketplace (which includes India)
+   * @returns Account details including sellerId, companyName, etc.
+   */
+  async getAccountDetails(): Promise<any> {
     try {
-      const accessToken = await this.getAccessToken();
-      const baseURL = env.AMAZON_SP_API_BASE_URL || 
-        (env.AMAZON_ENVIRONMENT === 'PRODUCTION' 
-          ? 'https://sellingpartnerapi-eu.amazon.com'
-          : 'https://sandbox.sellingpartnerapi-eu.amazon.com');
-
-      const requestConfig: AxiosRequestConfig = {
-        ...config,
-        url: `${baseURL}${config.url}`,
-        headers: {
-          ...config.headers,
-          'x-amz-access-token': accessToken,
-        },
-      };
-
-      // Sign with SigV4 if AWS credentials are available
-      const signedConfig = await this.signRequest(requestConfig);
-
-      const response = await axios(signedConfig);
+      const client = this.getSellersClient();
+      
+      logger.info('Getting seller account details');
+      
+      // Try getAccount (available in EU marketplace, which includes India)
+      const response = await client.getAccount();
+      
+      logger.debug({ 
+        responseData: response.data,
+        responseStatus: response.status 
+      }, 'Account details response');
+      
       return response.data;
     } catch (error: any) {
-      logger.error(
-        { 
-          error: error.response?.data || error.message,
-          url: config.url,
-          method: config.method 
-        },
-        'Error making Amazon API call'
-      );
-      throw new Error(
-        `Amazon API call failed: ${error.response?.data?.errors?.[0]?.message || error.message}`
-      );
+      logger.error({ error: error.message || error }, 'Error getting account details');
+      throw new Error(`Failed to get account details: ${error.message || 'Unknown error'}`);
     }
   }
 
   /**
-   * Get the authenticated seller ID (the seller associated with the refresh token)
-   * This is the sellerId that must be used in Listings Items API calls
+   * Get authenticated seller ID from marketplace participations or Fees API
+   * This is the sellerId associated with your refresh token
    */
   async getAuthenticatedSellerId(): Promise<string | null> {
     try {
-      // Try Fees API first (most reliable)
-      const sellerId = await this.getSellerIdFromFeesApi();
-      if (sellerId) {
-        return sellerId;
+      // Method 1: Try marketplace participations first
+      try {
+        const client = this.getSellersClient();
+        
+        logger.info('Getting authenticated seller ID from marketplace participations');
+        
+        const response = await client.getMarketplaceParticipations();
+        
+        logger.debug({ 
+          responseData: response.data,
+          responseStatus: response.status 
+        }, 'Marketplace participations response');
+        
+        // Extract sellerId from response
+        // Response structure: { payload: [{ marketplace: {...}, participation: {...} }] }
+        const payload = response.data?.payload;
+        if (payload && Array.isArray(payload) && payload.length > 0) {
+          // Try to find sellerId in the response structure
+          const firstItem = payload[0] as any;
+          const sellerId = firstItem?.sellerId || 
+                           firstItem?.seller?.sellerId ||
+                           (response.data as any)?.sellerId ||
+                           null;
+          
+          if (sellerId) {
+            logger.info({ sellerId }, 'Authenticated seller ID retrieved from marketplace participations');
+            return sellerId;
+          }
+          
+          // Log full structure for debugging
+          logger.debug({ 
+            payloadStructure: payload[0],
+            fullResponse: response.data 
+          }, 'Marketplace participations structure - sellerId not found in expected location');
+        }
+      } catch (mpError: any) {
+        logger.warn({ error: mpError.message }, 'Marketplace participations failed, trying Fees API');
+      }
+
+      // Method 2: Try listings search (may not work - requires sellerId)
+      const sellerIdFromListings = await this.tryGetSellerIdFromListingsSearch();
+      if (sellerIdFromListings) {
+        logger.info({ sellerId: sellerIdFromListings }, 'Authenticated seller ID retrieved from listings search');
+        return sellerIdFromListings;
       }
       
-      // Fallback: Try marketplaceParticipations
-      const sellerInfo = await this.getSellerInfo();
-      const firstParticipation = sellerInfo?.payload?.[0];
-      return firstParticipation?.sellerId || 
-             firstParticipation?.seller?.sellerId || 
-             sellerInfo?.sellerId ||
-             null;
+      // Method 3: Check if sellerId is in environment variables (manual setup)
+      const sellerIdFromEnv = env.AMAZON_SELLER_ID;
+      if (sellerIdFromEnv) {
+        logger.info({ sellerId: sellerIdFromEnv }, 'Authenticated seller ID retrieved from environment variable AMAZON_SELLER_ID');
+        return sellerIdFromEnv;
+      }
+      
+      logger.warn({
+        note: 'MarketplaceParticipations API does not return sellerId. This is a known Amazon SP-API limitation.',
+        solution: 'SellerId must be obtained manually from: 1) Amazon product URL (seller= parameter), 2) Seller Central account info, or 3) Set AMAZON_SELLER_ID environment variable'
+      }, 'Seller ID not found - must be obtained manually');
+      return null;
     } catch (error: any) {
-      logger.warn({ error: error.message }, 'Could not get authenticated seller ID');
+      logger.error({ error: error.message || error }, 'Error getting authenticated seller ID');
       return null;
     }
   }
 
   /**
-   * Get product list (Listings Items API - seller's own listings)
-   * Note: This endpoint requires sellerId to match the authenticated seller
-   * 
-   * ⚠️ IMPORTANT: The sellerId in the path MUST match the seller associated with your refresh token.
-   * If you get "Could not match input arguments", the sellerId doesn't match.
-   * 
-   * Alternative: If this endpoint fails, consider using Reports API or Catalog Items API
+   * Try to get sellerId by attempting a Listings API search
+   * This is a workaround since marketplaceParticipations doesn't return sellerId
+   * Note: This may not work if you don't have any listings
    */
-  async getProducts(sellerId: string, marketplaceId?: string): Promise<any> {
-    const marketplace = marketplaceId || env.AMAZON_MARKETPLACE_ID || 'A21TJRUUN4KGV';
-    
-    // Verify sellerId matches authenticated seller
-    const authenticatedSellerId = await this.getAuthenticatedSellerId();
-    if (authenticatedSellerId && sellerId !== authenticatedSellerId) {
-      logger.warn(
-        { 
-          providedSellerId: sellerId,
-          authenticatedSellerId,
-          hint: 'The sellerId in the request does not match the authenticated seller. Use the authenticated sellerId instead.'
-        },
-        'SellerId mismatch detected'
-      );
-      // Continue anyway - let Amazon API return the error for clarity
-    }
-    
-    // Listings Items API endpoint format
-    // GET /listings/2021-08-01/items/{sellerId}?marketplaceIds={marketplaceId}
-    // Note: sellerId in path must match the authenticated seller
-    const params = new URLSearchParams();
-    params.append('marketplaceIds', marketplace);
-    
-    const url = `/listings/2021-08-01/items/${sellerId}?${params.toString()}`;
-    logger.debug({ url, sellerId, marketplace, authenticatedSellerId }, 'Calling Listings Items API');
-    
+  private async tryGetSellerIdFromListingsSearch(): Promise<string | null> {
     try {
-      return await this.makeApiCall({
-        method: 'GET',
-        url,
-      });
+      // Try to search listings with a very generic query
+      // If this works, we might be able to extract sellerId from the response
+      // But this requires sellerId as a parameter, so it's circular...
+      // This method is kept for potential future use
+      logger.debug('Attempting to get sellerId from listings search (may not work)');
+      return null;
     } catch (error: any) {
-      // If Listings Items API fails, log detailed error with authenticated sellerId
-      logger.error(
-        { 
-          error: error.message,
-          url,
+      logger.debug({ error: error.message }, 'Could not get sellerId from listings search');
+      return null;
+    }
+  }
+
+  // ============================================
+  // Phase 2: Product Operations (Read)
+  // ============================================
+
+  /**
+   * Get listing item by SKU (seller's own listing)
+   * @param sellerId - Amazon Seller ID
+   * @param sku - Product SKU
+   * @param marketplaceIds - Marketplace IDs (default: India)
+   * @param includedData - Data to include (default: ['summaries'])
+   */
+  async getListingItemBySku(
+    sellerId: string,
+    sku: string,
+    marketplaceIds?: string[],
+    includedData?: ('summaries' | 'attributes' | 'issues' | 'offers' | 'fulfillmentAvailability' | 'procurement')[]
+  ): Promise<any> {
+    try {
+      const client = this.getListingsClient();
+      const marketplaces = marketplaceIds || [this.DEFAULT_MARKETPLACE_ID];
+      const dataToInclude = includedData || ['summaries'];
+
+      logger.info({ sellerId, sku, marketplaces }, 'Getting listing item by SKU');
+
+      // Verify sellerId matches authenticated seller (warning only)
+      const authenticatedSellerId = await this.getAuthenticatedSellerId();
+      if (authenticatedSellerId && sellerId !== authenticatedSellerId) {
+        logger.warn({ 
           providedSellerId: sellerId,
           authenticatedSellerId,
-          marketplace,
-          hint: authenticatedSellerId 
-            ? `The sellerId must match the authenticated seller (${authenticatedSellerId}). Use the authenticated sellerId instead of ${sellerId}.`
-            : 'The sellerId must match the authenticated seller. If this fails, try using Catalog Items API or Reports API instead.'
-        },
-        'Listings Items API call failed'
-      );
-      throw error;
+          note: 'Provided sellerId does not match authenticated seller. This may cause empty responses.'
+        }, 'SellerId mismatch detected');
+      }
+
+      const response = await client.getListingsItem({
+        sellerId,
+        sku,
+        marketplaceIds: marketplaces,
+        includedData: dataToInclude,
+      });
+
+      // Log full response for debugging
+      logger.debug({ 
+        sellerId, 
+        sku, 
+        marketplaces,
+        responseStatus: response.status,
+        responseStatusText: response.statusText,
+        responseData: response.data,
+        responseDataKeys: response.data ? Object.keys(response.data) : [],
+        responseDataString: JSON.stringify(response.data, null, 2),
+        responseHeaders: response.headers
+      }, 'Listing item API response - full details');
+
+      // Check if response data is empty, null, or has no meaningful content
+      const responseData = response.data;
+      
+      // Log what we're about to check
+      logger.debug({ 
+        hasResponseData: !!responseData,
+        isObject: typeof responseData === 'object',
+        keysCount: responseData && typeof responseData === 'object' ? Object.keys(responseData).length : 0,
+        hasSku: responseData?.sku ? true : false,
+        hasSummaries: responseData?.summaries ? true : false,
+        hasAttributes: responseData?.attributes ? true : false,
+        responseDataType: typeof responseData
+      }, 'Checking response data validity');
+      
+      if (!responseData || 
+          (typeof responseData === 'object' && Object.keys(responseData).length === 0) ||
+          (responseData && typeof responseData === 'object' && !responseData.sku && !responseData.summaries && !responseData.attributes)) {
+        logger.warn({ 
+          sellerId, 
+          sku, 
+          marketplaces,
+          responseData,
+          note: 'Empty or invalid response - SKU may not exist for this seller, or sellerId may not match authenticated seller'
+        }, 'Listing item returned empty/invalid data');
+        
+        // Try to search for the SKU to see if it exists
+        try {
+          logger.info({ sellerId, sku }, 'Attempting to search for SKU to verify existence');
+          const searchResult = await this.searchListingsItems(sellerId, marketplaces, { sellerSkus: [sku] });
+          
+          if (searchResult && searchResult.items && searchResult.items.length > 0) {
+            logger.info({ sellerId, sku, foundItems: searchResult.items.length }, 'SKU found via search - returning search result');
+            return searchResult.items[0];
+          }
+        } catch (searchError: any) {
+          logger.debug({ searchError: searchError.message }, 'Search fallback failed');
+        }
+        
+        // Return helpful error message
+        return {
+          sku,
+          sellerId,
+          marketplaceIds: marketplaces,
+          message: 'No listing found for this SKU',
+          note: 'The SKU may not exist for this seller, or the sellerId may not match the authenticated seller account. Verify: 1) SKU exists in Seller Central, 2) sellerId matches your authenticated account, 3) SKU is active in the specified marketplace',
+          troubleshooting: {
+            step1: 'Verify the SKU exists in Seller Central inventory',
+            step2: 'Check that sellerId matches the authenticated seller (use GET /v1/amazon/auth/token to verify)',
+            step3: 'Ensure the SKU is active in marketplace A21TJRUUN4KGV (India)',
+            step4: 'Try using searchListingsItems endpoint to find all your listings first'
+          }
+        };
+      }
+
+      // Log what we're returning
+      logger.debug({ 
+        returningData: responseData,
+        dataKeys: Object.keys(responseData || {}),
+        dataString: JSON.stringify(responseData, null, 2).substring(0, 500)
+      }, 'Returning listing item data from service');
+
+      return responseData;
+    } catch (error: any) {
+      logger.error({ error: error.message || error, sellerId, sku }, 'Error getting listing item by SKU');
+      throw new Error(`Failed to get listing item: ${error.message || 'Unknown error'}`);
     }
   }
 
   /**
-   * Get product by SKU (Listings Items API - seller's own listing)
-   * Note: This endpoint requires sellerId to match the authenticated seller
+   * Search listings items (seller's own listings)
+   * @param sellerId - Amazon Seller ID
+   * @param marketplaceIds - Marketplace IDs (default: India)
+   * @param query - Search query parameters
+   * @param includeInventory - Whether to include fulfillmentAvailability data (for inventory info)
    */
-  async getProductBySku(sellerId: string, sku: string, marketplaceId?: string): Promise<any> {
-    const marketplace = marketplaceId || env.AMAZON_MARKETPLACE_ID || 'A21TJRUUN4KGV';
-    
-    // Listings Items API endpoint format
-    const params = new URLSearchParams();
-    params.append('marketplaceIds', marketplace);
-    
-    return this.makeApiCall({
-      method: 'GET',
-      url: `/listings/2021-08-01/items/${sellerId}/${sku}?${params.toString()}`,
-    });
+  async searchListingsItems(
+    sellerId: string,
+    marketplaceIds?: string[],
+    query?: {
+      keywords?: string[];
+      sellerSkus?: string[];
+      asins?: string[];
+      pageSize?: number;
+      pageToken?: string;
+    },
+    includeInventory: boolean = false
+  ): Promise<any> {
+    try {
+      const client = this.getListingsClient();
+      const marketplaces = marketplaceIds || [this.DEFAULT_MARKETPLACE_ID];
+
+      logger.info({ sellerId, marketplaces, query, includeInventory }, 'Searching listings items');
+
+      // If inventory is needed, include fulfillmentAvailability in the request
+      const requestParams: any = {
+        sellerId,
+        marketplaceIds: marketplaces,
+        ...query,
+      };
+
+      // Add includedData if inventory is requested
+      if (includeInventory) {
+        requestParams.includedData = ['summaries', 'fulfillmentAvailability'];
+      }
+
+      const response = await client.searchListingsItems(requestParams);
+
+      logger.debug('Listings items search completed successfully');
+      return response.data;
+    } catch (error: any) {
+      logger.error({ error: error.message || error, sellerId }, 'Error searching listings items');
+      throw new Error(`Failed to search listings items: ${error.message || 'Unknown error'}`);
+    }
   }
 
   /**
-   * Search catalog items (Catalog Items API - search Amazon catalog)
-   * @param keywords - Comma-delimited list of words or identifiers to search for
-   * @param marketplaceIds - List of marketplace identifiers
-   * @param pageSize - Number of results per page (max 20, default 20)
+   * Search catalog items (Amazon catalog search)
+   * @param keywords - Search keywords
+   * @param marketplaceIds - Marketplace IDs (default: India)
+   * @param pageSize - Number of results per page (max 20)
    * @param pageToken - Token for pagination
-   * @returns Catalog items matching search criteria
    */
   async searchCatalogItems(
-    keywords: string,
+    keywords: string[],
     marketplaceIds?: string[],
-    pageSize: number = 20,
+    pageSize?: number,
     pageToken?: string
   ): Promise<any> {
-    const marketplace = marketplaceIds || [env.AMAZON_MARKETPLACE_ID || 'A21TJRUUN4KGV'];
-    const params = new URLSearchParams({
-      keywords,
-      marketplaceIds: marketplace.join(','),
-      pageSize: Math.min(pageSize, 20).toString(), // Max 20
-    });
+    try {
+      const client = this.getCatalogClient();
+      const marketplaces = marketplaceIds || [this.DEFAULT_MARKETPLACE_ID];
+      const size = pageSize || 20;
 
-    if (pageToken) {
-      params.append('pageToken', pageToken);
+      logger.info({ keywords, marketplaces, pageSize: size }, 'Searching catalog items');
+
+      const requestParams: any = {
+        keywords,
+        marketplaceIds: marketplaces,
+        pageSize: size,
+      };
+      
+      if (pageToken) {
+        requestParams.pageToken = pageToken;
+      }
+
+      const response = await client.searchCatalogItems(requestParams);
+
+      logger.debug('Catalog items search completed successfully');
+      return response.data;
+    } catch (error: any) {
+      logger.error({ error: error.message || error, keywords }, 'Error searching catalog items');
+      throw new Error(`Failed to search catalog items: ${error.message || 'Unknown error'}`);
     }
-
-    return this.makeApiCall({
-      method: 'GET',
-      url: `/catalog/2020-12-01/items?${params.toString()}`,
-    });
   }
 
   /**
-   * Get catalog item by ASIN (Catalog Items API)
-   * @param asin - The Amazon Standard Identification Number (ASIN) of the item
-   * @param marketplaceIds - List of marketplace identifiers
-   * @param includedData - Optional: Comma-separated list of data sets to include (e.g., 'summaries,attributes')
-   * @returns Catalog item details
+   * Get catalog item by ASIN
+   * @param asin - Amazon Standard Identification Number
+   * @param marketplaceIds - Marketplace IDs (default: India)
+   * @param includedData - Data to include (default: ['summaries', 'attributes'])
    */
-  async getCatalogItem(
+  async getCatalogItemByAsin(
     asin: string,
     marketplaceIds?: string[],
-    includedData?: string[]
+    includedData?: ('summaries' | 'attributes' | 'dimensions' | 'identifiers' | 'images' | 'productTypes' | 'relationships' | 'salesRanks' | 'vendorDetails')[]
   ): Promise<any> {
-    const marketplace = marketplaceIds || [env.AMAZON_MARKETPLACE_ID || 'A21TJRUUN4KGV'];
-    const params = new URLSearchParams({
-      marketplaceIds: marketplace.join(','),
-    });
+    try {
+      const client = this.getCatalogClient();
+      const marketplaces = marketplaceIds || [this.DEFAULT_MARKETPLACE_ID];
+      const dataToInclude = includedData || ['summaries', 'attributes'];
 
-    if (includedData && includedData.length > 0) {
-      params.append('includedData', includedData.join(','));
+      logger.info({ asin, marketplaces }, 'Getting catalog item by ASIN');
+
+      const response = await client.getCatalogItem({
+        asin,
+        marketplaceIds: marketplaces,
+        includedData: dataToInclude as any, // SDK enum types
+      });
+
+      // Log full response for debugging
+      logger.debug({ 
+        asin, 
+        marketplaces,
+        responseStatus: response.status,
+        responseStatusText: response.statusText,
+        responseData: response.data,
+        responseDataKeys: response.data ? Object.keys(response.data) : [],
+        responseDataString: JSON.stringify(response.data, null, 2),
+        responseHeaders: response.headers
+      }, 'Catalog item API response - full details');
+
+      // Check if response data is empty, null, or has no meaningful content
+      const responseData = response.data;
+      if (!responseData || 
+          (typeof responseData === 'object' && Object.keys(responseData).length === 0) ||
+          (responseData && typeof responseData === 'object' && !responseData.asin && !responseData.summaries && !responseData.attributes)) {
+        logger.warn({ 
+          asin, 
+          marketplaces,
+          responseData,
+          note: 'Empty or invalid response - ASIN may not exist in this marketplace, or may not be available via Catalog API'
+        }, 'Catalog item returned empty/invalid data');
+        
+        // Try searching catalog to see if ASIN exists
+        try {
+          logger.info({ asin }, 'Attempting to search catalog for ASIN to verify existence');
+          const searchResult = await this.searchCatalogItems([asin], marketplaces, 1);
+          
+          if (searchResult && searchResult.items && searchResult.items.length > 0) {
+            logger.info({ asin, foundItems: searchResult.items.length }, 'ASIN found via search - returning search result');
+            return searchResult.items[0];
+          }
+        } catch (searchError: any) {
+          logger.debug({ searchError: searchError.message }, 'Catalog search fallback failed');
+        }
+        
+        // Return helpful error message
+        return {
+          asin,
+          marketplaceIds: marketplaces,
+          message: 'No catalog item found for this ASIN',
+          note: 'The ASIN may not exist in this marketplace, or may not be available via the Catalog Items API',
+          troubleshooting: {
+            step1: 'Verify the ASIN exists on Amazon.in',
+            step2: 'Check that the ASIN is available in the India marketplace (A21TJRUUN4KGV)',
+            step3: 'Some products may not be accessible via Catalog API - try using the product URL directly',
+            step4: 'Try using searchCatalogItems endpoint with keywords from the product'
+          }
+        };
+      }
+
+      return responseData;
+    } catch (error: any) {
+      logger.error({ error: error.message || error, asin }, 'Error getting catalog item by ASIN');
+      throw new Error(`Failed to get catalog item: ${error.message || 'Unknown error'}`);
     }
-
-    return this.makeApiCall({
-      method: 'GET',
-      url: `/catalog/2020-12-01/items/${asin}?${params.toString()}`,
-    });
   }
 
-  /**
-   * Update inventory
-   */
-  async updateInventory(
-    sellerId: string,
-    sku: string,
-    quantity: number,
-    fulfillmentChannelCode: string = 'DEFAULT'
-  ): Promise<any> {
-    return this.makeApiCall({
-      method: 'PATCH',
-      url: `/listings/2021-08-01/items/${sellerId}/${sku}`,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      data: {
-        productType: 'PRODUCT',
-        patches: [
-          {
-            op: 'replace',
-            path: '/attributes/fulfillment_availability',
-            value: [
-              {
-                fulfillment_channel_code: fulfillmentChannelCode,
-                quantity: quantity,
-              },
-            ],
-          },
-        ],
-      },
-    });
-  }
+  // ============================================
+  // Phase 3: Order Operations (Read)
+  // ============================================
 
   /**
-   * Get orders
+   * Get orders (list of orders)
+   * @param marketplaceIds - Marketplace IDs (default: India)
+   * @param createdAfter - Get orders created after this date (ISO 8601 format)
+   * @param createdBefore - Get orders created before this date (ISO 8601 format)
+   * @param lastUpdatedAfter - Get orders updated after this date (ISO 8601 format)
+   * @param lastUpdatedBefore - Get orders updated before this date (ISO 8601 format)
+   * @param orderStatuses - Filter by order statuses (e.g., ['Unshipped', 'PartiallyShipped'])
+   * @param fulfillmentChannels - Filter by fulfillment channels (e.g., ['MFN', 'AFN'])
+   * @param paymentMethods - Filter by payment methods (e.g., ['COD', 'CreditCard'])
+   * @param buyerEmail - Filter by buyer email
+   * @param sellerOrderId - Filter by seller order ID
+   * @param maxResultsPerPage - Maximum number of results per page (1-100, default: 100)
+   * @param easyShipShipmentStatuses - Filter by Easy Ship shipment statuses
+   * @param nextToken - Token for pagination
+   * @param amazonOrderIds - Filter by specific Amazon order IDs
    */
   async getOrders(
-    marketplaceId?: string,
+    marketplaceIds?: string[],
     createdAfter?: string,
     createdBefore?: string,
-    orderStatuses?: string[]
+    lastUpdatedAfter?: string,
+    lastUpdatedBefore?: string,
+    orderStatuses?: string[],
+    fulfillmentChannels?: string[],
+    paymentMethods?: string[],
+    buyerEmail?: string,
+    sellerOrderId?: string,
+    maxResultsPerPage?: number,
+    easyShipShipmentStatuses?: string[],
+    nextToken?: string,
+    amazonOrderIds?: string[]
   ): Promise<any> {
-    const marketplace = marketplaceId || env.AMAZON_MARKETPLACE_ID || 'A21TJRUUN4KGV';
-    const params = new URLSearchParams({
-      MarketplaceIds: marketplace,
-    });
-
-    if (createdAfter) params.append('CreatedAfter', createdAfter);
-    if (createdBefore) params.append('CreatedBefore', createdBefore);
-    if (orderStatuses && orderStatuses.length > 0) {
-      orderStatuses.forEach(status => params.append('OrderStatuses', status));
-    }
-
-    return this.makeApiCall({
-      method: 'GET',
-      url: `/orders/v0/orders?${params.toString()}`,
-    });
-  }
-
-  /**
-   * Get order items
-   */
-  async getOrderItems(orderId: string): Promise<any> {
-    return this.makeApiCall({
-      method: 'GET',
-      url: `/orders/v0/orders/${orderId}/orderItems`,
-    });
-  }
-
-  /**
-   * Confirm shipment
-   */
-  async confirmShipment(
-    orderId: string,
-    packageDetail: {
-      packageReferenceId: string;
-      carrierCode: string;
-      shippingMethod: string;
-      trackingNumber: string;
-      shipDate: string;
-    }
-  ): Promise<any> {
-    return this.makeApiCall({
-      method: 'POST',
-      url: `/orders/v0/orders/${orderId}/shipmentConfirmation`,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      data: {
-        packageDetail,
-      },
-    });
-  }
-
-  // ============================================
-  // OAuth Flow Methods (Step 2)
-  // ============================================
-
-  /**
-   * Generate OAuth authorization URL
-   * @param params - OAuth parameters
-   * @returns Authorization URL for Amazon Seller Central
-   */
-  generateOAuthUrl(params: {
-    redirectUri: string;
-    state: string;
-    userId: number;
-  }): string {
-    const { redirectUri, state, userId } = params;
-
-    // Store state-user mapping for CSRF protection (expires in 10 minutes)
-    const expiresAt = Date.now() + (10 * 60 * 1000); // 10 minutes
-    this.stateStore.set(state, { userId, expiresAt });
-
-    // Clean up expired states periodically
-    this.cleanupExpiredStates();
-
-    // Get Seller Central URL based on marketplace
-    // India: sellercentral.amazon.in
-    // US: sellercentral.amazon.com
-    // EU: sellercentral-europe.amazon.com
-    const sellerCentralUrl = env.AMAZON_SELLER_CENTRAL_URL || 'https://sellercentral.amazon.in';
-
-    // Generate OAuth URL
-    const urlParams = new URLSearchParams({
-      application_id: env.AMAZON_CLIENT_ID || '',
-      state: state, // CSRF protection
-      redirect_uri: redirectUri,
-      version: 'beta',
-    });
-
-    const authorizationUrl = `${sellerCentralUrl}/apps/authorize/consent?${urlParams.toString()}`;
-    
-    logger.info({ userId, state }, 'Generated Amazon OAuth authorization URL');
-    
-    return authorizationUrl;
-  }
-
-  /**
-   * Verify state parameter (CSRF protection)
-   * @param state - State parameter from OAuth callback
-   * @param userId - User ID to verify against
-   * @returns true if state is valid, false otherwise
-   */
-  verifyState(state: string, userId: number): boolean {
-    const stored = this.stateStore.get(state);
-    
-    if (!stored) {
-      logger.warn({ state, userId }, 'OAuth state not found or expired');
-      return false;
-    }
-
-    // Check if expired
-    if (Date.now() > stored.expiresAt) {
-      logger.warn({ state, userId }, 'OAuth state expired');
-      this.stateStore.delete(state);
-      return false;
-    }
-
-    // Verify user ID matches
-    if (stored.userId !== userId) {
-      logger.warn({ state, userId, storedUserId: stored.userId }, 'OAuth state user ID mismatch');
-      this.stateStore.delete(state);
-      return false;
-    }
-
-    // Remove used state (one-time use)
-    this.stateStore.delete(state);
-    
-    logger.info({ state, userId }, 'OAuth state verified successfully');
-    return true;
-  }
-
-  /**
-   * Exchange authorization code for refresh token
-   * @param params - Code exchange parameters
-   * @returns Refresh token and seller ID
-   */
-  async exchangeCodeForRefreshToken(params: {
-    code: string;
-    redirectUri: string;
-  }): Promise<{ refreshToken: string; sellerId: string }> {
     try {
-      if (!env.AMAZON_CLIENT_ID || !env.AMAZON_CLIENT_SECRET) {
-        throw new Error('Amazon credentials not configured');
+      const client = this.getOrdersClient();
+      const marketplaces = marketplaceIds || [this.DEFAULT_MARKETPLACE_ID];
+
+      logger.info({ 
+        marketplaces, 
+        createdAfter, 
+        createdBefore,
+        maxResultsPerPage,
+        nextToken: nextToken ? 'provided' : 'not provided'
+      }, 'Getting orders');
+
+      // SDK expects camelCase parameter names
+      const requestParams: any = {
+        marketplaceIds: marketplaces,
+      };
+
+      if (createdAfter) requestParams.createdAfter = createdAfter;
+      if (createdBefore) requestParams.createdBefore = createdBefore;
+      if (lastUpdatedAfter) requestParams.lastUpdatedAfter = lastUpdatedAfter;
+      if (lastUpdatedBefore) requestParams.lastUpdatedBefore = lastUpdatedBefore;
+      if (orderStatuses && orderStatuses.length > 0) requestParams.orderStatuses = orderStatuses;
+      if (fulfillmentChannels && fulfillmentChannels.length > 0) requestParams.fulfillmentChannels = fulfillmentChannels;
+      if (paymentMethods && paymentMethods.length > 0) requestParams.paymentMethods = paymentMethods;
+      if (buyerEmail) requestParams.buyerEmail = buyerEmail;
+      if (sellerOrderId) requestParams.sellerOrderId = sellerOrderId;
+      if (maxResultsPerPage) requestParams.maxResultsPerPage = maxResultsPerPage;
+      if (easyShipShipmentStatuses && easyShipShipmentStatuses.length > 0) requestParams.easyShipShipmentStatuses = easyShipShipmentStatuses;
+      if (nextToken) requestParams.nextToken = nextToken;
+      if (amazonOrderIds && amazonOrderIds.length > 0) requestParams.amazonOrderIds = amazonOrderIds;
+
+      const response = await client.getOrders(requestParams);
+
+      logger.debug('Orders retrieved successfully');
+      return response.data;
+    } catch (error: any) {
+      logger.error({ error: error.message || error }, 'Error getting orders');
+      throw new Error(`Failed to get orders: ${error.message || 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Get order by order ID
+   * @param orderId - Amazon Order ID
+   */
+  async getOrder(orderId: string): Promise<any> {
+    try {
+      const client = this.getOrdersClient();
+
+      logger.info({ orderId }, 'Getting order by ID');
+
+      const response = await client.getOrder({
+        orderId,
+      });
+
+      logger.debug('Order retrieved successfully');
+      return response.data;
+    } catch (error: any) {
+      logger.error({ error: error.message || error, orderId }, 'Error getting order');
+      throw new Error(`Failed to get order: ${error.message || 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Get order items for a specific order
+   * @param orderId - Amazon Order ID
+   * @param nextToken - Token for pagination
+   */
+  async getOrderItems(orderId: string, nextToken?: string): Promise<any> {
+    try {
+      const client = this.getOrdersClient();
+
+      logger.info({ orderId, nextToken: nextToken ? 'provided' : 'not provided' }, 'Getting order items');
+
+      // SDK expects camelCase parameter names
+      const requestParams: any = {
+        orderId,
+      };
+
+      if (nextToken) {
+        requestParams.nextToken = nextToken;
       }
 
-      // Exchange authorization code for refresh token
-      // Note: Same endpoint for sandbox and production
-      const tokenUrl = 'https://api.amazon.com/auth/o2/token';
+      const response = await client.getOrderItems(requestParams);
 
-      logger.info('Exchanging authorization code for refresh token');
+      logger.debug('Order items retrieved successfully');
+      return response.data;
+    } catch (error: any) {
+      logger.error({ error: error.message || error, orderId }, 'Error getting order items');
+      throw new Error(`Failed to get order items: ${error.message || 'Unknown error'}`);
+    }
+  }
 
-      const response = await axios.post<AmazonTokenExchangeResponse>(
-        tokenUrl,
-        {
-          grant_type: 'authorization_code',
-          code: params.code,
-          client_id: env.AMAZON_CLIENT_ID,
-          client_secret: env.AMAZON_CLIENT_SECRET,
-          redirect_uri: params.redirectUri,
-        },
-        {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
+  // ============================================
+  // Inventory Operations
+  // ============================================
+
+  /**
+   * Get inventory summaries for SKUs (FBA inventory)
+   * @param marketplaceIds - Marketplace IDs (default: India)
+   * @param sellerSkus - List of seller SKUs to get inventory for (optional - if not provided, returns all)
+   * @param granularityType - Granularity type: 'Marketplace' or 'Warehouse' (default: 'Marketplace')
+   * @param granularityId - Granularity ID (marketplace ID or warehouse ID)
+   * @param details - Whether to include detailed inventory information (default: true)
+   * @param startDateTime - Start date time for inventory query (ISO 8601 format)
+   * @param sellerSkus - List of seller SKUs
+   * @param nextToken - Token for pagination
+   */
+  async getInventorySummaries(
+    marketplaceIds?: string[],
+    sellerSkus?: string[],
+    granularityType: 'Marketplace' | 'Warehouse' = 'Marketplace',
+    granularityId?: string,
+    details: boolean = true,
+    startDateTime?: string,
+    nextToken?: string
+  ): Promise<any> {
+    try {
+      const client = this.getFbaInventoryClient();
+      const marketplaces = marketplaceIds || [this.DEFAULT_MARKETPLACE_ID];
+      // granularityId is required - use first marketplace ID as default
+      const granularity = granularityId || marketplaces[0];
+
+      logger.info({ 
+        marketplaces, 
+        sellerSkus: sellerSkus ? sellerSkus.length : 'all',
+        granularityType,
+        granularityId: granularity,
+        details
+      }, 'Getting inventory summaries');
+
+      // SDK expects camelCase parameter names
+      // Required parameters: granularityType, granularityId, marketplaceIds
+      const requestParams: any = {
+        granularityType: granularityType as any, // SDK uses enum type
+        granularityId: granularity,
+        marketplaceIds: marketplaces,
+        details,
+      };
+
+      if (sellerSkus && sellerSkus.length > 0) {
+        requestParams.sellerSkus = sellerSkus;
+      }
+      if (startDateTime) {
+        requestParams.startDateTime = startDateTime;
+      }
+      if (nextToken) {
+        requestParams.nextToken = nextToken;
+      }
+
+      const response = await client.getInventorySummaries(requestParams);
+
+      logger.debug('Inventory summaries retrieved successfully');
+      return response.data;
+    } catch (error: any) {
+      logger.error({ error: error.message || error }, 'Error getting inventory summaries');
+      throw new Error(`Failed to get inventory summaries: ${error.message || 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Enrich listings items with inventory data
+   * This method extracts inventory information from fulfillmentAvailability data in listings
+   * and optionally supplements with FBA Inventory API for FBA products
+   * @param listingsData - The listings data from searchListingsItems (should include fulfillmentAvailability)
+   * @param marketplaceIds - Marketplace IDs
+   * @returns Enriched listings data with inventory information
+   */
+  async enrichListingsWithInventory(
+    listingsData: any,
+    marketplaceIds?: string[]
+  ): Promise<any> {
+    try {
+      if (!listingsData || !listingsData.items || !Array.isArray(listingsData.items)) {
+        logger.warn('Invalid listings data structure for inventory enrichment');
+        return listingsData;
+      }
+
+      const items = listingsData.items;
+
+      if (items.length === 0) {
+        logger.debug('No items found in listings data');
+        return listingsData;
+      }
+
+      logger.info({ itemCount: items.length }, 'Enriching listings with inventory data from fulfillmentAvailability');
+
+      // Extract inventory from fulfillmentAvailability data in listings
+      const enrichedItems = items.map((item: any) => {
+        // Check if fulfillmentAvailability is present in the item
+        if (item.fulfillmentAvailability && Array.isArray(item.fulfillmentAvailability)) {
+          // fulfillmentAvailability is an array of fulfillment options
+          const fulfillmentOptions = item.fulfillmentAvailability;
+          
+          // Find the default or first fulfillment option
+          const defaultFulfillment = fulfillmentOptions.find((f: any) => f.fulfillmentChannelCode === 'DEFAULT') || fulfillmentOptions[0];
+          
+          if (defaultFulfillment) {
+            const fulfillmentChannelCode = defaultFulfillment.fulfillmentChannelCode || 'DEFAULT';
+            const quantity = defaultFulfillment.quantity || 0;
+            
+            // Determine fulfillment method
+            // DEFAULT usually means MFN (Merchant Fulfilled Network)
+            // AFN (Amazon Fulfilled Network) would have fulfillmentChannelCode = 'AMAZON_NA' or similar
+            let fulfilledBy = 'MFN';
+            if (fulfillmentChannelCode === 'AMAZON_NA' || 
+                fulfillmentChannelCode === 'AMAZON_EU' || 
+                fulfillmentChannelCode === 'AMAZON_IN' ||
+                fulfillmentChannelCode?.includes('AMAZON')) {
+              fulfilledBy = 'AFN';
+            } else if (fulfillmentChannelCode === 'DEFAULT') {
+              fulfilledBy = 'MFN';
+            }
+
+            item.inventory = {
+              fulfilledBy,
+              quantity: quantity,
+              fulfillmentChannelCode: fulfillmentChannelCode,
+            };
+
+            // If it's AFN, try to get additional details from FBA Inventory API
+            if (fulfilledBy === 'AFN' && item.sku) {
+              // We could fetch additional FBA details here, but for now use what we have
+              logger.debug({ sku: item.sku, quantity }, 'AFN product with quantity from fulfillmentAvailability');
+            }
+          } else {
+            // No fulfillment availability data found
+            item.inventory = {
+              fulfilledBy: 'MFN',
+              quantity: 0,
+              note: 'No fulfillment availability data found',
+            };
+          }
+        } else {
+          // No fulfillmentAvailability in response - try to get from FBA Inventory API as fallback
+          // This handles cases where fulfillmentAvailability wasn't included in the request
+          item.inventory = {
+            fulfilledBy: 'MFN',
+            quantity: null,
+            note: 'Fulfillment availability not included in listings data. Try including fulfillmentAvailability in includedData.',
+          };
         }
-      );
-
-      const { refresh_token, access_token } = response.data;
-
-      // Get seller ID using the access token
-      // Note: We can get seller ID from the redirect parameter (selling_partner_id)
-      // or by making an API call. For now, we'll need to get it from the redirect.
-      // If not provided, we'll need to make an API call to get it.
-      const sellerId = await this.getSellerIdFromToken(access_token);
-
-      logger.info('Successfully exchanged authorization code for refresh token');
+        
+        return item;
+      });
 
       return {
-        refreshToken: refresh_token,
-        sellerId,
+        ...listingsData,
+        items: enrichedItems,
       };
     } catch (error: any) {
-      logger.error(
-        { error: error.response?.data || error.message },
-        'Error exchanging code for refresh token'
-      );
-
-      // Check for specific error types
-      if (error.response?.data?.error === 'invalid_grant') {
-        throw new Error('AUTHORIZATION_CODE_EXPIRED');
-      }
-
-      throw new Error(
-        `Failed to exchange code: ${error.response?.data?.error_description || error.message}`
-      );
+      logger.error({ error: error.message || error }, 'Error enriching listings with inventory');
+      // Return original data if enrichment fails
+      return listingsData;
     }
-  }
-
-  /**
-   * Get seller ID using Fees API (alternative method when marketplaceParticipations doesn't return sellerId)
-   * @param accessToken - Access token (optional, will use cached token if not provided)
-   * @param marketplaceId - Marketplace ID (default: ATVPDKIKX0DER for US)
-   * @param asin - Any valid ASIN to use for the fees estimate request
-   * @returns Seller ID
-   */
-  async getSellerIdFromFeesApi(
-    accessToken?: string,
-    marketplaceId: string = 'ATVPDKIKX0DER',
-    asin: string = 'B08WJ81ZS1' // Example ASIN - any valid ASIN works
-  ): Promise<string | null> {
-    try {
-      const token = accessToken || await this.getAccessToken();
-      const baseURL = env.AMAZON_SP_API_BASE_URL || 
-        (env.AMAZON_ENVIRONMENT === 'PRODUCTION' 
-          ? 'https://sellingpartnerapi-eu.amazon.com'
-          : 'https://sandbox.sellingpartnerapi-eu.amazon.com');
-
-      // Use Fees API to get sellerId
-      const response = await axios.post(
-        `${baseURL}/products/fees/v0/feesEstimate`,
-        {
-          FeesEstimateRequest: {
-            MarketplaceId: marketplaceId,
-            IsAmazonFulfilled: true,
-            PriceToEstimateFees: {
-              ListingPrice: {
-                CurrencyCode: 'USD',
-                Amount: 10
-              },
-              Shipping: {
-                CurrencyCode: 'USD',
-                Amount: 0
-              }
-            },
-            Identifier: asin
-          }
-        },
-        {
-          headers: {
-            'x-amz-access-token': token,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      // Extract sellerId from response
-      const sellerId = response.data?.FeesEstimateResult?.FeesEstimateIdentifier?.SellerId;
-      return sellerId || null;
-    } catch (error: any) {
-      logger.warn(
-        { error: error.response?.data || error.message },
-        'Could not get seller ID from Fees API'
-      );
-      return null;
-    }
-  }
-
-  /**
-   * Get seller ID and marketplace participations
-   * Makes an API call to get seller information
-   * @param accessToken - Access token (optional, will use cached token if not provided)
-   * @returns Seller ID and marketplace information
-   */
-  async getSellerInfo(accessToken?: string): Promise<any> {
-    try {
-      const token = accessToken || await this.getAccessToken();
-      const baseURL = env.AMAZON_SP_API_BASE_URL || 
-        (env.AMAZON_ENVIRONMENT === 'PRODUCTION' 
-          ? 'https://sellingpartnerapi-eu.amazon.com'
-          : 'https://sandbox.sellingpartnerapi-eu.amazon.com');
-
-      const response = await axios.get(
-        `${baseURL}/sellers/v1/marketplaceParticipations`,
-        {
-          headers: {
-            'x-amz-access-token': token,
-          },
-        }
-      );
-
-      return response.data;
-    } catch (error: any) {
-      logger.error(
-        { error: error.response?.data || error.message },
-        'Error getting seller info'
-      );
-      throw new Error(
-        `Failed to get seller info: ${error.response?.data?.errors?.[0]?.message || error.message}`
-      );
-    }
-  }
-
-  /**
-   * Get seller ID from access token
-   * Makes a test API call to get seller information
-   * @param accessToken - Access token
-   * @returns Seller ID
-   */
-  private async getSellerIdFromToken(accessToken: string): Promise<string> {
-    try {
-      // Make a simple API call to get seller information
-      // Using the Sellers API to get seller ID
-      const baseURL = env.AMAZON_SP_API_BASE_URL || 
-        (env.AMAZON_ENVIRONMENT === 'PRODUCTION' 
-          ? 'https://sellingpartnerapi-eu.amazon.com'
-          : 'https://sandbox.sellingpartnerapi-eu.amazon.com');
-
-      const response = await axios.get(
-        `${baseURL}/sellers/v1/marketplaceParticipations`,
-        {
-          headers: {
-            'x-amz-access-token': accessToken,
-          },
-        }
-      );
-
-      // Extract seller ID from response
-      // The response structure: { payload: [{ seller: { sellerId: "..." } }] }
-      const sellerId = response.data?.payload?.[0]?.seller?.sellerId;
-      
-      if (!sellerId) {
-        logger.warn('Could not extract seller ID from API response');
-        // Return a placeholder - will need to be provided from redirect
-        return 'UNKNOWN_SELLER_ID';
-      }
-
-      return sellerId;
-    } catch (error: any) {
-      logger.warn(
-        { error: error.response?.data || error.message },
-        'Could not get seller ID from token, will use from redirect parameter'
-      );
-      // Return placeholder - seller ID should come from redirect parameter
-      return 'UNKNOWN_SELLER_ID';
-    }
-  }
-
-  /**
-   * Clean up expired states from state store
-   * Called periodically to prevent memory leaks
-   */
-  private cleanupExpiredStates(): void {
-    const now = Date.now();
-    for (const [state, data] of this.stateStore.entries()) {
-      if (now > data.expiresAt) {
-        this.stateStore.delete(state);
-      }
-    }
-  }
-
-  /**
-   * Generate random state string for OAuth
-   * @returns Random state string
-   */
-  generateRandomState(): string {
-    return crypto.randomBytes(32).toString('hex');
   }
 
   // ============================================
-  // User-Specific Token Methods (Step 3)
+  // Phase 4: Product Operations (Write - Update Inventory)
   // ============================================
 
   /**
-   * Get access token for a specific user (auto-refreshes if needed)
-   * This method requires a refresh token to be provided (from database)
-   * 
-   * @param userId - User ID
-   * @param refreshToken - Refresh token from database (encrypted, should be decrypted before passing)
-   * @returns Access token
-   */
-  async getAccessTokenForUser(userId: number, refreshToken: string): Promise<string> {
-    const userIdStr = userId.toString();
-    const now = Date.now();
-    
-    // Check cache for valid access token (refresh 5 minutes before expiry)
-    const cached = this.userAccessTokenCache.get(userIdStr);
-    if (cached && now < cached.expiresAt - (5 * 60 * 1000)) {
-      logger.debug({ userId }, 'Using cached access token');
-      return cached.token;
-    }
-    
-    // Refresh access token using refresh token
-    logger.info({ userId }, 'Refreshing access token for user');
-    const accessToken = await this.refreshAccessTokenForUser(refreshToken);
-    
-    // Cache access token (55 minutes - refresh before 1 hour expiry)
-    this.userAccessTokenCache.set(userIdStr, {
-      token: accessToken,
-      expiresAt: now + (55 * 60 * 1000) // 55 minutes
-    });
-    
-    return accessToken;
-  }
-
-  /**
-   * Make SP-API call for a specific user
-   * Automatically handles token refresh and uses user's refresh token
-   * 
-   * @param userId - User ID
-   * @param refreshToken - Refresh token from database (encrypted, should be decrypted before passing)
-   * @param config - Axios request configuration
-   * @returns API response data
-   */
-  async callSpApiForUser<T>(
-    userId: number,
-    refreshToken: string,
-    config: AxiosRequestConfig
-  ): Promise<T> {
-    try {
-      // Get access token for this user
-      const accessToken = await this.getAccessTokenForUser(userId, refreshToken);
-      
-      // Determine base URL
-      const baseURL = env.AMAZON_SP_API_BASE_URL || 
-        (env.AMAZON_ENVIRONMENT === 'PRODUCTION' 
-          ? 'https://sellingpartnerapi-eu.amazon.com'
-          : 'https://sandbox.sellingpartnerapi-eu.amazon.com');
-
-      const requestConfig: AxiosRequestConfig = {
-        ...config,
-        url: `${baseURL}${config.url}`,
-        headers: {
-          ...config.headers,
-          'x-amz-access-token': accessToken,
-        },
-      };
-
-      // Sign with SigV4 if AWS credentials are available
-      const signedConfig = await this.signRequest(requestConfig);
-
-      const response = await axios(signedConfig);
-      return response.data;
-    } catch (error: any) {
-      logger.error(
-        { 
-          error: error.response?.data || error.message,
-          userId,
-          url: config.url,
-          method: config.method 
-        },
-        'Error making Amazon API call for user'
-      );
-      
-      // Re-throw REFRESH_TOKEN_EXPIRED error as-is
-      if (error.message === 'REFRESH_TOKEN_EXPIRED') {
-        throw error;
-      }
-      
-      throw new Error(
-        `Amazon API call failed: ${error.response?.data?.errors?.[0]?.message || error.message}`
-      );
-    }
-  }
-
-  /**
-   * Get products for a specific user
-   * @param userId - User ID
-   * @param refreshToken - Refresh token from database
-   * @param sellerId - Seller ID
-   * @param marketplaceId - Marketplace ID (optional)
-   * @returns Products data
-   */
-  async getProductsForUser(
-    userId: number,
-    refreshToken: string,
-    sellerId: string,
-    marketplaceId?: string
-  ): Promise<any> {
-    const marketplace = marketplaceId || env.AMAZON_MARKETPLACE_ID || 'A21TJRUUN4KGV';
-    return this.callSpApiForUser(
-      userId,
-      refreshToken,
-      {
-        method: 'GET',
-        url: `/listings/2021-08-01/items/${sellerId}?marketplaceIds=${marketplace}`,
-      }
-    );
-  }
-
-  /**
-   * Get orders for a specific user
-   * @param userId - User ID
-   * @param refreshToken - Refresh token from database
-   * @param marketplaceId - Marketplace ID (optional)
-   * @param createdAfter - Filter orders created after this date
-   * @param createdBefore - Filter orders created before this date
-   * @param orderStatuses - Filter by order statuses
-   * @returns Orders data
-   */
-  async getOrdersForUser(
-    userId: number,
-    refreshToken: string,
-    marketplaceId?: string,
-    createdAfter?: string,
-    createdBefore?: string,
-    orderStatuses?: string[]
-  ): Promise<any> {
-    const marketplace = marketplaceId || env.AMAZON_MARKETPLACE_ID || 'A21TJRUUN4KGV';
-    const params = new URLSearchParams({
-      MarketplaceIds: marketplace,
-    });
-
-    if (createdAfter) params.append('CreatedAfter', createdAfter);
-    if (createdBefore) params.append('CreatedBefore', createdBefore);
-    if (orderStatuses && orderStatuses.length > 0) {
-      orderStatuses.forEach(status => params.append('OrderStatuses', status));
-    }
-
-    return this.callSpApiForUser(
-      userId,
-      refreshToken,
-      {
-        method: 'GET',
-        url: `/orders/v0/orders?${params.toString()}`,
-      }
-    );
-  }
-
-  /**
-   * Update inventory for a specific user
-   * @param userId - User ID
-   * @param refreshToken - Refresh token from database
-   * @param sellerId - Seller ID
+   * Update inventory quantity for a product by SKU
+   * @param sellerId - Amazon Seller ID
    * @param sku - Product SKU
-   * @param quantity - Quantity to set
-   * @param fulfillmentChannelCode - Fulfillment channel code
-   * @returns Update response
+   * @param quantity - New quantity (absolute) or quantity to add/subtract (additive)
+   * @param updateMode - 'absolute' (set to exact quantity) or 'additive' (add to existing quantity)
+   * @param marketplaceIds - Marketplace IDs (default: India)
+   * @param fulfillmentChannelCode - Fulfillment channel code (default: 'DEFAULT' for MFN)
+   * @returns Updated listing item
    */
-  async updateInventoryForUser(
-    userId: number,
-    refreshToken: string,
+  async updateInventoryQuantity(
     sellerId: string,
     sku: string,
     quantity: number,
+    updateMode: 'absolute' | 'additive' = 'additive',
+    marketplaceIds?: string[],
     fulfillmentChannelCode: string = 'DEFAULT'
   ): Promise<any> {
-    return this.callSpApiForUser(
-      userId,
-      refreshToken,
-      {
-        method: 'PATCH',
-        url: `/listings/2021-08-01/items/${sellerId}/${sku}`,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        data: {
-          productType: 'PRODUCT',
+    try {
+      const client = this.getListingsClient();
+      const marketplaces = marketplaceIds || [this.DEFAULT_MARKETPLACE_ID];
+
+      logger.info({ 
+        sellerId, 
+        sku, 
+        quantity, 
+        updateMode, 
+        marketplaces,
+        fulfillmentChannelCode 
+      }, 'Updating inventory quantity');
+
+      let finalQuantity = quantity;
+
+      // If additive mode, get current quantity first
+      if (updateMode === 'additive') {
+        try {
+          // Get current listing with fulfillmentAvailability
+          const currentListing = await client.getListingsItem({
+            sellerId,
+            sku,
+            marketplaceIds: marketplaces,
+            includedData: ['fulfillmentAvailability'],
+          });
+
+          // Extract current quantity from fulfillmentAvailability
+          const fulfillmentAvailability = currentListing.data?.fulfillmentAvailability;
+          if (fulfillmentAvailability && Array.isArray(fulfillmentAvailability)) {
+            const currentFulfillment = fulfillmentAvailability.find(
+              (f: any) => f.fulfillmentChannelCode === fulfillmentChannelCode
+            ) || fulfillmentAvailability[0];
+
+            const currentQuantity = currentFulfillment?.quantity || 0;
+            finalQuantity = currentQuantity + quantity;
+
+            logger.info({ 
+              sku, 
+              currentQuantity, 
+              quantityToAdd: quantity, 
+              finalQuantity 
+            }, 'Calculated additive quantity');
+          } else {
+            logger.warn({ sku }, 'No fulfillmentAvailability found, using provided quantity as absolute');
+            // If no current data, treat as absolute update
+            finalQuantity = quantity;
+          }
+        } catch (error: any) {
+          logger.warn({ 
+            error: error.message, 
+            sku 
+          }, 'Failed to get current quantity, using provided quantity as absolute');
+          // If we can't get current quantity, treat as absolute update
+          finalQuantity = quantity;
+        }
+      }
+
+      // Get product type from current listing (required for PATCH)
+      let productType = 'PRODUCT'; // Default fallback
+      try {
+        const currentListing = await client.getListingsItem({
+          sellerId,
+          sku,
+          marketplaceIds: marketplaces,
+          includedData: ['summaries'],
+        });
+
+        // Try to extract product type from summaries
+        const summaries = currentListing.data?.summaries;
+        if (summaries && Array.isArray(summaries) && summaries.length > 0) {
+          productType = summaries[0]?.productType || 'PRODUCT';
+        }
+      } catch (error: any) {
+        logger.warn({ error: error.message, sku }, 'Could not get product type, using default');
+      }
+
+      // Update inventory using PATCH
+      const response = await client.patchListingsItem({
+        sellerId,
+        sku,
+        marketplaceIds: marketplaces,
+        body: {
+          productType: productType,
           patches: [
             {
               op: 'replace',
@@ -915,22 +978,73 @@ console.log(response.data,"RESPONSE_DATA")
               value: [
                 {
                   fulfillment_channel_code: fulfillmentChannelCode,
-                  quantity: quantity,
+                  quantity: finalQuantity,
                 },
               ],
             },
           ],
         },
-      }
-    );
+      });
+
+      logger.info({ 
+        sku, 
+        finalQuantity, 
+        updateMode,
+        fulfillmentChannelCode 
+      }, 'Inventory quantity updated successfully');
+
+      return {
+        ...response.data,
+        sku,
+        quantity: finalQuantity,
+        updateMode,
+        fulfillmentChannelCode,
+        previousQuantity: updateMode === 'additive' ? finalQuantity - quantity : undefined,
+      };
+    } catch (error: any) {
+      logger.error({ 
+        error: error.message || error, 
+        sellerId, 
+        sku, 
+        quantity, 
+        updateMode 
+      }, 'Error updating inventory quantity');
+      throw new Error(`Failed to update inventory quantity: ${error.message || 'Unknown error'}`);
+    }
   }
 
   /**
-   * Clear access token cache for a user (useful when refresh token is revoked)
-   * @param userId - User ID
+   * Refresh access token using refresh token (user-specific)
+   * This method is kept for backward compatibility but now uses SDK
+   * 
+   * @param refreshToken - Refresh token from database
+   * @returns Access token
    */
-  clearUserTokenCache(userId: number): void {
-    this.userAccessTokenCache.delete(userId.toString());
-    logger.info({ userId }, 'Cleared access token cache for user');
+  async refreshAccessTokenForUser(refreshToken: string): Promise<string> {
+    try {
+      if (!refreshToken) {
+        throw new Error('Refresh token is required');
+      }
+
+      // Create a temporary auth instance with the provided refresh token
+      const tempAuth = new SellingPartnerApiAuth({
+        clientId: env.AMAZON_CLIENT_ID!,
+        clientSecret: env.AMAZON_CLIENT_SECRET!,
+        refreshToken: refreshToken,
+      });
+
+      const accessToken = await tempAuth.getAccessToken();
+      logger.info('Amazon access token refreshed successfully (via SDK)');
+      return accessToken;
+    } catch (error: any) {
+      logger.error({ error: error.message || error }, 'Error refreshing Amazon access token');
+      
+      // Check if refresh token is expired/revoked
+      if (error.message?.includes('invalid_grant') || error.message?.includes('REFRESH_TOKEN_EXPIRED')) {
+        throw new Error('REFRESH_TOKEN_EXPIRED');
+      }
+      
+      throw new Error(`Failed to refresh Amazon access token: ${error.message || 'Unknown error'}`);
+    }
   }
 }

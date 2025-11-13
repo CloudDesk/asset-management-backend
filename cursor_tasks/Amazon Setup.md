@@ -6,57 +6,125 @@ This document outlines the implementation status of Amazon Selling Partner API (
 
 | Phase | Status | Notes |
 |-------|--------|-------|
-| **Phase 1: Authentication & Access Token** | ⚠️ **Pending** | OAuth flow not configured due to redirect URI issues with private app. Manual token setup available. |
-| **Phase 2: Product Operations (Read)** | ✅ **Implemented** | Catalog search and product retrieval fully functional |
-| **Phase 3: Order Operations (Read)** | ✅ **Implemented** | Order retrieval and order items fully functional |
-| **Phase 4: Product Operations (Write)** | ✅ **Partially Implemented** | Inventory updates implemented. Full product create/update pending schema configuration. |
+| **Phase 0: Setup & Registration** | ✅ **Completed** | Registered as private developer, created SP-API app, received LWA credentials |
+| **Phase 1: Authentication & Access Token** | ✅ **Implemented** | OAuth token exchange flow working. Using official Amazon JavaScript SDK. |
+| **Phase 2: Product Operations (Read)** | ✅ **COMPLETED** | Using official SDK for catalog search and product retrieval |
+| **Phase 3: Order Operations (Read)** | ✅ **COMPLETED** | Using official SDK for order retrieval |
+| **Phase 4: Product Operations (Write - Update Inventory)** | ✅ **COMPLETED** | Using official SDK for updating inventory quantities |
+
+## 🎯 Integration Approach
+
+**Decision:** Using the **Official Amazon JavaScript SDK** for all SP-API operations.
+
+**SDK Package:** `@amazon-sp-api-release/amazon-sp-api-sdk-js`
+
+**Benefits:**
+- Automatic authentication and token management
+- Automatic request signing (no manual header/token passing)
+- Type-safe API clients for each SP-API service
+- Built-in error handling and retry logic
+- Official support and documentation
+
+**Installation:**
+```bash
+npm install @amazon-sp-api-release/amazon-sp-api-sdk-js
+```
+
+**SDK Documentation:**
+- [Official SDK Documentation](https://developer-docs.amazon.com/sp-api/docs/automate-your-sp-api-calls-using-javascript-sdk-for-node-js)
+- [API Reference](https://developer-docs.amazon.com/sp-api/reference)
 
 ---
 
-## ⚠️ Phase 1: Authentication & Access Token
+## ✅ Phase 0: Setup & Registration
 
-### Current Status: **PENDING - OAuth Flow Not Configured**
+### Status: **COMPLETED**
 
-**Issue:** The OAuth redirect URI cannot be configured in the Amazon Seller Portal because the app is currently set as **private** (not public). This prevents the OAuth flow from working properly.
+**What You Have Done:**
+1. ✅ Registered as a **private developer** in Amazon Seller Central (India)
+2. ✅ Created your SP-API application via Partner Network
+3. ✅ Received credentials after app approval:
+   - LWA Client ID (`amzn1.application-oa2-client.xxxxx`)
+   - LWA Client Secret
+   - Refresh Token (`Atzr|IQEB...`)
+4. ✅ Successfully implemented OAuth token exchange flow using Node.js/TypeScript
 
-**Workaround:** Manual token setup is available using environment variables.
+**Environment Variables Configured:**
+```env
+AMAZON_CLIENT_ID=amzn1.application-oa2-client.xxxxx
+AMAZON_CLIENT_SECRET=xxxxxxxxxxxxxxxxxxxx
+AMAZON_REFRESH_TOKEN=Atzr|IQEB...
+AMAZON_ENVIRONMENT=SANDBOX  # or PRODUCTION
+AMAZON_MARKETPLACE_ID=A21TJRUUN4KGV  # India marketplace
+AMAZON_SP_API_BASE_URL=https://sellingpartnerapi-eu.amazon.com
+```
 
-### Step 1: Manual Token Setup (Current Workaround)
+---
 
-**For now, you can manually obtain and configure tokens:**
+## ✅ Phase 1: Authentication & Access Token
 
-1. **Get Refresh Token Manually:**
-   - Go to Amazon Seller Central
-   - Navigate to your SP-API app
-   - Manually authorize and obtain the refresh token
-   - Store it in environment variable: `AMAZON_REFRESH_TOKEN`
+### Current Status: **✅ COMPLETED - Using Official SDK**
 
-2. **Environment Variables Required:**
-   ```env
-   AMAZON_CLIENT_ID=amzn1.application-oa2-client.xxxxx
-   AMAZON_CLIENT_SECRET=xxxxxxxxxxxxxxxxxxxx
-   AMAZON_REFRESH_TOKEN=Atzr|IQEB...  # Manually obtained refresh token
-   AMAZON_ENVIRONMENT=SANDBOX  # or PRODUCTION
-   AMAZON_MARKETPLACE_ID=A21TJRUUN4KGV  # India marketplace
-   AMAZON_SP_API_BASE_URL=https://sellingpartnerapi-eu.amazon.com
-   ```
+**Decision:** Using the official Amazon JavaScript SDK (`@sp-api-sdk/auth`) which handles all authentication and signing automatically.
 
-3. **How It Works:**
-   - The service automatically refreshes access tokens using the refresh token
-   - Access tokens are cached and refreshed 1 minute before expiry (tokens valid for 1 hour)
-   - No OAuth flow needed for now
+**Package Installed:** `@sp-api-sdk/auth@2.2.14`
 
-### Step 2: Get Access Token (Current Method)
+### SDK Setup
 
-**Get or refresh access token using manual refresh token:**
+**Installation:**
+```bash
+npm install @sp-api-sdk/auth
+```
+
+**✅ Installed:** `@sp-api-sdk/auth@2.2.14`
+
+**SDK Initialization:**
+```typescript
+import { SellingPartnerApiAuth } from '@sp-api-sdk/auth';
+import { ListingsItemsApiClient } from '@sp-api-sdk/listings-items-api-2020-09-01';
+import { OrdersApiClient } from '@sp-api-sdk/orders-api-v0';
+
+// Initialize authentication
+const auth = new SellingPartnerApiAuth({
+  clientId: process.env.AMAZON_CLIENT_ID,
+  clientSecret: process.env.AMAZON_CLIENT_SECRET,
+  refreshToken: process.env.AMAZON_REFRESH_TOKEN,
+});
+
+// Initialize API clients (SDK handles all authentication automatically)
+const listingsClient = new ListingsItemsApiClient({
+  auth,
+  region: 'in', // For India marketplace
+});
+
+const ordersClient = new OrdersApiClient({
+  auth,
+  region: 'in',
+});
+```
+
+**Benefits:**
+- ✅ Automatic token refresh (no manual token management)
+- ✅ Automatic request signing (no manual header/token passing)
+- ✅ Type-safe API clients
+- ✅ Built-in error handling
+- ✅ Official support and documentation
+
+### Current Implementation
+
+**Route:** `GET /v1/amazon/auth/token`
+
+**Description:** Get current access token (for testing/verification purposes). The SDK handles token management automatically for all API calls.
 
 | Route | Method | Description | Status |
 |------|--------|-------------|--------|
 | **Get Access Token** | `GET /v1/amazon/auth/token` | Get current access token (auto-refreshes if needed) | ✅ **Implemented** |
+| **Get Account Details** | `GET /v1/amazon/auth/account` | Get seller account details (business type, selling plan, marketplace participations, contact info) | ✅ **Implemented** |
+| **Get Authenticated Seller ID** | `GET /v1/amazon/auth/authenticated-seller-id` | Get the authenticated seller ID from environment variable | ✅ **Implemented** |
 
 **Example Usage:**
 ```bash
-# Get access token
+# Get access token (for verification)
 GET /v1/amazon/auth/token
 
 # Response:
@@ -66,323 +134,512 @@ GET /v1/amazon/auth/token
   "data": {
     "accessToken": "Atza|IQEB...",
     "expiresIn": 3600,
+    "note": "Token is automatically refreshed 1 minute before expiry"}
+  }
+
+# Get account details
+GET /v1/amazon/auth/account
+
+# Response includes:
+# - marketplaceParticipationList: List of marketplaces
+# - businessType: Type of business (PRIVATE_LIMITED, INDIVIDUAL, etc.)
+# - sellingPlan: PROFESSIONAL or INDIVIDUAL
+# - business: Business details (optional)
+# - primaryContact: Contact information (optional)
+```
+
+**Note:** For actual API calls, use the SDK clients directly - they handle authentication automatically.
+
+### ✅ Implementation Status
+
+**Service Updated:** `src/services/amazon.service.ts` now uses `@sp-api-sdk/auth`
+
+**Key Changes:**
+- ✅ Replaced manual axios calls with `SellingPartnerApiAuth` from SDK
+- ✅ SDK automatically handles token refresh and caching
+- ✅ No manual token expiry management needed
+- ✅ Backward compatible - `getAccessToken()` method still works
+
+**How It Works:**
+1. SDK initializes with credentials from environment variables
+2. `getAccessToken()` calls SDK's `getAccessToken()` method
+3. SDK automatically refreshes tokens when needed
+4. SDK handles all token caching internally
+
+**Testing:**
+```bash
+# Test the token endpoint
+GET /v1/amazon/auth/token
+
+# Should return:
+{
+  "success": true,
+  "message": "Access token retrieved successfully",
+  "data": {
+    "accessToken": "Atza|...",
+    "expiresIn": 3600,
     "note": "Token is automatically refreshed 1 minute before expiry"
   }
 }
 ```
 
-**How It Works:**
-- Uses `AMAZON_REFRESH_TOKEN` from environment variables
-- Automatically refreshes token if it's expired or about to expire (1 minute before)
-- Access tokens are valid for 1 hour
-- Token is cached and reused until refresh is needed
+### Getting Your Seller ID
 
-### Step 2.1: Get Seller ID
+**How to Find Your Seller ID:**
 
-**Route:** `GET /v1/amazon/auth/seller-info`
+1. **From Amazon Product URL (Easiest):**
+   - Visit any of your product pages on Amazon (e.g., `https://www.amazon.in/sp?seller=APCBEZW09ZM60`)
+   - The `seller=` parameter in the URL is your Seller ID (e.g., `APCBEZW09ZM60`)
 
-**Description:** Get your Amazon Seller ID and marketplace information. This is required to fetch your listed products.
-
-**⚠️ Important Note:** The `marketplaceParticipations` endpoint may not always return `sellerId` in the response. The API will automatically try an alternative method (Fees API) to retrieve it. If both methods fail, you'll need to find it manually.
-
-**Example Usage:**
-```bash
-# Get seller ID
-GET /v1/amazon/auth/seller-info
-
-# Response (if sellerId found):
-{
-  "success": true,
-  "message": "Seller information retrieved successfully",
-  "data": {
-    "sellerId": "A1234567890",
-    "marketplaces": [
-      {
-        "sellerId": "A1234567890",
-        "marketplaceId": "ATVPDKIKX0DER",
-        "marketplaceName": "Amazon.com",
-        "countryCode": "US",
-        "storeName": "BestSellerStore"
-      }
-    ],
-    "fullResponse": { ... }
-  }
-}
-
-# Response (if sellerId not found):
-{
-  "success": true,
-  "message": "Seller information retrieved successfully",
-  "data": {
-    "sellerId": null,
-    "marketplaces": [ ... ],
-    "note": "Seller ID not found. Please find it manually in Seller Central..."
-  }
-}
-```
-
-**How It Works:**
-1. First tries to get `sellerId` from `marketplaceParticipations` endpoint
-2. If not found, automatically tries `Fees API` as fallback
-3. If both fail, returns `null` with instructions to find manually
-
-**Alternative Ways to Find Seller ID (if API doesn't return it):**
-
-1. **In Seller Central (US):**
-   - Log in to [Seller Central](https://sellercentral.amazon.com/)
+2. **From Seller Central:**
+   - Log in to [Seller Central (India)](https://sellercentral.amazon.in/)
    - Go to **Settings** → **Account Info**
    - Look for **Merchant Token** or **Seller ID** (usually starts with "A" followed by numbers)
-   - Or check the URL when viewing your account settings
 
-2. **In Seller Central (India):**
-   - Log in to [Seller Central](https://sellercentral.amazon.in/)
-   - Go to **Settings** → **Account Info**
-   - Look for **Merchant Token** or **Seller ID**
+3. **Using SDK (Sellers API):**
+   ```typescript
+   import { SellersApiClient } from '@sp-api-sdk/sellers-api-v1';
+   
+   const sellersClient = new SellersApiClient({
+     auth,
+     region: 'in',
+   });
+   
+   const response = await sellersClient.getMarketplaceParticipations();
+   // Seller ID is in the response
+   ```
 
-3. **From OAuth Callback:**
-   - If you complete OAuth flow, the `selling_partner_id` parameter in the redirect URL contains your Seller ID
-   - Example: `https://your-callback-url?selling_partner_id=A1234567890&...`
-
-4. **From Your Refresh Token:**
-   - If you obtained the refresh token manually, the seller ID should have been provided during the authorization process
-
-### Step 3: OAuth Flow (To Be Configured Later)
-
-**When the app becomes public or redirect URI is fixed:**
-
-| Step | API & Endpoint | Description | Status |
-|------|---------------|-------------|--------|
-| 1. OAuth Initiate | `POST /v1/amazon/auth/initiate` | Generate authorization URL for seller | ✅ Implemented (pending redirect URI fix) |
-| 2. OAuth Callback | `POST /v1/amazon/auth/callback` | Exchange authorization code for refresh token | ✅ Implemented (pending redirect URI fix) |
-
-**Key Requirements:**
-- LWA Client ID & Client Secret: Your application credentials
-- Refresh Token: Used to generate new Access Tokens without seller re-authorization
-- Access Token: Required in the `x-amz-access-token` header for all SP-API calls
-
-**OAuth Routes (Currently Non-Functional):**
-- `POST /v1/amazon/auth/initiate` - Initiate OAuth connection
-- `POST /v1/amazon/auth/callback` - Handle OAuth callback
+**Note:** You'll need your Seller ID for Listings Items API calls (create/update products).
 
 ---
 
 ## ✅ Phase 2: Product Operations (Read)
 
-### Status: **FULLY IMPLEMENTED**
+### Status: **✅ COMPLETED - Using Official SDK**
 
-All product read operations are fully functional and can be used with manual token setup.
+**Packages Installed:**
+- `@sp-api-sdk/listings-items-api-2021-08-01`
+- `@sp-api-sdk/catalog-items-api-2020-12-01`
 
-### Step 2: Get Products
+**Your Requirements:**
+- ✅ Fetch product listings from Amazon
+- ✅ Search catalog items
+- ✅ Get product details by SKU or ASIN
 
-| API & Endpoint | Description | Status |
-|---------------|-------------|--------|
-| **Catalog Items API (v2020-12-01): searchCatalogItems** | Returns a list of items and their attributes based on search criteria | ✅ Implemented |
-| **Catalog Items API (v2020-12-01): getCatalogItem** | Returns the attributes for a specific item identified by ASIN | ✅ Implemented |
+### ✅ Implementation Status
 
-**Implemented Routes:**
-- `GET /v1/amazon/products/:sellerId` - Get all products for a seller (Listings Items API)
-- `GET /v1/amazon/products/:sellerId/:sku` - Get product by SKU (Listings Items API)
-- `GET /v1/amazon/catalog/search` - Search Amazon catalog items (Catalog Items API)
-- `GET /v1/amazon/catalog/items/:asin` - Get catalog item by ASIN (Catalog Items API)
+**Service Updated:** `src/services/amazon.service.ts` now includes product read operations
 
-**Step-by-Step Guide to Get Your Listed Products:**
+**Key Features:**
+- ✅ SDK automatically handles access token - **NO manual storage needed**
+- ✅ All API clients share the same auth instance
+- ✅ Token is cached internally by SDK
+- ✅ Automatic token refresh when needed
 
-1. **Get your Seller ID (choose one method):**
+### 📝 About Access Token Storage
 
-   **Method A: From Amazon URL (Easiest)**
-   - Visit any of your product pages on Amazon (e.g., `https://www.amazon.in/sp?seller=APCBEZW09ZM60`)
-   - The `seller=` parameter in the URL is your Seller ID (e.g., `APCBEZW09ZM60`)
-   - You can also provide it manually to the API:
-     ```bash
-     GET /v1/amazon/auth/seller-info?sellerId=APCBEZW09ZM60
-     ```
+**Important:** You do NOT need to store the access token manually!
 
-   **Method B: From API**
-   ```bash
-   GET /v1/amazon/auth/seller-info
-   ```
-   Copy the `sellerId` from the response (e.g., `APCBEZW09ZM60`)
+**How It Works:**
+1. The SDK's `SellingPartnerApiAuth` instance caches the access token internally
+2. All API clients (Listings, Catalog, etc.) share the same auth instance
+3. When you make API calls, the SDK automatically:
+   - Uses the cached token if it's still valid
+   - Refreshes the token if it's expired or about to expire
+   - Adds the token to request headers automatically
 
-2. **Get your listed products:**
-   ```bash
-   GET /v1/amazon/products/APCBEZW09ZM60?marketplaceId=A21TJRUUN4KGV
-   ```
-   Replace `APCBEZW09ZM60` with your actual Seller ID
-   
-   **⚠️ Note:** If you get "Could not match input arguments" error, it means:
-   - The `sellerId` must match the authenticated seller (the seller associated with your refresh token)
-   - If your refresh token is for a different seller account, you'll need to use the correct sellerId
-   - Alternative: Use Catalog Items API to search for products instead:
-     ```bash
-     GET /v1/amazon/catalog/search?keywords=your+product+keywords&marketplaceIds=A21TJRUUN4KGV
-     ```
+**Example:**
+```typescript
+// Service creates auth instance once
+const auth = new SellingPartnerApiAuth({ ... });
 
-3. **Get a specific product by SKU:**
-   ```bash
-   GET /v1/amazon/products/APCBEZW09ZM60/PROD-SKU-001?marketplaceId=A21TJRUUN4KGV
-   ```
+// All clients share the same auth instance
+const listingsClient = new ListingsItemsApiClient({ auth, region: 'eu' });
+const catalogClient = new CatalogItemsApiClient({ auth, region: 'eu' });
 
-**Key Parameters:**
-- `marketplaceIds` (Required): List of Amazon marketplace identifiers (e.g., `A21TJRUUN4KGV` for India)
-- `keywords` (Required): Comma-delimited list of words or identifiers to search for
-- `pageSize` (Optional): Number of results per page (max 20)
-- `asin` (Required for getCatalogItem): The Amazon Standard Identification Number (ASIN) of the item
+// SDK automatically handles token for all calls
+await listingsClient.getListingsItem({ ... }); // Token added automatically
+await catalogClient.searchCatalogItems({ ... }); // Same token, refreshed if needed
+```
 
-**Example Usage:**
+### Implemented Routes
+
+| Route | Method | Description | Status |
+|-------|--------|-------------|--------|
+| **Get All Listings** | `GET /v1/amazon/listings/:sellerId` | Get all listings items for a seller (all products). Add `&includeInventory=true` to get fulfillment method and quantity. | ✅ Implemented |
+| **Get Listing by SKU** | `GET /v1/amazon/listings/:sellerId/:sku` | Get seller's listing item by SKU | ✅ Implemented |
+| **Search Listings** | `GET /v1/amazon/listings/:sellerId/search` | Search seller's own listings with filters | ✅ Implemented |
+| **Search Catalog** | `GET /v1/amazon/catalog/search` | Search Amazon catalog items | ✅ Implemented |
+| **Get Catalog Item** | `GET /v1/amazon/catalog/items/:asin` | Get catalog item by ASIN | ✅ Implemented |
+| **Get Inventory Summaries** | `GET /v1/amazon/inventory/summaries` | Get FBA inventory summaries for SKUs (detailed FBA inventory data) | ✅ Implemented |
+
+### Example Usage
+
+**1. Get All Listings (All Products):**
 ```bash
 # Get all products for a seller
-GET /v1/amazon/products/A1234567890?marketplaceId=A21TJRUUN4KGV
+GET /v1/amazon/listings/APCBEZW09ZM60?marketplaceId=A21TJRUUN4KGV
 
-# Get specific product by SKU
-GET /v1/amazon/products/A1234567890/PROD-SKU-001?marketplaceId=A21TJRUUN4KGV
+# With pagination
+GET /v1/amazon/listings/APCBEZW09ZM60?marketplaceId=A21TJRUUN4KGV&pageSize=50&pageToken=nextPageToken
 ```
+
+**2. Get Listing Item by SKU:**
+```bash
+GET /v1/amazon/listings/APCBEZW09ZM60/NH-94PT-UFLF?marketplaceId=A21TJRUUN4KGV
+```
+
+**3. Search Listings Items (with filters):**
+```bash
+GET /v1/amazon/listings/APCBEZW09ZM60/search?keywords=laptop&marketplaceId=A21TJRUUN4KGV
+```
+
+**4. Search Catalog Items:**
+```bash
+GET /v1/amazon/catalog/search?keywords=laptop,computer&marketplaceIds=A21TJRUUN4KGV&pageSize=20
+```
+
+**5. Get Catalog Item by ASIN:**
+```bash
+GET /v1/amazon/catalog/items/B08WJ81ZS1?marketplaceIds=A21TJRUUN4KGV&includedData=summaries,attributes
+```
+
+**6. Get All Listings with Inventory Information:**
+```bash
+# Get all listings with fulfillment method and quantity
+GET /v1/amazon/listings/APCBEZW09ZM60?marketplaceId=A21TJRUUN4KGV&includeInventory=true
+
+# With pagination
+GET /v1/amazon/listings/APCBEZW09ZM60?marketplaceId=A21TJRUUN4KGV&includeInventory=true&pageSize=50&pageToken=nextPageToken
+```
+
+**Response includes inventory data:**
+```json
+{
+  "success": true,
+  "message": "All listings items retrieved successfully",
+  "data": {
+    "items": [
+      {
+        "sku": "NH-94PT-UFLF",
+        "inventory": {
+          "fulfilledBy": "MFN",
+          "quantity": 50,
+          "fulfillmentChannelCode": "DEFAULT"
+        },
+        "summaries": [...]
+      }
+    ]
+  }
+}
+```
+
+### 📦 Inventory Information
+
+**Fulfillment Methods Explained:**
+
+- **MFN (Merchant Fulfilled Network):** Products are fulfilled by the seller (you). You store inventory in your own warehouse, pack and ship orders yourself, and handle customer service.
+  - `fulfilledBy: "MFN"`
+  - `fulfillmentChannelCode: "DEFAULT"` (or similar merchant codes)
+  - `quantity`: Available inventory quantity from your listings (managed by you)
+
+- **AFN (Amazon Fulfilled Network / FBA):** Products are fulfilled by Amazon (FBA - Fulfillment by Amazon). You send inventory to Amazon's fulfillment centers, and Amazon stores, packs, and ships orders for you.
+  - `fulfilledBy: "AFN"`
+  - `fulfillmentChannelCode: "AMAZON_NA"`, `"AMAZON_EU"`, `"AMAZON_IN"`, etc. (varies by region)
+  - `quantity`: Available inventory quantity in Amazon's fulfillment centers
+
+**Inventory Data Structure:**
+```json
+{
+  "inventory": {
+    "fulfilledBy": "MFN" | "AFN",  // Fulfillment method
+    "quantity": 50,                  // Available quantity
+    "fulfillmentChannelCode": "DEFAULT" | "AMAZON_NA" | "AMAZON_EU" | "AMAZON_IN" | etc.
+  }
+}
+```
+
+**How It Works:**
+- When `includeInventory=true` is added to the listings endpoint, the API:
+  1. Requests `fulfillmentAvailability` data from the Listings API
+  2. Extracts fulfillment method and quantity from each product's fulfillment availability
+  3. Adds an `inventory` object to each product item in the response
+
+**Note:** 
+- Inventory data comes from the Listings API's `fulfillmentAvailability` field
+- This works for both MFN and AFN products
+- For AFN products, you can also use the FBA Inventory API (`/v1/amazon/inventory/summaries`) for more detailed inventory breakdowns (fulfillable, reserved, unfulfillable quantities)
+
+**SDK Reference:**
+- [Listings Items API v2021-08-01](https://developer-docs.amazon.com/sp-api/reference/listings-items-v2021-08-01)
+- [Catalog Items API v2020-12-01](https://developer-docs.amazon.com/sp-api/reference/catalog-items-v2020-12-01)
 
 ---
 
 ## ✅ Phase 3: Order Operations (Read)
 
-### Status: **FULLY IMPLEMENTED**
+### Status: **✅ COMPLETED - Using Official SDK**
 
-All order read operations are fully functional and can be used with manual token setup.
+**Package Installed:**
+- `@sp-api-sdk/orders-api-v0`
 
-### Step 3: Get Orders
+**Your Requirements:**
+- ✅ Fetch live orders from Amazon to sync/manage with your app
+- ✅ Get order details and order items
 
-| API & Endpoint | Description | Status |
-|---------------|-------------|--------|
-| **Orders API (v0): getOrders** | Returns orders created or updated within a specified time frame | ✅ Implemented |
-| **Orders API (v0): getOrderItems** | Returns detailed line item information for a specific order | ✅ Implemented |
+### ✅ Implementation Status
 
-**Implemented Routes:**
-- `GET /v1/amazon/orders` - Get orders from Amazon
-- `GET /v1/amazon/orders/:orderId/items` - Get items for a specific order
+**Service Updated:** `src/services/amazon.service.ts` now includes order read operations
 
-**Key Parameters:**
-- `MarketplaceIds` (Required): List of Amazon marketplace identifiers
-- `CreatedAfter` OR `LastUpdatedAfter` (Required): An ISO 8601 date/time stamp. One of these must be provided
-- `MaxResultsPerPage` (Optional): Max 100 results (Default 100)
-- `orderId` (Required for getOrderItems): The Amazon-generated order identifier
+**Key Features:**
+- ✅ SDK automatically handles access token - **NO manual storage needed**
+- ✅ All API clients share the same auth instance
+- ✅ Token is cached internally by SDK
+- ✅ Automatic token refresh when needed
+- ✅ Supports pagination with `nextToken`
+- ✅ Multiple filter options (date range, status, fulfillment channel, etc.)
 
-**Query Parameters:**
-- `marketplaceId` (Optional): Marketplace ID (default: `A21TJRUUN4KGV` for India)
-- `createdAfter` (Optional): ISO 8601 date string (e.g., `2025-01-01T00:00:00Z`)
-- `createdBefore` (Optional): ISO 8601 date string
-- `orderStatuses` (Optional): Comma-separated order statuses (e.g., `Unshipped,Shipped`)
+### Implemented Routes
 
-**Example Usage:**
+| Route | Method | Description | Status |
+|-------|--------|-------------|--------|
+| **Get Orders** | `GET /v1/amazon/orders` | Get list of orders with optional filters | ✅ Implemented |
+| **Get Order** | `GET /v1/amazon/orders/:orderId` | Get order details by Order ID | ✅ Implemented |
+| **Get Order Items** | `GET /v1/amazon/orders/:orderId/items` | Get items for a specific order | ✅ Implemented |
+
+### Example Usage
+
+**1. Get All Orders (with date filter):**
 ```bash
 # Get orders created after a specific date
-GET /v1/amazon/orders?marketplaceId=A21TJRUUN4KGV&createdAfter=2025-01-01T00:00:00Z
+GET /v1/amazon/orders?marketplaceIds=A21TJRUUN4KGV&createdAfter=2025-01-01T00:00:00Z
 
-# Get order items
-GET /v1/amazon/orders/123-4567890-1234567/items
+# Get orders with pagination
+GET /v1/amazon/orders?marketplaceIds=A21TJRUUN4KGV&createdAfter=2025-01-01T00:00:00Z&nextToken=...
 ```
+
+**2. Get Orders with Filters:**
+```bash
+# Get unshipped orders
+GET /v1/amazon/orders?marketplaceIds=A21TJRUUN4KGV&orderStatuses=Unshipped
+
+# Get orders by fulfillment channel
+GET /v1/amazon/orders?marketplaceIds=A21TJRUUN4KGV&fulfillmentChannels=MFN
+
+# Get orders updated in last 7 days
+GET /v1/amazon/orders?marketplaceIds=A21TJRUUN4KGV&lastUpdatedAfter=2025-11-06T00:00:00Z
+```
+
+**3. Get Order by ID:**
+```bash
+GET /v1/amazon/orders/123-4567890-1234567
+```
+
+**4. Get Order Items:**
+```bash
+GET /v1/amazon/orders/123-4567890-1234567/items
+
+# With pagination
+GET /v1/amazon/orders/123-4567890-1234567/items?nextToken=...
+```
+
+**SDK Reference:**
+- [Orders API v0](https://developer-docs.amazon.com/sp-api/reference/orders-v0)
 
 ---
 
-## ✅ Phase 4: Product Operations (Write - Create/Update Listings)
+## ✅ Phase 4: Product Operations (Write - Update Inventory)
 
-### Status: **PARTIALLY IMPLEMENTED**
+### Status: **✅ COMPLETED - Using Official SDK**
 
-Inventory updates are functional. Full product create/update requires Product Type Definitions API schema configuration.
+**Package Installed:**
+- `@sp-api-sdk/listings-items-api-2021-08-01` (already installed for Phase 2)
 
-### Step 4: Update Inventory
+**Your Requirements:**
+- ✅ Update inventory quantities by SKU
+- ✅ Support both additive and absolute update modes
+- ✅ Automatic current quantity retrieval for additive updates
 
-| API & Endpoint | Description | Status |
-|---------------|-------------|--------|
-| **FBA Inventory API: updateInventory** | Updates inventory quantity for a product | ✅ Implemented |
+### ✅ Implementation Status
 
-**Implemented Routes:**
-- `PATCH /v1/amazon/inventory/:sellerId/:sku` - Update product inventory
+**Service Updated:** `src/services/amazon.service.ts` now includes inventory update operations
 
-**Request Body:**
-```json
-{
-  "quantity": 100,
-  "fulfillmentChannelCode": "DEFAULT"  // Optional, default: "DEFAULT"
-}
-```
+**Key Features:**
+- ✅ Update inventory quantity by SKU
+- ✅ **Additive Mode (Default):** Adds to existing quantity (e.g., current 50 + 10 = 60)
+- ✅ **Absolute Mode:** Sets exact quantity (e.g., set to 100)
+- ✅ Supports negative quantities for subtraction (additive mode)
+- ✅ Automatically fetches current quantity before updating
+- ✅ Works for both MFN and FBA products
 
-**Example Usage:**
+### Implemented Routes
+
+| Route | Method | Description | Status |
+|-------|--------|-------------|--------|
+| **Update Inventory Quantity** | `PATCH /v1/amazon/listings/:sellerId/:sku/inventory` | Update inventory quantity for a product by SKU. Supports additive (add to existing) and absolute (set exact) modes. | ✅ Implemented |
+
+### Example Usage
+
+**1. Additive Update (Add 10 to existing quantity - Default):**
 ```bash
-PATCH /v1/amazon/inventory/A1234567890/PROD-SKU-001
+PATCH /v1/amazon/listings/APCBEZW09ZM60/NH-94PT-UFLF/inventory
 Content-Type: application/json
 
 {
-  "quantity": 100
+  "quantity": 10,
+  "updateMode": "additive"
 }
 ```
 
-### Step 5: Create Products (Pending Schema Configuration)
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Inventory quantity updated successfully",
+  "data": {
+    "sku": "NH-94PT-UFLF",
+    "quantity": 60,
+    "updateMode": "additive",
+    "previousQuantity": 50,
+    "fulfillmentChannelCode": "DEFAULT"
+  }
+}
+```
 
-| API & Endpoint | Description | Status |
-|---------------|-------------|--------|
-| **Listings Items API (v2020-09-01): putListingsItem** | Creates a new or replaces an entire existing listing for a specific Seller SKU | ⚠️ Not Implemented |
+**2. Subtract Quantity (Additive with negative):**
+```bash
+PATCH /v1/amazon/listings/APCBEZW09ZM60/NH-94PT-UFLF/inventory
 
-**Key Concepts:**
-- `sellerId` & `sku` (Path Required): Identifies the listing owner and the product
-- Request Body (JSON): Must contain the full product data, adhering to the JSON Schema for the specified `productType`
-- This includes facts (title, description), and sales terms (price, quantity)
+{
+  "quantity": -5,
+  "updateMode": "additive"
+}
+```
+Result: If current is 50, new quantity is 45
 
-**Note:** To implement this, you must first use the **Product Type Definitions API** to retrieve the correct JSON Schema required for the specific category/marketplace of your product.
+**3. Absolute Update (Set exact quantity):**
+```bash
+PATCH /v1/amazon/listings/APCBEZW09ZM60/NH-94PT-UFLF/inventory
 
-### Step 6: Update Products (Pending Schema Configuration)
+{
+  "quantity": 100,
+  "updateMode": "absolute"
+}
+```
+Result: Quantity becomes exactly 100
 
-| API & Endpoint | Description | Status |
-|---------------|-------------|--------|
-| **Listings Items API (v2020-09-01): patchListingsItem** | Partially updates a listing, allowing you to modify only specific attributes | ⚠️ Not Implemented |
+**4. Update with Custom Fulfillment Channel:**
+```bash
+PATCH /v1/amazon/listings/APCBEZW09ZM60/NH-94PT-UFLF/inventory
 
-**Key Concepts:**
-- `sellerId` & `sku` (Path Required): Identifies the listing owner and the product
-- Request Body (JSON Patch): Uses the JSON Patch format (RFC 6902) to define the changes (e.g., replace operation for price, add for a new quantity)
+{
+  "quantity": 10,
+  "updateMode": "additive",
+  "fulfillmentChannelCode": "AMAZON_IN",
+  "marketplaceId": "A21TJRUUN4KGV"
+}
+```
+
+### Request Body Parameters
+
+- `quantity` (required): Number to add/subtract (additive) or set (absolute). Can be negative for subtraction.
+- `updateMode` (optional): `"additive"` (default) or `"absolute"`
+  - `"additive"`: Adds to existing quantity (current + quantity = new)
+  - `"absolute"`: Sets exact quantity
+- `marketplaceId` (optional): Marketplace ID (default: A21TJRUUN4KGV for India)
+- `fulfillmentChannelCode` (optional): `"DEFAULT"` for MFN (default) or `"AMAZON_IN"`, `"AMAZON_NA"`, `"AMAZON_EU"` for FBA
+
+### How It Works
+
+1. **Additive Mode (Default):**
+   - Fetches current quantity from Amazon using `fulfillmentAvailability`
+   - Calculates: `finalQuantity = currentQuantity + quantity`
+   - Updates Amazon with the new quantity
+   - Returns both final and previous quantities
+
+2. **Absolute Mode:**
+   - Sets quantity to the exact value provided
+   - No need to fetch current quantity
+
+3. **Error Handling:**
+   - If current quantity cannot be fetched in additive mode, falls back to absolute update
+   - Validates SKU exists before updating
+   - Returns detailed error messages
+
+**SDK Reference:**
+- [Listings Items API v2021-08-01](https://developer-docs.amazon.com/sp-api/reference/listings-items-v2021-08-01)
 
 ---
 
-## 🚀 Additional Implemented Features
+## 🔄 Additional Features (To Be Implemented)
 
 ### Shipment Confirmation
 
-**Status:** ✅ **Implemented**
+**Status:** **TO BE IMPLEMENTED WITH SDK**
 
-- `POST /v1/amazon/orders/:orderId/shipment` - Confirm shipment for an order
+**Example: Confirm Shipment**
+```typescript
+import { OrdersApiClient } from '@sp-api-sdk/orders-api-v0';
 
-**Request Body:**
-```json
-{
-  "packageReferenceId": "REF-123",
-  "carrierCode": "BlueDart",
-  "shippingMethod": "Standard",
-  "trackingNumber": "TRACK123456",
-  "shipDate": "2025-01-15T10:00:00Z"
-}
+const ordersClient = new OrdersApiClient({
+  auth,
+  region: 'in',
+});
+
+// Confirm shipment for an order
+const response = await ordersClient.confirmShipment({
+  orderId: '123-4567890-1234567',
+  body: {
+    packageDetail: {
+      packageReferenceId: 'REF-123',
+      carrierCode: 'BlueDart',
+      shippingMethod: 'Standard',
+      trackingNumber: 'TRACK123456',
+      shipDate: '2025-01-15T10:00:00Z',
+    },
+  },
+});
+
+console.log(response.data);
 ```
+
+**SDK Reference:**
+- [Orders API v0 - confirmShipment](https://developer-docs.amazon.com/sp-api/reference/orders-v0#confirmshipment)
 
 ---
 
 ## 📝 Key Takeaways and Next Steps
 
-### ✅ What's Working Now:
-1. **Product Read Operations:** Fully functional with manual token setup
-2. **Order Read Operations:** Fully functional with manual token setup
-3. **Inventory Updates:** Fully functional with manual token setup
-4. **Shipment Confirmation:** Fully functional with manual token setup
-5. **Token Management:** Automatic access token refresh using manual refresh token
+### ✅ What's Completed:
+1. **Registration & Setup:** ✅ Registered as private developer, created SP-API app, received credentials
+2. **Authentication:** ✅ OAuth token exchange flow working
+3. **SDK Decision:** ✅ Decided to use official Amazon JavaScript SDK
+4. **Token Management:** ✅ Basic token endpoint implemented (SDK will handle this automatically)
 
-### ⚠️ What Needs Configuration:
-1. **OAuth Flow:** Redirect URI configuration in Seller Portal (requires app to be public or redirect URI fix)
-2. **Product Create/Update:** Requires Product Type Definitions API integration to get JSON schemas
-3. **Bulk Operations:** Feeds API integration for bulk updates (recommended for hundreds/thousands of items)
+### 🔄 What's Next (Implementation Plan):
+1. **Install SDK:** `npm install @amazon-sp-api-release/amazon-sp-api-sdk-js`
+2. **Implement Product Read Operations:** Using `@sp-api-sdk/listings-items-api-2021-08-01` and `@sp-api-sdk/catalog-items-api-2020-12-01`
+3. **Implement Order Read Operations:** Using `@sp-api-sdk/orders-api-v0`
+4. **Implement Product Create/Update:** Using `@sp-api-sdk/listings-items-api-2021-08-01` with Product Type Definitions API
+5. **Implement Inventory Updates:** Using `@sp-api-sdk/listings-items-api-2021-08-01` PATCH operations
+6. **Implement Shipment Confirmation:** Using `@sp-api-sdk/orders-api-v0`
 
-### 🔑 Authorization is Foundational:
-- Every request depends on a valid Access Token
-- Currently using manual refresh token from environment variables
-- OAuth flow will be configured once redirect URI issue is resolved
+### 🔑 SDK Benefits:
+- ✅ **Automatic Authentication:** SDK handles all token refresh and management
+- ✅ **Automatic Signing:** No manual header/token passing required
+- ✅ **Type Safety:** TypeScript support with full type definitions
+- ✅ **Error Handling:** Built-in retry logic and error handling
+- ✅ **Official Support:** Maintained by Amazon with official documentation
 
-### 📊 Listing Management Options:
-- **Item-by-Item:** Use Listings Items API (current approach for inventory updates)
-- **Bulk Updates:** Use Feeds API (`JSON_LISTINGS_FEED` type) - recommended for large-scale operations (not yet implemented)
+### 📊 Implementation Strategy:
+- **Use SDK for All Operations:** All SP-API calls should use the official SDK
+- **Product Type Definitions First:** Before creating products, use Product Type Definitions API to get schemas
+- **Bulk Operations:** For large-scale updates, consider Feeds API (future enhancement)
 
-### 📚 Data Requirements:
-- To correctly use Phase 4 (Create/Update), you must first use the **Product Type Definitions API** (not listed but essential) to retrieve the correct JSON Schema required for the specific category/marketplace of your product.
+### 📚 Important Resources:
+- [Official SDK Documentation](https://developer-docs.amazon.com/sp-api/docs/automate-your-sp-api-calls-using-javascript-sdk-for-node-js)
+- [API Reference](https://developer-docs.amazon.com/sp-api/reference)
+- [Product Type Definitions API](https://developer-docs.amazon.com/sp-api/reference/product-type-definitions-v2020-09-01)
 
 ---
 
@@ -390,32 +647,80 @@ Content-Type: application/json
 
 ### Required Environment Variables
 
+These environment variables are **required** for the Amazon SP-API integration using the official SDK:
+
 ```env
-# Amazon LWA (OAuth 2.0) - Required for token refresh
+# Amazon LWA (Login with Amazon) - Required for SDK Authentication
+# These credentials are obtained from Amazon Seller Central after app approval
 AMAZON_CLIENT_ID=amzn1.application-oa2-client.xxxxx
 AMAZON_CLIENT_SECRET=xxxxxxxxxxxxxxxxxxxx
-AMAZON_REFRESH_TOKEN=Atzr|IQEB...  # Manually obtained until OAuth is configured
-
-# SP-API Configuration
-AMAZON_ENVIRONMENT=SANDBOX  # or PRODUCTION
-AMAZON_MARKETPLACE_ID=A21TJRUUN4KGV  # India marketplace
-AMAZON_SP_API_BASE_URL=https://sellingpartnerapi-eu.amazon.com
-AMAZON_REGION=eu-west-1
-AMAZON_SELLER_CENTRAL_URL=https://sellercentral.amazon.in
-
-# OAuth Redirect URI (for future OAuth flow)
-AMAZON_REDIRECT_URI=https://api.nivaana.in/v1/amazon/auth/callback
+AMAZON_REFRESH_TOKEN=Atzr|IQEB...  # Obtained during app authorization
 ```
+
+**How to Get These Credentials:**
+1. Register as a developer in [Amazon Seller Central](https://sellercentral.amazon.in/)
+2. Create an SP-API application via Partner Network
+3. After app approval, you'll receive:
+   - **Client ID:** Starts with `amzn1.application-oa2-client.`
+   - **Client Secret:** A long alphanumeric string
+   - **Refresh Token:** Starts with `Atzr|` (obtained after authorizing the app)
 
 ### Optional Environment Variables
 
+These variables have defaults but can be customized:
+
 ```env
-# AWS Credentials (only needed if using AWS SQS for notifications - optional)
-AWS_ACCESS_KEY_ID=xxxxx
-AWS_SECRET_ACCESS_KEY=xxxxx
+# SP-API Environment Configuration
+AMAZON_ENVIRONMENT=SANDBOX  # or PRODUCTION (default: SANDBOX)
+AMAZON_MARKETPLACE_ID=A21TJRUUN4KGV  # India marketplace (default: A21TJRUUN4KGV)
+AMAZON_SELLER_CENTRAL_URL=https://sellercentral.amazon.in  # Default: India Seller Central
+
+# OAuth Redirect URI (for future OAuth flow - not currently used)
+AMAZON_REDIRECT_URI=https://api.nivaana.in/v1/amazon/auth/callback
 ```
 
-**⚠️ Important:** AWS credentials are NOT required for basic SP-API integration. AWS IAM & SigV4 signing were completely removed as of October 2, 2023. AWS account is only needed if you want to use AWS SQS for notifications (optional feature).
+**Notes:**
+- **AMAZON_ENVIRONMENT:** Use `SANDBOX` for testing, `PRODUCTION` for live operations
+- **AMAZON_MARKETPLACE_ID:** 
+  - `A21TJRUUN4KGV` = India (default)
+  - `ATVPDKIKX0DER` = United States
+  - `A1PA6795UKMFR9` = Germany
+  - [Full list of marketplace IDs](https://developer-docs.amazon.com/sp-api/docs/marketplace-ids)
+- **AMAZON_SP_API_BASE_URL:** Not needed when using SDK - SDK automatically determines the correct base URL based on region
+- **AMAZON_REGION:** Not needed when using SDK - SDK uses region parameter in client initialization (e.g., `region: 'in'`)
+
+### SDK Configuration
+
+When using the official SDK, you initialize clients with the region directly:
+
+```typescript
+import { SellingPartnerApiAuth } from '@sp-api-sdk/auth';
+import { ListingsItemsApiClient } from '@sp-api-sdk/listings-items-api-2021-08-01';
+
+// SDK automatically handles base URL based on region
+const auth = new SellingPartnerApiAuth({
+  clientId: process.env.AMAZON_CLIENT_ID,
+  clientSecret: process.env.AMAZON_CLIENT_SECRET,
+  refreshToken: process.env.AMAZON_REFRESH_TOKEN,
+});
+
+// Region codes: 'na' (North America), 'eu' (Europe), 'fe' (Far East), 'in' (India)
+const listingsClient = new ListingsItemsApiClient({
+  auth,
+  region: 'in', // For India marketplace
+});
+```
+
+**Region Codes:**
+- `'in'` - India (uses `sellingpartnerapi-eu.amazon.com`)
+- `'na'` - North America (US, Canada, Mexico)
+- `'eu'` - Europe (UK, Germany, France, Italy, Spain, etc.)
+- `'fe'` - Far East (Japan, Australia, Singapore, etc.)
+
+**⚠️ Important Notes:**
+- **AWS Credentials NOT Required:** AWS IAM & SigV4 signing were completely removed from SP-API as of October 2, 2023. The SDK handles all authentication automatically.
+- **No Manual Token Management:** The SDK automatically refreshes access tokens - you don't need to manage tokens manually.
+- **No Base URL Configuration:** The SDK automatically determines the correct SP-API base URL based on the region parameter.
 
 ---
 
@@ -439,3 +744,33 @@ AMAZON_ENVIRONMENT= SANDBOX
 AMAZON_MARKETPLACE_ID =A21TJRUUN4KGV
 AMAZON_REGION=eu-west-1
 AMAZON_SELLER_CENTRAL_URL=https://sellercentral.amazon.in
+
+
+--
+
+Implemented routes
+Get all listings (all products):
+   GET /v1/amazon/listings/{sellerId}?marketplaceId=A21TJRUUN4KGV&pageSize=50
+   
+   # With inventory information (fulfillment method and quantity):
+   GET /v1/amazon/listings/{sellerId}?marketplaceId=A21TJRUUN4KGV&includeInventory=true
+
+Get listing by SKU:
+   GET /v1/amazon/listings/{sellerId}/{sku}?marketplaceId=A21TJRUUN4KGV
+
+Search listings (with filters):
+   GET /v1/amazon/listings/{sellerId}/search?keywords=laptop&marketplaceId=A21TJRUUN4KGV
+
+Search catalog:
+   GET /v1/amazon/catalog/search?keywords=laptop,computer&marketplaceIds=A21TJRUUN4KGV
+
+Get catalog item by ASIN:
+   GET /v1/amazon/catalog/items/{asin}?marketplaceIds=A21TJRUUN4KGV
+
+Get inventory summaries (FBA inventory):
+   GET /v1/amazon/inventory/summaries?marketplaceIds=A21TJRUUN4KGV&sellerSkus=SKU1,SKU2
+
+Update inventory quantity (additive or absolute):
+   PATCH /v1/amazon/listings/{sellerId}/{sku}/inventory
+   Body: { "quantity": 10, "updateMode": "additive" }
+

@@ -94,6 +94,7 @@ const envSchema = z.object({
   AMAZON_MARKETPLACE_ID: z.string().optional().default('A21TJRUUN4KGV').describe('Amazon Marketplace ID (default: A21TJRUUN4KGV for India)'),
   AMAZON_SP_API_BASE_URL: z.string().optional().describe('Amazon SP-API base URL (auto-determined by environment if not provided)'),
   AMAZON_SELLER_CENTRAL_URL: z.string().optional().default('https://sellercentral.amazon.in').describe('Amazon Seller Central URL (default: India)'),
+  AMAZON_SELLER_ID: z.string().optional().describe('Amazon Seller ID (e.g., APCBEZW09ZM60). Required for Listings API. Get it from: 1) Amazon product URL (seller= parameter), 2) Seller Central account info'),
   
   // OAuth Configuration (for future OAuth flow)
   AMAZON_REDIRECT_URI: z.string().optional().describe('OAuth redirect URI (must match registered URI in Seller Portal)'),
