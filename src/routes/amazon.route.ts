@@ -42,6 +42,145 @@ export async function amazonRoutes(fastify: FastifyInstance) {
     },
   }, amazonController.getAccessToken.bind(amazonController));
 
+  // POST /v1/amazon/auth/initialize - Initialize Amazon auth for a seller (temporary OAuth flow)
+  fastify.post('/auth/initialize', {
+    schema: {
+      description: 'Initialize Amazon SP-API authentication for a seller. SDK will automatically handle token refresh after initialization. This is for temporary OAuth flow until callback URI is ready. sellerId and marketplaceId are read from environment variables (AMAZON_SELLER_ID and AMAZON_MARKETPLACE_ID).',
+      tags: ['Amazon SP-API'],
+      body: {
+        type: 'object',
+        required: ['refreshToken'],
+        properties: {
+          refreshToken: { 
+            type: 'string', 
+            description: 'Amazon refresh token (from OAuth flow). This is the only required field from frontend.' 
+          },
+          clientId: { 
+            type: 'string', 
+            description: 'Optional: Override default client ID (from AMAZON_CLIENT_ID env var)' 
+          },
+          clientSecret: { 
+            type: 'string', 
+            description: 'Optional: Override default client secret (from AMAZON_CLIENT_SECRET env var)' 
+          },
+        },
+        additionalProperties: false,
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {
+              type: 'object',
+            properties: {
+              sellerId: { type: 'string', description: 'Seller ID from environment variable' },
+              marketplaceId: { type: 'string', description: 'Marketplace ID from environment variable' },
+              initialized: { type: 'boolean' },
+              note: { type: 'string' },
+            },
+            },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+      },
+    },
+  }, amazonController.initializeAuth.bind(amazonController));
+
+  // DELETE /v1/amazon/auth/disconnect - Disconnect Amazon connection (uses sellerId from env)
+  fastify.delete('/auth/disconnect', {
+    schema: {
+      description: 'Disconnect Amazon SP-API authentication. Clears the cached auth instance. Uses sellerId from AMAZON_SELLER_ID environment variable. This can be called manually to disconnect Amazon connection without logging out.',
+      tags: ['Amazon SP-API'],
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {
+              type: 'object',
+              properties: {
+                sellerId: { type: 'string' },
+                disconnected: { type: 'boolean' },
+              },
+            },
+          },
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+      },
+    },
+  }, amazonController.disconnectAuth.bind(amazonController));
+
+  // DELETE /v1/amazon/auth/:sellerId - Clear Amazon auth for a seller (legacy route, kept for backward compatibility)
+  fastify.delete('/auth/:sellerId', {
+    schema: {
+      description: 'Clear Amazon SP-API authentication for a seller (legacy route). Use DELETE /auth/disconnect instead which uses sellerId from environment.',
+      tags: ['Amazon SP-API'],
+      params: {
+        type: 'object',
+        required: ['sellerId'],
+        properties: {
+          sellerId: { 
+            type: 'string', 
+            description: 'Amazon Seller ID' 
+          },
+        },
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {
+              type: 'object',
+              properties: {
+                sellerId: { type: 'string' },
+                cleared: { type: 'boolean' },
+              },
+            },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+      },
+    },
+  }, amazonController.clearAuth.bind(amazonController));
+
   // GET /v1/amazon/auth/account - Get seller account details
   fastify.get('/auth/account', {
     schema: {

@@ -14,6 +14,91 @@ Complete list of all implemented Amazon SP-API routes for product management, or
 
 ## 🔐 Authentication & Account Routes
 
+### Initialize Amazon Authentication (Temporary OAuth Flow)
+**Route:** `POST /v1/amazon/auth/initialize`
+
+**Description:** Initialize Amazon SP-API authentication for temporary OAuth flow. Only requires `refreshToken` from frontend - `sellerId` and `marketplaceId` are read from environment variables (`AMAZON_SELLER_ID` and `AMAZON_MARKETPLACE_ID`). SDK will automatically handle token refresh after initialization.
+
+**Request Body:**
+```json
+{
+  "refreshToken": "Atzr|IQEB..."
+}
+```
+
+**Body Parameters:**
+- `refreshToken` (required): Amazon refresh token from OAuth flow
+- `clientId` (optional): Override default client ID (from `AMAZON_CLIENT_ID` env var)
+- `clientSecret` (optional): Override default client secret (from `AMAZON_CLIENT_SECRET` env var)
+
+**Example:**
+```bash
+POST /v1/amazon/auth/initialize
+Content-Type: application/json
+
+{
+  "refreshToken": "Atzr|IQEB..."
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Amazon authentication initialized successfully",
+  "data": {
+    "sellerId": "APCBEZW09ZM60",
+    "marketplaceId": "A21TJRUUN4KGV",
+    "initialized": true,
+    "note": "SDK will automatically handle token refresh. No need to resend refresh_token after 1 hour. sellerId and marketplaceId are read from environment variables."
+  }
+}
+```
+
+**Note:** After initialization, all subsequent API calls will automatically use the cached auth instance. The SDK handles token refresh transparently.
+
+---
+
+### Disconnect Amazon Connection
+**Route:** `DELETE /v1/amazon/auth/disconnect`
+
+**Description:** Disconnect Amazon SP-API authentication. Clears the cached auth instance. Uses `sellerId` from `AMAZON_SELLER_ID` environment variable. This can be called manually to disconnect Amazon connection without logging out.
+
+**Example:**
+```bash
+DELETE /v1/amazon/auth/disconnect
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Amazon connection disconnected successfully",
+  "data": {
+    "sellerId": "APCBEZW09ZM60",
+    "disconnected": true
+  }
+}
+```
+
+**Note:** 
+- The logout endpoint (`POST /v1/auth/signout`) automatically clears Amazon auth if `AMAZON_SELLER_ID` is set in environment variables.
+- After disconnecting, you must call `POST /v1/amazon/auth/initialize` again to reconnect.
+
+---
+
+### Clear Amazon Authentication (Legacy Route)
+**Route:** `DELETE /v1/amazon/auth/:sellerId`
+
+**Description:** Legacy route to clear Amazon SP-API authentication for a seller. **Recommended:** Use `DELETE /v1/amazon/auth/disconnect` instead, which uses `sellerId` from environment variables.
+
+**Path Parameters:**
+- `sellerId` (required): Amazon Seller ID
+
+**Note:** This route is kept for backward compatibility. Use `/auth/disconnect` for the temporary OAuth flow.
+
+---
+
 ### Get Access Token
 **Route:** `GET /v1/amazon/auth/token`
 
@@ -840,6 +925,8 @@ All routes return consistent error responses:
 - **Setup Guide:** `cursor_tasks/Amazon Setup.md`
 - **SDK Explanation:** `cursor_tasks/AMAZON_SDK_PACKAGES_EXPLANATION.md`
 - **Integration Guide:** `cursor_tasks/AMAZON_SP_API_INTEGRATION_GUIDE.md`
+- **Authentication Explained:** `cursor_tasks/AMAZON_AUTHENTICATION_EXPLAINED.md` - **Read this if you're confused about how tokens work!**
+- **Temporary OAuth Flow:** `cursor_tasks/AMAZON_TEMPORARY_AUTH_FLOW.md` - **Complete guide for temporary OAuth flow implementation**
 
 ---
 

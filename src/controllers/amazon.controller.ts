@@ -40,6 +40,207 @@ export class AmazonController {
     }
   });
 
+  /**
+   * Initialize Amazon SP-API authentication for a seller (temporary OAuth flow)
+   * This creates and caches an auth instance for the seller
+   * SDK will automatically handle token refresh after initialization
+   * Uses sellerId and marketplaceId from environment variables
+   */
+  initializeAuth = asyncHandler(async (
+    request: FastifyRequest<{
+      Body: {
+        refreshToken: string;
+        clientId?: string;
+        clientSecret?: string;
+      };
+    }>,
+    reply: FastifyReply
+  ) => {
+    const { refreshToken, clientId, clientSecret } = request.body;
+
+    logger.info('Initializing Amazon auth (using sellerId and marketplaceId from environment)');
+
+    // Validate refreshToken format before processing
+    if (!refreshToken || typeof refreshToken !== 'string') {
+      return reply.code(400).send({
+        success: false,
+        message: 'Invalid refreshToken',
+        details: 'refreshToken is required and must be a string. Please provide a valid Amazon refresh token (starts with "Atzr|").',
+        statusCode: 400,
+      });
+    }
+
+    const refreshTokenTrimmed = refreshToken.trim();
+    
+    // Quick validation: check if it's a URL (common mistake)
+    if (refreshTokenTrimmed.startsWith('http://') || refreshTokenTrimmed.startsWith('https://')) {
+      return reply.code(400).send({
+        success: false,
+        message: 'Invalid refreshToken format',
+        details: 'The provided refreshToken appears to be a URL. Please provide the actual Amazon refresh token (starts with "Atzr|"), not a URL. Example: "Atzr|IQEB..."',
+        statusCode: 400,
+      });
+    }
+
+    // Check if it looks like a valid Amazon token
+    if (!refreshTokenTrimmed.startsWith('Atzr|') && !refreshTokenTrimmed.startsWith('Atza|')) {
+      logger.warn({ 
+        refreshTokenPrefix: refreshTokenTrimmed.substring(0, 20),
+        refreshTokenLength: refreshTokenTrimmed.length 
+      }, 'Refresh token does not start with expected Amazon prefix');
+    }
+
+    // Check minimum length
+    if (refreshTokenTrimmed.length < 50) {
+      return reply.code(400).send({
+        success: false,
+        message: 'Invalid refreshToken format',
+        details: `The provided refreshToken appears too short (${refreshTokenTrimmed.length} characters). Amazon refresh tokens are typically much longer (100+ characters). Please verify you are providing the correct token.`,
+        statusCode: 400,
+      });
+    }
+
+    try {
+      // Initialize auth - sellerId and marketplaceId come from env
+      // This will validate the token format AND test the token by getting an access token
+      await this.amazonService.initializeAuthForSeller(
+        refreshTokenTrimmed,
+        clientId,
+        clientSecret
+      );
+
+      // Get sellerId and marketplaceId from environment
+      const { env } = await import('../config/env.js');
+      const sellerId = env.AMAZON_SELLER_ID || 'Not set in environment';
+      const marketplaceId = env.AMAZON_MARKETPLACE_ID || 'A21TJRUUN4KGV';
+
+      return reply.code(200).send({
+        success: true,
+        message: 'Amazon authentication initialized and validated successfully',
+        data: {
+          sellerId,
+          marketplaceId,
+          initialized: true,
+          validated: true,
+          note: 'Refresh token validated successfully. SDK will automatically handle token refresh. No need to resend refresh_token after 1 hour. sellerId and marketplaceId are read from environment variables.',
+        },
+      });
+    } catch (error: any) {
+      logger.error({ error: error.message }, 'Error initializing Amazon auth');
+      
+      // Return 400 for validation/format errors, 401 for invalid token, 500 for other errors
+      let statusCode = 500;
+      let errorMessage = error.message || 'An error occurred while initializing authentication';
+      
+      if (error.message?.includes('Invalid') || error.message?.includes('format')) {
+        statusCode = 400;
+      } else if (error.message?.includes('invalid_grant') || 
+                 error.message?.includes('REFRESH_TOKEN_EXPIRED') ||
+                 error.message?.includes('invalid_client') ||
+                 error.message?.includes('unauthorized_client') ||
+                 error.message?.includes('Invalid refresh token')) {
+        statusCode = 401;
+        errorMessage = 'Invalid or expired refresh token. Please verify your refresh token is correct and not expired.';
+      }
+      
+      return reply.code(statusCode).send({
+        success: false,
+        message: 'Failed to initialize Amazon authentication',
+        details: errorMessage,
+        statusCode,
+      });
+    }
+  });
+
+  /**
+   * Disconnect Amazon auth (uses sellerId from environment)
+   * This is the recommended way to disconnect Amazon connection
+   */
+  disconnectAuth = asyncHandler(async (
+    request: FastifyRequest,
+    reply: FastifyReply
+  ) => {
+    logger.info('Disconnecting Amazon auth (using sellerId from environment)');
+
+    try {
+      // Get sellerId from environment
+      const { env } = await import('../config/env.js');
+      const sellerId = env.AMAZON_SELLER_ID;
+
+      if (!sellerId) {
+        return reply.code(400).send({
+          success: false,
+          message: 'AMAZON_SELLER_ID not configured',
+          details: 'AMAZON_SELLER_ID is not set in environment variables. Cannot disconnect Amazon connection.',
+          statusCode: 400,
+        });
+      }
+
+      const disconnected = this.amazonService.clearAuthForSeller(sellerId);
+
+      return reply.code(200).send({
+        success: true,
+        message: disconnected 
+          ? 'Amazon connection disconnected successfully'
+          : 'No Amazon connection found to disconnect',
+        data: {
+          sellerId,
+          disconnected,
+        },
+      });
+    } catch (error: any) {
+      logger.error({ error: error.message }, 'Error disconnecting Amazon auth');
+      
+      return reply.code(500).send({
+        success: false,
+        message: 'Failed to disconnect Amazon authentication',
+        details: error.message || 'An error occurred while disconnecting authentication',
+        statusCode: 500,
+      });
+    }
+  });
+
+  /**
+   * Clear Amazon auth for a seller (legacy route - kept for backward compatibility)
+   * Use disconnectAuth instead which uses sellerId from environment
+   */
+  clearAuth = asyncHandler(async (
+    request: FastifyRequest<{
+      Params: {
+        sellerId: string;
+      };
+    }>,
+    reply: FastifyReply
+  ) => {
+    const { sellerId } = request.params;
+
+    logger.info({ sellerId }, 'Clearing Amazon auth for seller (legacy route)');
+
+    try {
+      const cleared = this.amazonService.clearAuthForSeller(sellerId);
+
+      return reply.code(200).send({
+        success: true,
+        message: cleared 
+          ? 'Amazon authentication cleared successfully'
+          : 'No Amazon authentication found to clear',
+        data: {
+          sellerId,
+          cleared,
+        },
+      });
+    } catch (error: any) {
+      logger.error({ error: error.message, sellerId }, 'Error clearing Amazon auth');
+      
+      return reply.code(500).send({
+        success: false,
+        message: 'Failed to clear Amazon authentication',
+        details: error.message || 'An error occurred while clearing authentication',
+        statusCode: 500,
+      });
+    }
+  });
+
   // ============================================
   // Phase 2: Product Operations (Read)
   // ============================================
@@ -419,6 +620,10 @@ export class AmazonController {
     }, 'Getting orders');
 
     try {
+      // Get sellerId from environment for seller-specific auth
+      const { env } = await import('../config/env.js');
+      const sellerId = env.AMAZON_SELLER_ID;
+
       const marketplaceIdsArray = marketplaceIds ? marketplaceIds.split(',') : undefined;
       const orderStatusesArray = orderStatuses ? orderStatuses.split(',') : undefined;
       const fulfillmentChannelsArray = fulfillmentChannels ? fulfillmentChannels.split(',') : undefined;
@@ -440,7 +645,8 @@ export class AmazonController {
         maxResultsPerPage,
         easyShipShipmentStatusesArray,
         nextToken,
-        amazonOrderIdsArray
+        amazonOrderIdsArray,
+        sellerId // Pass sellerId to use seller-specific auth
       );
 
       return reply.code(200).send(createSuccessResponse('Orders retrieved successfully', result));
@@ -470,7 +676,11 @@ export class AmazonController {
     logger.info({ orderId }, 'Getting order by ID');
 
     try {
-      const result = await this.amazonService.getOrder(orderId);
+      // Get sellerId from environment for seller-specific auth
+      const { env } = await import('../config/env.js');
+      const sellerId = env.AMAZON_SELLER_ID;
+
+      const result = await this.amazonService.getOrder(orderId, sellerId);
 
       return reply.code(200).send(createSuccessResponse('Order retrieved successfully', result));
     } catch (error: any) {
@@ -503,7 +713,11 @@ export class AmazonController {
     logger.info({ orderId, nextToken: nextToken ? 'provided' : 'not provided' }, 'Getting order items');
 
     try {
-      const result = await this.amazonService.getOrderItems(orderId, nextToken);
+      // Get sellerId from environment for seller-specific auth
+      const { env } = await import('../config/env.js');
+      const sellerId = env.AMAZON_SELLER_ID;
+
+      const result = await this.amazonService.getOrderItems(orderId, nextToken, sellerId);
 
       return reply.code(200).send(createSuccessResponse('Order items retrieved successfully', result));
     } catch (error: any) {
@@ -560,6 +774,10 @@ export class AmazonController {
       const sellerSkusArray = sellerSkus ? sellerSkus.split(',') : undefined;
       const includeDetails = details === 'true' || details === '1' || details === undefined;
 
+      // Get sellerId from environment for seller-specific auth
+      const { env } = await import('../config/env.js');
+      const sellerId = env.AMAZON_SELLER_ID;
+
       const result = await this.amazonService.getInventorySummaries(
         marketplaceIdsArray,
         sellerSkusArray,
@@ -567,7 +785,8 @@ export class AmazonController {
         granularityId,
         includeDetails,
         startDateTime,
-        nextToken
+        nextToken,
+        sellerId // Pass sellerId to use seller-specific auth
       );
 
       return reply.code(200).send(createSuccessResponse('Inventory summaries retrieved successfully', result));

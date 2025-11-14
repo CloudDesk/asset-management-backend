@@ -2,6 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { InventoryUsersService } from '../services/inventoryusers.service.js';
 import { authRateLimit } from '../utils/auth.js';
 import { logger } from '../config/logger.js';
+import { env } from '../config/env.js';
 import { 
   createSuccessResponse,
   asyncHandler
@@ -379,7 +380,7 @@ export async function authRoutes(fastify: FastifyInstance) {
   fastify.post('/signout', {
     preHandler: authenticateInventoryUser,
     schema: {
-      description: 'Sign out inventory user (requires authentication)',
+      description: 'Sign out inventory user (requires authentication). Automatically clears Amazon SP-API connection if AMAZON_SELLER_ID is set in environment variables.',
       tags: ['Authentication'],
       security: [{ bearerAuth: [] }],
       response: {
@@ -388,6 +389,12 @@ export async function authRoutes(fastify: FastifyInstance) {
           properties: {
             success: { type: 'boolean' },
             message: { type: 'string' },
+            data: {
+              type: 'object',
+              properties: {
+                amazonDisconnected: { type: 'boolean' },
+              },
+            },
           },
         },
         401: {
@@ -413,15 +420,38 @@ export async function authRoutes(fastify: FastifyInstance) {
   }, asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
     const userId = request.user!.id;
 
+    // Sign out user
     await inventoryUsersService.signOut(userId);
+
+    // Clear Amazon auth if AMAZON_SELLER_ID is set in environment
+    let amazonDisconnected = false;
+    const sellerId = env.AMAZON_SELLER_ID;
+    if (sellerId) {
+      try {
+        const { AmazonService } = await import('../services/amazon.service.js');
+        const amazonService = new AmazonService();
+        amazonDisconnected = amazonService.clearAuthForSeller(sellerId);
+        logger.info({ userId, sellerId, amazonDisconnected }, 'Amazon connection cleared on logout');
+      } catch (error: any) {
+        logger.warn({ error: error.message, sellerId }, 'Failed to clear Amazon auth on logout (non-critical)');
+      }
+    } else {
+      logger.debug({ userId }, 'AMAZON_SELLER_ID not set in environment, skipping Amazon auth cleanup');
+    }
 
     logger.info({ 
       userId, 
       email: request.user!.useremail,
-      ip: request.ip 
+      ip: request.ip,
+      amazonDisconnected
     }, 'User signed out successfully');
 
-    const response = createSuccessResponse('Sign-out successful', null);
+    const response = createSuccessResponse(
+      amazonDisconnected 
+        ? 'Sign-out successful. Amazon connection disconnected.'
+        : 'Sign-out successful',
+      { amazonDisconnected }
+    );
     return reply.code(200).send(response);
   }));
 

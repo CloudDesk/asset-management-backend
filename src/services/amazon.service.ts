@@ -17,12 +17,20 @@ import { logger } from '../config/logger.js';
  * Access tokens are cached internally by the SDK - no manual storage needed.
  */
 export class AmazonService {
+  // Legacy single auth instance (for backward compatibility)
   private auth: SellingPartnerApiAuth | null = null;
   private listingsClient: ListingsItemsApiClient | null = null;
   private catalogClient: CatalogItemsApiClient | null = null;
   private sellersClient: SellersApiClient | null = null;
   private ordersClient: OrdersApiClient | null = null;
   private fbaInventoryClient: FbaInventoryApiClient | null = null;
+  
+  // Per-seller auth instances (for temporary OAuth flow)
+  private authInstances: Map<string, {
+    auth: SellingPartnerApiAuth;
+    marketplaceId: string;
+    lastUsed: Date;
+  }> = new Map();
   
   // Default marketplace ID for India
   private readonly DEFAULT_MARKETPLACE_ID = env.AMAZON_MARKETPLACE_ID || 'A21TJRUUN4KGV';
@@ -91,6 +99,200 @@ export class AmazonService {
   }
 
   /**
+   * Initialize or get auth instance for a seller (temporary OAuth flow)
+   * Uses sellerId and marketplaceId from environment variables
+   * IMPORTANT: Uses refreshToken from frontend, NOT from environment variables
+   * Validates the token by attempting to get an access token before returning success
+   * 
+   * @param refreshToken - Amazon refresh token (from frontend) - REQUIRED, uses this instead of env.AMAZON_REFRESH_TOKEN
+   * @param clientId - Optional: Override default client ID
+   * @param clientSecret - Optional: Override default client secret
+   * @returns SellingPartnerApiAuth instance
+   * @throws Error if token is invalid or cannot be used to get access token
+   */
+  async initializeAuthForSeller(
+    refreshToken: string,
+    clientId?: string,
+    clientSecret?: string
+  ): Promise<SellingPartnerApiAuth> {
+    // Get sellerId and marketplaceId from environment variables
+    const sellerId = env.AMAZON_SELLER_ID;
+    const marketplaceId = env.AMAZON_MARKETPLACE_ID || this.DEFAULT_MARKETPLACE_ID;
+
+    if (!sellerId) {
+      throw new Error(
+        'AMAZON_SELLER_ID is not set in environment variables. Please set it in your .env file.'
+      );
+    }
+
+    // Validate that refreshToken is provided (from frontend)
+    if (!refreshToken) {
+      throw new Error(
+        'refreshToken is required. Please provide refreshToken from frontend. This method uses the refreshToken from the request, NOT from environment variables.'
+      );
+    }
+
+    // Validate refreshToken format
+    // Amazon refresh tokens typically start with "Atzr|" and are base64-like strings
+    const refreshTokenTrimmed = refreshToken.trim();
+    
+    // Check if it looks like a URL (common mistake)
+    if (refreshTokenTrimmed.startsWith('http://') || refreshTokenTrimmed.startsWith('https://')) {
+      throw new Error(
+        'Invalid refreshToken format: URL detected. Please provide the actual Amazon refresh token (starts with "Atzr|"), not a URL.'
+      );
+    }
+    
+    // Check if it starts with expected Amazon token prefix
+    if (!refreshTokenTrimmed.startsWith('Atzr|') && !refreshTokenTrimmed.startsWith('Atza|')) {
+      logger.warn({ 
+        refreshTokenPrefix: refreshTokenTrimmed.substring(0, 10),
+        refreshTokenLength: refreshTokenTrimmed.length 
+      }, 'Refresh token does not start with expected Amazon prefix (Atzr| or Atza|)');
+      // Note: We still allow it to proceed as some tokens might have different formats
+      // But we log a warning
+    }
+    
+    // Check minimum length (Amazon tokens are typically long)
+    if (refreshTokenTrimmed.length < 50) {
+      throw new Error(
+        `Invalid refreshToken format: Token appears too short (${refreshTokenTrimmed.length} characters). Amazon refresh tokens are typically much longer. Please verify you are providing the correct token.`
+      );
+    }
+
+    // Validate required credentials
+    const finalClientId = clientId || env.AMAZON_CLIENT_ID;
+    const finalClientSecret = clientSecret || env.AMAZON_CLIENT_SECRET;
+
+    if (!finalClientId || !finalClientSecret) {
+      throw new Error(
+        'Amazon credentials not provided. Please provide refreshToken, and either clientId/clientSecret or set AMAZON_CLIENT_ID/AMAZON_CLIENT_SECRET in environment variables.'
+      );
+    }
+
+    // Check if we already have an auth instance for this seller
+    // If exists, we'll replace it with the new refreshToken (frontend may have updated it)
+    const cached = this.authInstances.get(sellerId);
+    if (cached) {
+      logger.info({ sellerId }, 'Replacing existing auth instance with new refreshToken from frontend');
+      // Clear the old instance to create a new one with the new refreshToken
+      this.authInstances.delete(sellerId);
+    }
+
+    // Create new auth instance with refreshToken from FRONTEND (not from env)
+    // This is the key difference - we use the refreshToken parameter, not env.AMAZON_REFRESH_TOKEN
+    // Use trimmed token
+    const auth = new SellingPartnerApiAuth({
+      clientId: finalClientId,
+      clientSecret: finalClientSecret,
+      refreshToken: refreshTokenTrimmed, // ← Uses refreshToken from frontend, NOT env.AMAZON_REFRESH_TOKEN
+    });
+
+    logger.debug({ 
+      sellerId,
+      refreshTokenLength: refreshTokenTrimmed.length,
+      refreshTokenPrefix: refreshTokenTrimmed.substring(0, 10) + '...'
+    }, 'Creating auth instance with frontend refreshToken - validating token now...');
+
+    // CRITICAL: Validate the token by attempting to get an access token
+    // This ensures the refresh token is actually valid before we cache it
+    try {
+      const accessToken = await auth.getAccessToken();
+      
+      if (!accessToken || accessToken.length === 0) {
+        throw new Error('Failed to get access token - refresh token may be invalid');
+      }
+
+      logger.info({ 
+        sellerId,
+        accessTokenLength: accessToken.length,
+        accessTokenPrefix: accessToken.substring(0, 10) + '...'
+      }, 'Refresh token validated successfully - access token retrieved');
+    } catch (error: any) {
+      logger.error({ 
+        error: error.message || error,
+        sellerId,
+        refreshTokenPrefix: refreshTokenTrimmed.substring(0, 10) + '...'
+      }, 'Refresh token validation failed');
+      
+      // Check for specific error types
+      if (error.message?.includes('invalid_grant') || 
+          error.message?.includes('REFRESH_TOKEN_EXPIRED') ||
+          error.message?.includes('invalid_client') ||
+          error.message?.includes('unauthorized_client')) {
+        throw new Error(
+          `Invalid refresh token: ${error.message || 'The refresh token is invalid, expired, or does not match the provided client credentials. Please verify your refresh token is correct.'}`
+        );
+      }
+      
+      throw new Error(
+        `Failed to validate refresh token: ${error.message || 'Unable to get access token. Please verify your refresh token is correct and not expired.'}`
+      );
+    }
+
+    // Cache it only after successful validation
+    this.authInstances.set(sellerId, {
+      auth,
+      marketplaceId,
+      lastUsed: new Date(),
+    });
+
+    logger.info({ 
+      sellerId, 
+      marketplaceId,
+      refreshTokenSource: 'frontend',
+      refreshTokenLength: refreshTokenTrimmed.length,
+      note: 'Using refreshToken from frontend request, NOT from environment variables. Token validated successfully.'
+    }, 'Auth instance created and cached for seller');
+    
+    return auth;
+  }
+
+  /**
+   * Get auth instance for a specific seller
+   * Throws error if not initialized
+   * 
+   * @param sellerId - Amazon Seller ID
+   * @returns SellingPartnerApiAuth instance
+   */
+  getAuthForSeller(sellerId: string): SellingPartnerApiAuth {
+    const cached = this.authInstances.get(sellerId);
+    if (!cached) {
+      throw new Error(
+        `Auth not initialized for seller: ${sellerId}. Please call initializeAuthForSeller first.`
+      );
+    }
+    cached.lastUsed = new Date();
+    return cached.auth;
+  }
+
+  /**
+   * Clear auth instance for a seller (called on logout)
+   * 
+   * @param sellerId - Amazon Seller ID
+   * @returns true if auth was cleared, false if not found
+   */
+  clearAuthForSeller(sellerId: string): boolean {
+    const deleted = this.authInstances.delete(sellerId);
+    if (deleted) {
+      logger.info({ sellerId }, 'Amazon auth instance cleared for seller');
+    } else {
+      logger.debug({ sellerId }, 'No auth instance found to clear for seller');
+    }
+    return deleted;
+  }
+
+  /**
+   * Check if auth is initialized for a seller
+   * 
+   * @param sellerId - Amazon Seller ID
+   * @returns true if initialized, false otherwise
+   */
+  isAuthInitializedForSeller(sellerId: string): boolean {
+    return this.authInstances.has(sellerId);
+  }
+
+  /**
    * Get Listings Items API client (lazy initialization)
    * Uses the same auth instance - SDK handles token caching automatically
    */
@@ -103,6 +305,25 @@ export class AmazonService {
       logger.debug('Listings Items API client initialized');
     }
     return this.listingsClient;
+  }
+
+  /**
+   * Get Listings Items API client for a specific seller
+   * Uses seller-specific auth if available, otherwise falls back to legacy auth
+   * 
+   * @param sellerId - Optional seller ID. If provided and auth exists, uses seller-specific auth
+   * @returns ListingsItemsApiClient
+   */
+  private getListingsClientForSeller(sellerId?: string): ListingsItemsApiClient {
+    if (sellerId && this.isAuthInitializedForSeller(sellerId)) {
+      const auth = this.getAuthForSeller(sellerId);
+      return new ListingsItemsApiClient({
+        auth,
+        region: this.REGION,
+      });
+    }
+    // Fall back to legacy client
+    return this.getListingsClient();
   }
 
   /**
@@ -121,6 +342,25 @@ export class AmazonService {
   }
 
   /**
+   * Get Catalog Items API client for a specific seller
+   * Uses seller-specific auth if available, otherwise falls back to legacy auth
+   * 
+   * @param sellerId - Optional seller ID. If provided and auth exists, uses seller-specific auth
+   * @returns CatalogItemsApiClient
+   */
+  private getCatalogClientForSeller(sellerId?: string): CatalogItemsApiClient {
+    if (sellerId && this.isAuthInitializedForSeller(sellerId)) {
+      const auth = this.getAuthForSeller(sellerId);
+      return new CatalogItemsApiClient({
+        auth,
+        region: this.REGION,
+      });
+    }
+    // Fall back to legacy client
+    return this.getCatalogClient();
+  }
+
+  /**
    * Get Sellers API client (lazy initialization)
    * Uses the same auth instance - SDK handles token caching automatically
    */
@@ -133,6 +373,25 @@ export class AmazonService {
       logger.debug('Sellers API client initialized');
     }
     return this.sellersClient;
+  }
+
+  /**
+   * Get Sellers API client for a specific seller
+   * Uses seller-specific auth if available, otherwise falls back to legacy auth
+   * 
+   * @param sellerId - Optional seller ID. If provided and auth exists, uses seller-specific auth
+   * @returns SellersApiClient
+   */
+  private getSellersClientForSeller(sellerId?: string): SellersApiClient {
+    if (sellerId && this.isAuthInitializedForSeller(sellerId)) {
+      const auth = this.getAuthForSeller(sellerId);
+      return new SellersApiClient({
+        auth,
+        region: this.REGION,
+      });
+    }
+    // Fall back to legacy client
+    return this.getSellersClient();
   }
 
   /**
@@ -151,6 +410,25 @@ export class AmazonService {
   }
 
   /**
+   * Get Orders API client for a specific seller
+   * Uses seller-specific auth if available, otherwise falls back to legacy auth
+   * 
+   * @param sellerId - Optional seller ID. If provided and auth exists, uses seller-specific auth
+   * @returns OrdersApiClient
+   */
+  private getOrdersClientForSeller(sellerId?: string): OrdersApiClient {
+    if (sellerId && this.isAuthInitializedForSeller(sellerId)) {
+      const auth = this.getAuthForSeller(sellerId);
+      return new OrdersApiClient({
+        auth,
+        region: this.REGION,
+      });
+    }
+    // Fall back to legacy client
+    return this.getOrdersClient();
+  }
+
+  /**
    * Get FBA Inventory API client (lazy initialization)
    * Uses the same auth instance - SDK handles token caching automatically
    */
@@ -163,6 +441,25 @@ export class AmazonService {
       logger.debug('FBA Inventory API client initialized');
     }
     return this.fbaInventoryClient;
+  }
+
+  /**
+   * Get FBA Inventory API client for a specific seller
+   * Uses seller-specific auth if available, otherwise falls back to legacy auth
+   * 
+   * @param sellerId - Optional seller ID. If provided and auth exists, uses seller-specific auth
+   * @returns FbaInventoryApiClient
+   */
+  private getFbaInventoryClientForSeller(sellerId?: string): FbaInventoryApiClient {
+    if (sellerId && this.isAuthInitializedForSeller(sellerId)) {
+      const auth = this.getAuthForSeller(sellerId);
+      return new FbaInventoryApiClient({
+        auth,
+        region: this.REGION,
+      });
+    }
+    // Fall back to legacy client
+    return this.getFbaInventoryClient();
   }
 
   /**
@@ -298,7 +595,7 @@ export class AmazonService {
     includedData?: ('summaries' | 'attributes' | 'issues' | 'offers' | 'fulfillmentAvailability' | 'procurement')[]
   ): Promise<any> {
     try {
-      const client = this.getListingsClient();
+      const client = this.getListingsClientForSeller(sellerId);
       const marketplaces = marketplaceIds || [this.DEFAULT_MARKETPLACE_ID];
       const dataToInclude = includedData || ['summaries'];
 
@@ -422,7 +719,7 @@ export class AmazonService {
     includeInventory: boolean = false
   ): Promise<any> {
     try {
-      const client = this.getListingsClient();
+      const client = this.getListingsClientForSeller(sellerId);
       const marketplaces = marketplaceIds || [this.DEFAULT_MARKETPLACE_ID];
 
       logger.info({ sellerId, marketplaces, query, includeInventory }, 'Searching listings items');
@@ -607,10 +904,12 @@ export class AmazonService {
     maxResultsPerPage?: number,
     easyShipShipmentStatuses?: string[],
     nextToken?: string,
-    amazonOrderIds?: string[]
+    amazonOrderIds?: string[],
+    sellerId?: string
   ): Promise<any> {
     try {
-      const client = this.getOrdersClient();
+      // Use seller-specific client if sellerId is provided and auth is initialized
+      const client = this.getOrdersClientForSeller(sellerId || env.AMAZON_SELLER_ID);
       const marketplaces = marketplaceIds || [this.DEFAULT_MARKETPLACE_ID];
 
       logger.info({ 
@@ -653,10 +952,12 @@ export class AmazonService {
   /**
    * Get order by order ID
    * @param orderId - Amazon Order ID
+   * @param sellerId - Optional seller ID to use seller-specific auth
    */
-  async getOrder(orderId: string): Promise<any> {
+  async getOrder(orderId: string, sellerId?: string): Promise<any> {
     try {
-      const client = this.getOrdersClient();
+      // Use seller-specific client if sellerId is provided and auth is initialized
+      const client = this.getOrdersClientForSeller(sellerId || env.AMAZON_SELLER_ID);
 
       logger.info({ orderId }, 'Getting order by ID');
 
@@ -676,10 +977,12 @@ export class AmazonService {
    * Get order items for a specific order
    * @param orderId - Amazon Order ID
    * @param nextToken - Token for pagination
+   * @param sellerId - Optional seller ID to use seller-specific auth
    */
-  async getOrderItems(orderId: string, nextToken?: string): Promise<any> {
+  async getOrderItems(orderId: string, nextToken?: string, sellerId?: string): Promise<any> {
     try {
-      const client = this.getOrdersClient();
+      // Use seller-specific client if sellerId is provided and auth is initialized
+      const client = this.getOrdersClientForSeller(sellerId || env.AMAZON_SELLER_ID);
 
       logger.info({ orderId, nextToken: nextToken ? 'provided' : 'not provided' }, 'Getting order items');
 
@@ -724,10 +1027,12 @@ export class AmazonService {
     granularityId?: string,
     details: boolean = true,
     startDateTime?: string,
-    nextToken?: string
+    nextToken?: string,
+    sellerId?: string
   ): Promise<any> {
     try {
-      const client = this.getFbaInventoryClient();
+      // Use seller-specific client if sellerId is provided and auth is initialized
+      const client = this.getFbaInventoryClientForSeller(sellerId || env.AMAZON_SELLER_ID);
       const marketplaces = marketplaceIds || [this.DEFAULT_MARKETPLACE_ID];
       // granularityId is required - use first marketplace ID as default
       const granularity = granularityId || marketplaces[0];
@@ -889,7 +1194,7 @@ export class AmazonService {
     fulfillmentChannelCode: string = 'DEFAULT'
   ): Promise<any> {
     try {
-      const client = this.getListingsClient();
+      const client = this.getListingsClientForSeller(sellerId);
       const marketplaces = marketplaceIds || [this.DEFAULT_MARKETPLACE_ID];
 
       logger.info({ 

@@ -731,7 +731,11 @@ All implemented routes are documented in:
 - **Controller:** `src/controllers/amazon.controller.ts`
 - **Service:** `src/services/amazon.service.ts`
 
-For detailed OAuth flow documentation, see: `cursor_tasks/AMAZON_SP_API_INTEGRATION_GUIDE.md`
+**Documentation Files:**
+- **API Routes Reference:** `cursor_tasks/AMAZON_API_ROUTES.md` - Complete list of all routes
+- **Authentication Explained:** `cursor_tasks/AMAZON_AUTHENTICATION_EXPLAINED.md` - How SDK handles tokens automatically
+- **SDK Packages Explanation:** `cursor_tasks/AMAZON_SDK_PACKAGES_EXPLANATION.md` - Why we use modular packages
+- **OAuth Flow Guide:** `cursor_tasks/AMAZON_SP_API_INTEGRATION_GUIDE.md` - Detailed OAuth setup
 
 
 

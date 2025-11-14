@@ -161098,3 +161098,155 @@ Filtered data result: {
   "iswishlist": false,
   "modifieddate": 1762335506285
 }
+Filtered data result: {
+  "name": "test - Incense Sticks - Kasturi",
+  "category": "home_fragrance",
+  "subcategory": "incense_sticks",
+  "fragnancetype": "kasturi,kesar_chandan",
+  "brand": "test",
+  "pack": "pack_of_2",
+  "price": 100,
+  "discount": 0,
+  "numberofitems": 0,
+  "isdealoftheday": false,
+  "purpose": "Enhance living spaces"
+}
+Filtered data result: {
+  "productid": 64,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtered data result: {
+  "productid": 64,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtered data result: {
+  "productid": 64,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtered data result: {
+  "name": "test - Incense Sticks - Kesar Chandan",
+  "shortdescription": "",
+  "fulldescription": "",
+  "price": 100,
+  "discount": 0,
+  "isdealoftheday": false,
+  "brand": "test",
+  "pack": "pack_of_4",
+  "material": "",
+  "manufacturer": "",
+  "netform": "",
+  "netquantity": "",
+  "usage": "",
+  "purpose": "Home Fragrance",
+  "fragnancetype": "kesar_chandan,spiritual_harmony,kasturi,parijat",
+  "burntime": "",
+  "itemlength": "",
+  "itemthickness": "",
+  "numberofitems": 0,
+  "category": "home_fragrance",
+  "subcategory": "incense_sticks"
+}
+Filtered data result: {
+  "name": "test - Incense Sticks - Kasturi",
+  "category": "home_fragrance",
+  "subcategory": "incense_sticks",
+  "fragnancetype": "kasturi,kesar_chandan,parijat,spiritual_harmony",
+  "brand": "test",
+  "pack": "pack_of_4",
+  "price": 100,
+  "discount": 0,
+  "numberofitems": 0,
+  "isdealoftheday": false,
+  "purpose": "Enhance living spaces"
+}
+Filtered data result: {
+  "productid": 65,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtered data result: {
+  "productid": 65,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtered data result: {
+  "productid": 65,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtered data result: {
+  "name": "TEST - Incense Sticks - Kasturi, Kesar Chandan",
+  "category": "home_fragrance",
+  "subcategory": "incense_sticks",
+  "fragnancetype": "kasturi,kesar_chandan",
+  "brand": "TEST",
+  "pack": "pack_of_2",
+  "price": 300,
+  "discount": 0,
+  "numberofitems": 0,
+  "isdealoftheday": false,
+  "purpose": "Enhance living spaces"
+}
+Filtered data result: {
+  "productid": 66,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtered data result: {
+  "productid": 66,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtered data result: {
+  "productid": 66,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
