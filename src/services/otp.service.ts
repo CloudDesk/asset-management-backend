@@ -119,10 +119,10 @@ export class OtpService {
     } else {
       // For Twilio: Standard OTP generation (can start with 0)
       const otp = crypto.randomInt(0, 10 ** config.otpLength)
-        .toString()
+      .toString()
         .padStart(config.otpLength, '0');
-      
-      return otp;
+    
+    return otp;
     }
   }
 

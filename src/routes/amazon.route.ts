@@ -45,7 +45,7 @@ export async function amazonRoutes(fastify: FastifyInstance) {
   // POST /v1/amazon/auth/initialize - Initialize Amazon auth for a seller (temporary OAuth flow)
   fastify.post('/auth/initialize', {
     schema: {
-      description: 'Initialize Amazon SP-API authentication for a seller. SDK will automatically handle token refresh after initialization. This is for temporary OAuth flow until callback URI is ready. sellerId and marketplaceId are read from environment variables (AMAZON_SELLER_ID and AMAZON_MARKETPLACE_ID).',
+      description: 'Initialize Amazon SP-API authentication for a seller. SDK will automatically handle token refresh after initialization. This is for temporary OAuth flow until callback URI is ready. sellerId, marketplaceId, and environment (AMAZON_ENVIRONMENT) are read from environment variables.',
       tags: ['Amazon SP-API'],
       body: {
         type: 'object',

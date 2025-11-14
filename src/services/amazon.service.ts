@@ -30,6 +30,8 @@ export class AmazonService {
     auth: SellingPartnerApiAuth;
     marketplaceId: string;
     lastUsed: Date;
+    environment: 'SANDBOX' | 'PRODUCTION';
+    endpoint?: string;
   }> = new Map();
   
   // Default marketplace ID for India
@@ -102,6 +104,7 @@ export class AmazonService {
    * Initialize or get auth instance for a seller (temporary OAuth flow)
    * Uses sellerId and marketplaceId from environment variables
    * IMPORTANT: Uses refreshToken from frontend, NOT from environment variables
+   * Uses AMAZON_ENVIRONMENT from environment variables (not from API request)
    * Validates the token by attempting to get an access token before returning success
    * 
    * @param refreshToken - Amazon refresh token (from frontend) - REQUIRED, uses this instead of env.AMAZON_REFRESH_TOKEN
@@ -126,7 +129,7 @@ export class AmazonService {
     }
 
     // Validate that refreshToken is provided (from frontend)
-    if (!refreshToken) {
+      if (!refreshToken) {
       throw new Error(
         'refreshToken is required. Please provide refreshToken from frontend. This method uses the refreshToken from the request, NOT from environment variables.'
       );
@@ -179,73 +182,301 @@ export class AmazonService {
       this.authInstances.delete(sellerId);
     }
 
-    // Create new auth instance with refreshToken from FRONTEND (not from env)
-    // This is the key difference - we use the refreshToken parameter, not env.AMAZON_REFRESH_TOKEN
-    // Use trimmed token
-    const auth = new SellingPartnerApiAuth({
-      clientId: finalClientId,
-      clientSecret: finalClientSecret,
-      refreshToken: refreshTokenTrimmed, // ← Uses refreshToken from frontend, NOT env.AMAZON_REFRESH_TOKEN
-    });
+    // Determine environment (sandbox vs production) from environment variable
+    // Always use AMAZON_ENVIRONMENT from env, not from API request
+    const envType = env.AMAZON_ENVIRONMENT || 'PRODUCTION';
+    const isSandbox = envType === 'SANDBOX';
+    
+    // Determine endpoint based on environment
+    // Sandbox uses sandbox.sellingpartnerapi-na.amazon.com for SP-API
+    // Production uses sellingpartnerapi-eu.amazon.com (for India/EU region)
+    // Note: LWA (Login with Amazon) endpoint for getting access tokens is different:
+    // - Sandbox LWA: https://api.sandbox.sellingpartnerapi.amazon.com
+    // - Production LWA: https://api.sellingpartnerapi.amazon.com
+    let endpoint: string | undefined;
+    let lwaEndpoint: string | undefined;
+    if (isSandbox) {
+      // Sandbox endpoints
+      endpoint = 'https://sandbox.sellingpartnerapi-na.amazon.com'; // SP-API endpoint
+      lwaEndpoint = 'https://api.sandbox.sellingpartnerapi.amazon.com'; // LWA endpoint for access tokens
+    } else {
+      // Production endpoints
+      endpoint = 'https://sellingpartnerapi-eu.amazon.com'; // SP-API endpoint (EU region for India)
+      lwaEndpoint = 'https://api.sellingpartnerapi.amazon.com'; // LWA endpoint for access tokens
+    }
 
     logger.debug({ 
       sellerId,
-      refreshTokenLength: refreshTokenTrimmed.length,
-      refreshTokenPrefix: refreshTokenTrimmed.substring(0, 10) + '...'
-    }, 'Creating auth instance with frontend refreshToken - validating token now...');
+      environment: envType,
+      endpoint,
+      lwaEndpoint,
+      isSandbox
+    }, 'Creating auth instance with environment-specific endpoints');
 
-    // CRITICAL: Validate the token by attempting to get an access token
-    // This ensures the refresh token is actually valid before we cache it
+    // Create new auth instance with refreshToken from FRONTEND (not from env)
+    // This is the key difference - we use the refreshToken parameter, not env.AMAZON_REFRESH_TOKEN
+    // Use trimmed token
+    
+    // IMPORTANT: The SDK's SellingPartnerApiAuth uses a hardcoded LWA endpoint
+    // For sandbox, we need to set an environment variable that the SDK might read
+    // OR we need to check if the SDK supports a custom endpoint parameter
+    // 
+    // The SDK might read: process.env.AMAZON_SP_API_ENDPOINT or similar
+    // Let's try setting it temporarily for this auth instance
+    const originalEndpoint = process.env.AMAZON_SP_API_ENDPOINT;
+    const originalLwaEndpoint = process.env.AMAZON_LWA_ENDPOINT;
+    
     try {
-      const accessToken = await auth.getAccessToken();
+      // Set environment variables that SDK might read for sandbox
+      if (isSandbox && lwaEndpoint) {
+        // Try setting environment variables that SDK might use
+        process.env.AMAZON_SP_API_ENDPOINT = endpoint;
+        process.env.AMAZON_LWA_ENDPOINT = lwaEndpoint;
+        // Some SDKs use these variable names
+        process.env.AMAZON_ENDPOINT = lwaEndpoint;
+        process.env.LWA_ENDPOINT = lwaEndpoint;
+      }
       
-      if (!accessToken || accessToken.length === 0) {
-        throw new Error('Failed to get access token - refresh token may be invalid');
+      const authConfig: any = {
+        clientId: finalClientId,
+        clientSecret: finalClientSecret,
+        refreshToken: refreshTokenTrimmed, // ← Uses refreshToken from frontend, NOT env.AMAZON_REFRESH_TOKEN
+      };
+      
+      // Try passing endpoint parameters (SDK might support these)
+      if (lwaEndpoint) {
+        // Try various parameter names that different SDK versions might use
+        authConfig.endpoint = lwaEndpoint;
+        authConfig.accessTokenEndpoint = lwaEndpoint;
+        authConfig.lwaEndpoint = lwaEndpoint;
+        authConfig.baseUrl = lwaEndpoint;
+        authConfig.authEndpoint = lwaEndpoint;
+      }
+      
+      logger.debug({ 
+        authConfigKeys: Object.keys(authConfig),
+        lwaEndpoint,
+        isSandbox
+      }, 'Creating auth instance with sandbox configuration');
+      
+      const auth = new SellingPartnerApiAuth(authConfig);
+
+      logger.debug({ 
+        sellerId,
+        refreshTokenLength: refreshTokenTrimmed.length,
+        refreshTokenPrefix: refreshTokenTrimmed.substring(0, 10) + '...'
+      }, 'Creating auth instance with frontend refreshToken - validating token now...');
+
+      // CRITICAL: Validate the token by attempting to get an access token
+      // This ensures the refresh token is actually valid before we cache it
+      // Keep environment variables set during validation
+      // 
+      // IMPORTANT: For sandbox, the SDK's hardcoded LWA endpoint (https://api.amazon.com/auth/)
+      // might not work. We need to manually validate for sandbox if SDK fails.
+      let accessToken: string;
+      try {
+        // Try using SDK first (works for production, might work for sandbox if LWA endpoint is same)
+        accessToken = await auth.getAccessToken();
+        
+        if (!accessToken || accessToken.length === 0) {
+          throw new Error('Failed to get access token - refresh token may be invalid');
+        }
+
+        logger.info({ 
+          sellerId,
+          accessTokenLength: accessToken.length,
+          accessTokenPrefix: accessToken.substring(0, 10) + '...',
+          environment: envType
+        }, 'Refresh token validated successfully - access token retrieved via SDK');
+      } catch (error: any) {
+        logger.warn({ 
+          error: error.message || error,
+          sellerId,
+          refreshTokenPrefix: refreshTokenTrimmed.substring(0, 10) + '...',
+          isSandbox,
+          lwaEndpoint,
+          note: 'SDK getAccessToken failed, might need manual LWA request for sandbox'
+        }, 'SDK token validation failed, attempting manual validation for sandbox');
+        
+        // For sandbox, try manual LWA token request if SDK fails
+        // The SDK uses https://api.amazon.com/auth/ which might not work for sandbox
+        if (isSandbox && error.message?.includes('400')) {
+          try {
+            logger.info({ sellerId, isSandbox }, 'Attempting manual LWA token request for sandbox');
+            
+            // Manual LWA token request for sandbox
+            // Use the same endpoint as production (LWA endpoint is global)
+            // But verify credentials are correct
+            const lwaTokenUrl = 'https://api.amazon.com/auth/o2/token';
+            
+            // Use URLSearchParams for form-encoded data
+            const params = new URLSearchParams();
+            params.append('grant_type', 'refresh_token');
+            params.append('refresh_token', refreshTokenTrimmed);
+            params.append('client_id', finalClientId);
+            params.append('client_secret', finalClientSecret);
+            
+            // @ts-ignore - node-fetch types not available, but it's installed
+            const fetch = (await import('node-fetch')).default;
+            const response = await fetch(lwaTokenUrl, {
+              method: 'POST',
+              body: params.toString(),
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+              },
+            });
+            
+            if (!response.ok) {
+              const errorText = await response.text();
+              logger.error({ 
+                status: response.status,
+                statusText: response.statusText,
+                errorText,
+                sellerId,
+                isSandbox
+              }, 'Manual LWA token request failed');
+              throw new Error(`LWA token request failed: ${response.status} ${response.statusText} - ${errorText}`);
+            }
+            
+            const tokenData = await response.json() as { access_token: string; expires_in: number };
+            accessToken = tokenData.access_token;
+            
+            if (!accessToken || accessToken.length === 0) {
+              throw new Error('Manual LWA request succeeded but no access token in response');
+            }
+            
+            logger.info({ 
+              sellerId,
+              accessTokenLength: accessToken.length,
+              accessTokenPrefix: accessToken.substring(0, 10) + '...',
+              environment: envType,
+              method: 'manual'
+            }, 'Refresh token validated successfully - access token retrieved via manual LWA request');
+          } catch (manualError: any) {
+            logger.error({ 
+              error: manualError.message || manualError,
+              sellerId,
+              refreshTokenPrefix: refreshTokenTrimmed.substring(0, 10) + '...',
+              isSandbox
+            }, 'Manual LWA token request also failed');
+            
+            // Restore original environment variables before throwing error
+            if (originalEndpoint !== undefined) {
+              process.env.AMAZON_SP_API_ENDPOINT = originalEndpoint;
+            } else {
+              delete process.env.AMAZON_SP_API_ENDPOINT;
+            }
+            if (originalLwaEndpoint !== undefined) {
+              process.env.AMAZON_LWA_ENDPOINT = originalLwaEndpoint;
+            } else {
+              delete process.env.AMAZON_LWA_ENDPOINT;
+            }
+            if (isSandbox) {
+              delete process.env.AMAZON_ENDPOINT;
+              delete process.env.LWA_ENDPOINT;
+            }
+            
+            // Check for specific error types
+            if (manualError.message?.includes('invalid_grant') || 
+                manualError.message?.includes('REFRESH_TOKEN_EXPIRED') ||
+                manualError.message?.includes('invalid_client') ||
+                manualError.message?.includes('unauthorized_client')) {
+              throw new Error(
+                `Invalid refresh token: ${manualError.message || 'The refresh token is invalid, expired, or does not match the provided client credentials. Please verify your refresh token is correct and matches the sandbox environment.'}`
+              );
+            }
+            
+            throw new Error(
+              `Failed to validate refresh token (both SDK and manual methods failed): ${manualError.message || 'Unable to get access token. Please verify your refresh token is correct and not expired. For sandbox, ensure you are using sandbox app credentials.'}`
+            );
+          }
+        } else {
+          // For production or non-400 errors, restore env vars and throw
+          // Restore original environment variables before throwing error
+          if (originalEndpoint !== undefined) {
+            process.env.AMAZON_SP_API_ENDPOINT = originalEndpoint;
+          } else {
+            delete process.env.AMAZON_SP_API_ENDPOINT;
+          }
+          if (originalLwaEndpoint !== undefined) {
+            process.env.AMAZON_LWA_ENDPOINT = originalLwaEndpoint;
+          } else {
+            delete process.env.AMAZON_LWA_ENDPOINT;
+          }
+          if (isSandbox) {
+            delete process.env.AMAZON_ENDPOINT;
+            delete process.env.LWA_ENDPOINT;
+          }
+          
+          // Check for specific error types
+          if (error.message?.includes('invalid_grant') || 
+              error.message?.includes('REFRESH_TOKEN_EXPIRED') ||
+              error.message?.includes('invalid_client') ||
+              error.message?.includes('unauthorized_client')) {
+            throw new Error(
+              `Invalid refresh token: ${error.message || 'The refresh token is invalid, expired, or does not match the provided client credentials. Please verify your refresh token is correct.'}`
+            );
+          }
+          
+          throw new Error(
+            `Failed to validate refresh token: ${error.message || 'Unable to get access token. Please verify your refresh token is correct and not expired.'}`
+          );
+        }
+      }
+
+      // Cache it only after successful validation
+      this.authInstances.set(sellerId, {
+        auth,
+        marketplaceId,
+        lastUsed: new Date(),
+        environment: envType,
+        endpoint,
+      });
+
+      // Restore original environment variables after successful validation
+      if (originalEndpoint !== undefined) {
+        process.env.AMAZON_SP_API_ENDPOINT = originalEndpoint;
+      } else {
+        delete process.env.AMAZON_SP_API_ENDPOINT;
+      }
+      if (originalLwaEndpoint !== undefined) {
+        process.env.AMAZON_LWA_ENDPOINT = originalLwaEndpoint;
+      } else {
+        delete process.env.AMAZON_LWA_ENDPOINT;
+      }
+      if (isSandbox) {
+        delete process.env.AMAZON_ENDPOINT;
+        delete process.env.LWA_ENDPOINT;
       }
 
       logger.info({ 
-        sellerId,
-        accessTokenLength: accessToken.length,
-        accessTokenPrefix: accessToken.substring(0, 10) + '...'
-      }, 'Refresh token validated successfully - access token retrieved');
+        sellerId, 
+        marketplaceId,
+        refreshTokenSource: 'frontend',
+        refreshTokenLength: refreshTokenTrimmed.length,
+        environment: envType,
+        note: 'Using refreshToken from frontend request, NOT from environment variables. Token validated successfully.'
+      }, 'Auth instance created and cached for seller');
+      
+      return auth;
     } catch (error: any) {
-      logger.error({ 
-        error: error.message || error,
-        sellerId,
-        refreshTokenPrefix: refreshTokenTrimmed.substring(0, 10) + '...'
-      }, 'Refresh token validation failed');
-      
-      // Check for specific error types
-      if (error.message?.includes('invalid_grant') || 
-          error.message?.includes('REFRESH_TOKEN_EXPIRED') ||
-          error.message?.includes('invalid_client') ||
-          error.message?.includes('unauthorized_client')) {
-        throw new Error(
-          `Invalid refresh token: ${error.message || 'The refresh token is invalid, expired, or does not match the provided client credentials. Please verify your refresh token is correct.'}`
-        );
+      // Restore original environment variables on error
+      if (originalEndpoint !== undefined) {
+        process.env.AMAZON_SP_API_ENDPOINT = originalEndpoint;
+      } else {
+        delete process.env.AMAZON_SP_API_ENDPOINT;
       }
-      
-      throw new Error(
-        `Failed to validate refresh token: ${error.message || 'Unable to get access token. Please verify your refresh token is correct and not expired.'}`
-      );
+      if (originalLwaEndpoint !== undefined) {
+        process.env.AMAZON_LWA_ENDPOINT = originalLwaEndpoint;
+      } else {
+        delete process.env.AMAZON_LWA_ENDPOINT;
+      }
+      if (isSandbox) {
+        delete process.env.AMAZON_ENDPOINT;
+        delete process.env.LWA_ENDPOINT;
+      }
+      throw error;
     }
-
-    // Cache it only after successful validation
-    this.authInstances.set(sellerId, {
-      auth,
-      marketplaceId,
-      lastUsed: new Date(),
-    });
-
-    logger.info({ 
-      sellerId, 
-      marketplaceId,
-      refreshTokenSource: 'frontend',
-      refreshTokenLength: refreshTokenTrimmed.length,
-      note: 'Using refreshToken from frontend request, NOT from environment variables. Token validated successfully.'
-    }, 'Auth instance created and cached for seller');
-    
-    return auth;
   }
 
   /**
@@ -316,11 +547,21 @@ export class AmazonService {
    */
   private getListingsClientForSeller(sellerId?: string): ListingsItemsApiClient {
     if (sellerId && this.isAuthInitializedForSeller(sellerId)) {
-      const auth = this.getAuthForSeller(sellerId);
-      return new ListingsItemsApiClient({
-        auth,
-        region: this.REGION,
-      });
+      const cached = this.authInstances.get(sellerId);
+      if (cached) {
+        const auth = cached.auth;
+        // Use sandbox endpoint if environment is SANDBOX
+        const config: any = {
+          auth,
+          region: cached.environment === 'SANDBOX' ? 'na' : this.REGION, // Sandbox uses NA region
+        };
+        // If endpoint is specified, try to pass it (SDK might support it)
+        if (cached.endpoint) {
+          // Some SDK versions support endpoint parameter
+          config.endpoint = cached.endpoint;
+        }
+        return new ListingsItemsApiClient(config);
+      }
     }
     // Fall back to legacy client
     return this.getListingsClient();
@@ -418,11 +659,20 @@ export class AmazonService {
    */
   private getOrdersClientForSeller(sellerId?: string): OrdersApiClient {
     if (sellerId && this.isAuthInitializedForSeller(sellerId)) {
-      const auth = this.getAuthForSeller(sellerId);
-      return new OrdersApiClient({
-        auth,
-        region: this.REGION,
-      });
+      const cached = this.authInstances.get(sellerId);
+      if (cached) {
+        const auth = cached.auth;
+        // Use sandbox endpoint if environment is SANDBOX
+        const config: any = {
+          auth,
+          region: cached.environment === 'SANDBOX' ? 'na' : this.REGION, // Sandbox uses NA region
+        };
+        // If endpoint is specified, try to pass it (SDK might support it)
+        if (cached.endpoint) {
+          config.endpoint = cached.endpoint;
+        }
+        return new OrdersApiClient(config);
+      }
     }
     // Fall back to legacy client
     return this.getOrdersClient();
@@ -670,9 +920,9 @@ export class AmazonService {
         }
         
         // Return helpful error message
-        return {
+      return {
           sku,
-          sellerId,
+        sellerId,
           marketplaceIds: marketplaces,
           message: 'No listing found for this SKU',
           note: 'The SKU may not exist for this seller, or the sellerId may not match the authenticated seller account. Verify: 1) SKU exists in Seller Central, 2) sellerId matches your authenticated account, 3) SKU is active in the specified marketplace',

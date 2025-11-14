@@ -36,6 +36,26 @@ export async function buildServer() {
   // Register form body parser
   await fastify.register(formbody);
 
+  // Add custom content type parser to allow empty JSON bodies (for DELETE requests)
+  fastify.addContentTypeParser('application/json', { parseAs: 'string' }, (req, body, done) => {
+    try {
+      // If body is empty or whitespace, return empty object instead of throwing error
+      const bodyStr = typeof body === 'string' ? body : body.toString();
+      if (!bodyStr || bodyStr.trim() === '' || bodyStr.trim() === '{}') {
+        return done(null, {});
+      }
+      // Otherwise parse as JSON
+      const json = JSON.parse(bodyStr);
+      done(null, json);
+    } catch (err) {
+      // If parsing fails, return empty object for DELETE requests, otherwise throw
+      if (req.method === 'DELETE') {
+        return done(null, {});
+      }
+      done(err as Error, undefined);
+    }
+  });
+
   // Register multipart support and expose files/fields on request.body for schema validation
   await fastify.register(multipart, {
     attachFieldsToBody: true,

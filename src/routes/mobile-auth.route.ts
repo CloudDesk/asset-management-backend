@@ -231,7 +231,7 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
       // Ensure expiresIn and canResendAfter are always present (even if 0)
       const expiresIn = otpResult.expiresIn ?? exotelConfig?.expirySeconds ?? 0;
       const canResendAfter = exotelConfig?.resendCooldownSeconds ?? 0;
-      
+
       const response = createSuccessResponse(responseMessage, {
         mobileNumber: usermobilenumber,
         otpSent: true,
@@ -708,7 +708,7 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
       // Ensure expiresIn and canResendAfter are always present (even if 0)
       const expiresIn = otpResult.expiresIn ?? twilioConfig?.expirySeconds ?? 0;
       const canResendAfter = twilioConfig?.resendCooldownSeconds ?? 0;
-      
+
       const response = createSuccessResponse(responseMessage, {
         mobileNumber: usermobilenumber,
         otpSent: true,

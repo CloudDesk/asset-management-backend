@@ -207,21 +207,21 @@ export class ExotelSmsService {
       // Optional: If DLT Template ID is configured, add DLT parameters
       // This is for DLT compliance but the Body with OTP will still be sent
       if (EXOTEL_DLT_TEMPLATE_ID && otpCode) {
-        requestData.DLTTemplateId = EXOTEL_DLT_TEMPLATE_ID;
-        
-        if (EXOTEL_ENTITY_ID && EXOTEL_ENTITY_ID.trim() !== '') {
-          requestData.DltEntityId = EXOTEL_ENTITY_ID;
-          logger.debug({ 
-            entityId: EXOTEL_ENTITY_ID,
+          requestData.DLTTemplateId = EXOTEL_DLT_TEMPLATE_ID;
+          
+          if (EXOTEL_ENTITY_ID && EXOTEL_ENTITY_ID.trim() !== '') {
+            requestData.DltEntityId = EXOTEL_ENTITY_ID;
+            logger.debug({ 
+              entityId: EXOTEL_ENTITY_ID,
             senderId: EXOTEL_SENDER_ID
           }, 'Including DLT Entity ID');
         }
         
         // DLT variables for template (if template uses {#var#} placeholder)
         requestData.DLTVariables = JSON.stringify({ var: otpCode });
-        
-        logger.info({ 
-          templateId: EXOTEL_DLT_TEMPLATE_ID,
+          
+          logger.info({ 
+            templateId: EXOTEL_DLT_TEMPLATE_ID,
           usingDltTemplate: true,
           note: 'DLT template configured - Body message will be sent with DLT compliance'
         }, 'Using DLT template (Body message still sent)');

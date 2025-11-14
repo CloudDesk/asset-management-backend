@@ -109,10 +109,11 @@ export class AmazonController {
         clientSecret
       );
 
-      // Get sellerId and marketplaceId from environment
+      // Get sellerId, marketplaceId, and environment from environment variables
       const { env } = await import('../config/env.js');
       const sellerId = env.AMAZON_SELLER_ID || 'Not set in environment';
       const marketplaceId = env.AMAZON_MARKETPLACE_ID || 'A21TJRUUN4KGV';
+      const environment = env.AMAZON_ENVIRONMENT || 'PRODUCTION';
 
       return reply.code(200).send({
         success: true,
@@ -120,9 +121,10 @@ export class AmazonController {
         data: {
           sellerId,
           marketplaceId,
+          environment,
           initialized: true,
           validated: true,
-          note: 'Refresh token validated successfully. SDK will automatically handle token refresh. No need to resend refresh_token after 1 hour. sellerId and marketplaceId are read from environment variables.',
+          note: 'Refresh token validated successfully. SDK will automatically handle token refresh. No need to resend refresh_token after 1 hour. sellerId, marketplaceId, and environment are read from environment variables (AMAZON_SELLER_ID, AMAZON_MARKETPLACE_ID, AMAZON_ENVIRONMENT).',
         },
       });
     } catch (error: any) {
