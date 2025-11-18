@@ -97,6 +97,7 @@ const envSchema = z.object({
   AWS_ACCESS_KEY_ID: z.string().optional(),
   AWS_SECRET_ACCESS_KEY: z.string().optional(),
 
+  
 });
 
 export const env = envSchema.parse(process.env);
