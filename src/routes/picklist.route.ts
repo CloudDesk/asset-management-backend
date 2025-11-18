@@ -426,3 +426,86 @@ export async function picklistRoutes(fastify: FastifyInstance) {
     },
   }, picklistController.deletePicklist.bind(picklistController));
 } 
+
+/**
+ * v2 Picklist Routes - Enhanced with grouping support
+ */
+export async function picklistRoutesV2(fastify: FastifyInstance) {
+  const picklistController = new PicklistController();
+
+  // GET /v2/picklists - Get all picklists with optional grouping by fieldname
+  fastify.get('/', {
+    schema: {
+      description: 'Get all picklists with optional grouping by fieldname (v2)',
+      tags: ['Picklists v2'],
+      // Note: Response schema validation is minimal to allow flexible grouped/flat formats
+      // The data property can be either an object (grouped) or array (flat)
+      response: {
+        '2xx': {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            meta: {
+              type: 'object',
+              additionalProperties: true
+            },
+            pagination: {
+              type: 'object',
+              nullable: true,
+              additionalProperties: true
+            },
+            message: { type: 'string' }
+          },
+          additionalProperties: true // Allow data property without strict validation
+        }
+      },
+      querystring: {
+        type: 'object',
+        properties: {
+          object: { 
+            type: 'string', 
+            description: 'Filter by object name (e.g., product, stock)' 
+          },
+          groupByFieldname: { 
+            type: 'string', 
+            enum: ['true', 'false'],
+            description: 'Enable grouping by fieldname (default: false). When true, returns structured JSON grouped by fieldname.' 
+          },
+          groupByParent: {
+            type: 'string',
+            enum: ['true', 'false'],
+            description: 'Enable nested grouping by parent within each fieldname (default: false). Requires groupByFieldname=true. When true, returns nested structure: { fieldname: { parent: [...] } }'
+          },
+          sortorder: { 
+            type: 'string', 
+            enum: ['ASC', 'DESC', 'asc', 'desc'],
+            description: 'Sort direction for sortorder field within each group (default: ASC)' 
+          },
+          fieldnameOrder: {
+            type: 'string',
+            enum: ['ASC', 'DESC', 'asc', 'desc'],
+            description: 'Sort direction for fieldname groups (default: ASC)'
+          },
+          limit: { 
+            type: 'string', 
+            description: 'Global limit (not per fieldname). Default: 1000' 
+          },
+          searchtext: {
+            type: 'string',
+            description: 'Case-insensitive text search on label, value, fieldname, object, or parent fields'
+          },
+          parent: { 
+            type: 'string', 
+            description: 'Filter by parent value (for dependent fields)' 
+          },
+          label: { type: 'string', description: 'Filter by label' },
+          value: { type: 'string', description: 'Filter by value' },
+          controlledvalue: { type: 'string', description: 'Filter by controlled value' },
+          fieldname: { type: 'string', description: 'Filter by field name' },
+          controlledlabel: { type: 'string', description: 'Filter by controlled label' },
+          controlledfieldname: { type: 'string', description: 'Filter by controlled field name' },
+        },
+      },
+    },
+  }, picklistController.getPicklistsV2.bind(picklistController));
+} 

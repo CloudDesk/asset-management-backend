@@ -12,7 +12,8 @@ import {
   dynamicCreate, 
   dynamicUpdate, 
   dynamicDelete,
-  dynamicFindManyWithFilters
+  dynamicFindManyWithFilters,
+  formatEntitiesForAPI
 } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
 
@@ -380,6 +381,249 @@ export class PicklistService {
       return grouped;
     } catch (error) {
       logger.error({ error, object, sortBy, order }, 'Error finding grouped picklists');
+      throw error;
+    }
+  }
+
+  /**
+   * v2: Get picklists with optional grouping by fieldname and/or parent
+   * Supports both flat and grouped response formats
+   * 
+   * @param filters - Filter options including object, searchtext, parent, etc.
+   * @param groupByFieldname - If true, returns grouped by fieldname; if false, returns flat array
+   * @param groupByParent - If true (and groupByFieldname is true), groups by parent within each fieldname
+   * @param sortorder - Sort direction for sortorder field (ASC/DESC)
+   * @param fieldnameOrder - Sort direction for fieldname groups (ASC/DESC)
+   * @param limit - Global limit (not per fieldname)
+   * @returns Object with grouped/flat data and metadata
+   */
+  async findManyV2(
+    filters: FilterOptions,
+    groupByFieldname: boolean = false,
+    groupByParent: boolean = false,
+    sortorder: 'ASC' | 'DESC' = 'ASC',
+    fieldnameOrder: 'ASC' | 'DESC' = 'ASC',
+    limit: number = 1000
+  ): Promise<{
+    grouped?: Record<string, any[] | Record<string, any[]>>;
+    flat?: any[];
+    meta: {
+      object?: string;
+      grouped: boolean;
+      groupedByParent?: boolean;
+      groupCount?: number;
+      totalRecords: number;
+    };
+    pagination?: PaginationResult<any>['pagination'];
+  }> {
+    try {
+      logger.info({ 
+        filters, 
+        groupByFieldname, 
+        groupByParent,
+        sortorder, 
+        fieldnameOrder, 
+        limit 
+      }, 'Starting v2 picklist findMany');
+
+      // Extract filters (remove grouping and sorting params from WHERE clause)
+      const { 
+        groupByFieldname: _, 
+        groupByParent: __,
+        sortorder: ___, 
+        fieldnameOrder: ____, 
+        limit: _____,
+        page: ______,
+        ...actualFilters 
+      } = filters;
+
+      // Build WHERE conditions
+      const whereConditions: any = {};
+
+      if (actualFilters.object) {
+        whereConditions.object = actualFilters.object;
+      }
+
+      if (actualFilters.parent) {
+        whereConditions.parent = actualFilters.parent;
+      }
+
+      // Handle searchtext - search across label, value, fieldname, object, parent
+      if (actualFilters.searchtext) {
+        const searchText = actualFilters.searchtext;
+        whereConditions.OR = [
+          { label: { contains: searchText, mode: 'insensitive' } },
+          { value: { contains: searchText, mode: 'insensitive' } },
+          { fieldname: { contains: searchText, mode: 'insensitive' } },
+          { object: { contains: searchText, mode: 'insensitive' } },
+          { parent: { contains: searchText, mode: 'insensitive' } },
+        ];
+      }
+
+      // Apply other filters
+      Object.keys(actualFilters).forEach(key => {
+        if (!['object', 'parent', 'searchtext'].includes(key) && actualFilters[key] !== undefined) {
+          whereConditions[key] = actualFilters[key];
+        }
+      });
+
+      // Build orderBy
+      const orderBy: any[] = [];
+      
+      // Always order by fieldname first (for grouping consistency)
+      orderBy.push({ fieldname: fieldnameOrder.toLowerCase() });
+      
+      // Then by sortorder (handle nulls last)
+      if (sortorder === 'DESC') {
+        orderBy.push({ sortorder: 'desc' });
+      } else {
+        orderBy.push({ sortorder: 'asc' });
+      }
+
+      // Fetch all records (up to limit) - no pagination for grouped mode
+      const picklists = await prisma.picklist.findMany({
+        where: Object.keys(whereConditions).length > 0 ? whereConditions : undefined,
+        orderBy,
+        take: limit || 1000,
+      });
+
+      // Format picklists for API
+      const formattedPicklists = formatEntitiesForAPI(picklists, 'picklist');
+
+      const totalRecords = formattedPicklists.length;
+
+      // If grouping is requested, group by fieldname (and optionally by parent)
+      if (groupByFieldname) {
+        if (groupByParent) {
+          // Nested grouping: fieldname -> parent -> items
+          const grouped: Record<string, Record<string, any[]>> = {};
+          
+          for (const picklist of formattedPicklists) {
+            const fieldName = picklist.fieldname || 'unknown';
+            // Handle null, empty string, or undefined parent values
+            const parentValue = picklist.parent;
+            const parentKey = (parentValue && String(parentValue).trim() !== '') 
+              ? String(parentValue) 
+              : 'null';
+            
+            if (!grouped[fieldName]) {
+              grouped[fieldName] = {};
+            }
+            if (!grouped[fieldName][parentKey]) {
+              grouped[fieldName][parentKey] = [];
+            }
+            grouped[fieldName][parentKey].push(picklist);
+          }
+
+          // Sort each parent group by sortorder
+          for (const fieldName in grouped) {
+            const fieldGroup = grouped[fieldName];
+            for (const parentKey in fieldGroup) {
+              const parentGroup = fieldGroup[parentKey];
+              if (parentGroup && parentGroup.length > 0) {
+                parentGroup.sort((a, b) => {
+                  const aSort = a.sortorder ?? Number.MAX_SAFE_INTEGER;
+                  const bSort = b.sortorder ?? Number.MAX_SAFE_INTEGER;
+                  if (sortorder === 'ASC') {
+                    return aSort - bSort;
+                  } else {
+                    return bSort - aSort;
+                  }
+                });
+              }
+            }
+          }
+
+          logger.info({
+            object: actualFilters.object,
+            groupCount: Object.keys(grouped).length,
+            totalRecords,
+            grouped: true,
+            groupedByParent: true
+          }, 'v2 picklist findMany grouped by fieldname and parent completed');
+
+          return {
+            grouped,
+            meta: {
+              ...(actualFilters.object && { object: actualFilters.object as string }),
+              grouped: true,
+              groupedByParent: true,
+              groupCount: Object.keys(grouped).length,
+              totalRecords
+            }
+          };
+        } else {
+          // Simple grouping: fieldname -> items
+          const grouped: Record<string, any[]> = {};
+          
+          for (const picklist of formattedPicklists) {
+            const fieldName = picklist.fieldname || 'unknown';
+            if (!grouped[fieldName]) {
+              grouped[fieldName] = [];
+            }
+            grouped[fieldName].push(picklist);
+          }
+
+          // Sort each group by sortorder (already sorted from query, but ensure consistency)
+          for (const fieldName in grouped) {
+            const group = grouped[fieldName];
+            if (group && group.length > 0) {
+              group.sort((a, b) => {
+                const aSort = a.sortorder ?? Number.MAX_SAFE_INTEGER;
+                const bSort = b.sortorder ?? Number.MAX_SAFE_INTEGER;
+                if (sortorder === 'ASC') {
+                  return aSort - bSort;
+                } else {
+                  return bSort - aSort;
+                }
+              });
+            }
+          }
+
+          logger.info({
+            object: actualFilters.object,
+            groupCount: Object.keys(grouped).length,
+            totalRecords,
+            grouped: true
+          }, 'v2 picklist findMany grouped by fieldname completed');
+
+          return {
+            grouped,
+            meta: {
+              ...(actualFilters.object && { object: actualFilters.object as string }),
+              grouped: true,
+              groupedByParent: false,
+              groupCount: Object.keys(grouped).length,
+              totalRecords
+            }
+          };
+        }
+      }
+
+      // Flat response (legacy compatible)
+      logger.info({
+        totalRecords,
+        grouped: false
+      }, 'v2 picklist findMany flat completed');
+
+      return {
+        flat: formattedPicklists,
+        meta: {
+          ...(actualFilters.object && { object: actualFilters.object as string }),
+          grouped: false,
+          totalRecords
+        },
+        pagination: {
+          page: 1,
+          limit: limit || 1000,
+          total: totalRecords,
+          totalPages: Math.ceil(totalRecords / (limit || 1000)),
+          hasNext: false,
+          hasPrev: false
+        }
+      };
+    } catch (error) {
+      logger.error({ error, filters, groupByFieldname, groupByParent }, 'Error in v2 picklist findMany operation');
       throw error;
     }
   }

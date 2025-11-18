@@ -197,6 +197,185 @@ GET /v1/picklists?searchtext=status&fieldnameOrder=ASC&sortorder=DESC
 - `409` - Conflict - Cannot delete due to foreign key constraints (includes details about blocking records)
 - `500` - Internal server error
 
+## 🚀 API v2 Endpoints (Enhanced Grouping)
+
+### 1. GET /v2/picklists
+**Description:** Get all picklists with enhanced grouping capabilities optimized for Admin Panel UI
+**Query Parameters:**
+- `object` - Filter by object name (e.g., product, stock)
+- `groupByFieldname` - Enable grouping by fieldname: `true` or `false` (default: false). When true, returns structured JSON grouped by fieldname.
+- `groupByParent` - Enable nested grouping by parent within each fieldname: `true` or `false` (default: false). **Requires `groupByFieldname=true`**. When true, returns nested structure: `{ fieldname: { parent: [...] } }`
+- `sortorder` - Sort direction for sortorder field within each group: `ASC`, `DESC`, `asc`, or `desc` (default: ASC)
+- `fieldnameOrder` - Sort direction for fieldname groups: `ASC`, `DESC`, `asc`, or `desc` (default: ASC)
+- `limit` - Global limit (not per fieldname). Default: 1000
+- `searchtext` - Case-insensitive text search on label, value, fieldname, object, or parent fields
+- `parent` - Filter by parent value (for dependent fields)
+- `label` - Filter by label
+- `value` - Filter by value
+- `controlledvalue` - Filter by controlled value
+- `fieldname` - Filter by field name
+- `controlledlabel` - Filter by controlled label
+- `controlledfieldname` - Filter by controlled field name
+
+**Grouping Modes:**
+
+1. **Flat Response (Default)** - When `groupByFieldname` is not provided or `false`:
+   - Returns a flat array of picklist records
+   - Compatible with v1 response format
+   - Includes pagination information
+
+2. **Simple Grouping** - When `groupByFieldname=true` and `groupByParent=false` (or not provided):
+   - Returns data grouped by fieldname: `{ "category": [...], "subcategory": [...] }`
+   - Each fieldname key contains an array of picklist records
+   - Records within each group are sorted by `sortorder` (ASC/DESC)
+
+3. **Nested Grouping** - When `groupByFieldname=true` and `groupByParent=true`:
+   - Returns nested structure: `{ "fieldname": { "parent": [...] } }`
+   - First level: fieldname (e.g., "category", "subcategory", "fragnancetype")
+   - Second level: parent value (e.g., "incense_sticks", "home_fragrance")
+   - Items with null/empty parent are grouped under `"null"` key
+   - Perfect for hierarchical picklist structures (Category → Subcategory → Fragrance Type)
+
+**Response Formats:**
+
+**Flat Response:**
+```json
+{
+  "success": true,
+  "data": [
+    { "id": 30, "label": "Home Fragrance", "fieldname": "category", ... },
+    { "id": 33, "label": "Incense Sticks", "fieldname": "subcategory", ... }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 1000,
+    "total": 50,
+    "totalPages": 1,
+    "hasNext": false,
+    "hasPrev": false
+  },
+  "meta": {
+    "object": "product",
+    "grouped": false,
+    "totalRecords": 50
+  },
+  "message": "Picklists retrieved successfully"
+}
+```
+
+**Simple Grouped Response (`groupByFieldname=true`):**
+```json
+{
+  "success": true,
+  "data": {
+    "category": [
+      { "id": 30, "label": "Home Fragrance", "sortorder": 1, ... },
+      { "id": 31, "label": "Wellness & Aromatherapy", "sortorder": 2, ... }
+    ],
+    "subcategory": [
+      { "id": 33, "label": "Incense Sticks", "sortorder": 1, ... },
+      { "id": 38, "label": "Diffusers", "sortorder": 6, ... }
+    ],
+    "fragnancetype": [
+      { "id": 3, "label": "Kasturi", "parent": "incense_sticks", "sortorder": 1, ... }
+    ]
+  },
+  "meta": {
+    "object": "product",
+    "grouped": true,
+    "groupedByParent": false,
+    "groupCount": 3,
+    "totalRecords": 28
+  },
+  "message": "Picklists grouped by fieldname successfully"
+}
+```
+
+**Nested Grouped Response (`groupByFieldname=true&groupByParent=true`):**
+```json
+{
+  "success": true,
+  "data": {
+    "category": {
+      "null": [
+        { "id": 30, "label": "Home Fragrance", "parent": "", "sortorder": 1, ... }
+      ]
+    },
+    "subcategory": {
+      "home_fragrance": [
+        { "id": 33, "label": "Incense Sticks", "parent": "home_fragrance", "sortorder": 1, ... },
+        { "id": 34, "label": "Dhoop Sticks", "parent": "home_fragrance", "sortorder": 2, ... }
+      ],
+      "wellness_aromatherapy": [
+        { "id": 36, "label": "Essential Oils", "parent": "wellness_aromatherapy", "sortorder": 4, ... }
+      ]
+    },
+    "fragnancetype": {
+      "incense_sticks": [
+        { "id": 3, "label": "Kasturi", "parent": "incense_sticks", "sortorder": 1, ... },
+        { "id": 4, "label": "Kesar Chandan", "parent": "incense_sticks", "sortorder": 2, ... }
+      ]
+    },
+    "gender": {
+      "toiletries": [
+        { "id": 48, "label": "Unisex", "parent": "toiletries", "sortorder": 1, ... }
+      ],
+      "fragrance_sachets": [
+        { "id": 45, "label": "Unisex", "parent": "fragrance_sachets", "sortorder": 1, ... }
+      ]
+    }
+  },
+  "meta": {
+    "object": "product",
+    "grouped": true,
+    "groupedByParent": true,
+    "groupCount": 10,
+    "totalRecords": 50
+  },
+  "message": "Picklists grouped by fieldname and parent successfully"
+}
+```
+
+**Usage Examples:**
+
+**Flat response (v1 compatible):**
+```bash
+GET /v2/picklists?object=product
+```
+
+**Simple grouping by fieldname:**
+```bash
+GET /v2/picklists?object=product&groupByFieldname=true
+```
+
+**Nested grouping by fieldname and parent:**
+```bash
+GET /v2/picklists?object=product&groupByFieldname=true&groupByParent=true
+```
+
+**With parent filter:**
+```bash
+GET /v2/picklists?parent=incense_sticks&groupByFieldname=true&groupByParent=true
+```
+
+**With sorting:**
+```bash
+GET /v2/picklists?object=product&groupByFieldname=true&groupByParent=true&sortorder=DESC&fieldnameOrder=ASC
+```
+
+**With search:**
+```bash
+GET /v2/picklists?searchtext=fragrance&groupByFieldname=true&groupByParent=true
+```
+
+**Key Features:**
+- ✅ **UI-Optimized Structure** - Grouped format perfect for Admin Panel dropdowns and hierarchical displays
+- ✅ **Nested Grouping** - Support for parent-dependent picklists (e.g., Fragrance Type under Subcategory)
+- ✅ **Flexible Filtering** - All v1 filters work with v2 grouping
+- ✅ **Backward Compatible** - Flat mode maintains v1 compatibility
+- ✅ **No Fieldname-Level Pagination** - Returns all records for each fieldname group (pagination is global if needed)
+- ✅ **Optimized Sorting** - Groups sorted by fieldname, then by sortorder within each group/parent
+
 ## 📝 Response Format
 
 **Success Response:**
@@ -244,6 +423,7 @@ GET /v1/picklists?searchtext=status&fieldnameOrder=ASC&sortorder=DESC
 
 ## 🎯 Production Features Verified
 
+### v1 API Features:
 ✅ **Complete CRUD Operations** - All create, read, update, delete operations working
 ✅ **Query Parameter Filtering** - Multiple filters can be combined like `/v1/picklists?object=product&fieldname=productstatus`
 ✅ **Text Search** - Search across multiple fields (object, fieldname, label, value, parent) using `searchtext` parameter (case-insensitive)
@@ -256,6 +436,16 @@ GET /v1/picklists?searchtext=status&fieldnameOrder=ASC&sortorder=DESC
 ✅ **Database Field Alignment** - API matches actual database schema including `sortorder` field
 ✅ **Swagger Documentation** - Available at `/docs` endpoint
 ✅ **Production Error Handling** - Comprehensive error responses with details including foreign key constraint information
+
+### v2 API Features:
+✅ **Enhanced Grouping** - Group by fieldname with `groupByFieldname=true` for UI-optimized structure
+✅ **Nested Grouping** - Group by parent within fieldname using `groupByParent=true` for hierarchical picklists
+✅ **Flexible Response Formats** - Supports flat, simple grouped, and nested grouped responses
+✅ **Backward Compatibility** - Flat mode maintains full v1 compatibility
+✅ **Parent-Dependent Support** - Perfect for dependent picklists (e.g., Fragrance Type filtered by Subcategory)
+✅ **Null Parent Handling** - Items with null/empty parent grouped under `"null"` key
+✅ **Optimized for Admin UI** - Single API call returns all picklist types in structured format
+✅ **All v1 Filters Supported** - All filtering, searching, and sorting features work with v2 grouping
 
 ## 🔍 Usage Examples
 
@@ -305,8 +495,31 @@ curl -X PUT "http://localhost:5600/v1/picklists/123" \
   }'
 ```
 
+**v2 API Examples:**
+
+**Get grouped picklists for product object:**
+```bash
+curl "http://localhost:5600/v2/picklists?object=product&groupByFieldname=true"
+```
+
+**Get nested grouped picklists (by fieldname and parent):**
+```bash
+curl "http://localhost:5600/v2/picklists?object=product&groupByFieldname=true&groupByParent=true"
+```
+
+**Get nested grouped with specific parent filter:**
+```bash
+curl "http://localhost:5600/v2/picklists?parent=incense_sticks&groupByFieldname=true&groupByParent=true"
+```
+
+**Get nested grouped with custom sorting:**
+```bash
+curl "http://localhost:5600/v2/picklists?object=product&groupByFieldname=true&groupByParent=true&sortorder=DESC&fieldnameOrder=ASC"
+```
+
 ## 🛠 Key Updates Made
 
+### v1 API Updates:
 1. **Schema Alignment** - Updated all schemas to match actual database fields including `sortorder`
 2. **Route Simplification** - Removed unnecessary `/by-object` and `/by-fieldname` routes
 3. **Text Search Feature** - Added `searchtext` parameter for case-insensitive search across multiple fields
@@ -318,10 +531,21 @@ curl -X PUT "http://localhost:5600/v1/picklists/123" \
 9. **Comprehensive Testing** - 11 test cases covering all functionality
 10. **Foreign Key Constraint Handling** - Added 409 status code with detailed error information for DELETE operations
 
+### v2 API Updates:
+11. **Enhanced Grouping Service** - Added `findManyV2()` method with support for nested grouping
+12. **Nested Grouping Support** - Implemented `groupByParent` parameter for hierarchical picklist structures
+13. **Flexible Response Types** - Support for flat, simple grouped, and nested grouped response formats
+14. **Parent Value Handling** - Proper handling of null/empty parent values (grouped under `"null"` key)
+15. **v2 Route Registration** - Added `/v2/picklists` endpoint with comprehensive schema documentation
+16. **UI-Optimized Structure** - Designed specifically for Admin Panel listing views and hierarchical displays
+17. **Backward Compatibility** - Flat mode maintains full v1 compatibility
+18. **Enhanced Metadata** - Added `groupedByParent` flag in meta response for better client-side handling
+
 ## 🚀 Ready for Production
 
-The Picklist API is now fully aligned with the database schema and follows the same pattern as your product API. It supports:
+The Picklist API (v1 and v2) is now fully aligned with the database schema and follows the same pattern as your product API. It supports:
 
+### v1 API:
 - Query parameter filtering just like `/v1/products?category=electronics`
 - Multiple simultaneous filters
 - Pagination
@@ -329,6 +553,17 @@ The Picklist API is now fully aligned with the database schema and follows the s
 - Proper error handling
 - Production-ready responses
 
+### v2 API:
+- Enhanced grouping for UI-optimized data structures
+- Nested grouping for hierarchical picklist relationships
+- Single API call for all picklist types in structured format
+- Perfect for Admin Panel dropdowns and dependent field displays
+- Backward compatible with v1 flat responses
+
 **Test Results:** ✅ All 11 tests passed including edge cases and error handling.
 
-The API is ready for production deployment and integration with your frontend applications. 
+**API Versions:**
+- **v1** - Full-featured API with pagination, filtering, sorting, and basic grouping
+- **v2** - Enhanced API optimized for Admin Panel UI with advanced grouping capabilities
+
+Both API versions are ready for production deployment and integration with your frontend applications. Use v1 for standard list operations and v2 for UI-optimized grouped displays. 

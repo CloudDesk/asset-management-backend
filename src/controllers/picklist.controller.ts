@@ -80,4 +80,55 @@ export class PicklistController {
     const response = createSuccessResponse('Picklist item deleted successfully', null);
     return reply.code(200).send(response);
   });
+
+  /**
+   * v2: Get picklists with optional grouping by fieldname and/or parent
+   * Supports both flat and grouped response formats
+   */
+  getPicklistsV2 = asyncHandler(async (request: FastifyRequest<{ Querystring: Record<string, any> }>, reply: FastifyReply) => {
+    const allFilters: Record<string, any> = request.query || {};
+    
+    // Extract v2-specific parameters
+    const groupByFieldname = allFilters.groupByFieldname === 'true' || allFilters.groupByFieldname === true;
+    const groupByParent = allFilters.groupByParent === 'true' || allFilters.groupByParent === true;
+    const sortorder = (allFilters.sortorder?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC') as 'ASC' | 'DESC';
+    const fieldnameOrder = (allFilters.fieldnameOrder?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC') as 'ASC' | 'DESC';
+    const limit = allFilters.limit ? parseInt(allFilters.limit, 10) : 1000;
+    
+    // Remove v2-specific params from filters
+    const { groupByFieldname: _, groupByParent: __, sortorder: ___, fieldnameOrder: ____, limit: _____, ...filters } = allFilters;
+    
+    const result = await this.picklistService.findManyV2(
+      filters,
+      groupByFieldname,
+      groupByParent,
+      sortorder,
+      fieldnameOrder,
+      limit
+    );
+    
+    if (groupByFieldname && result.grouped) {
+      // Grouped response (with or without parent grouping)
+      const message = groupByParent 
+        ? 'Picklists grouped by fieldname and parent successfully'
+        : 'Picklists grouped by fieldname successfully';
+      
+      const response = createSuccessResponse(message, result.grouped);
+      return reply.code(200).send({
+        ...response,
+        meta: result.meta
+      });
+    }
+    
+    // Flat response (legacy compatible)
+    const response = createSuccessResponse(
+      'Picklists retrieved successfully',
+      result.flat || []
+    );
+    return reply.code(200).send({
+      ...response,
+      pagination: result.pagination,
+      meta: result.meta
+    });
+  });
 } 
