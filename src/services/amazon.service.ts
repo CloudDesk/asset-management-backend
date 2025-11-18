@@ -121,11 +121,25 @@ export class AmazonService {
     // Get sellerId and marketplaceId from environment variables
     const sellerId = env.AMAZON_SELLER_ID;
     const marketplaceId = env.AMAZON_MARKETPLACE_ID || this.DEFAULT_MARKETPLACE_ID;
+    
+    // Determine environment to provide appropriate error message
+    const currentEnvType = env.AMAZON_ENVIRONMENT || 'PRODUCTION';
+    const isCurrentSandbox = currentEnvType === 'SANDBOX';
 
     if (!sellerId) {
-      throw new Error(
-        'AMAZON_SELLER_ID is not set in environment variables. Please set it in your .env file.'
-      );
+      if (isCurrentSandbox) {
+        throw new Error(
+          'AMAZON_SELLER_ID environment variable is required. ' +
+          'In sandbox, you can use any mock seller ID (e.g., "A1MOCKSELLER123") - it doesn\'t need to be valid. ' +
+          'Alternatively, check the Swagger model JSON for the API to find example seller IDs from x-amzn-api-sandbox static examples. ' +
+          'Set AMAZON_SELLER_ID in your .env file.'
+        );
+      } else {
+        throw new Error(
+          'AMAZON_SELLER_ID environment variable is required. ' +
+          'Get your seller ID from: 1) Amazon product URL (seller= parameter), 2) Seller Central account info, or 3) Set AMAZON_SELLER_ID in your .env file.'
+        );
+      }
     }
 
     // Validate that refreshToken is provided (from frontend)
@@ -197,7 +211,10 @@ export class AmazonService {
     let lwaEndpoint: string | undefined;
     if (isSandbox) {
       // Sandbox endpoints
-      endpoint = 'https://sandbox.sellingpartnerapi-na.amazon.com'; // SP-API endpoint
+      // For India marketplace (A21TJRUUN4KGV), use EU sandbox endpoint
+      // Reference: https://developer-docs.amazon.com/sp-api/docs/sp-api-sandbox#sp-api-static-sandbox
+      // Europe region includes: Spain, UK, France, Netherlands, Germany, Italy, Sweden, Poland, Egypt, Turkey, UAE, and India
+      endpoint = 'https://sandbox.sellingpartnerapi-eu.amazon.com'; // SP-API endpoint (EU region for India)
       lwaEndpoint = 'https://api.sandbox.sellingpartnerapi.amazon.com'; // LWA endpoint for access tokens
     } else {
       // Production endpoints
@@ -550,15 +567,40 @@ export class AmazonService {
       const cached = this.authInstances.get(sellerId);
       if (cached) {
         const auth = cached.auth;
-        // Use sandbox endpoint if environment is SANDBOX
+        // For sandbox, use 'eu' region for India marketplace (sandbox endpoint is sandbox.sellingpartnerapi-eu.amazon.com)
+        // Reference: https://developer-docs.amazon.com/sp-api/docs/sp-api-sandbox#sp-api-static-sandbox
+        // Europe sandbox region includes: Spain, UK, France, Netherlands, Germany, Italy, Sweden, Poland, Egypt, Turkey, UAE, and India
+        // For production, use the appropriate region based on marketplace (India uses 'eu')
+        const region = cached.environment === 'SANDBOX' ? 'eu' : this.REGION;
+        
+        logger.debug({ 
+          sellerId, 
+          environment: cached.environment,
+          region,
+          endpoint: cached.endpoint,
+          marketplaceId: cached.marketplaceId,
+          note: 'Creating Listings client with seller-specific auth'
+        }, 'Listings client configuration');
+        
         const config: any = {
           auth,
-          region: cached.environment === 'SANDBOX' ? 'na' : this.REGION, // Sandbox uses NA region
+          region,
         };
-        // If endpoint is specified, try to pass it (SDK might support it)
-        if (cached.endpoint) {
-          // Some SDK versions support endpoint parameter
-          config.endpoint = cached.endpoint;
+        // For sandbox, configure the SDK to use sandbox endpoint
+        // The SDK's ClientConfiguration interface supports 'sandbox?: boolean'
+        // Reference: node_modules/@sp-api-sdk/common/dist/types/axios.d.ts
+        if (cached.environment === 'SANDBOX') {
+          // Set sandbox flag - the SDK will use this to construct the sandbox endpoint
+          // The SDK's createAxiosInstance function uses 'sandbox' to determine the endpoint
+          config.sandbox = true;
+          logger.debug({ 
+            sellerId,
+            environment: cached.environment,
+            region,
+            sandbox: true,
+            expectedEndpoint: cached.endpoint,
+            note: 'Configuring Listings client for sandbox mode using sandbox: true'
+          }, 'Configuring Listings client for sandbox');
         }
         return new ListingsItemsApiClient(config);
       }
@@ -662,14 +704,40 @@ export class AmazonService {
       const cached = this.authInstances.get(sellerId);
       if (cached) {
         const auth = cached.auth;
-        // Use sandbox endpoint if environment is SANDBOX
+        // For sandbox, use 'eu' region for India marketplace (sandbox endpoint is sandbox.sellingpartnerapi-eu.amazon.com)
+        // Reference: https://developer-docs.amazon.com/sp-api/docs/sp-api-sandbox#sp-api-static-sandbox
+        // Europe sandbox region includes: Spain, UK, France, Netherlands, Germany, Italy, Sweden, Poland, Egypt, Turkey, UAE, and India
+        // For production, use the appropriate region based on marketplace (India uses 'eu')
+        const region = cached.environment === 'SANDBOX' ? 'eu' : this.REGION;
+        
+        logger.debug({ 
+          sellerId, 
+          environment: cached.environment,
+          region,
+          endpoint: cached.endpoint,
+          marketplaceId: cached.marketplaceId,
+          note: 'Creating Orders client with seller-specific auth'
+        }, 'Orders client configuration');
+        
         const config: any = {
           auth,
-          region: cached.environment === 'SANDBOX' ? 'na' : this.REGION, // Sandbox uses NA region
+          region,
         };
-        // If endpoint is specified, try to pass it (SDK might support it)
-        if (cached.endpoint) {
-          config.endpoint = cached.endpoint;
+        // For sandbox, configure the SDK to use sandbox endpoint
+        // The SDK's ClientConfiguration interface supports 'sandbox?: boolean'
+        // Reference: node_modules/@sp-api-sdk/common/dist/types/axios.d.ts
+        if (cached.environment === 'SANDBOX') {
+          // Set sandbox flag - the SDK will use this to construct the sandbox endpoint
+          // The SDK's createAxiosInstance function uses 'sandbox' to determine the endpoint
+          config.sandbox = true;
+          logger.debug({ 
+            sellerId,
+            environment: cached.environment,
+            region,
+            sandbox: true,
+            expectedEndpoint: cached.endpoint,
+            note: 'Configuring Orders client for sandbox mode using sandbox: true'
+          }, 'Configuring Orders client for sandbox');
         }
         return new OrdersApiClient(config);
       }
@@ -968,31 +1036,102 @@ export class AmazonService {
     },
     includeInventory: boolean = false
   ): Promise<any> {
+    const marketplaces = marketplaceIds || [this.DEFAULT_MARKETPLACE_ID];
+    
+    // Build request params outside try block so it's available in catch
+    const requestParams: any = {
+      sellerId,
+      marketplaceIds: marketplaces,
+      ...query,
+    };
+
+    // Add includedData if inventory is requested
+    if (includeInventory) {
+      requestParams.includedData = ['summaries', 'fulfillmentAvailability'];
+    }
+
     try {
       const client = this.getListingsClientForSeller(sellerId);
-      const marketplaces = marketplaceIds || [this.DEFAULT_MARKETPLACE_ID];
 
       logger.info({ sellerId, marketplaces, query, includeInventory }, 'Searching listings items');
 
-      // If inventory is needed, include fulfillmentAvailability in the request
-      const requestParams: any = {
+      // Log the actual request being made (for debugging sandbox endpoint)
+      const cachedForLog = this.authInstances.get(sellerId);
+      logger.debug({ 
+        requestParams,
         sellerId,
-        marketplaceIds: marketplaces,
-        ...query,
-      };
-
-      // Add includedData if inventory is requested
-      if (includeInventory) {
-        requestParams.includedData = ['summaries', 'fulfillmentAvailability'];
-      }
-
+        environment: cachedForLog?.environment,
+        endpoint: cachedForLog?.endpoint,
+        note: 'About to call searchListingsItems - check if SDK is using sandbox endpoint'
+      }, 'Making searchListingsItems API call');
+      
       const response = await client.searchListingsItems(requestParams);
 
-      logger.debug('Listings items search completed successfully');
+      logger.debug({ 
+        status: response.status,
+        statusText: response.statusText,
+        dataKeys: response.data ? Object.keys(response.data) : [],
+        note: 'Listings items search completed'
+      }, 'Listings items search completed successfully');
       return response.data;
     } catch (error: any) {
-      logger.error({ error: error.message || error, sellerId }, 'Error searching listings items');
-      throw new Error(`Failed to search listings items: ${error.message || 'Unknown error'}`);
+      const cached = this.authInstances.get(sellerId);
+      const isSandbox = cached?.environment === 'SANDBOX';
+      
+      logger.error({ 
+        error: error.message || error, 
+        sellerId,
+        environment: cached?.environment,
+        region: cached?.environment === 'SANDBOX' ? 'eu' : this.REGION,
+        endpoint: cached?.endpoint,
+        requestParams,
+        note: isSandbox ? 'Sandbox environment - 400/403 errors often indicate parameter mismatch' : 'Production environment'
+      }, 'Error searching listings items');
+      
+      // Provide helpful error message for sandbox errors
+      if (isSandbox) {
+        if (error.message?.includes('400') || error.message?.includes('Bad Request')) {
+          throw new Error(
+            `Failed to search listings items: 400 Bad Request. ` +
+            `SANDBOX environment detected. ` +
+            `Sandbox requires specific request parameters. ` +
+            `The searchListingsItems method might not be supported in sandbox, or requires additional parameters. ` +
+            `For sandbox, try using getListingsItem with identifiersType and identifiers parameters instead: ` +
+            `GET /listings/2021-08-01/items/{sellerId}?identifiersType=SKU&identifiers={SKU}&marketplaceIds={marketplaceId}. ` +
+            `Alternatively, check the Swagger model JSON for Listings Items API (2021-08-01) - look for "x-amzn-api-sandbox" → "static" array to find example request parameters. ` +
+            `Reference: https://developer-docs.amazon.com/sp-api/docs/sp-api-sandbox#sp-api-static-sandbox`
+          );
+        } else if (error.message?.includes('403') || error.message?.includes('Forbidden')) {
+          throw new Error(
+            `Failed to search listings items: 403 Forbidden. ` +
+            `SANDBOX environment detected. ` +
+            `Sandbox uses pattern matching - your request parameters must match predefined test cases. ` +
+            `The 403 error likely means your request doesn't match the sandbox's expected patterns. ` +
+            `Solutions: 1) Check the Swagger model JSON for Listings Items API (2021-08-01) - look for "x-amzn-api-sandbox" → "static" array to find example request parameters, ` +
+            `2) Use the exact seller ID, SKUs, and other parameters from the Swagger examples, ` +
+            `3) For sandbox, sellerId doesn't need to be valid but must match the pattern in Swagger examples, ` +
+            `4) Reference: https://developer-docs.amazon.com/sp-api/docs/sp-api-sandbox#sp-api-static-sandbox`
+          );
+        } else {
+          throw new Error(
+            `Failed to search listings items: ${error.message || 'Unknown error'}. ` +
+            `SANDBOX environment detected. ` +
+            `Sandbox may require specific parameters or use different endpoint formats. ` +
+            `Check the Swagger model JSON for Listings Items API (2021-08-01) for sandbox-specific requirements.`
+          );
+        }
+      } else {
+        // Production error handling
+        if (error.message?.includes('403') || error.message?.includes('Forbidden')) {
+          throw new Error(
+            `Failed to search listings items: 403 Forbidden. ` +
+            `This may indicate: 1) Seller ID "${sellerId}" doesn't match authenticated account, ` +
+            `2) App missing required roles/permissions, ` +
+            `3) Seller account doesn't have access to marketplace.`
+          );
+        }
+        throw new Error(`Failed to search listings items: ${error.message || 'Unknown error'}`);
+      }
     }
   }
 
@@ -1194,7 +1333,43 @@ export class AmazonService {
       logger.debug('Orders retrieved successfully');
       return response.data;
     } catch (error: any) {
-      logger.error({ error: error.message || error }, 'Error getting orders');
+      const sellerIdForLog = sellerId || env.AMAZON_SELLER_ID;
+      const cached = sellerIdForLog ? this.authInstances.get(sellerIdForLog) : null;
+      const isSandbox = cached?.environment === 'SANDBOX';
+      
+      logger.error({ 
+        error: error.message || error,
+        sellerId: sellerIdForLog,
+        environment: cached?.environment,
+        region: cached?.environment === 'SANDBOX' ? 'eu' : this.REGION,
+        endpoint: cached?.endpoint,
+        note: isSandbox ? 'Sandbox environment - 403 errors often occur with production seller IDs' : 'Production environment'
+      }, 'Error getting orders');
+      
+      // Provide helpful error message for 403 in sandbox
+      if (error.message?.includes('403') || error.message?.includes('Forbidden')) {
+        if (isSandbox) {
+          throw new Error(
+            `Failed to get orders: 403 Forbidden. ` +
+            `SANDBOX environment detected. ` +
+            `Sandbox uses pattern matching - your request parameters must match predefined test cases. ` +
+            `For Orders API in sandbox, try using CreatedAfter="TEST_CASE_200" parameter. ` +
+            `The 403 error likely means your request doesn't match the sandbox's expected patterns. ` +
+            `Solutions: 1) Check the Swagger model JSON for Orders API (v0) - look for "x-amzn-api-sandbox" → "static" array to find example request parameters, ` +
+            `2) Use the exact parameters from the Swagger examples (e.g., CreatedAfter="TEST_CASE_200"), ` +
+            `3) For sandbox, sellerId doesn't need to be valid but request must match sandbox patterns, ` +
+            `4) Reference: https://developer-docs.amazon.com/sp-api/docs/sp-api-sandbox#sp-api-static-sandbox`
+          );
+        } else {
+          throw new Error(
+            `Failed to get orders: 403 Forbidden. ` +
+            `This may indicate: 1) Seller ID "${sellerIdForLog}" doesn't match authenticated account, ` +
+            `2) App missing required roles/permissions, ` +
+            `3) Seller account doesn't have access to marketplace.`
+          );
+        }
+      }
+      
       throw new Error(`Failed to get orders: ${error.message || 'Unknown error'}`);
     }
   }
