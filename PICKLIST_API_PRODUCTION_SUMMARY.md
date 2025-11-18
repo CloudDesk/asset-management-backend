@@ -42,6 +42,11 @@ model Picklist {
 - `sortorder` - Sort direction for sortorder field: `ASC`, `DESC`, `asc`, or `desc` (default: ASC). Always used as the last sort column. Records with null sortorder will appear after sorted records.
 - `fieldnameOrder` - Sort direction for fieldname field: `ASC`, `DESC`, `asc`, or `desc` (optional). When provided, overrides default fieldname ASC ordering. Used in combination 2 and 3.
 - `objectOrder` - Sort direction for object field: `ASC`, `DESC`, `asc`, or `desc` (optional). When provided, enables combination 3: object first, then fieldname, then sortorder.
+- `groupByFieldname` - Group records by fieldname first: `true`, `false`, `1`, or `0` (optional). When enabled, records are grouped by `fieldname` (ASC) first, then the sorting combination is applied. This ensures all records with the same fieldname are grouped together before applying other sorting.
+
+**Grouping with Sorting:**
+
+When `groupByFieldname=true` is provided, records are first grouped by `fieldname` (ASC), then the sorting combination is applied. The `fieldname` column is automatically removed from the combination to avoid duplication.
 
 **Sorting Combinations - Quick Reference:**
 
@@ -73,11 +78,22 @@ The sorting order is determined by which parameters are provided. Records are al
    - **Result:** Records sorted by `object` (ASC), then `fieldname` (DESC), then `sortorder` (ASC)
    - **Note:** When `objectOrder` is provided, all three columns are used for sorting
 
+**Grouping Behavior:**
+
+When `groupByFieldname=true` is enabled:
+- **All other sorting parameters are ignored** (`objectOrder`, `fieldnameOrder` are ignored)
+- Records are **always** grouped by `fieldname` first (ASC)
+- Then sorted by `sortorder` (ASC/DESC based on `sortorder` parameter, defaults to ASC)
+- **Only two columns are used:** `fieldname` → `sortorder`
+- This ensures all records with the same `fieldname` value are grouped together, then sorted by `sortorder` within each group
+
 **Important Notes:**
-- `sortorder` is **ALWAYS** the last sort column when provided
+- `sortorder` is **ALWAYS** the last sort column when provided (unless `groupByFieldname=true` is enabled)
+- When `groupByFieldname=true`, `sortorder` becomes the **second** column (right after `fieldname`) to sort within each group
 - `sortorder` defaults to `ASC` if not specified
 - Records with `null` values in `sortorder` appear **after** sorted records
 - If no sorting parameters are provided, defaults to Combination 1 with `sortorder=ASC`
+- When `groupByFieldname=true`, **only** `fieldname` (ASC) and `sortorder` (ASC/DESC) are used for sorting. All other sorting parameters (`objectOrder`, `fieldnameOrder`) are completely ignored.
 
 **Examples:**
 
@@ -115,6 +131,22 @@ GET /v1/picklists?objectOrder=ASC&fieldnameOrder=DESC
 
 # Full control: object DESC, fieldname ASC, sortorder DESC
 GET /v1/picklists?objectOrder=DESC&fieldnameOrder=ASC&sortorder=DESC
+```
+
+**Grouping Examples:**
+```bash
+# Group by fieldname, then sort by sortorder ASC (default)
+GET /v1/picklists?groupByFieldname=true
+
+# Group by fieldname, then sort by sortorder DESC
+GET /v1/picklists?groupByFieldname=true&sortorder=DESC
+
+# Group by fieldname with filter (objectOrder and fieldnameOrder are ignored)
+GET /v1/picklists?groupByFieldname=true&object=product&sortorder=ASC
+
+# Group by fieldname - other sorting params are ignored
+# Result: fieldname ASC, sortorder ASC (objectOrder and fieldnameOrder are ignored)
+GET /v1/picklists?groupByFieldname=true&objectOrder=ASC&fieldnameOrder=DESC&sortorder=DESC
 ```
 
 **Other Examples:**
@@ -216,6 +248,7 @@ GET /v1/picklists?searchtext=status&fieldnameOrder=ASC&sortorder=DESC
 ✅ **Query Parameter Filtering** - Multiple filters can be combined like `/v1/picklists?object=product&fieldname=productstatus`
 ✅ **Text Search** - Search across multiple fields (object, fieldname, label, value, parent) using `searchtext` parameter (case-insensitive)
 ✅ **Advanced Sorting** - Three sorting combinations with support for sorting by object, fieldname, and sortorder fields
+✅ **Grouping by Fieldname** - Group records by fieldname first using `groupByFieldname=true`, then apply sorting combinations
 ✅ **Pagination Support** - Page and limit parameters working correctly
 ✅ **Proper HTTP Status Codes** - 200, 201, 400, 404, 409, 500 responses
 ✅ **Input Validation** - Schema validation with proper error messages
@@ -278,11 +311,12 @@ curl -X PUT "http://localhost:5600/v1/picklists/123" \
 2. **Route Simplification** - Removed unnecessary `/by-object` and `/by-fieldname` routes
 3. **Text Search Feature** - Added `searchtext` parameter for case-insensitive search across multiple fields
 4. **Advanced Sorting** - Implemented three sorting combinations with `sortorder`, `fieldnameOrder`, and `objectOrder` parameters
-5. **Controller Updates** - Removed unused methods and streamlined functionality
-6. **Service Updates** - Updated service to work with actual database fields and sorting logic
-7. **Swagger Documentation** - Complete and accurate API documentation
-8. **Comprehensive Testing** - 11 test cases covering all functionality
-9. **Foreign Key Constraint Handling** - Added 409 status code with detailed error information for DELETE operations
+5. **Grouping Feature** - Added `groupByFieldname` parameter to group records by fieldname first, then apply sorting combinations
+6. **Controller Updates** - Removed unused methods and streamlined functionality
+7. **Service Updates** - Updated service to work with actual database fields, sorting logic, and grouping
+8. **Swagger Documentation** - Complete and accurate API documentation
+9. **Comprehensive Testing** - 11 test cases covering all functionality
+10. **Foreign Key Constraint Handling** - Added 409 status code with detailed error information for DELETE operations
 
 ## 🚀 Ready for Production
 
