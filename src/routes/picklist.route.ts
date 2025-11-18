@@ -508,4 +508,127 @@ export async function picklistRoutesV2(fastify: FastifyInstance) {
       },
     },
   }, picklistController.getPicklistsV2.bind(picklistController));
+
+  // PUT /v2/picklists/bulk - Bulk update picklists (fieldname, parent, sortorder, label, value)
+  fastify.put('/bulk', {
+    schema: {
+      description: 'Bulk update picklists - Update fieldname, parent dependencies, sortorder, label, and value',
+      tags: ['Picklists v2'],
+      body: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            id: {
+              type: ['integer', 'string'],
+              description: 'Picklist ID (required)'
+            },
+            fieldname: {
+              type: 'string',
+              nullable: true,
+              description: 'Update fieldname (optional)'
+            },
+            parent: {
+              type: 'string',
+              nullable: true,
+              description: 'Update parent dependency - set to null to remove parent (optional)'
+            },
+            sortorder: {
+              type: 'integer',
+              nullable: true,
+              description: 'Update sort order - set to null to remove sortorder (optional)'
+            },
+            label: {
+              type: 'string',
+              nullable: true,
+              maxLength: 255,
+              description: 'Update display label - set to null to remove label (optional)'
+            },
+            value: {
+              type: 'string',
+              nullable: true,
+              maxLength: 255,
+              description: 'Update stored value - set to null to remove value (optional)'
+            }
+          },
+          required: ['id'],
+          additionalProperties: false
+        },
+        minItems: 1
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            data: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: ['integer', 'string'] },
+                  success: { type: 'boolean' },
+                  data: {
+                    type: 'object',
+                    additionalProperties: true
+                  },
+                  error: { type: 'string', nullable: true }
+                }
+              }
+            },
+            summary: {
+              type: 'object',
+              properties: {
+                total: { type: 'number' },
+                successful: { type: 'number' },
+                failed: { type: 'number' }
+              }
+            },
+            message: { type: 'string' }
+          }
+        },
+        207: {
+          type: 'object',
+          description: 'Multi-Status - Some updates succeeded, some failed',
+          properties: {
+            success: { type: 'boolean' },
+            data: {
+              type: 'array',
+              items: {
+                type: 'object',
+                additionalProperties: true
+              }
+            },
+            summary: {
+              type: 'object',
+              properties: {
+                total: { type: 'number' },
+                successful: { type: 'number' },
+                failed: { type: 'number' }
+              }
+            },
+            message: { type: 'string' }
+          }
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' }
+          }
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' }
+          }
+        }
+      }
+    }
+  }, picklistController.bulkUpdatePicklistsV2.bind(picklistController));
 } 

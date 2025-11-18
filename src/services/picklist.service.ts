@@ -13,7 +13,8 @@ import {
   dynamicUpdate, 
   dynamicDelete,
   dynamicFindManyWithFilters,
-  formatEntitiesForAPI
+  formatEntitiesForAPI,
+  formatPicklistForAPI
 } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
 
@@ -624,6 +625,129 @@ export class PicklistService {
       };
     } catch (error) {
       logger.error({ error, filters, groupByFieldname, groupByParent }, 'Error in v2 picklist findMany operation');
+      throw error;
+    }
+  }
+
+  /**
+   * v2: Bulk update picklists - Update fieldname, parent, sortorder, label, and value for multiple records
+   * Useful for reordering and reorganizing picklist items
+   * 
+   * @param updates - Array of picklist updates with id and optional fieldname, parent, sortorder, label, value
+   * @returns Summary of update results
+   */
+  async bulkUpdateV2(
+    updates: Array<{
+      id: number | string;
+      fieldname?: string;
+      parent?: string | null;
+      sortorder?: number | null;
+      label?: string | null;
+      value?: string | null;
+    }>
+  ): Promise<{
+    summary: {
+      total: number;
+      successful: number;
+      failed: number;
+    };
+    results: Array<{
+      id: number | string;
+      success: boolean;
+      data?: any;
+      error?: string;
+    }>;
+  }> {
+    try {
+      logger.info({ updateCount: updates.length }, 'Starting v2 bulk picklist update operation');
+
+      const results = [];
+      let successCount = 0;
+      let failureCount = 0;
+
+      // Process each update
+      for (const update of updates) {
+        try {
+          const { id, fieldname, parent, sortorder, label, value } = update;
+
+          // Build update data object (only include provided fields)
+          const updateData: any = {};
+          if (fieldname !== undefined) {
+            updateData.fieldname = fieldname;
+          }
+          if (parent !== undefined) {
+            // Handle null explicitly - allow setting parent to null
+            updateData.parent = parent === null || parent === '' ? null : parent;
+          }
+          if (sortorder !== undefined) {
+            updateData.sortorder = sortorder === null ? null : sortorder;
+          }
+          if (label !== undefined) {
+            // Handle null explicitly - allow setting label to null
+            updateData.label = label === null || label === '' ? null : label;
+          }
+          if (value !== undefined) {
+            // Handle null explicitly - allow setting value to null
+            updateData.value = value === null || value === '' ? null : value;
+          }
+
+          // If no fields to update, skip
+          if (Object.keys(updateData).length === 0) {
+            results.push({
+              id,
+              success: false,
+              error: 'No fields provided to update'
+            });
+            failureCount++;
+            continue;
+          }
+
+          // Update the picklist
+          const updated = await dynamicUpdate('picklist', { id: String(id) }, updateData);
+
+          if (!updated) {
+            throw new Error('Picklist not found or update failed');
+          }
+
+          // Format the response
+          const formatted = formatPicklistForAPI(updated);
+
+          results.push({
+            id,
+            success: true,
+            data: formatted
+          });
+          successCount++;
+
+          logger.debug({ id, updateData }, 'Individual picklist update successful');
+
+        } catch (error: any) {
+          logger.error({ error, id: update.id }, 'Error updating individual picklist');
+          results.push({
+            id: update.id,
+            success: false,
+            error: error.message || 'Update failed'
+          });
+          failureCount++;
+        }
+      }
+
+      logger.info({
+        total: updates.length,
+        successful: successCount,
+        failed: failureCount
+      }, 'v2 bulk picklist update completed');
+
+      return {
+        summary: {
+          total: updates.length,
+          successful: successCount,
+          failed: failureCount
+        },
+        results
+      };
+    } catch (error) {
+      logger.error({ error, updates }, 'Error in v2 bulk picklist update operation');
       throw error;
     }
   }

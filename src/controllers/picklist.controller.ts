@@ -131,4 +131,47 @@ export class PicklistController {
       meta: result.meta
     });
   });
+
+  /**
+   * v2: Bulk update picklists - Update fieldname, parent, sortorder, label, and value
+   * Allows reordering and reorganizing picklist items from frontend
+   */
+  bulkUpdatePicklistsV2 = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    const updates = request.body as Array<{
+      id: number | string;
+      fieldname?: string;
+      parent?: string | null;
+      sortorder?: number | null;
+      label?: string | null;
+      value?: string | null;
+    }>;
+
+    if (!Array.isArray(updates) || updates.length === 0) {
+      throw new Error('Request body must be a non-empty array of picklist updates');
+    }
+
+    // Validate that each update has an id
+    for (const update of updates) {
+      if (!update.id) {
+        throw new Error('Each update must include an id field');
+      }
+    }
+
+    const result = await this.picklistService.bulkUpdateV2(updates);
+
+    const success = result.summary.failed === 0;
+    const statusCode = success ? 200 : 207; // 207 Multi-Status if some failed
+
+    const response = createSuccessResponse(
+      success 
+        ? `Successfully updated ${result.summary.successful} picklist(s)`
+        : `Updated ${result.summary.successful} of ${result.summary.total} picklist(s)`,
+      result.results
+    );
+
+    return reply.code(statusCode).send({
+      ...response,
+      summary: result.summary
+    });
+  });
 } 
