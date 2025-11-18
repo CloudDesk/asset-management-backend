@@ -25,11 +25,11 @@ export interface ProviderConfig {
 
 const PROVIDER_CONFIGS: Record<OtpProvider, ProviderConfig> = {
   twilio: {
-    otpLength: 6,
-    expirySeconds: 60, // 60 seconds
-    resendCooldownSeconds: 30, // 30 seconds
-    noLeadingZero: false,
-    messageTemplate: 'Your verification code is: {otp}. Valid for 60 seconds. Do not share this code.'
+    otpLength: 4,
+    expirySeconds: 300, // 5 minutes (300 seconds)
+    resendCooldownSeconds: 60, // 1 minute (60 seconds)
+    noLeadingZero: true, // Twilio OTP should not start with 0
+    messageTemplate: 'Dear Customer, your one-time password (OTP) for logging in to your NIVAANA account is {otp}. This code is valid for 5 minutes. Please do not share it with anyone. Visit https://nivaana.in/ for further details.'
   },
   exotel: {
     otpLength: 4,
@@ -108,7 +108,7 @@ export class OtpService {
     const config = PROVIDER_CONFIGS[provider];
     
     if (config.noLeadingZero) {
-      // For Exotel: Generate OTP that doesn't start with 0
+      // Generate OTP that doesn't start with 0 (for providers that require this)
       // Generate first digit (1-9), then remaining digits (0-9)
       const firstDigit = crypto.randomInt(1, 10); // 1 to 9
       const remainingDigits = crypto.randomInt(0, 10 ** (config.otpLength - 1))
@@ -117,7 +117,7 @@ export class OtpService {
       
       return `${firstDigit}${remainingDigits}`;
     } else {
-      // For Twilio: Standard OTP generation (can start with 0)
+      // Standard OTP generation (can start with 0)
       const otp = crypto.randomInt(0, 10 ** config.otpLength)
         .toString()
         .padStart(config.otpLength, '0');
