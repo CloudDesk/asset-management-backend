@@ -573,7 +573,7 @@ export async function mobileAuthRoutes(fastify) {
                 verifyOnly,
                 provider: 'twilio'
             }, `OTP requested for ${user ? 'existing user' : 'new registration'} (Twilio)`);
-            // Step 4: Generate OTP using Redis service (Twilio: 6-digit, 60s expiry, 30s cooldown)
+            // Step 4: Generate OTP using Redis service (Twilio: 4-digit, 5 min expiry, 1 min cooldown)
             const phoneNumberString = `+91${usermobilenumber}`; // Convert to string with country code
             const otpResult = await otpService.generateAndStoreOtp(phoneNumberString, 'twilio');
             if (!otpResult.success) {
@@ -663,15 +663,15 @@ export async function mobileAuthRoutes(fastify) {
                     },
                     otp: {
                         type: 'string',
-                        pattern: '^[0-9]{6}$',
-                        description: '6-digit OTP received via SMS (Twilio)'
+                        pattern: '^[0-9]{4}$',
+                        description: '4-digit OTP received via SMS (Twilio)'
                     },
                 },
                 additionalProperties: false,
                 examples: [
                     {
                         usermobilenumber: 9344715431,
-                        otp: '123456'
+                        otp: '1234'
                     }
                 ]
             },
@@ -745,26 +745,26 @@ export async function mobileAuthRoutes(fastify) {
         },
     }, asyncHandler(async (request, reply) => {
         const { usermobilenumber, otp } = request.body;
-        // Custom OTP validation with user-friendly messages (Twilio: 6-digit OTP)
+        // Custom OTP validation with user-friendly messages (Twilio: 4-digit OTP)
         if (otp === undefined || otp === null) {
             return reply.code(400).send({
                 success: false,
                 message: 'OTP is required',
-                details: 'Please enter the 6-digit OTP you received',
+                details: 'Please enter the 4-digit OTP you received',
                 statusCode: 400
             });
         }
         // Convert OTP to string for Redis validation
         const otpString = otp.toString();
-        if (otpString.length !== 6) {
+        if (otpString.length !== 4) {
             return reply.code(400).send({
                 success: false,
                 message: 'Invalid OTP format',
-                details: 'OTP must be exactly 6 digits',
+                details: 'OTP must be exactly 4 digits',
                 statusCode: 400
             });
         }
-        if (!/^\d{6}$/.test(otpString)) {
+        if (!/^\d{4}$/.test(otpString)) {
             return reply.code(400).send({
                 success: false,
                 message: 'Invalid OTP format',

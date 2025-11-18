@@ -743,15 +743,15 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
           },
           otp: { 
             type: 'string',
-            pattern: '^[0-9]{6}$',
-            description: '6-digit OTP received via SMS (Twilio)'
+            pattern: '^[0-9]{4}$',
+            description: '4-digit OTP received via SMS (Twilio)'
           },
         },
         additionalProperties: false,
         examples: [
           {
             usermobilenumber: 9344715431,
-            otp: '123456'
+            otp: '1234'
           }
         ]
       },
