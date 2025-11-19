@@ -161098,3 +161098,449 @@ Filtered data result: {
   "iswishlist": false,
   "modifieddate": 1762335506285
 }
+Filtered data result: {
+  "fieldname": "category",
+  "parent": null,
+  "sortorder": 2,
+  "label": "Home Fragrance",
+  "value": "home_fragrance"
+}
+Filtered data result: {
+  "fieldname": "category",
+  "parent": null,
+  "sortorder": 3,
+  "label": "Wellness & Aromatherapy",
+  "value": "wellness_aromatherapy"
+}
+Filtered data result: {
+  "fieldname": "category",
+  "parent": null,
+  "sortorder": 1,
+  "label": "Personal Fragrance",
+  "value": "personal_fragrance"
+}
+Filtered data result: {
+  "label": "TN",
+  "value": "tn",
+  "object": "product",
+  "controlledvalue": "",
+  "fieldname": "state",
+  "controlledlabel": "",
+  "controlledfieldname": "",
+  "parent": ""
+}
+Filtered data result: {
+  "sortorder": 1
+}
+Filtered data result: {
+  "label": "KL",
+  "value": "kl",
+  "object": "product",
+  "controlledvalue": "",
+  "fieldname": "state",
+  "controlledlabel": "",
+  "controlledfieldname": "",
+  "parent": ""
+}
+Filtered data result: {
+  "label": "AN",
+  "value": "an",
+  "object": "product",
+  "controlledvalue": "",
+  "fieldname": "state",
+  "controlledlabel": "",
+  "controlledfieldname": "",
+  "parent": ""
+}
+Filtered data result: {
+  "label": "KA",
+  "value": "ka",
+  "object": "product",
+  "controlledvalue": "",
+  "fieldname": "state",
+  "controlledlabel": "",
+  "controlledfieldname": "",
+  "parent": ""
+}
+Filtered data result: {
+  "sortorder": 3
+}
+Filtered data result: {
+  "sortorder": 2
+}
+Filtered data result: {
+  "sortorder": 4
+}
+Filtered data result: {
+  "label": "chennai",
+  "value": "chennai",
+  "object": "product",
+  "controlledvalue": "",
+  "fieldname": "city",
+  "controlledlabel": "",
+  "controlledfieldname": "",
+  "parent": ""
+}
+Filtered data result: {
+  "sortorder": 1
+}
+Filtered data result: {
+  "label": "bangalore",
+  "value": "bangalore",
+  "object": "product",
+  "controlledvalue": "",
+  "fieldname": "city",
+  "controlledlabel": "",
+  "controlledfieldname": "",
+  "parent": ""
+}
+Filtered data result: {
+  "label": "kochi",
+  "value": "kochi",
+  "object": "product",
+  "controlledvalue": "",
+  "fieldname": "city",
+  "controlledlabel": "",
+  "controlledfieldname": "",
+  "parent": ""
+}
+Filtered data result: {
+  "label": "hydrabad",
+  "value": "hydrabad",
+  "object": "product",
+  "controlledvalue": "",
+  "fieldname": "city",
+  "controlledlabel": "",
+  "controlledfieldname": "",
+  "parent": ""
+}
+Filtered data result: {
+  "label": "cbe",
+  "value": "cbe",
+  "object": "product",
+  "controlledvalue": "",
+  "fieldname": "city",
+  "controlledlabel": "",
+  "controlledfieldname": "",
+  "parent": ""
+}
+Filtered data result: {
+  "sortorder": 4
+}
+Filtered data result: {
+  "sortorder": 3
+}
+Filtered data result: {
+  "sortorder": 5
+}
+Filtered data result: {
+  "sortorder": 2
+}
+Filtered data result: {
+  "fieldname": "city",
+  "sortorder": 1,
+  "label": "chennai",
+  "value": "chennai"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "sortorder": 2,
+  "label": "cbe",
+  "value": "cbe"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "sortorder": 3,
+  "label": "kochi",
+  "value": "kochi"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "sortorder": 4,
+  "label": "bangalore",
+  "value": "bangalore"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "sortorder": 5,
+  "label": "hydrabad",
+  "value": "hydrabad"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "sortorder": 1,
+  "label": "chennai",
+  "value": "chennai"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "sortorder": 2,
+  "label": "cbe",
+  "value": "cbe"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "sortorder": 3,
+  "label": "kochi",
+  "value": "kochi"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "sortorder": 4,
+  "label": "bangalore",
+  "value": "bangalore"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "sortorder": 5,
+  "label": "hydrabad",
+  "value": "hydrabad"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "sortorder": 1,
+  "label": "chennai",
+  "value": "chennai"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "sortorder": 2,
+  "label": "cbe",
+  "value": "cbe"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "sortorder": 3,
+  "label": "kochi",
+  "value": "kochi"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "sortorder": 4,
+  "label": "bangalore",
+  "value": "bangalore"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "sortorder": 5,
+  "label": "hydrabad",
+  "value": "hydrabad"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "an",
+  "sortorder": 1,
+  "label": "chennai",
+  "value": "chennai"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "an",
+  "sortorder": 2,
+  "label": "cbe",
+  "value": "cbe"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "sortorder": 3,
+  "label": "kochi",
+  "value": "kochi"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "sortorder": 4,
+  "label": "bangalore",
+  "value": "bangalore"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "sortorder": 5,
+  "label": "hydrabad",
+  "value": "hydrabad"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "sortorder": 1,
+  "label": "chennai",
+  "value": "chennai"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "sortorder": 2,
+  "label": "cbe",
+  "value": "cbe"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "sortorder": 3,
+  "label": "kochi",
+  "value": "kochi"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "sortorder": 4,
+  "label": "bangalore",
+  "value": "bangalore"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "tn",
+  "sortorder": 5,
+  "label": "hydrabad",
+  "value": "hydrabad"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "an",
+  "sortorder": 1,
+  "label": "chennai",
+  "value": "chennai"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "an",
+  "sortorder": 2,
+  "label": "cbe",
+  "value": "cbe"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "kl",
+  "sortorder": 3,
+  "label": "kochi",
+  "value": "kochi"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "ka",
+  "sortorder": 4,
+  "label": "bangalore",
+  "value": "bangalore"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "tn",
+  "sortorder": 5,
+  "label": "hydrabad",
+  "value": "hydrabad"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "tn",
+  "sortorder": 1,
+  "label": "chennai",
+  "value": "chennai"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "tn",
+  "sortorder": 2,
+  "label": "cbe",
+  "value": "cbe"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "kl",
+  "sortorder": 3,
+  "label": "kochi",
+  "value": "kochi"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "ka",
+  "sortorder": 4,
+  "label": "bangalore",
+  "value": "bangalore"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "an",
+  "sortorder": 5,
+  "label": "hydrabad",
+  "value": "hydrabad"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "tn",
+  "sortorder": 1,
+  "label": "chennai",
+  "value": "chennai"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "tn",
+  "sortorder": 2,
+  "label": "cbe",
+  "value": "cbe"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "kl",
+  "sortorder": 3,
+  "label": "kochi",
+  "value": "kochi"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "ka",
+  "sortorder": 4,
+  "label": "bangalore",
+  "value": "bangalore"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "an",
+  "sortorder": 5,
+  "label": "hydrabad",
+  "value": "hydrabad"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "tn",
+  "sortorder": 1,
+  "label": "chennai",
+  "value": "chennai",
+  "controlledfieldname": "state",
+  "controlledlabel": "TN",
+  "controlledvalue": "tn"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "tn",
+  "sortorder": 2,
+  "label": "cbe",
+  "value": "cbe",
+  "controlledfieldname": "state",
+  "controlledlabel": "TN",
+  "controlledvalue": "tn"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "kl",
+  "sortorder": 3,
+  "label": "kochi",
+  "value": "kochi",
+  "controlledfieldname": "state",
+  "controlledlabel": "KL",
+  "controlledvalue": "kl"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "ka",
+  "sortorder": 4,
+  "label": "bangalore",
+  "value": "bangalore",
+  "controlledfieldname": "state",
+  "controlledlabel": "KA",
+  "controlledvalue": "ka"
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "an",
+  "sortorder": 5,
+  "label": "hydrabad",
+  "value": "hydrabad",
+  "controlledfieldname": "state",
+  "controlledlabel": "AN",
+  "controlledvalue": "an"
+}

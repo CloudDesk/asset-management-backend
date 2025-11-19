@@ -133,7 +133,7 @@ export class PicklistController {
   });
 
   /**
-   * v2: Bulk update picklists - Update fieldname, parent, sortorder, label, and value
+   * v2: Bulk update picklists - Update fieldname, parent, sortorder, label, value, and controlled fields
    * Allows reordering and reorganizing picklist items from frontend
    */
   bulkUpdatePicklistsV2 = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
@@ -144,6 +144,9 @@ export class PicklistController {
       sortorder?: number | null;
       label?: string | null;
       value?: string | null;
+      controlledfieldname?: string | null;
+      controlledlabel?: string | null;
+      controlledvalue?: string | null;
     }>;
 
     if (!Array.isArray(updates) || updates.length === 0) {
@@ -173,5 +176,26 @@ export class PicklistController {
       ...response,
       summary: result.summary
     });
+  });
+
+  /**
+   * Get unique fieldnames filtered by object
+   * Returns array of unique fieldname strings for dependency management
+   */
+  getDependencyFieldnames = asyncHandler(async (request: FastifyRequest<{ Querystring: { object: string } }>, reply: FastifyReply) => {
+    const { object } = request.query;
+
+    if (!object) {
+      throw new Error('object query parameter is required');
+    }
+
+    const fieldnames = await this.picklistService.getUniqueFieldnamesByObject(object);
+
+    const response = createSuccessResponse(
+      `Retrieved ${fieldnames.length} unique fieldname(s) for object '${object}'`,
+      fieldnames
+    );
+
+    return reply.code(200).send(response);
   });
 } 

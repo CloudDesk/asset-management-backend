@@ -630,10 +630,10 @@ export class PicklistService {
   }
 
   /**
-   * v2: Bulk update picklists - Update fieldname, parent, sortorder, label, and value for multiple records
+   * v2: Bulk update picklists - Update fieldname, parent, sortorder, label, value, and controlled fields
    * Useful for reordering and reorganizing picklist items
    * 
-   * @param updates - Array of picklist updates with id and optional fieldname, parent, sortorder, label, value
+   * @param updates - Array of picklist updates with id and optional fieldname, parent, sortorder, label, value, controlledfieldname, controlledlabel, controlledvalue
    * @returns Summary of update results
    */
   async bulkUpdateV2(
@@ -644,6 +644,9 @@ export class PicklistService {
       sortorder?: number | null;
       label?: string | null;
       value?: string | null;
+      controlledfieldname?: string | null;
+      controlledlabel?: string | null;
+      controlledvalue?: string | null;
     }>
   ): Promise<{
     summary: {
@@ -668,7 +671,17 @@ export class PicklistService {
       // Process each update
       for (const update of updates) {
         try {
-          const { id, fieldname, parent, sortorder, label, value } = update;
+          const { 
+            id, 
+            fieldname, 
+            parent, 
+            sortorder, 
+            label, 
+            value,
+            controlledfieldname,
+            controlledlabel,
+            controlledvalue
+          } = update;
 
           // Build update data object (only include provided fields)
           const updateData: any = {};
@@ -689,6 +702,18 @@ export class PicklistService {
           if (value !== undefined) {
             // Handle null explicitly - allow setting value to null
             updateData.value = value === null || value === '' ? null : value;
+          }
+          if (controlledfieldname !== undefined) {
+            // Handle null explicitly - allow setting controlledfieldname to null
+            updateData.controlledfieldname = controlledfieldname === null || controlledfieldname === '' ? null : controlledfieldname;
+          }
+          if (controlledlabel !== undefined) {
+            // Handle null explicitly - allow setting controlledlabel to null
+            updateData.controlledlabel = controlledlabel === null || controlledlabel === '' ? null : controlledlabel;
+          }
+          if (controlledvalue !== undefined) {
+            // Handle null explicitly - allow setting controlledvalue to null
+            updateData.controlledvalue = controlledvalue === null || controlledvalue === '' ? null : controlledvalue;
           }
 
           // If no fields to update, skip
@@ -748,6 +773,52 @@ export class PicklistService {
       };
     } catch (error) {
       logger.error({ error, updates }, 'Error in v2 bulk picklist update operation');
+      throw error;
+    }
+  }
+
+  /**
+   * Get unique fieldnames filtered by object
+   * Returns an array of unique fieldname values for a given object
+   * 
+   * @param object - Object name to filter by (e.g., 'product', 'stock')
+   * @returns Array of unique fieldname strings
+   */
+  async getUniqueFieldnamesByObject(object: string): Promise<string[]> {
+    try {
+      logger.debug({ object }, 'Getting unique fieldnames by object');
+
+      // Use Prisma to get distinct fieldnames
+      const picklists = await prisma.picklist.findMany({
+        where: {
+          object: object,
+          fieldname: {
+            not: null
+          }
+        },
+        select: {
+          fieldname: true
+        },
+        distinct: ['fieldname'],
+        orderBy: {
+          fieldname: 'asc'
+        }
+      });
+
+      // Extract fieldnames and filter out any null values (safety check)
+      const fieldnames = picklists
+        .map(p => p.fieldname)
+        .filter((fieldname): fieldname is string => fieldname !== null && fieldname !== undefined);
+
+      logger.info({ 
+        object, 
+        fieldnameCount: fieldnames.length,
+        fieldnames 
+      }, 'Unique fieldnames retrieved by object');
+
+      return fieldnames;
+    } catch (error) {
+      logger.error({ error, object }, 'Error getting unique fieldnames by object');
       throw error;
     }
   }

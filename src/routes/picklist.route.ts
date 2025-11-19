@@ -425,6 +425,59 @@ export async function picklistRoutes(fastify: FastifyInstance) {
       },
     },
   }, picklistController.deletePicklist.bind(picklistController));
+
+  // GET /v1/picklists/dependency-fieldnames - Get unique fieldnames by object
+  fastify.get('/dependency-fieldnames', {
+    schema: {
+      description: 'Get unique fieldnames filtered by object - Returns array of unique fieldname strings',
+      tags: ['Picklists'],
+      querystring: {
+        type: 'object',
+        properties: {
+          object: {
+            type: 'string',
+            description: 'Object name to filter by (e.g., product, stock). Required parameter.'
+          }
+        },
+        required: ['object']
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            data: {
+              type: 'array',
+              items: {
+                type: 'string'
+              },
+              description: 'Array of unique fieldname strings'
+            },
+            message: { type: 'string' }
+          },
+          required: ['success', 'data']
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' }
+          }
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' }
+          }
+        }
+      }
+    }
+  }, picklistController.getDependencyFieldnames.bind(picklistController));
 } 
 
 /**
@@ -549,6 +602,24 @@ export async function picklistRoutesV2(fastify: FastifyInstance) {
               nullable: true,
               maxLength: 255,
               description: 'Update stored value - set to null to remove value (optional)'
+            },
+            controlledfieldname: {
+              type: 'string',
+              nullable: true,
+              maxLength: 255,
+              description: 'Update controlled field name - set to null to remove (optional)'
+            },
+            controlledlabel: {
+              type: 'string',
+              nullable: true,
+              maxLength: 255,
+              description: 'Update controlled label - set to null to remove (optional)'
+            },
+            controlledvalue: {
+              type: 'string',
+              nullable: true,
+              maxLength: 255,
+              description: 'Update controlled value - set to null to remove (optional)'
             }
           },
           required: ['id'],
