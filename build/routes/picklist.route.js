@@ -19,6 +19,11 @@ export async function picklistRoutes(fastify) {
                     controlledlabel: { type: 'string', description: 'Filter by controlled label' },
                     controlledfieldname: { type: 'string', description: 'Filter by controlled field name' },
                     parent: { type: 'string', description: 'Filter by parent' },
+                    isactive: {
+                        type: 'string',
+                        enum: ['true', 'false', '1', '0'],
+                        description: 'Filter by active status (optional). true/1 = active items only, false/0 = inactive items only. If not provided, returns all items (backward compatible).'
+                    },
                     searchtext: {
                         type: 'string',
                         description: 'Search text to find records matching object, fieldname, label, value, or parent fields (case-insensitive). Example: /v1/picklists/?searchtext=category'
@@ -110,6 +115,7 @@ export async function picklistRoutes(fastify) {
                                 parent: { type: 'string', description: 'Parent reference' },
                                 description: { type: 'string', description: 'Description' },
                                 sortorder: { type: 'integer', nullable: true, description: 'Sort order for display (null values sorted last)' },
+                                isactive: { type: 'boolean', nullable: true, description: 'Active status - true = active, false = inactive/deleted (soft delete)' },
                             }
                         },
                         message: { type: 'string' },
@@ -202,8 +208,10 @@ export async function picklistRoutes(fastify) {
                     fieldname: { type: 'string', maxLength: 255, description: 'Field name' },
                     controlledlabel: { type: 'string', maxLength: 255, description: 'Controlled label' },
                     controlledfieldname: { type: 'string', maxLength: 255, description: 'Controlled field name' },
-                    parent: { type: 'string', maxLength: 20, description: 'Parent reference' },
+                    parent: { type: 'string', maxLength: 255, description: 'Parent reference' },
+                    description: { type: 'string', maxLength: 255, description: 'Description' },
                     sortorder: { type: 'integer', description: 'Sort order for display' },
+                    isactive: { type: 'boolean', nullable: true, description: 'Active status - true = active, false = inactive/deleted (soft delete). Defaults to true if not provided.' },
                 },
                 required: ['label', 'value'],
             },
@@ -226,6 +234,7 @@ export async function picklistRoutes(fastify) {
                                 parent: { type: 'string', description: 'Parent reference' },
                                 description: { type: 'string', description: 'Description' },
                                 sortorder: { type: 'integer', nullable: true, description: 'Sort order for display (null values sorted last)' },
+                                isactive: { type: 'boolean', nullable: true, description: 'Active status - true = active, false = inactive/deleted (soft delete)' },
                             }
                         },
                         message: { type: 'string' },
@@ -252,31 +261,20 @@ export async function picklistRoutes(fastify) {
             },
         },
     }, picklistController.createPicklist.bind(picklistController));
-    // PUT /v1/picklists/:id - Update picklist
-    fastify.put('/:id', {
+    // GET /v1/picklists/dependency-fieldnames - Get unique fieldnames by object
+    fastify.get('/dependency-fieldnames', {
         schema: {
-            description: 'Update picklist by ID',
+            description: 'Get unique fieldnames filtered by object - Returns array of unique fieldname strings',
             tags: ['Picklists'],
-            params: {
+            querystring: {
                 type: 'object',
                 properties: {
-                    id: { type: 'string', pattern: '^\\d+$', description: 'Picklist ID (integer)' },
+                    object: {
+                        type: 'string',
+                        description: 'Object name to filter by (e.g., product, stock). Required parameter.'
+                    }
                 },
-                required: ['id'],
-            },
-            body: {
-                type: 'object',
-                properties: {
-                    label: { type: 'string', maxLength: 255, description: 'Display label' },
-                    value: { type: 'string', maxLength: 255, description: 'Stored value' },
-                    object: { type: 'string', maxLength: 255, description: 'Object reference' },
-                    controlledvalue: { type: 'string', maxLength: 255, description: 'Controlled value' },
-                    fieldname: { type: 'string', maxLength: 255, description: 'Field name' },
-                    controlledlabel: { type: 'string', maxLength: 255, description: 'Controlled label' },
-                    controlledfieldname: { type: 'string', maxLength: 255, description: 'Controlled field name' },
-                    parent: { type: 'string', maxLength: 20, description: 'Parent reference' },
-                    sortorder: { type: 'integer', description: 'Sort order for display' },
-                },
+                required: ['object']
             },
             response: {
                 200: {
@@ -284,23 +282,15 @@ export async function picklistRoutes(fastify) {
                     properties: {
                         success: { type: 'boolean' },
                         data: {
-                            type: 'object',
-                            properties: {
-                                id: { type: 'integer', description: 'Picklist ID' },
-                                label: { type: 'string', description: 'Display label' },
-                                value: { type: 'string', description: 'Stored value' },
-                                object: { type: 'string', description: 'Object reference' },
-                                controlledvalue: { type: 'string', description: 'Controlled value' },
-                                fieldname: { type: 'string', description: 'Field name' },
-                                controlledlabel: { type: 'string', description: 'Controlled label' },
-                                controlledfieldname: { type: 'string', description: 'Controlled field name' },
-                                parent: { type: 'string', description: 'Parent reference' },
-                                description: { type: 'string', description: 'Description' },
-                                sortorder: { type: 'integer', nullable: true, description: 'Sort order for display (null values sorted last)' },
-                            }
+                            type: 'array',
+                            items: {
+                                type: 'string'
+                            },
+                            description: 'Array of unique fieldname strings'
                         },
-                        message: { type: 'string' },
+                        message: { type: 'string' }
                     },
+                    required: ['success', 'data']
                 },
                 400: {
                     type: 'object',
@@ -308,17 +298,8 @@ export async function picklistRoutes(fastify) {
                         success: { type: 'boolean' },
                         message: { type: 'string' },
                         details: { type: 'string' },
-                        statusCode: { type: 'number' },
-                    },
-                },
-                404: {
-                    type: 'object',
-                    properties: {
-                        success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        details: { type: 'string' },
-                        statusCode: { type: 'number' },
-                    },
+                        statusCode: { type: 'number' }
+                    }
                 },
                 500: {
                     type: 'object',
@@ -326,31 +307,237 @@ export async function picklistRoutes(fastify) {
                         success: { type: 'boolean' },
                         message: { type: 'string' },
                         details: { type: 'string' },
-                        statusCode: { type: 'number' },
+                        statusCode: { type: 'number' }
+                    }
+                }
+            }
+        }
+    }, picklistController.getDependencyFieldnames.bind(picklistController));
+}
+/**
+ * v2 Picklist Routes - Enhanced with grouping support
+ */
+export async function picklistRoutesV2(fastify) {
+    const picklistController = new PicklistController();
+    // GET /v2/picklists - Get all picklists with optional grouping by fieldname
+    fastify.get('/', {
+        schema: {
+            description: 'Get all picklists with optional grouping by fieldname (v2)',
+            tags: ['Picklists v2'],
+            // Note: Response schema validation is minimal to allow flexible grouped/flat formats
+            // The data property can be either an object (grouped) or array (flat)
+            response: {
+                '2xx': {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        meta: {
+                            type: 'object',
+                            additionalProperties: true
+                        },
+                        pagination: {
+                            type: 'object',
+                            nullable: true,
+                            additionalProperties: true
+                        },
+                        message: { type: 'string' }
                     },
+                    additionalProperties: true // Allow data property without strict validation
+                }
+            },
+            querystring: {
+                type: 'object',
+                properties: {
+                    object: {
+                        type: 'string',
+                        description: 'Filter by object name (e.g., product, stock)'
+                    },
+                    groupByFieldname: {
+                        type: 'string',
+                        enum: ['true', 'false'],
+                        description: 'Enable grouping by fieldname (default: false). When true, returns structured JSON grouped by fieldname.'
+                    },
+                    groupByParent: {
+                        type: 'string',
+                        enum: ['true', 'false'],
+                        description: 'Enable nested grouping by parent within each fieldname (default: false). Requires groupByFieldname=true. When true, returns nested structure: { fieldname: { parent: [...] } }'
+                    },
+                    sortorder: {
+                        type: 'string',
+                        enum: ['ASC', 'DESC', 'asc', 'desc'],
+                        description: 'Sort direction for sortorder field within each group (default: ASC)'
+                    },
+                    fieldnameOrder: {
+                        type: 'string',
+                        enum: ['ASC', 'DESC', 'asc', 'desc'],
+                        description: 'Sort direction for fieldname groups (default: ASC)'
+                    },
+                    limit: {
+                        type: 'string',
+                        description: 'Global limit (not per fieldname). Default: 1000'
+                    },
+                    searchtext: {
+                        type: 'string',
+                        description: 'Case-insensitive text search on label, value, fieldname, object, or parent fields'
+                    },
+                    parent: {
+                        type: 'string',
+                        description: 'Filter by parent value (for dependent fields)'
+                    },
+                    isactive: {
+                        type: 'string',
+                        enum: ['true', 'false', '1', '0'],
+                        description: 'Filter by active status (optional). true/1 = active items only, false/0 = inactive items only. If not provided, returns all items (backward compatible).'
+                    },
+                    label: { type: 'string', description: 'Filter by label' },
+                    value: { type: 'string', description: 'Filter by value' },
+                    controlledvalue: { type: 'string', description: 'Filter by controlled value' },
+                    fieldname: { type: 'string', description: 'Filter by field name' },
+                    controlledlabel: { type: 'string', description: 'Filter by controlled label' },
+                    controlledfieldname: { type: 'string', description: 'Filter by controlled field name' },
                 },
             },
         },
-    }, picklistController.updatePicklist.bind(picklistController));
-    // DELETE /v1/picklists/:id - Delete picklist
-    fastify.delete('/:id', {
+    }, picklistController.getPicklistsV2.bind(picklistController));
+    // PUT /v2/picklists/bulk - Bulk create/update picklists (handles both create and update in single call)
+    fastify.put('/bulk', {
         schema: {
-            description: 'Delete picklist by ID',
-            tags: ['Picklists'],
-            params: {
-                type: 'object',
-                properties: {
-                    id: { type: 'string', pattern: '^\\d+$', description: 'Picklist ID (integer)' },
+            description: 'Bulk create/update picklists - Create new items (when id is missing/null/negative) or update existing ones (when id is provided). Single API call for both operations.',
+            tags: ['Picklists v2'],
+            body: {
+                type: 'array',
+                items: {
+                    type: 'object',
+                    properties: {
+                        id: {
+                            type: ['integer', 'string', 'null'],
+                            nullable: true,
+                            description: 'Picklist ID - Required for UPDATE. Omit/null/negative for CREATE new item'
+                        },
+                        object: {
+                            type: 'string',
+                            maxLength: 255,
+                            description: 'Object reference - Required for CREATE, optional for UPDATE'
+                        },
+                        description: {
+                            type: 'string',
+                            nullable: true,
+                            maxLength: 255,
+                            description: 'Description - Optional for both CREATE and UPDATE'
+                        },
+                        fieldname: {
+                            type: 'string',
+                            nullable: true,
+                            description: 'Update fieldname (optional)'
+                        },
+                        parent: {
+                            type: 'string',
+                            nullable: true,
+                            description: 'Update parent dependency - set to null to remove parent (optional)'
+                        },
+                        sortorder: {
+                            type: 'integer',
+                            nullable: true,
+                            description: 'Update sort order - set to null to remove sortorder (optional)'
+                        },
+                        label: {
+                            type: 'string',
+                            nullable: true,
+                            maxLength: 255,
+                            description: 'Update display label - set to null to remove label (optional)'
+                        },
+                        value: {
+                            type: 'string',
+                            nullable: true,
+                            maxLength: 255,
+                            description: 'Update stored value - set to null to remove value (optional)'
+                        },
+                        controlledfieldname: {
+                            type: 'string',
+                            nullable: true,
+                            maxLength: 255,
+                            description: 'Update controlled field name - set to null to remove (optional)'
+                        },
+                        controlledlabel: {
+                            type: 'string',
+                            nullable: true,
+                            maxLength: 255,
+                            description: 'Update controlled label - set to null to remove (optional)'
+                        },
+                        controlledvalue: {
+                            type: 'string',
+                            nullable: true,
+                            maxLength: 255,
+                            description: 'Update controlled value - set to null to remove (optional)'
+                        },
+                        isactive: {
+                            type: 'boolean',
+                            nullable: true,
+                            description: 'Update active status - set to false to soft delete/disable item (optional). true = active, false = inactive/deleted'
+                        }
+                    },
+                    // No required fields at schema level - validation happens in service
+                    // For CREATE: label, value, object, fieldname are required
+                    // For UPDATE: id is required
+                    additionalProperties: false
                 },
-                required: ['id'],
+                minItems: 1
             },
             response: {
                 200: {
                     type: 'object',
                     properties: {
                         success: { type: 'boolean' },
-                        message: { type: 'string' },
-                    },
+                        data: {
+                            type: 'array',
+                            items: {
+                                type: 'object',
+                                properties: {
+                                    id: { type: ['integer', 'string'] },
+                                    success: { type: 'boolean' },
+                                    data: {
+                                        type: 'object',
+                                        additionalProperties: true
+                                    },
+                                    error: { type: 'string', nullable: true }
+                                }
+                            }
+                        },
+                        summary: {
+                            type: 'object',
+                            properties: {
+                                total: { type: 'number', description: 'Total number of items processed' },
+                                successful: { type: 'number', description: 'Number of successful operations (create + update)' },
+                                failed: { type: 'number', description: 'Number of failed operations' },
+                                created: { type: 'number', description: 'Number of items created' },
+                                updated: { type: 'number', description: 'Number of items updated' }
+                            }
+                        },
+                        message: { type: 'string' }
+                    }
+                },
+                207: {
+                    type: 'object',
+                    description: 'Multi-Status - Some updates succeeded, some failed',
+                    properties: {
+                        success: { type: 'boolean' },
+                        data: {
+                            type: 'array',
+                            items: {
+                                type: 'object',
+                                additionalProperties: true
+                            }
+                        },
+                        summary: {
+                            type: 'object',
+                            properties: {
+                                total: { type: 'number' },
+                                successful: { type: 'number' },
+                                failed: { type: 'number' }
+                            }
+                        },
+                        message: { type: 'string' }
+                    }
                 },
                 400: {
                     type: 'object',
@@ -358,49 +545,8 @@ export async function picklistRoutes(fastify) {
                         success: { type: 'boolean' },
                         message: { type: 'string' },
                         details: { type: 'string' },
-                        statusCode: { type: 'number' },
-                    },
-                },
-                404: {
-                    type: 'object',
-                    properties: {
-                        success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        details: { type: 'string' },
-                        statusCode: { type: 'number' },
-                    },
-                },
-                409: {
-                    type: "object",
-                    properties: {
-                        success: { type: "boolean" },
-                        message: { type: "string" },
-                        details: { type: "string" },
-                        statusCode: { type: "number" },
-                        errorCode: { type: "string" },
-                        blockingRecords: {
-                            type: "array",
-                            items: {
-                                type: "object",
-                                properties: {
-                                    table: { type: "string", description: "Table name containing the blocking record" },
-                                    recordId: { type: ["string", "number"], description: "ID of the blocking record" },
-                                    details: {
-                                        type: "object",
-                                        description: "Detailed information about the blocking record",
-                                        additionalProperties: true
-                                    }
-                                }
-                            }
-                        },
-                        constraintInfo: {
-                            type: "object",
-                            properties: {
-                                constraintName: { type: "string", description: "Foreign key constraint name" },
-                                referencedTable: { type: "string", description: "Table being referenced" }
-                            }
-                        }
-                    },
+                        statusCode: { type: 'number' }
+                    }
                 },
                 500: {
                     type: 'object',
@@ -408,11 +554,11 @@ export async function picklistRoutes(fastify) {
                         success: { type: 'boolean' },
                         message: { type: 'string' },
                         details: { type: 'string' },
-                        statusCode: { type: 'number' },
-                    },
-                },
-            },
-        },
-    }, picklistController.deletePicklist.bind(picklistController));
+                        statusCode: { type: 'number' }
+                    }
+                }
+            }
+        }
+    }, picklistController.bulkUpdatePicklistsV2.bind(picklistController));
 }
 //# sourceMappingURL=picklist.route.js.map
