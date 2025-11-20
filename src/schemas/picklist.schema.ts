@@ -9,7 +9,10 @@ export const createPicklistSchema = z.object({
   fieldname: z.string().max(255).optional(),
   controlledlabel: z.string().max(255).optional(),
   controlledfieldname: z.string().max(255).optional(),
-  parent: z.string().max(20).optional(),
+  parent: z.string().max(255).optional(),
+  description: z.string().max(255).optional(),
+  sortorder: z.number().int().optional(),
+  isactive: z.boolean().optional().nullable(),
 });
 
 export const updatePicklistSchema = createPicklistSchema.partial();

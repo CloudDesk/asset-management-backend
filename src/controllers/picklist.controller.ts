@@ -133,8 +133,9 @@ export class PicklistController {
   });
 
   /**
-   * v2: Bulk update picklists - Update fieldname, parent, sortorder, label, value, and controlled fields
+   * v2: Bulk update picklists - Update fieldname, parent, sortorder, label, value, controlled fields, and isactive
    * Allows reordering and reorganizing picklist items from frontend
+   * Supports soft delete via isactive flag
    */
   bulkUpdatePicklistsV2 = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const updates = request.body as Array<{
@@ -147,6 +148,7 @@ export class PicklistController {
       controlledfieldname?: string | null;
       controlledlabel?: string | null;
       controlledvalue?: string | null;
+      isactive?: boolean | null;
     }>;
 
     if (!Array.isArray(updates) || updates.length === 0) {

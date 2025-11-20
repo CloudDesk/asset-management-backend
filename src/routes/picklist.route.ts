@@ -22,6 +22,11 @@ export async function picklistRoutes(fastify: FastifyInstance) {
           controlledlabel: { type: 'string', description: 'Filter by controlled label' },
           controlledfieldname: { type: 'string', description: 'Filter by controlled field name' },
           parent: { type: 'string', description: 'Filter by parent' },
+          isactive: {
+            type: 'string',
+            enum: ['true', 'false', '1', '0'],
+            description: 'Filter by active status (optional). true/1 = active items only, false/0 = inactive items only. If not provided, returns all items (backward compatible).'
+          },
           searchtext: {
             type: 'string',
             description: 'Search text to find records matching object, fieldname, label, value, or parent fields (case-insensitive). Example: /v1/picklists/?searchtext=category'
@@ -114,6 +119,7 @@ export async function picklistRoutes(fastify: FastifyInstance) {
                 parent: { type: 'string', description: 'Parent reference' },
                 description: { type: 'string', description: 'Description' },
                 sortorder: { type: 'integer', nullable: true, description: 'Sort order for display (null values sorted last)' },
+                isactive: { type: 'boolean', nullable: true, description: 'Active status - true = active, false = inactive/deleted (soft delete)' },
               }
             },
             message: { type: 'string' },
@@ -211,8 +217,10 @@ export async function picklistRoutes(fastify: FastifyInstance) {
           fieldname: { type: 'string', maxLength: 255, description: 'Field name' },
           controlledlabel: { type: 'string', maxLength: 255, description: 'Controlled label' },
           controlledfieldname: { type: 'string', maxLength: 255, description: 'Controlled field name' },
-          parent: { type: 'string', maxLength: 20, description: 'Parent reference' },
+          parent: { type: 'string', maxLength: 255, description: 'Parent reference' },
+          description: { type: 'string', maxLength: 255, description: 'Description' },
           sortorder: { type: 'integer', description: 'Sort order for display' },
+          isactive: { type: 'boolean', nullable: true, description: 'Active status - true = active, false = inactive/deleted (soft delete). Defaults to true if not provided.' },
         },
         required: ['label', 'value'],
       },
@@ -235,6 +243,7 @@ export async function picklistRoutes(fastify: FastifyInstance) {
                 parent: { type: 'string', description: 'Parent reference' },
                 description: { type: 'string', description: 'Description' },
                 sortorder: { type: 'integer', nullable: true, description: 'Sort order for display (null values sorted last)' },
+                isactive: { type: 'boolean', nullable: true, description: 'Active status - true = active, false = inactive/deleted (soft delete)' },
               }
             },
             message: { type: 'string' },
@@ -262,170 +271,6 @@ export async function picklistRoutes(fastify: FastifyInstance) {
     },
   }, picklistController.createPicklist.bind(picklistController));
 
-  // PUT /v1/picklists/:id - Update picklist
-  fastify.put('/:id', {
-    schema: {
-      description: 'Update picklist by ID',
-      tags: ['Picklists'],
-      params: {
-        type: 'object',
-        properties: {
-          id: { type: 'string', pattern: '^\\d+$', description: 'Picklist ID (integer)' },
-        },
-        required: ['id'],
-      },
-      body: {
-        type: 'object',
-        properties: {
-          label: { type: 'string', maxLength: 255, description: 'Display label' },
-          value: { type: 'string', maxLength: 255, description: 'Stored value' },
-          object: { type: 'string', maxLength: 255, description: 'Object reference' },
-          controlledvalue: { type: 'string', maxLength: 255, description: 'Controlled value' },
-          fieldname: { type: 'string', maxLength: 255, description: 'Field name' },
-          controlledlabel: { type: 'string', maxLength: 255, description: 'Controlled label' },
-          controlledfieldname: { type: 'string', maxLength: 255, description: 'Controlled field name' },
-          parent: { type: 'string', maxLength: 20, description: 'Parent reference' },
-          sortorder: { type: 'integer', description: 'Sort order for display' },
-        },
-      },
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            data: { 
-              type: 'object',
-              properties: {
-                id: { type: 'integer', description: 'Picklist ID' },
-                label: { type: 'string', description: 'Display label' },
-                value: { type: 'string', description: 'Stored value' },
-                object: { type: 'string', description: 'Object reference' },
-                controlledvalue: { type: 'string', description: 'Controlled value' },
-                fieldname: { type: 'string', description: 'Field name' },
-                controlledlabel: { type: 'string', description: 'Controlled label' },
-                controlledfieldname: { type: 'string', description: 'Controlled field name' },
-                parent: { type: 'string', description: 'Parent reference' },
-                description: { type: 'string', description: 'Description' },
-                sortorder: { type: 'integer', nullable: true, description: 'Sort order for display (null values sorted last)' },
-              }
-            },
-            message: { type: 'string' },
-          },
-        },
-        400: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            details: { type: 'string' },
-            statusCode: { type: 'number' },
-          },
-        },
-        404: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            details: { type: 'string' },
-            statusCode: { type: 'number' },
-          },
-        },
-        500: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            details: { type: 'string' },
-            statusCode: { type: 'number' },
-          },
-        },
-      },
-    },
-  }, picklistController.updatePicklist.bind(picklistController));
-
-  // DELETE /v1/picklists/:id - Delete picklist
-  fastify.delete('/:id', {
-    schema: {
-      description: 'Delete picklist by ID',
-      tags: ['Picklists'],
-      params: {
-        type: 'object',
-        properties: {
-          id: { type: 'string', pattern: '^\\d+$', description: 'Picklist ID (integer)' },
-        },
-        required: ['id'],
-      },
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-          },
-        },
-        400: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            details: { type: 'string' },
-            statusCode: { type: 'number' },
-          },
-        },
-        404: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            details: { type: 'string' },
-            statusCode: { type: 'number' },
-          },
-        },
-        409: {
-          type: "object",
-          properties: {
-            success: { type: "boolean" },
-            message: { type: "string" },
-            details: { type: "string" },
-            statusCode: { type: "number" },
-            errorCode: { type: "string" },
-            blockingRecords: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  table: { type: "string", description: "Table name containing the blocking record" },
-                  recordId: { type: ["string", "number"], description: "ID of the blocking record" },
-                  details: {
-                    type: "object",
-                    description: "Detailed information about the blocking record",
-                    additionalProperties: true
-                  }
-                }
-              }
-            },
-            constraintInfo: {
-              type: "object",
-              properties: {
-                constraintName: { type: "string", description: "Foreign key constraint name" },
-                referencedTable: { type: "string", description: "Table being referenced" }
-              }
-            }
-          },
-        },
-        500: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            details: { type: 'string' },
-            statusCode: { type: 'number' },
-          },
-        },
-      },
-    },
-  }, picklistController.deletePicklist.bind(picklistController));
-
   // GET /v1/picklists/dependency-fieldnames - Get unique fieldnames by object
   fastify.get('/dependency-fieldnames', {
     schema: {
@@ -446,7 +291,7 @@ export async function picklistRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            data: {
+            data: { 
               type: 'array',
               items: {
                 type: 'string'
@@ -551,6 +396,11 @@ export async function picklistRoutesV2(fastify: FastifyInstance) {
             type: 'string', 
             description: 'Filter by parent value (for dependent fields)' 
           },
+          isactive: {
+            type: 'string',
+            enum: ['true', 'false', '1', '0'],
+            description: 'Filter by active status (optional). true/1 = active items only, false/0 = inactive items only. If not provided, returns all items (backward compatible).'
+          },
           label: { type: 'string', description: 'Filter by label' },
           value: { type: 'string', description: 'Filter by value' },
           controlledvalue: { type: 'string', description: 'Filter by controlled value' },
@@ -570,8 +420,8 @@ export async function picklistRoutesV2(fastify: FastifyInstance) {
       body: {
         type: 'array',
         items: {
-          type: 'object',
-          properties: {
+        type: 'object',
+        properties: {
             id: {
               type: ['integer', 'string'],
               description: 'Picklist ID (required)'
@@ -620,6 +470,11 @@ export async function picklistRoutesV2(fastify: FastifyInstance) {
               nullable: true,
               maxLength: 255,
               description: 'Update controlled value - set to null to remove (optional)'
+            },
+            isactive: {
+              type: 'boolean',
+              nullable: true,
+              description: 'Update active status - set to false to soft delete/disable item (optional). true = active, false = inactive/deleted'
             }
           },
           required: ['id'],
@@ -632,7 +487,7 @@ export async function picklistRoutesV2(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            data: {
+            data: { 
               type: 'array',
               items: {
                 type: 'object',
@@ -666,13 +521,13 @@ export async function picklistRoutesV2(fastify: FastifyInstance) {
             data: {
               type: 'array',
               items: {
-                type: 'object',
+          type: 'object',
                 additionalProperties: true
               }
             },
             summary: {
-              type: 'object',
-              properties: {
+          type: 'object',
+          properties: {
                 total: { type: 'number' },
                 successful: { type: 'number' },
                 failed: { type: 'number' }

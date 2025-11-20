@@ -141,6 +141,7 @@ model Picklist {
   parent              String? @db.VarChar(255)
   description         String? @db.VarChar(255)
   sortorder           Int?
+  isactive            Boolean? @default(true)
   createddate          BigInt?
   modifieddate         BigInt?
 

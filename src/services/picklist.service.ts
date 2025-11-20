@@ -29,8 +29,15 @@ export class PicklistService {
 
       const { skip, take } = getPrismaSkipTake(page, limit);
 
-      // Extract sorting parameters from filters (remove them so they don't get used as WHERE clauses)
-      const { sortorder, fieldnameOrder, objectOrder, ...actualFilters } = filters;
+      // Extract sorting parameters and isactive from filters (remove them so they don't get used as WHERE clauses)
+      const { sortorder, fieldnameOrder, objectOrder, isactive, ...actualFilters } = filters;
+      
+      // Handle isactive filter if provided (for soft delete support)
+      // Keep as string to match FilterOptions type
+      if (isactive !== undefined) {
+        const isactiveValue = Array.isArray(isactive) ? isactive[0] : isactive;
+        actualFilters.isactive = (isactiveValue === 'true' || isactiveValue === '1') ? 'true' : 'false';
+      }
       
       const sortorderValue = Array.isArray(sortorder) ? sortorder[0] : sortorder;
       const sortorderDirection = sortorderValue?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
@@ -435,8 +442,16 @@ export class PicklistService {
         fieldnameOrder: ____, 
         limit: _____,
         page: ______,
+        isactive: _______,
         ...actualFilters 
       } = filters;
+      
+      // Handle isactive filter if provided (for soft delete support)
+      // Keep as string to match FilterOptions type
+      if (_______ !== undefined) {
+        const isactiveValue = Array.isArray(_______) ? _______[0] : _______;
+        actualFilters.isactive = (isactiveValue === 'true' || isactiveValue === '1') ? 'true' : 'false';
+      }
 
       // Build WHERE conditions
       const whereConditions: any = {};
@@ -459,6 +474,37 @@ export class PicklistService {
           { object: { contains: searchText, mode: 'insensitive' } },
           { parent: { contains: searchText, mode: 'insensitive' } },
         ];
+      }
+
+      // Filter by isactive if provided (for soft delete support)
+      // Note: Only filter if explicitly provided - don't set default to avoid breaking if field doesn't exist yet
+      // null values are treated as false (inactive/deleted)
+      if (actualFilters.isactive !== undefined) {
+        const isactiveValue = Array.isArray(actualFilters.isactive) ? actualFilters.isactive[0] : actualFilters.isactive;
+        // Convert string to boolean - handle 'true', '1', or actual boolean true
+        const isActiveValue = typeof isactiveValue === 'boolean' 
+          ? isactiveValue 
+          : (isactiveValue === 'true' || isactiveValue === '1');
+        
+        // Build isactive condition: null means false (inactive), true means active
+        const isactiveCondition = isActiveValue
+          ? { isactive: true } // Active: only true
+          : { OR: [{ isactive: false }, { isactive: null }] }; // Inactive: false OR null
+        
+        // If there's already an OR from searchtext, wrap both in AND
+        if (whereConditions.OR) {
+          whereConditions.AND = [
+            { OR: whereConditions.OR },
+            isactiveCondition
+          ];
+          delete whereConditions.OR;
+        } else {
+          // No existing OR, just add the isactive condition
+          Object.assign(whereConditions, isactiveCondition);
+        }
+        
+        // Remove from actualFilters so it doesn't get processed again
+        delete actualFilters.isactive;
       }
 
       // Apply other filters
@@ -630,10 +676,10 @@ export class PicklistService {
   }
 
   /**
-   * v2: Bulk update picklists - Update fieldname, parent, sortorder, label, value, and controlled fields
+   * v2: Bulk update picklists - Update fieldname, parent, sortorder, label, value, controlled fields, and isactive
    * Useful for reordering and reorganizing picklist items
    * 
-   * @param updates - Array of picklist updates with id and optional fieldname, parent, sortorder, label, value, controlledfieldname, controlledlabel, controlledvalue
+   * @param updates - Array of picklist updates with id and optional fieldname, parent, sortorder, label, value, controlledfieldname, controlledlabel, controlledvalue, isactive
    * @returns Summary of update results
    */
   async bulkUpdateV2(
@@ -647,6 +693,7 @@ export class PicklistService {
       controlledfieldname?: string | null;
       controlledlabel?: string | null;
       controlledvalue?: string | null;
+      isactive?: boolean | null;
     }>
   ): Promise<{
     summary: {
@@ -680,7 +727,8 @@ export class PicklistService {
             value,
             controlledfieldname,
             controlledlabel,
-            controlledvalue
+            controlledvalue,
+            isactive
           } = update;
 
           // Build update data object (only include provided fields)
@@ -714,6 +762,11 @@ export class PicklistService {
           if (controlledvalue !== undefined) {
             // Handle null explicitly - allow setting controlledvalue to null
             updateData.controlledvalue = controlledvalue === null || controlledvalue === '' ? null : controlledvalue;
+          }
+          if (isactive !== undefined) {
+            // Handle boolean isactive field
+            // null means false (inactive/deleted), false means false, true means true
+            updateData.isactive = isactive === null ? false : Boolean(isactive);
           }
 
           // If no fields to update, skip
