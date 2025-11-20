@@ -1,14 +1,20 @@
 import { prisma } from '../models/prisma.js';
 import { createPaginationResult, getPrismaSkipTake } from '../utils/pagination.js';
-import { dynamicFindMany, dynamicFindUnique, dynamicCreate, dynamicUpdate, dynamicDelete, dynamicFindManyWithFilters } from '../utils/dynamicDbOperations.js';
+import { dynamicFindMany, dynamicFindUnique, dynamicCreate, dynamicUpdate, dynamicDelete, dynamicFindManyWithFilters, formatEntitiesForAPI, formatPicklistForAPI } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
 export class PicklistService {
     async findMany(filters, page, limit) {
         try {
             logger.info({ filters, page, limit }, 'Starting dynamic picklist findMany with filters');
             const { skip, take } = getPrismaSkipTake(page, limit);
-            // Extract sorting parameters from filters (remove them so they don't get used as WHERE clauses)
-            const { sortorder, fieldnameOrder, objectOrder, ...actualFilters } = filters;
+            // Extract sorting parameters and isactive from filters (remove them so they don't get used as WHERE clauses)
+            const { sortorder, fieldnameOrder, objectOrder, isactive, ...actualFilters } = filters;
+            // Handle isactive filter if provided (for soft delete support)
+            // Keep as string to match FilterOptions type
+            if (isactive !== undefined) {
+                const isactiveValue = Array.isArray(isactive) ? isactive[0] : isactive;
+                actualFilters.isactive = (isactiveValue === 'true' || isactiveValue === '1') ? 'true' : 'false';
+            }
             const sortorderValue = Array.isArray(sortorder) ? sortorder[0] : sortorder;
             const sortorderDirection = sortorderValue?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
             const fieldnameOrderValue = Array.isArray(fieldnameOrder) ? fieldnameOrder[0] : fieldnameOrder;
@@ -324,6 +330,466 @@ export class PicklistService {
         }
         catch (error) {
             logger.error({ error, object, sortBy, order }, 'Error finding grouped picklists');
+            throw error;
+        }
+    }
+    /**
+     * v2: Get picklists with optional grouping by fieldname and/or parent
+     * Supports both flat and grouped response formats
+     *
+     * @param filters - Filter options including object, searchtext, parent, etc.
+     * @param groupByFieldname - If true, returns grouped by fieldname; if false, returns flat array
+     * @param groupByParent - If true (and groupByFieldname is true), groups by parent within each fieldname
+     * @param sortorder - Sort direction for sortorder field (ASC/DESC)
+     * @param fieldnameOrder - Sort direction for fieldname groups (ASC/DESC)
+     * @param limit - Global limit (not per fieldname)
+     * @returns Object with grouped/flat data and metadata
+     */
+    async findManyV2(filters, groupByFieldname = false, groupByParent = false, sortorder = 'ASC', fieldnameOrder = 'ASC', limit = 1000) {
+        try {
+            logger.info({
+                filters,
+                groupByFieldname,
+                groupByParent,
+                sortorder,
+                fieldnameOrder,
+                limit
+            }, 'Starting v2 picklist findMany');
+            // Extract filters (remove grouping and sorting params from WHERE clause)
+            const { groupByFieldname: _, groupByParent: __, sortorder: ___, fieldnameOrder: ____, limit: _____, page: ______, isactive: _______, ...actualFilters } = filters;
+            // Handle isactive filter if provided (for soft delete support)
+            // Keep as string to match FilterOptions type
+            if (_______ !== undefined) {
+                const isactiveValue = Array.isArray(_______) ? _______[0] : _______;
+                actualFilters.isactive = (isactiveValue === 'true' || isactiveValue === '1') ? 'true' : 'false';
+            }
+            // Build WHERE conditions
+            const whereConditions = {};
+            if (actualFilters.object) {
+                whereConditions.object = actualFilters.object;
+            }
+            if (actualFilters.parent) {
+                whereConditions.parent = actualFilters.parent;
+            }
+            // Handle searchtext - search across label, value, fieldname, object, parent
+            if (actualFilters.searchtext) {
+                const searchText = actualFilters.searchtext;
+                whereConditions.OR = [
+                    { label: { contains: searchText, mode: 'insensitive' } },
+                    { value: { contains: searchText, mode: 'insensitive' } },
+                    { fieldname: { contains: searchText, mode: 'insensitive' } },
+                    { object: { contains: searchText, mode: 'insensitive' } },
+                    { parent: { contains: searchText, mode: 'insensitive' } },
+                ];
+            }
+            // Filter by isactive if provided (for soft delete support)
+            // Note: Only filter if explicitly provided - don't set default to avoid breaking if field doesn't exist yet
+            // null values are treated as false (inactive/deleted)
+            if (actualFilters.isactive !== undefined) {
+                const isactiveValue = Array.isArray(actualFilters.isactive) ? actualFilters.isactive[0] : actualFilters.isactive;
+                // Convert string to boolean - handle 'true', '1', or actual boolean true
+                const isActiveValue = typeof isactiveValue === 'boolean'
+                    ? isactiveValue
+                    : (isactiveValue === 'true' || isactiveValue === '1');
+                // Build isactive condition: null means false (inactive), true means active
+                const isactiveCondition = isActiveValue
+                    ? { isactive: true } // Active: only true
+                    : { OR: [{ isactive: false }, { isactive: null }] }; // Inactive: false OR null
+                // If there's already an OR from searchtext, wrap both in AND
+                if (whereConditions.OR) {
+                    whereConditions.AND = [
+                        { OR: whereConditions.OR },
+                        isactiveCondition
+                    ];
+                    delete whereConditions.OR;
+                }
+                else {
+                    // No existing OR, just add the isactive condition
+                    Object.assign(whereConditions, isactiveCondition);
+                }
+                // Remove from actualFilters so it doesn't get processed again
+                delete actualFilters.isactive;
+            }
+            // Apply other filters
+            Object.keys(actualFilters).forEach(key => {
+                if (!['object', 'parent', 'searchtext'].includes(key) && actualFilters[key] !== undefined) {
+                    whereConditions[key] = actualFilters[key];
+                }
+            });
+            // Build orderBy
+            const orderBy = [];
+            // Always order by fieldname first (for grouping consistency)
+            orderBy.push({ fieldname: fieldnameOrder.toLowerCase() });
+            // Then by sortorder (handle nulls last)
+            if (sortorder === 'DESC') {
+                orderBy.push({ sortorder: 'desc' });
+            }
+            else {
+                orderBy.push({ sortorder: 'asc' });
+            }
+            // Fetch all records (up to limit) - no pagination for grouped mode
+            const picklists = await prisma.picklist.findMany({
+                where: Object.keys(whereConditions).length > 0 ? whereConditions : undefined,
+                orderBy,
+                take: limit || 1000,
+            });
+            // Format picklists for API
+            const formattedPicklists = formatEntitiesForAPI(picklists, 'picklist');
+            const totalRecords = formattedPicklists.length;
+            // If grouping is requested, group by fieldname (and optionally by parent)
+            if (groupByFieldname) {
+                if (groupByParent) {
+                    // Nested grouping: fieldname -> parent -> items
+                    const grouped = {};
+                    for (const picklist of formattedPicklists) {
+                        const fieldName = picklist.fieldname || 'unknown';
+                        // Handle null, empty string, or undefined parent values
+                        const parentValue = picklist.parent;
+                        const parentKey = (parentValue && String(parentValue).trim() !== '')
+                            ? String(parentValue)
+                            : 'null';
+                        if (!grouped[fieldName]) {
+                            grouped[fieldName] = {};
+                        }
+                        if (!grouped[fieldName][parentKey]) {
+                            grouped[fieldName][parentKey] = [];
+                        }
+                        grouped[fieldName][parentKey].push(picklist);
+                    }
+                    // Sort each parent group by sortorder
+                    for (const fieldName in grouped) {
+                        const fieldGroup = grouped[fieldName];
+                        for (const parentKey in fieldGroup) {
+                            const parentGroup = fieldGroup[parentKey];
+                            if (parentGroup && parentGroup.length > 0) {
+                                parentGroup.sort((a, b) => {
+                                    const aSort = a.sortorder ?? Number.MAX_SAFE_INTEGER;
+                                    const bSort = b.sortorder ?? Number.MAX_SAFE_INTEGER;
+                                    if (sortorder === 'ASC') {
+                                        return aSort - bSort;
+                                    }
+                                    else {
+                                        return bSort - aSort;
+                                    }
+                                });
+                            }
+                        }
+                    }
+                    logger.info({
+                        object: actualFilters.object,
+                        groupCount: Object.keys(grouped).length,
+                        totalRecords,
+                        grouped: true,
+                        groupedByParent: true
+                    }, 'v2 picklist findMany grouped by fieldname and parent completed');
+                    return {
+                        grouped,
+                        meta: {
+                            ...(actualFilters.object && { object: actualFilters.object }),
+                            grouped: true,
+                            groupedByParent: true,
+                            groupCount: Object.keys(grouped).length,
+                            totalRecords
+                        }
+                    };
+                }
+                else {
+                    // Simple grouping: fieldname -> items
+                    const grouped = {};
+                    for (const picklist of formattedPicklists) {
+                        const fieldName = picklist.fieldname || 'unknown';
+                        if (!grouped[fieldName]) {
+                            grouped[fieldName] = [];
+                        }
+                        grouped[fieldName].push(picklist);
+                    }
+                    // Sort each group by sortorder (already sorted from query, but ensure consistency)
+                    for (const fieldName in grouped) {
+                        const group = grouped[fieldName];
+                        if (group && group.length > 0) {
+                            group.sort((a, b) => {
+                                const aSort = a.sortorder ?? Number.MAX_SAFE_INTEGER;
+                                const bSort = b.sortorder ?? Number.MAX_SAFE_INTEGER;
+                                if (sortorder === 'ASC') {
+                                    return aSort - bSort;
+                                }
+                                else {
+                                    return bSort - aSort;
+                                }
+                            });
+                        }
+                    }
+                    logger.info({
+                        object: actualFilters.object,
+                        groupCount: Object.keys(grouped).length,
+                        totalRecords,
+                        grouped: true
+                    }, 'v2 picklist findMany grouped by fieldname completed');
+                    return {
+                        grouped,
+                        meta: {
+                            ...(actualFilters.object && { object: actualFilters.object }),
+                            grouped: true,
+                            groupedByParent: false,
+                            groupCount: Object.keys(grouped).length,
+                            totalRecords
+                        }
+                    };
+                }
+            }
+            // Flat response (legacy compatible)
+            logger.info({
+                totalRecords,
+                grouped: false
+            }, 'v2 picklist findMany flat completed');
+            return {
+                flat: formattedPicklists,
+                meta: {
+                    ...(actualFilters.object && { object: actualFilters.object }),
+                    grouped: false,
+                    totalRecords
+                },
+                pagination: {
+                    page: 1,
+                    limit: limit || 1000,
+                    total: totalRecords,
+                    totalPages: Math.ceil(totalRecords / (limit || 1000)),
+                    hasNext: false,
+                    hasPrev: false
+                }
+            };
+        }
+        catch (error) {
+            logger.error({ error, filters, groupByFieldname, groupByParent }, 'Error in v2 picklist findMany operation');
+            throw error;
+        }
+    }
+    /**
+     * v2: Bulk create/update picklists - Create new items or update existing ones
+     * Handles both create (when id is missing/null/negative) and update operations
+     * Useful for reordering and reorganizing picklist items in a single API call
+     *
+     * @param updates - Array of picklist items:
+     *   - For CREATE: id is missing/null/negative, requires: label, value, object, fieldname
+     *   - For UPDATE: id is provided (positive number), updates only provided fields
+     * @returns Summary of create/update results
+     */
+    async bulkUpdateV2(updates) {
+        try {
+            logger.info({ updateCount: updates.length }, 'Starting v2 bulk picklist update operation');
+            const results = [];
+            let successCount = 0;
+            let failureCount = 0;
+            // Process each item (create or update)
+            for (const item of updates) {
+                try {
+                    const { id, fieldname, parent, sortorder, label, value, object, description, controlledfieldname, controlledlabel, controlledvalue, isactive } = item;
+                    // Determine if this is a CREATE or UPDATE operation
+                    // CREATE: id is missing, null, negative, or 0
+                    const isCreate = !id || id === null || (typeof id === 'number' && id <= 0) || (typeof id === 'string' && (id === '' || parseInt(id) <= 0));
+                    if (isCreate) {
+                        // CREATE operation
+                        // Validate required fields for creation
+                        if (!label || !value || !object || !fieldname) {
+                            throw new Error('For new items, label, value, object, and fieldname are required');
+                        }
+                        // Build create data object
+                        const createData = {
+                            label: label === null || label === '' ? null : label,
+                            value: value === null || value === '' ? null : value,
+                            object: object,
+                            fieldname: fieldname,
+                        };
+                        // Add optional fields
+                        if (parent !== undefined) {
+                            createData.parent = parent === null || parent === '' ? null : parent;
+                        }
+                        if (sortorder !== undefined) {
+                            createData.sortorder = sortorder === null ? null : sortorder;
+                        }
+                        if (description !== undefined) {
+                            createData.description = description === null || description === '' ? null : description;
+                        }
+                        if (controlledfieldname !== undefined) {
+                            createData.controlledfieldname = controlledfieldname === null || controlledfieldname === '' ? null : controlledfieldname;
+                        }
+                        if (controlledlabel !== undefined) {
+                            createData.controlledlabel = controlledlabel === null || controlledlabel === '' ? null : controlledlabel;
+                        }
+                        if (controlledvalue !== undefined) {
+                            createData.controlledvalue = controlledvalue === null || controlledvalue === '' ? null : controlledvalue;
+                        }
+                        if (isactive !== undefined) {
+                            // Handle boolean isactive field
+                            // null means false (inactive/deleted), false means false, true means true
+                            createData.isactive = isactive === null ? false : Boolean(isactive);
+                        }
+                        else {
+                            // Default to true for new items if not specified
+                            createData.isactive = true;
+                        }
+                        // Set timestamps
+                        const currentTimestamp = Date.now();
+                        createData.createddate = currentTimestamp;
+                        createData.modifieddate = currentTimestamp;
+                        // Create the picklist
+                        const created = await dynamicCreate('picklist', createData);
+                        if (!created) {
+                            throw new Error('Failed to create picklist');
+                        }
+                        // Format the response
+                        const formatted = formatPicklistForAPI(created);
+                        results.push({
+                            id: created.id,
+                            success: true,
+                            operation: 'create',
+                            data: formatted
+                        });
+                        successCount++;
+                        logger.debug({ createdId: created.id, createData }, 'Individual picklist create successful');
+                    }
+                    else {
+                        // UPDATE operation
+                        // Build update data object (only include provided fields)
+                        const updateData = {};
+                        if (fieldname !== undefined) {
+                            updateData.fieldname = fieldname;
+                        }
+                        if (parent !== undefined) {
+                            // Handle null explicitly - allow setting parent to null
+                            updateData.parent = parent === null || parent === '' ? null : parent;
+                        }
+                        if (sortorder !== undefined) {
+                            updateData.sortorder = sortorder === null ? null : sortorder;
+                        }
+                        if (label !== undefined) {
+                            // Handle null explicitly - allow setting label to null
+                            updateData.label = label === null || label === '' ? null : label;
+                        }
+                        if (value !== undefined) {
+                            // Handle null explicitly - allow setting value to null
+                            updateData.value = value === null || value === '' ? null : value;
+                        }
+                        if (description !== undefined) {
+                            updateData.description = description === null || description === '' ? null : description;
+                        }
+                        if (controlledfieldname !== undefined) {
+                            // Handle null explicitly - allow setting controlledfieldname to null
+                            updateData.controlledfieldname = controlledfieldname === null || controlledfieldname === '' ? null : controlledfieldname;
+                        }
+                        if (controlledlabel !== undefined) {
+                            // Handle null explicitly - allow setting controlledlabel to null
+                            updateData.controlledlabel = controlledlabel === null || controlledlabel === '' ? null : controlledlabel;
+                        }
+                        if (controlledvalue !== undefined) {
+                            // Handle null explicitly - allow setting controlledvalue to null
+                            updateData.controlledvalue = controlledvalue === null || controlledvalue === '' ? null : controlledvalue;
+                        }
+                        if (isactive !== undefined) {
+                            // Handle boolean isactive field
+                            // null means false (inactive/deleted), false means false, true means true
+                            updateData.isactive = isactive === null ? false : Boolean(isactive);
+                        }
+                        // Update modifieddate
+                        updateData.modifieddate = Date.now();
+                        // If no fields to update, skip
+                        if (Object.keys(updateData).length === 0) {
+                            results.push({
+                                id,
+                                success: false,
+                                operation: 'update',
+                                error: 'No fields provided to update'
+                            });
+                            failureCount++;
+                            continue;
+                        }
+                        // Update the picklist
+                        const updated = await dynamicUpdate('picklist', { id: String(id) }, updateData);
+                        if (!updated) {
+                            throw new Error('Picklist not found or update failed');
+                        }
+                        // Format the response
+                        const formatted = formatPicklistForAPI(updated);
+                        results.push({
+                            id,
+                            success: true,
+                            operation: 'update',
+                            data: formatted
+                        });
+                        successCount++;
+                        logger.debug({ id, updateData }, 'Individual picklist update successful');
+                    }
+                }
+                catch (error) {
+                    logger.error({ error, item }, 'Error processing picklist item');
+                    const isCreate = !item.id || item.id === null || (typeof item.id === 'number' && item.id <= 0) || (typeof item.id === 'string' && (item.id === '' || parseInt(item.id) <= 0));
+                    results.push({
+                        id: item.id || 'new',
+                        success: false,
+                        operation: (isCreate ? 'create' : 'update'),
+                        error: error.message || 'Operation failed'
+                    });
+                    failureCount++;
+                }
+            }
+            logger.info({
+                total: updates.length,
+                successful: successCount,
+                failed: failureCount
+            }, 'v2 bulk picklist update completed');
+            return {
+                summary: {
+                    total: updates.length,
+                    successful: successCount,
+                    failed: failureCount
+                },
+                results
+            };
+        }
+        catch (error) {
+            logger.error({ error, updates }, 'Error in v2 bulk picklist update operation');
+            throw error;
+        }
+    }
+    /**
+     * Get unique fieldnames filtered by object
+     * Returns an array of unique fieldname values for a given object
+     *
+     * @param object - Object name to filter by (e.g., 'product', 'stock')
+     * @returns Array of unique fieldname strings
+     */
+    async getUniqueFieldnamesByObject(object) {
+        try {
+            logger.debug({ object }, 'Getting unique fieldnames by object');
+            // Use Prisma to get distinct fieldnames
+            const picklists = await prisma.picklist.findMany({
+                where: {
+                    object: object,
+                    fieldname: {
+                        not: null
+                    }
+                },
+                select: {
+                    fieldname: true
+                },
+                distinct: ['fieldname'],
+                orderBy: {
+                    fieldname: 'asc'
+                }
+            });
+            // Extract fieldnames and filter out any null values (safety check)
+            const fieldnames = picklists
+                .map(p => p.fieldname)
+                .filter((fieldname) => fieldname !== null && fieldname !== undefined);
+            logger.info({
+                object,
+                fieldnameCount: fieldnames.length,
+                fieldnames
+            }, 'Unique fieldnames retrieved by object');
+            return fieldnames;
+        }
+        catch (error) {
+            logger.error({ error, object }, 'Error getting unique fieldnames by object');
             throw error;
         }
     }

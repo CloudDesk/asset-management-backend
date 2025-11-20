@@ -1,7 +1,7 @@
 import { productRoutes } from './product.route.js';
 import { stockRoutes } from './stock.route.js';
 import { platformStockRoutes } from './platformStock.route.js';
-import { picklistRoutes } from './picklist.route.js';
+import { picklistRoutes, picklistRoutesV2 } from './picklist.route.js';
 import { supplierRoutes } from './supplier.route.js';
 import { purchaseOrderRoutes } from './purchaseorder.route.js';
 import { purchaseRequestRoutes } from './purchaserequest.route.js';
@@ -94,5 +94,9 @@ export async function routes(fastify) {
             // Register protected routes
         });
     }, { prefix: '/v1' });
+    // API v2 routes
+    await fastify.register(async function (fastify) {
+        await fastify.register(picklistRoutesV2, { prefix: '/picklists' });
+    }, { prefix: '/v2' });
 }
 //# sourceMappingURL=index.js.map

@@ -162894,3 +162894,471 @@ Filtered data result: {
   "createddate": 1763620102153,
   "modifieddate": 1763620102153
 }
+Filtered data result: {
+  "fieldname": "city",
+  "parent": null,
+  "sortorder": 1,
+  "label": "Chennai",
+  "value": "chennai",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1763631630885
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": null,
+  "sortorder": 2,
+  "label": "CBE",
+  "value": "cbe",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1763631631612
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": null,
+  "sortorder": 3,
+  "label": "Kochi",
+  "value": "kochi",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1763631631828
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": null,
+  "sortorder": 4,
+  "label": "Palakkad",
+  "value": "palakkad",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1763631632041
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": null,
+  "sortorder": 4,
+  "label": "Bangalore",
+  "value": "bangalore",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1763631632256
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": null,
+  "sortorder": 5,
+  "label": "Mysore",
+  "value": "mysore",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1763631632488
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "tn",
+  "sortorder": 1,
+  "label": "Chennai",
+  "value": "chennai",
+  "controlledfieldname": "state",
+  "controlledlabel": "TN",
+  "controlledvalue": "tn",
+  "isactive": true,
+  "modifieddate": 1763631767508
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "tn",
+  "sortorder": 2,
+  "label": "CBE",
+  "value": "cbe",
+  "controlledfieldname": "state",
+  "controlledlabel": "TN",
+  "controlledvalue": "tn",
+  "isactive": true,
+  "modifieddate": 1763631767957
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "kl",
+  "sortorder": 3,
+  "label": "Kochi",
+  "value": "kochi",
+  "controlledfieldname": "state",
+  "controlledlabel": "KL",
+  "controlledvalue": "kl",
+  "isactive": true,
+  "modifieddate": 1763631768166
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "kl",
+  "sortorder": 4,
+  "label": "Palakkad",
+  "value": "palakkad",
+  "controlledfieldname": "state",
+  "controlledlabel": "KL",
+  "controlledvalue": "kl",
+  "isactive": true,
+  "modifieddate": 1763631768398
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "ka",
+  "sortorder": 4,
+  "label": "Bangalore",
+  "value": "bangalore",
+  "controlledfieldname": "state",
+  "controlledlabel": "KA",
+  "controlledvalue": "ka",
+  "isactive": true,
+  "modifieddate": 1763631768611
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "ka",
+  "sortorder": 5,
+  "label": "Mysore",
+  "value": "mysore",
+  "controlledfieldname": "state",
+  "controlledlabel": "KA",
+  "controlledvalue": "ka",
+  "isactive": true,
+  "modifieddate": 1763631768824
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": null,
+  "sortorder": 1,
+  "label": "Chennai",
+  "value": "chennai",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1763631917435
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": null,
+  "sortorder": 2,
+  "label": "CBE",
+  "value": "cbe",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1763631917865
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": null,
+  "sortorder": 3,
+  "label": "Kochi",
+  "value": "kochi",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1763631918077
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": null,
+  "sortorder": 4,
+  "label": "Palakkad",
+  "value": "palakkad",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1763631918312
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": null,
+  "sortorder": 4,
+  "label": "Bangalore",
+  "value": "bangalore",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1763631918532
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": null,
+  "sortorder": 5,
+  "label": "Mysore",
+  "value": "mysore",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1763631918747
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": null,
+  "sortorder": 1,
+  "label": "Chennai",
+  "value": "chennai",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1763631968219
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": null,
+  "sortorder": 2,
+  "label": "CBE",
+  "value": "cbe",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1763631968662
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": null,
+  "sortorder": 3,
+  "label": "Kochi",
+  "value": "kochi",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1763631968895
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": null,
+  "sortorder": 4,
+  "label": "Palakkad",
+  "value": "palakkad",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1763631969122
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": null,
+  "sortorder": 4,
+  "label": "Bangalore",
+  "value": "bangalore",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1763631969336
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": null,
+  "sortorder": 5,
+  "label": "Mysore",
+  "value": "mysore",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1763631969545
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": null,
+  "sortorder": 1,
+  "label": "Chennai",
+  "value": "chennai",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1763631989127
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": null,
+  "sortorder": 2,
+  "label": "CBE",
+  "value": "cbe",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1763631989552
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": null,
+  "sortorder": 3,
+  "label": "Kochi",
+  "value": "kochi",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1763631989763
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": null,
+  "sortorder": 4,
+  "label": "Palakkad",
+  "value": "palakkad",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1763631989971
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": null,
+  "sortorder": 4,
+  "label": "Bangalore",
+  "value": "bangalore",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1763631990183
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": null,
+  "sortorder": 5,
+  "label": "Mysore",
+  "value": "mysore",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1763631990399
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "tn",
+  "sortorder": 1,
+  "label": "Chennai",
+  "value": "chennai",
+  "controlledfieldname": "state",
+  "controlledlabel": "TN",
+  "controlledvalue": "tn",
+  "isactive": true,
+  "modifieddate": 1763632013329
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "tn",
+  "sortorder": 2,
+  "label": "CBE",
+  "value": "cbe",
+  "controlledfieldname": "state",
+  "controlledlabel": "TN",
+  "controlledvalue": "tn",
+  "isactive": true,
+  "modifieddate": 1763632013808
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "kl",
+  "sortorder": 3,
+  "label": "Kochi",
+  "value": "kochi",
+  "controlledfieldname": "state",
+  "controlledlabel": "KL",
+  "controlledvalue": "kl",
+  "isactive": true,
+  "modifieddate": 1763632014016
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "ka",
+  "sortorder": 4,
+  "label": "Bangalore",
+  "value": "bangalore",
+  "controlledfieldname": "state",
+  "controlledlabel": "KA",
+  "controlledvalue": "ka",
+  "isactive": true,
+  "modifieddate": 1763632014229
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "kl",
+  "sortorder": 4,
+  "label": "Palakkad",
+  "value": "palakkad",
+  "controlledfieldname": "state",
+  "controlledlabel": "KL",
+  "controlledvalue": "kl",
+  "isactive": true,
+  "modifieddate": 1763632014444
+}
+Filtered data result: {
+  "fieldname": "city",
+  "parent": "ka",
+  "sortorder": 5,
+  "label": "Mysore",
+  "value": "mysore",
+  "controlledfieldname": "state",
+  "controlledlabel": "KA",
+  "controlledvalue": "ka",
+  "isactive": true,
+  "modifieddate": 1763632014663
+}
+Filtered data result: {
+  "fieldname": "category",
+  "parent": null,
+  "sortorder": 2,
+  "label": "Personal Fragrance",
+  "value": "personal_fragrance",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1763632882174
+}
+Filtered data result: {
+  "fieldname": "category",
+  "parent": null,
+  "sortorder": 1,
+  "label": "Home Fragrance",
+  "value": "home_fragrance",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1763632882663
+}
+Filtered data result: {
+  "fieldname": "category",
+  "parent": null,
+  "sortorder": 3,
+  "label": "Wellness & Aromatherapy",
+  "value": "wellness_aromatherapy",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1763632882894
+}
