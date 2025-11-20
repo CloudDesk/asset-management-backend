@@ -1186,3 +1186,105 @@ Fallback query:
         WHERE "id" = $1 
         RETURNING id, label, value, object, controlledvalue, fieldname, controlledlabel, controlledfieldname, parent, createddate, modifieddate, description, sortorder, isactive
       
+Fallback query: 
+        UPDATE "picklist" 
+        SET "fieldname" = $2, "parent" = $3, "sortorder" = $4, "label" = $5, "value" = $6, "controlledfieldname" = $7, "controlledlabel" = $8, "controlledvalue" = $9, "isactive" = $10, "modifieddate" = $11 
+        WHERE "id" = $1 
+        RETURNING id, label, value, object, controlledvalue, fieldname, controlledlabel, controlledfieldname, parent, createddate, modifieddate, description, sortorder, isactive
+      
+Fallback query: 
+        UPDATE "picklist" 
+        SET "fieldname" = $2, "parent" = $3, "sortorder" = $4, "label" = $5, "value" = $6, "controlledfieldname" = $7, "controlledlabel" = $8, "controlledvalue" = $9, "isactive" = $10, "modifieddate" = $11 
+        WHERE "id" = $1 
+        RETURNING id, label, value, object, controlledvalue, fieldname, controlledlabel, controlledfieldname, parent, createddate, modifieddate, description, sortorder, isactive
+      
+Fallback query: 
+        UPDATE "picklist" 
+        SET "fieldname" = $2, "parent" = $3, "sortorder" = $4, "label" = $5, "value" = $6, "controlledfieldname" = $7, "controlledlabel" = $8, "controlledvalue" = $9, "isactive" = $10, "modifieddate" = $11 
+        WHERE "id" = $1 
+        RETURNING id, label, value, object, controlledvalue, fieldname, controlledlabel, controlledfieldname, parent, createddate, modifieddate, description, sortorder, isactive
+      
+Fallback query: 
+        UPDATE "picklist" 
+        SET "fieldname" = $2, "parent" = $3, "sortorder" = $4, "label" = $5, "value" = $6, "controlledfieldname" = $7, "controlledlabel" = $8, "controlledvalue" = $9, "isactive" = $10, "modifieddate" = $11 
+        WHERE "id" = $1 
+        RETURNING id, label, value, object, controlledvalue, fieldname, controlledlabel, controlledfieldname, parent, createddate, modifieddate, description, sortorder, isactive
+      
+Fallback query: 
+        UPDATE "picklist" 
+        SET "fieldname" = $2, "parent" = $3, "sortorder" = $4, "label" = $5, "value" = $6, "controlledfieldname" = $7, "controlledlabel" = $8, "controlledvalue" = $9, "isactive" = $10, "modifieddate" = $11 
+        WHERE "id" = $1 
+        RETURNING id, label, value, object, controlledvalue, fieldname, controlledlabel, controlledfieldname, parent, createddate, modifieddate, description, sortorder, isactive
+      
+Fallback query: 
+        UPDATE "picklist" 
+        SET "fieldname" = $2, "parent" = $3, "sortorder" = $4, "label" = $5, "value" = $6, "controlledfieldname" = $7, "controlledlabel" = $8, "controlledvalue" = $9, "isactive" = $10, "modifieddate" = $11 
+        WHERE "id" = $1 
+        RETURNING id, label, value, object, controlledvalue, fieldname, controlledlabel, controlledfieldname, parent, createddate, modifieddate, description, sortorder, isactive
+      
+Fallback query: 
+        UPDATE "picklist" 
+        SET "fieldname" = $2, "parent" = $3, "sortorder" = $4, "label" = $5, "value" = $6, "controlledfieldname" = $7, "controlledlabel" = $8, "controlledvalue" = $9, "isactive" = $10, "modifieddate" = $11 
+        WHERE "id" = $1 
+        RETURNING id, label, value, object, controlledvalue, fieldname, controlledlabel, controlledfieldname, parent, createddate, modifieddate, description, sortorder, isactive
+      
+Fallback query: 
+        UPDATE "picklist" 
+        SET "fieldname" = $2, "parent" = $3, "sortorder" = $4, "label" = $5, "value" = $6, "controlledfieldname" = $7, "controlledlabel" = $8, "controlledvalue" = $9, "isactive" = $10, "modifieddate" = $11 
+        WHERE "id" = $1 
+        RETURNING id, label, value, object, controlledvalue, fieldname, controlledlabel, controlledfieldname, parent, createddate, modifieddate, description, sortorder, isactive
+      
+Fallback query: 
+        UPDATE "picklist" 
+        SET "fieldname" = $2, "parent" = $3, "sortorder" = $4, "label" = $5, "value" = $6, "controlledfieldname" = $7, "controlledlabel" = $8, "controlledvalue" = $9, "isactive" = $10, "modifieddate" = $11 
+        WHERE "id" = $1 
+        RETURNING id, label, value, object, controlledvalue, fieldname, controlledlabel, controlledfieldname, parent, createddate, modifieddate, description, sortorder, isactive
+      
+Fallback query: 
+        UPDATE "picklist" 
+        SET "fieldname" = $2, "parent" = $3, "sortorder" = $4, "label" = $5, "value" = $6, "controlledfieldname" = $7, "controlledlabel" = $8, "controlledvalue" = $9, "isactive" = $10, "modifieddate" = $11 
+        WHERE "id" = $1 
+        RETURNING id, label, value, object, controlledvalue, fieldname, controlledlabel, controlledfieldname, parent, createddate, modifieddate, description, sortorder, isactive
+      
+Fallback query: 
+        UPDATE "picklist" 
+        SET "fieldname" = $2, "parent" = $3, "sortorder" = $4, "label" = $5, "value" = $6, "controlledfieldname" = $7, "controlledlabel" = $8, "controlledvalue" = $9, "isactive" = $10, "modifieddate" = $11 
+        WHERE "id" = $1 
+        RETURNING id, label, value, object, controlledvalue, fieldname, controlledlabel, controlledfieldname, parent, createddate, modifieddate, description, sortorder, isactive
+      
+Fallback query: 
+        UPDATE "picklist" 
+        SET "fieldname" = $2, "parent" = $3, "sortorder" = $4, "label" = $5, "value" = $6, "controlledfieldname" = $7, "controlledlabel" = $8, "controlledvalue" = $9, "isactive" = $10, "modifieddate" = $11 
+        WHERE "id" = $1 
+        RETURNING id, label, value, object, controlledvalue, fieldname, controlledlabel, controlledfieldname, parent, createddate, modifieddate, description, sortorder, isactive
+      
+Fallback query: 
+        UPDATE "picklist" 
+        SET "fieldname" = $2, "parent" = $3, "sortorder" = $4, "label" = $5, "value" = $6, "controlledfieldname" = $7, "controlledlabel" = $8, "controlledvalue" = $9, "isactive" = $10, "modifieddate" = $11 
+        WHERE "id" = $1 
+        RETURNING id, label, value, object, controlledvalue, fieldname, controlledlabel, controlledfieldname, parent, createddate, modifieddate, description, sortorder, isactive
+      
+Fallback query: 
+        UPDATE "picklist" 
+        SET "fieldname" = $2, "parent" = $3, "sortorder" = $4, "label" = $5, "value" = $6, "controlledfieldname" = $7, "controlledlabel" = $8, "controlledvalue" = $9, "isactive" = $10, "modifieddate" = $11 
+        WHERE "id" = $1 
+        RETURNING id, label, value, object, controlledvalue, fieldname, controlledlabel, controlledfieldname, parent, createddate, modifieddate, description, sortorder, isactive
+      
+Fallback query: 
+        UPDATE "picklist" 
+        SET "fieldname" = $2, "parent" = $3, "sortorder" = $4, "label" = $5, "value" = $6, "controlledfieldname" = $7, "controlledlabel" = $8, "controlledvalue" = $9, "isactive" = $10, "modifieddate" = $11 
+        WHERE "id" = $1 
+        RETURNING id, label, value, object, controlledvalue, fieldname, controlledlabel, controlledfieldname, parent, createddate, modifieddate, description, sortorder, isactive
+      
+Fallback query: 
+        UPDATE "picklist" 
+        SET "fieldname" = $2, "parent" = $3, "sortorder" = $4, "label" = $5, "value" = $6, "controlledfieldname" = $7, "controlledlabel" = $8, "controlledvalue" = $9, "isactive" = $10, "modifieddate" = $11 
+        WHERE "id" = $1 
+        RETURNING id, label, value, object, controlledvalue, fieldname, controlledlabel, controlledfieldname, parent, createddate, modifieddate, description, sortorder, isactive
+      
+Fallback query: 
+        UPDATE "picklist" 
+        SET "fieldname" = $2, "parent" = $3, "sortorder" = $4, "label" = $5, "value" = $6, "controlledfieldname" = $7, "controlledlabel" = $8, "controlledvalue" = $9, "isactive" = $10, "modifieddate" = $11 
+        WHERE "id" = $1 
+        RETURNING id, label, value, object, controlledvalue, fieldname, controlledlabel, controlledfieldname, parent, createddate, modifieddate, description, sortorder, isactive
+      

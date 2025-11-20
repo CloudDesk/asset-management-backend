@@ -412,10 +412,10 @@ export async function picklistRoutesV2(fastify: FastifyInstance) {
     },
   }, picklistController.getPicklistsV2.bind(picklistController));
 
-  // PUT /v2/picklists/bulk - Bulk update picklists (fieldname, parent, sortorder, label, value)
+  // PUT /v2/picklists/bulk - Bulk create/update picklists (handles both create and update in single call)
   fastify.put('/bulk', {
     schema: {
-      description: 'Bulk update picklists - Update fieldname, parent dependencies, sortorder, label, and value',
+      description: 'Bulk create/update picklists - Create new items (when id is missing/null/negative) or update existing ones (when id is provided). Single API call for both operations.',
       tags: ['Picklists v2'],
       body: {
         type: 'array',
@@ -423,8 +423,20 @@ export async function picklistRoutesV2(fastify: FastifyInstance) {
         type: 'object',
         properties: {
             id: {
-              type: ['integer', 'string'],
-              description: 'Picklist ID (required)'
+              type: ['integer', 'string', 'null'],
+              nullable: true,
+              description: 'Picklist ID - Required for UPDATE. Omit/null/negative for CREATE new item'
+            },
+            object: {
+              type: 'string',
+              maxLength: 255,
+              description: 'Object reference - Required for CREATE, optional for UPDATE'
+            },
+            description: {
+              type: 'string',
+              nullable: true,
+              maxLength: 255,
+              description: 'Description - Optional for both CREATE and UPDATE'
             },
             fieldname: {
               type: 'string',
@@ -477,7 +489,9 @@ export async function picklistRoutesV2(fastify: FastifyInstance) {
               description: 'Update active status - set to false to soft delete/disable item (optional). true = active, false = inactive/deleted'
             }
           },
-          required: ['id'],
+          // No required fields at schema level - validation happens in service
+          // For CREATE: label, value, object, fieldname are required
+          // For UPDATE: id is required
           additionalProperties: false
         },
         minItems: 1
@@ -505,9 +519,11 @@ export async function picklistRoutesV2(fastify: FastifyInstance) {
             summary: {
               type: 'object',
               properties: {
-                total: { type: 'number' },
-                successful: { type: 'number' },
-                failed: { type: 'number' }
+                total: { type: 'number', description: 'Total number of items processed' },
+                successful: { type: 'number', description: 'Number of successful operations (create + update)' },
+                failed: { type: 'number', description: 'Number of failed operations' },
+                created: { type: 'number', description: 'Number of items created' },
+                updated: { type: 'number', description: 'Number of items updated' }
               }
             },
             message: { type: 'string' }

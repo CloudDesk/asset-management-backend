@@ -676,20 +676,25 @@ export class PicklistService {
   }
 
   /**
-   * v2: Bulk update picklists - Update fieldname, parent, sortorder, label, value, controlled fields, and isactive
-   * Useful for reordering and reorganizing picklist items
+   * v2: Bulk create/update picklists - Create new items or update existing ones
+   * Handles both create (when id is missing/null/negative) and update operations
+   * Useful for reordering and reorganizing picklist items in a single API call
    * 
-   * @param updates - Array of picklist updates with id and optional fieldname, parent, sortorder, label, value, controlledfieldname, controlledlabel, controlledvalue, isactive
-   * @returns Summary of update results
+   * @param updates - Array of picklist items:
+   *   - For CREATE: id is missing/null/negative, requires: label, value, object, fieldname
+   *   - For UPDATE: id is provided (positive number), updates only provided fields
+   * @returns Summary of create/update results
    */
   async bulkUpdateV2(
     updates: Array<{
-      id: number | string;
+      id?: number | string | null;
       fieldname?: string;
       parent?: string | null;
       sortorder?: number | null;
       label?: string | null;
       value?: string | null;
+      object?: string;
+      description?: string | null;
       controlledfieldname?: string | null;
       controlledlabel?: string | null;
       controlledvalue?: string | null;
@@ -704,6 +709,7 @@ export class PicklistService {
     results: Array<{
       id: number | string;
       success: boolean;
+      operation?: 'create' | 'update';
       data?: any;
       error?: string;
     }>;
@@ -715,8 +721,8 @@ export class PicklistService {
       let successCount = 0;
       let failureCount = 0;
 
-      // Process each update
-      for (const update of updates) {
+      // Process each item (create or update)
+      for (const item of updates) {
         try {
           const { 
             id, 
@@ -725,86 +731,173 @@ export class PicklistService {
             sortorder, 
             label, 
             value,
+            object,
+            description,
             controlledfieldname,
             controlledlabel,
             controlledvalue,
             isactive
-          } = update;
+          } = item;
 
-          // Build update data object (only include provided fields)
-          const updateData: any = {};
-          if (fieldname !== undefined) {
-            updateData.fieldname = fieldname;
-          }
-          if (parent !== undefined) {
-            // Handle null explicitly - allow setting parent to null
-            updateData.parent = parent === null || parent === '' ? null : parent;
-          }
-          if (sortorder !== undefined) {
-            updateData.sortorder = sortorder === null ? null : sortorder;
-          }
-          if (label !== undefined) {
-            // Handle null explicitly - allow setting label to null
-            updateData.label = label === null || label === '' ? null : label;
-          }
-          if (value !== undefined) {
-            // Handle null explicitly - allow setting value to null
-            updateData.value = value === null || value === '' ? null : value;
-          }
-          if (controlledfieldname !== undefined) {
-            // Handle null explicitly - allow setting controlledfieldname to null
-            updateData.controlledfieldname = controlledfieldname === null || controlledfieldname === '' ? null : controlledfieldname;
-          }
-          if (controlledlabel !== undefined) {
-            // Handle null explicitly - allow setting controlledlabel to null
-            updateData.controlledlabel = controlledlabel === null || controlledlabel === '' ? null : controlledlabel;
-          }
-          if (controlledvalue !== undefined) {
-            // Handle null explicitly - allow setting controlledvalue to null
-            updateData.controlledvalue = controlledvalue === null || controlledvalue === '' ? null : controlledvalue;
-          }
-          if (isactive !== undefined) {
-            // Handle boolean isactive field
-            // null means false (inactive/deleted), false means false, true means true
-            updateData.isactive = isactive === null ? false : Boolean(isactive);
-          }
+          // Determine if this is a CREATE or UPDATE operation
+          // CREATE: id is missing, null, negative, or 0
+          const isCreate = !id || id === null || (typeof id === 'number' && id <= 0) || (typeof id === 'string' && (id === '' || parseInt(id) <= 0));
 
-          // If no fields to update, skip
-          if (Object.keys(updateData).length === 0) {
+          if (isCreate) {
+            // CREATE operation
+            // Validate required fields for creation
+            if (!label || !value || !object || !fieldname) {
+              throw new Error('For new items, label, value, object, and fieldname are required');
+            }
+
+            // Build create data object
+            const createData: any = {
+              label: label === null || label === '' ? null : label,
+              value: value === null || value === '' ? null : value,
+              object: object,
+              fieldname: fieldname,
+            };
+
+            // Add optional fields
+            if (parent !== undefined) {
+              createData.parent = parent === null || parent === '' ? null : parent;
+            }
+            if (sortorder !== undefined) {
+              createData.sortorder = sortorder === null ? null : sortorder;
+            }
+            if (description !== undefined) {
+              createData.description = description === null || description === '' ? null : description;
+            }
+            if (controlledfieldname !== undefined) {
+              createData.controlledfieldname = controlledfieldname === null || controlledfieldname === '' ? null : controlledfieldname;
+            }
+            if (controlledlabel !== undefined) {
+              createData.controlledlabel = controlledlabel === null || controlledlabel === '' ? null : controlledlabel;
+            }
+            if (controlledvalue !== undefined) {
+              createData.controlledvalue = controlledvalue === null || controlledvalue === '' ? null : controlledvalue;
+            }
+            if (isactive !== undefined) {
+              // Handle boolean isactive field
+              // null means false (inactive/deleted), false means false, true means true
+              createData.isactive = isactive === null ? false : Boolean(isactive);
+            } else {
+              // Default to true for new items if not specified
+              createData.isactive = true;
+            }
+
+            // Set timestamps
+            const currentTimestamp = Date.now();
+            createData.createddate = currentTimestamp;
+            createData.modifieddate = currentTimestamp;
+
+            // Create the picklist
+            const created = await dynamicCreate('picklist', createData);
+
+            if (!created) {
+              throw new Error('Failed to create picklist');
+            }
+
+            // Format the response
+            const formatted = formatPicklistForAPI(created);
+
+            results.push({
+              id: created.id,
+              success: true,
+              operation: 'create' as const,
+              data: formatted
+            });
+            successCount++;
+
+            logger.debug({ createdId: created.id, createData }, 'Individual picklist create successful');
+
+          } else {
+            // UPDATE operation
+            // Build update data object (only include provided fields)
+            const updateData: any = {};
+            if (fieldname !== undefined) {
+              updateData.fieldname = fieldname;
+            }
+            if (parent !== undefined) {
+              // Handle null explicitly - allow setting parent to null
+              updateData.parent = parent === null || parent === '' ? null : parent;
+            }
+            if (sortorder !== undefined) {
+              updateData.sortorder = sortorder === null ? null : sortorder;
+            }
+            if (label !== undefined) {
+              // Handle null explicitly - allow setting label to null
+              updateData.label = label === null || label === '' ? null : label;
+            }
+            if (value !== undefined) {
+              // Handle null explicitly - allow setting value to null
+              updateData.value = value === null || value === '' ? null : value;
+            }
+            if (description !== undefined) {
+              updateData.description = description === null || description === '' ? null : description;
+            }
+            if (controlledfieldname !== undefined) {
+              // Handle null explicitly - allow setting controlledfieldname to null
+              updateData.controlledfieldname = controlledfieldname === null || controlledfieldname === '' ? null : controlledfieldname;
+            }
+            if (controlledlabel !== undefined) {
+              // Handle null explicitly - allow setting controlledlabel to null
+              updateData.controlledlabel = controlledlabel === null || controlledlabel === '' ? null : controlledlabel;
+            }
+            if (controlledvalue !== undefined) {
+              // Handle null explicitly - allow setting controlledvalue to null
+              updateData.controlledvalue = controlledvalue === null || controlledvalue === '' ? null : controlledvalue;
+            }
+            if (isactive !== undefined) {
+              // Handle boolean isactive field
+              // null means false (inactive/deleted), false means false, true means true
+              updateData.isactive = isactive === null ? false : Boolean(isactive);
+            }
+
+            // Update modifieddate
+            updateData.modifieddate = Date.now();
+
+            // If no fields to update, skip
+            if (Object.keys(updateData).length === 0) {
+              results.push({
+                id,
+                success: false,
+                operation: 'update' as const,
+                error: 'No fields provided to update'
+              });
+              failureCount++;
+              continue;
+            }
+
+            // Update the picklist
+            const updated = await dynamicUpdate('picklist', { id: String(id) }, updateData);
+
+            if (!updated) {
+              throw new Error('Picklist not found or update failed');
+            }
+
+            // Format the response
+            const formatted = formatPicklistForAPI(updated);
+
             results.push({
               id,
-              success: false,
-              error: 'No fields provided to update'
+              success: true,
+              operation: 'update' as const,
+              data: formatted
             });
-            failureCount++;
-            continue;
+            successCount++;
+
+            logger.debug({ id, updateData }, 'Individual picklist update successful');
           }
-
-          // Update the picklist
-          const updated = await dynamicUpdate('picklist', { id: String(id) }, updateData);
-
-          if (!updated) {
-            throw new Error('Picklist not found or update failed');
-          }
-
-          // Format the response
-          const formatted = formatPicklistForAPI(updated);
-
-          results.push({
-            id,
-            success: true,
-            data: formatted
-          });
-          successCount++;
-
-          logger.debug({ id, updateData }, 'Individual picklist update successful');
 
         } catch (error: any) {
-          logger.error({ error, id: update.id }, 'Error updating individual picklist');
+          logger.error({ error, item }, 'Error processing picklist item');
+          const isCreate = !item.id || item.id === null || (typeof item.id === 'number' && item.id <= 0) || (typeof item.id === 'string' && (item.id === '' || parseInt(item.id) <= 0));
           results.push({
-            id: update.id,
+            id: item.id || 'new',
             success: false,
-            error: error.message || 'Update failed'
+            operation: (isCreate ? 'create' : 'update') as 'create' | 'update',
+            error: error.message || 'Operation failed'
           });
           failureCount++;
         }

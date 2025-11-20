@@ -139,12 +139,14 @@ export class PicklistController {
    */
   bulkUpdatePicklistsV2 = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const updates = request.body as Array<{
-      id: number | string;
+      id?: number | string | null;
       fieldname?: string;
       parent?: string | null;
       sortorder?: number | null;
       label?: string | null;
       value?: string | null;
+      object?: string;
+      description?: string | null;
       controlledfieldname?: string | null;
       controlledlabel?: string | null;
       controlledvalue?: string | null;
@@ -152,13 +154,26 @@ export class PicklistController {
     }>;
 
     if (!Array.isArray(updates) || updates.length === 0) {
-      throw new Error('Request body must be a non-empty array of picklist updates');
+      throw new Error('Request body must be a non-empty array of picklist items');
     }
 
-    // Validate that each update has an id
-    for (const update of updates) {
-      if (!update.id) {
-        throw new Error('Each update must include an id field');
+    // Validate each item based on operation type (create vs update)
+    for (const item of updates) {
+      const isCreate = !item.id || item.id === null || (typeof item.id === 'number' && item.id <= 0) || (typeof item.id === 'string' && (item.id === '' || parseInt(item.id) <= 0));
+      
+      if (isCreate) {
+        // For CREATE: validate required fields
+        if (!item.label || !item.value || !item.object || !item.fieldname) {
+          throw new Error('For new items, label, value, object, and fieldname are required');
+        }
+      } else {
+        // For UPDATE: id must be valid (positive number)
+        if (typeof item.id === 'string' && (!/^\d+$/.test(item.id) || parseInt(item.id) <= 0)) {
+          throw new Error(`Invalid id format: ${item.id}. ID must be a positive integer for updates.`);
+        }
+        if (typeof item.id === 'number' && item.id <= 0) {
+          throw new Error(`Invalid id: ${item.id}. ID must be a positive integer for updates.`);
+        }
       }
     }
 
@@ -167,16 +182,34 @@ export class PicklistController {
     const success = result.summary.failed === 0;
     const statusCode = success ? 200 : 207; // 207 Multi-Status if some failed
 
-    const response = createSuccessResponse(
-      success 
-        ? `Successfully updated ${result.summary.successful} picklist(s)`
-        : `Updated ${result.summary.successful} of ${result.summary.total} picklist(s)`,
-      result.results
-    );
+    // Count creates vs updates from results
+    const createdCount = result.results.filter(r => r.success && r.operation === 'create').length;
+    const updatedCount = result.results.filter(r => r.success && r.operation === 'update').length;
+
+    let message = '';
+    if (createdCount > 0 && updatedCount > 0) {
+      message = success
+        ? `Successfully created ${createdCount} and updated ${updatedCount} picklist(s)`
+        : `Created ${createdCount} and updated ${updatedCount} of ${result.summary.total} picklist(s)`;
+    } else if (createdCount > 0) {
+      message = success
+        ? `Successfully created ${createdCount} picklist(s)`
+        : `Created ${createdCount} of ${result.summary.total} picklist(s)`;
+    } else {
+      message = success
+        ? `Successfully updated ${updatedCount} picklist(s)`
+        : `Updated ${updatedCount} of ${result.summary.total} picklist(s)`;
+    }
+
+    const response = createSuccessResponse(message, result.results);
 
     return reply.code(statusCode).send({
       ...response,
-      summary: result.summary
+      summary: {
+        ...result.summary,
+        created: createdCount,
+        updated: updatedCount
+      }
     });
   });
 

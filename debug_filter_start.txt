@@ -163411,3 +163411,326 @@ Filtering data for picklist (picklist): {
   "controlledvalue": "an",
   "isactive": true
 }
+Filtering data for picklist (picklist): {
+  "fieldname": "city",
+  "parent": "tn",
+  "sortorder": 1,
+  "label": "chennai",
+  "value": "chennai",
+  "controlledfieldname": "state",
+  "controlledlabel": "TN",
+  "controlledvalue": "tn",
+  "isactive": true,
+  "modifieddate": 1763619134056
+}
+Filtering data for picklist (picklist): {
+  "fieldname": "city",
+  "parent": "tn",
+  "sortorder": 2,
+  "label": "cbe",
+  "value": "cbe",
+  "controlledfieldname": "state",
+  "controlledlabel": "TN",
+  "controlledvalue": "tn",
+  "isactive": true,
+  "modifieddate": 1763619134609
+}
+Filtering data for picklist (picklist): {
+  "fieldname": "city",
+  "parent": "tn",
+  "sortorder": 3,
+  "label": "trichy",
+  "value": "trichy",
+  "controlledfieldname": "state",
+  "controlledlabel": "TN",
+  "controlledvalue": "tn",
+  "isactive": false,
+  "modifieddate": 1763619134848
+}
+Filtering data for picklist (picklist): {
+  "fieldname": "city",
+  "parent": "tn",
+  "sortorder": 4,
+  "label": "madurai",
+  "value": "madurai",
+  "controlledfieldname": "state",
+  "controlledlabel": "TN",
+  "controlledvalue": "tn",
+  "isactive": true,
+  "modifieddate": 1763619135084
+}
+Filtering data for picklist (picklist): {
+  "fieldname": "city",
+  "parent": "tn",
+  "sortorder": 5,
+  "label": "test",
+  "value": "test",
+  "controlledfieldname": "state",
+  "controlledlabel": "TN",
+  "controlledvalue": "tn",
+  "isactive": true,
+  "modifieddate": 1763619135322
+}
+Filtering data for picklist (picklist): {
+  "fieldname": "city",
+  "parent": "kl",
+  "sortorder": 3,
+  "label": "kochi",
+  "value": "kochi",
+  "controlledfieldname": "state",
+  "controlledlabel": "KL",
+  "controlledvalue": "kl",
+  "isactive": true,
+  "modifieddate": 1763619135560
+}
+Filtering data for picklist (picklist): {
+  "fieldname": "city",
+  "parent": "kl",
+  "sortorder": 4,
+  "label": "palakkad",
+  "value": "palakkad",
+  "controlledfieldname": "state",
+  "controlledlabel": "KL",
+  "controlledvalue": "kl",
+  "isactive": true,
+  "modifieddate": 1763619135800
+}
+Filtering data for picklist (picklist): {
+  "fieldname": "city",
+  "parent": "ka",
+  "sortorder": 4,
+  "label": "bangalore",
+  "value": "bangalore",
+  "controlledfieldname": "state",
+  "controlledlabel": "KA",
+  "controlledvalue": "ka",
+  "isactive": true,
+  "modifieddate": 1763619136040
+}
+Filtering data for picklist (picklist): {
+  "fieldname": "city",
+  "parent": "an",
+  "sortorder": 5,
+  "label": "hydrabad",
+  "value": "hydrabad",
+  "controlledfieldname": "state",
+  "controlledlabel": "AN",
+  "controlledvalue": "an",
+  "isactive": true,
+  "modifieddate": 1763619136275
+}
+Filtering data for picklist (picklist): {
+  "label": "new test",
+  "value": "new_test",
+  "object": "product",
+  "fieldname": "city",
+  "parent": "tn",
+  "sortorder": 6,
+  "controlledfieldname": "state",
+  "controlledlabel": "TN",
+  "controlledvalue": "tn",
+  "isactive": true,
+  "createddate": 1763619136749,
+  "modifieddate": 1763619136749
+}
+Filtering data for picklist (picklist): {
+  "label": "TN",
+  "value": "tn",
+  "object": "product",
+  "fieldname": "state",
+  "parent": null,
+  "sortorder": 1,
+  "isactive": true,
+  "createddate": 1763619961063,
+  "modifieddate": 1763619961063
+}
+Filtering data for picklist (picklist): {
+  "label": "KL",
+  "value": "kl",
+  "object": "product",
+  "fieldname": "state",
+  "parent": null,
+  "sortorder": 2,
+  "isactive": true,
+  "createddate": 1763619961687,
+  "modifieddate": 1763619961687
+}
+Filtering data for picklist (picklist): {
+  "label": "KA",
+  "value": "ka",
+  "object": "product",
+  "fieldname": "state",
+  "parent": null,
+  "sortorder": 3,
+  "isactive": true,
+  "createddate": 1763619961894,
+  "modifieddate": 1763619961894
+}
+Filtering data for picklist (picklist): {
+  "label": "Chennai",
+  "value": "chennai",
+  "object": "product",
+  "fieldname": "city",
+  "parent": null,
+  "sortorder": 1,
+  "isactive": true,
+  "createddate": 1763620016348,
+  "modifieddate": 1763620016348
+}
+Filtering data for picklist (picklist): {
+  "label": "CBE",
+  "value": "cbe",
+  "object": "product",
+  "fieldname": "city",
+  "parent": null,
+  "sortorder": 2,
+  "isactive": true,
+  "createddate": 1763620016972,
+  "modifieddate": 1763620016972
+}
+Filtering data for picklist (picklist): {
+  "label": "Kochi",
+  "value": "kochi",
+  "object": "product",
+  "fieldname": "city",
+  "parent": null,
+  "sortorder": 3,
+  "isactive": true,
+  "createddate": 1763620017183,
+  "modifieddate": 1763620017183
+}
+Filtering data for picklist (picklist): {
+  "label": "Bangalore",
+  "value": "bangalore",
+  "object": "product",
+  "fieldname": "city",
+  "parent": null,
+  "sortorder": 4,
+  "isactive": true,
+  "createddate": 1763620017399,
+  "modifieddate": 1763620017399
+}
+Filtering data for picklist (picklist): {
+  "fieldname": "city",
+  "parent": "tn",
+  "sortorder": 1,
+  "label": "Chennai",
+  "value": "chennai",
+  "controlledfieldname": "state",
+  "controlledlabel": "TN",
+  "controlledvalue": "tn",
+  "isactive": true,
+  "modifieddate": 1763620076874
+}
+Filtering data for picklist (picklist): {
+  "fieldname": "city",
+  "parent": "tn",
+  "sortorder": 2,
+  "label": "CBE",
+  "value": "cbe",
+  "controlledfieldname": "state",
+  "controlledlabel": "TN",
+  "controlledvalue": "tn",
+  "isactive": true,
+  "modifieddate": 1763620077306
+}
+Filtering data for picklist (picklist): {
+  "fieldname": "city",
+  "parent": "kl",
+  "sortorder": 3,
+  "label": "Kochi",
+  "value": "kochi",
+  "controlledfieldname": "state",
+  "controlledlabel": "KL",
+  "controlledvalue": "kl",
+  "isactive": true,
+  "modifieddate": 1763620077523
+}
+Filtering data for picklist (picklist): {
+  "fieldname": "city",
+  "parent": "ka",
+  "sortorder": 4,
+  "label": "Bangalore",
+  "value": "bangalore",
+  "controlledfieldname": "state",
+  "controlledlabel": "KA",
+  "controlledvalue": "ka",
+  "isactive": true,
+  "modifieddate": 1763620077745
+}
+Filtering data for picklist (picklist): {
+  "fieldname": "city",
+  "parent": "tn",
+  "sortorder": 1,
+  "label": "Chennai",
+  "value": "chennai",
+  "controlledfieldname": "state",
+  "controlledlabel": "TN",
+  "controlledvalue": "tn",
+  "isactive": true,
+  "modifieddate": 1763620100348
+}
+Filtering data for picklist (picklist): {
+  "fieldname": "city",
+  "parent": "tn",
+  "sortorder": 2,
+  "label": "CBE",
+  "value": "cbe",
+  "controlledfieldname": "state",
+  "controlledlabel": "TN",
+  "controlledvalue": "tn",
+  "isactive": true,
+  "modifieddate": 1763620100826
+}
+Filtering data for picklist (picklist): {
+  "fieldname": "city",
+  "parent": "kl",
+  "sortorder": 3,
+  "label": "Kochi",
+  "value": "kochi",
+  "controlledfieldname": "state",
+  "controlledlabel": "KL",
+  "controlledvalue": "kl",
+  "isactive": true,
+  "modifieddate": 1763620101053
+}
+Filtering data for picklist (picklist): {
+  "fieldname": "city",
+  "parent": "ka",
+  "sortorder": 4,
+  "label": "Bangalore",
+  "value": "bangalore",
+  "controlledfieldname": "state",
+  "controlledlabel": "KA",
+  "controlledvalue": "ka",
+  "isactive": true,
+  "modifieddate": 1763620101280
+}
+Filtering data for picklist (picklist): {
+  "label": "Palakkad",
+  "value": "palakkad",
+  "object": "product",
+  "fieldname": "city",
+  "parent": "kl",
+  "sortorder": 4,
+  "controlledfieldname": "state",
+  "controlledlabel": "KL",
+  "controlledvalue": "kl",
+  "isactive": true,
+  "createddate": 1763620101504,
+  "modifieddate": 1763620101504
+}
+Filtering data for picklist (picklist): {
+  "label": "Mysore",
+  "value": "mysore",
+  "object": "product",
+  "fieldname": "city",
+  "parent": "ka",
+  "sortorder": 5,
+  "controlledfieldname": "state",
+  "controlledlabel": "KA",
+  "controlledvalue": "ka",
+  "isactive": true,
+  "createddate": 1763620102153,
+  "modifieddate": 1763620102153
+}
