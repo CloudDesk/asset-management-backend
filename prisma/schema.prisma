@@ -295,7 +295,14 @@ model inventoryusers {
   sessiontoken      String? @db.VarChar(255)
   resettoken        String? @db.VarChar(255)
   resettokenexpires BigInt?
+  
+  // ADD THIS: One inventory user has one role (one-to-many relationship)
+  roleid           Int?        // Foreign key to roles.id
+  rolerelation     role?       @relation(fields: [roleid], references: [id], onDelete: SetNull)
+  
   // Note: amazonConnections relation removed - using userType field instead
+  
+  @@index([roleid])
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
@@ -644,6 +651,73 @@ model transaction {
   orders                orders[]
 }
 
+// ============================================
+// ROLES & PERMISSIONS SYSTEM
+// ============================================
+
+// 1. Role hierarchy and basic role information
+model role {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @db.VarChar(100)
+  code        String   @unique @db.VarChar(50)  // e.g., "superadmin", "admin", "manager"
+  level       Int                               // Hierarchy level (1=highest, higher=lower, must be >= 1)
+  description String?  @db.VarChar(500)
+  isactive    Boolean  @default(true)
+  issystem    Boolean  @default(false)          // System roles cannot be deleted
+  
+  // Relations
+  permissionsets permissionset[]
+  inventoryusers inventoryusers[]  // One-to-many: one role can have many inventory users
+  parentroleid   Int?
+  parentrole     role?     @relation("RoleHierarchy", fields: [parentroleid], references: [id], onDelete: SetNull)
+  childroles     role[]    @relation("RoleHierarchy")
+  
+  createddate    BigInt?
+  modifieddate   BigInt?
+  
+  @@unique([level])
+  @@index([code])
+  @@index([level])
+  @@map("roles")
+}
+
+// 2. Permission Sets - Collection of permissions for a role
+// Permissions stored as JSONB (not separate table)
+model permissionset {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(200)
+  description String?  @db.VarChar(500)
+  roleid      Int?     // NULL for system-wide default
+  role        role?    @relation(fields: [roleid], references: [id], onDelete: Cascade)
+  isactive    Boolean  @default(true)
+  isdefault   Boolean  @default(false)          // System-wide default (not per-role) - used as fallback when role has no active set
+  
+  // Permissions stored as JSONB array
+  // Structure: Array of permission objects
+  permissions      Json         // See structure below
+  
+  createddate      BigInt?
+  modifieddate     BigInt?
+  
+  @@index([roleid])
+  @@index([isactive])
+  @@map("permission_sets")
+}
+
+// 3. User Hierarchy (OPTIONAL - for manager-subordinate relationships)
+model userhierarchy {
+  id            Int      @id @default(autoincrement())
+  userid        Int      @unique
+  managerid     Int?     // User's manager ID
+  subordinates  Json?    // Array of subordinate user IDs: [1, 2, 3]
+  
+  createddate   BigInt?
+  modifieddate  BigInt?
+  
+  @@index([managerid])
+  @@map("user_hierarchies")
+}
+
 model users {
   id               Int         @id @default(autoincrement())
   useremail        String?     @unique(map: "unique_email_users") @db.VarChar(255)
@@ -659,6 +733,8 @@ model users {
   isbusinessuser   Boolean?    @default(false)
   isguest          Boolean?    @default(false)
   isactive         Boolean?    @default(true)
+  
+  // Existing relations
   address          address[]
   orderline        orderline[]
   orders           orders[]
