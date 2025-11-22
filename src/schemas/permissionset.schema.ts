@@ -22,7 +22,19 @@ const permissionObjectSchema = z.object({
 export const createPermissionSetSchema = z.object({
   name: z.string().max(200).min(1, 'Name is required'),
   description: z.string().max(500).optional(),
-  roleid: z.number().int().positive().nullable().optional(), // NULL for system-wide default
+  roleid: z.preprocess(
+    (val) => {
+      // Convert 0 to null, keep null as null, keep positive numbers as-is
+      if (val === 0 || val === '0' || val === null || val === undefined) {
+        return null;
+      }
+      return val;
+    },
+    z.union([
+      z.null(),
+      z.number().int().positive()
+    ])
+  ).optional(), // NULL for system-wide default
   isactive: z.boolean().default(true),
   isdefault: z.boolean().default(false), // System-wide default (not per-role) - used as fallback
   permissions: z.array(permissionObjectSchema).min(1, 'At least one permission is required'),
@@ -49,7 +61,19 @@ export const createPermissionSetSchema = z.object({
 export const updatePermissionSetSchema = z.object({
   name: z.string().max(200).optional(),
   description: z.string().max(500).optional(),
-  roleid: z.number().int().positive().nullable().optional(), // NULL for system-wide default
+  roleid: z.preprocess(
+    (val) => {
+      // Convert 0 to null, keep null as null, keep positive numbers as-is
+      if (val === 0 || val === '0' || val === null || val === undefined) {
+        return null;
+      }
+      return val;
+    },
+    z.union([
+      z.null(),
+      z.number().int().positive()
+    ])
+  ).optional(), // NULL for system-wide default
   isactive: z.boolean().optional(),
   isdefault: z.boolean().optional(), // System-wide default (not per-role)
   permissions: z.array(permissionObjectSchema).optional(),

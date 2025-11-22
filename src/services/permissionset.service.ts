@@ -226,13 +226,15 @@ export class PermissionSetService {
     try {
       logger.info({ data }, 'Starting permission set create operation');
 
-      // Check if role exists
-      const role = await (prisma as any).role.findUnique({
-        where: { id: data.roleid }
-      });
+      // Check if role exists (only if roleid is provided, not null)
+      if (data.roleid !== null && data.roleid !== undefined) {
+        const role = await (prisma as any).role.findUnique({
+          where: { id: data.roleid }
+        });
 
-      if (!role) {
-        throw new Error(`Role with ID ${data.roleid} not found`);
+        if (!role) {
+          throw new Error(`Role with ID ${data.roleid} not found`);
+        }
       }
 
       // Validation: System default permission set must be active
@@ -288,31 +290,49 @@ export class PermissionSetService {
         }
       }
 
+      // Convert frontend permission object names to DB table names
+      const { convertPermissionsToDb } = await import('../utils/permissionMapper.js');
+      const convertedPermissions = convertPermissionsToDb(data.permissions);
+
       // Set timestamps
       const now = BigInt(Date.now());
       const permissionSetData: any = {
         name: data.name,
-        description: data.description,
-        roleid: data.roleid,
+        description: data.description || null,
+        roleid: data.roleid ?? null, // Explicitly set to null if undefined
         isactive: data.isactive ?? true,
         isdefault: data.isdefault ?? false,
-        permissions: data.permissions,
+        permissions: convertedPermissions, // Use converted permissions with DB table names
         createddate: data.createddate || now,
         modifieddate: data.modifieddate || now
       };
 
-      const permissionSet = await (prisma as any).permissionset.create({
-        data: permissionSetData,
-        include: {
-          role: {
-            select: {
-              id: true,
-              name: true,
-              code: true
+      // Create permission set - don't use include when roleid is null to avoid Prisma validation issues
+      const includeRole = data.roleid !== null && data.roleid !== undefined;
+      
+      let permissionSet: any;
+      
+      if (includeRole) {
+        // When roleid is provided, include the role relation
+        permissionSet = await (prisma as any).permissionset.create({
+          data: permissionSetData,
+          include: {
+            role: {
+              select: {
+                id: true,
+                name: true,
+                code: true
+              }
             }
           }
-        }
-      });
+        });
+      } else {
+        // When roleid is null, create without include and manually set role to null
+        permissionSet = await (prisma as any).permissionset.create({
+          data: permissionSetData
+        });
+        permissionSet.role = null;
+      }
 
       logger.info({ permissionSetId: permissionSet.id, roleid: data.roleid }, 'Permission set created successfully');
       return permissionSet;
@@ -336,10 +356,10 @@ export class PermissionSetService {
       }
 
       // Validation: If roleid is being set to null, isdefault MUST be true
-      const targetRoleId = data.roleid !== undefined ? data.roleid : existingPermissionSet.roleid;
+      const finalRoleId = data.roleid !== undefined ? data.roleid : existingPermissionSet.roleid;
       const targetIsDefault = data.isdefault !== undefined ? data.isdefault : existingPermissionSet.isdefault;
       
-      if (targetRoleId === null && targetIsDefault !== true) {
+      if (finalRoleId === null && targetIsDefault !== true) {
         throw new Error('If roleid is null, isdefault must be true (system-wide default).');
       }
 
@@ -404,12 +424,12 @@ export class PermissionSetService {
       // Rule 4: BEST PRACTICE - If activating this permission set for a role, deactivate all others for that role
       // This enforces "one active per role" rule
       if ((data.isactive === true || (data.isactive === undefined && existingPermissionSet.isactive === false)) && existingPermissionSet.roleid) {
-        const targetRoleId = data.roleid || existingPermissionSet.roleid;
+        const targetRoleIdForDeactivation = data.roleid || existingPermissionSet.roleid;
         
         // Deactivate all other active sets for this role
         await (prisma as any).permissionset.updateMany({
           where: {
-            roleid: targetRoleId,
+            roleid: targetRoleIdForDeactivation,
             isactive: true,
             id: {
               not: parseInt(id) // Exclude current permission set
@@ -422,7 +442,7 @@ export class PermissionSetService {
           }
         });
         logger.info({ 
-          roleid: targetRoleId, 
+          roleid: targetRoleIdForDeactivation, 
           permissionSetId: id 
         }, 'Deactivated other active permission sets (one active per role enforced)');
         
@@ -430,25 +450,48 @@ export class PermissionSetService {
         data.isactive = true;
       }
 
+      // Convert frontend permission object names to DB table names (if permissions are being updated)
+      let convertedPermissions = data.permissions;
+      if (data.permissions) {
+        const { convertPermissionsToDb } = await import('../utils/permissionMapper.js');
+        convertedPermissions = convertPermissionsToDb(data.permissions);
+      }
+
       // Set modified timestamp
       const updateData: any = {
         ...data,
+        ...(convertedPermissions && { permissions: convertedPermissions }), // Use converted permissions if provided
         modifieddate: BigInt(Date.now())
       };
 
-      const permissionSet = await (prisma as any).permissionset.update({
-        where: { id: parseInt(id) },
-        data: updateData,
-        include: {
-          role: {
-            select: {
-              id: true,
-              name: true,
-              code: true
+      // Update permission set - don't use include when roleid is null to avoid Prisma validation issues
+      const includeRole = finalRoleId !== null && finalRoleId !== undefined;
+      
+      let permissionSet: any;
+      
+      if (includeRole) {
+        // When roleid is provided, include the role relation
+        permissionSet = await (prisma as any).permissionset.update({
+          where: { id: parseInt(id) },
+          data: updateData,
+          include: {
+            role: {
+              select: {
+                id: true,
+                name: true,
+                code: true
+              }
             }
           }
-        }
-      });
+        });
+      } else {
+        // When roleid is null, update without include and manually set role to null
+        permissionSet = await (prisma as any).permissionset.update({
+          where: { id: parseInt(id) },
+          data: updateData
+        });
+        permissionSet.role = null;
+      }
 
       logger.info({ permissionSetId: permissionSet.id }, 'Permission set updated successfully');
       return permissionSet;
