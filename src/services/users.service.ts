@@ -14,7 +14,7 @@ import {
   dynamicDelete
 } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
-import { hashPassword, verifyPassword, generateSessionToken, sanitizeUserData } from '../utils/auth.js';
+import { hashPassword, verifyPassword, sanitizeUserData } from '../utils/auth.js';
 import { prisma } from '../models/prisma.js';
 import type { Prisma } from '@prisma/client';
 
@@ -261,7 +261,7 @@ export class UsersService {
   /**
    * Authenticate user with email and password
    */
-  async authenticate(email: string, password: string): Promise<{ user: any; token: string } | null> {
+  async authenticate(email: string, password: string): Promise<{ user: any; token: string; refreshToken: string; expiresIn: number } | null> {
     try {
       logger.debug({ email }, 'Attempting to authenticate user');
 
@@ -277,18 +277,25 @@ export class UsersService {
         return null;
       }
 
-      // Generate session token (but don't store it in DB since users table doesn't have sessiontoken field)
-      const sessionToken = generateSessionToken();
+      // Generate JWT tokens (access + refresh) - same as inventory users
+      const { generateTokenPair } = await import('../utils/jwt.js');
+      const tokenPair = generateTokenPair({
+        userId: user.id,
+        email: user.useremail || '',
+        roleId: undefined, // E-commerce users don't have roles
+      });
 
       logger.info({ 
         userId: user.id, 
         email: user.useremail
-      }, 'User authenticated successfully');
+      }, 'E-commerce user authenticated successfully');
 
       return {
         user: sanitizeUserData(user),
-        token: sessionToken
-      };
+        token: tokenPair.accessToken, // JWT access token
+        refreshToken: tokenPair.refreshToken, // JWT refresh token
+        expiresIn: tokenPair.expiresIn, // Token expiry in seconds
+      } as any;
     } catch (error) {
       logger.error({ error, email }, 'Error during authentication');
       throw error;
@@ -314,18 +321,25 @@ export class UsersService {
         return null;
       }
 
-      // Generate session token
-      const sessionToken = generateSessionToken();
+      // Generate JWT tokens (access + refresh)
+      const { generateTokenPair } = await import('../utils/jwt.js');
+      const tokenPair = generateTokenPair({
+        userId: user.id,
+        email: user.useremail || '',
+        roleId: undefined, // E-commerce users don't have roles
+      });
 
       logger.info({ 
         userId: user.id, 
         mobileNumber: user.usermobilenumber
-      }, 'User authenticated successfully via mobile number');
+      }, 'E-commerce user authenticated successfully via mobile number');
 
       return {
         user: sanitizeUserData(user),
-        token: sessionToken
-      };
+        token: tokenPair.accessToken,
+        refreshToken: tokenPair.refreshToken,
+        expiresIn: tokenPair.expiresIn,
+      } as any;
     } catch (error) {
       logger.error({ error, mobileNumber }, 'Error during mobile authentication');
       throw error;
@@ -422,18 +436,25 @@ export class UsersService {
       // Clear OTP after successful verification
       this.clearOTP(mobileNumber);
 
-      // Generate session token
-      const sessionToken = generateSessionToken();
+      // Generate JWT tokens (access + refresh)
+      const { generateTokenPair } = await import('../utils/jwt.js');
+      const tokenPair = generateTokenPair({
+        userId: user.id,
+        email: user.useremail || '',
+        roleId: undefined, // E-commerce users don't have roles
+      });
 
       logger.info({ 
         userId: user.id, 
         mobileNumber: user.usermobilenumber
-      }, 'User authenticated successfully via mobile OTP');
+      }, 'E-commerce user authenticated successfully via mobile OTP');
 
       return {
         user: sanitizeUserData(user),
-        token: sessionToken
-      };
+        token: tokenPair.accessToken,
+        refreshToken: tokenPair.refreshToken,
+        expiresIn: tokenPair.expiresIn,
+      } as any;
     } catch (error) {
       logger.error({ error, mobileNumber }, 'Error during OTP verification');
       throw error;

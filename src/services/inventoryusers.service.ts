@@ -382,7 +382,7 @@ export class InventoryUsersService {
   /**
    * Authenticate user with email and password
    */
-  async authenticate(email: string, password: string): Promise<{ user: any; roles: any; permissions: any; token: string } | null> {
+  async authenticate(email: string, password: string): Promise<{ user: any; roles: any; permissions: any; token: string; refreshToken: string; expiresIn: number } | null> {
     try {
       logger.debug({ email }, 'Attempting to authenticate inventory user');
 
@@ -398,12 +398,18 @@ export class InventoryUsersService {
         return null;
       }
 
-      // Generate session token
-      const sessionToken = generateSessionToken();
+      // Generate JWT tokens (access + refresh)
+      const { generateTokenPair } = await import('../utils/jwt.js');
+      const tokenPair = generateTokenPair({
+        userId: user.id,
+        email: user.useremail || '',
+        roleId: user.roleid || undefined,
+      });
 
-      // Update user with session token (in a real implementation, store this in a sessions table)
+      // Store refresh token in database (optional - for token revocation)
+      // Access token is stateless (JWT), refresh token stored for logout/revocation
       await dynamicUpdate('inventoryusers', { id: user.id }, { 
-        sessiontoken: sessionToken,
+        sessiontoken: tokenPair.refreshToken, // Store refresh token for revocation
         modifieddate: BigInt(Date.now())
       });
 
@@ -455,8 +461,10 @@ export class InventoryUsersService {
         user: sanitizeUserData(user),
         roles: roleData,
         permissions: permissionsData,
-        token: sessionToken
-      };
+        token: tokenPair.accessToken, // JWT access token
+        refreshToken: tokenPair.refreshToken, // JWT refresh token
+        expiresIn: tokenPair.expiresIn, // Token expiry in seconds
+      } as any; // Type assertion to allow roles and permissions in response
     } catch (error) {
       logger.error({ error, email }, 'Error during authentication');
       throw error;
