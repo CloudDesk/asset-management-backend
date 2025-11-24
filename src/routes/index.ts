@@ -27,6 +27,7 @@ import { ratingRoutes } from './rating.route.js';
 import { smsRoutes } from './sms.route.js';
 import { requireAuthentication } from '../middleware/auth.middleware.js';
 import { createSuccessResponse } from '../utils/errorHandler.js';
+import     {permissionRoutes} from './permission.route.js';
 
 export async function routes(fastify: FastifyInstance) {
   // Health check endpoint (public)
@@ -84,6 +85,8 @@ export async function routes(fastify: FastifyInstance) {
     await fastify.register(inventoryUsersRoutes, { prefix: '/inventoryusers' });
     await fastify.register(roleRoutes, { prefix: '/roles' });
     await fastify.register(permissionSetRoutes, { prefix: '/permission-sets' });
+
+    await fastify.register(permissionRoutes, { prefix: '/permissions' });
     await fastify.register(poinvoiceRoutes, { prefix: '/poinvoices' });
     await fastify.register(addressRoutes, { prefix: '/addresses' });
     await fastify.register(samplePurchaseRequestRoutes, { prefix: '/samplepurchaserequests' });

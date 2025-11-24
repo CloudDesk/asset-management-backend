@@ -1,12 +1,15 @@
-/*
 import { prisma } from '../models/prisma.js';
-import logger from '../config/logger.js';
+import { logger } from '../config/logger.js';
+import { PermissionSetService } from '../services/permissionset.service.js';
+import { getDbTableName } from './permissionMapper.js';
+
+const permissionSetService = new PermissionSetService();
 
 export interface PermissionContext {
   object: string;
   action: string;
-  resourceId?: string;
-  resourceOwnerId?: string | number;
+  resourceid?: string;
+  resourceownerid?: number;
 }
 
 export interface PermissionResult {
@@ -14,112 +17,231 @@ export interface PermissionResult {
   reason?: string;
   inheritedFrom?: string;
   scope?: {
-    viewAll: boolean;
-    modifyAll: boolean;
-    deleteAll: boolean;
+    viewall: boolean;
+    modifyall: boolean;
+    deleteall: boolean;
   };
 }
 
+/**
+ * Permission object structure (from JSONB)
+ */
+interface PermissionObject {
+  object: string;
+  read?: boolean;
+  create?: boolean;
+  edit?: boolean;
+  delete?: boolean;
+  export?: boolean;
+  import?: boolean;
+  approve?: boolean;
+  reject?: boolean;
+  viewall?: boolean;
+  modifyall?: boolean;
+  deleteall?: boolean;
+  accesslevel?: 'all' | 'own' | 'subordinates';
+  customactions?: Record<string, boolean>;
+}
 
+/**
+ * Get permission set for an inventory user
+ * Uses selection logic: active set for role → parent role → system default
+ */
+async function getPermissionSetForUser(userid: number): Promise<any> {
+  try {
+    // Get inventory user with roleid
+    const inventoryUser = await (prisma as any).inventoryusers.findUnique({
+      where: { id: userid },
+      select: {
+        id: true,
+        roleid: true
+      }
+    });
+
+    if (!inventoryUser || !inventoryUser.roleid) {
+      logger.debug({ userid }, 'User has no role assigned');
+      return null;
+    }
+
+    const roleId = inventoryUser.roleid.toString();
+
+    // Get the user's actual role directly from roles table
+    const userRole = await (prisma as any).role.findUnique({
+      where: { id: inventoryUser.roleid },
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        level: true,
+        parentroleid: true
+      }
+    });
+
+    if (!userRole) {
+      logger.warn({ userid, roleid: inventoryUser.roleid }, 'User role not found in roles table');
+      return null;
+    }
+
+    // Use PermissionSetService to get permission set (handles parent role and system default)
+    const permissionSet = await permissionSetService.getPermissionSetForRole(roleId, true);
+
+    if (!permissionSet) {
+      logger.debug({ userid, roleId }, 'No permission set found for role');
+      return null;
+    }
+
+    // Always return the user's actual role, not the role from permission set
+    // (permission set might be from parent role or system default)
+    return {
+      permissionSet,
+      role: userRole // User's actual role from inventoryusers.roleid
+    };
+  } catch (error) {
+    logger.error({ error, userid }, 'Error getting permission set for user');
+    return null;
+  }
+}
+
+/**
+ * Check if action is allowed in permission object
+ */
+function checkAction(permission: PermissionObject, action: string): boolean {
+  switch (action) {
+    case 'read': return permission.read === true;
+    case 'create': return permission.create === true;
+    case 'edit': return permission.edit === true;
+    case 'delete': return permission.delete === true;
+    case 'export': return permission.export === true;
+    case 'import': return permission.import === true;
+    case 'approve': return permission.approve === true;
+    case 'reject': return permission.reject === true;
+    default:
+      return permission.customactions?.[action] === true;
+  }
+}
+
+/**
+ * Check if user has permission for an action on an object
+ * Implements both Layer 1 and Layer 2 security
+ * 
+ * @param userid - Inventory user ID
+ * @param object - Object name (frontend format, e.g., "products")
+ * @param action - Action to check (read, create, edit, delete, etc.)
+ * @param context - Optional context (resourceid, resourceownerid)
+ * @returns PermissionResult with allowed status and details
+ */
 export async function checkPermission(
-  userId: number,
+  userid: number,
   object: string,
   action: string,
   context?: PermissionContext
 ): Promise<PermissionResult> {
   try {
-    // Get user's active roles
-    const userRoles = await prisma.userRole.findMany({
-      where: {
-        userId,
-        isActive: true,
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gt: new Date() } }
-        ]
-      },
-      include: {
-        role: {
-          include: {
-            parentRole: true,
-            permissionSets: {
-              where: { isActive: true, isDefault: true },
-              include: {
-                permissions: {
-                  where: { object }
-                }
-              }
-            }
-          }
-        }
-      },
-      orderBy: {
-        role: {
-          level: 'asc' // Higher authority first
-        }
-      }
-    });
+    logger.debug({ userid, object, action, context }, 'Checking permission');
 
-    if (userRoles.length === 0) {
+    // Get permission set for user
+    const userPermissionData = await getPermissionSetForUser(userid);
+
+    if (!userPermissionData || !userPermissionData.permissionSet) {
       return {
         allowed: false,
-        reason: 'User has no active roles'
+        reason: 'User has no role or permission set assigned'
       };
     }
 
-    // Check each role (sorted by level - ascending = higher authority first)
-    for (const userRole of userRoles) {
-      const role = userRole.role;
-      const permissionSet = role.permissionSets[0]; // Get default permission set
-      
-      if (!permissionSet) {
-        // Check parent role if exists
-        if (role.parentRole) {
-          const parentPermission = await getPermissionForRole(
-            role.parentRole.id,
-            object
-          );
-          if (parentPermission && checkAction(parentPermission, action)) {
-            return {
-              allowed: true,
-              inheritedFrom: `parent:${role.parentRole.name}`,
-              scope: {
-                viewAll: parentPermission.viewAll,
-                modifyAll: parentPermission.modifyAll,
-                deleteAll: parentPermission.deleteAll
-              }
-            };
-          }
-        }
-        continue;
-      }
+    const { permissionSet, role } = userPermissionData;
 
-      const permission = permissionSet.permissions.find(p => p.object === object);
-      
-      if (permission && checkAction(permission, action)) {
-        // Check scope restrictions
-        if (context && !checkScope(permission, action, context)) {
-          continue; // Try next role
-        }
+    // Parse permissions from JSONB
+    const permissions = permissionSet.permissions as PermissionObject[];
 
+    if (!Array.isArray(permissions)) {
+      return {
+        allowed: false,
+        reason: 'Invalid permission set structure'
+      };
+    }
+
+    // Convert frontend object name to DB table name for lookup
+    const dbObjectName = getDbTableName(object);
+    
+    // Find permission for this object (check both frontend name and DB name)
+    const permission = permissions.find(p => 
+      p.object === object || p.object === dbObjectName
+    );
+
+    if (!permission) {
+      return {
+        allowed: false,
+        reason: `No permission found for object '${object}'`
+      };
+    }
+
+    // LAYER 2: Check object-level permission
+    const hasObjectPermission = checkAction(permission, action);
+    if (!hasObjectPermission) {
+      return {
+        allowed: false,
+        reason: `Action '${action}' not allowed for object '${object}'`
+      };
+    }
+
+    // LAYER 2: Check record-level permission (if record owner provided)
+    if (context?.resourceownerid !== undefined) {
+      const isOwner = userid === context.resourceownerid;
+
+      if (isOwner) {
+        // Owner: Basic permission is enough
         return {
           allowed: true,
-          inheritedFrom: role.name,
+          inheritedFrom: role?.name || 'Unknown',
           scope: {
-            viewAll: permission.viewAll,
-            modifyAll: permission.modifyAll,
-            deleteAll: permission.deleteAll
+            viewall: permission.viewall === true,
+            modifyall: permission.modifyall === true,
+            deleteall: permission.deleteall === true
           }
         };
+      } else {
+        // Non-owner: Check cross-ownership permissions
+        switch (action) {
+          case 'read':
+            if (!permission.viewall) {
+              return {
+                allowed: false,
+                reason: 'Cannot view records owned by others (viewall: false)'
+              };
+            }
+            break;
+          case 'edit':
+            if (!permission.modifyall) {
+              return {
+                allowed: false,
+                reason: 'Cannot modify records owned by others (modifyall: false)'
+              };
+            }
+            break;
+          case 'delete':
+            if (!permission.deleteall) {
+              return {
+                allowed: false,
+                reason: 'Cannot delete records owned by others (deleteall: false)'
+              };
+            }
+            break;
+        }
       }
     }
 
     return {
-      allowed: false,
-      reason: 'No permission found in role hierarchy'
+      allowed: true,
+      inheritedFrom: role?.name || 'Unknown',
+      scope: {
+        viewall: permission.viewall === true,
+        modifyall: permission.modifyall === true,
+        deleteall: permission.deleteall === true
+      }
     };
   } catch (error) {
-    logger.error({ error, userId, object, action }, 'Error checking permission');
+    logger.error({ error, userid, object, action }, 'Error checking permission');
     return {
       allowed: false,
       reason: 'Error checking permission'
@@ -127,184 +249,127 @@ export async function checkPermission(
   }
 }
 
-export async function getUserPermissions(userId: number): Promise<{
-  roles: string[];
-  permissions: Record<string, any>;
-  fieldPermissions: Record<string, Record<string, any>>;
+/**
+ * Get all permissions for a user (for frontend)
+ * Returns permissions in a format suitable for frontend consumption
+ * 
+ * @param userid - Inventory user ID
+ * @returns Object with role info and permissions map
+ */
+export async function getUserPermissions(userid: number): Promise<{
+  role: {
+    id: number;
+    name: string;
+    code: string;
+    level: number;
+  } | null;
+  permissions: Record<string, PermissionObject>;
 }> {
   try {
-    // Get user's active roles
-    const userRoles = await prisma.userRole.findMany({
-      where: {
-        userId,
-        isActive: true,
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gt: new Date() } }
-        ]
-      },
-      include: {
-        role: {
-          include: {
-            permissionSets: {
-              where: { isActive: true, isDefault: true },
-              include: {
-                permissions: true,
-                fieldPermissions: true
-              }
-            }
-          }
-        }
-      },
-      orderBy: {
-        role: {
-          level: 'asc'
-        }
+    logger.debug({ userid }, 'Getting user permissions');
+
+    // Get permission set for user
+    const userPermissionData = await getPermissionSetForUser(userid);
+
+    if (!userPermissionData || !userPermissionData.permissionSet) {
+      logger.debug({ userid }, 'No permission set found for user');
+      return {
+        role: null,
+        permissions: {}
+      };
+    }
+
+    const { permissionSet, role: userRole } = userPermissionData;
+
+    // Parse permissions from JSONB
+    const permissionsArray = permissionSet.permissions as PermissionObject[];
+
+    if (!Array.isArray(permissionsArray)) {
+      logger.warn({ userid }, 'Invalid permission set structure');
+      return {
+        role: userRole ? {
+          id: userRole.id,
+          name: userRole.name,
+          code: userRole.code,
+          level: (userRole as any).level || 0
+        } : null,
+        permissions: {}
+      };
+    }
+
+    // IMPORTANT: Get full role details from database using the user's actual roleid
+    // The permission set might be from a parent role or system default,
+    // but we always want to return the user's actual role
+    // Re-fetch the user to ensure we have the correct roleid
+    const currentUser = await (prisma as any).inventoryusers.findUnique({
+      where: { id: userid },
+      select: {
+        roleid: true
       }
     });
 
-    const roles: string[] = [];
-    const permissions: Record<string, any> = {};
-    const fieldPermissions: Record<string, Record<string, any>> = {};
-
-    for (const userRole of userRoles) {
-      const role = userRole.role;
-      roles.push(role.code);
-
-      const permissionSet = role.permissionSets[0];
-      if (!permissionSet) continue;
-
-      // Merge permissions (higher authority wins)
-      for (const perm of permissionSet.permissions) {
-        if (!permissions[perm.object]) {
-          permissions[perm.object] = {};
+    let fullRole = null;
+    if (currentUser && currentUser.roleid) {
+      const roleDetails = await (prisma as any).role.findUnique({
+        where: { id: currentUser.roleid },
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          level: true,
+          description: true,
+          isactive: true
         }
-        
-        // Merge with existing (don't override if already true from higher role)
-        permissions[perm.object] = {
-          read: permissions[perm.object].read || perm.read,
-          create: permissions[perm.object].create || perm.create,
-          edit: permissions[perm.object].edit || perm.edit,
-          delete: permissions[perm.object].delete || perm.delete,
-          export: permissions[perm.object].export || perm.export,
-          import: permissions[perm.object].import || perm.import,
-          approve: permissions[perm.object].approve || perm.approve,
-          reject: permissions[perm.object].reject || perm.reject,
-          viewAll: permissions[perm.object].viewAll || perm.viewAll,
-          modifyAll: permissions[perm.object].modifyAll || perm.modifyAll,
-          deleteAll: permissions[perm.object].deleteAll || perm.deleteAll,
-          customActions: {
-            ...permissions[perm.object].customActions,
-            ...(perm.customActions as Record<string, boolean> || {})
-          }
+      });
+      
+      if (roleDetails) {
+        fullRole = {
+          id: roleDetails.id,
+          name: roleDetails.name,
+          code: roleDetails.code,
+          level: roleDetails.level || 0
         };
+        logger.debug({ userid, roleId: roleDetails.id, roleName: roleDetails.name }, 'Using user\'s actual role from inventoryusers.roleid');
+      } else {
+        logger.warn({ userid, roleid: currentUser.roleid }, 'Role not found in roles table');
       }
+    } else {
+      logger.warn({ userid }, 'User has no roleid assigned');
+    }
 
-      // Merge field permissions
-      for (const fieldPerm of permissionSet.fieldPermissions) {
-        if (!fieldPermissions[fieldPerm.object]) {
-          fieldPermissions[fieldPerm.object] = {};
-        }
-        
-        if (!fieldPermissions[fieldPerm.object][fieldPerm.field]) {
-          fieldPermissions[fieldPerm.object][fieldPerm.field] = {};
-        }
-        
-        // Merge (don't override if already allowed from higher role)
-        fieldPermissions[fieldPerm.object][fieldPerm.field] = {
-          canRead: fieldPermissions[fieldPerm.object][fieldPerm.field].canRead || fieldPerm.canRead,
-          canWrite: fieldPermissions[fieldPerm.object][fieldPerm.field].canWrite || fieldPerm.canWrite,
-          canView: fieldPermissions[fieldPerm.object][fieldPerm.field].canView || fieldPerm.canView,
-          canEdit: fieldPermissions[fieldPerm.object][fieldPerm.field].canEdit || fieldPerm.canEdit,
-          maskValue: fieldPermissions[fieldPerm.object][fieldPerm.field].maskValue || fieldPerm.maskValue,
-          maskPattern: fieldPermissions[fieldPerm.object][fieldPerm.field].maskPattern || fieldPerm.maskPattern
-        };
-      }
+    // Convert to frontend-friendly format
+    // Keep frontend object names (don't convert to DB names)
+    const permissions: Record<string, PermissionObject> = {};
+
+    for (const perm of permissionsArray) {
+      // Use the object name as-is (should be frontend format)
+      // If it's DB format, we'll keep it (frontend can handle both)
+      const objectKey = perm.object.toLowerCase();
+      
+      permissions[objectKey] = {
+        object: perm.object,
+        read: perm.read || false,
+        create: perm.create || false,
+        edit: perm.edit || false,
+        delete: perm.delete || false,
+        export: perm.export || false,
+        import: perm.import || false,
+        approve: perm.approve || false,
+        reject: perm.reject || false,
+        viewall: perm.viewall || false,
+        modifyall: perm.modifyall || false,
+        deleteall: perm.deleteall || false,
+        accesslevel: perm.accesslevel || 'own',
+        customactions: perm.customactions || {}
+      };
     }
 
     return {
-      roles: [...new Set(roles)],
-      permissions,
-      fieldPermissions
+      role: fullRole,
+      permissions
     };
   } catch (error) {
-    logger.error({ error, userId }, 'Error getting user permissions');
+    logger.error({ error, userid }, 'Error getting user permissions');
     throw error;
   }
 }
-
-
-function checkAction(permission: any, action: string): boolean {
-  switch (action) {
-    case 'read': return permission.read;
-    case 'create': return permission.create;
-    case 'edit': return permission.edit;
-    case 'delete': return permission.delete;
-    case 'export': return permission.export;
-    case 'import': return permission.import;
-    case 'approve': return permission.approve;
-    case 'reject': return permission.reject;
-    default:
-      // Check custom actions
-      if (permission.customActions) {
-        return permission.customActions[action] === true;
-      }
-      return false;
-  }
-}
-
-function checkScope(
-  permission: any,
-  action: string,
-  context: PermissionContext
-): boolean {
-  // If viewAll/modifyAll/deleteAll is true, scope check passes
-  if (action === 'read' && permission.viewAll) return true;
-  if (action === 'edit' && permission.modifyAll) return true;
-  if (action === 'delete' && permission.deleteAll) return true;
-
-  // Otherwise, check if user owns the resource
-  if (context.resourceOwnerId) {
-    // This will be checked in the route handler
-    return true; // Allow, but ownership will be checked separately
-  }
-
-  return false;
-}
-
-async function getPermissionForRole(
-  roleId: string,
-  object: string
-): Promise<any> {
-  const permissionSet = await prisma.permissionSet.findFirst({
-    where: {
-      roleId,
-      isActive: true,
-      isDefault: true
-    },
-    include: {
-      permissions: {
-        where: { object }
-      }
-    }
-  });
-
-  return permissionSet?.permissions[0] || null;
-}
-
-export async function bulkCheckPermissions(
-  userId: number,
-  checks: Array<{ object: string; action: string }>
-): Promise<Record<string, boolean>> {
-  const results: Record<string, boolean> = {};
-
-  await Promise.all(
-    checks.map(async (check) => {
-      const result = await checkPermission(userId, check.object, check.action);
-      results[`${check.object}.${check.action}`] = result.allowed;
-    })
-  );
-
-  return results;
-}
-*/

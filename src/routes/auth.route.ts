@@ -56,8 +56,44 @@ export async function authRoutes(fastify: FastifyInstance) {
                     firstname: { type: 'string' },
                     lastname: { type: 'string' },
                     location: { type: 'string' },
+                    roleid: { type: 'number', nullable: true },
                   },
                   additionalProperties: true
+                },
+                roles: {
+                  type: 'object',
+                  nullable: true,
+                  properties: {
+                    id: { type: 'number' },
+                    name: { type: 'string' },
+                    code: { type: 'string' },
+                    level: { type: 'number' }
+                  }
+                },
+                permissions: {
+                  type: 'object',
+                  additionalProperties: {
+                    type: 'object',
+                    properties: {
+                      object: { type: 'string' },
+                      read: { type: 'boolean' },
+                      create: { type: 'boolean' },
+                      edit: { type: 'boolean' },
+                      delete: { type: 'boolean' },
+                      export: { type: 'boolean' },
+                      import: { type: 'boolean' },
+                      approve: { type: 'boolean' },
+                      reject: { type: 'boolean' },
+                      viewall: { type: 'boolean' },
+                      modifyall: { type: 'boolean' },
+                      deleteall: { type: 'boolean' },
+                      accesslevel: { type: 'string' },
+                      customactions: {
+                        type: 'object',
+                        additionalProperties: { type: 'boolean' }
+                      }
+                    }
+                  }
                 },
                 token: { type: 'string' },
               },
