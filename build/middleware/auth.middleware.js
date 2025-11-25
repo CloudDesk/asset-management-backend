@@ -55,37 +55,71 @@ export async function requireAuthentication(request, reply) {
                 retryAfter: 900 // 15 minutes
             });
         }
-        const inventoryUsersService = new InventoryUsersService();
-        // Find user with this session token
+        // Verify JWT token
         try {
-            const users = await inventoryUsersService.findMany({ sessiontoken: token }, 1, 1);
-            if (!users.data || users.data.length === 0) {
+            const { verifyToken } = await import('../utils/jwt.js');
+            const decoded = verifyToken(token);
+            // Try to find user in inventoryusers first (internal users)
+            const inventoryUsersService = new InventoryUsersService();
+            let user = await inventoryUsersService.findById(decoded.userId.toString());
+            let userType = 'inventory';
+            // If not found in inventoryusers, try users table (e-commerce users)
+            if (!user) {
+                const { UsersService } = await import('../services/users.service.js');
+                const usersService = new UsersService();
+                const ecommerceUser = await usersService.findById(decoded.userId.toString());
+                if (ecommerceUser) {
+                    user = ecommerceUser;
+                    userType = 'ecommerce';
+                }
+            }
+            if (!user) {
                 authRateLimit.recordAttempt(identifier);
                 logger.warn({
-                    token: token.substring(0, 8) + '...',
+                    userId: decoded.userId,
                     ip: request.ip,
                     userAgent: request.headers['user-agent']
-                }, 'Authentication failed: Invalid or expired token');
+                }, 'Authentication failed: User not found in either table');
                 return reply.code(401).send({
                     success: false,
                     message: 'Invalid authentication token',
-                    details: 'The provided token is not valid, has expired, or the user has been signed out',
+                    details: 'User associated with token not found',
                     statusCode: 401,
-                    tokenStatus: 'invalid_or_expired',
+                    tokenStatus: 'user_not_found',
                     suggestion: 'Please sign in again to get a new token'
                 });
             }
-            const user = users.data[0];
+            // Check token revocation (only for inventory users - they have sessiontoken field)
+            if (userType === 'inventory' && user.sessiontoken === null) {
+                authRateLimit.recordAttempt(identifier);
+                logger.warn({
+                    userId: decoded.userId,
+                    ip: request.ip
+                }, 'Authentication failed: Token revoked (user signed out)');
+                return reply.code(401).send({
+                    success: false,
+                    message: 'Token has been revoked',
+                    details: 'This token is no longer valid. Please sign in again',
+                    statusCode: 401,
+                    tokenStatus: 'revoked',
+                    suggestion: 'Please sign in again to get a new token'
+                });
+            }
             // Clear rate limiting on successful authentication
             authRateLimit.clearAttempts(identifier);
-            // Attach sanitized user data to request
-            request.user = sanitizeUserData(user);
+            // Attach user data to request (from JWT + DB)
+            request.user = {
+                ...sanitizeUserData(user),
+                roleId: decoded.roleId, // From JWT (undefined for e-commerce users)
+                userType, // 'inventory' or 'ecommerce'
+            };
             logger.debug({
                 userId: user.id,
                 email: user.useremail,
-                role: user.role,
+                userType,
+                roleId: decoded.roleId,
                 endpoint: request.url
-            }, 'User authenticated successfully for protected route');
+            }, 'User authenticated successfully with JWT token');
         }
         catch (error) {
             authRateLimit.recordAttempt(identifier);

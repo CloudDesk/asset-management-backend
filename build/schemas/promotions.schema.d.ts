@@ -844,13 +844,13 @@ export declare const activePromotionsQuerySchema: z.ZodObject<{
     geo: z.ZodOptional<z.ZodString>;
     scope: z.ZodOptional<z.ZodDefault<z.ZodEnum<["banner", "all"]>>>;
 }, "strip", z.ZodTypeAny, {
+    scope?: "all" | "banner" | undefined;
     channel?: string | undefined;
     geo?: string | undefined;
-    scope?: "all" | "banner" | undefined;
 }, {
+    scope?: "all" | "banner" | undefined;
     channel?: string | undefined;
     geo?: string | undefined;
-    scope?: "all" | "banner" | undefined;
 }>;
 export declare const activePromotionSchema: z.ZodObject<{
     id: z.ZodNumber;

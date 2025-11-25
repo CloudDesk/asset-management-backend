@@ -8718,3 +8718,155 @@ Update result: [
     "modifieddate": 1762355306
   }
 ]
+Update result: [
+  {
+    "id": 2,
+    "useremail": "harish@mail.com",
+    "userpassword": "$2a$12$so.ymfCoVsAVlnB5GvSo5.gXz0VKpmlA8lBKrE2EcBbzx/.dPhbVm",
+    "createddate": 1754579214,
+    "modifieddate": 1763817732,
+    "role": null,
+    "usersphonenumber": null,
+    "firstname": null,
+    "lastname": null,
+    "location": null,
+    "fcmid": null,
+    "sessiontoken": "4c0094e93b6e776a30d38b0cb39fffb51d4681e1d54c21cee3fe8477d4b89734",
+    "resettoken": null,
+    "resettokenexpires": null,
+    "roleid": null
+  }
+]
+Update result: [
+  {
+    "id": 2,
+    "useremail": "harish@mail.com",
+    "userpassword": "$2a$12$so.ymfCoVsAVlnB5GvSo5.gXz0VKpmlA8lBKrE2EcBbzx/.dPhbVm",
+    "createddate": 1754579214,
+    "modifieddate": 1763981727,
+    "role": null,
+    "usersphonenumber": null,
+    "firstname": null,
+    "lastname": null,
+    "location": null,
+    "fcmid": null,
+    "sessiontoken": "2f99664acdb7790f474dab994caba3a24e904b6cfcdc692739dd1b1bb4a5175c",
+    "resettoken": null,
+    "resettokenexpires": null,
+    "roleid": 3
+  }
+]
+Update result: [
+  {
+    "id": 2,
+    "useremail": "harish@mail.com",
+    "userpassword": "$2a$12$so.ymfCoVsAVlnB5GvSo5.gXz0VKpmlA8lBKrE2EcBbzx/.dPhbVm",
+    "createddate": 1754579214,
+    "modifieddate": 1763981893,
+    "role": null,
+    "usersphonenumber": null,
+    "firstname": null,
+    "lastname": null,
+    "location": null,
+    "fcmid": null,
+    "sessiontoken": "cd3b0bfbefbdd885e3c0761224a577c353fd15905d28958dc7361a235b48c100",
+    "resettoken": null,
+    "resettokenexpires": null,
+    "roleid": 3
+  }
+]
+Update result: [
+  {
+    "id": 2,
+    "useremail": "harish@mail.com",
+    "userpassword": "$2a$12$so.ymfCoVsAVlnB5GvSo5.gXz0VKpmlA8lBKrE2EcBbzx/.dPhbVm",
+    "createddate": 1754579214,
+    "modifieddate": 1763982447,
+    "role": null,
+    "usersphonenumber": null,
+    "firstname": null,
+    "lastname": null,
+    "location": null,
+    "fcmid": null,
+    "sessiontoken": "35bcaab7b04104cd30821c5d0618e05d32786d5651204e69e423c82b7e97634e",
+    "resettoken": null,
+    "resettokenexpires": null,
+    "roleid": 3
+  }
+]
+Update result: [
+  {
+    "id": 2,
+    "useremail": "harish@mail.com",
+    "userpassword": "$2a$12$so.ymfCoVsAVlnB5GvSo5.gXz0VKpmlA8lBKrE2EcBbzx/.dPhbVm",
+    "createddate": 1754579214,
+    "modifieddate": 1763982890,
+    "role": null,
+    "usersphonenumber": null,
+    "firstname": null,
+    "lastname": null,
+    "location": null,
+    "fcmid": null,
+    "sessiontoken": "da5cc6d4570dc0d81864882a78e05e78cc3e5093b975efc12447bd3fc3fff045",
+    "resettoken": null,
+    "resettokenexpires": null,
+    "roleid": 3
+  }
+]
+Update result: [
+  {
+    "id": 2,
+    "useremail": "harish@mail.com",
+    "userpassword": "$2a$12$so.ymfCoVsAVlnB5GvSo5.gXz0VKpmlA8lBKrE2EcBbzx/.dPhbVm",
+    "createddate": 1754579214,
+    "modifieddate": 1763983340,
+    "role": null,
+    "usersphonenumber": null,
+    "firstname": null,
+    "lastname": null,
+    "location": null,
+    "fcmid": null,
+    "sessiontoken": "4f153953370323d51b89d073c058b32d5396f0046ed15498d8708400e4d0474f",
+    "resettoken": null,
+    "resettokenexpires": null,
+    "roleid": 3
+  }
+]
+Update result: [
+  {
+    "id": 16,
+    "invoiceamount": "4000",
+    "ponumber": "KS-001-NIVAANA-PO-0000000026",
+    "invoicedate": 1764028800,
+    "invoicenumber": "IN_0001_01243",
+    "invoiceurl": "https://storage.googleapis.com/niv-poinvoices-dev/KS-001-NIVAANA-PO-0000000026/81orgPPLBTL._SY879_.jpg",
+    "paymentdata": {
+      "items": [
+        {
+          "id": 1,
+          "comments": null,
+          "paymentdate": "2025-11-25",
+          "paymenttype": "Part Payment",
+          "paymentamount": 2000,
+          "paymentmethod": "cash",
+          "transactionid": null,
+          "receiptcomments": ""
+        }
+      ]
+    },
+    "createddate": 1764068430,
+    "modifieddate": 1764068900,
+    "balanceamount": "2000",
+    "iscreditpayment": true,
+    "paymentduedate": 1766620800,
+    "invoicestatus": "partial",
+    "pototal": "15680",
+    "purchaseorderstatus": "partially_fulfilled",
+    "transportationcharges": null,
+    "exchangeamount": null,
+    "customdutytaxamount": null,
+    "suppliertype": "local",
+    "customdutychallanurl": null,
+    "billofentryurl": null
+  }
+]

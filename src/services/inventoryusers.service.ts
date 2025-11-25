@@ -23,6 +23,7 @@ import {
   sanitizeUserData 
 } from '../utils/auth.js';
 import { EmailService } from './email.service.js';
+import { prisma } from '../models/prisma.js';
 
 export class InventoryUsersService {
   private emailService = new EmailService();
@@ -37,19 +38,61 @@ export class InventoryUsersService {
 
       const { skip, take } = getPrismaSkipTake(page, limit);
 
-      // Use the new dynamic filtering system
-      const { data: inventoryUsers, total } = await dynamicFindManyWithFilters('inventoryusers', filters, {
-        skip,
-        take,
-        useAllColumns: true // Get all available columns
+      // Build where clause for Prisma
+      const where: any = {};
+      
+      // Apply filters
+      if (filters.useremail) where.useremail = filters.useremail;
+      if (filters.role) where.role = filters.role; // Legacy field
+      if (filters.roleid) where.roleid = parseInt(filters.roleid as string);
+      if (filters.firstname) where.firstname = filters.firstname;
+      if (filters.lastname) where.lastname = filters.lastname;
+      if (filters.location) where.location = filters.location;
+      if (filters.usersphonenumber) where.usersphonenumber = BigInt(filters.usersphonenumber as string);
+      
+      // Date filters
+      if (filters.createdAfter) {
+        where.createddate = { ...where.createddate, gte: BigInt(filters.createdAfter as string) };
+      }
+      if (filters.createdBefore) {
+        where.createddate = { ...where.createddate, lte: BigInt(filters.createdBefore as string) };
+      }
+
+      // Use Prisma to include role relation
+      const [inventoryUsers, total] = await Promise.all([
+        (prisma as any).inventoryusers.findMany({
+          where,
+          skip,
+          take,
+          include: {
+            rolerelation: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+                level: true,
+                description: true,
+                isactive: true
+              }
+            }
+          },
+          orderBy: { id: 'desc' }
+        }),
+        (prisma as any).inventoryusers.count({ where })
+      ]);
+
+      // Ensure roleRelation is null for users with null roleid
+      inventoryUsers.forEach((user: any) => {
+        if (user.roleid === null) {
+          user.rolerelation = null;
+        }
       });
 
       logger.info({
         inventoryUserCount: inventoryUsers.length, 
         total,
         filtered: Object.keys(filters).length > 0,
-        appliedFilters: Object.keys(filters),
-        availableFields: inventoryUsers.length > 0 ? Object.keys(inventoryUsers[0]) : []
+        appliedFilters: Object.keys(filters)
       }, 'Dynamic inventoryusers findMany with filters completed');
 
       return createPaginationResult(inventoryUsers, total, page, limit);
@@ -63,7 +106,27 @@ export class InventoryUsersService {
     try {
       logger.debug({ inventoryUserId: id }, 'Starting dynamic inventoryusers findById operation');
 
-      const inventoryUser = await dynamicFindUnique('inventoryusers', { id: parseInt(id) });
+      // Use Prisma to include role relation (only if roleid is not null)
+      const inventoryUser = await (prisma as any).inventoryusers.findUnique({
+        where: { id: parseInt(id) },
+        include: {
+          rolerelation: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+              level: true,
+              description: true,
+              isactive: true
+            }
+          }
+        }
+      });
+
+      // Ensure roleRelation is null if roleid is null
+      if (inventoryUser && inventoryUser.roleid === null) {
+        inventoryUser.rolerelation = null;
+      }
 
       if (!inventoryUser) {
         throw new Error('Inventory user not found');
@@ -71,7 +134,8 @@ export class InventoryUsersService {
 
       logger.debug({ 
         inventoryUserId: id, 
-        availableFields: Object.keys(inventoryUser) 
+        availableFields: Object.keys(inventoryUser),
+        hasRole: !!inventoryUser.rolerelation
       }, 'Dynamic inventoryusers findById completed');
 
       return inventoryUser;
@@ -106,6 +170,17 @@ export class InventoryUsersService {
     try {
       logger.debug({ originalData: { ...data, userpassword: '[REDACTED]' } }, 'Starting dynamic inventoryusers create operation');
 
+      // Validate roleid if provided
+      if (data.roleid !== null && data.roleid !== undefined) {
+        const role = await (prisma as any).role.findUnique({
+          where: { id: data.roleid }
+        });
+        if (!role) {
+          throw new Error(`Role with ID ${data.roleid} not found`);
+        }
+        logger.debug({ roleid: data.roleid, roleName: role.name }, 'Role validated for inventory user creation');
+      }
+
       // Validate and hash password if provided
       if (data.userpassword) {
         const passwordValidation = validatePassword(data.userpassword);
@@ -132,7 +207,31 @@ export class InventoryUsersService {
         modifieddate: BigInt(Date.now())
       };
 
-      const inventoryUser = await dynamicCreate('inventoryusers', inventoryUserData);
+      // Use Prisma to create with role relation (only if roleid is not null)
+      const includeRole = inventoryUserData.roleid !== null && inventoryUserData.roleid !== undefined;
+      
+      const inventoryUser = await (prisma as any).inventoryusers.create({
+        data: inventoryUserData,
+        ...(includeRole ? {
+          include: {
+            rolerelation: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+                level: true,
+                description: true,
+                isactive: true
+              }
+            }
+          }
+        } : {})
+      });
+
+      // Ensure roleRelation is null if roleid is null
+      if (!includeRole) {
+        inventoryUser.rolerelation = null;
+      }
 
       if (!inventoryUser) {
         throw new Error('Failed to create inventory user - no valid fields provided');
@@ -141,7 +240,8 @@ export class InventoryUsersService {
       logger.info({ 
         inventoryUserId: inventoryUser.id, 
         email: inventoryUser.useremail,
-        availableFields: Object.keys(inventoryUser) 
+        roleid: inventoryUser.roleid,
+        hasRole: !!inventoryUser.rolerelation
       }, 'Dynamic inventoryusers create completed');
 
       return sanitizeUserData(inventoryUser);
@@ -157,6 +257,17 @@ export class InventoryUsersService {
       await this.findById(id);
 
       logger.debug({ originalData: { ...data, userpassword: data.userpassword ? '[REDACTED]' : undefined }, inventoryUserId: id }, 'Starting dynamic inventoryusers update operation');
+
+      // Validate roleid if provided
+      if (data.roleid !== null && data.roleid !== undefined) {
+        const role = await (prisma as any).role.findUnique({
+          where: { id: data.roleid }
+        });
+        if (!role) {
+          throw new Error(`Role with ID ${data.roleid} not found`);
+        }
+        logger.debug({ roleid: data.roleid, roleName: role.name }, 'Role validated for inventory user update');
+      }
 
       // Validate and hash password if provided
       if (data.userpassword) {
@@ -183,7 +294,33 @@ export class InventoryUsersService {
         modifieddate: BigInt(Date.now())
       };
 
-      const inventoryUser = await dynamicUpdate('inventoryusers', { id: parseInt(id) }, inventoryUserData);
+      // Use Prisma to update with role relation (only if roleid is not null)
+      const finalRoleId = inventoryUserData.roleid !== undefined ? inventoryUserData.roleid : (await (prisma as any).inventoryusers.findUnique({ where: { id: parseInt(id) }, select: { roleid: true } }))?.roleid;
+      const includeRole = finalRoleId !== null && finalRoleId !== undefined;
+      
+      const inventoryUser = await (prisma as any).inventoryusers.update({
+        where: { id: parseInt(id) },
+        data: inventoryUserData,
+        ...(includeRole ? {
+          include: {
+            rolerelation: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+                level: true,
+                description: true,
+                isactive: true
+              }
+            }
+          }
+        } : {})
+      });
+
+      // Ensure roleRelation is null if roleid is null
+      if (!includeRole) {
+        inventoryUser.rolerelation = null;
+      }
 
       if (!inventoryUser) {
         throw new Error('Failed to update inventory user - no valid fields provided');
@@ -192,7 +329,8 @@ export class InventoryUsersService {
       logger.info({ 
         inventoryUserId: id, 
         email: inventoryUser.useremail,
-        availableFields: Object.keys(inventoryUser) 
+        roleid: inventoryUser.roleid,
+        hasRole: !!inventoryUser.rolerelation
       }, 'Dynamic inventoryusers update completed');
 
       return sanitizeUserData(inventoryUser);
@@ -244,7 +382,7 @@ export class InventoryUsersService {
   /**
    * Authenticate user with email and password
    */
-  async authenticate(email: string, password: string): Promise<{ user: any; token: string } | null> {
+  async authenticate(email: string, password: string): Promise<{ user: any; roles: any; permissions: any; token: string; refreshToken: string; expiresIn: number } | null> {
     try {
       logger.debug({ email }, 'Attempting to authenticate inventory user');
 
@@ -260,25 +398,73 @@ export class InventoryUsersService {
         return null;
       }
 
-      // Generate session token
-      const sessionToken = generateSessionToken();
+      // Generate JWT tokens (access + refresh)
+      const { generateTokenPair } = await import('../utils/jwt.js');
+      const tokenPair = generateTokenPair({
+        userId: user.id,
+        email: user.useremail || '',
+        roleId: user.roleid || undefined,
+      });
 
-      // Update user with session token (in a real implementation, store this in a sessions table)
+      // Store refresh token in database (optional - for token revocation)
+      // Access token is stateless (JWT), refresh token stored for logout/revocation
       await dynamicUpdate('inventoryusers', { id: user.id }, { 
-        sessiontoken: sessionToken,
+        sessiontoken: tokenPair.refreshToken, // Store refresh token for revocation
         modifieddate: BigInt(Date.now())
       });
 
       logger.info({ 
         userId: user.id, 
         email: user.useremail,
-        role: user.role 
+        role: user.role,
+        roleid: user.roleid
       }, 'User authenticated successfully');
+
+      // Get role and permissions for the user
+      let roleData = null;
+      let permissionsData = {};
+      
+      if (user.roleid) {
+        try {
+          // Get role details
+          const role = await (prisma as any).role.findUnique({
+            where: { id: user.roleid },
+            select: {
+              id: true,
+              name: true,
+              code: true,
+              level: true,
+              description: true,
+              isactive: true
+            }
+          });
+          
+          if (role) {
+            roleData = {
+              id: role.id,
+              name: role.name,
+              code: role.code,
+              level: role.level || 0
+            };
+            
+            // Get permissions for this user
+            const { getUserPermissions } = await import('../utils/permissionChecker.js');
+            const permissionsResult = await getUserPermissions(user.id);
+            permissionsData = permissionsResult.permissions || {};
+          }
+        } catch (error) {
+          logger.warn({ error, roleid: user.roleid }, 'Error fetching role/permissions during authentication');
+        }
+      }
 
       return {
         user: sanitizeUserData(user),
-        token: sessionToken
-      };
+        roles: roleData,
+        permissions: permissionsData,
+        token: tokenPair.accessToken, // JWT access token
+        refreshToken: tokenPair.refreshToken, // JWT refresh token
+        expiresIn: tokenPair.expiresIn, // Token expiry in seconds
+      } as any; // Type assertion to allow roles and permissions in response
     } catch (error) {
       logger.error({ error, email }, 'Error during authentication');
       throw error;

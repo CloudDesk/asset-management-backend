@@ -3,6 +3,7 @@ export declare const createInventoryUsersSchema: z.ZodObject<{
     useremail: z.ZodOptional<z.ZodString>;
     userpassword: z.ZodOptional<z.ZodString>;
     role: z.ZodOptional<z.ZodString>;
+    roleid: z.ZodEffects<z.ZodOptional<z.ZodNullable<z.ZodNumber>>, number | null | undefined, unknown>;
     usersphonenumber: z.ZodOptional<z.ZodNumber>;
     firstname: z.ZodOptional<z.ZodString>;
     lastname: z.ZodOptional<z.ZodString>;
@@ -14,6 +15,7 @@ export declare const createInventoryUsersSchema: z.ZodObject<{
     useremail: z.ZodOptional<z.ZodString>;
     userpassword: z.ZodOptional<z.ZodString>;
     role: z.ZodOptional<z.ZodString>;
+    roleid: z.ZodEffects<z.ZodOptional<z.ZodNullable<z.ZodNumber>>, number | null | undefined, unknown>;
     usersphonenumber: z.ZodOptional<z.ZodNumber>;
     firstname: z.ZodOptional<z.ZodString>;
     lastname: z.ZodOptional<z.ZodString>;
@@ -25,6 +27,7 @@ export declare const createInventoryUsersSchema: z.ZodObject<{
     useremail: z.ZodOptional<z.ZodString>;
     userpassword: z.ZodOptional<z.ZodString>;
     role: z.ZodOptional<z.ZodString>;
+    roleid: z.ZodEffects<z.ZodOptional<z.ZodNullable<z.ZodNumber>>, number | null | undefined, unknown>;
     usersphonenumber: z.ZodOptional<z.ZodNumber>;
     firstname: z.ZodOptional<z.ZodString>;
     lastname: z.ZodOptional<z.ZodString>;
@@ -37,6 +40,7 @@ export declare const updateInventoryUsersSchema: z.ZodObject<{
     useremail: z.ZodOptional<z.ZodString>;
     userpassword: z.ZodOptional<z.ZodString>;
     role: z.ZodOptional<z.ZodString>;
+    roleid: z.ZodEffects<z.ZodOptional<z.ZodNullable<z.ZodNumber>>, number | null | undefined, unknown>;
     usersphonenumber: z.ZodOptional<z.ZodNumber>;
     firstname: z.ZodOptional<z.ZodString>;
     lastname: z.ZodOptional<z.ZodString>;
@@ -48,6 +52,7 @@ export declare const updateInventoryUsersSchema: z.ZodObject<{
     useremail: z.ZodOptional<z.ZodString>;
     userpassword: z.ZodOptional<z.ZodString>;
     role: z.ZodOptional<z.ZodString>;
+    roleid: z.ZodEffects<z.ZodOptional<z.ZodNullable<z.ZodNumber>>, number | null | undefined, unknown>;
     usersphonenumber: z.ZodOptional<z.ZodNumber>;
     firstname: z.ZodOptional<z.ZodString>;
     lastname: z.ZodOptional<z.ZodString>;
@@ -59,6 +64,7 @@ export declare const updateInventoryUsersSchema: z.ZodObject<{
     useremail: z.ZodOptional<z.ZodString>;
     userpassword: z.ZodOptional<z.ZodString>;
     role: z.ZodOptional<z.ZodString>;
+    roleid: z.ZodEffects<z.ZodOptional<z.ZodNullable<z.ZodNumber>>, number | null | undefined, unknown>;
     usersphonenumber: z.ZodOptional<z.ZodNumber>;
     firstname: z.ZodOptional<z.ZodString>;
     lastname: z.ZodOptional<z.ZodString>;
@@ -72,6 +78,7 @@ export declare const upsertInventoryUsersSchema: z.ZodObject<{
     useremail: z.ZodOptional<z.ZodString>;
     userpassword: z.ZodOptional<z.ZodString>;
     role: z.ZodOptional<z.ZodString>;
+    roleid: z.ZodEffects<z.ZodOptional<z.ZodNullable<z.ZodNumber>>, number | null | undefined, unknown>;
     usersphonenumber: z.ZodOptional<z.ZodNumber>;
     firstname: z.ZodOptional<z.ZodString>;
     lastname: z.ZodOptional<z.ZodString>;
@@ -84,6 +91,7 @@ export declare const upsertInventoryUsersSchema: z.ZodObject<{
     useremail: z.ZodOptional<z.ZodString>;
     userpassword: z.ZodOptional<z.ZodString>;
     role: z.ZodOptional<z.ZodString>;
+    roleid: z.ZodEffects<z.ZodOptional<z.ZodNullable<z.ZodNumber>>, number | null | undefined, unknown>;
     usersphonenumber: z.ZodOptional<z.ZodNumber>;
     firstname: z.ZodOptional<z.ZodString>;
     lastname: z.ZodOptional<z.ZodString>;
@@ -96,6 +104,7 @@ export declare const upsertInventoryUsersSchema: z.ZodObject<{
     useremail: z.ZodOptional<z.ZodString>;
     userpassword: z.ZodOptional<z.ZodString>;
     role: z.ZodOptional<z.ZodString>;
+    roleid: z.ZodEffects<z.ZodOptional<z.ZodNullable<z.ZodNumber>>, number | null | undefined, unknown>;
     usersphonenumber: z.ZodOptional<z.ZodNumber>;
     firstname: z.ZodOptional<z.ZodString>;
     lastname: z.ZodOptional<z.ZodString>;
@@ -116,6 +125,7 @@ export declare const inventoryUsersQuerySchema: z.ZodObject<{
     limit: z.ZodOptional<z.ZodString>;
     useremail: z.ZodOptional<z.ZodString>;
     role: z.ZodOptional<z.ZodString>;
+    roleid: z.ZodOptional<z.ZodString>;
     firstname: z.ZodOptional<z.ZodString>;
     lastname: z.ZodOptional<z.ZodString>;
     location: z.ZodOptional<z.ZodString>;
@@ -124,22 +134,24 @@ export declare const inventoryUsersQuerySchema: z.ZodObject<{
     createdBefore: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     location?: string | undefined;
+    role?: string | undefined;
     useremail?: string | undefined;
     firstname?: string | undefined;
     lastname?: string | undefined;
-    role?: string | undefined;
     usersphonenumber?: string | undefined;
+    roleid?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
     createdAfter?: string | undefined;
     createdBefore?: string | undefined;
 }, {
     location?: string | undefined;
+    role?: string | undefined;
     useremail?: string | undefined;
     firstname?: string | undefined;
     lastname?: string | undefined;
-    role?: string | undefined;
     usersphonenumber?: string | undefined;
+    roleid?: string | undefined;
     page?: string | undefined;
     limit?: string | undefined;
     createdAfter?: string | undefined;

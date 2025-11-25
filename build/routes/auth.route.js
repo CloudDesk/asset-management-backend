@@ -50,10 +50,48 @@ export async function authRoutes(fastify) {
                                         firstname: { type: 'string' },
                                         lastname: { type: 'string' },
                                         location: { type: 'string' },
+                                        roleid: { type: 'number', nullable: true },
                                     },
                                     additionalProperties: true
                                 },
-                                token: { type: 'string' },
+                                roles: {
+                                    type: 'object',
+                                    nullable: true,
+                                    properties: {
+                                        id: { type: 'number' },
+                                        name: { type: 'string' },
+                                        code: { type: 'string' },
+                                        level: { type: 'number' }
+                                    }
+                                },
+                                permissions: {
+                                    type: 'object',
+                                    additionalProperties: {
+                                        type: 'object',
+                                        properties: {
+                                            object: { type: 'string' },
+                                            read: { type: 'boolean' },
+                                            create: { type: 'boolean' },
+                                            edit: { type: 'boolean' },
+                                            delete: { type: 'boolean' },
+                                            export: { type: 'boolean' },
+                                            import: { type: 'boolean' },
+                                            approve: { type: 'boolean' },
+                                            reject: { type: 'boolean' },
+                                            viewall: { type: 'boolean' },
+                                            modifyall: { type: 'boolean' },
+                                            deleteall: { type: 'boolean' },
+                                            accesslevel: { type: 'string' },
+                                            customactions: {
+                                                type: 'object',
+                                                additionalProperties: { type: 'boolean' }
+                                            }
+                                        }
+                                    }
+                                },
+                                token: { type: 'string', description: 'JWT access token' },
+                                refreshToken: { type: 'string', description: 'JWT refresh token' },
+                                expiresIn: { type: 'number', description: 'Access token expiry in seconds' },
                             },
                         },
                         message: { type: 'string' },
@@ -680,6 +718,100 @@ export async function authRoutes(fastify) {
         }, 'User information retrieved');
         const response = createSuccessResponse('User information retrieved successfully', user);
         return reply.code(200).send(response);
+    }));
+    // POST /v1/auth/refresh - Refresh access token
+    fastify.post('/refresh', {
+        schema: {
+            description: 'Refresh JWT access token using refresh token',
+            tags: ['Authentication'],
+            body: {
+                type: 'object',
+                required: ['refreshToken'],
+                properties: {
+                    refreshToken: {
+                        type: 'string',
+                        description: 'JWT refresh token'
+                    }
+                },
+                additionalProperties: false
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        data: {
+                            type: 'object',
+                            properties: {
+                                token: { type: 'string', description: 'New JWT access token' },
+                                refreshToken: { type: 'string', description: 'New JWT refresh token (if sliding expiry enabled)' },
+                                expiresIn: { type: 'number', description: 'Access token expiry in seconds' }
+                            }
+                        },
+                        message: { type: 'string' }
+                    }
+                },
+                401: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' }
+                    }
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        details: { type: 'string' },
+                        statusCode: { type: 'number' }
+                    }
+                }
+            }
+        }
+    }, asyncHandler(async (request, reply) => {
+        const { refreshToken } = request.body;
+        if (!refreshToken) {
+            return reply.code(400).send({
+                success: false,
+                message: 'Refresh token required',
+                details: 'Please provide a refresh token',
+                statusCode: 400
+            });
+        }
+        try {
+            const { refreshAccessToken } = await import('../utils/jwt.js');
+            const tokenPair = refreshAccessToken(refreshToken);
+            // Update refresh token in database if sliding expiry is enabled
+            if (tokenPair.refreshToken !== refreshToken) {
+                const { verifyToken } = await import('../utils/jwt.js');
+                const decoded = verifyToken(tokenPair.refreshToken);
+                const inventoryUsersService = new InventoryUsersService();
+                await inventoryUsersService.update(decoded.userId.toString(), {
+                    sessiontoken: tokenPair.refreshToken
+                });
+            }
+            logger.info({
+                userId: (await import('../utils/jwt.js')).verifyToken(tokenPair.refreshToken).userId
+            }, 'Access token refreshed successfully');
+            const response = createSuccessResponse('Token refreshed successfully', {
+                token: tokenPair.accessToken,
+                refreshToken: tokenPair.refreshToken,
+                expiresIn: tokenPair.expiresIn
+            });
+            return reply.code(200).send(response);
+        }
+        catch (error) {
+            logger.error({ error }, 'Error refreshing token');
+            return reply.code(401).send({
+                success: false,
+                message: 'Token refresh failed',
+                details: error.message || 'Invalid or expired refresh token',
+                statusCode: 401
+            });
+        }
     }));
 }
 //# sourceMappingURL=auth.route.js.map

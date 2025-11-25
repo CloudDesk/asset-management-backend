@@ -149,7 +149,16 @@ export function generateUniqueUsername(baseUsername: string, existingUsernames: 
  * Sanitize user data for API responses (remove sensitive fields)
  */
 export function sanitizeUserData(user: any): any {
-  const { userpassword, resetToken, resetTokenExpires, sessionToken, ...sanitizedUser } = user;
+  const { 
+    userpassword, 
+    resetToken, 
+    resetTokenExpires, 
+    sessionToken, 
+    sessiontoken,  // Database field (lowercase)
+    resettoken,
+    resettokenexpires,
+    ...sanitizedUser 
+  } = user;
   return sanitizedUser;
 }
 

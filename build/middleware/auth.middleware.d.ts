@@ -6,6 +6,8 @@ export interface AuthenticatedRequest extends FastifyRequest {
         role?: string;
         firstname?: string;
         lastname?: string;
+        roleId?: number;
+        userType?: 'inventory' | 'ecommerce';
     };
 }
 /**

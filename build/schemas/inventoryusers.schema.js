@@ -3,7 +3,8 @@ import { z } from 'zod';
 export const createInventoryUsersSchema = z.object({
     useremail: z.string().email().max(255).optional(),
     userpassword: z.string().max(255).optional(),
-    role: z.string().max(500).optional(),
+    role: z.string().max(500).optional(), // Legacy field - kept for backward compatibility
+    roleid: z.preprocess((val) => (val === 0 || val === '0' ? null : val), z.number().int().positive().nullable().optional()), // Foreign key to roles.id
     usersphonenumber: z.coerce.number().optional(),
     firstname: z.string().max(255).optional(),
     lastname: z.string().max(255).optional(),
@@ -15,7 +16,8 @@ export const createInventoryUsersSchema = z.object({
 export const updateInventoryUsersSchema = z.object({
     useremail: z.string().email().max(255).optional(),
     userpassword: z.string().max(255).optional(),
-    role: z.string().max(500).optional(),
+    role: z.string().max(500).optional(), // Legacy field - kept for backward compatibility
+    roleid: z.preprocess((val) => (val === 0 || val === '0' ? null : val), z.number().int().positive().nullable().optional()), // Foreign key to roles.id
     usersphonenumber: z.coerce.number().optional(),
     firstname: z.string().max(255).optional(),
     lastname: z.string().max(255).optional(),
@@ -28,7 +30,8 @@ export const upsertInventoryUsersSchema = z.object({
     id: z.number().int().positive().optional(),
     useremail: z.string().email().max(255).optional(),
     userpassword: z.string().max(255).optional(),
-    role: z.string().max(500).optional(),
+    role: z.string().max(500).optional(), // Legacy field - kept for backward compatibility
+    roleid: z.preprocess((val) => (val === 0 || val === '0' ? null : val), z.number().int().positive().nullable().optional()), // Foreign key to roles.id
     usersphonenumber: z.coerce.number().optional(),
     firstname: z.string().max(255).optional(),
     lastname: z.string().max(255).optional(),
@@ -46,7 +49,8 @@ export const inventoryUsersQuerySchema = z.object({
     limit: z.string().optional(),
     // Filter fields based on actual table columns
     useremail: z.string().optional(),
-    role: z.string().optional(),
+    role: z.string().optional(), // Legacy field - kept for backward compatibility
+    roleid: z.string().optional(), // Filter by role ID
     firstname: z.string().optional(),
     lastname: z.string().optional(),
     location: z.string().optional(),

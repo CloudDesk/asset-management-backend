@@ -10,6 +10,8 @@ import { quotesRoutes } from './quotes.route.js';
 import { notesRoutes } from './notes.route.js';
 import { usersRoutes } from './users.route.js';
 import { inventoryUsersRoutes } from './inventoryusers.route.js';
+import { roleRoutes } from './role.route.js';
+import { permissionSetRoutes } from './permissionset.route.js';
 import { authRoutes } from './auth.route.js';
 import { mobileAuthRoutes } from './mobile-auth.route.js';
 import { poinvoiceRoutes } from './poinvoice.route.js';
@@ -25,6 +27,7 @@ import { ratingRoutes } from './rating.route.js';
 import { smsRoutes } from './sms.route.js';
 import { requireAuthentication } from '../middleware/auth.middleware.js';
 import { createSuccessResponse } from '../utils/errorHandler.js';
+import     {permissionRoutes} from './permission.route.js';
 
 export async function routes(fastify: FastifyInstance) {
   // Health check endpoint (public)
@@ -80,6 +83,10 @@ export async function routes(fastify: FastifyInstance) {
     await fastify.register(notesRoutes, { prefix: '/notes' });
     await fastify.register(usersRoutes, { prefix: '/users' });
     await fastify.register(inventoryUsersRoutes, { prefix: '/inventoryusers' });
+    await fastify.register(roleRoutes, { prefix: '/roles' });
+    await fastify.register(permissionSetRoutes, { prefix: '/permission-sets' });
+
+    await fastify.register(permissionRoutes, { prefix: '/permissions' });
     await fastify.register(poinvoiceRoutes, { prefix: '/poinvoices' });
     await fastify.register(addressRoutes, { prefix: '/addresses' });
     await fastify.register(samplePurchaseRequestRoutes, { prefix: '/samplepurchaserequests' });

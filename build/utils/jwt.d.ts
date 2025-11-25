@@ -1,41 +1,41 @@
-/**
- * JWT payload interface for Firebase OTP sessions
- */
-export interface FirebaseJWTPayload {
-    uid: string;
-    phone: string;
-    email?: string;
-    iat: number;
-    exp: number;
+export interface JWTPayload {
+    userId: number;
+    email: string;
+    roleId?: number | undefined;
+    iat?: number;
+    exp?: number;
+}
+export interface TokenPair {
+    accessToken: string;
+    refreshToken: string;
+    expiresIn: number;
 }
 /**
- * Simple JWT implementation for Firebase OTP session management
- * Using HMAC-SHA256 for signing
+ * Generate JWT access token
+ * Short-lived token for API requests
  */
-export declare class JWTService {
-    private secret;
-    private expiresIn;
-    constructor(secret?: string, expiresIn?: number);
-    /**
-     * Create a session token (JWT) for Firebase authenticated user
-     */
-    sign(payload: {
-        uid: string;
-        phone: string;
-        email?: string;
-    }): string;
-    /**
-     * Verify and decode a JWT token
-     */
-    verify(token: string): FirebaseJWTPayload;
-    /**
-     * Base64URL encode a string
-     */
-    private base64urlEncode;
-    /**
-     * Base64URL decode a string
-     */
-    private base64urlDecode;
-}
-export declare const jwtService: JWTService;
+export declare function generateAccessToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string;
+/**
+ * Generate JWT refresh token
+ * Long-lived token for refreshing access tokens
+ */
+export declare function generateRefreshToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string;
+/**
+ * Generate both access and refresh tokens
+ */
+export declare function generateTokenPair(payload: Omit<JWTPayload, 'iat' | 'exp'>): TokenPair;
+/**
+ * Verify and decode JWT token
+ * Returns decoded payload or throws error
+ */
+export declare function verifyToken(token: string): JWTPayload;
+/**
+ * Refresh access token (generate new access token from refresh token)
+ * Optionally extends refresh token expiry if JWT_REFRESH_ON_USE is true
+ */
+export declare function refreshAccessToken(refreshToken: string): TokenPair;
+/**
+ * Decode token without verification (for debugging)
+ */
+export declare function decodeToken(token: string): JWTPayload | null;
 //# sourceMappingURL=jwt.d.ts.map
