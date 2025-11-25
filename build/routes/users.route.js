@@ -556,7 +556,9 @@ export async function usersRoutes(fastify) {
                                     },
                                     additionalProperties: true
                                 },
-                                token: { type: 'string' },
+                                token: { type: 'string', description: 'JWT access token' },
+                                refreshToken: { type: 'string', description: 'JWT refresh token' },
+                                expiresIn: { type: 'number', description: 'Token expiry in seconds' },
                             },
                         },
                         message: { type: 'string' },

@@ -15,7 +15,11 @@ export declare class InventoryUsersService {
      */
     authenticate(email: string, password: string): Promise<{
         user: any;
+        roles: any;
+        permissions: any;
         token: string;
+        refreshToken: string;
+        expiresIn: number;
     } | null>;
     /**
      * Sign out user by invalidating session token

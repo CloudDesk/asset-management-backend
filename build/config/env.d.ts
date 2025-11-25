@@ -8,6 +8,10 @@ declare const envSchema: z.ZodObject<{
     FIREBASE_CLIENT_EMAIL: z.ZodString;
     FIREBASE_PRIVATE_KEY: z.ZodString;
     APP_JWT_SECRET: z.ZodDefault<z.ZodString>;
+    JWT_SECRET: z.ZodOptional<z.ZodString>;
+    JWT_ACCESS_TOKEN_EXPIRY: z.ZodDefault<z.ZodOptional<z.ZodString>>;
+    JWT_REFRESH_TOKEN_EXPIRY: z.ZodDefault<z.ZodOptional<z.ZodString>>;
+    JWT_REFRESH_ON_USE: z.ZodDefault<z.ZodOptional<z.ZodString>>;
     TWILIO_ACCOUNT_SID: z.ZodString;
     TWILIO_AUTH_TOKEN: z.ZodString;
     TWILIO_PHONE_NUMBER: z.ZodString;
@@ -78,6 +82,9 @@ declare const envSchema: z.ZodObject<{
     FIREBASE_CLIENT_EMAIL: string;
     FIREBASE_PRIVATE_KEY: string;
     APP_JWT_SECRET: string;
+    JWT_ACCESS_TOKEN_EXPIRY: string;
+    JWT_REFRESH_TOKEN_EXPIRY: string;
+    JWT_REFRESH_ON_USE: string;
     TWILIO_ACCOUNT_SID: string;
     TWILIO_AUTH_TOKEN: string;
     TWILIO_PHONE_NUMBER: string;
@@ -105,6 +112,7 @@ declare const envSchema: z.ZodObject<{
     AMAZON_MARKETPLACE_ID: string;
     AMAZON_REGION: string;
     AMAZON_SELLER_CENTRAL_URL: string;
+    JWT_SECRET?: string | undefined;
     TWILIO_MESSAGING_SERVICE_SID?: string | undefined;
     EXOTEL_DLT_TEMPLATE_ID?: string | undefined;
     EXOTEL_ENTITY_ID?: string | undefined;
@@ -155,6 +163,10 @@ declare const envSchema: z.ZodObject<{
     PORT?: string | undefined;
     NODE_ENV?: "development" | "production" | "test" | undefined;
     APP_JWT_SECRET?: string | undefined;
+    JWT_SECRET?: string | undefined;
+    JWT_ACCESS_TOKEN_EXPIRY?: string | undefined;
+    JWT_REFRESH_TOKEN_EXPIRY?: string | undefined;
+    JWT_REFRESH_ON_USE?: string | undefined;
     TWILIO_MESSAGING_SERVICE_SID?: string | undefined;
     EXOTEL_SUBDOMAIN?: string | undefined;
     EXOTEL_DLT_TEMPLATE_ID?: string | undefined;
@@ -219,6 +231,9 @@ export declare const env: {
     FIREBASE_CLIENT_EMAIL: string;
     FIREBASE_PRIVATE_KEY: string;
     APP_JWT_SECRET: string;
+    JWT_ACCESS_TOKEN_EXPIRY: string;
+    JWT_REFRESH_TOKEN_EXPIRY: string;
+    JWT_REFRESH_ON_USE: string;
     TWILIO_ACCOUNT_SID: string;
     TWILIO_AUTH_TOKEN: string;
     TWILIO_PHONE_NUMBER: string;
@@ -246,6 +261,7 @@ export declare const env: {
     AMAZON_MARKETPLACE_ID: string;
     AMAZON_REGION: string;
     AMAZON_SELLER_CENTRAL_URL: string;
+    JWT_SECRET?: string | undefined;
     TWILIO_MESSAGING_SERVICE_SID?: string | undefined;
     EXOTEL_DLT_TEMPLATE_ID?: string | undefined;
     EXOTEL_ENTITY_ID?: string | undefined;

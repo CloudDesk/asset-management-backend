@@ -7098,3 +7098,39 @@ Filtered data: {
   "sessiontoken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiaGFyaXNoQG1haWwuY29tIiwicm9sZUlkIjozLCJpYXQiOjE3NjM5Njc1ODksImV4cCI6MTc2NDU3MjM4OSwiYXVkIjoiYXNzZXQtbWFuYWdlbWVudC1mcm9udGVuZCIsImlzcyI6ImFzc2V0LW1hbmFnZW1lbnQtYmFja2VuZCJ9.8gpzS9jWqv-OGfPb9SJVLIKoeP0zcqg5w6Jqp0_A0Hk",
   "modifieddate": 1763967589823
 }
+Filtered data: {
+  "sessiontoken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiaGFyaXNoQG1haWwuY29tIiwicm9sZUlkIjozLCJpYXQiOjE3NjM5NzU4MDQsImV4cCI6MTc2NDU4MDYwNCwiYXVkIjoiYXNzZXQtbWFuYWdlbWVudC1mcm9udGVuZCIsImlzcyI6ImFzc2V0LW1hbmFnZW1lbnQtYmFja2VuZCJ9.j7v9d-4fhAtXuxwWoSyQ_NO6MVUAoq5RV6dPAyP4iMs",
+  "modifieddate": 1763975804113
+}
+Filtered data: {
+  "sessiontoken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiaGFyaXNoQG1haWwuY29tIiwicm9sZUlkIjozLCJpYXQiOjE3NjM5OTA1NDEsImV4cCI6MTc2NDU5NTM0MSwiYXVkIjoiYXNzZXQtbWFuYWdlbWVudC1mcm9udGVuZCIsImlzcyI6ImFzc2V0LW1hbmFnZW1lbnQtYmFja2VuZCJ9.ffuvLbkNeq9VXwyQn5m5ohWMvxqgTrqmsGPQTyQETt8",
+  "modifieddate": 1763990541608
+}
+Filtered data: {
+  "sessiontoken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiaGFyaXNoQG1haWwuY29tIiwicm9sZUlkIjozLCJpYXQiOjE3NjQwNDg5MTcsImV4cCI6MTc2NDY1MzcxNywiYXVkIjoiYXNzZXQtbWFuYWdlbWVudC1mcm9udGVuZCIsImlzcyI6ImFzc2V0LW1hbmFnZW1lbnQtYmFja2VuZCJ9.R75bsOi9sSmc9h2UTEkat--XsM4w5Utv2vklqfogNig",
+  "modifieddate": 1764048917608
+}
+Filtered data: {
+  "invoiceamount": 4000,
+  "ponumber": "KS-001-NIVAANA-PO-0000000026",
+  "invoicedate": 1764028800,
+  "invoicenumber": "IN_0001_01243",
+  "paymentdata": {
+    "items": [
+      {
+        "id": 1,
+        "comments": null,
+        "paymentdate": "2025-11-25",
+        "paymenttype": "Part Payment",
+        "paymentamount": 2000,
+        "paymentmethod": "cash",
+        "transactionid": null,
+        "receiptcomments": ""
+      }
+    ]
+  },
+  "balanceamount": 2000,
+  "iscreditpayment": true,
+  "paymentduedate": 1766620800,
+  "modifieddate": 1764049100104
+}

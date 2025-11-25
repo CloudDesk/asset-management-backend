@@ -1,7 +1,7 @@
 import { createPaginationResult, getPrismaSkipTake } from '../utils/pagination.js';
 import { dynamicFindManyWithFilters, dynamicFindUnique, dynamicCreate, dynamicUpdate, dynamicDelete } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
-import { hashPassword, verifyPassword, generateSessionToken, sanitizeUserData } from '../utils/auth.js';
+import { hashPassword, verifyPassword, sanitizeUserData } from '../utils/auth.js';
 import { prisma } from '../models/prisma.js';
 export class UsersService {
     async findMany(filters, page, limit) {
@@ -215,15 +215,22 @@ export class UsersService {
                 logger.warn({ email, userId: user.id }, 'Authentication failed: Invalid password');
                 return null;
             }
-            // Generate session token (but don't store it in DB since users table doesn't have sessiontoken field)
-            const sessionToken = generateSessionToken();
+            // Generate JWT tokens (access + refresh) - same as inventory users
+            const { generateTokenPair } = await import('../utils/jwt.js');
+            const tokenPair = generateTokenPair({
+                userId: user.id,
+                email: user.useremail || '',
+                roleId: undefined, // E-commerce users don't have roles
+            });
             logger.info({
                 userId: user.id,
                 email: user.useremail
-            }, 'User authenticated successfully');
+            }, 'E-commerce user authenticated successfully');
             return {
                 user: sanitizeUserData(user),
-                token: sessionToken
+                token: tokenPair.accessToken, // JWT access token
+                refreshToken: tokenPair.refreshToken, // JWT refresh token
+                expiresIn: tokenPair.expiresIn, // Token expiry in seconds
             };
         }
         catch (error) {
@@ -247,15 +254,22 @@ export class UsersService {
                 logger.warn({ mobileNumber, userId: user.id }, 'Authentication failed: Invalid password');
                 return null;
             }
-            // Generate session token
-            const sessionToken = generateSessionToken();
+            // Generate JWT tokens (access + refresh)
+            const { generateTokenPair } = await import('../utils/jwt.js');
+            const tokenPair = generateTokenPair({
+                userId: user.id,
+                email: user.useremail || '',
+                roleId: undefined, // E-commerce users don't have roles
+            });
             logger.info({
                 userId: user.id,
                 mobileNumber: user.usermobilenumber
-            }, 'User authenticated successfully via mobile number');
+            }, 'E-commerce user authenticated successfully via mobile number');
             return {
                 user: sanitizeUserData(user),
-                token: sessionToken
+                token: tokenPair.accessToken,
+                refreshToken: tokenPair.refreshToken,
+                expiresIn: tokenPair.expiresIn,
             };
         }
         catch (error) {
@@ -339,15 +353,22 @@ export class UsersService {
             }
             // Clear OTP after successful verification
             this.clearOTP(mobileNumber);
-            // Generate session token
-            const sessionToken = generateSessionToken();
+            // Generate JWT tokens (access + refresh)
+            const { generateTokenPair } = await import('../utils/jwt.js');
+            const tokenPair = generateTokenPair({
+                userId: user.id,
+                email: user.useremail || '',
+                roleId: undefined, // E-commerce users don't have roles
+            });
             logger.info({
                 userId: user.id,
                 mobileNumber: user.usermobilenumber
-            }, 'User authenticated successfully via mobile OTP');
+            }, 'E-commerce user authenticated successfully via mobile OTP');
             return {
                 user: sanitizeUserData(user),
-                token: sessionToken
+                token: tokenPair.accessToken,
+                refreshToken: tokenPair.refreshToken,
+                expiresIn: tokenPair.expiresIn,
             };
         }
         catch (error) {

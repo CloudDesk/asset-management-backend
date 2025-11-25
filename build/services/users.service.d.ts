@@ -21,6 +21,8 @@ export declare class UsersService {
     authenticate(email: string, password: string): Promise<{
         user: any;
         token: string;
+        refreshToken: string;
+        expiresIn: number;
     } | null>;
     /**
      * Authenticate user with mobile number and password

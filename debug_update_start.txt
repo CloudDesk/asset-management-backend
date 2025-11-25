@@ -1,0 +1,23 @@
+Update method called for ID 16 with data: {
+  "invoiceamount": 4000,
+  "ponumber": "KS-001-NIVAANA-PO-0000000026",
+  "invoicedate": 1764028800,
+  "invoicenumber": "IN_0001_01243",
+  "paymentdata": {
+    "items": [
+      {
+        "id": 1,
+        "comments": null,
+        "paymentdate": "2025-11-25",
+        "paymenttype": "Part Payment",
+        "paymentamount": 2000,
+        "paymentmethod": "cash",
+        "transactionid": null,
+        "receiptcomments": ""
+      }
+    ]
+  },
+  "balanceamount": 2000,
+  "iscreditpayment": true,
+  "paymentduedate": 1766620800
+}

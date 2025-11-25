@@ -10,6 +10,10 @@ const envSchema = z.object({
     FIREBASE_PRIVATE_KEY: z.string().min(1, 'FIREBASE_PRIVATE_KEY is required'),
     // JWT Secret for app sessions
     APP_JWT_SECRET: z.string().default('your-secret-key-change-this-in-production'),
+    JWT_SECRET: z.string().optional(), // Alias for APP_JWT_SECRET
+    JWT_ACCESS_TOKEN_EXPIRY: z.string().optional().default('24h'), // Access token expiry (e.g., '24h', '1h', '30m')
+    JWT_REFRESH_TOKEN_EXPIRY: z.string().optional().default('7d'), // Refresh token expiry (e.g., '7d', '30d')
+    JWT_REFRESH_ON_USE: z.string().optional().default('true'), // Extend refresh token on use (sliding expiry)
     // Twilio Configuration (required for OTP SMS - kept for backward compatibility)
     TWILIO_ACCOUNT_SID: z.string().min(1, 'TWILIO_ACCOUNT_SID is required'),
     TWILIO_AUTH_TOKEN: z.string().min(1, 'TWILIO_AUTH_TOKEN is required'),

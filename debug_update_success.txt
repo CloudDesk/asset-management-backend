@@ -1,0 +1,36 @@
+Update successful for ID 16: {
+  "id": 16,
+  "invoiceamount": "4000",
+  "ponumber": "KS-001-NIVAANA-PO-0000000026",
+  "invoicedate": 1764028800,
+  "invoicenumber": "IN_0001_01243",
+  "invoiceurl": "https://storage.googleapis.com/niv-poinvoices-dev/KS-001-NIVAANA-PO-0000000026/81orgPPLBTL._SY879_.jpg",
+  "paymentdata": {
+    "items": [
+      {
+        "id": 1,
+        "comments": null,
+        "paymentdate": "2025-11-25",
+        "paymenttype": "Part Payment",
+        "paymentamount": 2000,
+        "paymentmethod": "cash",
+        "transactionid": null,
+        "receiptcomments": ""
+      }
+    ]
+  },
+  "createddate": 1764068430,
+  "modifieddate": 1764068900,
+  "balanceamount": "2000",
+  "iscreditpayment": true,
+  "paymentduedate": 1766620800,
+  "invoicestatus": "partial",
+  "pototal": "15680",
+  "purchaseorderstatus": "partially_fulfilled",
+  "transportationcharges": null,
+  "exchangeamount": null,
+  "customdutytaxamount": null,
+  "suppliertype": "local",
+  "customdutychallanurl": null,
+  "billofentryurl": null
+}
