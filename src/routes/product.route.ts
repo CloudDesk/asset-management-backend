@@ -324,6 +324,27 @@ export async function productRoutes(fastify: FastifyInstance) {
                       nullable: true,
                       description: "Item thickness",
                     },
+                    // Product Dimensions & Weight (single unit)
+                    length: {
+                      type: "number",
+                      nullable: true,
+                      description: "Product length in cm (single unit)",
+                    },
+                    width: {
+                      type: "number",
+                      nullable: true,
+                      description: "Product width in cm (single unit)",
+                    },
+                    height: {
+                      type: "number",
+                      nullable: true,
+                      description: "Product height in cm (single unit)",
+                    },
+                    weight: {
+                      type: "number",
+                      nullable: true,
+                      description: "Product weight in grams (single unit)",
+                    },
                     purpose: {
                       type: "string",
                       nullable: true,
@@ -570,6 +591,27 @@ export async function productRoutes(fastify: FastifyInstance) {
                     type: "string",
                     nullable: true,
                     description: "Item thickness",
+                  },
+                  // Product Dimensions & Weight (single unit)
+                  length: {
+                    type: "number",
+                    nullable: true,
+                    description: "Product length in cm (single unit)",
+                  },
+                  width: {
+                    type: "number",
+                    nullable: true,
+                    description: "Product width in cm (single unit)",
+                  },
+                  height: {
+                    type: "number",
+                    nullable: true,
+                    description: "Product height in cm (single unit)",
+                  },
+                  weight: {
+                    type: "number",
+                    nullable: true,
+                    description: "Product weight in grams (single unit)",
                   },
                   purpose: {
                     type: "string",
@@ -1171,6 +1213,27 @@ export async function productRoutes(fastify: FastifyInstance) {
                     nullable: true,
                     description: "Item thickness",
                   },
+                  // Product Dimensions & Weight (single unit)
+                  length: {
+                    type: "number",
+                    nullable: true,
+                    description: "Product length in cm (single unit)",
+                  },
+                  width: {
+                    type: "number",
+                    nullable: true,
+                    description: "Product width in cm (single unit)",
+                  },
+                  height: {
+                    type: "number",
+                    nullable: true,
+                    description: "Product height in cm (single unit)",
+                  },
+                  weight: {
+                    type: "number",
+                    nullable: true,
+                    description: "Product weight in grams (single unit)",
+                  },
                   purpose: {
                     type: "string",
                     nullable: true,
@@ -1543,6 +1606,27 @@ export async function productRoutes(fastify: FastifyInstance) {
                     type: "string",
                     nullable: true,
                     description: "Item thickness",
+                  },
+                  // Product Dimensions & Weight (single unit)
+                  length: {
+                    type: "number",
+                    nullable: true,
+                    description: "Product length in cm (single unit)",
+                  },
+                  width: {
+                    type: "number",
+                    nullable: true,
+                    description: "Product width in cm (single unit)",
+                  },
+                  height: {
+                    type: "number",
+                    nullable: true,
+                    description: "Product height in cm (single unit)",
+                  },
+                  weight: {
+                    type: "number",
+                    nullable: true,
+                    description: "Product weight in grams (single unit)",
                   },
                   purpose: {
                     type: "string",
@@ -2162,6 +2246,27 @@ export async function productRoutes(fastify: FastifyInstance) {
                         type: "string",
                         nullable: true,
                         description: "Item thickness",
+                      },
+                      // Product Dimensions & Weight (single unit)
+                      length: {
+                        type: "number",
+                        nullable: true,
+                        description: "Product length in cm (single unit)",
+                      },
+                      width: {
+                        type: "number",
+                        nullable: true,
+                        description: "Product width in cm (single unit)",
+                      },
+                      height: {
+                        type: "number",
+                        nullable: true,
+                        description: "Product height in cm (single unit)",
+                      },
+                      weight: {
+                        type: "number",
+                        nullable: true,
+                        description: "Product weight in grams (single unit)",
                       },
                       purpose: {
                         type: "string",

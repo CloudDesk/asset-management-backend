@@ -163880,3 +163880,135 @@ Filtered data result: {
   "paymentduedate": 1766620800,
   "modifieddate": 1764049100104
 }
+Filtered data result: {
+  "sessiontoken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiaGFyaXNoQG1haWwuY29tIiwicm9sZUlkIjozLCJpYXQiOjE3NjQ3MzUyOTcsImV4cCI6MTc2NTM0MDA5NywiYXVkIjoiYXNzZXQtbWFuYWdlbWVudC1mcm9udGVuZCIsImlzcyI6ImFzc2V0LW1hbmFnZW1lbnQtYmFja2VuZCJ9.hRiTVZ1Cyzy-6M5saf8H0Ex7IwcTQWDAmPKNlXKU8lc",
+  "modifieddate": 1764735297335
+}
+Filtered data result: {
+  "sessiontoken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiaGFyaXNoQG1haWwuY29tIiwicm9sZUlkIjozLCJpYXQiOjE3NjQ3MzU1NDksImV4cCI6MTc2NTM0MDM0OSwiYXVkIjoiYXNzZXQtbWFuYWdlbWVudC1mcm9udGVuZCIsImlzcyI6ImFzc2V0LW1hbmFnZW1lbnQtYmFja2VuZCJ9.-OwWGmig3aRsbVcIohlj4RJvqrZLM8hLoEulUWCcmn0",
+  "modifieddate": 1764735549298
+}
+Filtered data result: {
+  "sessiontoken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiaGFyaXNoQG1haWwuY29tIiwicm9sZUlkIjozLCJpYXQiOjE3NjQ3MzU4NzQsImV4cCI6MTc2NTM0MDY3NCwiYXVkIjoiYXNzZXQtbWFuYWdlbWVudC1mcm9udGVuZCIsImlzcyI6ImFzc2V0LW1hbmFnZW1lbnQtYmFja2VuZCJ9.kHSvx46kTh3ROzFN59y3flxWdLRvknX2GTF29zygm6s",
+  "modifieddate": 1764735874745
+}
+Filtered data result: {
+  "sessiontoken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiaGFyaXNoQG1haWwuY29tIiwicm9sZUlkIjozLCJpYXQiOjE3NjQ3MzYwNzEsImV4cCI6MTc2NTM0MDg3MSwiYXVkIjoiYXNzZXQtbWFuYWdlbWVudC1mcm9udGVuZCIsImlzcyI6ImFzc2V0LW1hbmFnZW1lbnQtYmFja2VuZCJ9.5bRv6XdWuXsQna5iGhQf-Cwak6M4sWYUtMfnPgWHRqA",
+  "modifieddate": 1764736071598
+}
+Filtered data result: {
+  "sessiontoken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiaGFyaXNoQG1haWwuY29tIiwicm9sZUlkIjozLCJpYXQiOjE3NjQ3MzYxOTMsImV4cCI6MTc2NTM0MDk5MywiYXVkIjoiYXNzZXQtbWFuYWdlbWVudC1mcm9udGVuZCIsImlzcyI6ImFzc2V0LW1hbmFnZW1lbnQtYmFja2VuZCJ9._L0nCnLOX4DEoFktmWC2g8HVmRp5dSF-5BJQw2gem_A",
+  "modifieddate": 1764736193822
+}
+Filtered data result: {
+  "sessiontoken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiaGFyaXNoQG1haWwuY29tIiwicm9sZUlkIjozLCJpYXQiOjE3NjQ3MzYyNDksImV4cCI6MTc2NTM0MTA0OSwiYXVkIjoiYXNzZXQtbWFuYWdlbWVudC1mcm9udGVuZCIsImlzcyI6ImFzc2V0LW1hbmFnZW1lbnQtYmFja2VuZCJ9.18z-MIkMDy8wPe5viWAYMdCCUkipe334iKmq__saz2g",
+  "modifieddate": 1764736249496
+}
+Filtered data result: {
+  "name": "Nivaana - Incense Sticks - Spiritual Harmony",
+  "shortdescription": "spiritual harmony scents are believed to help balance energies, promote inner peace, and elevate consciousness. ",
+  "fulldescription": "Spiritual harmony fragrances are carefully crafted aromatic blends designed to align the mind, body, and spirit. Rooted in ancient traditions such as Ayurveda, aromatherapy, and various spiritual practices, these fragrances often feature calming and sacred ingredients like sandalwood, frankincense, myrrh, rose, and patchouli. Used in meditation, prayer, or simply to create a peaceful environment, spiritual harmony scents are believed to help balance energies, promote inner peace, and elevate consciousness. Whether in incense, oils, or diffused blends, these fragrances serve as gentle companions on the journey toward mindfulness and inner clarity.",
+  "price": 150,
+  "discount": 0,
+  "isdealoftheday": true,
+  "brand": "Nivaana",
+  "pack": "single",
+  "material": "",
+  "manufacturer": "",
+  "netform": "",
+  "netquantity": "",
+  "usage": "",
+  "length": 26,
+  "width": 3,
+  "height": 2,
+  "weight": 50,
+  "purpose": "Home Fragrance",
+  "fragnancetype": "spiritual_harmony",
+  "burntime": "",
+  "itemlength": "",
+  "itemthickness": "",
+  "numberofitems": 0,
+  "category": "home_fragrance",
+  "subcategory": "incense_sticks"
+}
+Filtered data result: {
+  "name": "TEST - Incense Sticks - Wild Canopy",
+  "shortdescription": "",
+  "fulldescription": "",
+  "price": 100,
+  "discount": 0,
+  "isdealoftheday": false,
+  "brand": "TEST",
+  "pack": "single",
+  "material": "",
+  "manufacturer": "",
+  "netform": "",
+  "netquantity": "",
+  "usage": "",
+  "length": 25,
+  "width": 0,
+  "height": 0,
+  "weight": 0,
+  "purpose": "Home Fragrance",
+  "fragnancetype": "wild_canopy",
+  "burntime": "",
+  "itemlength": "",
+  "itemthickness": "",
+  "numberofitems": 0,
+  "category": "home_fragrance",
+  "subcategory": "incense_sticks"
+}
+Filtered data result: {
+  "name": "TEST - Incense Sticks - Wild Canopy",
+  "shortdescription": "",
+  "fulldescription": "",
+  "price": 100,
+  "discount": 0,
+  "isdealoftheday": false,
+  "brand": "TEST",
+  "pack": "single",
+  "material": "",
+  "manufacturer": "",
+  "netform": "",
+  "netquantity": "",
+  "usage": "",
+  "length": 25,
+  "width": 3,
+  "height": 2,
+  "weight": 50,
+  "purpose": "Home Fragrance",
+  "fragnancetype": "wild_canopy",
+  "burntime": "",
+  "itemlength": "",
+  "itemthickness": "",
+  "numberofitems": 0,
+  "category": "home_fragrance",
+  "subcategory": "incense_sticks"
+}
+Filtered data result: {
+  "name": "Nivaana - Incense Sticks - Vanilla, Black Oudh",
+  "shortdescription": "A rich, sweet, and creamy vanilla scent that promotes calmness, reduces stress, and enhances mood.",
+  "fulldescription": "Single Pack - Premium Incense Sticks - Vanilla\n\nThe fragrance of vanilla incense is a universally beloved and instantly recognizable aroma, celebrated for its warm, sweet, and comforting qualities. Derived from the cured pods of the vanilla orchid, it delivers a rich and inviting scent that is both familiar and deeply satisfying.At its core, vanilla incense smells distinctly creamy and sugary, reminiscent of freshly baked goods or a gourmet dessert. It often carries buttery undertones and a subtle caramelized richness that adds depth without cloying. While primarily sweet, high-quality vanilla incense can also reveal delicate floral or woody nuances, adding complexity and preventing it from being one-dimensional. Some might even detect a faint, almost powdery softness.",
+  "price": 120,
+  "discount": 0,
+  "isdealoftheday": false,
+  "brand": "Nivaana",
+  "pack": "pack_of_2",
+  "material": "",
+  "manufacturer": "",
+  "netform": "",
+  "netquantity": "",
+  "usage": "",
+  "length": 25,
+  "width": null,
+  "height": null,
+  "weight": null,
+  "purpose": "Home Fragrance",
+  "fragnancetype": "vanilla,black_oudh",
+  "burntime": "",
+  "itemlength": "",
+  "itemthickness": "",
+  "numberofitems": 0,
+  "category": "home_fragrance",
+  "subcategory": "incense_sticks"
+}

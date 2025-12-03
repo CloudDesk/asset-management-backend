@@ -106,6 +106,7 @@ export async function ordersRoutes(fastify: FastifyInstance) {
     },
   }, ordersController.getOrders.bind(ordersController));
 
+  /*
   // GET /v1/orders/:id - Get order by ID
   fastify.get('/:id', {
     schema: {
@@ -575,4 +576,5 @@ export async function ordersRoutes(fastify: FastifyInstance) {
       },
     },
   }, ordersController.upsertOrder.bind(ordersController));
+  */
 } 

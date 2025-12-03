@@ -114,7 +114,7 @@ export async function orderlineRoutes(fastify: FastifyInstance) {
       },
     },
   }, orderlineController.getOrderlines.bind(orderlineController));
-
+/*
   // GET /v1/orderlines/:id - Get orderline by ID
   fastify.get('/:id', {
     schema: {
@@ -488,6 +488,7 @@ export async function orderlineRoutes(fastify: FastifyInstance) {
     },
   }, orderlineController.updateOrderlineStatus.bind(orderlineController));
 
+
   // PATCH /v1/orderlines/bulk-status - Bulk update orderline status
   fastify.patch('/bulk-status', {
     schema: {
@@ -663,7 +664,7 @@ export async function orderlineRoutes(fastify: FastifyInstance) {
       },
     },
   }, orderlineController.upsertOrderline.bind(orderlineController));
-
+*/
   // PATCH /v1/orderlines/:id/cancel - Cancel orderline
   fastify.patch('/:id/cancel', {
     schema: {
