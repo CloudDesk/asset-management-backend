@@ -164012,3 +164012,184 @@ Filtered data result: {
   "category": "home_fragrance",
   "subcategory": "incense_sticks"
 }
+Filtered data result: {
+  "sessiontoken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiaGFyaXNoQG1haWwuY29tIiwicm9sZUlkIjozLCJpYXQiOjE3NjQ4Mjg3MzMsImV4cCI6MTc2NTQzMzUzMywiYXVkIjoiYXNzZXQtbWFuYWdlbWVudC1mcm9udGVuZCIsImlzcyI6ImFzc2V0LW1hbmFnZW1lbnQtYmFja2VuZCJ9.pdoyv588xTB3dvIL1kJgN7cBGdAElnS8hIpO62IaTyk",
+  "modifieddate": 1764828733277
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "quantity": 5,
+  "availablequantity": 5,
+  "soldquantity": 0,
+  "ecompublishedquantity": 5,
+  "productstatus": "low_stock",
+  "modifieddate": 1764832792656
+}
+Filtered data result: {
+  "availableqty": 5,
+  "soldqty": 0,
+  "totalqty": 5,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "low_stock"
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "amazon",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "amazon",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "amazon",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "amazon",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "amazon",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "amazon",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 10,
+  "soldquantity": 0,
+  "ecompublishedquantity": 10,
+  "productstatus": "in_stock",
+  "modifieddate": 1764832815813
+}
+Filtered data result: {
+  "availableqty": 5,
+  "soldqty": 0,
+  "totalqty": 5,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "low_stock"
+}
+Filtered data result: {
+  "userid": 41,
+  "productid": 66,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1764832849945,
+  "modifieddate": 1764832849945
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "flipkart",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtered data result: {
+  "quantity": 11,
+  "availablequantity": 11,
+  "soldquantity": 0,
+  "ecompublishedquantity": 11,
+  "productstatus": "in_stock",
+  "modifieddate": 1764839782063
+}
+Filtered data result: {
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 1,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "low_stock"
+}

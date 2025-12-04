@@ -72,50 +72,6 @@ export class OrderlineService {
       throw error;
     }
   }
-
-  async findByOrderlineNumber(orderlinenumber: string) {
-    try {
-      logger.debug({ orderlinenumber }, 'Starting dynamic orderline findByOrderlineNumber operation');
-
-      const orderline = await dynamicFindUnique('orderline', { orderlinenumber });
-
-      if (!orderline) {
-        throw new Error('Orderline not found');
-      }
-
-      logger.debug({ 
-        orderlinenumber, 
-        availableFields: Object.keys(orderline) 
-      }, 'Dynamic orderline findByOrderlineNumber completed');
-
-      return orderline;
-    } catch (error) {
-      logger.error({ error, orderlinenumber }, 'Error in orderline findByOrderlineNumber operation');
-      throw error;
-    }
-  }
-
-  async findByOrderId(orderid: number) {
-    try {
-      logger.debug({ orderid }, 'Starting dynamic orderline findByOrderId operation');
-
-      const { data: orderlines, total } = await dynamicFindManyWithFilters('orderline', { orderid }, {
-        useAllColumns: true
-      });
-
-      logger.debug({ 
-        orderid, 
-        orderlineCount: orderlines.length,
-        availableFields: orderlines.length > 0 ? Object.keys(orderlines[0]) : []
-      }, 'Dynamic orderline findByOrderId completed');
-
-      return orderlines;
-    } catch (error) {
-      logger.error({ error, orderid }, 'Error in orderline findByOrderId operation');
-      throw error;
-    }
-  }
-
   async create(data: CreateOrderlineInput & Record<string, any>) {
     try {
       logger.debug({ originalData: data }, 'Starting dynamic orderline create operation');
@@ -188,46 +144,6 @@ export class OrderlineService {
       throw error;
     }
   }
-
-  async delete(id: string) {
-    try {
-      // Check if orderline exists
-      await this.findById(id);
-
-      logger.debug({ orderlineId: id }, 'Starting dynamic orderline delete operation');
-
-      const success = await dynamicDelete('orderline', { id: parseInt(id) });
-
-      if (!success) {
-        throw new Error('Failed to delete orderline');
-      }
-
-      logger.info({ orderlineId: id }, 'Dynamic orderline delete completed successfully');
-    } catch (error) {
-      logger.error({ error, orderlineId: id }, 'Error in orderline delete operation');
-      throw error;
-    }
-  }
-
-  async upsert(data: UpsertOrderlineInput & Record<string, any>) {
-    try {
-      const { id, ...updateData } = data;
-
-      if (id) {
-        // Update existing orderline
-        logger.debug({ orderlineId: id, data: updateData }, 'Upserting existing orderline');
-        return this.update(id.toString(), updateData);
-      } else {
-        // Create new orderline
-        logger.debug({ data: updateData }, 'Upserting new orderline');
-        return this.create(updateData);
-      }
-    } catch (error) {
-      logger.error({ error, data }, 'Error in orderline upsert operation');
-      throw error;
-    }
-  }
-
   async updateOrderlineStatus(id: string, status: string, additionalData?: Record<string, any>) {
     try {
       logger.debug({ orderlineId: id, status, additionalData }, 'Starting orderline status update operation');
@@ -286,12 +202,12 @@ export class OrderlineService {
     }
   }
 
-  /**
+   /**
    * Adjust product quantities when an orderline is cancelled or returned
    * - Decrease orderedquantity by the cancelled quantity
    * - Increase availablequantity by the cancelled quantity
    */
-  private async adjustProductQuantitiesOnCancellation(orderline: any) {
+   private async adjustProductQuantitiesOnCancellation(orderline: any) {
     try {
       const productId = orderline.productid;
       const cancelledQuantity = orderline.quantity || 1;
@@ -435,6 +351,92 @@ export class OrderlineService {
     }
   }
 
+  async findByOrderId(orderid: number) {
+    try {
+      logger.debug({ orderid }, 'Starting dynamic orderline findByOrderId operation');
+
+      const { data: orderlines, total } = await dynamicFindManyWithFilters('orderline', { orderid }, {
+        useAllColumns: true
+      });
+
+      logger.debug({ 
+        orderid, 
+        orderlineCount: orderlines.length,
+        availableFields: orderlines.length > 0 ? Object.keys(orderlines[0]) : []
+      }, 'Dynamic orderline findByOrderId completed');
+
+      return orderlines;
+    } catch (error) {
+      logger.error({ error, orderid }, 'Error in orderline findByOrderId operation');
+      throw error;
+    }
+  }
+/*
+  async findByOrderlineNumber(orderlinenumber: string) {
+    try {
+      logger.debug({ orderlinenumber }, 'Starting dynamic orderline findByOrderlineNumber operation');
+
+      const orderline = await dynamicFindUnique('orderline', { orderlinenumber });
+
+      if (!orderline) {
+        throw new Error('Orderline not found');
+      }
+
+      logger.debug({ 
+        orderlinenumber, 
+        availableFields: Object.keys(orderline) 
+      }, 'Dynamic orderline findByOrderlineNumber completed');
+
+      return orderline;
+    } catch (error) {
+      logger.error({ error, orderlinenumber }, 'Error in orderline findByOrderlineNumber operation');
+      throw error;
+    }
+  }
+
+
+*/
+
+/*
+  async delete(id: string) {
+    try {
+      // Check if orderline exists
+      await this.findById(id);
+
+      logger.debug({ orderlineId: id }, 'Starting dynamic orderline delete operation');
+
+      const success = await dynamicDelete('orderline', { id: parseInt(id) });
+
+      if (!success) {
+        throw new Error('Failed to delete orderline');
+      }
+
+      logger.info({ orderlineId: id }, 'Dynamic orderline delete completed successfully');
+    } catch (error) {
+      logger.error({ error, orderlineId: id }, 'Error in orderline delete operation');
+      throw error;
+    }
+  }
+
+  async upsert(data: UpsertOrderlineInput & Record<string, any>) {
+    try {
+      const { id, ...updateData } = data;
+
+      if (id) {
+        // Update existing orderline
+        logger.debug({ orderlineId: id, data: updateData }, 'Upserting existing orderline');
+        return this.update(id.toString(), updateData);
+      } else {
+        // Create new orderline
+        logger.debug({ data: updateData }, 'Upserting new orderline');
+        return this.create(updateData);
+      }
+    } catch (error) {
+      logger.error({ error, data }, 'Error in orderline upsert operation');
+      throw error;
+    }
+  }
+
   async bulkUpdateStatus(orderlineIds: string[], status: string, additionalData?: Record<string, any>) {
     try {
       logger.debug({ orderlineIds, status, additionalData }, 'Starting bulk orderline status update operation');
@@ -461,5 +463,5 @@ export class OrderlineService {
       logger.error({ error, orderlineIds, status }, 'Error in bulk orderline status update operation');
       throw error;
     }
-  }
+  }*/
 } 

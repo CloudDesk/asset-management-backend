@@ -41,7 +41,7 @@ export class OrdersController {
       }
     });
   });
-
+/*
   getOrder = asyncHandler(async (request: FastifyRequest<{ Params: OrdersParams }>, reply: FastifyReply) => {
     const { id } = ordersParamsSchema.parse(request.params);
     
@@ -136,4 +136,5 @@ export class OrdersController {
     const response = createSuccessResponse(message, formatEntitiesForAPI([order], 'orders')[0]);
     return reply.code(200).send(response);
   });
+  */
 } 

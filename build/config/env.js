@@ -87,6 +87,11 @@ const envSchema = z.object({
     AMAZON_REDIRECT_URI: z.string().optional(),
     AWS_ACCESS_KEY_ID: z.string().optional(),
     AWS_SECRET_ACCESS_KEY: z.string().optional(),
+    // Ekart Logistics Configuration
+    EKART_CLIENT_ID: z.string().optional(),
+    EKART_USERNAME: z.string().optional(),
+    EKART_PASSWORD: z.string().optional(),
+    EKART_BASE_URL: z.string().optional().default('https://app.elite.ekartlogistics.in/api'),
 });
 export const env = envSchema.parse(process.env);
 //# sourceMappingURL=env.js.map

@@ -20,67 +20,67 @@ export interface CreateShipmentPayload {
   quantity: number;
   weight: number;
   drop_location: {
-    location_type?: 'Home' | 'Office';
+    location_type?: 'Home' | 'Office' | undefined;
     name: string;
     address: string;
     city: string;
     state: string;
-    country?: string;
+    country?: string | undefined;
     pin: number;
     phone: number;
   };
   // Optional fields
-  seller_gst_amount?: number;
-  consignee_gst_amount?: number;
-  integrated_gst_amount?: number;
-  consignee_gst_tin?: string;
-  ewbn?: string;
-  document_number?: string;
-  document_date?: string;
-  hsn_code?: string;
-  category_of_goods?: string;
-  cod_amount?: number;
-  templateName?: string;
-  length?: number;
-  width?: number;
-  height?: number;
-  return_reason?: string;
+  seller_gst_amount?: number | undefined;
+  consignee_gst_amount?: number | undefined;
+  integrated_gst_amount?: number | undefined;
+  consignee_gst_tin?: string | undefined;
+  ewbn?: string | undefined;
+  document_number?: string | undefined;
+  document_date?: string | undefined;
+  hsn_code?: string | undefined;
+  category_of_goods?: string | undefined;
+  cod_amount?: number | undefined;
+  templateName?: string | undefined;
+  length?: number | undefined;
+  width?: number | undefined;
+  height?: number | undefined;
+  return_reason?: string | undefined;
   pickup_location?: {
     name: string;
-  };
+  } | undefined;
   return_location?: {
     name: string;
-  };
+  } | undefined;
   qc_details?: {
     qc_shipment: boolean;
     product_name: string;
-    product_desc?: string;
-    product_sku?: string;
-    product_color?: string;
-    product_size?: string;
-    brand_name?: string;
-    product_category?: string;
-    ean_barcode?: string;
-    serial_number?: string;
-    imei_number?: string;
-    product_images?: string[];
-  };
+    product_desc?: string | undefined;
+    product_sku?: string | undefined;
+    product_color?: string | undefined;
+    product_size?: string | undefined;
+    brand_name?: string | undefined;
+    product_category?: string | undefined;
+    ean_barcode?: string | undefined;
+    serial_number?: string | undefined;
+    imei_number?: string | undefined;
+    product_images?: string[] | undefined;
+  } | undefined;
   items?: Array<{
     product_name: string;
     sku: string;
     taxable_value: number;
-    description: string;
+    description?: string | undefined;
     quantity: number;
     length: number;
     height: number;
     breadth: number;
     weight: number;
-    hsn_code?: string;
-    cgst_tax_value?: number;
-    sgst_tax_value?: number;
-    igst_tax_value?: number;
-  }>;
-  what3words_address?: string;
+    hsn_code?: string | undefined;
+    cgst_tax_value?: number | undefined;
+    sgst_tax_value?: number | undefined;
+    igst_tax_value?: number | undefined;
+  }> | undefined;
+  what3words_address?: string | undefined;
 }
 
 export interface CreateShipmentResponse {
