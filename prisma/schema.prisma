@@ -15,6 +15,7 @@ model Product {
   puc                  String      @unique @db.VarChar(255)
   category             String?     @db.VarChar(255)
   subcategory          String?     @db.VarChar(255)
+  subsubcategory       String?     @db.VarChar(255)
   fragnancetype        String?     @db.VarChar(255)
   large                String[]
   medium               String[]
@@ -147,6 +148,27 @@ model Picklist {
 
   @@map("picklist")
 }
+
+model PicklistBackup {
+  backup_id           Int      @id @default(autoincrement())
+  id                  Int?
+  label               String?  @db.VarChar(255)
+  value               String?  @db.VarChar(255)
+  object              String?  @db.VarChar(255)
+  controlledvalue     String?  @db.VarChar(255)
+  fieldname           String?  @db.VarChar(255)
+  controlledlabel     String?  @db.VarChar(255)
+  controlledfieldname String?  @db.VarChar(255)
+  parent              String?  @db.VarChar(255)
+  description         String?  @db.VarChar(255)
+  sortorder           Int?
+  isactive            Boolean?
+  createddate         BigInt?
+  modifieddate        BigInt?
+
+  @@map("picklist_backup")
+}
+
 
 model Supplier {
   id                  Int               @id @default(autoincrement())

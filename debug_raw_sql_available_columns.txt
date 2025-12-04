@@ -167,3 +167,4 @@ Available columns: ["id","useremail","userpassword","createddate","modifieddate"
 Available columns: ["id","useremail","userpassword","createddate","modifieddate","role","usersphonenumber","firstname","lastname","location","fcmid","sessiontoken","resettoken","resettokenexpires","roleid"]
 Available columns: ["id","useremail","userpassword","createddate","modifieddate","role","usersphonenumber","firstname","lastname","location","fcmid","sessiontoken","resettoken","resettokenexpires","roleid"]
 Available columns: ["id","useremail","userpassword","createddate","modifieddate","role","usersphonenumber","firstname","lastname","location","fcmid","sessiontoken","resettoken","resettokenexpires","roleid"]
+Available columns: ["id","useremail","userpassword","createddate","modifieddate","role","usersphonenumber","firstname","lastname","location","fcmid","sessiontoken","resettoken","resettokenexpires","roleid"]
