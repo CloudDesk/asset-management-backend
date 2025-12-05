@@ -19,5 +19,11 @@ export declare class OrdersController {
      * GET /v1/orders/:id/track
      */
     trackOrder: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    /**
+     * Get order details with orderlines, products, and address
+     * GET /v1/orders/:id/details
+     * For Inventory App order detail page
+     */
+    getOrderDetails: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
 }
 //# sourceMappingURL=orders.controller.d.ts.map

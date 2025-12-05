@@ -236,5 +236,105 @@ export async function ordersRoutes(fastify) {
             }
         }
     }, ordersController.trackOrder.bind(ordersController));
+    // GET /v1/orders/:id/details - Get order details with orderlines and address (Inventory App)
+    fastify.get('/:id/details', {
+        schema: {
+            description: 'Get order details with orderlines and address for inventory app',
+            tags: ['Orders'],
+            params: {
+                type: 'object',
+                properties: {
+                    id: { type: 'string', description: 'Order ID (database ID) or order number (orderid)' }
+                },
+                required: ['id']
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        data: {
+                            type: 'object',
+                            properties: {
+                                order: {
+                                    type: 'object',
+                                    description: 'Order details',
+                                    properties: {
+                                        id: { type: 'number' },
+                                        orderid: { type: 'string', nullable: true, description: 'Order number string (e.g., ORD-1234567890)' },
+                                        createddate: { type: 'number', nullable: true },
+                                        modifieddate: { type: 'number', nullable: true },
+                                        orderamount: { type: 'number', nullable: true },
+                                        orderstatus: { type: 'string', nullable: true },
+                                        delivereddate: { type: 'number', nullable: true },
+                                        cancelleddate: { type: 'number', nullable: true },
+                                        returneddate: { type: 'number', nullable: true },
+                                        quantity: { type: 'number', nullable: true },
+                                        transactionid: { type: 'string', nullable: true },
+                                        productamount: { type: 'number', nullable: true },
+                                        discountamount: { type: 'number', nullable: true },
+                                        ispaymentsucceed: { type: 'boolean', nullable: true },
+                                        merchanttransactionid: { type: 'string', nullable: true },
+                                        paymentfaileddate: { type: 'number', nullable: true },
+                                        mode: { type: 'string', nullable: true },
+                                        promotion_discount_total: { type: 'number', nullable: true },
+                                        original_total: { type: 'number', nullable: true },
+                                        shipping_cost: { type: 'number', nullable: true },
+                                        tax_amount: { type: 'number', nullable: true },
+                                        tracking_id: { type: 'string', nullable: true }
+                                    }
+                                },
+                                orderlines: {
+                                    type: 'array',
+                                    description: 'Array of orderlines',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            id: { type: 'number' },
+                                            discountamount: { type: 'number', nullable: true },
+                                            orderamount: { type: 'number', nullable: true },
+                                            quantity: { type: 'number', nullable: true },
+                                            productid: { type: 'number', nullable: true },
+                                            productname: { type: 'string', nullable: true },
+                                            productcategory: { type: 'string', nullable: true },
+                                            orderstatus: { type: 'string', nullable: true },
+                                            original_price: { type: 'number', nullable: true },
+                                            product_discount_amount: { type: 'number', nullable: true },
+                                            promotion_discount_amount: { type: 'number', nullable: true },
+                                            shipping_cost: { type: 'number', nullable: true }
+                                        }
+                                    }
+                                },
+                                address: {
+                                    type: 'object',
+                                    nullable: true,
+                                    description: 'Delivery address (from orderline.addressid)',
+                                    properties: {
+                                        name: { type: 'string', nullable: true },
+                                        mobilenumber: { type: 'string', nullable: true },
+                                        pincode: { type: 'string', nullable: true },
+                                        doornumber: { type: 'string', nullable: true },
+                                        address: { type: 'string', nullable: true },
+                                        landmark: { type: 'string', nullable: true },
+                                        state: { type: 'string', nullable: true },
+                                        city: { type: 'string', nullable: true }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                404: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        statusCode: { type: 'number' }
+                    }
+                }
+            }
+        }
+    }, ordersController.getOrderDetails.bind(ordersController));
 }
 //# sourceMappingURL=orders.route.js.map

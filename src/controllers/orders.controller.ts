@@ -209,4 +209,39 @@ export class OrdersController {
       }));
     }
   });
+
+  /**
+   * Get order details with orderlines, products, and address
+   * GET /v1/orders/:id/details
+   * For Inventory App order detail page
+   */
+  getOrderDetails = asyncHandler(async (
+    request: FastifyRequest<{ Params: { id: string } }>,
+    reply: FastifyReply
+  ) => {
+    const { id } = request.params;
+    
+    try {
+      const orderDetails = await this.ordersService.getOrderDetails(id);
+      
+      if (!orderDetails) {
+        return reply.code(404).send({
+          success: false,
+          message: 'Order not found',
+          statusCode: 404
+        });
+      }
+      
+      return reply.code(200).send(createSuccessResponse('Order details retrieved successfully', orderDetails));
+    } catch (error: any) {
+      if (error.message === 'Order not found') {
+        return reply.code(404).send({
+          success: false,
+          message: 'Order not found',
+          statusCode: 404
+        });
+      }
+      throw error;
+    }
+  });
 } 

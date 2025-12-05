@@ -36,5 +36,19 @@ export declare class OrdersService {
      * Update order (generic update method)
      */
     update(id: string, data: UpdateOrdersInput & Record<string, any>): Promise<any>;
+    /**
+     * Get order details with orderlines and address
+     * For Inventory App order detail page
+     *
+     * Returns specific fields only:
+     * - order: Selected order fields
+     * - orderlines[]: Array of orderlines with selected fields
+     * - address: Address object with selected fields
+     */
+    getOrderDetails(idOrOrderNumber: string): Promise<{
+        order: any;
+        orderlines: any[];
+        address: any | null;
+    }>;
 }
 //# sourceMappingURL=orders.service.d.ts.map

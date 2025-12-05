@@ -736,4 +736,130 @@ export class OrdersService {
       throw error;
     }
   }
+
+  /**
+   * Get order details with orderlines and address
+   * For Inventory App order detail page
+   * 
+   * Returns specific fields only:
+   * - order: Selected order fields
+   * - orderlines[]: Array of orderlines with selected fields
+   * - address: Address object with selected fields
+   */
+  async getOrderDetails(idOrOrderNumber: string): Promise<{
+    order: any;
+    orderlines: any[];
+    address: any | null;
+  }> {
+    try {
+      logger.info({ idOrOrderNumber }, 'Getting order details with orderlines and address');
+
+      // Find order by ID or order number
+      let fullOrder;
+      if (isNaN(Number(idOrOrderNumber))) {
+        // If not a number, treat as orderid (order number string)
+        fullOrder = await this.findByOrderNumber(idOrOrderNumber);
+      } else {
+        // If number, treat as database ID
+        fullOrder = await this.findById(Number(idOrOrderNumber));
+      }
+
+      if (!fullOrder) {
+        throw new Error('Order not found');
+      }
+
+      // Extract only required order fields
+      const order = {
+        id: fullOrder.id,
+        orderid: fullOrder.orderid,
+        createddate: fullOrder.createddate,
+        modifieddate: fullOrder.modifieddate,
+        orderamount: fullOrder.orderamount ? Number(fullOrder.orderamount) : null,
+        orderstatus: fullOrder.orderstatus,
+        delivereddate: fullOrder.delivereddate,
+        cancelleddate: fullOrder.cancelleddate,
+        returneddate: fullOrder.returneddate,
+        quantity: fullOrder.quantity,
+        transactionid: fullOrder.transactionid,
+        productamount: fullOrder.productamount ? Number(fullOrder.productamount) : null,
+        discountamount: fullOrder.discountamount ? Number(fullOrder.discountamount) : null,
+        ispaymentsucceed: fullOrder.ispaymentsucceed,
+        merchanttransactionid: fullOrder.merchanttransactionid,
+        paymentfaileddate: fullOrder.paymentfaileddate,
+        mode: fullOrder.mode,
+        promotion_discount_total: fullOrder.promotion_discount_total ? Number(fullOrder.promotion_discount_total) : null,
+        original_total: fullOrder.original_total ? Number(fullOrder.original_total) : null,
+        shipping_cost: fullOrder.shipping_cost ? Number(fullOrder.shipping_cost) : null,
+        tax_amount: fullOrder.tax_amount ? Number(fullOrder.tax_amount) : null,
+        tracking_id: fullOrder.tracking_id
+      };
+
+      // Get orderlines for this order
+      const { OrderlineService } = await import('./orderline.service.js');
+      const orderlineService = new OrderlineService();
+      
+      const { data: rawOrderlines } = await orderlineService.findMany(
+        { orderid: fullOrder.id.toString() },
+        1,
+        1000
+      );
+
+      // Extract only required orderline fields
+      const orderlines = rawOrderlines.map((ol: any) => ({
+        id: ol.id,
+        discountamount: ol.discountamount ? Number(ol.discountamount) : null,
+        orderamount: ol.orderamount ? Number(ol.orderamount) : null,
+        quantity: ol.quantity,
+        productid: ol.productid,
+        productname: ol.productname,
+        productcategory: ol.productcategory,
+        orderstatus: ol.orderstatus,
+        original_price: ol.original_price ? Number(ol.original_price) : null,
+        product_discount_amount: ol.product_discount_amount ? Number(ol.product_discount_amount) : null,
+        promotion_discount_amount: ol.promotion_discount_amount ? Number(ol.promotion_discount_amount) : null,
+        shipping_cost: ol.shipping_cost ? Number(ol.shipping_cost) : null
+      }));
+
+      // Get address from first orderline (all orderlines share same address)
+      let address = null;
+      const firstOrderlineWithAddress = rawOrderlines.find((ol: any) => ol.addressid);
+      
+      if (firstOrderlineWithAddress?.addressid) {
+        try {
+          const fullAddress = await dynamicFindUnique('address', { id: firstOrderlineWithAddress.addressid });
+          
+          if (fullAddress) {
+            // Extract only required address fields
+            address = {
+              name: fullAddress.name,
+              mobilenumber: fullAddress.mobile,
+              pincode: fullAddress.pincode,
+              doornumber: fullAddress.doornumber || fullAddress.addressline1,
+              address: fullAddress.addressline2 || fullAddress.address,
+              landmark: fullAddress.landmark,
+              state: fullAddress.state,
+              city: fullAddress.city
+            };
+          }
+        } catch (err) {
+          logger.warn({ addressId: firstOrderlineWithAddress.addressid, error: err }, 'Failed to fetch address');
+        }
+      }
+
+      logger.info({
+        orderId: order.id,
+        orderlinesCount: orderlines.length,
+        hasAddress: !!address
+      }, 'Order details retrieved successfully');
+
+      return {
+        order,
+        orderlines,
+        address
+      };
+    } catch (error) {
+      logger.error({ error, idOrOrderNumber }, 'Error getting order details');
+      throw error;
+    }
+  }
 } 
