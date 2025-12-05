@@ -2527,11 +2527,14 @@ export class PhonePeController {
           );
 
       // Create order record with productid to enable automatic orderline creation
+      // ✅ FIX: COD orders should start with order_confirmed and ispaymentsucceed: false
+      // Prepaid orders start with payment_completed and ispaymentsucceed: true
+      const isCodOrder = mode === "cod";
       const orderData = {
         userid: transaction.userid,
         orderamount: parseFloat(transaction.amount?.toString() || "0"),
         orderid: orderid,
-        orderstatus: "payment_completed",
+        orderstatus: isCodOrder ? "order_confirmed" : "payment_completed", // ✅ COD: order_confirmed, Prepaid: payment_completed
         quantity: totalQuantity || validProductIds.length, // FIX #1: Sum of line item quantities, not product count
         transactionid: transaction.transactionid,
         productamount:
@@ -2539,7 +2542,7 @@ export class PhonePeController {
             ? productAmount
             : parseFloat(transaction.amount?.toString() || "0"),
         discountamount: productDiscountTotal + promotionDiscountTotal, // Total discounts (product + promotion)
-        ispaymentsucceed: true,
+        ispaymentsucceed: !isCodOrder, // ✅ COD: false (payment pending), Prepaid: true
         merchanttransactionid: transaction.merchanttransactionid,
         productid: validProductIds, // Include product IDs for automatic orderline creation
         mode: mode, // Add mode field: 'phonepe' or 'cod'
