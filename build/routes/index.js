@@ -24,6 +24,7 @@ import { phonePeRoutes } from './phonepe.route.js';
 import { promotionsRoutes } from './promotions.route.js';
 import { ratingRoutes } from './rating.route.js';
 import { smsRoutes } from './sms.route.js';
+import { ekartRoutes } from './ekart.route.js';
 import { requireAuthentication } from '../middleware/auth.middleware.js';
 import { createSuccessResponse } from '../utils/errorHandler.js';
 import { permissionRoutes } from './permission.route.js';
@@ -94,6 +95,8 @@ export async function routes(fastify) {
         await fastify.register(ratingRoutes, { prefix: '/ratings' });
         // SMS routes (public for OTP sending)
         await fastify.register(smsRoutes, { prefix: '/sms' });
+        // Ekart Logistics routes
+        await fastify.register(ekartRoutes, { prefix: '/ekart' });
         await fastify.register(async function (fastify) {
             // Apply authentication middleware to all routes in this scope
             fastify.addHook('preHandler', requireAuthentication);

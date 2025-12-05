@@ -1,6 +1,8 @@
 import { buildServer } from './server.js';
 import { env } from './config/env.js';
 import { redisClient } from './config/redis.js';
+import { ekartAuthService } from './services/ekart-auth.service.js';
+import { prisma } from './models/prisma.js';
 
 // Global BigInt serialization fix
 (BigInt.prototype as any).toJSON = function () {
@@ -12,6 +14,19 @@ async function start() {
     console.log('🔌 Connecting to Redis...');
     await redisClient.connect();
     console.log('✅ Redis connected successfully');
+
+    // Initialize Ekart auth (optional - will auto-connect on first API call if credentials are set)
+    if (env.EKART_CLIENT_ID && env.EKART_USERNAME && env.EKART_PASSWORD) {
+      try {
+        console.log('🔌 Connecting to Ekart API...');
+        await ekartAuthService.connect();
+        console.log('✅ Ekart API connected successfully');
+      } catch (error: any) {
+        console.warn('⚠️  Ekart API connection failed (will retry on first API call):', error.message);
+      }
+    } else {
+      console.log('ℹ️  Ekart credentials not configured - skipping initial connection');
+    }
 
     const fastify = await buildServer();
 
@@ -29,6 +44,7 @@ async function start() {
 
     fastify.log.info(`🚀 Server running at http://localhost:${env.PORT}`);
     fastify.log.info(`📚 API Documentation available at http://localhost:${env.PORT}/docs`);
+   
 
     // Graceful shutdown
     const signals = ['SIGINT', 'SIGTERM'];

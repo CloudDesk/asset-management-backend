@@ -163880,3 +163880,1403 @@ Filtered data result: {
   "paymentduedate": 1766620800,
   "modifieddate": 1764049100104
 }
+Filtered data result: {
+  "sessiontoken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiaGFyaXNoQG1haWwuY29tIiwicm9sZUlkIjozLCJpYXQiOjE3NjQ3MzUyOTcsImV4cCI6MTc2NTM0MDA5NywiYXVkIjoiYXNzZXQtbWFuYWdlbWVudC1mcm9udGVuZCIsImlzcyI6ImFzc2V0LW1hbmFnZW1lbnQtYmFja2VuZCJ9.hRiTVZ1Cyzy-6M5saf8H0Ex7IwcTQWDAmPKNlXKU8lc",
+  "modifieddate": 1764735297335
+}
+Filtered data result: {
+  "sessiontoken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiaGFyaXNoQG1haWwuY29tIiwicm9sZUlkIjozLCJpYXQiOjE3NjQ3MzU1NDksImV4cCI6MTc2NTM0MDM0OSwiYXVkIjoiYXNzZXQtbWFuYWdlbWVudC1mcm9udGVuZCIsImlzcyI6ImFzc2V0LW1hbmFnZW1lbnQtYmFja2VuZCJ9.-OwWGmig3aRsbVcIohlj4RJvqrZLM8hLoEulUWCcmn0",
+  "modifieddate": 1764735549298
+}
+Filtered data result: {
+  "sessiontoken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiaGFyaXNoQG1haWwuY29tIiwicm9sZUlkIjozLCJpYXQiOjE3NjQ3MzU4NzQsImV4cCI6MTc2NTM0MDY3NCwiYXVkIjoiYXNzZXQtbWFuYWdlbWVudC1mcm9udGVuZCIsImlzcyI6ImFzc2V0LW1hbmFnZW1lbnQtYmFja2VuZCJ9.kHSvx46kTh3ROzFN59y3flxWdLRvknX2GTF29zygm6s",
+  "modifieddate": 1764735874745
+}
+Filtered data result: {
+  "sessiontoken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiaGFyaXNoQG1haWwuY29tIiwicm9sZUlkIjozLCJpYXQiOjE3NjQ3MzYwNzEsImV4cCI6MTc2NTM0MDg3MSwiYXVkIjoiYXNzZXQtbWFuYWdlbWVudC1mcm9udGVuZCIsImlzcyI6ImFzc2V0LW1hbmFnZW1lbnQtYmFja2VuZCJ9.5bRv6XdWuXsQna5iGhQf-Cwak6M4sWYUtMfnPgWHRqA",
+  "modifieddate": 1764736071598
+}
+Filtered data result: {
+  "sessiontoken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiaGFyaXNoQG1haWwuY29tIiwicm9sZUlkIjozLCJpYXQiOjE3NjQ3MzYxOTMsImV4cCI6MTc2NTM0MDk5MywiYXVkIjoiYXNzZXQtbWFuYWdlbWVudC1mcm9udGVuZCIsImlzcyI6ImFzc2V0LW1hbmFnZW1lbnQtYmFja2VuZCJ9._L0nCnLOX4DEoFktmWC2g8HVmRp5dSF-5BJQw2gem_A",
+  "modifieddate": 1764736193822
+}
+Filtered data result: {
+  "sessiontoken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiaGFyaXNoQG1haWwuY29tIiwicm9sZUlkIjozLCJpYXQiOjE3NjQ3MzYyNDksImV4cCI6MTc2NTM0MTA0OSwiYXVkIjoiYXNzZXQtbWFuYWdlbWVudC1mcm9udGVuZCIsImlzcyI6ImFzc2V0LW1hbmFnZW1lbnQtYmFja2VuZCJ9.18z-MIkMDy8wPe5viWAYMdCCUkipe334iKmq__saz2g",
+  "modifieddate": 1764736249496
+}
+Filtered data result: {
+  "name": "Nivaana - Incense Sticks - Spiritual Harmony",
+  "shortdescription": "spiritual harmony scents are believed to help balance energies, promote inner peace, and elevate consciousness. ",
+  "fulldescription": "Spiritual harmony fragrances are carefully crafted aromatic blends designed to align the mind, body, and spirit. Rooted in ancient traditions such as Ayurveda, aromatherapy, and various spiritual practices, these fragrances often feature calming and sacred ingredients like sandalwood, frankincense, myrrh, rose, and patchouli. Used in meditation, prayer, or simply to create a peaceful environment, spiritual harmony scents are believed to help balance energies, promote inner peace, and elevate consciousness. Whether in incense, oils, or diffused blends, these fragrances serve as gentle companions on the journey toward mindfulness and inner clarity.",
+  "price": 150,
+  "discount": 0,
+  "isdealoftheday": true,
+  "brand": "Nivaana",
+  "pack": "single",
+  "material": "",
+  "manufacturer": "",
+  "netform": "",
+  "netquantity": "",
+  "usage": "",
+  "length": 26,
+  "width": 3,
+  "height": 2,
+  "weight": 50,
+  "purpose": "Home Fragrance",
+  "fragnancetype": "spiritual_harmony",
+  "burntime": "",
+  "itemlength": "",
+  "itemthickness": "",
+  "numberofitems": 0,
+  "category": "home_fragrance",
+  "subcategory": "incense_sticks"
+}
+Filtered data result: {
+  "name": "TEST - Incense Sticks - Wild Canopy",
+  "shortdescription": "",
+  "fulldescription": "",
+  "price": 100,
+  "discount": 0,
+  "isdealoftheday": false,
+  "brand": "TEST",
+  "pack": "single",
+  "material": "",
+  "manufacturer": "",
+  "netform": "",
+  "netquantity": "",
+  "usage": "",
+  "length": 25,
+  "width": 0,
+  "height": 0,
+  "weight": 0,
+  "purpose": "Home Fragrance",
+  "fragnancetype": "wild_canopy",
+  "burntime": "",
+  "itemlength": "",
+  "itemthickness": "",
+  "numberofitems": 0,
+  "category": "home_fragrance",
+  "subcategory": "incense_sticks"
+}
+Filtered data result: {
+  "name": "TEST - Incense Sticks - Wild Canopy",
+  "shortdescription": "",
+  "fulldescription": "",
+  "price": 100,
+  "discount": 0,
+  "isdealoftheday": false,
+  "brand": "TEST",
+  "pack": "single",
+  "material": "",
+  "manufacturer": "",
+  "netform": "",
+  "netquantity": "",
+  "usage": "",
+  "length": 25,
+  "width": 3,
+  "height": 2,
+  "weight": 50,
+  "purpose": "Home Fragrance",
+  "fragnancetype": "wild_canopy",
+  "burntime": "",
+  "itemlength": "",
+  "itemthickness": "",
+  "numberofitems": 0,
+  "category": "home_fragrance",
+  "subcategory": "incense_sticks"
+}
+Filtered data result: {
+  "name": "Nivaana - Incense Sticks - Vanilla, Black Oudh",
+  "shortdescription": "A rich, sweet, and creamy vanilla scent that promotes calmness, reduces stress, and enhances mood.",
+  "fulldescription": "Single Pack - Premium Incense Sticks - Vanilla\n\nThe fragrance of vanilla incense is a universally beloved and instantly recognizable aroma, celebrated for its warm, sweet, and comforting qualities. Derived from the cured pods of the vanilla orchid, it delivers a rich and inviting scent that is both familiar and deeply satisfying.At its core, vanilla incense smells distinctly creamy and sugary, reminiscent of freshly baked goods or a gourmet dessert. It often carries buttery undertones and a subtle caramelized richness that adds depth without cloying. While primarily sweet, high-quality vanilla incense can also reveal delicate floral or woody nuances, adding complexity and preventing it from being one-dimensional. Some might even detect a faint, almost powdery softness.",
+  "price": 120,
+  "discount": 0,
+  "isdealoftheday": false,
+  "brand": "Nivaana",
+  "pack": "pack_of_2",
+  "material": "",
+  "manufacturer": "",
+  "netform": "",
+  "netquantity": "",
+  "usage": "",
+  "length": 25,
+  "width": null,
+  "height": null,
+  "weight": null,
+  "purpose": "Home Fragrance",
+  "fragnancetype": "vanilla,black_oudh",
+  "burntime": "",
+  "itemlength": "",
+  "itemthickness": "",
+  "numberofitems": 0,
+  "category": "home_fragrance",
+  "subcategory": "incense_sticks"
+}
+Filtered data result: {
+  "sessiontoken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiaGFyaXNoQG1haWwuY29tIiwicm9sZUlkIjozLCJpYXQiOjE3NjQ4Mjg3MzMsImV4cCI6MTc2NTQzMzUzMywiYXVkIjoiYXNzZXQtbWFuYWdlbWVudC1mcm9udGVuZCIsImlzcyI6ImFzc2V0LW1hbmFnZW1lbnQtYmFja2VuZCJ9.pdoyv588xTB3dvIL1kJgN7cBGdAElnS8hIpO62IaTyk",
+  "modifieddate": 1764828733277
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "quantity": 5,
+  "availablequantity": 5,
+  "soldquantity": 0,
+  "ecompublishedquantity": 5,
+  "productstatus": "low_stock",
+  "modifieddate": 1764832792656
+}
+Filtered data result: {
+  "availableqty": 5,
+  "soldqty": 0,
+  "totalqty": 5,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "low_stock"
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "amazon",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "amazon",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "amazon",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "amazon",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "amazon",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "amazon",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "quantity": 10,
+  "availablequantity": 10,
+  "soldquantity": 0,
+  "ecompublishedquantity": 10,
+  "productstatus": "in_stock",
+  "modifieddate": 1764832815813
+}
+Filtered data result: {
+  "availableqty": 5,
+  "soldqty": 0,
+  "totalqty": 5,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "low_stock"
+}
+Filtered data result: {
+  "userid": 41,
+  "productid": 66,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1764832849945,
+  "modifieddate": 1764832849945
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "flipkart",
+  "serialnumber": "",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtered data result: {
+  "quantity": 11,
+  "availablequantity": 11,
+  "soldquantity": 0,
+  "ecompublishedquantity": 11,
+  "productstatus": "in_stock",
+  "modifieddate": 1764839782063
+}
+Filtered data result: {
+  "availableqty": 1,
+  "soldqty": 0,
+  "totalqty": 1,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "low_stock"
+}
+Filtered data result: {
+  "label": "new",
+  "value": "new",
+  "object": "product",
+  "fieldname": "test",
+  "parent": null,
+  "sortorder": 1,
+  "isactive": true,
+  "createddate": 1764841135519,
+  "modifieddate": 1764841135519
+}
+Filtered data result: {
+  "fieldname": "test",
+  "parent": "incense_sticks",
+  "sortorder": 1,
+  "label": "new",
+  "value": "new",
+  "controlledfieldname": "subcategory",
+  "controlledlabel": "Incense Sticks",
+  "controlledvalue": "incense_sticks",
+  "isactive": true,
+  "modifieddate": 1764841159262
+}
+Filtered data result: {
+  "label": "Car Fresheners",
+  "value": "car_fresheners",
+  "object": "product",
+  "fieldname": "car_&_room_fresheners",
+  "parent": null,
+  "sortorder": 1,
+  "isactive": true,
+  "createddate": 1764841309261,
+  "modifieddate": 1764841309261
+}
+Filtered data result: {
+  "label": "Room Freshners",
+  "value": "room_freshners",
+  "object": "product",
+  "fieldname": "car_&_room_fresheners",
+  "parent": null,
+  "sortorder": 2,
+  "isactive": true,
+  "createddate": 1764841310147,
+  "modifieddate": 1764841310147
+}
+Filtered data result: {
+  "fieldname": "subcategory",
+  "parent": "home_fragrance",
+  "sortorder": 1,
+  "label": "Incense Sticks",
+  "value": "incense_sticks",
+  "controlledfieldname": "category",
+  "controlledlabel": "Home Fragrance",
+  "controlledvalue": "home_fragrance",
+  "isactive": true,
+  "modifieddate": 1764841354499
+}
+Filtered data result: {
+  "fieldname": "subcategory",
+  "parent": "home_fragrance",
+  "sortorder": 2,
+  "label": "Dhoop Sticks",
+  "value": "dhoop_sticks",
+  "controlledfieldname": "category",
+  "controlledlabel": "Home Fragrance",
+  "controlledvalue": "home_fragrance",
+  "isactive": true,
+  "modifieddate": 1764841355127
+}
+Filtered data result: {
+  "fieldname": "subcategory",
+  "parent": "home_fragrance",
+  "sortorder": 3,
+  "label": "Havan Cups",
+  "value": "havan_cups",
+  "controlledfieldname": "category",
+  "controlledlabel": "Home Fragrance",
+  "controlledvalue": "home_fragrance",
+  "isactive": true,
+  "modifieddate": 1764841355560
+}
+Filtered data result: {
+  "fieldname": "subcategory",
+  "parent": "wellness_aromatherapy",
+  "sortorder": 4,
+  "label": "Essential Oils",
+  "value": "essential_oils",
+  "controlledfieldname": "category",
+  "controlledlabel": "Wellness & Aromatherapy",
+  "controlledvalue": "wellness_aromatherapy",
+  "isactive": true,
+  "modifieddate": 1764841356091
+}
+Filtered data result: {
+  "fieldname": "subcategory",
+  "parent": "wellness_aromatherapy",
+  "sortorder": 5,
+  "label": "Fragrance Oils",
+  "value": "fragrance_oils",
+  "controlledfieldname": "category",
+  "controlledlabel": "Wellness & Aromatherapy",
+  "controlledvalue": "wellness_aromatherapy",
+  "isactive": true,
+  "modifieddate": 1764841356519
+}
+Filtered data result: {
+  "fieldname": "subcategory",
+  "parent": "wellness_aromatherapy",
+  "sortorder": 6,
+  "label": "Diffusers",
+  "value": "diffusers",
+  "controlledfieldname": "category",
+  "controlledlabel": "Wellness & Aromatherapy",
+  "controlledvalue": "wellness_aromatherapy",
+  "isactive": true,
+  "modifieddate": 1764841356965
+}
+Filtered data result: {
+  "fieldname": "subcategory",
+  "parent": "personal_fragrance",
+  "sortorder": 7,
+  "label": "Car Fragrance",
+  "value": "car_fragrance",
+  "controlledfieldname": "category",
+  "controlledlabel": "Personal Fragrance",
+  "controlledvalue": "personal_fragrance",
+  "isactive": true,
+  "modifieddate": 1764841357383
+}
+Filtered data result: {
+  "fieldname": "subcategory",
+  "parent": "personal_fragrance",
+  "sortorder": 8,
+  "label": "Fragrance Sachets",
+  "value": "fragrance_sachets",
+  "controlledfieldname": "category",
+  "controlledlabel": "Personal Fragrance",
+  "controlledvalue": "personal_fragrance",
+  "isactive": true,
+  "modifieddate": 1764841357800
+}
+Filtered data result: {
+  "fieldname": "subcategory",
+  "parent": "personal_fragrance",
+  "sortorder": 9,
+  "label": "Toiletries",
+  "value": "toiletries",
+  "controlledfieldname": "category",
+  "controlledlabel": "Personal Fragrance",
+  "controlledvalue": "personal_fragrance",
+  "isactive": true,
+  "modifieddate": 1764841358213
+}
+Filtered data result: {
+  "label": "Car & Room Fresheners",
+  "value": "car_&_room_fresheners",
+  "object": "product",
+  "fieldname": "subcategory",
+  "parent": "home_fragrance",
+  "sortorder": 4,
+  "controlledfieldname": "category",
+  "controlledlabel": "Home Fragrance",
+  "controlledvalue": "home_fragrance",
+  "isactive": true,
+  "createddate": 1764841358627,
+  "modifieddate": 1764841358627
+}
+Filtered data result: {
+  "fieldname": "car_&_room_fresheners",
+  "parent": "car_&_room_fresheners",
+  "sortorder": 1,
+  "label": "Car Fresheners",
+  "value": "car_fresheners",
+  "controlledfieldname": "subcategory",
+  "controlledlabel": "Car & Room Fresheners",
+  "controlledvalue": "car_&_room_fresheners",
+  "isactive": true,
+  "modifieddate": 1764841379181
+}
+Filtered data result: {
+  "fieldname": "car_&_room_fresheners",
+  "parent": "car_&_room_fresheners",
+  "sortorder": 2,
+  "label": "Room Freshners",
+  "value": "room_freshners",
+  "controlledfieldname": "subcategory",
+  "controlledlabel": "Car & Room Fresheners",
+  "controlledvalue": "car_&_room_fresheners",
+  "isactive": true,
+  "modifieddate": 1764841379597
+}
+Filtered data result: {
+  "fieldname": "subcategory",
+  "parent": "home_fragrance",
+  "sortorder": 1,
+  "label": "Incense",
+  "value": "incense",
+  "controlledfieldname": "category",
+  "controlledlabel": "Home Fragrance",
+  "controlledvalue": "home_fragrance",
+  "isactive": true,
+  "modifieddate": 1764843030107
+}
+Filtered data result: {
+  "fieldname": "subcategory",
+  "parent": "home_fragrance",
+  "sortorder": 2,
+  "label": "Car & Room Fresheners",
+  "value": "car_&_room_fresheners",
+  "controlledfieldname": "category",
+  "controlledlabel": "Home Fragrance",
+  "controlledvalue": "home_fragrance",
+  "isactive": true,
+  "modifieddate": 1764843031367
+}
+Filtered data result: {
+  "fieldname": "subcategory",
+  "parent": "wellness_aromatherapy",
+  "sortorder": 4,
+  "label": "Essential Oils",
+  "value": "essential_oils",
+  "controlledfieldname": "category",
+  "controlledlabel": "Wellness & Aromatherapy",
+  "controlledvalue": "wellness_aromatherapy",
+  "isactive": true,
+  "modifieddate": 1764843031789
+}
+Filtered data result: {
+  "fieldname": "subcategory",
+  "parent": "wellness_aromatherapy",
+  "sortorder": 5,
+  "label": "Fragrance Oils",
+  "value": "fragrance_oils",
+  "controlledfieldname": "category",
+  "controlledlabel": "Wellness & Aromatherapy",
+  "controlledvalue": "wellness_aromatherapy",
+  "isactive": true,
+  "modifieddate": 1764843032208
+}
+Filtered data result: {
+  "fieldname": "subcategory",
+  "parent": "wellness_aromatherapy",
+  "sortorder": 6,
+  "label": "Diffusers",
+  "value": "diffusers",
+  "controlledfieldname": "category",
+  "controlledlabel": "Wellness & Aromatherapy",
+  "controlledvalue": "wellness_aromatherapy",
+  "isactive": true,
+  "modifieddate": 1764843032627
+}
+Filtered data result: {
+  "fieldname": "subcategory",
+  "parent": "personal_fragrance",
+  "sortorder": 7,
+  "label": "Car Fragrance",
+  "value": "car_fragrance",
+  "controlledfieldname": "category",
+  "controlledlabel": "Personal Fragrance",
+  "controlledvalue": "personal_fragrance",
+  "isactive": true,
+  "modifieddate": 1764843033049
+}
+Filtered data result: {
+  "fieldname": "subcategory",
+  "parent": "personal_fragrance",
+  "sortorder": 8,
+  "label": "Fragrance Sachets",
+  "value": "fragrance_sachets",
+  "controlledfieldname": "category",
+  "controlledlabel": "Personal Fragrance",
+  "controlledvalue": "personal_fragrance",
+  "isactive": true,
+  "modifieddate": 1764843033470
+}
+Filtered data result: {
+  "fieldname": "subcategory",
+  "parent": "personal_fragrance",
+  "sortorder": 9,
+  "label": "Toiletries",
+  "value": "toiletries",
+  "controlledfieldname": "category",
+  "controlledlabel": "Personal Fragrance",
+  "controlledvalue": "personal_fragrance",
+  "isactive": true,
+  "modifieddate": 1764843033890
+}
+Filtered data result: {
+  "label": "Incense sticks",
+  "value": "incense_sticks",
+  "object": "product",
+  "fieldname": "subsubcategory",
+  "parent": null,
+  "sortorder": 1,
+  "isactive": true,
+  "createddate": 1764843127184,
+  "modifieddate": 1764843127184
+}
+Filtered data result: {
+  "label": "Dhoop sticks",
+  "value": "dhoop_sticks",
+  "object": "product",
+  "fieldname": "subsubcategory",
+  "parent": null,
+  "sortorder": 2,
+  "isactive": true,
+  "createddate": 1764843128431,
+  "modifieddate": 1764843128431
+}
+Filtered data result: {
+  "label": "Havan Cups",
+  "value": "havan_cups",
+  "object": "product",
+  "fieldname": "subsubcategory",
+  "parent": null,
+  "sortorder": 3,
+  "isactive": true,
+  "createddate": 1764843128854,
+  "modifieddate": 1764843128854
+}
+Filtered data result: {
+  "fieldname": "subsubcategory",
+  "parent": "incense",
+  "sortorder": 1,
+  "label": "Incense sticks",
+  "value": "incense_sticks",
+  "controlledfieldname": "subcategory",
+  "controlledlabel": "Incense",
+  "controlledvalue": "incense",
+  "isactive": true,
+  "modifieddate": 1764843164124
+}
+Filtered data result: {
+  "fieldname": "subsubcategory",
+  "parent": "incense",
+  "sortorder": 2,
+  "label": "Dhoop sticks",
+  "value": "dhoop_sticks",
+  "controlledfieldname": "subcategory",
+  "controlledlabel": "Incense",
+  "controlledvalue": "incense",
+  "isactive": true,
+  "modifieddate": 1764843164641
+}
+Filtered data result: {
+  "fieldname": "subsubcategory",
+  "parent": "incense",
+  "sortorder": 3,
+  "label": "Havan Cups",
+  "value": "havan_cups",
+  "controlledfieldname": "subcategory",
+  "controlledlabel": "Incense",
+  "controlledvalue": "incense",
+  "isactive": true,
+  "modifieddate": 1764843165076
+}
+Filtered data result: {
+  "fieldname": "fragnancetype",
+  "parent": "incense_sticks",
+  "sortorder": 1,
+  "label": "Kasturi",
+  "value": "kasturi",
+  "controlledfieldname": "subcategory",
+  "controlledlabel": "Incense Sticks",
+  "controlledvalue": "incense_sticks",
+  "isactive": true,
+  "modifieddate": 1764843527853
+}
+Filtered data result: {
+  "fieldname": "fragnancetype",
+  "parent": "incense_sticks",
+  "sortorder": 2,
+  "label": "Kesar Chandan",
+  "value": "kesar_chandan",
+  "controlledfieldname": "subcategory",
+  "controlledlabel": "Incense Sticks",
+  "controlledvalue": "incense_sticks",
+  "isactive": true,
+  "modifieddate": 1764843528684
+}
+Filtered data result: {
+  "fieldname": "fragnancetype",
+  "parent": "incense_sticks",
+  "sortorder": 3,
+  "label": "Parijat",
+  "value": "parijat",
+  "controlledfieldname": "subcategory",
+  "controlledlabel": "Incense Sticks",
+  "controlledvalue": "incense_sticks",
+  "isactive": true,
+  "modifieddate": 1764843529097
+}
+Filtered data result: {
+  "fieldname": "fragnancetype",
+  "parent": "incense_sticks",
+  "sortorder": 4,
+  "label": "Spiritual Harmony",
+  "value": "spiritual_harmony",
+  "controlledfieldname": "subcategory",
+  "controlledlabel": "Incense Sticks",
+  "controlledvalue": "incense_sticks",
+  "isactive": true,
+  "modifieddate": 1764843529523
+}
+Filtered data result: {
+  "fieldname": "fragnancetype",
+  "parent": "incense_sticks",
+  "sortorder": 5,
+  "label": "Paradise Garden",
+  "value": "paradise_garden",
+  "controlledfieldname": "subcategory",
+  "controlledlabel": "Incense Sticks",
+  "controlledvalue": "incense_sticks",
+  "isactive": true,
+  "modifieddate": 1764843529938
+}
+Filtered data result: {
+  "fieldname": "fragnancetype",
+  "parent": "incense_sticks",
+  "sortorder": 6,
+  "label": "Floral Valley",
+  "value": "floral_valley",
+  "controlledfieldname": "subcategory",
+  "controlledlabel": "Incense Sticks",
+  "controlledvalue": "incense_sticks",
+  "isactive": true,
+  "modifieddate": 1764843530351
+}
+Filtered data result: {
+  "fieldname": "fragnancetype",
+  "parent": "incense_sticks",
+  "sortorder": 7,
+  "label": "Davana",
+  "value": "davana",
+  "controlledfieldname": "subcategory",
+  "controlledlabel": "Incense Sticks",
+  "controlledvalue": "incense_sticks",
+  "isactive": true,
+  "modifieddate": 1764843531279
+}
+Filtered data result: {
+  "fieldname": "fragnancetype",
+  "parent": "incense_sticks",
+  "sortorder": 8,
+  "label": "Black Oudh",
+  "value": "black_oudh",
+  "controlledfieldname": "subcategory",
+  "controlledlabel": "Incense Sticks",
+  "controlledvalue": "incense_sticks",
+  "isactive": true,
+  "modifieddate": 1764843531728
+}
+Filtered data result: {
+  "fieldname": "fragnancetype",
+  "parent": "incense_sticks",
+  "sortorder": 9,
+  "label": "Vanilla",
+  "value": "vanilla",
+  "controlledfieldname": "subcategory",
+  "controlledlabel": "Incense Sticks",
+  "controlledvalue": "incense_sticks",
+  "isactive": true,
+  "modifieddate": 1764843532259
+}
+Filtered data result: {
+  "fieldname": "fragnancetype",
+  "parent": "incense_sticks",
+  "sortorder": 10,
+  "label": "First Rains",
+  "value": "first_rains",
+  "controlledfieldname": "subcategory",
+  "controlledlabel": "Incense Sticks",
+  "controlledvalue": "incense_sticks",
+  "isactive": true,
+  "modifieddate": 1764843532701
+}
+Filtered data result: {
+  "fieldname": "fragnancetype",
+  "parent": "incense_sticks",
+  "sortorder": 11,
+  "label": "Himalayan Cedar",
+  "value": "himalayan_cedar",
+  "controlledfieldname": "subcategory",
+  "controlledlabel": "Incense Sticks",
+  "controlledvalue": "incense_sticks",
+  "isactive": true,
+  "modifieddate": 1764843533230
+}
+Filtered data result: {
+  "fieldname": "fragnancetype",
+  "parent": "incense_sticks",
+  "sortorder": 12,
+  "label": "Wild Canopy",
+  "value": "wild_canopy",
+  "controlledfieldname": "subcategory",
+  "controlledlabel": "Incense Sticks",
+  "controlledvalue": "incense_sticks",
+  "isactive": true,
+  "modifieddate": 1764843533660
+}
+Filtered data result: {
+  "fieldname": "fragnancetype",
+  "parent": "incense_sticks",
+  "sortorder": 13,
+  "label": "Royal Sandal",
+  "value": "royal_sandal",
+  "controlledfieldname": "subcategory",
+  "controlledlabel": "Incense Sticks",
+  "controlledvalue": "incense_sticks",
+  "isactive": true,
+  "modifieddate": 1764843534076
+}
+Filtered data result: {
+  "fieldname": "fragnancetype",
+  "parent": "fragrance_sachets",
+  "sortorder": 14,
+  "label": "Vanila",
+  "value": "vanila",
+  "controlledfieldname": "subcategory",
+  "controlledlabel": "Fragrance Sachets",
+  "controlledvalue": "fragrance_sachets",
+  "isactive": true,
+  "modifieddate": 1764843534494
+}
+Filtered data result: {
+  "fieldname": "fragnancetype",
+  "parent": "fragrance_sachets",
+  "sortorder": 14,
+  "label": "Cool Aqua",
+  "value": "cool_aqua",
+  "controlledfieldname": "subcategory",
+  "controlledlabel": "Fragrance Sachets",
+  "controlledvalue": "fragrance_sachets",
+  "isactive": true,
+  "modifieddate": 1764843534912
+}
+Filtered data result: {
+  "fieldname": "fragnancetype",
+  "parent": "fragrance_sachets",
+  "sortorder": 15,
+  "label": "Jungle Vibe",
+  "value": "jungle_vibe",
+  "controlledfieldname": "subcategory",
+  "controlledlabel": "Fragrance Sachets",
+  "controlledvalue": "fragrance_sachets",
+  "isactive": true,
+  "modifieddate": 1764843535330
+}
+Filtered data result: {
+  "fieldname": "fragnancetype",
+  "parent": "fragrance_sachets",
+  "sortorder": 16,
+  "label": "Nishigandha",
+  "value": "nishigandha",
+  "controlledfieldname": "subcategory",
+  "controlledlabel": "Fragrance Sachets",
+  "controlledvalue": "fragrance_sachets",
+  "isactive": true,
+  "modifieddate": 1764843535742
+}
+Filtered data result: {
+  "fieldname": "fragnancetype",
+  "parent": "fragrance_sachets",
+  "sortorder": 18,
+  "label": "Cherry Blossom",
+  "value": "cherry_blossom",
+  "controlledfieldname": "subcategory",
+  "controlledlabel": "Fragrance Sachets",
+  "controlledvalue": "fragrance_sachets",
+  "isactive": true,
+  "modifieddate": 1764843536158
+}
+Filtered data result: {
+  "fieldname": "fragnancetype",
+  "parent": "fragrance_sachets",
+  "sortorder": 19,
+  "label": "Pinacolada",
+  "value": "pinacolada",
+  "controlledfieldname": "subcategory",
+  "controlledlabel": "Fragrance Sachets",
+  "controlledvalue": "fragrance_sachets",
+  "isactive": true,
+  "modifieddate": 1764843536569
+}
+Filtered data result: {
+  "fieldname": "category",
+  "parent": null,
+  "sortorder": 1,
+  "label": "Home Fragrance",
+  "value": "home_fragrance",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1764843789758
+}
+Filtered data result: {
+  "fieldname": "category",
+  "parent": null,
+  "sortorder": 2,
+  "label": "Personal Care",
+  "value": "personal_care",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1764843791005
+}
+Filtered data result: {
+  "fieldname": "category",
+  "parent": null,
+  "sortorder": 3,
+  "label": "Aromatherapy & Wellness",
+  "value": "aromatherapy_&_wellness",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1764843791418
+}
+Filtered data result: {
+  "fieldname": "category",
+  "parent": null,
+  "sortorder": 1,
+  "label": "Home Fragrance",
+  "value": "home_fragrance",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1764843799937
+}
+Filtered data result: {
+  "fieldname": "category",
+  "parent": null,
+  "sortorder": 3,
+  "label": "Personal Care",
+  "value": "personal_care",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1764843800383
+}
+Filtered data result: {
+  "fieldname": "category",
+  "parent": null,
+  "sortorder": 2,
+  "label": "Aromatherapy & Wellness",
+  "value": "aromatherapy_&_wellness",
+  "controlledfieldname": null,
+  "controlledlabel": null,
+  "controlledvalue": null,
+  "isactive": true,
+  "modifieddate": 1764843800915
+}
+Filtered data result: {
+  "fieldname": "subcategory",
+  "parent": "home_fragrance",
+  "sortorder": 1,
+  "label": "Incense",
+  "value": "incense",
+  "controlledfieldname": "category",
+  "controlledlabel": "Home Fragrance",
+  "controlledvalue": "home_fragrance",
+  "isactive": true,
+  "modifieddate": 1764843851077
+}
+Filtered data result: {
+  "fieldname": "subcategory",
+  "parent": "home_fragrance",
+  "sortorder": 2,
+  "label": "Car & Room Fresheners",
+  "value": "car_&_room_fresheners",
+  "controlledfieldname": "category",
+  "controlledlabel": "Home Fragrance",
+  "controlledvalue": "home_fragrance",
+  "isactive": true,
+  "modifieddate": 1764843851907
+}
+Filtered data result: {
+  "fieldname": "subcategory",
+  "parent": "wellness_aromatherapy",
+  "sortorder": 4,
+  "label": "Essential Oils",
+  "value": "essential_oils",
+  "controlledfieldname": "category",
+  "controlledlabel": "Wellness & Aromatherapy",
+  "controlledvalue": "wellness_aromatherapy",
+  "isactive": true,
+  "modifieddate": 1764843852320
+}
+Filtered data result: {
+  "fieldname": "subcategory",
+  "parent": "wellness_aromatherapy",
+  "sortorder": 5,
+  "label": "Fragrance Oils",
+  "value": "fragrance_oils",
+  "controlledfieldname": "category",
+  "controlledlabel": "Wellness & Aromatherapy",
+  "controlledvalue": "wellness_aromatherapy",
+  "isactive": true,
+  "modifieddate": 1764843852743
+}
+Filtered data result: {
+  "fieldname": "subcategory",
+  "parent": "wellness_aromatherapy",
+  "sortorder": 6,
+  "label": "Diffusers",
+  "value": "diffusers",
+  "controlledfieldname": "category",
+  "controlledlabel": "Wellness & Aromatherapy",
+  "controlledvalue": "wellness_aromatherapy",
+  "isactive": true,
+  "modifieddate": 1764843853160
+}
+Filtered data result: {
+  "fieldname": "subcategory",
+  "parent": "personal_fragrance",
+  "sortorder": 7,
+  "label": "Car Fragrance",
+  "value": "car_fragrance",
+  "controlledfieldname": "category",
+  "controlledlabel": "Personal Fragrance",
+  "controlledvalue": "personal_fragrance",
+  "isactive": true,
+  "modifieddate": 1764843853576
+}
+Filtered data result: {
+  "fieldname": "subcategory",
+  "parent": "personal_fragrance",
+  "sortorder": 8,
+  "label": "Fragrance Sachets",
+  "value": "fragrance_sachets",
+  "controlledfieldname": "category",
+  "controlledlabel": "Personal Fragrance",
+  "controlledvalue": "personal_fragrance",
+  "isactive": true,
+  "modifieddate": 1764843853989
+}
+Filtered data result: {
+  "fieldname": "subcategory",
+  "parent": "personal_fragrance",
+  "sortorder": 9,
+  "label": "Toiletries",
+  "value": "toiletries",
+  "controlledfieldname": "category",
+  "controlledlabel": "Personal Fragrance",
+  "controlledvalue": "personal_fragrance",
+  "isactive": true,
+  "modifieddate": 1764843854413
+}
+Filtered data result: {
+  "fieldname": "subcategory",
+  "parent": "home_fragrance",
+  "sortorder": 1,
+  "label": "Incense",
+  "value": "incense",
+  "controlledfieldname": "category",
+  "controlledlabel": "Home Fragrance",
+  "controlledvalue": "home_fragrance",
+  "isactive": true,
+  "modifieddate": 1764844032215
+}
+Filtered data result: {
+  "fieldname": "subcategory",
+  "parent": "home_fragrance",
+  "sortorder": 2,
+  "label": "Car & Room Fresheners",
+  "value": "car_&_room_fresheners",
+  "controlledfieldname": "category",
+  "controlledlabel": "Home Fragrance",
+  "controlledvalue": "home_fragrance",
+  "isactive": true,
+  "modifieddate": 1764844032659
+}
+Filtered data result: {
+  "fieldname": "subcategory",
+  "parent": "wellness_aromatherapy",
+  "sortorder": 4,
+  "label": "Essential Oils",
+  "value": "essential_oils",
+  "controlledfieldname": "category",
+  "controlledlabel": "Wellness & Aromatherapy",
+  "controlledvalue": "wellness_aromatherapy",
+  "isactive": true,
+  "modifieddate": 1764844033103
+}
+Filtered data result: {
+  "fieldname": "subcategory",
+  "parent": "wellness_aromatherapy",
+  "sortorder": 5,
+  "label": "Fragrance Blends",
+  "value": "fragrance_blends",
+  "controlledfieldname": "category",
+  "controlledlabel": "Wellness & Aromatherapy",
+  "controlledvalue": "wellness_aromatherapy",
+  "isactive": true,
+  "modifieddate": 1764844033517
+}
+Filtered data result: {
+  "fieldname": "subcategory",
+  "parent": "wellness_aromatherapy",
+  "sortorder": 6,
+  "label": "Diffusers",
+  "value": "diffusers",
+  "controlledfieldname": "category",
+  "controlledlabel": "Wellness & Aromatherapy",
+  "controlledvalue": "wellness_aromatherapy",
+  "isactive": true,
+  "modifieddate": 1764844033965
+}
+Filtered data result: {
+  "fieldname": "subcategory",
+  "parent": "personal_fragrance",
+  "sortorder": 7,
+  "label": "Bath",
+  "value": "bath",
+  "controlledfieldname": "category",
+  "controlledlabel": "Personal Fragrance",
+  "controlledvalue": "personal_fragrance",
+  "isactive": true,
+  "modifieddate": 1764844034379
+}
+Filtered data result: {
+  "fieldname": "subcategory",
+  "parent": "personal_fragrance",
+  "sortorder": 8,
+  "label": "Body",
+  "value": "body",
+  "controlledfieldname": "category",
+  "controlledlabel": "Personal Fragrance",
+  "controlledvalue": "personal_fragrance",
+  "isactive": true,
+  "modifieddate": 1764844034803
+}
+Filtered data result: {
+  "fieldname": "subsubcategory",
+  "parent": "incense",
+  "sortorder": 1,
+  "label": "Incense sticks",
+  "value": "incense_sticks",
+  "controlledfieldname": "subcategory",
+  "controlledlabel": "Incense",
+  "controlledvalue": "incense",
+  "isactive": true,
+  "modifieddate": 1764844557946
+}
+Filtered data result: {
+  "fieldname": "subsubcategory",
+  "parent": "incense",
+  "sortorder": 2,
+  "label": "Dhoop sticks",
+  "value": "dhoop_sticks",
+  "controlledfieldname": "subcategory",
+  "controlledlabel": "Incense",
+  "controlledvalue": "incense",
+  "isactive": true,
+  "modifieddate": 1764844558807
+}
+Filtered data result: {
+  "fieldname": "subsubcategory",
+  "parent": "incense",
+  "sortorder": 3,
+  "label": "Havan Cups",
+  "value": "havan_cups",
+  "controlledfieldname": "subcategory",
+  "controlledlabel": "Incense",
+  "controlledvalue": "incense",
+  "isactive": true,
+  "modifieddate": 1764844559647
+}
+Filtered data result: {
+  "label": "Car Fresheners",
+  "value": "car_fresheners",
+  "object": "product",
+  "fieldname": "subsubcategory",
+  "parent": "car_&_room_fresheners",
+  "sortorder": 4,
+  "controlledfieldname": "subcategory",
+  "controlledlabel": "Car & Room Fresheners",
+  "controlledvalue": "car_&_room_fresheners",
+  "isactive": true,
+  "createddate": 1764844560072,
+  "modifieddate": 1764844560072
+}
+Filtered data result: {
+  "label": "Room Fresheners",
+  "value": "room_fresheners",
+  "object": "product",
+  "fieldname": "subsubcategory",
+  "parent": "car_&_room_fresheners",
+  "sortorder": 5,
+  "controlledfieldname": "subcategory",
+  "controlledlabel": "Car & Room Fresheners",
+  "controlledvalue": "car_&_room_fresheners",
+  "isactive": true,
+  "createddate": 1764844560907,
+  "modifieddate": 1764844560907
+}
+Filtered data result: {
+  "label": "Fragrance Sachets",
+  "value": "fragrance_sachets",
+  "object": "product",
+  "fieldname": "subsubcategory",
+  "parent": "car_&_room_fresheners",
+  "sortorder": 6,
+  "controlledfieldname": "subcategory",
+  "controlledlabel": "Car & Room Fresheners",
+  "controlledvalue": "car_&_room_fresheners",
+  "isactive": true,
+  "createddate": 1764844561325,
+  "modifieddate": 1764844561325
+}
+Filtered data result: {
+  "sessiontoken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiaGFyaXNoQG1haWwuY29tIiwicm9sZUlkIjozLCJpYXQiOjE3NjQ4NTIyNTksImV4cCI6MTc2NTQ1NzA1OSwiYXVkIjoiYXNzZXQtbWFuYWdlbWVudC1mcm9udGVuZCIsImlzcyI6ImFzc2V0LW1hbmFnZW1lbnQtYmFja2VuZCJ9.SfP0mDT8wujfkh1cYfVq4JpETynR_3kid1TBHkWDufQ",
+  "modifieddate": 1764852259638
+}
+Filtered data result: {
+  "name": "NIVAANA - Car & Room Fresheners",
+  "category": "home_fragrance",
+  "subcategory": "car_&_room_fresheners",
+  "fragnancetype": "nishigandha",
+  "brand": "NIVAANA",
+  "pack": "single",
+  "price": 100,
+  "discount": 0,
+  "isdealoftheday": false,
+  "purpose": "Enhance living spaces"
+}
+Filtered data result: {
+  "productid": 67,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtered data result: {
+  "productid": 67,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtered data result: {
+  "productid": 67,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtered data result: {
+  "name": "NIVAANA - Incense",
+  "category": "home_fragrance",
+  "subcategory": "incense",
+  "fragnancetype": "kasturi",
+  "brand": "NIVAANA",
+  "pack": "single",
+  "price": 99,
+  "discount": 0,
+  "isdealoftheday": false,
+  "purpose": "Enhance living spaces"
+}
+Filtered data result: {
+  "productid": 68,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtered data result: {
+  "productid": 68,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtered data result: {
+  "productid": 68,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtered data result: {
+  "name": "New-IS - Incense",
+  "category": "home_fragrance",
+  "subcategory": "incense",
+  "subsubcategory": "incense_sticks",
+  "fragnancetype": "kasturi",
+  "brand": "New-IS",
+  "pack": "single",
+  "price": 195,
+  "discount": 0,
+  "isdealoftheday": false,
+  "purpose": "Enhance living spaces"
+}
+Filtered data result: {
+  "productid": 69,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtered data result: {
+  "productid": 69,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtered data result: {
+  "productid": 69,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtered data result: {
+  "name": "NIVAANA - Essential Oils",
+  "category": "aromatherapy_&_wellness",
+  "subcategory": "essential_oils",
+  "subsubcategory": "",
+  "brand": "NIVAANA",
+  "pack": "single",
+  "price": 100,
+  "discount": 0,
+  "isdealoftheday": false,
+  "purpose": "Promote balance and well-being"
+}
+Filtered data result: {
+  "productid": 70,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtered data result: {
+  "productid": 70,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtered data result: {
+  "productid": 70,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}

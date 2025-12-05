@@ -74,6 +74,10 @@ declare const envSchema: z.ZodObject<{
     AMAZON_REDIRECT_URI: z.ZodOptional<z.ZodString>;
     AWS_ACCESS_KEY_ID: z.ZodOptional<z.ZodString>;
     AWS_SECRET_ACCESS_KEY: z.ZodOptional<z.ZodString>;
+    EKART_CLIENT_ID: z.ZodOptional<z.ZodString>;
+    EKART_USERNAME: z.ZodOptional<z.ZodString>;
+    EKART_PASSWORD: z.ZodOptional<z.ZodString>;
+    EKART_BASE_URL: z.ZodDefault<z.ZodOptional<z.ZodString>>;
 }, "strip", z.ZodTypeAny, {
     DATABASE_URL: string;
     PORT: number;
@@ -112,6 +116,7 @@ declare const envSchema: z.ZodObject<{
     AMAZON_MARKETPLACE_ID: string;
     AMAZON_REGION: string;
     AMAZON_SELLER_CENTRAL_URL: string;
+    EKART_BASE_URL: string;
     JWT_SECRET?: string | undefined;
     TWILIO_MESSAGING_SERVICE_SID?: string | undefined;
     EXOTEL_DLT_TEMPLATE_ID?: string | undefined;
@@ -148,6 +153,9 @@ declare const envSchema: z.ZodObject<{
     AMAZON_REDIRECT_URI?: string | undefined;
     AWS_ACCESS_KEY_ID?: string | undefined;
     AWS_SECRET_ACCESS_KEY?: string | undefined;
+    EKART_CLIENT_ID?: string | undefined;
+    EKART_USERNAME?: string | undefined;
+    EKART_PASSWORD?: string | undefined;
 }, {
     DATABASE_URL: string;
     FIREBASE_PROJECT_ID: string;
@@ -222,6 +230,10 @@ declare const envSchema: z.ZodObject<{
     AMAZON_REDIRECT_URI?: string | undefined;
     AWS_ACCESS_KEY_ID?: string | undefined;
     AWS_SECRET_ACCESS_KEY?: string | undefined;
+    EKART_CLIENT_ID?: string | undefined;
+    EKART_USERNAME?: string | undefined;
+    EKART_PASSWORD?: string | undefined;
+    EKART_BASE_URL?: string | undefined;
 }>;
 export declare const env: {
     DATABASE_URL: string;
@@ -261,6 +273,7 @@ export declare const env: {
     AMAZON_MARKETPLACE_ID: string;
     AMAZON_REGION: string;
     AMAZON_SELLER_CENTRAL_URL: string;
+    EKART_BASE_URL: string;
     JWT_SECRET?: string | undefined;
     TWILIO_MESSAGING_SERVICE_SID?: string | undefined;
     EXOTEL_DLT_TEMPLATE_ID?: string | undefined;
@@ -297,6 +310,9 @@ export declare const env: {
     AMAZON_REDIRECT_URI?: string | undefined;
     AWS_ACCESS_KEY_ID?: string | undefined;
     AWS_SECRET_ACCESS_KEY?: string | undefined;
+    EKART_CLIENT_ID?: string | undefined;
+    EKART_USERNAME?: string | undefined;
+    EKART_PASSWORD?: string | undefined;
 };
 export type Env = z.infer<typeof envSchema>;
 export {};

@@ -6,6 +6,7 @@ export declare const createProductSchema: z.ZodObject<{
     fulldescription: z.ZodOptional<z.ZodString>;
     category: z.ZodOptional<z.ZodString>;
     subcategory: z.ZodOptional<z.ZodString>;
+    subsubcategory: z.ZodOptional<z.ZodString>;
     fragnancetype: z.ZodOptional<z.ZodString>;
     brand: z.ZodOptional<z.ZodString>;
     pack: z.ZodOptional<z.ZodString>;
@@ -28,6 +29,10 @@ export declare const createProductSchema: z.ZodObject<{
     netquantity: z.ZodOptional<z.ZodString>;
     numberofitems: z.ZodOptional<z.ZodNumber>;
     itemthickness: z.ZodOptional<z.ZodString>;
+    length: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodNull]>>;
+    width: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodNull]>>;
+    height: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodNull]>>;
+    weight: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodNull]>>;
     createddate: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodBigInt]>>;
     modifieddate: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodBigInt]>>;
     isdealoftheday: z.ZodOptional<z.ZodBoolean>;
@@ -40,6 +45,7 @@ export declare const createProductSchema: z.ZodObject<{
     fulldescription: z.ZodOptional<z.ZodString>;
     category: z.ZodOptional<z.ZodString>;
     subcategory: z.ZodOptional<z.ZodString>;
+    subsubcategory: z.ZodOptional<z.ZodString>;
     fragnancetype: z.ZodOptional<z.ZodString>;
     brand: z.ZodOptional<z.ZodString>;
     pack: z.ZodOptional<z.ZodString>;
@@ -62,6 +68,10 @@ export declare const createProductSchema: z.ZodObject<{
     netquantity: z.ZodOptional<z.ZodString>;
     numberofitems: z.ZodOptional<z.ZodNumber>;
     itemthickness: z.ZodOptional<z.ZodString>;
+    length: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodNull]>>;
+    width: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodNull]>>;
+    height: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodNull]>>;
+    weight: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodNull]>>;
     createddate: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodBigInt]>>;
     modifieddate: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodBigInt]>>;
     isdealoftheday: z.ZodOptional<z.ZodBoolean>;
@@ -74,6 +84,7 @@ export declare const createProductSchema: z.ZodObject<{
     fulldescription: z.ZodOptional<z.ZodString>;
     category: z.ZodOptional<z.ZodString>;
     subcategory: z.ZodOptional<z.ZodString>;
+    subsubcategory: z.ZodOptional<z.ZodString>;
     fragnancetype: z.ZodOptional<z.ZodString>;
     brand: z.ZodOptional<z.ZodString>;
     pack: z.ZodOptional<z.ZodString>;
@@ -96,6 +107,10 @@ export declare const createProductSchema: z.ZodObject<{
     netquantity: z.ZodOptional<z.ZodString>;
     numberofitems: z.ZodOptional<z.ZodNumber>;
     itemthickness: z.ZodOptional<z.ZodString>;
+    length: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodNull]>>;
+    width: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodNull]>>;
+    height: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodNull]>>;
+    weight: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodNull]>>;
     createddate: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodBigInt]>>;
     modifieddate: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodBigInt]>>;
     isdealoftheday: z.ZodOptional<z.ZodBoolean>;
@@ -109,6 +124,7 @@ export declare const updateProductSchema: z.ZodObject<{
     fulldescription: z.ZodOptional<z.ZodString>;
     category: z.ZodOptional<z.ZodString>;
     subcategory: z.ZodOptional<z.ZodString>;
+    subsubcategory: z.ZodOptional<z.ZodString>;
     fragnancetype: z.ZodOptional<z.ZodString>;
     brand: z.ZodOptional<z.ZodString>;
     pack: z.ZodOptional<z.ZodString>;
@@ -131,6 +147,10 @@ export declare const updateProductSchema: z.ZodObject<{
     netquantity: z.ZodOptional<z.ZodString>;
     numberofitems: z.ZodOptional<z.ZodNumber>;
     itemthickness: z.ZodOptional<z.ZodString>;
+    length: z.ZodOptional<z.ZodNumber>;
+    width: z.ZodOptional<z.ZodNumber>;
+    height: z.ZodOptional<z.ZodNumber>;
+    weight: z.ZodOptional<z.ZodNumber>;
     createddate: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodBigInt]>>;
     modifieddate: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodBigInt]>>;
     isdealoftheday: z.ZodOptional<z.ZodBoolean>;
@@ -143,6 +163,7 @@ export declare const updateProductSchema: z.ZodObject<{
     fulldescription: z.ZodOptional<z.ZodString>;
     category: z.ZodOptional<z.ZodString>;
     subcategory: z.ZodOptional<z.ZodString>;
+    subsubcategory: z.ZodOptional<z.ZodString>;
     fragnancetype: z.ZodOptional<z.ZodString>;
     brand: z.ZodOptional<z.ZodString>;
     pack: z.ZodOptional<z.ZodString>;
@@ -165,6 +186,10 @@ export declare const updateProductSchema: z.ZodObject<{
     netquantity: z.ZodOptional<z.ZodString>;
     numberofitems: z.ZodOptional<z.ZodNumber>;
     itemthickness: z.ZodOptional<z.ZodString>;
+    length: z.ZodOptional<z.ZodNumber>;
+    width: z.ZodOptional<z.ZodNumber>;
+    height: z.ZodOptional<z.ZodNumber>;
+    weight: z.ZodOptional<z.ZodNumber>;
     createddate: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodBigInt]>>;
     modifieddate: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodBigInt]>>;
     isdealoftheday: z.ZodOptional<z.ZodBoolean>;
@@ -177,6 +202,7 @@ export declare const updateProductSchema: z.ZodObject<{
     fulldescription: z.ZodOptional<z.ZodString>;
     category: z.ZodOptional<z.ZodString>;
     subcategory: z.ZodOptional<z.ZodString>;
+    subsubcategory: z.ZodOptional<z.ZodString>;
     fragnancetype: z.ZodOptional<z.ZodString>;
     brand: z.ZodOptional<z.ZodString>;
     pack: z.ZodOptional<z.ZodString>;
@@ -199,6 +225,10 @@ export declare const updateProductSchema: z.ZodObject<{
     netquantity: z.ZodOptional<z.ZodString>;
     numberofitems: z.ZodOptional<z.ZodNumber>;
     itemthickness: z.ZodOptional<z.ZodString>;
+    length: z.ZodOptional<z.ZodNumber>;
+    width: z.ZodOptional<z.ZodNumber>;
+    height: z.ZodOptional<z.ZodNumber>;
+    weight: z.ZodOptional<z.ZodNumber>;
     createddate: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodBigInt]>>;
     modifieddate: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodBigInt]>>;
     isdealoftheday: z.ZodOptional<z.ZodBoolean>;
@@ -213,6 +243,7 @@ export declare const upsertProductSchema: z.ZodObject<{
     fulldescription: z.ZodOptional<z.ZodString>;
     category: z.ZodOptional<z.ZodString>;
     subcategory: z.ZodOptional<z.ZodString>;
+    subsubcategory: z.ZodOptional<z.ZodString>;
     fragnancetype: z.ZodOptional<z.ZodString>;
     brand: z.ZodOptional<z.ZodString>;
     pack: z.ZodOptional<z.ZodString>;
@@ -235,6 +266,10 @@ export declare const upsertProductSchema: z.ZodObject<{
     netquantity: z.ZodOptional<z.ZodString>;
     numberofitems: z.ZodOptional<z.ZodNumber>;
     itemthickness: z.ZodOptional<z.ZodString>;
+    length: z.ZodOptional<z.ZodNumber>;
+    width: z.ZodOptional<z.ZodNumber>;
+    height: z.ZodOptional<z.ZodNumber>;
+    weight: z.ZodOptional<z.ZodNumber>;
     createddate: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodBigInt]>>;
     modifieddate: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodBigInt]>>;
     isdealoftheday: z.ZodOptional<z.ZodBoolean>;
@@ -248,6 +283,7 @@ export declare const upsertProductSchema: z.ZodObject<{
     fulldescription: z.ZodOptional<z.ZodString>;
     category: z.ZodOptional<z.ZodString>;
     subcategory: z.ZodOptional<z.ZodString>;
+    subsubcategory: z.ZodOptional<z.ZodString>;
     fragnancetype: z.ZodOptional<z.ZodString>;
     brand: z.ZodOptional<z.ZodString>;
     pack: z.ZodOptional<z.ZodString>;
@@ -270,6 +306,10 @@ export declare const upsertProductSchema: z.ZodObject<{
     netquantity: z.ZodOptional<z.ZodString>;
     numberofitems: z.ZodOptional<z.ZodNumber>;
     itemthickness: z.ZodOptional<z.ZodString>;
+    length: z.ZodOptional<z.ZodNumber>;
+    width: z.ZodOptional<z.ZodNumber>;
+    height: z.ZodOptional<z.ZodNumber>;
+    weight: z.ZodOptional<z.ZodNumber>;
     createddate: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodBigInt]>>;
     modifieddate: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodBigInt]>>;
     isdealoftheday: z.ZodOptional<z.ZodBoolean>;
@@ -283,6 +323,7 @@ export declare const upsertProductSchema: z.ZodObject<{
     fulldescription: z.ZodOptional<z.ZodString>;
     category: z.ZodOptional<z.ZodString>;
     subcategory: z.ZodOptional<z.ZodString>;
+    subsubcategory: z.ZodOptional<z.ZodString>;
     fragnancetype: z.ZodOptional<z.ZodString>;
     brand: z.ZodOptional<z.ZodString>;
     pack: z.ZodOptional<z.ZodString>;
@@ -305,6 +346,10 @@ export declare const upsertProductSchema: z.ZodObject<{
     netquantity: z.ZodOptional<z.ZodString>;
     numberofitems: z.ZodOptional<z.ZodNumber>;
     itemthickness: z.ZodOptional<z.ZodString>;
+    length: z.ZodOptional<z.ZodNumber>;
+    width: z.ZodOptional<z.ZodNumber>;
+    height: z.ZodOptional<z.ZodNumber>;
+    weight: z.ZodOptional<z.ZodNumber>;
     createddate: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodBigInt]>>;
     modifieddate: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodBigInt]>>;
     isdealoftheday: z.ZodOptional<z.ZodBoolean>;
@@ -324,6 +369,7 @@ export declare const productQuerySchema: z.ZodObject<{
     name: z.ZodOptional<z.ZodString>;
     category: z.ZodOptional<z.ZodString>;
     subcategory: z.ZodOptional<z.ZodString>;
+    subsubcategory: z.ZodOptional<z.ZodString>;
     fragnancetype: z.ZodOptional<z.ZodString>;
     brand: z.ZodOptional<z.ZodString>;
     pack: z.ZodOptional<z.ZodString>;
@@ -353,6 +399,7 @@ export declare const productQuerySchema: z.ZodObject<{
     name?: string | undefined;
     category?: string | undefined;
     subcategory?: string | undefined;
+    subsubcategory?: string | undefined;
     fragnancetype?: string | undefined;
     brand?: string | undefined;
     pack?: string | undefined;
@@ -384,6 +431,7 @@ export declare const productQuerySchema: z.ZodObject<{
     name?: string | undefined;
     category?: string | undefined;
     subcategory?: string | undefined;
+    subsubcategory?: string | undefined;
     fragnancetype?: string | undefined;
     brand?: string | undefined;
     pack?: string | undefined;

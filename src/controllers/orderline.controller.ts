@@ -51,7 +51,23 @@ export class OrderlineController {
     return reply.code(200).send(response);
   });
 
-  getOrderlineByOrderlineNumber = asyncHandler(async (request: FastifyRequest<{ Params: { orderlinenumber: string } }>, reply: FastifyReply) => {
+  cancelOrderline = asyncHandler(async (request: FastifyRequest<{ Params: OrderlineParams; Body: { reason?: string; additionalData?: Record<string, any> } }>, reply: FastifyReply) => {
+    const { id } = orderlineParamsSchema.parse(request.params);
+    const { reason, additionalData } = request.body || {};
+    
+    // Prepare additional data including the cancellation reason
+    const cancelData = {
+      ...additionalData,
+      ...(reason && { cancellation_reason: reason })
+    };
+    
+    const orderline = await this.orderlineService.updateOrderlineStatus(id, 'cancelled', cancelData);
+    
+    const response = createSuccessResponse('Orderline cancelled successfully', formatEntitiesForAPI([orderline], 'orderline')[0]);
+    return reply.code(200).send(response);
+  });
+  
+  /*getOrderlineByOrderlineNumber = asyncHandler(async (request: FastifyRequest<{ Params: { orderlinenumber: string } }>, reply: FastifyReply) => {
     const { orderlinenumber } = request.params;
     
     const orderline = await this.orderlineService.findByOrderlineNumber(orderlinenumber);
@@ -143,6 +159,8 @@ export class OrderlineController {
     return reply.code(200).send(response);
   });
 
+
+
   upsertOrderline = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const data = upsertOrderlineSchema.parse(request.body);
     
@@ -152,20 +170,6 @@ export class OrderlineController {
     const response = createSuccessResponse(message, formatEntitiesForAPI([orderline], 'orderline')[0]);
     return reply.code(200).send(response);
   });
-
-  cancelOrderline = asyncHandler(async (request: FastifyRequest<{ Params: OrderlineParams; Body: { reason?: string; additionalData?: Record<string, any> } }>, reply: FastifyReply) => {
-    const { id } = orderlineParamsSchema.parse(request.params);
-    const { reason, additionalData } = request.body || {};
-    
-    // Prepare additional data including the cancellation reason
-    const cancelData = {
-      ...additionalData,
-      ...(reason && { cancellation_reason: reason })
-    };
-    
-    const orderline = await this.orderlineService.updateOrderlineStatus(id, 'cancelled', cancelData);
-    
-    const response = createSuccessResponse('Orderline cancelled successfully', formatEntitiesForAPI([orderline], 'orderline')[0]);
-    return reply.code(200).send(response);
-  });
+  */
+ 
 } 

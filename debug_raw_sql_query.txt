@@ -970,3 +970,51 @@ Update query:
         WHERE "id" = $1 
         RETURNING id, invoiceamount, ponumber, invoicedate, invoicenumber, invoiceurl, paymentdata, createddate, modifieddate, balanceamount, iscreditpayment, paymentduedate, invoicestatus, pototal, purchaseorderstatus, transportationcharges, exchangeamount, customdutytaxamount, suppliertype, customdutychallanurl, billofentryurl
       
+Update query: 
+        UPDATE "inventoryusers" 
+        SET "sessiontoken" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, useremail, userpassword, createddate, modifieddate, role, usersphonenumber, firstname, lastname, location, fcmid, sessiontoken, resettoken, resettokenexpires, roleid
+      
+Update query: 
+        UPDATE "inventoryusers" 
+        SET "sessiontoken" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, useremail, userpassword, createddate, modifieddate, role, usersphonenumber, firstname, lastname, location, fcmid, sessiontoken, resettoken, resettokenexpires, roleid
+      
+Update query: 
+        UPDATE "inventoryusers" 
+        SET "sessiontoken" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, useremail, userpassword, createddate, modifieddate, role, usersphonenumber, firstname, lastname, location, fcmid, sessiontoken, resettoken, resettokenexpires, roleid
+      
+Update query: 
+        UPDATE "inventoryusers" 
+        SET "sessiontoken" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, useremail, userpassword, createddate, modifieddate, role, usersphonenumber, firstname, lastname, location, fcmid, sessiontoken, resettoken, resettokenexpires, roleid
+      
+Update query: 
+        UPDATE "inventoryusers" 
+        SET "sessiontoken" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, useremail, userpassword, createddate, modifieddate, role, usersphonenumber, firstname, lastname, location, fcmid, sessiontoken, resettoken, resettokenexpires, roleid
+      
+Update query: 
+        UPDATE "inventoryusers" 
+        SET "sessiontoken" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, useremail, userpassword, createddate, modifieddate, role, usersphonenumber, firstname, lastname, location, fcmid, sessiontoken, resettoken, resettokenexpires, roleid
+      
+Update query: 
+        UPDATE "inventoryusers" 
+        SET "sessiontoken" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, useremail, userpassword, createddate, modifieddate, role, usersphonenumber, firstname, lastname, location, fcmid, sessiontoken, resettoken, resettokenexpires, roleid
+      
+Update query: 
+        UPDATE "inventoryusers" 
+        SET "sessiontoken" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, useremail, userpassword, createddate, modifieddate, role, usersphonenumber, firstname, lastname, location, fcmid, sessiontoken, resettoken, resettokenexpires, roleid
+      

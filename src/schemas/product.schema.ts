@@ -12,11 +12,12 @@ export const createProductSchema = z.object({
   fulldescription: z.string().optional(),
   category: z.string().max(255).optional(),
   subcategory: z.string().max(255).optional(),
+  subsubcategory: z.string().max(255).optional(),
   fragnancetype: z.string().max(255).optional(),
   
   // Brand and packaging
   brand: z.string().max(255).optional(),
-  pack: z.string().max(255).optional(),
+  pack: z.string().max(255).optional(), // Picklist value - validated at runtime against picklist table
   
   // Pricing
   price: z.number().positive('Price must be positive').optional(),
@@ -46,6 +47,14 @@ export const createProductSchema = z.object({
   netquantity: z.string().max(255).optional(),
   numberofitems: z.number().int().min(0).optional(),
   itemthickness: z.string().max(255).optional(),
+  
+  // Product Dimensions & Weight (single unit)
+  // Dimensions in cm - NUMERIC(10,2) - allows null for insert/update
+  length: z.union([z.number().positive('Length must be positive'), z.null()]).optional(),
+  width: z.union([z.number().positive('Width must be positive'), z.null()]).optional(),
+  height: z.union([z.number().positive('Height must be positive'), z.null()]).optional(),
+  // Weight in grams - NUMERIC(10,2) - allows null for insert/update
+  weight: z.union([z.number().positive('Weight must be positive'), z.null()]).optional(),
   
   // Timestamps
   createddate: z.union([z.number(), z.bigint()]).optional(),
@@ -68,11 +77,12 @@ export const updateProductSchema = z.object({
   fulldescription: z.string().optional(),
   category: z.string().max(255).optional(),
   subcategory: z.string().max(255).optional(),
+  subsubcategory: z.string().max(255).optional(),
   fragnancetype: z.string().max(255).optional(),
   
   // Brand and packaging
   brand: z.string().max(255).optional(),
-  pack: z.string().max(255).optional(),
+  pack: z.string().max(255).optional(), // Picklist value - validated at runtime against picklist table
   
   // Pricing
   price: z.number().positive('Price must be positive').optional(),
@@ -102,6 +112,12 @@ export const updateProductSchema = z.object({
   netquantity: z.string().max(255).optional(),
   numberofitems: z.number().int().min(0).optional(),
   itemthickness: z.string().max(255).optional(),
+  
+  // Product Dimensions & Weight (single unit)
+  length: z.number().positive('Length must be positive').optional(),
+  width: z.number().positive('Width must be positive').optional(),
+  height: z.number().positive('Height must be positive').optional(),
+  weight: z.number().positive('Weight must be positive').optional(),
   
   // Timestamps
   createddate: z.union([z.number(), z.bigint()]).optional(),
@@ -126,11 +142,12 @@ export const upsertProductSchema = z.object({
   fulldescription: z.string().optional(),
   category: z.string().max(255).optional(),
   subcategory: z.string().max(255).optional(),
+  subsubcategory: z.string().max(255).optional(),
   fragnancetype: z.string().max(255).optional(),
   
   // Brand and packaging
   brand: z.string().max(255).optional(),
-  pack: z.string().max(255).optional(),
+  pack: z.string().max(255).optional(), // Picklist value - validated at runtime against picklist table
   
   // Pricing
   price: z.number().positive('Price must be positive').optional(),
@@ -160,6 +177,12 @@ export const upsertProductSchema = z.object({
   netquantity: z.string().max(255).optional(),
   numberofitems: z.number().int().min(0).optional(),
   itemthickness: z.string().max(255).optional(),
+  
+  // Product Dimensions & Weight (single unit)
+  length: z.number().positive('Length must be positive').optional(),
+  width: z.number().positive('Width must be positive').optional(),
+  height: z.number().positive('Height must be positive').optional(),
+  weight: z.number().positive('Weight must be positive').optional(),
   
   // Timestamps
   createddate: z.union([z.number(), z.bigint()]).optional(),
@@ -185,9 +208,10 @@ export const productQuerySchema = z.object({
   name: z.string().optional(),
   category: z.string().optional(),
   subcategory: z.string().optional(),
+  subsubcategory: z.string().optional(),
   fragnancetype: z.string().optional(),
   brand: z.string().optional(),
-  pack: z.string().optional(),
+  pack: z.string().optional(), // Picklist value - validated at runtime against picklist table
   productstatus: z.string().optional(),
   minPrice: z.string().optional(),
   maxPrice: z.string().optional(),

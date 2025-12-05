@@ -1,5 +1,5 @@
 import { createPaginationResult, getPrismaSkipTake } from '../utils/pagination.js';
-import { dynamicFindUnique, dynamicCreate, dynamicUpdate, dynamicDelete, dynamicFindManyWithFilters } from '../utils/dynamicDbOperations.js';
+import { dynamicFindUnique, dynamicCreate, dynamicUpdate, dynamicFindManyWithFilters } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
 export class OrderlineService {
     async findMany(filters, page, limit) {
@@ -41,42 +41,6 @@ export class OrderlineService {
         }
         catch (error) {
             logger.error({ error, orderlineId: id }, 'Error in orderline findById operation');
-            throw error;
-        }
-    }
-    async findByOrderlineNumber(orderlinenumber) {
-        try {
-            logger.debug({ orderlinenumber }, 'Starting dynamic orderline findByOrderlineNumber operation');
-            const orderline = await dynamicFindUnique('orderline', { orderlinenumber });
-            if (!orderline) {
-                throw new Error('Orderline not found');
-            }
-            logger.debug({
-                orderlinenumber,
-                availableFields: Object.keys(orderline)
-            }, 'Dynamic orderline findByOrderlineNumber completed');
-            return orderline;
-        }
-        catch (error) {
-            logger.error({ error, orderlinenumber }, 'Error in orderline findByOrderlineNumber operation');
-            throw error;
-        }
-    }
-    async findByOrderId(orderid) {
-        try {
-            logger.debug({ orderid }, 'Starting dynamic orderline findByOrderId operation');
-            const { data: orderlines, total } = await dynamicFindManyWithFilters('orderline', { orderid }, {
-                useAllColumns: true
-            });
-            logger.debug({
-                orderid,
-                orderlineCount: orderlines.length,
-                availableFields: orderlines.length > 0 ? Object.keys(orderlines[0]) : []
-            }, 'Dynamic orderline findByOrderId completed');
-            return orderlines;
-        }
-        catch (error) {
-            logger.error({ error, orderid }, 'Error in orderline findByOrderId operation');
             throw error;
         }
     }
@@ -140,41 +104,6 @@ export class OrderlineService {
             throw error;
         }
     }
-    async delete(id) {
-        try {
-            // Check if orderline exists
-            await this.findById(id);
-            logger.debug({ orderlineId: id }, 'Starting dynamic orderline delete operation');
-            const success = await dynamicDelete('orderline', { id: parseInt(id) });
-            if (!success) {
-                throw new Error('Failed to delete orderline');
-            }
-            logger.info({ orderlineId: id }, 'Dynamic orderline delete completed successfully');
-        }
-        catch (error) {
-            logger.error({ error, orderlineId: id }, 'Error in orderline delete operation');
-            throw error;
-        }
-    }
-    async upsert(data) {
-        try {
-            const { id, ...updateData } = data;
-            if (id) {
-                // Update existing orderline
-                logger.debug({ orderlineId: id, data: updateData }, 'Upserting existing orderline');
-                return this.update(id.toString(), updateData);
-            }
-            else {
-                // Create new orderline
-                logger.debug({ data: updateData }, 'Upserting new orderline');
-                return this.create(updateData);
-            }
-        }
-        catch (error) {
-            logger.error({ error, data }, 'Error in orderline upsert operation');
-            throw error;
-        }
-    }
     async updateOrderlineStatus(id, status, additionalData) {
         try {
             logger.debug({ orderlineId: id, status, additionalData }, 'Starting orderline status update operation');
@@ -228,10 +157,10 @@ export class OrderlineService {
         }
     }
     /**
-     * Adjust product quantities when an orderline is cancelled or returned
-     * - Decrease orderedquantity by the cancelled quantity
-     * - Increase availablequantity by the cancelled quantity
-     */
+    * Adjust product quantities when an orderline is cancelled or returned
+    * - Decrease orderedquantity by the cancelled quantity
+    * - Increase availablequantity by the cancelled quantity
+    */
     async adjustProductQuantitiesOnCancellation(orderline) {
         try {
             const productId = orderline.productid;
@@ -360,29 +289,21 @@ export class OrderlineService {
             // Just log the error and continue
         }
     }
-    async bulkUpdateStatus(orderlineIds, status, additionalData) {
+    async findByOrderId(orderid) {
         try {
-            logger.debug({ orderlineIds, status, additionalData }, 'Starting bulk orderline status update operation');
-            const results = [];
-            for (const id of orderlineIds) {
-                try {
-                    const result = await this.updateOrderlineStatus(id, status, additionalData);
-                    results.push({ success: true, id, data: result });
-                }
-                catch (error) {
-                    logger.error({ error, orderlineId: id }, 'Error updating individual orderline status');
-                    results.push({ success: false, id, error: error.message });
-                }
-            }
-            logger.info({
-                totalUpdates: orderlineIds.length,
-                successful: results.filter(r => r.success).length,
-                failed: results.filter(r => !r.success).length
-            }, 'Bulk orderline status update completed');
-            return results;
+            logger.debug({ orderid }, 'Starting dynamic orderline findByOrderId operation');
+            const { data: orderlines, total } = await dynamicFindManyWithFilters('orderline', { orderid }, {
+                useAllColumns: true
+            });
+            logger.debug({
+                orderid,
+                orderlineCount: orderlines.length,
+                availableFields: orderlines.length > 0 ? Object.keys(orderlines[0]) : []
+            }, 'Dynamic orderline findByOrderId completed');
+            return orderlines;
         }
         catch (error) {
-            logger.error({ error, orderlineIds, status }, 'Error in bulk orderline status update operation');
+            logger.error({ error, orderid }, 'Error in orderline findByOrderId operation');
             throw error;
         }
     }
