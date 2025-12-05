@@ -6,6 +6,7 @@ export declare const createProductSchema: z.ZodObject<{
     fulldescription: z.ZodOptional<z.ZodString>;
     category: z.ZodOptional<z.ZodString>;
     subcategory: z.ZodOptional<z.ZodString>;
+    subsubcategory: z.ZodOptional<z.ZodString>;
     fragnancetype: z.ZodOptional<z.ZodString>;
     brand: z.ZodOptional<z.ZodString>;
     pack: z.ZodOptional<z.ZodString>;
@@ -44,6 +45,7 @@ export declare const createProductSchema: z.ZodObject<{
     fulldescription: z.ZodOptional<z.ZodString>;
     category: z.ZodOptional<z.ZodString>;
     subcategory: z.ZodOptional<z.ZodString>;
+    subsubcategory: z.ZodOptional<z.ZodString>;
     fragnancetype: z.ZodOptional<z.ZodString>;
     brand: z.ZodOptional<z.ZodString>;
     pack: z.ZodOptional<z.ZodString>;
@@ -82,6 +84,7 @@ export declare const createProductSchema: z.ZodObject<{
     fulldescription: z.ZodOptional<z.ZodString>;
     category: z.ZodOptional<z.ZodString>;
     subcategory: z.ZodOptional<z.ZodString>;
+    subsubcategory: z.ZodOptional<z.ZodString>;
     fragnancetype: z.ZodOptional<z.ZodString>;
     brand: z.ZodOptional<z.ZodString>;
     pack: z.ZodOptional<z.ZodString>;
@@ -121,6 +124,7 @@ export declare const updateProductSchema: z.ZodObject<{
     fulldescription: z.ZodOptional<z.ZodString>;
     category: z.ZodOptional<z.ZodString>;
     subcategory: z.ZodOptional<z.ZodString>;
+    subsubcategory: z.ZodOptional<z.ZodString>;
     fragnancetype: z.ZodOptional<z.ZodString>;
     brand: z.ZodOptional<z.ZodString>;
     pack: z.ZodOptional<z.ZodString>;
@@ -159,6 +163,7 @@ export declare const updateProductSchema: z.ZodObject<{
     fulldescription: z.ZodOptional<z.ZodString>;
     category: z.ZodOptional<z.ZodString>;
     subcategory: z.ZodOptional<z.ZodString>;
+    subsubcategory: z.ZodOptional<z.ZodString>;
     fragnancetype: z.ZodOptional<z.ZodString>;
     brand: z.ZodOptional<z.ZodString>;
     pack: z.ZodOptional<z.ZodString>;
@@ -197,6 +202,7 @@ export declare const updateProductSchema: z.ZodObject<{
     fulldescription: z.ZodOptional<z.ZodString>;
     category: z.ZodOptional<z.ZodString>;
     subcategory: z.ZodOptional<z.ZodString>;
+    subsubcategory: z.ZodOptional<z.ZodString>;
     fragnancetype: z.ZodOptional<z.ZodString>;
     brand: z.ZodOptional<z.ZodString>;
     pack: z.ZodOptional<z.ZodString>;
@@ -237,6 +243,7 @@ export declare const upsertProductSchema: z.ZodObject<{
     fulldescription: z.ZodOptional<z.ZodString>;
     category: z.ZodOptional<z.ZodString>;
     subcategory: z.ZodOptional<z.ZodString>;
+    subsubcategory: z.ZodOptional<z.ZodString>;
     fragnancetype: z.ZodOptional<z.ZodString>;
     brand: z.ZodOptional<z.ZodString>;
     pack: z.ZodOptional<z.ZodString>;
@@ -276,6 +283,7 @@ export declare const upsertProductSchema: z.ZodObject<{
     fulldescription: z.ZodOptional<z.ZodString>;
     category: z.ZodOptional<z.ZodString>;
     subcategory: z.ZodOptional<z.ZodString>;
+    subsubcategory: z.ZodOptional<z.ZodString>;
     fragnancetype: z.ZodOptional<z.ZodString>;
     brand: z.ZodOptional<z.ZodString>;
     pack: z.ZodOptional<z.ZodString>;
@@ -315,6 +323,7 @@ export declare const upsertProductSchema: z.ZodObject<{
     fulldescription: z.ZodOptional<z.ZodString>;
     category: z.ZodOptional<z.ZodString>;
     subcategory: z.ZodOptional<z.ZodString>;
+    subsubcategory: z.ZodOptional<z.ZodString>;
     fragnancetype: z.ZodOptional<z.ZodString>;
     brand: z.ZodOptional<z.ZodString>;
     pack: z.ZodOptional<z.ZodString>;
@@ -360,6 +369,7 @@ export declare const productQuerySchema: z.ZodObject<{
     name: z.ZodOptional<z.ZodString>;
     category: z.ZodOptional<z.ZodString>;
     subcategory: z.ZodOptional<z.ZodString>;
+    subsubcategory: z.ZodOptional<z.ZodString>;
     fragnancetype: z.ZodOptional<z.ZodString>;
     brand: z.ZodOptional<z.ZodString>;
     pack: z.ZodOptional<z.ZodString>;
@@ -389,6 +399,7 @@ export declare const productQuerySchema: z.ZodObject<{
     name?: string | undefined;
     category?: string | undefined;
     subcategory?: string | undefined;
+    subsubcategory?: string | undefined;
     fragnancetype?: string | undefined;
     brand?: string | undefined;
     pack?: string | undefined;
@@ -420,6 +431,7 @@ export declare const productQuerySchema: z.ZodObject<{
     name?: string | undefined;
     category?: string | undefined;
     subcategory?: string | undefined;
+    subsubcategory?: string | undefined;
     fragnancetype?: string | undefined;
     brand?: string | undefined;
     pack?: string | undefined;

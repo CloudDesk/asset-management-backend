@@ -32,7 +32,7 @@ export declare class PicklistService {
      * @returns Object with grouped/flat data and metadata
      */
     findManyV2(filters: FilterOptions, groupByFieldname?: boolean, groupByParent?: boolean, sortorder?: 'ASC' | 'DESC', fieldnameOrder?: 'ASC' | 'DESC', limit?: number): Promise<{
-        grouped?: Record<string, any[] | Record<string, any[]>>;
+        grouped?: Record<string, any[] | Record<string, any[] | Record<string, any[]>>>;
         flat?: any[];
         meta: {
             object?: string;

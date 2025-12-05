@@ -10,6 +10,7 @@ export const createProductSchema = z.object({
     fulldescription: z.string().optional(),
     category: z.string().max(255).optional(),
     subcategory: z.string().max(255).optional(),
+    subsubcategory: z.string().max(255).optional(),
     fragnancetype: z.string().max(255).optional(),
     // Brand and packaging
     brand: z.string().max(255).optional(),
@@ -62,6 +63,7 @@ export const updateProductSchema = z.object({
     fulldescription: z.string().optional(),
     category: z.string().max(255).optional(),
     subcategory: z.string().max(255).optional(),
+    subsubcategory: z.string().max(255).optional(),
     fragnancetype: z.string().max(255).optional(),
     // Brand and packaging
     brand: z.string().max(255).optional(),
@@ -113,6 +115,7 @@ export const upsertProductSchema = z.object({
     fulldescription: z.string().optional(),
     category: z.string().max(255).optional(),
     subcategory: z.string().max(255).optional(),
+    subsubcategory: z.string().max(255).optional(),
     fragnancetype: z.string().max(255).optional(),
     // Brand and packaging
     brand: z.string().max(255).optional(),
@@ -165,6 +168,7 @@ export const productQuerySchema = z.object({
     name: z.string().optional(),
     category: z.string().optional(),
     subcategory: z.string().optional(),
+    subsubcategory: z.string().optional(),
     fragnancetype: z.string().optional(),
     brand: z.string().optional(),
     pack: z.string().optional(), // Picklist value - validated at runtime against picklist table
