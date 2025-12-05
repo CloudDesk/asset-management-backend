@@ -9,20 +9,21 @@
 2. [Terminology](#2-terminology)
 3. [Prerequisites](#3-prerequisites)
 4. [Authentication](#4-authentication)
-5. [Warehouse Handling (Autofill Pickup/Return Location)](#5-warehouse-handling-autofill-pickupreturn-location)
-6. [Packaging Templates](#6-packaging-templates)
-7. [Forward Shipment Flow (Seller → Customer)](#7-forward-shipment-flow-seller--customer)
-8. [Reverse Shipment Flow (Customer → Seller – Returns)](#8-reverse-shipment-flow-customer--seller--returns)
-9. [Reverse Shipments with QC (Optional)](#9-reverse-shipments-with-qc-optional)
-10. [Label Download & Storage Flow](#10-label-download--storage-flow)
-11. [Tracking Flow](#11-tracking-flow)
-12. [API Payload Mapping](#12-api-payload-mapping)
-13. [Database Schema](#13-database-schema-recommended)
-14. [Node.js Integration Structure](#14-nodejs-integration-structure)
-15. [UI Flow (Frontend)](#15-ui-flow-frontend)
-16. [Complete Sequence Diagrams](#16-sequence-diagrams)
-17. [Additional API Endpoints (Cancel & Rates)](#17-additional-api-endpoints)
-18. [Final Summary](#18-final-summary)
+5. [API Usage Guide](#5-api-usage-guide)
+6. [Warehouse Handling (Autofill Pickup/Return Location)](#6-warehouse-handling-autofill-pickupreturn-location)
+7. [Packaging Templates](#7-packaging-templates)
+8. [Forward Shipment Flow (Seller → Customer)](#8-forward-shipment-flow-seller--customer)
+9. [Reverse Shipment Flow (Customer → Seller – Returns)](#9-reverse-shipment-flow-customer--seller--returns)
+10. [Reverse Shipments with QC (Optional)](#10-reverse-shipments-with-qc-optional)
+11. [Label Download & Storage Flow](#11-label-download--storage-flow)
+12. [Tracking Flow](#12-tracking-flow)
+13. [API Payload Mapping](#13-api-payload-mapping)
+14. [Database Schema](#14-database-schema-recommended)
+15. [Node.js Integration Structure](#15-nodejs-integration-structure)
+16. [UI Flow (Frontend)](#16-ui-flow-frontend)
+17. [Complete Sequence Diagrams](#17-complete-sequence-diagrams)
+18. [Additional API Endpoints (Cancel & Rates)](#18-additional-api-endpoints)
+19. [Final Summary](#19-final-summary)
 
 ---
 
@@ -452,7 +453,7 @@ Send ONLY ONE of these:
 
 ---
 
-## 7️⃣ Forward Shipment Flow (Seller → Customer)
+## 8️⃣ Forward Shipment Flow (Seller → Customer)
 
 Triggered when order is packed and marked "Ready to Dispatch".
 
@@ -730,7 +731,7 @@ Example: `https://app.elite.ekartlogistics.in/track/500999A3408005`
 
 ---
 
-## 8️⃣ Reverse Shipment Flow (Customer → Seller – Returns)
+## 9️⃣ Reverse Shipment Flow (Customer → Seller – Returns)
 
 Triggered when customer submits a return request.
 
@@ -791,7 +792,7 @@ Triggered when customer submits a return request.
 
 ---
 
-## 9️⃣ Reverse Shipments with QC (Optional)
+## 🔟 Reverse Shipments with QC (Optional)
 
 Ekart handles QC physically during pickup.
 
@@ -855,7 +856,7 @@ Delivery agent:
 
 ---
 
-## 🔟 Label Download & Storage Flow
+## 1️⃣1️⃣ Label Download & Storage Flow
 
 ### **Step 1 — Download Label**
 
@@ -912,7 +913,7 @@ Save URL in orders/shipments table.
 
 ---
 
-## 1️⃣1️⃣ Tracking Flow
+## 1️⃣2️⃣ Tracking Flow
 
 **Endpoint:** `GET https://app.elite.ekartlogistics.in/api/v1/track/{tracking_id}`
 
@@ -992,7 +993,7 @@ Certain statuses can have an associated `ndrStatus` with possible `ndrActions`. 
 
 ---
 
-## 1️⃣2️⃣ API Payload Mapping
+## 1️⃣3️⃣ API Payload Mapping
 
 | Inventory Field | Ekart Field | Notes |
 |----------------|-------------|-------|
@@ -1063,7 +1064,7 @@ Instead of using `products_desc`, you can send detailed line items:
 
 ---
 
-## 1️⃣3️⃣ Database Schema (Recommended)
+## 1️⃣4️⃣ Database Schema (Recommended)
 
 ### **shipments Table**
 
@@ -1123,7 +1124,7 @@ Instead of using `products_desc`, you can send detailed line items:
 
 ---
 
-## 1️⃣4️⃣ Node.js Integration Structure
+## 1️⃣5️⃣ Node.js Integration Structure
 
 ### **Recommended File Structure:**
 
@@ -1236,7 +1237,7 @@ class EkartService {
 
 ---
 
-## 1️⃣6️⃣ Sequence Diagrams
+## 1️⃣7️⃣ Sequence Diagrams
 
 ### **Forward Shipment Flow:**
 
@@ -1274,7 +1275,7 @@ System → Finance: Initiate refund
 
 ---
 
-## 1️⃣7️⃣ Additional API Endpoints
+## 1️⃣8️⃣ Additional API Endpoints
 
 ### **Cancel Shipment**
 
@@ -1313,6 +1314,8 @@ System → Finance: Initiate refund
 ### **Get Shipping Rates**
 
 **Endpoint:** `POST https://app.elite.ekartlogistics.in/data/pricing/estimate`
+
+**Note:** This endpoint is also available via backend route: `POST /v1/ekart/shipments/rates` (see Section 5.8)
 
 **Payload:**
 
@@ -1364,7 +1367,7 @@ System → Finance: Initiate refund
 
 ---
 
-## 1️⃣8️⃣ Final Summary
+## 1️⃣9️⃣ Final Summary
 
 ### ✔ **Forward shipments:**
 

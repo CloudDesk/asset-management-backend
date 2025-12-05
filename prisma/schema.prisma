@@ -396,6 +396,9 @@ model orderline {
   product_discount_amount  Decimal? @db.Decimal(10,2) @default(0)
   promotion_discount_amount Decimal? @db.Decimal(10,2) @default(0)
   shipping_cost            Decimal? @db.Decimal(10,2) @default(0)
+  // EKART Shipment Information (shared with order)
+  tracking_id             String?   @db.VarChar(500)
+  shipdate                BigInt?
   address         address?  @relation(fields: [addressid], references: [id], onDelete: NoAction, onUpdate: NoAction)
   product         Product?  @relation(fields: [productid], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users           users?    @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -437,6 +440,21 @@ model orders {
   tax_amount            Decimal?                  @db.Decimal(10,2) @default(0)
   paymentfaileddate     BigInt?
   searchtext            Unsupported("tsvector")?
+  // Payment Mode & COD Tracking
+  mode                        String?   @db.VarChar(50)  // 'cod' | 'phonepe'
+  cod_payment_received_date   BigInt?                    // When COD payment collected (epoch milliseconds)
+  cod_transaction_reference   String?   @db.VarChar(500) // EKART/payment gateway transaction reference
+  cod_amount                  Decimal?  @db.Decimal(10,2) // COD amount for verification and reconciliation
+  // EKART Shipment Information
+  tracking_id           String?                   @db.VarChar(500)
+  vendor                String?                   @db.VarChar(100) @default("EKART")
+  barcodes              Json?
+  label_url             String?                   @db.VarChar(1000)
+  public_tracking_link  String?                   @db.VarChar(1000)
+  shipment_created_at   BigInt?
+  label_downloaded_at   BigInt?
+  label_printed_at      BigInt?
+  shipdate              BigInt?
   orderline             orderline[]
   address               address?                 @relation(fields: [addressid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_addressid_orders")
   transaction           transaction?             @relation(fields: [transactionid], references: [transactionid], onDelete: Cascade, onUpdate: NoAction, map: "fk_transactionid")

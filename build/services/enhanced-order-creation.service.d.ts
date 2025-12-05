@@ -28,12 +28,21 @@ export declare class EnhancedOrderCreationService {
             paymentfaileddate: bigint | null;
             evaluation_id: string | null;
             shipping_cost: import("@prisma/client/runtime/library").Decimal | null;
+            tracking_id: string | null;
+            shipdate: bigint | null;
             transactionid: string | null;
             orderprocessingtime: bigint | null;
             ispaymentsucceed: boolean | null;
             promotion_discount_total: import("@prisma/client/runtime/library").Decimal | null;
             original_total: import("@prisma/client/runtime/library").Decimal | null;
             tax_amount: import("@prisma/client/runtime/library").Decimal | null;
+            vendor: string | null;
+            barcodes: import("@prisma/client/runtime/library").JsonValue | null;
+            label_url: string | null;
+            public_tracking_link: string | null;
+            shipment_created_at: bigint | null;
+            label_downloaded_at: bigint | null;
+            label_printed_at: bigint | null;
         };
         orderlines: {
             id: number;
@@ -68,6 +77,8 @@ export declare class EnhancedOrderCreationService {
             product_discount_amount: import("@prisma/client/runtime/library").Decimal | null;
             promotion_discount_amount: import("@prisma/client/runtime/library").Decimal | null;
             shipping_cost: import("@prisma/client/runtime/library").Decimal | null;
+            tracking_id: string | null;
+            shipdate: bigint | null;
         }[];
         promotionBreakdown: {
             totalPromotionDiscount: number;
@@ -132,12 +143,21 @@ export declare class EnhancedOrderCreationService {
             paymentfaileddate: bigint | null;
             evaluation_id: string | null;
             shipping_cost: import("@prisma/client/runtime/library").Decimal | null;
+            tracking_id: string | null;
+            shipdate: bigint | null;
             transactionid: string | null;
             orderprocessingtime: bigint | null;
             ispaymentsucceed: boolean | null;
             promotion_discount_total: import("@prisma/client/runtime/library").Decimal | null;
             original_total: import("@prisma/client/runtime/library").Decimal | null;
             tax_amount: import("@prisma/client/runtime/library").Decimal | null;
+            vendor: string | null;
+            barcodes: import("@prisma/client/runtime/library").JsonValue | null;
+            label_url: string | null;
+            public_tracking_link: string | null;
+            shipment_created_at: bigint | null;
+            label_downloaded_at: bigint | null;
+            label_printed_at: bigint | null;
         };
         evaluation: {
             status: string | null;

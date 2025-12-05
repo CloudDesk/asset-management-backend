@@ -117,7 +117,8 @@ export class OrdersService {
             order.id,
             data.orderItems,
             order.orderid,
-            currentTimestamp
+            currentTimestamp,
+            data.mode // ✅ Pass mode for correct orderline status
           );
         } else {
           logger.info({
@@ -130,7 +131,8 @@ export class OrdersService {
             data.productid,
             data,
             order.orderid,
-            currentTimestamp
+            currentTimestamp,
+            data.mode // ✅ Pass mode for correct orderline status
           );
         }
 
@@ -165,9 +167,14 @@ export class OrdersService {
     productIds: number[],
     orderData: any,
     orderidString: string,
-    currentTime: number
+    currentTime: number,
+    mode?: string // ✅ Optional mode parameter for correct orderline status
   ) {
     const orderlines = [];
+    
+    // ✅ FIX: COD orderlines should start with order_confirmed, Prepaid with payment_completed
+    const isCodOrder = mode === 'cod';
+    const defaultStatus = isCodOrder ? 'order_confirmed' : 'payment_completed';
     
     for (let i = 0; i < productIds.length; i++) {
       const productId = productIds[i];
@@ -182,7 +189,7 @@ export class OrdersService {
         orderamount: orderData.orderamount || null,
         quantity: orderData.quantity || 1, // Default quantity per line
         merchanttransactionid: orderData.merchanttransactionid || null,
-        orderstatus: orderData.orderstatus || 'order_processing',
+        orderstatus: orderData.orderstatus || defaultStatus, // ✅ COD: order_confirmed, Prepaid: payment_completed
         uniqueordderid: orderidString, // Use the string orderid
         deliveryfrom: orderData.deliveryfrom || null,
         createddate: currentTime,
@@ -221,7 +228,8 @@ export class OrdersService {
     orderId: number,
     orderItems: any[],
     orderidString: string,
-    currentTime: number
+    currentTime: number,
+    mode?: string // ✅ Optional mode parameter for correct orderline status
   ) {
     const orderlines = [];
     
@@ -242,6 +250,10 @@ export class OrdersService {
     for (let i = 0; i < orderItems.length; i++) {
       const orderItem = orderItems[i];
       
+      // ✅ FIX: COD orderlines should start with order_confirmed, Prepaid with payment_completed
+      const isCodOrder = mode === 'cod';
+      const orderlineStatus = isCodOrder ? 'order_confirmed' : 'payment_completed';
+      
       const orderlineData = {
         orderid: orderId, // Use the database ID, not the string orderid
         productid: orderItem.productid,
@@ -253,7 +265,7 @@ export class OrdersService {
         quantity: parseInt(orderItem.quantity?.toString() || '1') || 1,
         productname: orderItem.productname || null,
         productcategory: orderItem.productcategory || null,
-        orderstatus: 'payment_completed',
+        orderstatus: orderlineStatus, // ✅ COD: order_confirmed, Prepaid: payment_completed
         uniqueordderid: orderidString, // Use the string orderid
         createddate: currentTime,
         modifieddate: currentTime,
@@ -348,111 +360,352 @@ export class OrdersService {
   }
  
 
-/*
-  async findByOrderId(orderid: string) {
+  /**
+   * Recalculate order status based on all orderline statuses
+   * This automatically updates order status history
+   */
+  async recalculateOrderStatus(orderId: number): Promise<void> {
     try {
-      logger.debug({ orderid }, 'Starting dynamic orders findByOrderId operation');
+      logger.debug({ orderId }, 'Starting order status recalculation');
 
-      const order = await dynamicFindUnique('orders', { orderid });
+      // Get all orderlines for this order
+      const { data: orderlines } = await dynamicFindManyWithFilters('orderline', {
+        orderid: orderId.toString()
+      }, { useAllColumns: true });
 
-      if (!order) {
-        throw new Error('Order not found');
+      if (!orderlines || orderlines.length === 0) {
+        logger.warn({ orderId }, 'No orderlines found for order');
+        return;
       }
 
-      logger.debug({ 
-        orderid, 
-        availableFields: Object.keys(order) 
-      }, 'Dynamic orders findByOrderId completed');
+      const orderlineStatuses = orderlines.map(ol => ol.orderstatus);
 
-      return order;
+      // Calculate new order status based on aggregation rules
+      let newOrderStatus: string;
+
+      // Check for cancellation scenarios first
+      const cancelledCount = orderlineStatuses.filter(s => s === 'cancelled').length;
+      const totalCount = orderlineStatuses.length;
+
+      if (cancelledCount === totalCount) {
+        newOrderStatus = 'cancelled';
+      } else if (cancelledCount > 0) {
+        newOrderStatus = 'partially_cancelled';
+      } else {
+        // Check for return scenarios
+        const returnedCount = orderlineStatuses.filter(s => s === 'returned').length;
+        
+        if (returnedCount === totalCount) {
+          newOrderStatus = 'returned';
+        } else if (returnedCount > 0) {
+          newOrderStatus = 'partially_returned';
+        } else {
+          // All orderlines have same status
+          const uniqueStatuses = [...new Set(orderlineStatuses)];
+          
+          if (uniqueStatuses.length === 1) {
+            newOrderStatus = uniqueStatuses[0];
+          } else {
+            // Mixed statuses - use priority ladder (lowest progress stage)
+            const statusPriority = [
+              'order_placed',
+              'payment_completed',
+              'order_confirmed',
+              'packed',
+              'ready_for_dispatch',
+              'shipped',
+              'in_transit',
+              'out_for_delivery',
+              'delivered',
+              'cod_payment_received',
+              'cancelled',
+              'returned',
+              'rto_initiated',
+              'rto_delivered'
+            ];
+
+            // Find the lowest priority status
+            let lowestPriority = 999;
+            let lowestStatus = uniqueStatuses[0];
+
+            for (const status of uniqueStatuses) {
+              const priority = statusPriority.indexOf(status);
+              if (priority !== -1 && priority < lowestPriority) {
+                lowestPriority = priority;
+                lowestStatus = status;
+              }
+            }
+
+            newOrderStatus = lowestStatus;
+          }
+        }
+      }
+
+      // Get current order to check if status changed
+      const currentOrder = await this.findById(orderId);
+      const previousStatus = currentOrder.orderstatus;
+
+      // Only update if status changed
+      if (previousStatus !== newOrderStatus) {
+        // Update status history for order
+        const existingHistory = currentOrder.status_history || [];
+        const historyEntry: any = {
+          previous_status: previousStatus,
+          new_status: newOrderStatus,
+          changed_date: Date.now(),
+          source: 'system' // Auto-calculated from orderlines
+        };
+        const updatedHistory = [...existingHistory, historyEntry];
+
+        // Update order with new status and history
+        await dynamicUpdate('orders', { id: orderId }, {
+          orderstatus: newOrderStatus,
+          status_history: updatedHistory,
+          modifieddate: Date.now()
+        });
+
+        logger.info({
+          orderId,
+          previousStatus,
+          newOrderStatus,
+          orderlineStatuses
+        }, 'Order status recalculated and history updated');
+      }
     } catch (error) {
-      logger.error({ error, orderid }, 'Error in orders findByOrderId operation');
+      logger.error({ error, orderId }, 'Error recalculating order status');
       throw error;
     }
   }
-    */
 
-
-/*
-  async createFromCartItems(cartItems: any[]) {
+  /**
+   * Find order by tracking ID
+   */
+  async findByTrackingId(trackingId: string) {
     try {
-      logger.debug({ cartItems, itemCount: cartItems.length }, 'Starting order creation from cart items');
+      logger.debug({ trackingId }, 'Finding order by tracking ID');
 
-      if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
-        throw new Error('Cart items array is required and cannot be empty');
+      const { data: orders } = await dynamicFindManyWithFilters('orders', {
+        tracking_id: trackingId
+      }, { useAllColumns: true });
+
+      if (!orders || orders.length === 0) {
+        return null;
       }
 
-      // Calculate totals from cart items
-      const totalOrderAmount = cartItems.reduce((sum, item) => sum + (item.orderamount || 0), 0);
-      const totalProductAmount = cartItems.reduce((sum, item) => sum + (item.productamount || 0), 0);
-      const totalDiscountAmount = cartItems.reduce((sum, item) => sum + (item.discountamount || 0), 0);
-      const totalQuantity = cartItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
-      const productIds = cartItems.map(item => item.productid);
-
-      // Use data from first item for common order fields
-      const firstItem = cartItems[0];
-      const currentTimestamp = Date.now();
-      
-      // Generate unique orderid
-      const orderid = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-      // Create order record with aggregated data
-      const orderData = {
-        userid: firstItem.userid,
-        addressid: firstItem.addressid,
-        orderamount: totalOrderAmount,
-        orderid: orderid,
-        orderstatus: 'order_processing',
-        quantity: totalQuantity,
-        productamount: totalProductAmount,
-        discountamount: totalDiscountAmount,
-        ispaymentsucceed: false,
-        productid: productIds,
-        createddate: currentTimestamp,
-        modifieddate: currentTimestamp
-      };
-
-      // Create the order first
-      const order = await dynamicCreate('orders', orderData);
-
-      if (!order) {
-        throw new Error('Failed to create order - no valid fields provided');
-      }
-
-      logger.info({ 
-        orderId: order.id,
-        cartItems: cartItems.length,
-        totalAmount: totalOrderAmount
-      }, 'Creating orderlines for cart items');
-
-      // Create orderlines with proper error handling
-      const orderlineResults = await this.createOrderlinesFromCartItems(
-        order.id,
-        cartItems,
-        order.orderid,
-        currentTimestamp
-      );
-
-      logger.info({ 
-        orderId: order.id, 
-        orderid: order.orderid,
-        createdOrderlines: orderlineResults.length,
-        totalCartItems: cartItems.length
-      }, 'Order and orderlines creation from cart completed');
-
-      // Return order with orderlines info
-      return {
-        ...order,
-        orderlines: orderlineResults
-      };
+      return orders[0]; // Return first match
     } catch (error) {
-      logger.error({ error, cartItems }, 'Error in order creation from cart items');
+      logger.error({ error, trackingId }, 'Error finding order by tracking ID');
       throw error;
     }
-  }*/
+  }
 
- 
-/*
+  /**
+   * Find order by order number (orderid field)
+   */
+  async findByOrderNumber(orderNumber: string) {
+    try {
+      logger.debug({ orderNumber }, 'Finding order by order number');
+
+      const order = await dynamicFindUnique('orders', { orderid: orderNumber });
+
+      if (!order) {
+        return null;
+      }
+
+      return order;
+    } catch (error) {
+      logger.error({ error, orderNumber }, 'Error finding order by order number');
+      throw error;
+    }
+  }
+
+  /**
+   * Mark order as ready for dispatch
+   */
+  async markReadyForDispatch(orderId: number, inventoryUserId: number): Promise<any> {
+    try {
+      logger.info({ orderId, inventoryUserId }, 'Marking order as ready for dispatch');
+
+      const { OrderlineService } = await import('./orderline.service.js');
+      const orderlineService = new OrderlineService();
+
+      // Get all orderlines for this order
+      const { data: orderlines } = await orderlineService.findMany(
+        { orderid: orderId.toString() },
+        1,
+        1000
+      );
+
+      if (!orderlines || orderlines.length === 0) {
+        throw new Error('No orderlines found for this order');
+      }
+
+      // Update all orderlines to ready_for_dispatch
+      for (const orderline of orderlines) {
+        await orderlineService.updateOrderlineStatus(
+          orderline.id.toString(),
+          'ready_for_dispatch',
+          {
+            source: 'inventoryuser',
+            inventory_user_id: inventoryUserId
+          }
+        );
+      }
+
+      // Recalculate order status (should become ready_for_dispatch)
+      await this.recalculateOrderStatus(orderId);
+
+      const order = await this.findById(orderId);
+      logger.info({ orderId, orderStatus: order.orderstatus }, 'Order marked as ready for dispatch');
+
+      return order;
+    } catch (error) {
+      logger.error({ error, orderId, inventoryUserId }, 'Error marking order as ready for dispatch');
+      throw error;
+    }
+  }
+
+  /**
+   * Mark order as shipped (after label printed)
+   */
+  async markShipped(orderId: number, inventoryUserId: number): Promise<any> {
+    try {
+      logger.info({ orderId, inventoryUserId }, 'Marking order as shipped');
+
+      const order = await this.findById(orderId);
+      if (!order.tracking_id) {
+        throw new Error('Shipment not created yet. Please create EKART shipment first.');
+      }
+
+      const { OrderlineService } = await import('./orderline.service.js');
+      const orderlineService = new OrderlineService();
+      const currentTimestamp = Date.now();
+
+      // Get all orderlines for this order
+      const { data: orderlines } = await orderlineService.findMany(
+        { orderid: orderId.toString() },
+        1,
+        1000
+      );
+
+      if (!orderlines || orderlines.length === 0) {
+        throw new Error('No orderlines found for this order');
+      }
+
+      // Update all orderlines to shipped
+      for (const orderline of orderlines) {
+        await orderlineService.updateOrderlineStatus(
+          orderline.id.toString(),
+          'shipped',
+          {
+            shipdate: currentTimestamp,
+            source: 'inventoryuser',
+            inventory_user_id: inventoryUserId
+          }
+        );
+      }
+
+      // Update order
+      await dynamicUpdate('orders', { id: orderId }, {
+        shipdate: currentTimestamp,
+        label_printed_at: currentTimestamp,
+        modifieddate: Date.now()
+      });
+
+      // Recalculate order status (should become shipped)
+      await this.recalculateOrderStatus(orderId);
+
+      const updatedOrder = await this.findById(orderId);
+      logger.info({ orderId, orderStatus: updatedOrder.orderstatus }, 'Order marked as shipped');
+
+      return updatedOrder;
+    } catch (error) {
+      logger.error({ error, orderId, inventoryUserId }, 'Error marking order as shipped');
+      throw error;
+    }
+  }
+
+  /**
+   * Update order status
+   */
+  async updateOrderStatus(id: string, status: string, additionalData?: Record<string, any>) {
+    try {
+      logger.debug({ orderId: id, status, additionalData }, 'Starting orders status update operation');
+
+      // Get current order
+      const currentOrder = await this.findById(Number(id));
+      const previousStatus = currentOrder.orderstatus;
+
+      // Prepare status history entry
+      const existingHistory = currentOrder.status_history || [];
+      const historyEntry: any = {
+        previous_status: previousStatus,
+        new_status: status,
+        changed_date: Date.now(),
+        source: additionalData?.source || 'system'
+      };
+      
+      // Add inventory_user_id if source is inventoryuser
+      if (historyEntry.source === 'inventoryuser' && additionalData?.inventory_user_id) {
+        historyEntry.inventory_user_id = additionalData.inventory_user_id;
+      }
+      
+      const updatedHistory = [...existingHistory, historyEntry];
+
+      const updateData: Record<string, any> = {
+        orderstatus: status,
+        status_history: updatedHistory,
+        modifieddate: Date.now(),
+        ...additionalData
+      };
+
+      // Set specific date fields based on status
+      const currentTimestamp = Date.now();
+      switch (status.toLowerCase()) {
+        case 'delivered':
+          updateData.delivereddate = currentTimestamp;
+          break;
+        case 'cancelled':
+          updateData.cancelleddate = currentTimestamp;
+          break;
+        case 'returned':
+          updateData.returneddate = currentTimestamp;
+          break;
+        case 'dispatched':
+          updateData.dispatcheddate = currentTimestamp;
+          break;
+        case 'ready_to_dispatch':
+        case 'ready_for_dispatch':
+          updateData.readytodispatchdate = currentTimestamp;
+          break;
+        case 'payment_failed':
+          updateData.paymentfaileddate = currentTimestamp;
+          updateData.ispaymentsucceed = false;
+          break;
+        case 'payment_success':
+        case 'payment_completed':
+          updateData.ispaymentsucceed = true;
+          break;
+      }
+
+      const order = await dynamicUpdate('orders', { id: parseInt(id) }, updateData);
+
+      logger.info({ 
+        orderId: id, 
+        status,
+        orderid: order.orderid
+      }, 'Orders status update completed');
+
+      return order;
+    } catch (error) {
+      logger.error({ error, orderId: id, status }, 'Error in orders status update operation');
+      throw error;
+    }
+  }
+
+  /**
+   * Update order (generic update method)
+   */
   async update(id: string, data: UpdateOrdersInput & Record<string, any>) {
     try {
       // Check if order exists
@@ -483,148 +736,4 @@ export class OrdersService {
       throw error;
     }
   }
-
-  async delete(id: string) {
-    try {
-      // Check if order exists
-      await this.findById(Number(id));
-
-      logger.debug({ orderId: id }, 'Starting dynamic orders delete operation');
-
-      const success = await dynamicDelete('orders', { id: parseInt(id) });
-
-      if (!success) {
-        throw new Error('Failed to delete order');
-      }
-
-      logger.info({ orderId: id }, 'Dynamic orders delete completed successfully');
-    } catch (error) {
-      logger.error({ error, orderId: id }, 'Error in orders delete operation');
-      throw error;
-    }
-  }
-
-  async upsert(data: UpsertOrdersInput & Record<string, any>) {
-    try {
-      const { id, ...updateData } = data;
-
-      if (id) {
-        // Update existing order
-        logger.debug({ orderId: id, data: updateData }, 'Upserting existing order');
-        return this.update(id.toString(), updateData);
-      } else {
-        // Create new order
-        logger.debug({ data: updateData }, 'Upserting new order');
-        return this.create(updateData);
-      }
-    } catch (error) {
-      logger.error({ error, data }, 'Error in orders upsert operation');
-      throw error;
-    }
-  }
-      async createOrderlinesFromCartItems(
-    orderId: number,
-    cartItems: any[],
-    orderidString: string,
-    currentTime: number
-  ) {
-    const orderlines = [];
-    
-    for (let i = 0; i < cartItems.length; i++) {
-      const item = cartItems[i];
-      
-      const orderlineData = {
-        orderid: orderId, // Use the database ID, not the string orderid
-        productid: item.productid,
-        userid: item.userid || null,
-        addressid: item.addressid || null,
-        productamount: item.productamount || null,
-        discountamount: item.discountamount || null,
-        orderamount: item.orderamount || null,
-        quantity: item.quantity || 1,
-        productname: item.productname || null,
-        productcategory: item.productcategory || null,
-        orderstatus: 'order_processing',
-        uniqueordderid: orderidString, // Use the string orderid
-        createddate: currentTime,
-        modifieddate: currentTime
-      };
-
-      try {
-        const orderline = await dynamicCreate('orderline', orderlineData);
-        if (orderline) {
-          orderlines.push(orderline);
-          logger.debug({ 
-            orderlineId: orderline.id, 
-            orderlineNumber: orderline.orderlinenumber,
-            productId: item.productid,
-            productName: item.productname
-          }, 'Orderline created successfully from cart item');
-        }
-      } catch (orderlineError: any) {
-        logger.error({ 
-          error: orderlineError, 
-          orderlineData, 
-          cartItem: item 
-        }, 'Failed to create orderline for cart item');
-        // Continue with other orderlines even if one fails
-      }
-    }
-
-    return orderlines;
-  }
-*/
- /* 
- async updateOrderStatus(id: string, status: string, additionalData?: Record<string, any>) {
-    try {
-      logger.debug({ orderId: id, status, additionalData }, 'Starting orders status update operation');
-
-      const updateData: Record<string, any> = {
-        orderstatus: status,
-        modifieddate: Date.now(),
-        ...additionalData
-      };
-
-      // Set specific date fields based on status
-      const currentTimestamp = Date.now();
-      switch (status.toLowerCase()) {
-        case 'delivered':
-          updateData.delivereddate = currentTimestamp;
-          break;
-        case 'cancelled':
-          updateData.cancelleddate = currentTimestamp;
-          break;
-        case 'returned':
-          updateData.returneddate = currentTimestamp;
-          break;
-        case 'dispatched':
-          updateData.dispatcheddate = currentTimestamp;
-          break;
-        case 'ready_to_dispatch':
-          updateData.readytodispatchdate = currentTimestamp;
-          break;
-        case 'payment_failed':
-          updateData.paymentfaileddate = currentTimestamp;
-          updateData.ispaymentsucceed = false;
-          break;
-        case 'payment_success':
-          updateData.ispaymentsucceed = true;
-          break;
-      }
-
-      const order = await this.update(id, updateData);
-
-      logger.info({ 
-        orderId: id, 
-        status,
-        orderid: order.orderid
-      }, 'Orders status update completed');
-
-      return order;
-    } catch (error) {
-      logger.error({ error, orderId: id, status }, 'Error in orders status update operation');
-      throw error;
-    }
-  }*/
-
-  } 
+} 
