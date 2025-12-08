@@ -7283,3 +7283,27 @@ Values: [
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiaGFyaXNoQG1haWwuY29tIiwicm9sZUlkIjozLCJpYXQiOjE3NjUxNzI5MzksImV4cCI6MTc2NTc3NzczOSwiYXVkIjoiYXNzZXQtbWFuYWdlbWVudC1mcm9udGVuZCIsImlzcyI6ImFzc2V0LW1hbmFnZW1lbnQtYmFja2VuZCJ9.XMmISn0HFd3ftPWRM2Hl20h54srAJfMwzZtINuVinq8",
   1765172939
 ]
+Values: [
+  200,
+  "ready_for_dispatch",
+  "[{\"source\":\"phonepe\",\"new_status\":\"payment_completed\",\"changed_date\":1765186105363,\"previous_status\":\"order_placed\",\"is_active\":false},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765187363988,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  1765187364
+]
+Values: [
+  151,
+  "ready_for_dispatch",
+  "[{\"source\":\"phonepe\",\"new_status\":\"payment_completed\",\"changed_date\":1765186103209,\"previous_status\":\"order_placed\",\"is_active\":false},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765187367904,\"source\":\"system\",\"is_active\":true}]",
+  1765187367
+]
+Values: [
+  201,
+  "ready_for_dispatch",
+  "[{\"source\":\"system\",\"new_status\":\"order_confirmed\",\"changed_date\":1765186201240,\"previous_status\":\"order_placed\",\"is_active\":false},{\"previous_status\":\"order_confirmed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765187605328,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  1765187605
+]
+Values: [
+  152,
+  "ready_for_dispatch",
+  "[{\"source\":\"system\",\"new_status\":\"order_confirmed\",\"changed_date\":1765186199084,\"previous_status\":\"order_placed\",\"is_active\":false},{\"previous_status\":\"order_confirmed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765187607984,\"source\":\"system\",\"is_active\":true}]",
+  1765187607
+]

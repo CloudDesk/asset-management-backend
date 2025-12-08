@@ -2533,11 +2533,13 @@ export class PhonePeController {
       const initialOrderStatus = isCodOrder ? "order_confirmed" : "payment_completed";
       
       // Initialize status_history with first entry (JSON.stringify for JSONB column)
+      // is_active: true for the current/latest entry, false for all previous entries
       const initialStatusHistory = JSON.stringify([{
         previous_status: "order_placed",
         new_status: initialOrderStatus,
         changed_date: currentTime,
-        source: isCodOrder ? "system" : "phonepe"
+        source: isCodOrder ? "system" : "phonepe",
+        is_active: true
       }]);
       
       const orderData = {

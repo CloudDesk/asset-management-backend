@@ -240,11 +240,20 @@ export class OrderlineService {
       const existingHistory = Array.isArray(currentOrderline.status_history) 
         ? currentOrderline.status_history 
         : (typeof currentOrderline.status_history === 'string' ? JSON.parse(currentOrderline.status_history) : []);
+      
+      // Set all existing entries to is_active: false
+      const deactivatedHistory = existingHistory.map((entry: any) => ({
+        ...entry,
+        is_active: false
+      }));
+      
+      // New entry with is_active: true
       const historyEntry: any = {
         previous_status: previousStatus,
         new_status: status,
         changed_date: Date.now(),
-        source: source
+        source: source,
+        is_active: true
       };
       
       // Add inventory_user_id if source is inventoryuser (REQUIRED)
@@ -255,7 +264,7 @@ export class OrderlineService {
         historyEntry.inventory_user_id = inventoryUserId;
       }
       
-      const updatedHistory = [...existingHistory, historyEntry];
+      const updatedHistory = [...deactivatedHistory, historyEntry];
 
       const updateData: Record<string, any> = {
         orderstatus: status,
