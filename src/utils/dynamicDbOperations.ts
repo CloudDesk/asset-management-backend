@@ -1384,7 +1384,7 @@ export async function dynamicBulkCreate(
           // Only include columns that are in our filtered columns list
           if (columns.includes(key)) {
             // Handle JSON fields properly for PostgreSQL
-            if ((key === 'paymentdata' || key === 'items' || key === 'content' || key === 'conditions' || key === 'action') && value !== null && value !== undefined) {
+            if ((key === 'paymentdata' || key === 'items' || key === 'content' || key === 'conditions' || key === 'action' || key === 'status_history' || key === 'barcodes') && value !== null && value !== undefined) {
               rawData[key] = typeof value === 'string' ? value : JSON.stringify(value);
             } else {
               rawData[key] = value;
@@ -1422,8 +1422,8 @@ export async function dynamicBulkCreate(
         const value = record[col];
         
         // Handle JSON fields with explicit casting
-        if ((col === 'paymentdata' || col === 'items' || col === 'conditions' || col === 'action') && value !== null && value !== undefined) {
-          recordValues.push(value);
+        if ((col === 'paymentdata' || col === 'items' || col === 'conditions' || col === 'action' || col === 'status_history' || col === 'barcodes') && value !== null && value !== undefined) {
+          recordValues.push(typeof value === 'string' ? value : JSON.stringify(value));
         } else {
           recordValues.push(value);
         }
@@ -1431,7 +1431,7 @@ export async function dynamicBulkCreate(
       
       const placeholders = recordValues.map((_, index) => {
         const col = columns[index];
-        if ((col === 'paymentdata' || col === 'items' || col === 'conditions' || col === 'action') && recordValues[index] !== null && recordValues[index] !== undefined) {
+        if ((col === 'paymentdata' || col === 'items' || col === 'conditions' || col === 'action' || col === 'status_history' || col === 'barcodes') && recordValues[index] !== null && recordValues[index] !== undefined) {
           return `$${allValues.length + index + 1}::jsonb`;
         }
         return `$${allValues.length + index + 1}`;
@@ -1516,7 +1516,7 @@ export async function dynamicCreate(
     for (const [key, value] of Object.entries(filteredData)) {
       if (availableColumns.includes(key)) {
         // Handle JSON fields properly for PostgreSQL
-        if ((key === 'paymentdata' || key === 'items' || key === 'content' || key === 'conditions' || key === 'action') && value !== null && value !== undefined) {
+        if ((key === 'paymentdata' || key === 'items' || key === 'content' || key === 'conditions' || key === 'action' || key === 'status_history' || key === 'barcodes') && value !== null && value !== undefined) {
           // For JSONB fields with explicit casting, stringify the JSON
           rawData[key] = typeof value === 'string' ? value : JSON.stringify(value);
         } else {
@@ -1545,7 +1545,7 @@ export async function dynamicCreate(
     
     // Build placeholders with special handling for JSON fields
     const placeholders = columns.map((col, index) => {
-      if (col === 'paymentdata' || col === 'items' || col === 'conditions' || col === 'action') {
+      if (col === 'paymentdata' || col === 'items' || col === 'conditions' || col === 'action' || col === 'status_history' || col === 'barcodes') {
         return `$${index + 1}::jsonb`;
       }
       return `$${index + 1}`;
@@ -1684,7 +1684,7 @@ export async function dynamicUpdate(
       for (const [key, value] of Object.entries(filteredData)) {
         if (availableColumns.includes(key)) {
           // Handle JSON fields properly for PostgreSQL
-          if ((key === 'paymentdata' || key === 'items' || key === 'conditions' || key === 'action') && value !== null && value !== undefined) {
+          if ((key === 'paymentdata' || key === 'items' || key === 'conditions' || key === 'action' || key === 'status_history' || key === 'barcodes') && value !== null && value !== undefined) {
             // For JSONB fields with explicit casting, stringify the JSON
             rawData[key] = typeof value === 'string' ? value : JSON.stringify(value);
             if (key === 'paymentdata') {
@@ -1730,7 +1730,7 @@ export async function dynamicUpdate(
       // Build dynamic UPDATE query
       const setClause = Object.keys(rawData)
         .map((key, index) => {
-          if (key === 'paymentdata' || key === 'items' || key === 'conditions' || key === 'action') {
+          if (key === 'paymentdata' || key === 'items' || key === 'conditions' || key === 'action' || key === 'status_history' || key === 'barcodes') {
             return `"${key}" = $${index + 2}::jsonb`; // Cast to JSONB for JSON fields
           }
           return `"${key}" = $${index + 2}`;

@@ -755,7 +755,7 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
           } catch (orderError: any) {
             orderCreationStatus = "failed";
             orderCreationError = orderError.message;
-
+            fastify.log.error(orderError,"Error creating order for transaction");
             fastify.log.error(
               `Error creating order for transaction: ${transactionId}`,
               {

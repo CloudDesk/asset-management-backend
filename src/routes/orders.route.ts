@@ -290,7 +290,30 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                     original_total: { type: 'number', nullable: true },
                     shipping_cost: { type: 'number', nullable: true },
                     tax_amount: { type: 'number', nullable: true },
-                    tracking_id: { type: 'string', nullable: true }
+                    tracking_id: { type: 'string', nullable: true },
+                    vendor: { type: 'string', nullable: true },
+                    barcodes: { type: 'array', items: { type: 'string' }, nullable: true },
+                    label_url: { type: 'string', nullable: true },
+                    public_tracking_link: { type: 'string', nullable: true },
+                    shipment_created_at: { type: 'number', nullable: true },
+                    shipdate: { type: 'number', nullable: true },
+                    cod_payment_received_date: { type: 'number', nullable: true },
+                    cod_transaction_reference: { type: 'string', nullable: true },
+                    cod_amount: { type: 'number', nullable: true },
+                    status_history: { 
+                      type: 'array', 
+                      nullable: true,
+                      items: {
+                        type: 'object',
+                        properties: {
+                          previous_status: { type: 'string' },
+                          new_status: { type: 'string' },
+                          changed_date: { type: 'number' },
+                          source: { type: 'string' },
+                          inventory_user_id: { type: 'number', nullable: true }
+                        }
+                      }
+                    }
                   }
                 },
                 orderlines: {
@@ -310,7 +333,21 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                       original_price: { type: 'number', nullable: true },
                       product_discount_amount: { type: 'number', nullable: true },
                       promotion_discount_amount: { type: 'number', nullable: true },
-                      shipping_cost: { type: 'number', nullable: true }
+                      shipping_cost: { type: 'number', nullable: true },
+                      status_history: { 
+                        type: 'array', 
+                        nullable: true,
+                        items: {
+                          type: 'object',
+                          properties: {
+                            previous_status: { type: 'string' },
+                            new_status: { type: 'string' },
+                            changed_date: { type: 'number' },
+                            source: { type: 'string' },
+                            inventory_user_id: { type: 'number', nullable: true }
+                          }
+                        }
+                      }
                     }
                   }
                 },

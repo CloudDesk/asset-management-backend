@@ -195,7 +195,9 @@ export class OrderlineService {
                 }
             }
             // Prepare status history entry
-            const existingHistory = currentOrderline.status_history || [];
+            const existingHistory = Array.isArray(currentOrderline.status_history)
+                ? currentOrderline.status_history
+                : (typeof currentOrderline.status_history === 'string' ? JSON.parse(currentOrderline.status_history) : []);
             const historyEntry = {
                 previous_status: previousStatus,
                 new_status: status,
@@ -212,7 +214,7 @@ export class OrderlineService {
             const updatedHistory = [...existingHistory, historyEntry];
             const updateData = {
                 orderstatus: status,
-                status_history: updatedHistory, // ✅ Update status history
+                status_history: JSON.stringify(updatedHistory), // ✅ Update status history (JSON.stringify for JSONB)
                 modifieddate: Date.now(),
                 ...additionalData
             };

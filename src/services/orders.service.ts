@@ -176,6 +176,14 @@ export class OrdersService {
     const isCodOrder = mode === 'cod';
     const defaultStatus = isCodOrder ? 'order_confirmed' : 'payment_completed';
     
+    // Initialize status_history for orderlines (JSON.stringify for JSONB column)
+    const initialStatusHistory = JSON.stringify([{
+      previous_status: 'order_placed',
+      new_status: defaultStatus,
+      changed_date: currentTime,
+      source: isCodOrder ? 'system' : 'phonepe'
+    }]);
+    
     for (let i = 0; i < productIds.length; i++) {
       const productId = productIds[i];
       
@@ -199,7 +207,8 @@ export class OrdersService {
         delivereddate: orderData.delivereddate || null,
         cancelleddate: orderData.cancelleddate || null,
         returneddate: orderData.returneddate || null,
-        paymentfaileddate: orderData.paymentfaileddate || null
+        paymentfaileddate: orderData.paymentfaileddate || null,
+        status_history: initialStatusHistory // ✅ Initialize status history for tracking
       };
 
       try {
@@ -247,12 +256,20 @@ export class OrdersService {
       } : null
     }, 'Starting orderline creation from enriched order items');
     
+    // ✅ FIX: COD orderlines should start with order_confirmed, Prepaid with payment_completed
+    const isCodOrder = mode === 'cod';
+    const orderlineStatus = isCodOrder ? 'order_confirmed' : 'payment_completed';
+    
+    // Initialize status_history for orderlines (JSON.stringify for JSONB column)
+    const initialStatusHistory = JSON.stringify([{
+      previous_status: 'order_placed',
+      new_status: orderlineStatus,
+      changed_date: currentTime,
+      source: isCodOrder ? 'system' : 'phonepe'
+    }]);
+    
     for (let i = 0; i < orderItems.length; i++) {
       const orderItem = orderItems[i];
-      
-      // ✅ FIX: COD orderlines should start with order_confirmed, Prepaid with payment_completed
-      const isCodOrder = mode === 'cod';
-      const orderlineStatus = isCodOrder ? 'order_confirmed' : 'payment_completed';
       
       const orderlineData = {
         orderid: orderId, // Use the database ID, not the string orderid
@@ -284,7 +301,8 @@ export class OrdersService {
           ? parseFloat(orderItem.shipping_cost?.toString() || '0') 
           : null,
         evaluation_id: orderItem.evaluation_id || null,
-        merchanttransactionid: orderItem.merchanttransactionid || null
+        merchanttransactionid: orderItem.merchanttransactionid || null,
+        status_history: initialStatusHistory // ✅ Initialize status history for tracking
       };
 
       try {
@@ -411,7 +429,6 @@ export class OrdersService {
               'order_placed',
               'payment_completed',
               'order_confirmed',
-              'packed',
               'ready_for_dispatch',
               'shipped',
               'in_transit',
@@ -448,7 +465,9 @@ export class OrdersService {
       // Only update if status changed
       if (previousStatus !== newOrderStatus) {
         // Update status history for order
-        const existingHistory = currentOrder.status_history || [];
+        const existingHistory = Array.isArray(currentOrder.status_history) 
+          ? currentOrder.status_history 
+          : (typeof currentOrder.status_history === 'string' ? JSON.parse(currentOrder.status_history) : []);
         const historyEntry: any = {
           previous_status: previousStatus,
           new_status: newOrderStatus,
@@ -457,10 +476,10 @@ export class OrdersService {
         };
         const updatedHistory = [...existingHistory, historyEntry];
 
-        // Update order with new status and history
+        // Update order with new status and history (JSON.stringify for JSONB column)
         await dynamicUpdate('orders', { id: orderId }, {
           orderstatus: newOrderStatus,
-          status_history: updatedHistory,
+          status_history: JSON.stringify(updatedHistory),
           modifieddate: Date.now()
         });
 
@@ -637,7 +656,9 @@ export class OrdersService {
       const previousStatus = currentOrder.orderstatus;
 
       // Prepare status history entry
-      const existingHistory = currentOrder.status_history || [];
+      const existingHistory = Array.isArray(currentOrder.status_history) 
+        ? currentOrder.status_history 
+        : (typeof currentOrder.status_history === 'string' ? JSON.parse(currentOrder.status_history) : []);
       const historyEntry: any = {
         previous_status: previousStatus,
         new_status: status,
@@ -654,7 +675,7 @@ export class OrdersService {
 
       const updateData: Record<string, any> = {
         orderstatus: status,
-        status_history: updatedHistory,
+        status_history: JSON.stringify(updatedHistory), // JSON.stringify for JSONB column
         modifieddate: Date.now(),
         ...additionalData
       };
@@ -791,7 +812,17 @@ export class OrdersService {
         original_total: fullOrder.original_total ? Number(fullOrder.original_total) : null,
         shipping_cost: fullOrder.shipping_cost ? Number(fullOrder.shipping_cost) : null,
         tax_amount: fullOrder.tax_amount ? Number(fullOrder.tax_amount) : null,
-        tracking_id: fullOrder.tracking_id
+        tracking_id: fullOrder.tracking_id,
+        vendor: fullOrder.vendor,
+        barcodes: fullOrder.barcodes,
+        label_url: fullOrder.label_url,
+        public_tracking_link: fullOrder.public_tracking_link,
+        shipment_created_at: fullOrder.shipment_created_at,
+        shipdate: fullOrder.shipdate,
+        cod_payment_received_date: fullOrder.cod_payment_received_date,
+        cod_transaction_reference: fullOrder.cod_transaction_reference,
+        cod_amount: fullOrder.cod_amount ? Number(fullOrder.cod_amount) : null,
+        status_history: fullOrder.status_history || []
       };
 
       // Get orderlines for this order
@@ -817,7 +848,8 @@ export class OrdersService {
         original_price: ol.original_price ? Number(ol.original_price) : null,
         product_discount_amount: ol.product_discount_amount ? Number(ol.product_discount_amount) : null,
         promotion_discount_amount: ol.promotion_discount_amount ? Number(ol.promotion_discount_amount) : null,
-        shipping_cost: ol.shipping_cost ? Number(ol.shipping_cost) : null
+        shipping_cost: ol.shipping_cost ? Number(ol.shipping_cost) : null,
+        status_history: ol.status_history || []
       }));
 
       // Get address from first orderline (all orderlines share same address)

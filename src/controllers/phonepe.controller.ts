@@ -2530,11 +2530,21 @@ export class PhonePeController {
       // ✅ FIX: COD orders should start with order_confirmed and ispaymentsucceed: false
       // Prepaid orders start with payment_completed and ispaymentsucceed: true
       const isCodOrder = mode === "cod";
+      const initialOrderStatus = isCodOrder ? "order_confirmed" : "payment_completed";
+      
+      // Initialize status_history with first entry (JSON.stringify for JSONB column)
+      const initialStatusHistory = JSON.stringify([{
+        previous_status: "order_placed",
+        new_status: initialOrderStatus,
+        changed_date: currentTime,
+        source: isCodOrder ? "system" : "phonepe"
+      }]);
+      
       const orderData = {
         userid: transaction.userid,
         orderamount: parseFloat(transaction.amount?.toString() || "0"),
         orderid: orderid,
-        orderstatus: isCodOrder ? "order_confirmed" : "payment_completed", // ✅ COD: order_confirmed, Prepaid: payment_completed
+        orderstatus: initialOrderStatus, // ✅ COD: order_confirmed, Prepaid: payment_completed
         quantity: totalQuantity || validProductIds.length, // FIX #1: Sum of line item quantities, not product count
         transactionid: transaction.transactionid,
         productamount:
@@ -2556,6 +2566,8 @@ export class PhonePeController {
         tax_amount: taxAmount,
         // Add enriched order items with discount data for detailed orderline creation
         orderItems: enrichedOrderItems,  // BUGFIX: Use enriched items with per-line discount data
+        // ✅ Initialize status history for order tracking
+        status_history: initialStatusHistory,
       };
 
       console.log(orderData, "orderData-final");
