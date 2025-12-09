@@ -345,6 +345,13 @@ This document provides a single source of truth for the PhonePe payment integrat
                 │
                 ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
+│  ⚠️ NOTE: GST Calculation happens automatically inside                │
+│     ordersService.create() after orderlines are created                │
+│     (See Step 10 in ORDER CREATION DETAIL section)                     │
+└─────────────────────────────────────────────────────────────────────────┘
+                │
+                ▼
+┌─────────────────────────────────────────────────────────────────────────┐
 │  STEP 6: REDIRECT TO SUCCESS PAGE                                       │
 │  ─────────────────────────────────────────────────────────────────────  │
 │  URL from ENV: REDIRECT_URL_SUCCESS                                     │
@@ -607,6 +614,54 @@ This document provides a single source of truth for the PhonePe payment integrat
 │                                                                         │
 │  ⚠️ Last orderline gets remainder to ensure totals match exactly        │
 └─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│  10. GST CALCULATION (Automatic - Inside ordersService.create) ⭐ NEW  │
+│  ─────────────────────────────────────────────────────────────────────  │
+│  Table: orderline, orders                                                │
+│                                                                         │
+│  After orderlines are created, GST calculation is automatically        │
+│  triggered in ordersService.create():                                    │
+│                                                                         │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │  gstService.processOrderGst(                                        │ │
+│  │    orderId,                                                         │ │
+│  │    addressId,                                                       │ │
+│  │    orderAmount,                                                     │ │
+│  │    shippingCost                                                     │ │
+│  │  )                                                                  │ │
+│  │                                                                    │ │
+│  │  Steps:                                                            │ │
+│  │  1. Get warehouse pincode from EKART (or use provided)            │ │
+│  │  2. Get delivery pincode from order.addressid                     │ │
+│  │  3. Get states from both pincodes using postal API                │ │
+│  │  4. Compare states → determine GST type:                          │ │
+│  │     - Same state → INTRA-STATE (CGST + SGST)                      │ │
+│  │     - Different state → INTER-STATE (IGST)                        │ │
+│  │  5. For each orderline:                                            │ │
+│  │     - Get product subcategory/subsubcategory                      │ │
+│  │     - Lookup GST rate from gst_hsn_mapping                        │ │
+│  │     - Calculate:                                                   │ │
+│  │       * taxable_amount = orderamount / (1 + gst_rate/100)         │ │
+│  │       * total_gst_amount = orderamount - taxable_amount          │ │
+│  │       * Split: CGST+SGST (INTRA) or IGST (INTER)                  │ │
+│  │  6. Update orderlines with GST fields:                             │ │
+│  │     - hsn_code, gst_rate, taxable_amount                          │ │
+│  │     - cgst_amount, sgst_amount, igst_amount                       │ │
+│  │     - total_gst_amount                                             │ │
+│  │  7. Aggregate to order level:                                      │ │
+│  │     - items_total = orderamount - shipping_cost                   │ │
+│  │     - total_taxable_amount = Σ(orderline.taxable_amount)           │ │
+│  │     - total_cgst_amount = Σ(orderline.cgst_amount)                 │ │
+│  │     - total_sgst_amount = Σ(orderline.sgst_amount)                 │ │
+│  │     - total_igst_amount = Σ(orderline.igst_amount)                 │ │
+│  │     - total_gst_amount = Σ(orderline.total_gst_amount)             │ │
+│  │  8. Update order with GST totals                                   │ │
+│  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│  ⚠️ GST calculation errors don't fail order creation (graceful)        │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -761,9 +816,15 @@ This document provides a single source of truth for the PhonePe payment integrat
 | `productamount` | After product discounts, before promos | original_total - productDiscountTotal |
 | `discountamount` | Total discounts (product + promotion) | productDiscountTotal + promotionDiscountTotal |
 | `promotion_discount_total` | Coupon/promotion discounts only | Σ(applied_promotions.discount_amount) |
-| `orderamount` | Final amount paid by customer | productamount - promotionDiscountTotal |
+| `orderamount` | Final amount paid by customer | productamount - promotionDiscountTotal + shipping_cost |
 | `shipping_cost` | Shipping charges | From originalPayload |
 | `tax_amount` | Tax amount | From originalPayload |
+| `items_total` ⭐ | Product-only total (GST base) | orderamount - shipping_cost |
+| `total_taxable_amount` | Sum of base amounts | Σ(orderline.taxable_amount) |
+| `total_cgst_amount` | Sum of CGST | Σ(orderline.cgst_amount) |
+| `total_sgst_amount` | Sum of SGST | Σ(orderline.sgst_amount) |
+| `total_igst_amount` | Sum of IGST | Σ(orderline.igst_amount) |
+| `total_gst_amount` | Sum of total GST | Σ(orderline.total_gst_amount) |
 
 ### Orderline Table (orderline)
 
@@ -776,6 +837,13 @@ This document provides a single source of truth for the PhonePe payment integrat
 | `discountamount` | Total item discount | product_discount + promotion_discount |
 | `orderamount` | Final item amount | productamount - promotion_discount_amount |
 | `shipping_cost` | Pro-rata shipping | (total_shipping × item_amount) / total_amount |
+| `hsn_code` | HSN code | From gst_hsn_mapping (null if not found) |
+| `gst_rate` | GST percentage | From gst_hsn_mapping (default: 18%) |
+| `taxable_amount` | Base amount without GST | orderamount / (1 + gst_rate/100) |
+| `cgst_amount` | Central GST | total_gst / 2 (INTRA-STATE only) |
+| `sgst_amount` | State GST | total_gst / 2 (INTRA-STATE only) |
+| `igst_amount` | Integrated GST | total_gst (INTER-STATE only) |
+| `total_gst_amount` | Total GST | orderamount - taxable_amount |
 
 ---
 
@@ -1613,10 +1681,18 @@ After CALLBACK:
 3. **COD vs PhonePe**: COD creates order immediately, PhonePe waits for callback
 4. **Status History**: Tracks all status changes with `is_active` flag for current status
 5. **Address Extraction**: `addressid` for orders is extracted from the first order item (all items share the same delivery address)
-5. **Pro-rata Distribution**: When promotion breakdown not available, discounts distributed by product amount ratio
-6. **Negative Prevention**: All quantity calculations use `Math.max(0, ...)` to prevent negatives
-7. **Last-Item Adjustment**: Last orderline gets remainder to ensure totals match exactly
-8. **GCP Tasks**: Scheduled cleanup if payment not completed within timeout
+6. **Pro-rata Distribution**: When promotion breakdown not available, discounts distributed by product amount ratio
+7. **Negative Prevention**: All quantity calculations use `Math.max(0, ...)` to prevent negatives
+8. **Last-Item Adjustment**: Last orderline gets remainder to ensure totals match exactly
+9. **GCP Tasks**: Scheduled cleanup if payment not completed within timeout
+10. **GST Calculation** ⭐: Automatically calculated after orderline creation:
+    - Fetches warehouse pincode from EKART API
+    - Gets delivery pincode from order address
+    - Uses postal API to get states from both pincodes
+    - Compares states to determine INTRA-STATE (CGST+SGST) or INTER-STATE (IGST)
+    - Calculates GST for each orderline based on product category
+    - Updates orderlines and order with GST breakdown
+    - Errors don't fail order creation (graceful handling)
 
 ---
 
@@ -1625,12 +1701,14 @@ After CALLBACK:
 - `src/routes/phonepe.route.ts` - Route definitions
 - `src/controllers/phonepe.controller.ts` - Request handling
 - `src/services/phonepe.service.ts` - PhonePe API integration
-- `src/services/orders.service.ts` - Order creation
+- `src/services/orders.service.ts` - Order creation with automatic GST calculation
 - `src/services/orderline.service.ts` - Orderline management
 - `src/services/transaction.service.ts` - Transaction records
 - `src/services/promotion-evaluation.service.ts` - Promotion validation
 - `src/services/promotion-redemption.service.ts` - Promotion redemption
 - `src/services/gcpTasks.service.ts` - Lock cleanup tasks
+- `src/services/gst.service.ts` ⭐ - GST calculation and dynamic state comparison
+- `src/services/ekart.service.ts` - EKART API integration (for warehouse address)
 
 ---
 

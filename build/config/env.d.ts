@@ -82,6 +82,7 @@ declare const envSchema: z.ZodObject<{
     EKART_PASSWORD: z.ZodOptional<z.ZodString>;
     EKART_BASE_URL: z.ZodDefault<z.ZodOptional<z.ZodString>>;
     SELLER_GST_TIN: z.ZodOptional<z.ZodString>;
+    WAREHOUSE_PINCODE: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     DATABASE_URL: string;
     PORT: number;
@@ -164,6 +165,7 @@ declare const envSchema: z.ZodObject<{
     EKART_USERNAME?: string | undefined;
     EKART_PASSWORD?: string | undefined;
     SELLER_GST_TIN?: string | undefined;
+    WAREHOUSE_PINCODE?: string | undefined;
 }, {
     DATABASE_URL: string;
     FIREBASE_PROJECT_ID: string;
@@ -246,6 +248,7 @@ declare const envSchema: z.ZodObject<{
     EKART_PASSWORD?: string | undefined;
     EKART_BASE_URL?: string | undefined;
     SELLER_GST_TIN?: string | undefined;
+    WAREHOUSE_PINCODE?: string | undefined;
 }>;
 export declare const env: {
     DATABASE_URL: string;
@@ -329,6 +332,7 @@ export declare const env: {
     EKART_USERNAME?: string | undefined;
     EKART_PASSWORD?: string | undefined;
     SELLER_GST_TIN?: string | undefined;
+    WAREHOUSE_PINCODE?: string | undefined;
 };
 export type Env = z.infer<typeof envSchema>;
 export {};

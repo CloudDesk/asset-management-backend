@@ -165378,3 +165378,118 @@ Filtered data result: {
   "status_history": "[{\"source\":\"system\",\"new_status\":\"order_confirmed\",\"changed_date\":1765186199084,\"previous_status\":\"order_placed\",\"is_active\":false},{\"previous_status\":\"order_confirmed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765187607984,\"source\":\"system\",\"is_active\":true}]",
   "modifieddate": 1765187607984
 }
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "quantity": 21,
+  "availablequantity": 17,
+  "soldquantity": 0,
+  "ecompublishedquantity": 21,
+  "productstatus": "in_stock",
+  "modifieddate": 1765285943162
+}
+Filtered data result: {
+  "availableqty": 11,
+  "soldqty": 0,
+  "totalqty": 15,
+  "orderedqty": 4,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}

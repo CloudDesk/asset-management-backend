@@ -98,6 +98,8 @@ const envSchema = z.object({
     EKART_BASE_URL: z.string().optional().default('https://app.elite.ekartlogistics.in/api'),
     // Seller Information (for EKART shipments)
     SELLER_GST_TIN: z.string().optional(),
+    // Warehouse Pincode (fallback if EKART is unavailable)
+    WAREHOUSE_PINCODE: z.string().optional(), // 6-digit pincode as fallback
 });
 export const env = envSchema.parse(process.env);
 //# sourceMappingURL=env.js.map

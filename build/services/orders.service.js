@@ -1,6 +1,7 @@
 import { createPaginationResult, getPrismaSkipTake } from '../utils/pagination.js';
 import { dynamicFindUnique, dynamicCreate, dynamicUpdate, dynamicFindManyWithFilters } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
+import { gstService } from './gst.service.js';
 export class OrdersService {
     async findMany(filters, page, limit) {
         try {
@@ -95,6 +96,52 @@ export class OrdersService {
                     createdOrderlines: orderlineResults.length,
                     totalProducts: data.productid.length
                 }, 'Order and orderlines creation completed');
+                // ============================================
+                // GST CALCULATION - Calculate and update GST for order and orderlines
+                // ============================================
+                try {
+                    const orderAmount = parseFloat(order.orderamount?.toString() || '0');
+                    const shippingCost = parseFloat(data.shipping_cost?.toString() || '0');
+                    const addressId = data.addressid || null;
+                    logger.info({
+                        orderId: order.id,
+                        orderAmount,
+                        shippingCost,
+                        addressId,
+                        orderlinesCount: orderlineResults.length
+                    }, 'Starting GST calculation for order');
+                    const gstResult = await gstService.processOrderGst(order.id, addressId, orderAmount, shippingCost);
+                    if (gstResult.success) {
+                        logger.info({
+                            orderId: order.id,
+                            orderTotals: gstResult.orderTotals
+                        }, 'GST calculation completed successfully');
+                        // Add GST totals to the order object for return
+                        order.items_total = gstResult.orderTotals?.items_total;
+                        order.total_taxable_amount = gstResult.orderTotals?.total_taxable_amount;
+                        order.total_cgst_amount = gstResult.orderTotals?.total_cgst_amount;
+                        order.total_sgst_amount = gstResult.orderTotals?.total_sgst_amount;
+                        order.total_igst_amount = gstResult.orderTotals?.total_igst_amount;
+                        order.total_gst_amount = gstResult.orderTotals?.total_gst_amount;
+                    }
+                    else {
+                        logger.warn({
+                            orderId: order.id,
+                            error: gstResult.error
+                        }, 'GST calculation failed - order created without GST data');
+                    }
+                }
+                catch (gstError) {
+                    logger.error({
+                        orderId: order.id,
+                        error: gstError.message,
+                        stack: gstError.stack
+                    }, 'Error during GST calculation - order created without GST data');
+                    // Don't fail order creation for GST calculation errors
+                }
+                // ============================================
+                // END GST CALCULATION
+                // ============================================
                 // Return order with orderlines info
                 return {
                     ...order,
