@@ -1381,6 +1381,11 @@ export class PhonePeController {
             // Calculate total quantity from order items (BUG FIX #1)
             const filteredOrderData = originalOrderData.filter((item) => validProductIds.includes(item.productid));
             const totalQuantity = filteredOrderData.reduce((sum, item) => sum + parseInt(item.quantity?.toString() || "1"), 0);
+            // Extract addressid from the first order item (BUG FIX: addressid was null in orders table)
+            // All items in an order typically go to the same address
+            const orderAddressId = filteredOrderData.length > 0
+                ? parseInt(filteredOrderData[0].addressid?.toString() || "0") || undefined
+                : undefined;
             // Extract evaluation IDs from transaction data for primary evaluation
             const transactionEvaluationIds = transaction.transactiondata?.evaluation_ids || [];
             const primaryEvaluationId = evaluationIds?.[0] || transactionEvaluationIds?.[0] || null;
@@ -1705,14 +1710,17 @@ export class PhonePeController {
             const isCodOrder = mode === "cod";
             const initialOrderStatus = isCodOrder ? "order_confirmed" : "payment_completed";
             // Initialize status_history with first entry (JSON.stringify for JSONB column)
+            // is_active: true for the current/latest entry, false for all previous entries
             const initialStatusHistory = JSON.stringify([{
                     previous_status: "order_placed",
                     new_status: initialOrderStatus,
                     changed_date: currentTime,
-                    source: isCodOrder ? "system" : "phonepe"
+                    source: isCodOrder ? "system" : "phonepe",
+                    is_active: true
                 }]);
             const orderData = {
                 userid: transaction.userid,
+                addressid: orderAddressId, // BUG FIX: was null before, now extracted from first order item
                 orderamount: parseFloat(transaction.amount?.toString() || "0"),
                 orderid: orderid,
                 orderstatus: initialOrderStatus, // ✅ COD: order_confirmed, Prepaid: payment_completed

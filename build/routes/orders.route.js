@@ -302,7 +302,8 @@ export async function ordersRoutes(fastify) {
                                                     new_status: { type: 'string' },
                                                     changed_date: { type: 'number' },
                                                     source: { type: 'string' },
-                                                    inventory_user_id: { type: 'number', nullable: true }
+                                                    inventory_user_id: { type: 'number', nullable: true },
+                                                    is_active: { type: 'boolean' }
                                                 }
                                             }
                                         }
@@ -336,7 +337,8 @@ export async function ordersRoutes(fastify) {
                                                         new_status: { type: 'string' },
                                                         changed_date: { type: 'number' },
                                                         source: { type: 'string' },
-                                                        inventory_user_id: { type: 'number', nullable: true }
+                                                        inventory_user_id: { type: 'number', nullable: true },
+                                                        is_active: { type: 'boolean' }
                                                     }
                                                 }
                                             }

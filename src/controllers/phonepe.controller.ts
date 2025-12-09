@@ -2116,6 +2116,12 @@ export class PhonePeController {
         0
       );
 
+      // Extract addressid from the first order item (BUG FIX: addressid was null in orders table)
+      // All items in an order typically go to the same address
+      const orderAddressId = filteredOrderData.length > 0 
+        ? parseInt(filteredOrderData[0].addressid?.toString() || "0") || undefined
+        : undefined;
+
       // Extract evaluation IDs from transaction data for primary evaluation
       const transactionEvaluationIds =
         transaction.transactiondata?.evaluation_ids || [];
@@ -2544,6 +2550,7 @@ export class PhonePeController {
       
       const orderData = {
         userid: transaction.userid,
+        addressid: orderAddressId, // BUG FIX: was null before, now extracted from first order item
         orderamount: parseFloat(transaction.amount?.toString() || "0"),
         orderid: orderid,
         orderstatus: initialOrderStatus, // ✅ COD: order_confirmed, Prepaid: payment_completed

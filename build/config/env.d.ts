@@ -34,6 +34,9 @@ declare const envSchema: z.ZodObject<{
     GCP_PROJECT_LOCATION: z.ZodOptional<z.ZodString>;
     GCP_PROJECT_QUEUE: z.ZodOptional<z.ZodString>;
     GCP_TASK_URL: z.ZodOptional<z.ZodString>;
+    GCP_STORAGE_BUCKET: z.ZodOptional<z.ZodString>;
+    SHIPPING_BUCKET: z.ZodOptional<z.ZodString>;
+    STORAGE_BACKEND_URL: z.ZodDefault<z.ZodOptional<z.ZodString>>;
     GMAIL_SERVICE: z.ZodDefault<z.ZodOptional<z.ZodString>>;
     GMAIL_HOST: z.ZodDefault<z.ZodOptional<z.ZodString>>;
     GMAIL_PORT: z.ZodDefault<z.ZodOptional<z.ZodString>>;
@@ -78,6 +81,7 @@ declare const envSchema: z.ZodObject<{
     EKART_USERNAME: z.ZodOptional<z.ZodString>;
     EKART_PASSWORD: z.ZodOptional<z.ZodString>;
     EKART_BASE_URL: z.ZodDefault<z.ZodOptional<z.ZodString>>;
+    SELLER_GST_TIN: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     DATABASE_URL: string;
     PORT: number;
@@ -100,6 +104,7 @@ declare const envSchema: z.ZodObject<{
     REDIS_USERNAME: string;
     REDIS_EMAIL_OTPEXPSEC: string;
     REDIS_SESSIONEXSEC: string;
+    STORAGE_BACKEND_URL: string;
     GMAIL_SERVICE: string;
     GMAIL_HOST: string;
     GMAIL_PORT: string;
@@ -129,6 +134,8 @@ declare const envSchema: z.ZodObject<{
     GCP_PROJECT_LOCATION?: string | undefined;
     GCP_PROJECT_QUEUE?: string | undefined;
     GCP_TASK_URL?: string | undefined;
+    GCP_STORAGE_BUCKET?: string | undefined;
+    SHIPPING_BUCKET?: string | undefined;
     GMAIL_AUTH_USER?: string | undefined;
     GMAIL_AUTH_PASSWORD?: string | undefined;
     POSTGRES_HOST?: string | undefined;
@@ -156,6 +163,7 @@ declare const envSchema: z.ZodObject<{
     EKART_CLIENT_ID?: string | undefined;
     EKART_USERNAME?: string | undefined;
     EKART_PASSWORD?: string | undefined;
+    SELLER_GST_TIN?: string | undefined;
 }, {
     DATABASE_URL: string;
     FIREBASE_PROJECT_ID: string;
@@ -190,6 +198,9 @@ declare const envSchema: z.ZodObject<{
     GCP_PROJECT_LOCATION?: string | undefined;
     GCP_PROJECT_QUEUE?: string | undefined;
     GCP_TASK_URL?: string | undefined;
+    GCP_STORAGE_BUCKET?: string | undefined;
+    SHIPPING_BUCKET?: string | undefined;
+    STORAGE_BACKEND_URL?: string | undefined;
     GMAIL_SERVICE?: string | undefined;
     GMAIL_HOST?: string | undefined;
     GMAIL_PORT?: string | undefined;
@@ -234,6 +245,7 @@ declare const envSchema: z.ZodObject<{
     EKART_USERNAME?: string | undefined;
     EKART_PASSWORD?: string | undefined;
     EKART_BASE_URL?: string | undefined;
+    SELLER_GST_TIN?: string | undefined;
 }>;
 export declare const env: {
     DATABASE_URL: string;
@@ -257,6 +269,7 @@ export declare const env: {
     REDIS_USERNAME: string;
     REDIS_EMAIL_OTPEXPSEC: string;
     REDIS_SESSIONEXSEC: string;
+    STORAGE_BACKEND_URL: string;
     GMAIL_SERVICE: string;
     GMAIL_HOST: string;
     GMAIL_PORT: string;
@@ -286,6 +299,8 @@ export declare const env: {
     GCP_PROJECT_LOCATION?: string | undefined;
     GCP_PROJECT_QUEUE?: string | undefined;
     GCP_TASK_URL?: string | undefined;
+    GCP_STORAGE_BUCKET?: string | undefined;
+    SHIPPING_BUCKET?: string | undefined;
     GMAIL_AUTH_USER?: string | undefined;
     GMAIL_AUTH_PASSWORD?: string | undefined;
     POSTGRES_HOST?: string | undefined;
@@ -313,6 +328,7 @@ export declare const env: {
     EKART_CLIENT_ID?: string | undefined;
     EKART_USERNAME?: string | undefined;
     EKART_PASSWORD?: string | undefined;
+    SELLER_GST_TIN?: string | undefined;
 };
 export type Env = z.infer<typeof envSchema>;
 export {};

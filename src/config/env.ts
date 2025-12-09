@@ -111,6 +111,9 @@ const envSchema = z.object({
   EKART_PASSWORD: z.string().optional(),
   EKART_BASE_URL: z.string().optional().default('https://app.elite.ekartlogistics.in/api'),
   
+  // Seller Information (for EKART shipments)
+  SELLER_GST_TIN: z.string().optional(),
+  
 });
 
 export const env = envSchema.parse(process.env);

@@ -81,6 +81,49 @@ export async function ekartRoutes(fastify: FastifyInstance) {
   }, ekartController.connectChannel);
 
   /**
+   * Get Addresses from EKART
+   * GET /v1/ekart/addresses
+   */
+  fastify.get('/addresses', {
+    schema: {
+      description: 'Get list of registered seller/pickup addresses from EKART. These addresses can be used when creating shipments with fetch_seller_from_ekart=true.',
+      tags: ['Ekart Logistics'],
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  alias: { type: 'string', description: 'Address alias/name' },
+                  phone: { type: 'number', description: 'Phone number' },
+                  address_line1: { type: 'string', description: 'Address line 1' },
+                  address_line2: { type: 'string', description: 'Address line 2' },
+                  pincode: { type: 'number', description: 'PIN code' },
+                  city: { type: 'string', description: 'City' },
+                  state: { type: 'string', description: 'State' },
+                  country: { type: 'string', description: 'Country' },
+                  geo: {
+                    type: 'object',
+                    properties: {
+                      lat: { type: 'number', description: 'Latitude' },
+                      lon: { type: 'number', description: 'Longitude' }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }, ekartController.getAddresses);
+
+  /**
    * Create Forward Shipment (Seller → Customer)
    * POST /v1/ekart/shipments/forward
    */
@@ -93,7 +136,6 @@ export async function ekartRoutes(fastify: FastifyInstance) {
         required: [
           'seller_name',
           'seller_address',
-          'seller_gst_tin',
           'order_number',
           'invoice_number',
           'invoice_date',
@@ -109,9 +151,10 @@ export async function ekartRoutes(fastify: FastifyInstance) {
           'drop_location'
         ],
         properties: {
-          seller_name: { type: 'string' },
-          seller_address: { type: 'string' },
-          seller_gst_tin: { type: 'string' },
+          // Seller info - mandatory from FE
+          seller_name: { type: 'string', description: 'Seller name (mandatory from FE)' },
+          seller_address: { type: 'string', description: 'Seller address (mandatory from FE)' },
+          seller_gst_tin: { type: 'string', description: 'Seller GST TIN (optional - can come from FE or will use SELLER_GST_TIN from env)' },
           order_number: { type: 'string' },
           invoice_number: { type: 'string' },
           invoice_date: { type: 'string', format: 'date' },

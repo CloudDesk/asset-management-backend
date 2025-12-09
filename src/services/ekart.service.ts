@@ -6,7 +6,7 @@ import { ekartAuthService } from './ekart-auth.service.js';
 export interface CreateShipmentPayload {
   seller_name: string;
   seller_address: string;
-  seller_gst_tin: string;
+  seller_gst_tin?: string; // Optional - can come from payload or ENV
   order_number: string;
   invoice_number: string;
   invoice_date: string;
@@ -242,29 +242,292 @@ export class EkartService {
   }
 
   /**
+   * Get Addresses from EKART
+   * GET /api/v2/addresses
+   * Returns list of registered addresses (seller/pickup locations)
+   */
+  async getAddresses(): Promise<Array<{
+    alias: string;
+    phone: number;
+    address_line1: string;
+    address_line2: string;
+    pincode: number;
+    city: string;
+    state: string;
+    country: string;
+    geo?: {
+      lat: number;
+      lon: number;
+    };
+  }>> {
+    logger.info(
+      { endpoint: 'GET /v2/addresses', baseUrl: this.baseURL },
+      '📍 [EKART API] Calling EKART addresses API to fetch seller addresses'
+    );
+
+    const response = await this.apiRequest<Array<{
+      alias: string;
+      phone: number;
+      address_line1: string;
+      address_line2: string;
+      pincode: number;
+      city: string;
+      state: string;
+      country: string;
+      geo?: {
+        lat: number;
+        lon: number;
+      };
+    }>>(
+      '/v2/addresses',
+      {
+        method: 'GET'
+      }
+    );
+
+    logger.info(
+      {
+        count: response.data.length,
+        addresses: response.data.map(addr => ({
+          alias: addr.alias,
+          city: addr.city,
+          state: addr.state,
+          pincode: addr.pincode
+        }))
+      },
+      '✅ [EKART API] Addresses fetched successfully from EKART'
+    );
+
+    return response.data;
+  }
+
+  /**
+   * Get Default Seller Address from EKART
+   * Returns the first address or address with specific alias
+   * Note: GST TIN comes from environment variables, not from EKART address response
+   */
+  async getDefaultSellerAddress(alias?: string): Promise<{
+    seller_name: string;
+    seller_address: string;
+  } | null> {
+    try {
+      logger.info(
+        { alias: alias || 'first address' },
+        '📍 [ADDRESS FETCH] Fetching addresses from EKART'
+      );
+
+      const addresses = await this.getAddresses();
+      
+      if (addresses.length === 0) {
+        logger.warn('❌ [ADDRESS FETCH] No addresses found in EKART');
+        return null;
+      }
+
+      logger.info(
+        {
+          totalAddresses: addresses.length,
+          requestedAlias: alias,
+          availableAliases: addresses.map(a => a.alias)
+        },
+        '✅ [ADDRESS FETCH] Addresses retrieved, now selecting address'
+      );
+
+      // Find address by alias if provided, otherwise use first address
+      const address = alias 
+        ? addresses.find(addr => addr.alias.toLowerCase() === alias.toLowerCase())
+        : addresses[0];
+
+      if (!address) {
+        logger.warn(
+          {
+            requestedAlias: alias,
+            availableAliases: addresses.map(a => a.alias),
+            usingFirstAddress: true
+          },
+          '⚠️ [ADDRESS FETCH] Address with alias not found, using first address'
+        );
+        const firstAddress = addresses[0];
+        if (!firstAddress) {
+          logger.warn('❌ [ADDRESS FETCH] No addresses available');
+          return null;
+        }
+        const sellerInfo = {
+          seller_name: firstAddress.alias || 'Seller',
+          seller_address: `${firstAddress.address_line1}${firstAddress.address_line2 ? ', ' + firstAddress.address_line2 : ''}, ${firstAddress.city}, ${firstAddress.state} ${firstAddress.pincode}`
+        };
+        logger.info(
+          {
+            sellerName: sellerInfo.seller_name,
+            sellerAddress: sellerInfo.seller_address
+          },
+          '✅ [ADDRESS FETCH] Using first address as seller info'
+        );
+        return sellerInfo;
+      }
+
+      // Map EKART address to seller info format
+      const sellerAddress = `${address.address_line1}${address.address_line2 ? ', ' + address.address_line2 : ''}, ${address.city}, ${address.state} ${address.pincode}`;
+      
+      const sellerInfo = {
+        seller_name: address.alias || 'Seller',
+        seller_address: sellerAddress
+      };
+
+      logger.info(
+        {
+          alias: address.alias,
+          sellerName: sellerInfo.seller_name,
+          sellerAddress: sellerInfo.seller_address
+        },
+        '✅ [ADDRESS FETCH] Address selected and mapped to seller info'
+      );
+
+      return sellerInfo;
+    } catch (error: any) {
+      logger.error(
+        {
+          error: error.message,
+          stack: error.stack,
+          alias
+        },
+        '❌ [ADDRESS FETCH] Failed to fetch seller address from EKART'
+      );
+      return null;
+    }
+  }
+
+  /**
    * Create Forward Shipment (Seller → Customer)
+   * Seller info (name, address) must come from payload (FE)
+   * GST TIN can come from payload or environment variable
    */
   async createForwardShipment(payload: CreateShipmentPayload): Promise<CreateShipmentResponse> {
-    logger.info({ orderNumber: payload.order_number }, 'Creating forward shipment');
+    logger.info(
+      {
+        orderNumber: payload.order_number,
+        paymentMode: payload.payment_mode,
+        hasSellerName: !!payload.seller_name,
+        hasSellerAddress: !!payload.seller_address,
+        hasSellerGstTin: !!payload.seller_gst_tin
+      },
+      '🚀 [SHIPMENT CREATE] Starting forward shipment creation process'
+    );
+
+    // Validate seller info from payload
+    if (!payload.seller_name || !payload.seller_address) {
+      logger.error(
+        {
+          orderNumber: payload.order_number,
+          hasSellerName: !!payload.seller_name,
+          hasSellerAddress: !!payload.seller_address
+        },
+        '❌ [SHIPMENT CREATE] Step 1 FAILED: Seller name and address are required from payload'
+      );
+      throw new Error('Seller name and address are required from payload');
+    }
+
+    logger.info(
+      {
+        orderNumber: payload.order_number,
+        sellerName: payload.seller_name,
+        sellerAddress: payload.seller_address
+      },
+      '✅ [SHIPMENT CREATE] Step 1 SUCCESS: Seller info validated from payload'
+    );
+
+    // GST TIN can come from payload or environment variable
+    const sellerGstTin = payload.seller_gst_tin || env.SELLER_GST_TIN;
+    
+    if (!sellerGstTin) {
+      logger.error(
+        { orderNumber: payload.order_number },
+        '❌ [SHIPMENT CREATE] Step 2 FAILED: Seller GST TIN is required. Provide it in payload or set SELLER_GST_TIN environment variable'
+      );
+      throw new Error('Seller GST TIN is required. Provide it in payload or set SELLER_GST_TIN environment variable');
+    }
+
+    logger.info(
+      {
+        orderNumber: payload.order_number,
+        gstTinSource: payload.seller_gst_tin ? 'payload' : 'environment',
+        gstTinMasked: sellerGstTin ? `${sellerGstTin.substring(0, 4)}****` : 'N/A'
+      },
+      '✅ [SHIPMENT CREATE] Step 2 SUCCESS: GST TIN obtained'
+    );
+
+    // Prepare final payload with GST TIN
+    const finalPayload: CreateShipmentPayload = {
+      ...payload,
+      seller_gst_tin: sellerGstTin
+    };
+
+    logger.info(
+      {
+        orderNumber: payload.order_number,
+        sellerName: finalPayload.seller_name,
+        sellerAddress: finalPayload.seller_address,
+        sellerGstTin: finalPayload.seller_gst_tin ? `${finalPayload.seller_gst_tin.substring(0, 4)}****` : 'N/A'
+      },
+      '✅ [SHIPMENT CREATE] Step 3: Final payload prepared'
+    );
+
+    // Use finalPayload directly (no need to remove any fields)
+    const ekartPayload = finalPayload;
+
+    logger.info(
+      {
+        orderNumber: payload.order_number,
+        paymentMode: ekartPayload.payment_mode,
+        totalAmount: ekartPayload.total_amount,
+        codAmount: ekartPayload.cod_amount,
+        weight: ekartPayload.weight,
+        quantity: ekartPayload.quantity,
+        hasTemplate: !!ekartPayload.templateName,
+        hasDimensions: !!(ekartPayload.length && ekartPayload.width && ekartPayload.height)
+      },
+      '📍 [SHIPMENT CREATE] Step 4: Preparing to call EKART API (POST /v1/package/create) - ⚠️ THIS WILL DEDUCT MONEY FROM EKART ACCOUNT'
+    );
 
     const response = await this.apiRequest<CreateShipmentResponse>(
       '/v1/package/create',
       {
         method: 'POST',
-        data: payload
+        data: ekartPayload
       }
     );
 
+    logger.info(
+      {
+        orderNumber: payload.order_number,
+        status: response.data.status,
+        remark: response.data.remark,
+        trackingId: response.data.tracking_id,
+        vendor: response.data.vendor
+      },
+      '📍 [SHIPMENT CREATE] Step 5: Received response from EKART API'
+    );
+
     if (!response.data.status) {
+      logger.error(
+        {
+          orderNumber: payload.order_number,
+          remark: response.data.remark,
+          status: response.data.status
+        },
+        '❌ [SHIPMENT CREATE] Step 5 FAILED: EKART API returned error status'
+      );
       throw new Error(response.data.remark || 'Failed to create shipment');
     }
 
     logger.info(
       {
+        orderNumber: payload.order_number,
         trackingId: response.data.tracking_id,
-        orderNumber: payload.order_number
+        vendor: response.data.vendor,
+        barcodes: response.data.barcodes,
+        publicTrackingLink: `https://app.elite.ekartlogistics.in/track/${response.data.tracking_id}`
       },
-      '✅ Forward shipment created successfully'
+      '✅ [SHIPMENT CREATE] Step 5 SUCCESS: Forward shipment created successfully - 💰 MONEY DEDUCTED FROM EKART ACCOUNT'
     );
 
     return response.data;

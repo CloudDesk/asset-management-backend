@@ -120,11 +120,13 @@ export class OrdersService {
         const isCodOrder = mode === 'cod';
         const defaultStatus = isCodOrder ? 'order_confirmed' : 'payment_completed';
         // Initialize status_history for orderlines (JSON.stringify for JSONB column)
+        // is_active: true for the current/latest entry, false for all previous entries
         const initialStatusHistory = JSON.stringify([{
                 previous_status: 'order_placed',
                 new_status: defaultStatus,
                 changed_date: currentTime,
-                source: isCodOrder ? 'system' : 'phonepe'
+                source: isCodOrder ? 'system' : 'phonepe',
+                is_active: true
             }]);
         for (let i = 0; i < productIds.length; i++) {
             const productId = productIds[i];
@@ -193,11 +195,13 @@ export class OrdersService {
         const isCodOrder = mode === 'cod';
         const orderlineStatus = isCodOrder ? 'order_confirmed' : 'payment_completed';
         // Initialize status_history for orderlines (JSON.stringify for JSONB column)
+        // is_active: true for the current/latest entry, false for all previous entries
         const initialStatusHistory = JSON.stringify([{
                 previous_status: 'order_placed',
                 new_status: orderlineStatus,
                 changed_date: currentTime,
-                source: isCodOrder ? 'system' : 'phonepe'
+                source: isCodOrder ? 'system' : 'phonepe',
+                is_active: true
             }]);
         for (let i = 0; i < orderItems.length; i++) {
             const orderItem = orderItems[i];
@@ -378,13 +382,20 @@ export class OrdersService {
                 const existingHistory = Array.isArray(currentOrder.status_history)
                     ? currentOrder.status_history
                     : (typeof currentOrder.status_history === 'string' ? JSON.parse(currentOrder.status_history) : []);
+                // Set all existing entries to is_active: false
+                const deactivatedHistory = existingHistory.map((entry) => ({
+                    ...entry,
+                    is_active: false
+                }));
+                // New entry with is_active: true
                 const historyEntry = {
                     previous_status: previousStatus,
                     new_status: newOrderStatus,
                     changed_date: Date.now(),
-                    source: 'system' // Auto-calculated from orderlines
+                    source: 'system', // Auto-calculated from orderlines
+                    is_active: true
                 };
-                const updatedHistory = [...existingHistory, historyEntry];
+                const updatedHistory = [...deactivatedHistory, historyEntry];
                 // Update order with new status and history (JSON.stringify for JSONB column)
                 await dynamicUpdate('orders', { id: orderId }, {
                     orderstatus: newOrderStatus,
@@ -527,17 +538,24 @@ export class OrdersService {
             const existingHistory = Array.isArray(currentOrder.status_history)
                 ? currentOrder.status_history
                 : (typeof currentOrder.status_history === 'string' ? JSON.parse(currentOrder.status_history) : []);
+            // Set all existing entries to is_active: false
+            const deactivatedHistory = existingHistory.map((entry) => ({
+                ...entry,
+                is_active: false
+            }));
+            // New entry with is_active: true
             const historyEntry = {
                 previous_status: previousStatus,
                 new_status: status,
                 changed_date: Date.now(),
-                source: additionalData?.source || 'system'
+                source: additionalData?.source || 'system',
+                is_active: true
             };
             // Add inventory_user_id if source is inventoryuser
             if (historyEntry.source === 'inventoryuser' && additionalData?.inventory_user_id) {
                 historyEntry.inventory_user_id = additionalData.inventory_user_id;
             }
-            const updatedHistory = [...existingHistory, historyEntry];
+            const updatedHistory = [...deactivatedHistory, historyEntry];
             const updateData = {
                 orderstatus: status,
                 status_history: JSON.stringify(updatedHistory), // JSON.stringify for JSONB column
