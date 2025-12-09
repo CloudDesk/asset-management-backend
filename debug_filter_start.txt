@@ -166339,3 +166339,241 @@ Filtering data for platformstock (platformstock): {
   "lockqty": 0,
   "platformstatus": "in_stock"
 }
+Filtering data for stock (stock): {
+  "puc": "FRA-0056",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "FRA-0056",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "FRA-0056",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "FRA-0056",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "FRA-0056",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "FRA-0056",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "FRA-0056",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "FRA-0056",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "FRA-0056",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "FRA-0056",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "FRA-0056",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "FRA-0056",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "FRA-0056",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "FRA-0056",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "FRA-0056",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "FRA-0056",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "FRA-0056",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "FRA-0056",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "FRA-0056",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "FRA-0056",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "FRA-0056",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for product (product): {
+  "quantity": 20,
+  "availablequantity": 20,
+  "soldquantity": 0,
+  "ecompublishedquantity": 20,
+  "productstatus": "in_stock",
+  "modifieddate": 1765287489030
+}
+Filtering data for platformstock (platformstock): {
+  "availableqty": 20,
+  "soldqty": 0,
+  "totalqty": 20,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Filtering data for promotions (promotions): {
+  "name": "Free Shipping Over ₹1000",
+  "description": "Automatic free shipping on orders above ₹1000",
+  "type": "FREE_SHIPPING",
+  "code": "",
+  "auto_apply": true,
+  "start_date": 1704067200,
+  "end_date": 1861919999,
+  "status": "active",
+  "priority": 10,
+  "visibility": "public",
+  "max_redemptions": 15000,
+  "per_user_limit": 10,
+  "stackable": true,
+  "budget": 750000,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "discount_type": "FREE_SHIPPING",
+  "conditions": [
+    {
+      "value": "1000",
+      "operator": "GTE",
+      "attribute": "cart.total_value"
+    }
+  ],
+  "action": {
+    "type": "FREE_SHIPPING",
+    "value": 1
+  },
+  "id": 58,
+  "createddate": 1756981503,
+  "modifieddate": 1765289061501
+}

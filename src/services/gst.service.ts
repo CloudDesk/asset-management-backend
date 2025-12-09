@@ -851,12 +851,63 @@ export class GstService {
       }
       
       // 3. Calculate GST (warehouse pincode will be fetched from EKART if not provided)
+      // IMPORTANT: orderamount should be the total for the line item (quantity * unit price after discounts)
+      // Based on user feedback: orderamount might be stored per-unit, so we need to ensure it's multiplied by quantity
       const { orderlineGst, orderTotals, gstType } = await this.calculateGstForOrder(
-        orderlines.map((ol: any) => ({
-          id: ol.id,
-          productid: ol.productid ? Number(ol.productid) : 0,
-          orderamount: parseFloat(ol.orderamount?.toString() || '0')
-        })),
+        orderlines.map((ol: any) => {
+          const orderamount = parseFloat(ol.orderamount?.toString() || '0');
+          const quantity = parseFloat(ol.quantity?.toString() || '1');
+          const originalPrice = parseFloat(ol.original_price?.toString() || '0');
+          
+          // Calculate expected total: original_price * quantity (before discounts)
+          // If orderamount is close to original_price (per-unit), multiply by quantity
+          // Otherwise, orderamount is already the total for the line item
+          let totalOrderAmount = orderamount;
+          
+          // Check if orderamount is per-unit by comparing with original_price
+          // This check applies to all quantities (including quantity = 1)
+          if (originalPrice > 0) {
+            // If orderamount is within 5% of original_price, it's likely per-unit
+            const tolerance = originalPrice * 0.05;
+            if (Math.abs(orderamount - originalPrice) <= tolerance) {
+              // orderamount appears to be per-unit, multiply by quantity
+              totalOrderAmount = orderamount * quantity;
+              logger.info({
+                orderlineId: ol.id,
+                orderamount,
+                quantity,
+                originalPrice,
+                calculatedTotal: totalOrderAmount,
+                reason: 'orderamount detected as per-unit, multiplied by quantity for GST calculation'
+              }, 'GST calculation: orderamount adjusted for quantity');
+            } else {
+              // orderamount is already total, use as-is
+              logger.debug({
+                orderlineId: ol.id,
+                orderamount,
+                quantity,
+                originalPrice,
+                calculatedTotal: totalOrderAmount,
+                reason: 'orderamount is already total for line item'
+              }, 'GST calculation: orderamount used as-is');
+            }
+          } else {
+            // No original_price available, use orderamount as-is
+            logger.debug({
+              orderlineId: ol.id,
+              orderamount,
+              quantity,
+              calculatedTotal: totalOrderAmount,
+              reason: 'no original_price available, using orderamount as-is'
+            }, 'GST calculation: orderamount used as-is (no original_price)');
+          }
+          
+          return {
+            id: ol.id,
+            productid: ol.productid ? Number(ol.productid) : 0,
+            orderamount: totalOrderAmount
+          };
+        }),
         shippingCost,
         orderAmount,
         warehousePincode,

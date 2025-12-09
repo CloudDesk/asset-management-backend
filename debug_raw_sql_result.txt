@@ -9106,3 +9106,37 @@ Update result: [
     ]
   }
 ]
+Update result: [
+  {
+    "id": 58,
+    "name": "Free Shipping Over ₹1000",
+    "type": "FREE_SHIPPING",
+    "code": "",
+    "auto_apply": true,
+    "status": "active",
+    "priority": 10,
+    "visibility": "public",
+    "max_redemptions": 15000,
+    "per_user_limit": 10,
+    "stackable": true,
+    "createddate": 1756981503,
+    "modifieddate": 1765308864,
+    "description": "Automatic free shipping on orders above ₹1000",
+    "budget": "750000",
+    "timezone": "Asia/Kolkata",
+    "evaluation_expiry_minutes": 15,
+    "conditions": [
+      {
+        "value": "1000",
+        "operator": "GTE",
+        "attribute": "cart.total_value"
+      }
+    ],
+    "start_date": 1704067200,
+    "end_date": 1861919999,
+    "action": {
+      "type": "FREE_SHIPPING",
+      "value": 1
+    }
+  }
+]

@@ -7194,3 +7194,35 @@ Filtered data: {
   "status_history": "[{\"source\":\"system\",\"new_status\":\"order_confirmed\",\"changed_date\":1765186199084,\"previous_status\":\"order_placed\",\"is_active\":false},{\"previous_status\":\"order_confirmed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765187607984,\"source\":\"system\",\"is_active\":true}]",
   "modifieddate": 1765187607984
 }
+Filtered data: {
+  "name": "Free Shipping Over ₹1000",
+  "description": "Automatic free shipping on orders above ₹1000",
+  "type": "FREE_SHIPPING",
+  "code": "",
+  "auto_apply": true,
+  "start_date": 1704067200,
+  "end_date": 1861919999,
+  "status": "active",
+  "priority": 10,
+  "visibility": "public",
+  "max_redemptions": 15000,
+  "per_user_limit": 10,
+  "stackable": true,
+  "budget": 750000,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "conditions": [
+    {
+      "value": "1000",
+      "operator": "GTE",
+      "attribute": "cart.total_value"
+    }
+  ],
+  "action": {
+    "type": "FREE_SHIPPING",
+    "value": 1
+  },
+  "id": 58,
+  "createddate": 1756981503,
+  "modifieddate": 1765289061501
+}

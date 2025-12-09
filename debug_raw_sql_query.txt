@@ -1054,3 +1054,9 @@ Update query:
         WHERE "id" = $1 
         RETURNING id, userid, addressid, createddate, modifieddate, orderamount, orderid, orderstatus, delivereddate, cancelleddate, returneddate, quantity, transactionid, readytodispatchdate, dispatcheddate, productamount, discountamount, deliveryfrom, orderprocessingtime, ispaymentsucceed, merchanttransactionid, productid, paymentfaileddate, mode, evaluation_id, promotion_discount_total, original_total, shipping_cost, tax_amount, tracking_id, vendor, barcodes, label_url, public_tracking_link, shipment_created_at, label_downloaded_at, label_printed_at, shipdate, cod_payment_received_date, cod_transaction_reference, cod_amount, status_history
       
+Update query: 
+        UPDATE "promotions" 
+        SET "name" = $2, "description" = $3, "type" = $4, "code" = $5, "auto_apply" = $6, "start_date" = $7, "end_date" = $8, "status" = $9, "priority" = $10, "visibility" = $11, "max_redemptions" = $12, "per_user_limit" = $13, "stackable" = $14, "budget" = $15, "timezone" = $16, "evaluation_expiry_minutes" = $17, "conditions" = $18::jsonb, "action" = $19::jsonb, "id" = $20, "createddate" = $21, "modifieddate" = $22 
+        WHERE "id" = $1 
+        RETURNING id, name, type, code, auto_apply, status, priority, visibility, max_redemptions, per_user_limit, stackable, createddate, modifieddate, description, budget, timezone, evaluation_expiry_minutes, conditions, start_date, end_date, action
+      

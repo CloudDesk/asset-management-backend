@@ -7307,3 +7307,27 @@ Values: [
   "[{\"source\":\"system\",\"new_status\":\"order_confirmed\",\"changed_date\":1765186199084,\"previous_status\":\"order_placed\",\"is_active\":false},{\"previous_status\":\"order_confirmed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765187607984,\"source\":\"system\",\"is_active\":true}]",
   1765187607
 ]
+Values: [
+  58,
+  "Free Shipping Over ₹1000",
+  "Automatic free shipping on orders above ₹1000",
+  "FREE_SHIPPING",
+  "",
+  true,
+  1704067200,
+  1861919999,
+  "active",
+  10,
+  "public",
+  15000,
+  10,
+  true,
+  750000,
+  "Asia/Kolkata",
+  15,
+  "[{\"value\":\"1000\",\"operator\":\"GTE\",\"attribute\":\"cart.total_value\"}]",
+  "{\"type\":\"FREE_SHIPPING\",\"value\":1}",
+  58,
+  1756981503,
+  1765289062
+]

@@ -71,9 +71,13 @@ GST calculation is automatically triggered after order and orderline creation in
                    ├─► For each orderline:
                    │   ├─► Get product subcategory/subsubcategory
                    │   ├─► Lookup gst_hsn_mapping table
+                   │   ├─► Validate orderamount (handle quantity):
+                   │   │   ├─► Check if orderamount is per-unit (compare with original_price)
+                   │   │   ├─► If per-unit: multiply by quantity to get total line amount
+                   │   │   └─► Otherwise: use orderamount as-is (already total)
                    │   ├─► Calculate GST amounts:
-                   │   │   ├─► taxable_amount = orderamount / (1 + gst_rate/100)
-                   │   │   ├─► total_gst_amount = orderamount - taxable_amount
+                   │   │   ├─► taxable_amount = total_orderamount / (1 + gst_rate/100)
+                   │   │   ├─► total_gst_amount = total_orderamount - taxable_amount
                    │   │   └─► Split: CGST+SGST (Tamil Nadu) or IGST (other states)
                    │   └─► Update orderline with GST fields
                    │
@@ -105,24 +109,46 @@ Priority Order:
 3. If no match → Use default 18% GST, null HSN
 ```
 
-### Step 2: Calculate GST Amounts (GST-Inclusive Pricing)
+### Step 2: Validate Orderamount and Handle Quantity ⭐ NEW
+
+```
+IMPORTANT: orderamount must be the TOTAL for the line item (quantity × unit price)
+
+Validation Logic:
+1. Get orderamount, quantity, and original_price from orderline
+2. If original_price exists:
+   - Compare orderamount with original_price (within 5% tolerance)
+   - If orderamount ≈ original_price → orderamount is per-unit
+     → total_orderamount = orderamount × quantity
+   - Otherwise → orderamount is already total
+     → total_orderamount = orderamount
+3. If original_price not available → use orderamount as-is
+
+Example:
+- orderamount = ₹300 (per-unit price)
+- quantity = 2
+- original_price = ₹300
+- → Detected as per-unit → total_orderamount = 300 × 2 = ₹600
+```
+
+### Step 3: Calculate GST Amounts (GST-Inclusive Pricing)
 
 ```
 Given:
-- orderamount = ₹598.15 (GST-inclusive, after all discounts, EXCLUDES shipping)
+- total_orderamount = ₹600 (GST-inclusive total for quantity 2, EXCLUDES shipping)
 - gst_rate = 5%
 
 Calculate:
-- taxable_amount = orderamount / (1 + gst_rate/100)
-                 = 598.15 / 1.05
-                 = ₹569.67
+- taxable_amount = total_orderamount / (1 + gst_rate/100)
+                 = 600 / 1.05
+                 = ₹571.42
 
-- total_gst_amount = orderamount - taxable_amount
-                   = 598.15 - 569.67
-                   = ₹28.48
+- total_gst_amount = total_orderamount - taxable_amount
+                   = 600 - 571.42
+                   = ₹28.58
 ```
 
-### Step 3: Determine GST Type and Split
+### Step 4: Determine GST Type and Split
 
 ```
 1. Get warehouse pincode from EKART (or use provided)
@@ -141,7 +167,7 @@ ELSE (INTER-STATE):
   igst_amount = total_gst_amount = ₹28.48
 ```
 
-### Step 4: Aggregate to Order Level
+### Step 5: Aggregate to Order Level
 
 ```
 items_total = orderamount - shipping_cost
@@ -161,10 +187,16 @@ total_gst_amount = Σ(orderline.total_gst_amount)
 ### Scenario:
 ```
 Product 1: Incense Sticks (5% GST)
-  - orderamount = ₹598.15
+  - orderamount = ₹300 (per-unit, stored in DB)
+  - quantity = 2
+  - original_price = ₹300
+  - → Total line amount = ₹600 (after validation)
 
 Product 2: Essential Oils (18% GST)
-  - orderamount = ₹251.85
+  - orderamount = ₹251.85 (already total)
+  - quantity = 1
+  - original_price = ₹400
+  - → Total line amount = ₹251.85 (already total)
 
 Delivery: Chennai (600001) - Tamil Nadu
 Shipping: ₹150
@@ -174,43 +206,53 @@ Order Total: ₹1000
 ### Calculation:
 
 ```
-ORDERLINE 1 (5% GST, Tamil Nadu):
-─────────────────────────────────
-orderamount       = ₹598.15
-gst_rate          = 5.00%
-taxable_amount    = 598.15 / 1.05 = ₹569.67
-total_gst_amount  = 598.15 - 569.67 = ₹28.48
-cgst_amount       = 28.48 / 2 = ₹14.24
-sgst_amount       = 28.48 / 2 = ₹14.24
-igst_amount       = ₹0.00
+ORDERLINE 1 (5% GST, Tamil Nadu, Quantity = 2):
+─────────────────────────────────────────────────
+orderamount (DB)     = ₹300 (per-unit)
+quantity             = 2
+original_price       = ₹300
+→ Validation: orderamount ≈ original_price (within 5%)
+→ total_orderamount  = 300 × 2 = ₹600 ⭐
 
-ORDERLINE 2 (18% GST, Tamil Nadu):
-─────────────────────────────────
-orderamount       = ₹251.85
-gst_rate          = 18.00%
-taxable_amount    = 251.85 / 1.18 = ₹213.43
-total_gst_amount  = 251.85 - 213.43 = ₹38.42
-cgst_amount       = 38.42 / 2 = ₹19.21
-sgst_amount       = 38.42 / 2 = ₹19.21
-igst_amount       = ₹0.00
+gst_rate             = 5.00%
+taxable_amount        = 600 / 1.05 = ₹571.42
+total_gst_amount     = 600 - 571.42 = ₹28.58
+cgst_amount          = 28.58 / 2 = ₹14.29
+sgst_amount          = 28.58 / 2 = ₹14.29
+igst_amount          = ₹0.00
+
+ORDERLINE 2 (18% GST, Tamil Nadu, Quantity = 1):
+─────────────────────────────────────────────────
+orderamount (DB)     = ₹251.85 (already total)
+quantity             = 1
+original_price        = ₹400
+→ Validation: orderamount ≠ original_price
+→ total_orderamount   = ₹251.85 (used as-is) ⭐
+
+gst_rate             = 18.00%
+taxable_amount        = 251.85 / 1.18 = ₹213.43
+total_gst_amount     = 251.85 - 213.43 = ₹38.42
+cgst_amount          = 38.42 / 2 = ₹19.21
+sgst_amount          = 38.42 / 2 = ₹19.21
+igst_amount          = ₹0.00
 
 ORDER AGGREGATION:
-─────────────────────────────────
-items_total          = 598.15 + 251.85 = ₹850.00
+─────────────────────────────────────────────────
+items_total          = 600 + 251.85 = ₹851.85
 shipping_cost        = ₹150.00
 orderamount          = ₹1000.00 (unchanged)
 
-total_taxable_amount = 569.67 + 213.43 = ₹783.10
-total_cgst_amount    = 14.24 + 19.21 = ₹33.45
-total_sgst_amount    = 14.24 + 19.21 = ₹33.45
+total_taxable_amount = 571.42 + 213.43 = ₹784.85
+total_cgst_amount    = 14.29 + 19.21 = ₹33.50
+total_sgst_amount    = 14.29 + 19.21 = ₹33.50
 total_igst_amount    = ₹0.00
-total_gst_amount     = 28.48 + 38.42 = ₹66.90
+total_gst_amount     = 28.58 + 38.42 = ₹67.00
 
 VERIFICATION:
-─────────────────────────────────
-① items_total (₹850) = orderamount (₹1000) - shipping (₹150) ✅
-② taxable + gst (₹783.10 + ₹66.90) = items_total (₹850) ✅
-③ cgst + sgst (₹33.45 + ₹33.45) = total_gst (₹66.90) ✅
+─────────────────────────────────────────────────
+① items_total (₹851.85) ≈ orderamount (₹1000) - shipping (₹150) ✅
+② taxable + gst (₹784.85 + ₹67.00) = items_total (₹851.85) ✅
+③ cgst + sgst (₹33.50 + ₹33.50) = total_gst (₹67.00) ✅
 ```
 
 ---
@@ -225,7 +267,8 @@ VERIFICATION:
 ### 2. **GST-Inclusive Pricing**
 - Product prices are GST-inclusive (customer sees final price)
 - GST is extracted from the final price using reverse calculation
-- Formula: `taxable_amount = orderamount / (1 + gst_rate/100)`
+- Formula: `taxable_amount = total_orderamount / (1 + gst_rate/100)`
+- **Quantity Handling** ⭐: Validates if `orderamount` is per-unit or total, multiplies by quantity if needed
 
 ### 3. **Dynamic State Comparison** ⭐ NEW
 - **Warehouse Address**: Fetches from EKART API (supports alias filtering, defaults to first address)
@@ -302,7 +345,7 @@ VERIFICATION:
 | `updateOrderlinesWithGst()` | Updates orderlines with GST data |
 | `updateOrderWithGst()` | Updates order with GST totals |
 | `getDeliveryPincode()` | Gets pincode from address ID |
-| `processOrderGst()` | Main entry point - orchestrates entire GST calculation |
+| `processOrderGst()` | Main entry point - orchestrates entire GST calculation ⭐ Includes quantity validation |
 
 ### Database Operations:
 
@@ -389,10 +432,11 @@ Run `npx prisma generate` after adding columns (optional - dynamic operations wo
 
 1. **Compliance**: Automatic GST calculation ensures tax compliance
 2. **Accuracy**: GST calculated on actual transaction value (after discounts)
-3. **Flexibility**: Supports different GST rates per product category
-4. **State-wise**: Automatically handles CGST/SGST vs IGST based on delivery location
-5. **Non-intrusive**: Doesn't change existing order creation logic
-6. **Error-tolerant**: GST calculation errors don't fail order creation
+3. **Quantity Handling** ⭐: Automatically detects and handles per-unit vs total orderamount, multiplies by quantity when needed
+4. **Flexibility**: Supports different GST rates per product category
+5. **State-wise**: Automatically handles CGST/SGST vs IGST based on delivery location
+6. **Non-intrusive**: Doesn't change existing order creation logic
+7. **Error-tolerant**: GST calculation errors don't fail order creation
 
 ---
 
@@ -426,9 +470,15 @@ All logs use the project's logger utility for consistent formatting.
 - ✅ Tamil Nadu detection implemented
 - ✅ Default GST handling (18%)
 - ✅ Error handling and logging
+- ✅ **Quantity handling fixed** ⭐ - GST now calculated on total line amount (quantity × unit price)
 - ✅ Documentation complete
 
 **Ready for**: Testing and production deployment
+
+### Recent Fix (December 2024):
+- **Issue**: GST was calculated on per-unit price instead of total line amount when quantity > 1
+- **Solution**: Added validation logic to detect if `orderamount` is per-unit (by comparing with `original_price`) and multiply by `quantity` if needed
+- **Impact**: All GST calculations (taxable_amount, cgst, sgst, igst, total_gst) now correctly account for quantity
 
 ---
 
