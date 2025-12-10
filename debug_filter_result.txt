@@ -165730,3 +165730,345 @@ Filtered data result: {
   "createddate": 1756981503,
   "modifieddate": 1765289061501
 }
+Filtered data result: {
+  "name": "TEST - Incense",
+  "shortdescription": "",
+  "fulldescription": "",
+  "price": 300,
+  "discount": 30,
+  "isdealoftheday": true,
+  "brand": "TEST",
+  "pack": "pack_of_2",
+  "material": "",
+  "manufacturer": "",
+  "netform": "",
+  "netquantity": "",
+  "usage": "",
+  "length": null,
+  "width": null,
+  "height": null,
+  "weight": null,
+  "purpose": "Home Fragrance",
+  "fragnancetype": "kasturi,kesar_chandan",
+  "category": "home_fragrance",
+  "subcategory": "incense",
+  "subsubcategory": "incense_sticks"
+}
+Filtered data result: {
+  "name": "Free Shipping Over ₹1000",
+  "description": "Automatic free shipping on orders above ₹1000",
+  "type": "FREE_SHIPPING",
+  "code": "",
+  "auto_apply": true,
+  "start_date": 1704067200,
+  "end_date": 1861919999,
+  "status": "active",
+  "priority": 10,
+  "visibility": "public",
+  "max_redemptions": 15000,
+  "per_user_limit": 10,
+  "stackable": true,
+  "budget": 750000,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "conditions": [
+    {
+      "value": "100",
+      "operator": "GTE",
+      "attribute": "cart.total_value"
+    }
+  ],
+  "action": {
+    "type": "FREE_SHIPPING",
+    "value": 1
+  },
+  "id": 58,
+  "createddate": 1756981503,
+  "modifieddate": 1765346612868
+}
+Filtered data result: {
+  "name": "TEST - Incense",
+  "shortdescription": "",
+  "fulldescription": "",
+  "price": 300,
+  "discount": 0,
+  "isdealoftheday": true,
+  "brand": "TEST",
+  "pack": "pack_of_2",
+  "material": "",
+  "manufacturer": "",
+  "netform": "",
+  "netquantity": "",
+  "usage": "",
+  "length": null,
+  "width": null,
+  "height": null,
+  "weight": null,
+  "purpose": "Home Fragrance",
+  "fragnancetype": "kasturi,kesar_chandan",
+  "category": "home_fragrance",
+  "subcategory": "incense",
+  "subsubcategory": "incense_sticks"
+}
+Filtered data result: {
+  "name": "Free Shipping Over ₹1000",
+  "description": "Automatic free shipping on orders above ₹1000",
+  "type": "FREE_SHIPPING",
+  "code": "",
+  "auto_apply": true,
+  "start_date": 1704067200,
+  "end_date": 1861919999,
+  "status": "active",
+  "priority": 10,
+  "visibility": "public",
+  "max_redemptions": 15000,
+  "per_user_limit": 10,
+  "stackable": true,
+  "budget": 750000,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "conditions": [
+    {
+      "value": "1000",
+      "operator": "GTE",
+      "attribute": "cart.total_value"
+    }
+  ],
+  "action": {
+    "type": "FREE_SHIPPING",
+    "value": 1
+  },
+  "id": 58,
+  "createddate": 1756981503,
+  "modifieddate": 1765353182923
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "TES-0066",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "quantity": 31,
+  "availablequantity": 16,
+  "soldquantity": 0,
+  "ecompublishedquantity": 31,
+  "productstatus": "in_stock",
+  "modifieddate": 1765353253741
+}
+Filtered data result: {
+  "availableqty": 10,
+  "soldqty": 0,
+  "totalqty": 25,
+  "orderedqty": 15,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Filtered data result: {
+  "puc": "FRA-0056",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "FRA-0056",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "FRA-0056",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "FRA-0056",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "FRA-0056",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "FRA-0056",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "FRA-0056",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "FRA-0056",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "FRA-0056",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "FRA-0056",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "FRA-0056",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "quantity": 30,
+  "availablequantity": 18,
+  "soldquantity": 0,
+  "ecompublishedquantity": 30,
+  "productstatus": "in_stock",
+  "modifieddate": 1765353291875
+}
+Filtered data result: {
+  "availableqty": 18,
+  "soldqty": 0,
+  "totalqty": 30,
+  "orderedqty": 12,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}

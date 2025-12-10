@@ -446,12 +446,16 @@ export class GstService {
   /**
    * Calculate GST amounts for an orderline
    * 
-   * GST-INCLUSIVE PRICING:
-   * - orderamount is the GST-inclusive price (what customer pays for product)
-   * - taxable_amount = orderamount / (1 + gst_rate/100)
-   * - total_gst_amount = orderamount - taxable_amount
+   * GST CALCULATION FORMULA:
+   * - orderamount is the total amount (what customer pays for product)
+   * - total_gst_amount = orderamount * (gst_rate / 100)
+   * - taxable_amount = orderamount - total_gst_amount
    * 
-   * @param orderamount - Final GST-inclusive price AFTER discount (NOT including shipping)
+   * Example: orderamount = 600, gst_rate = 5%
+   * - total_gst_amount = 600 * (5/100) = 30
+   * - taxable_amount = 600 - 30 = 570
+   * 
+   * @param orderamount - Total amount AFTER discount (NOT including shipping)
    * @param gstRate - GST rate from mapping (e.g., 5, 18)
    * @param gstType - GST type result (INTRA-STATE or INTER-STATE)
    * @returns GST breakdown with taxable amount and GST components
@@ -473,11 +477,12 @@ export class GstService {
         total_gst_amount: 0
       };
     }
-
-    // GST-INCLUSIVE: Extract base amount and GST from final price
-    // Formula: taxable_amount = orderamount / (1 + gst_rate/100)
-    const taxable_amount = orderamount / (1 + gstRate / 100);
-    const total_gst_amount = orderamount - taxable_amount;
+    
+    // Calculate GST as percentage of orderamount
+    // Formula: total_gst_amount = orderamount * (gst_rate / 100)
+    // Then: taxable_amount = orderamount - total_gst_amount
+    const total_gst_amount = orderamount * (gstRate / 100);
+    const taxable_amount = orderamount - total_gst_amount;
 
     let cgst_amount = 0;
     let sgst_amount = 0;
@@ -527,6 +532,13 @@ export class GstService {
     orderamount: number,
     gstType: GstTypeResult
   ): Promise<GstCalculationResult> {
+    logger.info({
+      productId,
+      orderamount,
+      gst_type: gstType.gst_type,
+      note: 'orderamount should be TOTAL for line item (includes quantity), not per-unit'
+    }, 'Calculating GST for orderline');
+    
     // 1. Get product category info
     const { subcategory, subsubcategory } = await this.getProductCategoryInfo(productId);
     
@@ -851,61 +863,34 @@ export class GstService {
       }
       
       // 3. Calculate GST (warehouse pincode will be fetched from EKART if not provided)
-      // IMPORTANT: orderamount should be the total for the line item (quantity * unit price after discounts)
-      // Based on user feedback: orderamount might be stored per-unit, so we need to ensure it's multiplied by quantity
+      // IMPORTANT: orderamount is ALWAYS the total for the line item (quantity * unit price after discounts)
+      // According to PHONEPE_PAYMENT_IMPLEMENTATION_GUIDE.md: "orderamount is Final item amount"
+      // This means orderamount already includes quantity, so we use it directly for GST calculation
       const { orderlineGst, orderTotals, gstType } = await this.calculateGstForOrder(
         orderlines.map((ol: any) => {
           const orderamount = parseFloat(ol.orderamount?.toString() || '0');
           const quantity = parseFloat(ol.quantity?.toString() || '1');
-          const originalPrice = parseFloat(ol.original_price?.toString() || '0');
           
-          // Calculate expected total: original_price * quantity (before discounts)
-          // If orderamount is close to original_price (per-unit), multiply by quantity
-          // Otherwise, orderamount is already the total for the line item
-          let totalOrderAmount = orderamount;
-          
-          // Check if orderamount is per-unit by comparing with original_price
-          // This check applies to all quantities (including quantity = 1)
-          if (originalPrice > 0) {
-            // If orderamount is within 5% of original_price, it's likely per-unit
-            const tolerance = originalPrice * 0.05;
-            if (Math.abs(orderamount - originalPrice) <= tolerance) {
-              // orderamount appears to be per-unit, multiply by quantity
-              totalOrderAmount = orderamount * quantity;
-              logger.info({
-                orderlineId: ol.id,
-                orderamount,
-                quantity,
-                originalPrice,
-                calculatedTotal: totalOrderAmount,
-                reason: 'orderamount detected as per-unit, multiplied by quantity for GST calculation'
-              }, 'GST calculation: orderamount adjusted for quantity');
-            } else {
-              // orderamount is already total, use as-is
-              logger.debug({
-                orderlineId: ol.id,
-                orderamount,
-                quantity,
-                originalPrice,
-                calculatedTotal: totalOrderAmount,
-                reason: 'orderamount is already total for line item'
-              }, 'GST calculation: orderamount used as-is');
+          // orderamount is already the total for the line item (includes quantity)
+          // Example: If quantity=2 and unit price=300, orderamount=600 (not 300)
+          // We use orderamount directly for GST calculation
+          logger.debug({
+            orderlineId: ol.id,
+            productid: ol.productid,
+            orderamount,
+            quantity,
+            verification: {
+              orderamount_is_total: orderamount,
+              quantity: quantity,
+              expected_per_unit: quantity > 0 ? (orderamount / quantity).toFixed(2) : 'N/A',
+              note: 'orderamount MUST be TOTAL for line item (quantity × unit price after discounts)'
             }
-          } else {
-            // No original_price available, use orderamount as-is
-            logger.debug({
-              orderlineId: ol.id,
-              orderamount,
-              quantity,
-              calculatedTotal: totalOrderAmount,
-              reason: 'no original_price available, using orderamount as-is'
-            }, 'GST calculation: orderamount used as-is (no original_price)');
-          }
+          }, 'GST calculation: using orderamount as total for line item');
           
           return {
             id: ol.id,
             productid: ol.productid ? Number(ol.productid) : 0,
-            orderamount: totalOrderAmount
+            orderamount: orderamount // Use orderamount directly (already includes quantity)
           };
         }),
         shippingCost,

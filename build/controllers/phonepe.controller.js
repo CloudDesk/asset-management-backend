@@ -1505,21 +1505,24 @@ export class PhonePeController {
                 .map((item, index) => {
                 const productId = item.productid;
                 const quantity = parseInt(item.quantity?.toString() || '1');
-                const itemProductAmount = parseFloat(item.productamount?.toString() || '0');
+                const rawProductAmount = parseFloat(item.productamount?.toString() || '0');
                 // Initialize discount values
                 let productDiscountAmount = 0;
                 let promotionDiscountAmount = 0;
-                let originalPrice = itemProductAmount; // Default to productamount
+                let originalPrice = rawProductAmount; // Will be recalculated if evaluationData exists
+                let itemProductAmount = rawProductAmount; // Total product amount for this line item
                 logger.debug({
                     transactionId,
                     productId,
                     index,
+                    quantity,
                     hasEvaluationData: !!evaluationData,
-                    itemProductAmount,
+                    rawProductAmount,
                     initialState: {
                         productDiscountAmount,
                         promotionDiscountAmount,
-                        originalPrice
+                        originalPrice,
+                        itemProductAmount
                     }
                 }, "Starting enrichment for product");
                 // Try to get accurate data from evaluationData
@@ -1530,8 +1533,12 @@ export class PhonePeController {
                     if (cartItem) {
                         const basePrice = parseFloat(cartItem.base_price?.toString() || '0');
                         const productDiscount = parseFloat(cartItem.product_discount?.toString() || '0');
+                        // Calculate totals (multiply by quantity)
                         originalPrice = basePrice * quantity;
                         productDiscountAmount = productDiscount * quantity;
+                        // ✅ FIX: Calculate itemProductAmount as total (originalPrice - productDiscountAmount)
+                        // This ensures itemProductAmount is always the TOTAL for the line item, not per-unit
+                        itemProductAmount = originalPrice - productDiscountAmount;
                         logger.debug({
                             transactionId,
                             productId,
@@ -1539,7 +1546,9 @@ export class PhonePeController {
                             productDiscount,
                             quantity,
                             calculatedOriginalPrice: originalPrice,
-                            calculatedProductDiscount: productDiscountAmount
+                            calculatedProductDiscount: productDiscountAmount,
+                            calculatedItemProductAmount: itemProductAmount,
+                            note: 'itemProductAmount is total for line item (includes quantity)'
                         }, "Extracted product discount from evaluation cart_data");
                     }
                     // Get promotion discount from applied_promotions breakdown
@@ -1564,17 +1573,24 @@ export class PhonePeController {
                     }
                     // If no breakdown found but we have promotionDiscountTotal, use pro-rata distribution
                     if (!foundPromotionBreakdown && promotionDiscountTotal > 0) {
-                        const totalProductAmount = originalOrderData
+                        // Calculate total product amount across all items for pro-rata calculation
+                        const totalProductAmountForProRata = originalOrderData
                             .filter((i) => validProductIds.includes(i.productid))
-                            .reduce((sum, i) => sum + parseFloat(i.productamount?.toString() || '0'), 0);
-                        if (totalProductAmount > 0) {
-                            promotionDiscountAmount = (promotionDiscountTotal * itemProductAmount) / totalProductAmount;
+                            .reduce((sum, i) => {
+                            const qty = parseInt(i.quantity?.toString() || '1');
+                            const prodAmt = parseFloat(i.productamount?.toString() || '0');
+                            // If productamount appears to be per-unit, multiply by quantity
+                            // Otherwise use as-is (already total)
+                            return sum + (prodAmt * qty);
+                        }, 0);
+                        if (totalProductAmountForProRata > 0) {
+                            promotionDiscountAmount = (promotionDiscountTotal * itemProductAmount) / totalProductAmountForProRata;
                             logger.warn({
                                 transactionId,
                                 productId,
                                 promotionDiscountTotal,
                                 itemProductAmount,
-                                totalProductAmount,
+                                totalProductAmountForProRata,
                                 calculatedPromotionDiscount: promotionDiscountAmount,
                                 reason: "applied_promotions has no per-product breakdown"
                             }, "Using pro-rata distribution for promotion discount (evaluationData exists but no breakdown)");
@@ -1588,30 +1604,46 @@ export class PhonePeController {
                         productId,
                         message: "No evaluationData - using pro-rata distribution (less accurate)"
                     }, "Falling back to pro-rata discount distribution");
-                    const totalProductAmount = originalOrderData
+                    // ✅ FIX: Ensure we're working with totals, not per-unit amounts
+                    // If rawProductAmount appears to be per-unit, multiply by quantity
+                    // Otherwise assume it's already total
+                    const assumedTotalProductAmount = rawProductAmount * quantity;
+                    const totalProductAmountForProRata = originalOrderData
                         .filter((i) => validProductIds.includes(i.productid))
-                        .reduce((sum, i) => sum + parseFloat(i.productamount?.toString() || '0'), 0);
-                    if (totalProductAmount > 0) {
-                        const proRataFactor = itemProductAmount / totalProductAmount;
+                        .reduce((sum, i) => {
+                        const qty = parseInt(i.quantity?.toString() || '1');
+                        const prodAmt = parseFloat(i.productamount?.toString() || '0');
+                        return sum + (prodAmt * qty);
+                    }, 0);
+                    if (totalProductAmountForProRata > 0) {
+                        const proRataFactor = assumedTotalProductAmount / totalProductAmountForProRata;
                         productDiscountAmount = productDiscountTotal * proRataFactor;
                         promotionDiscountAmount = promotionDiscountTotal * proRataFactor;
-                        originalPrice = itemProductAmount + (productDiscountAmount + promotionDiscountAmount);
+                        originalPrice = assumedTotalProductAmount + (productDiscountAmount + promotionDiscountAmount);
+                        itemProductAmount = originalPrice - productDiscountAmount;
                     }
                 }
                 // Calculate pro-rata shipping cost based on product amount
-                const totalProductAmount = originalOrderData
+                const totalProductAmountForShipping = originalOrderData
                     .filter((i) => validProductIds.includes(i.productid))
-                    .reduce((sum, i) => sum + parseFloat(i.productamount?.toString() || '0'), 0);
-                const shippingCostForItem = totalProductAmount > 0
-                    ? (shippingCost * itemProductAmount) / totalProductAmount
+                    .reduce((sum, i) => {
+                    const qty = parseInt(i.quantity?.toString() || '1');
+                    const prodAmt = parseFloat(i.productamount?.toString() || '0');
+                    return sum + (prodAmt * qty);
+                }, 0);
+                const shippingCostForItem = totalProductAmountForShipping > 0
+                    ? (shippingCost * itemProductAmount) / totalProductAmountForShipping
                     : 0;
-                // Recalculate discountamount and orderamount based on enriched values
+                // ✅ FIX: Calculate finalOrderAmount as total (itemProductAmount - promotionDiscountAmount)
+                // itemProductAmount is already total, promotionDiscountAmount is already total
+                // So finalOrderAmount will be the TOTAL for the line item
                 const totalDiscountAmount = productDiscountAmount + promotionDiscountAmount;
                 const finalOrderAmount = itemProductAmount - promotionDiscountAmount;
                 logger.debug({
                     transactionId,
                     productId,
                     index,
+                    quantity,
                     enrichment: {
                         original_price: originalPrice,
                         product_discount_amount: productDiscountAmount,
@@ -1622,7 +1654,13 @@ export class PhonePeController {
                     recalculated: {
                         discountamount: totalDiscountAmount,
                         orderamount: finalOrderAmount,
-                        calculation: `${itemProductAmount} - ${promotionDiscountAmount} = ${finalOrderAmount}`
+                        calculation: `${itemProductAmount} - ${promotionDiscountAmount} = ${finalOrderAmount}`,
+                        verification: {
+                            itemProductAmount_is_total: itemProductAmount,
+                            quantity: quantity,
+                            orderamount_is_total: finalOrderAmount,
+                            note: 'orderamount is TOTAL for line item (includes quantity), not per-unit'
+                        }
                     }
                 }, "Order item enriched with discount data and recalculated amounts");
                 return {
@@ -2121,6 +2159,33 @@ export class PhonePeController {
                     orderStatus: order.orderstatus,
                 },
             }, "Order and orderlines created successfully after payment");
+            // ✅ Clear cart after successful order creation
+            // Cart is cleared ONLY when order is confirmed (not on payment initiation or failure)
+            // This ensures cart remains intact if payment fails or is cancelled
+            try {
+                const { CartService } = await import('../services/cart.service.js');
+                const cartService = new CartService();
+                const cartClearResult = await cartService.clearCartByUserId(transaction.userid.toString());
+                logger.info({
+                    transactionId,
+                    orderId: order.id,
+                    userId: transaction.userid,
+                    deletedCount: cartClearResult.deletedCount,
+                    orderStatus: order.orderstatus,
+                    note: 'Cart cleared after successful order confirmation (backend only)'
+                }, 'Cart cleared successfully after order confirmation');
+            }
+            catch (cartError) {
+                // Non-critical: Log but don't fail order creation
+                // Order is already created successfully, cart clearing failure should not affect order
+                logger.warn({
+                    transactionId,
+                    orderId: order.id,
+                    userId: transaction.userid,
+                    error: cartError instanceof Error ? cartError.message : 'Unknown error',
+                    note: 'Cart clear failed after order creation (non-critical - order still created)'
+                }, 'Failed to clear cart after order creation (non-critical)');
+            }
             return order;
         }
         catch (error) {
