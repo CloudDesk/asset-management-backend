@@ -20,6 +20,40 @@ import { logger } from '../config/logger.js';
 import { gstService } from './gst.service.js';
 
 export class OrdersService {
+  // Helper function to parse status_history
+  private parseStatusHistory(statusHistory: any): any[] {
+    if (!statusHistory) return [];
+    
+    // If it's already an array, return it (filter out empty objects)
+    if (Array.isArray(statusHistory)) {
+      return statusHistory.filter((entry: any) => 
+        entry && typeof entry === 'object' && Object.keys(entry).length > 0
+      );
+    }
+    
+    // If it's a string, try to parse it
+    if (typeof statusHistory === 'string') {
+      try {
+        const parsed = JSON.parse(statusHistory);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((entry: any) => 
+            entry && typeof entry === 'object' && Object.keys(entry).length > 0
+          );
+        }
+      } catch (e) {
+        // If parsing fails, return empty array
+        return [];
+      }
+    }
+    
+    // If it's an object (but not an array), wrap it in an array
+    if (typeof statusHistory === 'object' && Object.keys(statusHistory).length > 0) {
+      return [statusHistory];
+    }
+    
+    return [];
+  }
+
   async findMany(
     filters: FilterOptions,
     page: number,
@@ -888,6 +922,12 @@ export class OrdersService {
         promotion_discount_total: fullOrder.promotion_discount_total ? Number(fullOrder.promotion_discount_total) : null,
         original_total: fullOrder.original_total ? Number(fullOrder.original_total) : null,
         shipping_cost: fullOrder.shipping_cost ? Number(fullOrder.shipping_cost) : null,
+        items_total: fullOrder.items_total ? Number(fullOrder.items_total) : null,
+        total_taxable_amount: fullOrder.total_taxable_amount ? Number(fullOrder.total_taxable_amount) : null,
+        total_cgst_amount: fullOrder.total_cgst_amount ? Number(fullOrder.total_cgst_amount) : null,
+        total_sgst_amount: fullOrder.total_sgst_amount ? Number(fullOrder.total_sgst_amount) : null,
+        total_igst_amount: fullOrder.total_igst_amount ? Number(fullOrder.total_igst_amount) : null,
+        total_gst_amount: fullOrder.total_gst_amount ? Number(fullOrder.total_gst_amount) : null,
         tax_amount: fullOrder.tax_amount ? Number(fullOrder.tax_amount) : null,
         tracking_id: fullOrder.tracking_id,
         vendor: fullOrder.vendor,
@@ -899,7 +939,7 @@ export class OrdersService {
         cod_payment_received_date: fullOrder.cod_payment_received_date,
         cod_transaction_reference: fullOrder.cod_transaction_reference,
         cod_amount: fullOrder.cod_amount ? Number(fullOrder.cod_amount) : null,
-        status_history: fullOrder.status_history || []
+        status_history: this.parseStatusHistory(fullOrder.status_history)
       };
 
       // Get orderlines for this order
@@ -921,12 +961,13 @@ export class OrdersService {
         productid: ol.productid,
         productname: ol.productname,
         productcategory: ol.productcategory,
+        hsn_code: ol.hsn_code,
         orderstatus: ol.orderstatus,
         original_price: ol.original_price ? Number(ol.original_price) : null,
         product_discount_amount: ol.product_discount_amount ? Number(ol.product_discount_amount) : null,
         promotion_discount_amount: ol.promotion_discount_amount ? Number(ol.promotion_discount_amount) : null,
         shipping_cost: ol.shipping_cost ? Number(ol.shipping_cost) : null,
-        status_history: ol.status_history || []
+        status_history: this.parseStatusHistory(ol.status_history)
       }));
 
       // Get address from first orderline (all orderlines share same address)
@@ -941,7 +982,7 @@ export class OrdersService {
             // Extract only required address fields
             address = {
               name: fullAddress.name,
-              mobilenumber: fullAddress.mobile,
+              mobilenumber: fullAddress.mobilenumber,
               pincode: fullAddress.pincode,
               doornumber: fullAddress.doornumber || fullAddress.addressline1,
               address: fullAddress.addressline2 || fullAddress.address,
@@ -968,6 +1009,241 @@ export class OrdersService {
       };
     } catch (error) {
       logger.error({ error, idOrOrderNumber }, 'Error getting order details');
+      throw error;
+    }
+  }
+
+  /**
+   * Get orders by userid with orderlines and address data
+   * Returns orders with nested orderlines and address information
+   */
+  async getOrdersByUserIdWithDetails(
+    userId: number,
+    page: number = 1,
+    limit: number = 50
+  ): Promise<{
+      orders: Array<{
+      id: number;
+      orderamount: number | null;
+      orderid: string | null;
+      orderstatus: string | null;
+      quantity: number | null;
+      productamount: number | null;
+      discountamount: number | null;
+      ispaymentsucceed: boolean | null;
+      mode: string | null;
+      promotion_discount_total: number | null;
+      original_total: number | null;
+      shipping_cost: number | null;
+      items_total: number | null;
+      total_taxable_amount: number | null;
+      total_cgst_amount: number | null;
+      total_sgst_amount: number | null;
+      total_igst_amount: number | null;
+      total_gst_amount: number | null;
+      createddate: number | null;
+      modifieddate: number | null;
+      status_history: any[];
+      orderlines: Array<{
+        id: number;
+        productname: string | null;
+        productcategory: string | null;
+        productid: number | null;
+        orderstatus: string | null;
+        productamount: number | null;
+        discountamount: number | null;
+        orderamount: number | null;
+        quantity: number | null;
+        product_discount_amount: number | null;
+        promotion_discount_amount: number | null;
+        shipping_cost: number | null;
+        createddate: number | null;
+        modifieddate: number | null;
+        status_history: any[];
+      }>;
+      address: {
+        name: string | null;
+        mobilenumber: string | null;
+        doornumber: string | null;
+        address: string | null;
+        pincode: string | null;
+        state: string | null;
+        city: string | null;
+      } | null;
+    }>;
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+      hasNext: boolean;
+      hasPrev: boolean;
+    };
+  }> {
+    try {
+      logger.info({ userId, page, limit }, 'Getting orders by userid with orderlines and address');
+
+      // Get orders for this user
+      const ordersResult = await this.findMany(
+        { userid: userId.toString() },
+        page,
+        limit
+      );
+      const orders = ordersResult.data;
+      const pagination = ordersResult.pagination;
+
+      // Get orderlines for all orders
+      const { OrderlineService } = await import('./orderline.service.js');
+      const orderlineService = new OrderlineService();
+
+      // Get all order IDs
+      const orderIds = orders.map((order: any) => order.id.toString());
+
+      // Get all orderlines for these orders using dynamic operations
+      // Query orderlines for each order and combine results
+      const allOrderlines: any[] = [];
+      for (const orderId of orderIds) {
+        const { data: orderlines } = await orderlineService.findMany(
+          { orderid: orderId },
+          1,
+          1000 // Large limit to get all orderlines for each order
+        );
+        allOrderlines.push(...orderlines);
+      }
+
+      // Group orderlines by orderid
+      const orderlinesByOrderId = new Map<number, any[]>();
+      for (const orderline of allOrderlines) {
+        const orderId = Number(orderline.orderid);
+        if (!orderlinesByOrderId.has(orderId)) {
+          orderlinesByOrderId.set(orderId, []);
+        }
+        orderlinesByOrderId.get(orderId)!.push(orderline);
+      }
+
+      // Get unique address IDs from orders and orderlines
+      const addressIds = new Set<number>();
+      orders.forEach((order: any) => {
+        if (order.addressid) addressIds.add(Number(order.addressid));
+      });
+      allOrderlines.forEach((orderline: any) => {
+        if (orderline.addressid) addressIds.add(Number(orderline.addressid));
+      });
+
+      // Fetch all addresses in one batch
+      // Query each address individually to avoid hardcoded SQL
+      const addressMap = new Map<number, any>();
+      if (addressIds.size > 0) {
+        const addressPromises = Array.from(addressIds).map(async (addressId) => {
+          try {
+            const address = await dynamicFindUnique('address', { id: addressId });
+            if (address) {
+              return { id: addressId, address };
+            }
+            return null;
+          } catch (error) {
+            logger.warn({ addressId, error }, 'Failed to fetch address');
+            return null;
+          }
+        });
+        
+        const addressResults = await Promise.all(addressPromises);
+        addressResults.forEach((result) => {
+          if (result && result.address) {
+            const addr = result.address;
+            addressMap.set(result.id, {
+              name: addr.name,
+              mobilenumber: addr.mobile || addr.mobilenumber,
+              doornumber: addr.doornumber || addr.addressline1,
+              address: addr.addressline2 || addr.address,
+              pincode: addr.pincode,
+              state: addr.state,
+              city: addr.city
+            });
+          }
+        });
+      }
+
+      // Build response with orders, orderlines, and address
+      const ordersWithDetails = orders.map((order: any) => {
+        // Extract required order fields
+        const orderData = {
+          id: order.id,
+          orderamount: order.orderamount ? Number(order.orderamount) : null,
+          orderid: order.orderid,
+          orderstatus: order.orderstatus,
+          quantity: order.quantity,
+          productamount: order.productamount ? Number(order.productamount) : null,
+          discountamount: order.discountamount ? Number(order.discountamount) : null,
+          ispaymentsucceed: order.ispaymentsucceed,
+          mode: order.mode,
+          promotion_discount_total: order.promotion_discount_total ? Number(order.promotion_discount_total) : null,
+          original_total: order.original_total ? Number(order.original_total) : null,
+          shipping_cost: order.shipping_cost ? Number(order.shipping_cost) : null,
+          items_total: order.items_total ? Number(order.items_total) : null,
+          total_taxable_amount: order.total_taxable_amount ? Number(order.total_taxable_amount) : null,
+          total_cgst_amount: order.total_cgst_amount ? Number(order.total_cgst_amount) : null,
+          total_sgst_amount: order.total_sgst_amount ? Number(order.total_sgst_amount) : null,
+          total_igst_amount: order.total_igst_amount ? Number(order.total_igst_amount) : null,
+          total_gst_amount: order.total_gst_amount ? Number(order.total_gst_amount) : null,
+          createddate: order.createddate ? Number(order.createddate) : null,
+          modifieddate: order.modifieddate ? Number(order.modifieddate) : null,
+          status_history: this.parseStatusHistory(order.status_history)
+        };
+
+        // Get orderlines for this order
+        const orderOrderlines = (orderlinesByOrderId.get(order.id) || []).map((ol: any) => ({
+          id: ol.id,
+          productname: ol.productname,
+          productcategory: ol.productcategory,
+          productid: ol.productid ? Number(ol.productid) : null,
+          orderstatus: ol.orderstatus,
+          productamount: ol.productamount ? Number(ol.productamount) : null,
+          discountamount: ol.discountamount ? Number(ol.discountamount) : null,
+          orderamount: ol.orderamount ? Number(ol.orderamount) : null,
+          quantity: ol.quantity,
+          product_discount_amount: ol.product_discount_amount ? Number(ol.product_discount_amount) : null,
+          promotion_discount_amount: ol.promotion_discount_amount ? Number(ol.promotion_discount_amount) : null,
+          shipping_cost: ol.shipping_cost ? Number(ol.shipping_cost) : null,
+          createddate: ol.createddate ? Number(ol.createddate) : null,
+          modifieddate: ol.modifieddate ? Number(ol.modifieddate) : null,
+          status_history: this.parseStatusHistory(ol.status_history)
+        }));
+
+        // Get address (prefer order address, fallback to first orderline address)
+        let address = null;
+        if (order.addressid) {
+          address = addressMap.get(Number(order.addressid)) || null;
+        }
+        // If no address on order, get from first orderline
+        if (!address && orderOrderlines.length > 0) {
+          const firstOrderline = orderlinesByOrderId.get(order.id)?.[0];
+          if (firstOrderline?.addressid) {
+            address = addressMap.get(Number(firstOrderline.addressid)) || null;
+          }
+        }
+
+        return {
+          ...orderData,
+          orderlines: orderOrderlines,
+          address
+        };
+      });
+
+      logger.info({
+        userId,
+        ordersCount: ordersWithDetails.length,
+        totalOrders: pagination.total,
+        page,
+        limit
+      }, 'Orders with orderlines and address retrieved successfully');
+
+      return {
+        orders: ordersWithDetails,
+        pagination
+      };
+    } catch (error) {
+      logger.error({ error, userId, page, limit }, 'Error getting orders by userid with details');
       throw error;
     }
   }

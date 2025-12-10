@@ -25,5 +25,10 @@ export declare class OrdersController {
      * For Inventory App order detail page
      */
     getOrderDetails: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    /**
+     * Get orders by user ID with orderlines and address details
+     * GET /v1/orders/user/:userid/details
+     */
+    getOrdersByUserIdWithDetails: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
 }
 //# sourceMappingURL=orders.controller.d.ts.map

@@ -7379,3 +7379,21 @@ Values: [
   1756981503,
   1765353182
 ]
+Values: [
+  215,
+  "ready_for_dispatch",
+  "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1765360032213,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765370696216,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  1765370696
+]
+Values: [
+  216,
+  "ready_for_dispatch",
+  "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1765360032213,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765370700637,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  1765370701
+]
+Values: [
+  160,
+  "ready_for_dispatch",
+  "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1765360032212,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765370703291,\"source\":\"system\",\"is_active\":true}]",
+  1765370703
+]

@@ -166921,3 +166921,22 @@ Filtering data for platformstock (platformstock): {
   "lockqty": 0,
   "platformstatus": "in_stock"
 }
+Filtering data for orderline (orderline): {
+  "orderstatus": "ready_for_dispatch",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1765360032213,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765370696216,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  "modifieddate": 1765370696217,
+  "source": "inventoryuser",
+  "inventory_user_id": 2
+}
+Filtering data for orderline (orderline): {
+  "orderstatus": "ready_for_dispatch",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1765360032213,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765370700637,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  "modifieddate": 1765370700637,
+  "source": "inventoryuser",
+  "inventory_user_id": 2
+}
+Filtering data for orders (orders): {
+  "orderstatus": "ready_for_dispatch",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1765360032212,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765370703291,\"source\":\"system\",\"is_active\":true}]",
+  "modifieddate": 1765370703291
+}

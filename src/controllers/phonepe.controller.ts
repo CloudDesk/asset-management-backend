@@ -3009,8 +3009,11 @@ export class PhonePeController {
               productAmountOnly = roundToTwo(
                 orderProductAmountTotal - accumulatedProductAmount
               );
+              // ✅ FIX: orderline.orderamount should NOT include shipping
+              // Use productAmountOnly - promotionDiscountAmount (same formula as non-last lines)
+              // NOT orderOrderAmountTotal which includes shipping
               finalPriceTotal = roundToTwo(
-                orderOrderAmountTotal - accumulatedOrderAmount
+                productAmountOnly - promotionDiscountAmount
               );
               lineShippingCost = roundToTwo(
                 orderShippingTotal - accumulatedShippingAmount

@@ -244,4 +244,40 @@ export class OrdersController {
       throw error;
     }
   });
+
+  /**
+   * Get orders by user ID with orderlines and address details
+   * GET /v1/orders/user/:userid/details
+   */
+  getOrdersByUserIdWithDetails = asyncHandler(async (
+    request: FastifyRequest<{ 
+      Params: { userid: string },
+      Querystring: { page?: string; limit?: string }
+    }>,
+    reply: FastifyReply
+  ) => {
+    const { userid } = request.params;
+    const { page: pageStr, limit: limitStr } = request.query;
+    
+    const page = pageStr ? parseInt(pageStr, 10) : 1;
+    const limit = limitStr ? parseInt(limitStr, 10) : 50;
+    
+    if (isNaN(Number(userid))) {
+      return reply.code(400).send({
+        success: false,
+        message: 'Invalid user ID',
+        statusCode: 400
+      });
+    }
+    
+    const userId = parseInt(userid, 10);
+    const result = await this.ordersService.getOrdersByUserIdWithDetails(userId, page, limit);
+    
+    return reply.code(200).send({
+      success: true,
+      message: 'Orders retrieved successfully',
+      data: result.orders,
+      pagination: result.pagination
+    });
+  });
 } 

@@ -2040,7 +2040,10 @@ export class PhonePeController {
                             productDiscountAmount = roundToTwo(orderProductDiscountTotal - accumulatedProductDiscount);
                             totalDiscountForLine = roundToTwo(orderTotalDiscountAmount - accumulatedDiscountAmount);
                             productAmountOnly = roundToTwo(orderProductAmountTotal - accumulatedProductAmount);
-                            finalPriceTotal = roundToTwo(orderOrderAmountTotal - accumulatedOrderAmount);
+                            // ✅ FIX: orderline.orderamount should NOT include shipping
+                            // Use productAmountOnly - promotionDiscountAmount (same formula as non-last lines)
+                            // NOT orderOrderAmountTotal which includes shipping
+                            finalPriceTotal = roundToTwo(productAmountOnly - promotionDiscountAmount);
                             lineShippingCost = roundToTwo(orderShippingTotal - accumulatedShippingAmount);
                         }
                         // SAFEGUARD: Prevent negative amounts due to very large promotions
