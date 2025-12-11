@@ -7397,3 +7397,84 @@ Values: [
   "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1765360032212,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765370703291,\"source\":\"system\",\"is_active\":true}]",
   1765370703
 ]
+Values: [
+  160,
+  "LUAP0000487647",
+  "EKART",
+  "{\"wbn\":\"LUAP0000487647\",\"order\":\"NIVAANA-0000000160\"}",
+  "https://app.elite.ekartlogistics.in/track/LUAP0000487647",
+  1765433894315,
+  1765433894
+]
+Values: [
+  216,
+  "LUAP0000487647",
+  1765433898
+]
+Values: [
+  215,
+  "LUAP0000487647",
+  1765433900
+]
+Values: [
+  160,
+  "LUAP0000487968",
+  "EKART",
+  "{\"wbn\":\"LUAP0000487968\",\"order\":\"NIVAANA-0000000160\"}",
+  "https://app.elite.ekartlogistics.in/track/LUAP0000487968",
+  1765436394447,
+  1765436394
+]
+Values: [
+  216,
+  "LUAP0000487968",
+  1765436396
+]
+Values: [
+  215,
+  "LUAP0000487968",
+  1765436397
+]
+Values: [
+  160,
+  "https://storage.googleapis.com/niv-shipping-label-dev/LUAP0000487968/label.pdf",
+  1765442502371,
+  1765442502
+]
+Values: [
+  160,
+  "LUAP0000488889",
+  "EKART",
+  "{\"wbn\":\"LUAP0000488889\",\"order\":\"NIVAANA-0000000160\"}",
+  "https://app.elite.ekartlogistics.in/track/LUAP0000488889",
+  1765446650281,
+  1765446650
+]
+Values: [
+  216,
+  "LUAP0000488889",
+  1765446652
+]
+Values: [
+  215,
+  "LUAP0000488889",
+  1765446652
+]
+Values: [
+  160,
+  "https://storage.googleapis.com/niv-shipping-label-dev/LUAP0000488889/label.pdf",
+  1765446710951,
+  1765446710
+]
+Values: [
+  160,
+  "https://storage.googleapis.com/niv-shipping-label-dev/LUAP0000488889/label.pdf",
+  1765446758390,
+  1765446758
+]
+Values: [
+  160,
+  "https://storage.googleapis.com/niv-shipping-label-dev/LUAP0000488889/label.pdf",
+  1765446892532,
+  1765446892
+]

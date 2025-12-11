@@ -185,7 +185,7 @@ export class EkartService {
     } = {}
   ): Promise<AxiosResponse<T>> {
     const { method = 'GET', data, headers = {}, responseType = 'json' } = options;
-
+logger.info(data,"data in apiRequest")
     try {
       // Ensure we have a valid token
       const authHeader = await this.authService.getAuthHeader();
@@ -226,16 +226,54 @@ export class EkartService {
       }
 
       // Log and rethrow other errors
-      logger.error(
-        {
-          endpoint,
-          method,
-          status: error.response?.status,
-          error: error.message,
-          data: error.response?.data
-        },
-        'Ekart API request failed'
-      );
+      const fullUrl = `${this.baseURL}${endpoint}`;
+      const errorData = error.response?.data;
+      
+      // Enhanced error message for 404 errors
+      if (error.response?.status === 404) {
+        logger.error(
+          {
+            endpoint,
+            fullUrl,
+            method,
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            error: error.message,
+            data: errorData,
+            requestUrl: error.config?.url,
+            requestMethod: error.config?.method,
+            ekartErrorCode: errorData?.code,
+            ekartErrorMessage: errorData?.message,
+            ekartErrorDescription: errorData?.description,
+            troubleshooting: {
+              suggestion: 'The EKART API endpoint may not be available for your account. Please verify:',
+              checks: [
+                '1. Contact EKART support to confirm endpoint availability',
+                '2. Verify your account has access to package creation API',
+                '3. Check if the endpoint requires different permissions',
+                '4. Confirm the API version (v1 vs v2) with EKART support'
+              ]
+            }
+          },
+          'Ekart API request failed - 404 Endpoint Not Found'
+        );
+      } else {
+        logger.error(
+          {
+            endpoint,
+            fullUrl,
+            method,
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            error: error.message,
+            data: errorData,
+            requestUrl: error.config?.url,
+            requestMethod: error.config?.method,
+            requestHeaders: error.config?.headers ? Object.keys(error.config.headers) : []
+          },
+          'Ekart API request failed'
+        );
+      }
 
       throw error;
     }
@@ -485,13 +523,14 @@ export class EkartService {
         hasTemplate: !!ekartPayload.templateName,
         hasDimensions: !!(ekartPayload.length && ekartPayload.width && ekartPayload.height)
       },
-      '📍 [SHIPMENT CREATE] Step 4: Preparing to call EKART API (POST /v1/package/create) - ⚠️ THIS WILL DEDUCT MONEY FROM EKART ACCOUNT'
+      '📍 [SHIPMENT CREATE] Step 4: Preparing to call EKART API (PUT /v1/package/create) - ⚠️ THIS WILL DEDUCT MONEY FROM EKART ACCOUNT'
     );
 
+    // EKART API uses PUT method for package creation
     const response = await this.apiRequest<CreateShipmentResponse>(
       '/v1/package/create',
       {
-        method: 'POST',
+        method: 'PUT',
         data: ekartPayload
       }
     );
@@ -537,6 +576,7 @@ export class EkartService {
    * Create Reverse Shipment (Customer → Seller)
    */
   async createReverseShipment(payload: CreateShipmentPayload): Promise<CreateShipmentResponse> {
+    logger.info(payload,"payload createReverseShipment in service")
     if (payload.payment_mode !== 'Pickup') {
       throw new Error('Reverse shipments must have payment_mode = "Pickup"');
     }
@@ -547,11 +587,23 @@ export class EkartService {
 
     logger.info({ orderNumber: payload.order_number }, 'Creating reverse shipment');
 
+    // Use GST TIN from payload or env
+    const finalPayload = {
+      ...payload,
+      seller_gst_tin: payload.seller_gst_tin || env.SELLER_GST_TIN || ''
+    };
+
+    // Validate required seller fields are present
+    if (!finalPayload.seller_name || !finalPayload.seller_address || !finalPayload.seller_gst_tin) {
+      throw new Error('Seller name, address, and GST TIN are required (GST TIN can come from payload or SELLER_GST_TIN env variable)');
+    }
+
+    // EKART API uses PUT method for package creation
     const response = await this.apiRequest<CreateShipmentResponse>(
       '/v1/package/create',
       {
-        method: 'POST',
-        data: payload
+        method: 'PUT',
+        data: finalPayload
       }
     );
 

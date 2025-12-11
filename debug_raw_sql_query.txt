@@ -1090,3 +1090,81 @@ Update query:
         WHERE "id" = $1 
         RETURNING id, userid, addressid, createddate, modifieddate, orderamount, orderid, orderstatus, delivereddate, cancelleddate, returneddate, quantity, transactionid, readytodispatchdate, dispatcheddate, productamount, discountamount, deliveryfrom, orderprocessingtime, ispaymentsucceed, merchanttransactionid, productid, paymentfaileddate, mode, evaluation_id, promotion_discount_total, original_total, shipping_cost, tax_amount, tracking_id, vendor, barcodes, label_url, public_tracking_link, shipment_created_at, label_downloaded_at, label_printed_at, shipdate, cod_payment_received_date, cod_transaction_reference, cod_amount, status_history, items_total, total_taxable_amount, total_cgst_amount, total_sgst_amount, total_igst_amount, total_gst_amount
       
+Update query: 
+        UPDATE "orders" 
+        SET "tracking_id" = $2, "vendor" = $3, "barcodes" = $4::jsonb, "public_tracking_link" = $5, "shipment_created_at" = $6, "modifieddate" = $7 
+        WHERE "id" = $1 
+        RETURNING id, userid, addressid, createddate, modifieddate, orderamount, orderid, orderstatus, delivereddate, cancelleddate, returneddate, quantity, transactionid, readytodispatchdate, dispatcheddate, productamount, discountamount, deliveryfrom, orderprocessingtime, ispaymentsucceed, merchanttransactionid, productid, paymentfaileddate, mode, evaluation_id, promotion_discount_total, original_total, shipping_cost, tax_amount, tracking_id, vendor, barcodes, label_url, public_tracking_link, shipment_created_at, label_downloaded_at, label_printed_at, shipdate, cod_payment_received_date, cod_transaction_reference, cod_amount, status_history, items_total, total_taxable_amount, total_cgst_amount, total_sgst_amount, total_igst_amount, total_gst_amount
+      
+Update query: 
+        UPDATE "orderline" 
+        SET "tracking_id" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, orderid, productid, userid, addressid, productamount, discountamount, orderamount, quantity, createddate, modifieddate, merchanttransactionid, productname, productcategory, productcolour, readytodispatchdate, delivereddate, cancelleddate, returneddate, orderstatus, uniqueordderid, orderlinenumber, deliveryfrom, location, dispatcheddate, ordereddate, paymentfaileddate, evaluation_id, original_price, product_discount_amount, promotion_discount_amount, shipping_cost, tracking_id, shipdate, status_history, hsn_code, gst_rate, taxable_amount, cgst_amount, sgst_amount, igst_amount, total_gst_amount
+      
+Update query: 
+        UPDATE "orderline" 
+        SET "tracking_id" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, orderid, productid, userid, addressid, productamount, discountamount, orderamount, quantity, createddate, modifieddate, merchanttransactionid, productname, productcategory, productcolour, readytodispatchdate, delivereddate, cancelleddate, returneddate, orderstatus, uniqueordderid, orderlinenumber, deliveryfrom, location, dispatcheddate, ordereddate, paymentfaileddate, evaluation_id, original_price, product_discount_amount, promotion_discount_amount, shipping_cost, tracking_id, shipdate, status_history, hsn_code, gst_rate, taxable_amount, cgst_amount, sgst_amount, igst_amount, total_gst_amount
+      
+Update query: 
+        UPDATE "orders" 
+        SET "tracking_id" = $2, "vendor" = $3, "barcodes" = $4::jsonb, "public_tracking_link" = $5, "shipment_created_at" = $6, "modifieddate" = $7 
+        WHERE "id" = $1 
+        RETURNING id, userid, addressid, createddate, modifieddate, orderamount, orderid, orderstatus, delivereddate, cancelleddate, returneddate, quantity, transactionid, readytodispatchdate, dispatcheddate, productamount, discountamount, deliveryfrom, orderprocessingtime, ispaymentsucceed, merchanttransactionid, productid, paymentfaileddate, mode, evaluation_id, promotion_discount_total, original_total, shipping_cost, tax_amount, tracking_id, vendor, barcodes, label_url, public_tracking_link, shipment_created_at, label_downloaded_at, label_printed_at, shipdate, cod_payment_received_date, cod_transaction_reference, cod_amount, status_history, items_total, total_taxable_amount, total_cgst_amount, total_sgst_amount, total_igst_amount, total_gst_amount
+      
+Update query: 
+        UPDATE "orderline" 
+        SET "tracking_id" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, orderid, productid, userid, addressid, productamount, discountamount, orderamount, quantity, createddate, modifieddate, merchanttransactionid, productname, productcategory, productcolour, readytodispatchdate, delivereddate, cancelleddate, returneddate, orderstatus, uniqueordderid, orderlinenumber, deliveryfrom, location, dispatcheddate, ordereddate, paymentfaileddate, evaluation_id, original_price, product_discount_amount, promotion_discount_amount, shipping_cost, tracking_id, shipdate, status_history, hsn_code, gst_rate, taxable_amount, cgst_amount, sgst_amount, igst_amount, total_gst_amount
+      
+Update query: 
+        UPDATE "orderline" 
+        SET "tracking_id" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, orderid, productid, userid, addressid, productamount, discountamount, orderamount, quantity, createddate, modifieddate, merchanttransactionid, productname, productcategory, productcolour, readytodispatchdate, delivereddate, cancelleddate, returneddate, orderstatus, uniqueordderid, orderlinenumber, deliveryfrom, location, dispatcheddate, ordereddate, paymentfaileddate, evaluation_id, original_price, product_discount_amount, promotion_discount_amount, shipping_cost, tracking_id, shipdate, status_history, hsn_code, gst_rate, taxable_amount, cgst_amount, sgst_amount, igst_amount, total_gst_amount
+      
+Update query: 
+        UPDATE "orders" 
+        SET "label_url" = $2, "label_downloaded_at" = $3, "modifieddate" = $4 
+        WHERE "id" = $1 
+        RETURNING id, userid, addressid, createddate, modifieddate, orderamount, orderid, orderstatus, delivereddate, cancelleddate, returneddate, quantity, transactionid, readytodispatchdate, dispatcheddate, productamount, discountamount, deliveryfrom, orderprocessingtime, ispaymentsucceed, merchanttransactionid, productid, paymentfaileddate, mode, evaluation_id, promotion_discount_total, original_total, shipping_cost, tax_amount, tracking_id, vendor, barcodes, label_url, public_tracking_link, shipment_created_at, label_downloaded_at, label_printed_at, shipdate, cod_payment_received_date, cod_transaction_reference, cod_amount, status_history, items_total, total_taxable_amount, total_cgst_amount, total_sgst_amount, total_igst_amount, total_gst_amount
+      
+Update query: 
+        UPDATE "orders" 
+        SET "tracking_id" = $2, "vendor" = $3, "barcodes" = $4::jsonb, "public_tracking_link" = $5, "shipment_created_at" = $6, "modifieddate" = $7 
+        WHERE "id" = $1 
+        RETURNING id, userid, addressid, createddate, modifieddate, orderamount, orderid, orderstatus, delivereddate, cancelleddate, returneddate, quantity, transactionid, readytodispatchdate, dispatcheddate, productamount, discountamount, deliveryfrom, orderprocessingtime, ispaymentsucceed, merchanttransactionid, productid, paymentfaileddate, mode, evaluation_id, promotion_discount_total, original_total, shipping_cost, tax_amount, tracking_id, vendor, barcodes, label_url, public_tracking_link, shipment_created_at, label_downloaded_at, label_printed_at, shipdate, cod_payment_received_date, cod_transaction_reference, cod_amount, status_history, items_total, total_taxable_amount, total_cgst_amount, total_sgst_amount, total_igst_amount, total_gst_amount
+      
+Update query: 
+        UPDATE "orderline" 
+        SET "tracking_id" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, orderid, productid, userid, addressid, productamount, discountamount, orderamount, quantity, createddate, modifieddate, merchanttransactionid, productname, productcategory, productcolour, readytodispatchdate, delivereddate, cancelleddate, returneddate, orderstatus, uniqueordderid, orderlinenumber, deliveryfrom, location, dispatcheddate, ordereddate, paymentfaileddate, evaluation_id, original_price, product_discount_amount, promotion_discount_amount, shipping_cost, tracking_id, shipdate, status_history, hsn_code, gst_rate, taxable_amount, cgst_amount, sgst_amount, igst_amount, total_gst_amount
+      
+Update query: 
+        UPDATE "orderline" 
+        SET "tracking_id" = $2, "modifieddate" = $3 
+        WHERE "id" = $1 
+        RETURNING id, orderid, productid, userid, addressid, productamount, discountamount, orderamount, quantity, createddate, modifieddate, merchanttransactionid, productname, productcategory, productcolour, readytodispatchdate, delivereddate, cancelleddate, returneddate, orderstatus, uniqueordderid, orderlinenumber, deliveryfrom, location, dispatcheddate, ordereddate, paymentfaileddate, evaluation_id, original_price, product_discount_amount, promotion_discount_amount, shipping_cost, tracking_id, shipdate, status_history, hsn_code, gst_rate, taxable_amount, cgst_amount, sgst_amount, igst_amount, total_gst_amount
+      
+Update query: 
+        UPDATE "orders" 
+        SET "label_url" = $2, "label_downloaded_at" = $3, "modifieddate" = $4 
+        WHERE "id" = $1 
+        RETURNING id, userid, addressid, createddate, modifieddate, orderamount, orderid, orderstatus, delivereddate, cancelleddate, returneddate, quantity, transactionid, readytodispatchdate, dispatcheddate, productamount, discountamount, deliveryfrom, orderprocessingtime, ispaymentsucceed, merchanttransactionid, productid, paymentfaileddate, mode, evaluation_id, promotion_discount_total, original_total, shipping_cost, tax_amount, tracking_id, vendor, barcodes, label_url, public_tracking_link, shipment_created_at, label_downloaded_at, label_printed_at, shipdate, cod_payment_received_date, cod_transaction_reference, cod_amount, status_history, items_total, total_taxable_amount, total_cgst_amount, total_sgst_amount, total_igst_amount, total_gst_amount
+      
+Update query: 
+        UPDATE "orders" 
+        SET "label_url" = $2, "label_downloaded_at" = $3, "modifieddate" = $4 
+        WHERE "id" = $1 
+        RETURNING id, userid, addressid, createddate, modifieddate, orderamount, orderid, orderstatus, delivereddate, cancelleddate, returneddate, quantity, transactionid, readytodispatchdate, dispatcheddate, productamount, discountamount, deliveryfrom, orderprocessingtime, ispaymentsucceed, merchanttransactionid, productid, paymentfaileddate, mode, evaluation_id, promotion_discount_total, original_total, shipping_cost, tax_amount, tracking_id, vendor, barcodes, label_url, public_tracking_link, shipment_created_at, label_downloaded_at, label_printed_at, shipdate, cod_payment_received_date, cod_transaction_reference, cod_amount, status_history, items_total, total_taxable_amount, total_cgst_amount, total_sgst_amount, total_igst_amount, total_gst_amount
+      
+Update query: 
+        UPDATE "orders" 
+        SET "label_url" = $2, "label_downloaded_at" = $3, "modifieddate" = $4 
+        WHERE "id" = $1 
+        RETURNING id, userid, addressid, createddate, modifieddate, orderamount, orderid, orderstatus, delivereddate, cancelleddate, returneddate, quantity, transactionid, readytodispatchdate, dispatcheddate, productamount, discountamount, deliveryfrom, orderprocessingtime, ispaymentsucceed, merchanttransactionid, productid, paymentfaileddate, mode, evaluation_id, promotion_discount_total, original_total, shipping_cost, tax_amount, tracking_id, vendor, barcodes, label_url, public_tracking_link, shipment_created_at, label_downloaded_at, label_printed_at, shipdate, cod_payment_received_date, cod_transaction_reference, cod_amount, status_history, items_total, total_taxable_amount, total_cgst_amount, total_sgst_amount, total_igst_amount, total_gst_amount
+      

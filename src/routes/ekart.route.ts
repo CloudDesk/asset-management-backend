@@ -159,6 +159,7 @@ export async function ekartRoutes(fastify: FastifyInstance) {
           invoice_number: { type: 'string' },
           invoice_date: { type: 'string', format: 'date' },
           consignee_name: { type: 'string' },
+          consignee_gst_amount: { type: 'number' },
           products_desc: { type: 'string' },
           payment_mode: { type: 'string', enum: ['COD', 'Prepaid'] },
           total_amount: { type: 'number' },
@@ -311,9 +312,9 @@ export async function ekartRoutes(fastify: FastifyInstance) {
       tags: ['Ekart Logistics'],
       body: {
         type: 'object',
-        required: ['trackingIds'],
+        required: ['tracking_ids'],
         properties: {
-          trackingIds: {
+          tracking_ids: {
             type: 'array',
             items: { type: 'string' },
             minItems: 1
@@ -322,9 +323,45 @@ export async function ekartRoutes(fastify: FastifyInstance) {
       },
       response: {
         200: {
-          type: 'string',
-          format: 'binary',
-          description: 'PDF file containing shipping labels'
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {
+              oneOf: [
+                {
+                  type: 'object',
+                  properties: {
+                    trackingId: { type: 'string' },
+                    orderId: { type: 'number' },
+                    labelUrl: { type: 'string' },
+                    success: { type: 'boolean' }
+                  }
+                },
+                {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      trackingId: { type: 'string' },
+                      orderId: { type: 'number', nullable: true },
+                      labelUrl: { type: 'string', nullable: true },
+                      success: { type: 'boolean' },
+                      error: { type: 'string', nullable: true }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            error: { type: 'string' }
+          }
         }
       }
     }

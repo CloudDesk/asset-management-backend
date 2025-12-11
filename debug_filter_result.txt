@@ -166087,3 +166087,80 @@ Filtered data result: {
   "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1765360032212,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765370703291,\"source\":\"system\",\"is_active\":true}]",
   "modifieddate": 1765370703291
 }
+Filtered data result: {
+  "tracking_id": "LUAP0000487647",
+  "vendor": "EKART",
+  "barcodes": {
+    "wbn": "LUAP0000487647",
+    "order": "NIVAANA-0000000160"
+  },
+  "public_tracking_link": "https://app.elite.ekartlogistics.in/track/LUAP0000487647",
+  "shipment_created_at": 1765433894315,
+  "modifieddate": 1765433894315
+}
+Filtered data result: {
+  "tracking_id": "LUAP0000487647",
+  "modifieddate": 1765433898745
+}
+Filtered data result: {
+  "tracking_id": "LUAP0000487647",
+  "modifieddate": 1765433900661
+}
+Filtered data result: {
+  "tracking_id": "LUAP0000487968",
+  "vendor": "EKART",
+  "barcodes": {
+    "wbn": "LUAP0000487968",
+    "order": "NIVAANA-0000000160"
+  },
+  "public_tracking_link": "https://app.elite.ekartlogistics.in/track/LUAP0000487968",
+  "shipment_created_at": 1765436394447,
+  "modifieddate": 1765436394447
+}
+Filtered data result: {
+  "tracking_id": "LUAP0000487968",
+  "modifieddate": 1765436396404
+}
+Filtered data result: {
+  "tracking_id": "LUAP0000487968",
+  "modifieddate": 1765436397048
+}
+Filtered data result: {
+  "label_url": "https://storage.googleapis.com/niv-shipping-label-dev/LUAP0000487968/label.pdf",
+  "label_downloaded_at": 1765442502371,
+  "modifieddate": 1765442502371
+}
+Filtered data result: {
+  "tracking_id": "LUAP0000488889",
+  "vendor": "EKART",
+  "barcodes": {
+    "wbn": "LUAP0000488889",
+    "order": "NIVAANA-0000000160"
+  },
+  "public_tracking_link": "https://app.elite.ekartlogistics.in/track/LUAP0000488889",
+  "shipment_created_at": 1765446650281,
+  "modifieddate": 1765446650281
+}
+Filtered data result: {
+  "tracking_id": "LUAP0000488889",
+  "modifieddate": 1765446652007
+}
+Filtered data result: {
+  "tracking_id": "LUAP0000488889",
+  "modifieddate": 1765446652641
+}
+Filtered data result: {
+  "label_url": "https://storage.googleapis.com/niv-shipping-label-dev/LUAP0000488889/label.pdf",
+  "label_downloaded_at": 1765446710951,
+  "modifieddate": 1765446710951
+}
+Filtered data result: {
+  "label_url": "https://storage.googleapis.com/niv-shipping-label-dev/LUAP0000488889/label.pdf",
+  "label_downloaded_at": 1765446758390,
+  "modifieddate": 1765446758390
+}
+Filtered data result: {
+  "label_url": "https://storage.googleapis.com/niv-shipping-label-dev/LUAP0000488889/label.pdf",
+  "label_downloaded_at": 1765446892532,
+  "modifieddate": 1765446892532
+}

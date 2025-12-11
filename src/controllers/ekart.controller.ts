@@ -20,6 +20,7 @@ import { createSuccessResponse, createErrorResponse, asyncHandler } from '../uti
 import { logger } from '../config/logger.js';
 import { dynamicUpdate } from '../utils/dynamicDbOperations.js';
 import axios from 'axios';
+import FormData from 'form-data';
 
 export class EkartController {
   /**
@@ -175,7 +176,8 @@ export class EkartController {
           '📍 [CONTROLLER] Step 6.1: Looking up order in database'
         );
 
-        const order = await ordersService.findByOrderNumber(requestBody.order_number);
+        // Use findByOrderIdString for searching by orderid field (order_number from payload)
+        const order = await ordersService.findByOrderIdString(requestBody.order_number);
         
         if (order) {
           logger.info(
@@ -329,6 +331,7 @@ export class EkartController {
       request: FastifyRequest<{ Body: ReverseShipmentInput }>,
       reply: FastifyReply
     ) => {
+      logger.info(request.body,"request.body createReverseShipment in controller")
       const requestBody = reverseShipmentSchemaWithDimensions.parse(request.body);
 
       // Use GST TIN from payload or env
@@ -346,7 +349,7 @@ export class EkartController {
         { orderNumber: finalPayload.order_number, returnReason: finalPayload.return_reason },
         'Creating reverse shipment'
       );
-
+logger.info(finalPayload,"finalPayload createReverseShipment")
       const result = await ekartService.createReverseShipment(finalPayload as CreateShipmentPayload);
 
       const response = createSuccessResponse(
@@ -373,7 +376,7 @@ export class EkartController {
       request: FastifyRequest<{ Body: DownloadLabelInput }>,
       reply: FastifyReply
     ) => {
-      const { trackingIds } = downloadLabelSchema.parse(request.body);
+      const { tracking_ids: trackingIds } = downloadLabelSchema.parse(request.body);
 
       logger.info({ trackingIds }, 'Downloading labels');
 
@@ -393,7 +396,6 @@ export class EkartController {
         const updatePromises = trackingIds.map(async (trackingId) => {
           try {
             const order = await ordersService.findByTrackingId(trackingId);
-            
             if (!order) {
               logger.warn(
                 { trackingId },
@@ -403,23 +405,30 @@ export class EkartController {
             }
 
             // Call GCP Storage Backend API (server 4500)
-            // Server 4500 endpoint: POST /api/v1/storage/upload-buffer
-            // Path format: tracking_id/label.pdf (e.g., FMPC001/label.pdf)
-            const fileName = `${trackingId}/label.pdf`;
-            const shippingBucket = process.env.SHIPPING_BUCKET || 'niv-shipping-lavel-dev';
+            // Server 4500 endpoint: POST /shipping/label/:trackingId
+            // Sends PDF buffer directly as multipart/form-data
+            logger.debug(
+              {
+                trackingId,
+                pdfSize: pdfBuffer.length,
+                storageBackendUrl
+              },
+              'Uploading PDF to GCP Storage Backend'
+            );
+
+            // Create FormData for multipart/form-data upload
+            const formData = new FormData();
+            formData.append('file', pdfBuffer, {
+              filename: 'label.pdf',
+              contentType: 'application/pdf'
+            });
 
             const response = await axios.post(
-              `${storageBackendUrl}/api/v1/storage/upload-buffer`,
-              {
-                fileBuffer: pdfBuffer.toString('base64'),
-                fileName,
-                bucket: shippingBucket,
-                contentType: 'application/pdf',
-                makePublic: true
-              },
+              `${storageBackendUrl}/shipping/label/${trackingId}`,
+              formData,
               {
                 headers: {
-                  'Content-Type': 'application/json'
+                  ...formData.getHeaders()
                 },
                 timeout: 30000
               }
@@ -472,21 +481,33 @@ export class EkartController {
           },
           'Label upload to GCP Storage Backend completed'
         );
+
+        // Return JSON response with label URLs
+        // If single tracking ID, return single object; if multiple, return array
+        const responseData = trackingIds.length === 1 
+          ? updateResults[0] 
+          : updateResults;
+
+        const response = createSuccessResponse(
+          'Labels uploaded successfully',
+          responseData
+        );
+
+        return reply.code(200).send(response);
       } catch (error: any) {
         logger.error(
           { error: error.message, trackingIds, stack: error.stack },
           'Failed to process label uploads to GCP Storage Backend'
         );
-        // Don't fail the request - label was downloaded successfully, just GCP upload failed
-        // Frontend can still download the PDF from the response
+        
+        // Return error response
+        const errorResponse = createErrorResponse(
+          'Failed to upload labels to storage backend',
+          error.message,
+          500
+        );
+        return reply.code(500).send(errorResponse);
       }
-
-      // Set appropriate headers for PDF download
-      reply.header('Content-Type', 'application/pdf');
-      reply.header('Content-Disposition', `attachment; filename="ekart-labels-${Date.now()}.pdf"`);
-      reply.header('Content-Length', pdfBuffer.length.toString());
-
-      return reply.code(200).send(pdfBuffer);
     }
   );
 

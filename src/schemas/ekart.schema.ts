@@ -157,7 +157,7 @@ export const cancelShipmentSchema = z.object({
 
 // Download label schema
 export const downloadLabelSchema = z.object({
-  trackingIds: z.array(z.string().min(1)).min(1, 'At least one tracking ID is required')
+  tracking_ids: z.array(z.string().min(1)).min(1, 'At least one tracking ID is required')
 });
 
 // Shipping rates schema
