@@ -106,6 +106,7 @@ export async function ordersRoutes(fastify: FastifyInstance) {
       },
     },
   }, ordersController.getOrders.bind(ordersController));
+
   // PATCH /v1/orders/:id/ready-for-dispatch - Mark order as ready for dispatch
   fastify.patch('/:id/ready-for-dispatch', {
     schema: {
@@ -243,6 +244,279 @@ export async function ordersRoutes(fastify: FastifyInstance) {
     }
   }, ordersController.trackOrder.bind(ordersController));
 
-  
+  // GET /v1/orders/:id/details - Get order details with orderlines and address (Inventory App)
+  fastify.get('/:id/details', {
+    schema: {
+      description: 'Get order details with orderlines and address for inventory app',
+      tags: ['Orders'],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'Order ID (database ID) or order number (orderid)' }
+        },
+        required: ['id']
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {
+              type: 'object',
+              properties: {
+                order: {
+                  type: 'object',
+                  description: 'Order details',
+                  properties: {
+                    id: { type: 'number' },
+                    orderid: { type: 'string', nullable: true, description: 'Order number string (e.g., ORD-1234567890)' },
+                    createddate: { type: 'number', nullable: true },
+                    modifieddate: { type: 'number', nullable: true },
+                    orderamount: { type: 'number', nullable: true },
+                    orderstatus: { type: 'string', nullable: true },
+                    delivereddate: { type: 'number', nullable: true },
+                    cancelleddate: { type: 'number', nullable: true },
+                    returneddate: { type: 'number', nullable: true },
+                    quantity: { type: 'number', nullable: true },
+                    transactionid: { type: 'string', nullable: true },
+                    productamount: { type: 'number', nullable: true },
+                    discountamount: { type: 'number', nullable: true },
+                    ispaymentsucceed: { type: 'boolean', nullable: true },
+                    merchanttransactionid: { type: 'string', nullable: true },
+                    paymentfaileddate: { type: 'number', nullable: true },
+                    mode: { type: 'string', nullable: true },
+                    promotion_discount_total: { type: 'number', nullable: true },
+                    original_total: { type: 'number', nullable: true },
+                    shipping_cost: { type: 'number', nullable: true },
+                    items_total: { type: 'number', nullable: true },
+                    total_taxable_amount: { type: 'number', nullable: true },
+                    total_cgst_amount: { type: 'number', nullable: true },
+                    total_sgst_amount: { type: 'number', nullable: true },
+                    total_igst_amount: { type: 'number', nullable: true },
+                    total_gst_amount: { type: 'number', nullable: true },
+                    tax_amount: { type: 'number', nullable: true },
+                    tracking_id: { type: 'string', nullable: true },
+                    vendor: { type: 'string', nullable: true },
+                    barcodes: { type: 'object', nullable: true },
+                    label_url: { type: 'string', nullable: true },
+                    public_tracking_link: { type: 'string', nullable: true },
+                    shipment_created_at: { type: 'number', nullable: true },
+                    shipdate: { type: 'number', nullable: true },
+                    cod_payment_received_date: { type: 'number', nullable: true },
+                    cod_transaction_reference: { type: 'string', nullable: true },
+                    cod_amount: { type: 'number', nullable: true },
+                    status_history: { 
+                      type: 'array', 
+                      nullable: true,
+                      items: {
+                        type: 'object',
+                        properties: {
+                          previous_status: { type: 'string' },
+                          new_status: { type: 'string' },
+                          changed_date: { type: 'number' },
+                          source: { type: 'string' },
+                          inventory_user_id: { type: 'number', nullable: true },
+                          is_active: { type: 'boolean' }
+                        }
+                      }
+                    }
+                  }
+                },
+                orderlines: {
+                  type: 'array',
+                  description: 'Array of orderlines',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'number' },
+                      discountamount: { type: 'number', nullable: true },
+                      orderamount: { type: 'number', nullable: true },
+                      quantity: { type: 'number', nullable: true },
+                      productid: { type: 'number', nullable: true },
+                      productname: { type: 'string', nullable: true },
+                      productcategory: { type: 'string', nullable: true },
+                      hsn_code: { type: 'string', nullable: true },
+                      orderstatus: { type: 'string', nullable: true },
+                      original_price: { type: 'number', nullable: true },
+                      product_discount_amount: { type: 'number', nullable: true },
+                      promotion_discount_amount: { type: 'number', nullable: true },
+                      shipping_cost: { type: 'number', nullable: true },
+                      status_history: { 
+                        type: 'array', 
+                        nullable: true,
+                        items: {
+                          type: 'object',
+                          properties: {
+                            previous_status: { type: 'string' },
+                            new_status: { type: 'string' },
+                            changed_date: { type: 'number' },
+                            source: { type: 'string' },
+                            inventory_user_id: { type: 'number', nullable: true },
+                            is_active: { type: 'boolean' }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                address: {
+                  type: 'object',
+                  nullable: true,
+                  description: 'Delivery address (from orderline.addressid)',
+                  properties: {
+                    name: { type: 'string', nullable: true },
+                    mobilenumber: { type: 'string', nullable: true },
+                    pincode: { type: 'string', nullable: true },
+                    doornumber: { type: 'string', nullable: true },
+                    address: { type: 'string', nullable: true },
+                    landmark: { type: 'string', nullable: true },
+                    state: { type: 'string', nullable: true },
+                    city: { type: 'string', nullable: true }
+                  }
+                }
+              }
+            }
+          }
+        },
+        404: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            statusCode: { type: 'number' }
+          }
+        }
+      }
+    }
+  }, ordersController.getOrderDetails.bind(ordersController));
+
+  // GET /v1/orders/user/:userid/details - Get orders by user ID with orderlines and address
+  fastify.get('/user/:userid/details', {
+    schema: {
+      description: 'Get orders by user ID with orderlines and address details',
+      tags: ['Orders'],
+      params: {
+        type: 'object',
+        properties: {
+          userid: { type: 'string', description: 'User ID' }
+        },
+        required: ['userid']
+      },
+      querystring: {
+        type: 'object',
+        properties: {
+          page: { type: 'string', description: 'Page number (default: 1)' },
+          limit: { type: 'string', description: 'Items per page (default: 50)' }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'number' },
+                  orderamount: { type: 'number', nullable: true },
+                  orderid: { type: 'string', nullable: true },
+                  orderstatus: { type: 'string', nullable: true },
+                  quantity: { type: 'number', nullable: true },
+                  productamount: { type: 'number', nullable: true },
+                  discountamount: { type: 'number', nullable: true },
+                  ispaymentsucceed: { type: 'boolean', nullable: true },
+                  mode: { type: 'string', nullable: true },
+                  promotion_discount_total: { type: 'number', nullable: true },
+                  original_total: { type: 'number', nullable: true },
+                  shipping_cost: { type: 'number', nullable: true },
+                  items_total: { type: 'number', nullable: true },
+                  total_taxable_amount: { type: 'number', nullable: true },
+                  total_cgst_amount: { type: 'number', nullable: true },
+                  total_sgst_amount: { type: 'number', nullable: true },
+                  total_igst_amount: { type: 'number', nullable: true },
+                  total_gst_amount: { type: 'number', nullable: true },
+                  createddate: { type: 'number', nullable: true },
+                  modifieddate: { type: 'number', nullable: true },
+                  status_history: { 
+                    type: 'array',
+                    items: { type: 'object' }
+                  },
+                  orderlines: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'number' },
+                        productname: { type: 'string', nullable: true },
+                        productcategory: { type: 'string', nullable: true },
+                        productid: { type: 'number', nullable: true },
+                        orderstatus: { type: 'string', nullable: true },
+                        productamount: { type: 'number', nullable: true },
+                        discountamount: { type: 'number', nullable: true },
+                        orderamount: { type: 'number', nullable: true },
+                        quantity: { type: 'number', nullable: true },
+                        product_discount_amount: { type: 'number', nullable: true },
+                        promotion_discount_amount: { type: 'number', nullable: true },
+                        shipping_cost: { type: 'number', nullable: true },
+                        createddate: { type: 'number', nullable: true },
+                        modifieddate: { type: 'number', nullable: true },
+                        status_history: { 
+                          type: 'array',
+                          items: { type: 'object' }
+                        }
+                      }
+                    }
+                  },
+                  address: {
+                    type: 'object',
+                    nullable: true,
+                    properties: {
+                      name: { type: 'string', nullable: true },
+                      mobilenumber: { type: 'string', nullable: true },
+                      doornumber: { type: 'string', nullable: true },
+                      address: { type: 'string', nullable: true },
+                      pincode: { type: 'string', nullable: true },
+                      state: { type: 'string', nullable: true },
+                      city: { type: 'string', nullable: true }
+                    }
+                  }
+                }
+              }
+            },
+            pagination: {
+              type: 'object',
+              properties: {
+                page: { type: 'number' },
+                limit: { type: 'number' },
+                total: { type: 'number' },
+                totalPages: { type: 'number' },
+                hasNext: { type: 'boolean' },
+                hasPrev: { type: 'boolean' }
+              }
+            }
+          }
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            statusCode: { type: 'number' }
+          }
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            error: { type: 'string' }
+          }
+        }
+      }
+    }
+  }, ordersController.getOrdersByUserIdWithDetails.bind(ordersController));
 
 } 

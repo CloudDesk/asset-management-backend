@@ -30,12 +30,17 @@ export declare class EnhancedOrderCreationService {
             shipping_cost: import("@prisma/client/runtime/library").Decimal | null;
             tracking_id: string | null;
             shipdate: bigint | null;
+            status_history: import("@prisma/client/runtime/library").JsonValue | null;
             transactionid: string | null;
             orderprocessingtime: bigint | null;
             ispaymentsucceed: boolean | null;
             promotion_discount_total: import("@prisma/client/runtime/library").Decimal | null;
             original_total: import("@prisma/client/runtime/library").Decimal | null;
             tax_amount: import("@prisma/client/runtime/library").Decimal | null;
+            mode: string | null;
+            cod_payment_received_date: bigint | null;
+            cod_transaction_reference: string | null;
+            cod_amount: import("@prisma/client/runtime/library").Decimal | null;
             vendor: string | null;
             barcodes: import("@prisma/client/runtime/library").JsonValue | null;
             label_url: string | null;
@@ -79,6 +84,7 @@ export declare class EnhancedOrderCreationService {
             shipping_cost: import("@prisma/client/runtime/library").Decimal | null;
             tracking_id: string | null;
             shipdate: bigint | null;
+            status_history: import("@prisma/client/runtime/library").JsonValue | null;
         }[];
         promotionBreakdown: {
             totalPromotionDiscount: number;
@@ -145,12 +151,17 @@ export declare class EnhancedOrderCreationService {
             shipping_cost: import("@prisma/client/runtime/library").Decimal | null;
             tracking_id: string | null;
             shipdate: bigint | null;
+            status_history: import("@prisma/client/runtime/library").JsonValue | null;
             transactionid: string | null;
             orderprocessingtime: bigint | null;
             ispaymentsucceed: boolean | null;
             promotion_discount_total: import("@prisma/client/runtime/library").Decimal | null;
             original_total: import("@prisma/client/runtime/library").Decimal | null;
             tax_amount: import("@prisma/client/runtime/library").Decimal | null;
+            mode: string | null;
+            cod_payment_received_date: bigint | null;
+            cod_transaction_reference: string | null;
+            cod_amount: import("@prisma/client/runtime/library").Decimal | null;
             vendor: string | null;
             barcodes: import("@prisma/client/runtime/library").JsonValue | null;
             label_url: string | null;

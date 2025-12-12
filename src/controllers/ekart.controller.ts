@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { ekartService } from '../services/ekart.service.js';
+import { ekartService, CreateShipmentPayload } from '../services/ekart.service.js';
 import { ekartAuthService } from '../services/ekart-auth.service.js';
 import { env } from '../config/env.js';
 import {
@@ -19,6 +19,8 @@ import {
 import { createSuccessResponse, createErrorResponse, asyncHandler } from '../utils/errorHandler.js';
 import { logger } from '../config/logger.js';
 import { dynamicUpdate } from '../utils/dynamicDbOperations.js';
+import axios from 'axios';
+import FormData from 'form-data';
 
 export class EkartController {
   /**
@@ -122,25 +124,82 @@ export class EkartController {
       request: FastifyRequest<{ Body: ForwardShipmentInput }>,
       reply: FastifyReply
     ) => {
-      const payload = forwardShipmentSchemaWithDimensions.parse(request.body);
-
       logger.info(
-        { orderNumber: payload.order_number, paymentMode: payload.payment_mode },
-        'Creating forward shipment'
+        {
+          bodyKeys: Object.keys(request.body || {}),
+          hasSellerName: !!(request.body as any)?.seller_name,
+          hasSellerAddress: !!(request.body as any)?.seller_address,
+          hasSellerGstTin: !!(request.body as any)?.seller_gst_tin
+        },
+        '📥 [CONTROLLER] Received request to create forward shipment'
       );
 
-      const result = await ekartService.createForwardShipment(payload);
+      const requestBody = forwardShipmentSchemaWithDimensions.parse(request.body);
+
+      logger.info(
+        {
+          orderNumber: requestBody.order_number,
+          paymentMode: requestBody.payment_mode,
+          hasSellerName: !!requestBody.seller_name,
+          hasSellerAddress: !!requestBody.seller_address,
+          hasSellerGstTin: !!requestBody.seller_gst_tin,
+          sellerName: requestBody.seller_name
+        },
+        '✅ [CONTROLLER] Request body validated successfully - seller info from FE'
+      );
+
+      // Service will handle fetching seller info from EKART if fetch_seller_from_ekart is true
+      const result = await ekartService.createForwardShipment(requestBody as CreateShipmentPayload);
+
+      logger.info(
+        {
+          orderNumber: requestBody.order_number,
+          trackingId: result.tracking_id,
+          vendor: result.vendor
+        },
+        '✅ [CONTROLLER] Shipment created, now storing data in database'
+      );
 
       // Store shipment data in orders table
+      logger.info(
+        { orderNumber: requestBody.order_number },
+        '📍 [CONTROLLER] Step 6: Storing shipment data in database'
+      );
+
       try {
         const { OrdersService } = await import('../services/orders.service.js');
         const ordersService = new OrdersService();
         
         // Find order by order_number (orderid field)
-        const order = await ordersService.findByOrderNumber(payload.order_number);
+        logger.info(
+          { orderNumber: requestBody.order_number },
+          '📍 [CONTROLLER] Step 6.1: Looking up order in database'
+        );
+
+        // Use findByOrderIdString for searching by orderid field (order_number from payload)
+        const order = await ordersService.findByOrderIdString(requestBody.order_number);
         
         if (order) {
-          // Update orders table with shipment data
+          logger.info(
+            {
+              orderId: order.id,
+              orderNumber: requestBody.order_number,
+              currentStatus: order.orderstatus
+            },
+            '✅ [CONTROLLER] Step 6.1 SUCCESS: Order found in database'
+          );
+
+          // Update orders table with shipment data (NO status change, NO status_history update)
+          // Status remains "ready_for_dispatch" until mark-shipped is called
+          logger.info(
+            {
+              orderId: order.id,
+              trackingId: result.tracking_id,
+              vendor: result.vendor
+            },
+            '📍 [CONTROLLER] Step 6.2: Updating orders table with shipment data'
+          );
+
           await dynamicUpdate('orders', { id: order.id }, {
             tracking_id: result.tracking_id,
             vendor: result.vendor,
@@ -148,42 +207,97 @@ export class EkartController {
             public_tracking_link: `https://app.elite.ekartlogistics.in/track/${result.tracking_id}`,
             shipment_created_at: Date.now(),
             modifieddate: Date.now()
+            // Note: status_history NOT updated - status doesn't change (remains ready_for_dispatch)
           });
 
-          // Update all orderlines with tracking_id (but NOT status yet)
+          logger.info(
+            { orderId: order.id },
+            '✅ [CONTROLLER] Step 6.2 SUCCESS: Orders table updated'
+          );
+
+          // Update all orderlines with tracking_id (NO status change, NO status_history update)
           const { OrderlineService } = await import('../services/orderline.service.js');
           const orderlineService = new OrderlineService();
           
+          logger.info(
+            { orderId: order.id },
+            '📍 [CONTROLLER] Step 6.3: Fetching orderlines for update'
+          );
+
           const { data: orderlines } = await orderlineService.findMany(
             { orderid: order.id.toString() },
             1,
             1000
           );
 
-          for (const orderline of orderlines || []) {
-            await orderlineService.update(orderline.id.toString(), {
-              tracking_id: result.tracking_id
-              // Note: Status remains "ready_for_dispatch" until label is printed
-            });
+          logger.info(
+            {
+              orderId: order.id,
+              orderlineCount: orderlines?.length || 0
+            },
+            `✅ [CONTROLLER] Step 6.3 SUCCESS: Found ${orderlines?.length || 0} orderlines`
+          );
+
+          if (orderlines && orderlines.length > 0) {
+            logger.info(
+              { orderId: order.id, orderlineCount: orderlines.length },
+              '📍 [CONTROLLER] Step 6.4: Updating orderlines with tracking_id'
+            );
+
+            for (const orderline of orderlines) {
+              await orderlineService.update(orderline.id.toString(), {
+                tracking_id: result.tracking_id
+                // Note: Status remains "ready_for_dispatch" until mark-shipped is called
+                // Note: status_history NOT updated - status doesn't change
+              });
+            }
+
+            logger.info(
+              {
+                orderId: order.id,
+                orderlineCount: orderlines.length,
+                trackingId: result.tracking_id
+              },
+              '✅ [CONTROLLER] Step 6.4 SUCCESS: All orderlines updated with tracking_id'
+            );
           }
 
           logger.info(
-            { orderId: order.id, trackingId: result.tracking_id },
-            'Shipment data stored in orders and orderlines'
+            {
+              orderId: order.id,
+              trackingId: result.tracking_id,
+              vendor: result.vendor,
+              publicTrackingLink: `https://app.elite.ekartlogistics.in/track/${result.tracking_id}`
+            },
+            '✅ [CONTROLLER] Step 6 SUCCESS: Shipment data stored in orders and orderlines'
           );
         } else {
           logger.warn(
-            { orderNumber: payload.order_number },
-            'Order not found - shipment data not stored'
+            { orderNumber: requestBody.order_number },
+            '⚠️ [CONTROLLER] Step 6 WARNING: Order not found in database - shipment data not stored (but shipment was created in EKART)'
           );
         }
       } catch (error: any) {
         logger.error(
-          { error: error.message, orderNumber: payload.order_number },
-          'Failed to store shipment data in orders table'
+          {
+            error: error.message,
+            stack: error.stack,
+            orderNumber: requestBody.order_number
+          },
+          '❌ [CONTROLLER] Step 6 ERROR: Failed to store shipment data in orders table (but shipment was created in EKART)'
         );
         // Don't fail the request - shipment was created successfully
       }
+
+      logger.info(
+        {
+          orderNumber: requestBody.order_number,
+          trackingId: result.tracking_id,
+          vendor: result.vendor,
+          publicTrackingLink: `https://app.elite.ekartlogistics.in/track/${result.tracking_id}`
+        },
+        '✅ [CONTROLLER] Step 7: Preparing success response'
+      );
 
       const response = createSuccessResponse(
         'Forward shipment created successfully',
@@ -192,8 +306,16 @@ export class EkartController {
           vendor: result.vendor,
           barcodes: result.barcodes,
           public_tracking_link: `https://app.elite.ekartlogistics.in/track/${result.tracking_id}`,
-          order_number: payload.order_number
+          order_number: requestBody.order_number
         }
+      );
+
+      logger.info(
+        {
+          orderNumber: requestBody.order_number,
+          trackingId: result.tracking_id
+        },
+        '🎉 [CONTROLLER] COMPLETE: Forward shipment creation process completed successfully'
       );
 
       return reply.code(200).send(response);
@@ -209,14 +331,26 @@ export class EkartController {
       request: FastifyRequest<{ Body: ReverseShipmentInput }>,
       reply: FastifyReply
     ) => {
-      const payload = reverseShipmentSchemaWithDimensions.parse(request.body);
+      logger.info(request.body,"request.body createReverseShipment in controller")
+      const requestBody = reverseShipmentSchemaWithDimensions.parse(request.body);
+
+      // Use GST TIN from payload or env
+      const finalPayload = {
+        ...requestBody,
+        seller_gst_tin: requestBody.seller_gst_tin || env.SELLER_GST_TIN || ''
+      };
+
+      // Validate required seller fields are present
+      if (!finalPayload.seller_name || !finalPayload.seller_address || !finalPayload.seller_gst_tin) {
+        throw new Error('Seller name, address, and GST TIN are required (GST TIN can come from payload or SELLER_GST_TIN env variable)');
+      }
 
       logger.info(
-        { orderNumber: payload.order_number, returnReason: payload.return_reason },
+        { orderNumber: finalPayload.order_number, returnReason: finalPayload.return_reason },
         'Creating reverse shipment'
       );
-
-      const result = await ekartService.createReverseShipment(payload);
+logger.info(finalPayload,"finalPayload createReverseShipment")
+      const result = await ekartService.createReverseShipment(finalPayload as CreateShipmentPayload);
 
       const response = createSuccessResponse(
         'Reverse shipment created successfully',
@@ -225,7 +359,7 @@ export class EkartController {
           vendor: result.vendor,
           barcodes: result.barcodes,
           public_tracking_link: `https://app.elite.ekartlogistics.in/track/${result.tracking_id}`,
-          order_number: payload.order_number
+          order_number: finalPayload.order_number
         }
       );
 
@@ -242,59 +376,138 @@ export class EkartController {
       request: FastifyRequest<{ Body: DownloadLabelInput }>,
       reply: FastifyReply
     ) => {
-      const { trackingIds } = downloadLabelSchema.parse(request.body);
+      const { tracking_ids: trackingIds } = downloadLabelSchema.parse(request.body);
 
       logger.info({ trackingIds }, 'Downloading labels');
 
+      // Step 1: Call EKART API to download label (binary PDF)
       const pdfBuffer = await ekartService.downloadLabel(trackingIds);
 
-      // Store label PDF in GCP and update orders table
-      // Note: For now, we'll store a placeholder URL pattern
-      // You can implement GCP upload using @google-cloud/storage package
+      // Step 2: Upload PDF to GCP Storage Backend (server 4500) - one PDF per tracking ID
+      // NO STATUS CHANGE, NO status_history update
       try {
         const { OrdersService } = await import('../services/orders.service.js');
         const ordersService = new OrdersService();
 
-        // For each tracking ID, find the order and update label_url
-        for (const trackingId of trackingIds) {
-          const order = await ordersService.findByTrackingId(trackingId);
-          
-          if (order) {
-            // Generate label URL (you can implement actual GCP upload here)
-            // For now, using a pattern that can be replaced with actual GCP URL
-            const labelUrl = `gs://nivaana-labels/${trackingId}.pdf`;
-            
+        // GCP Storage Backend URL (server 4500)
+        const storageBackendUrl = process.env.STORAGE_BACKEND_URL || 'http://localhost:4500';
+
+        // Upload one PDF per tracking ID (same PDF buffer, different paths)
+        const updatePromises = trackingIds.map(async (trackingId) => {
+          try {
+            const order = await ordersService.findByTrackingId(trackingId);
+            if (!order) {
+              logger.warn(
+                { trackingId },
+                'Order not found for tracking ID - label URL not stored'
+              );
+              return { trackingId, success: false, error: 'Order not found' };
+            }
+
+            // Call GCP Storage Backend API (server 4500)
+            // Server 4500 endpoint: POST /shipping/label/:trackingId
+            // Sends PDF buffer directly as multipart/form-data
+            logger.debug(
+              {
+                trackingId,
+                pdfSize: pdfBuffer.length,
+                storageBackendUrl
+              },
+              'Uploading PDF to GCP Storage Backend'
+            );
+
+            // Create FormData for multipart/form-data upload
+            const formData = new FormData();
+            formData.append('file', pdfBuffer, {
+              filename: 'label.pdf',
+              contentType: 'application/pdf'
+            });
+
+            const response = await axios.post(
+              `${storageBackendUrl}/shipping/label/${trackingId}`,
+              formData,
+              {
+                headers: {
+                  ...formData.getHeaders()
+                },
+                timeout: 30000
+              }
+            );
+
+            if (!response.data.success || !response.data.data?.url) {
+              throw new Error('Invalid response from storage backend');
+            }
+
+            const labelUrl = response.data.data.url;
+
+            logger.info(
+              { labelUrl, trackingId, fileSize: pdfBuffer.length },
+              'Label PDF uploaded to GCP Storage Backend (server 4500)'
+            );
+
+            // Update order with label_url (NO STATUS CHANGE, NO status_history)
             await dynamicUpdate('orders', { id: order.id }, {
               label_url: labelUrl,
               label_downloaded_at: Date.now(),
               modifieddate: Date.now()
+              // Note: status remains "ready_for_dispatch", no status_history update
             });
 
             logger.info(
               { orderId: order.id, trackingId, labelUrl },
               'Label URL stored in orders table'
             );
-          } else {
-            logger.warn(
-              { trackingId },
-              'Order not found for tracking ID - label URL not stored'
+            
+            return { trackingId, orderId: order.id, labelUrl, success: true };
+          } catch (error: any) {
+            logger.error(
+              { error: error.message, trackingId, stack: error.stack },
+              'Failed to upload label to GCP Storage Backend or update order'
             );
+            return { trackingId, success: false, error: error.message };
           }
-        }
+        });
+
+        const updateResults = await Promise.all(updatePromises);
+        const successful = updateResults.filter(r => r.success).length;
+        const failed = updateResults.filter(r => !r.success).length;
+
+        logger.info(
+          { 
+            totalTrackingIds: trackingIds.length,
+            successful,
+            failed,
+            updateResults
+          },
+          'Label upload to GCP Storage Backend completed'
+        );
+
+        // Return JSON response with label URLs
+        // If single tracking ID, return single object; if multiple, return array
+        const responseData = trackingIds.length === 1 
+          ? updateResults[0] 
+          : updateResults;
+
+        const response = createSuccessResponse(
+          'Labels uploaded successfully',
+          responseData
+        );
+
+        return reply.code(200).send(response);
       } catch (error: any) {
         logger.error(
-          { error: error.message, trackingIds },
-          'Failed to store label URL in orders table'
+          { error: error.message, trackingIds, stack: error.stack },
+          'Failed to process label uploads to GCP Storage Backend'
         );
-        // Don't fail the request - label was downloaded successfully
+        
+        // Return error response
+        const errorResponse = createErrorResponse(
+          'Failed to upload labels to storage backend',
+          error.message,
+          500
+        );
+        return reply.code(500).send(errorResponse);
       }
-
-      // Set appropriate headers for PDF download
-      reply.header('Content-Type', 'application/pdf');
-      reply.header('Content-Disposition', `attachment; filename="ekart-labels-${Date.now()}.pdf"`);
-      reply.header('Content-Length', pdfBuffer.length.toString());
-
-      return reply.code(200).send(pdfBuffer);
     }
   );
 
@@ -355,6 +568,34 @@ export class EkartController {
           tracking_id: result.tracking_id,
           remark: result.remark
         }
+      );
+
+      return reply.code(200).send(response);
+    }
+  );
+
+  /**
+   * Get Addresses from EKART
+   * GET /v1/ekart/addresses
+   * Returns list of registered seller/pickup addresses from EKART
+   */
+  getAddresses = asyncHandler(
+    async (
+      request: FastifyRequest,
+      reply: FastifyReply
+    ) => {
+      logger.info('📥 [CONTROLLER] Received request to get EKART addresses');
+
+      const addresses = await ekartService.getAddresses();
+
+      logger.info(
+        { count: addresses.length },
+        '✅ [CONTROLLER] Addresses fetched successfully'
+      );
+
+      const response = createSuccessResponse(
+        'Addresses fetched successfully',
+        addresses
       );
 
       return reply.code(200).send(response);

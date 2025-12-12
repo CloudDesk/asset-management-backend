@@ -48,6 +48,10 @@ const envSchema = z.object({
   GCP_PROJECT_LOCATION: z.string().optional(),
   GCP_PROJECT_QUEUE: z.string().optional(),
   GCP_TASK_URL: z.string().optional(),
+  GCP_STORAGE_BUCKET: z.string().optional(),
+  SHIPPING_BUCKET: z.string().optional(),
+  // GCP Storage Backend (server 4500) - for file uploads
+  STORAGE_BACKEND_URL: z.string().optional().default('http://localhost:4500'),
   
   // Email Configuration
   GMAIL_SERVICE: z.string().optional().default('gmail'),
@@ -106,6 +110,12 @@ const envSchema = z.object({
   EKART_USERNAME: z.string().optional(),
   EKART_PASSWORD: z.string().optional(),
   EKART_BASE_URL: z.string().optional().default('https://app.elite.ekartlogistics.in/api'),
+  
+  // Seller Information (for EKART shipments)
+  SELLER_GST_TIN: z.string().optional(),
+  
+  // Warehouse Pincode (fallback if EKART is unavailable)
+  WAREHOUSE_PINCODE: z.string().optional(), // 6-digit pincode as fallback
   
 });
 

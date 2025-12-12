@@ -47,9 +47,10 @@ export const itemSchema = z.object({
 
 // Base shipment schema
 const baseShipmentSchema = z.object({
+  // Seller info - mandatory from FE
   seller_name: z.string().min(1, 'Seller name is required'),
   seller_address: z.string().min(1, 'Seller address is required'),
-  seller_gst_tin: z.string().min(1, 'Seller GST TIN is required'),
+  seller_gst_tin: z.string().min(1, 'Seller GST TIN is required').optional(), // Optional - can come from FE or ENV
   order_number: z.string().min(1, 'Order number is required'),
   invoice_number: z.string().min(1, 'Invoice number is required'),
   invoice_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invoice date must be in YYYY-MM-DD format'),
@@ -156,7 +157,7 @@ export const cancelShipmentSchema = z.object({
 
 // Download label schema
 export const downloadLabelSchema = z.object({
-  trackingIds: z.array(z.string().min(1)).min(1, 'At least one tracking ID is required')
+  tracking_ids: z.array(z.string().min(1)).min(1, 'At least one tracking ID is required')
 });
 
 // Shipping rates schema

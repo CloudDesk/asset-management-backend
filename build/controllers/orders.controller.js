@@ -162,5 +162,59 @@ export class OrdersController {
             }));
         }
     });
+    /**
+     * Get order details with orderlines, products, and address
+     * GET /v1/orders/:id/details
+     * For Inventory App order detail page
+     */
+    getOrderDetails = asyncHandler(async (request, reply) => {
+        const { id } = request.params;
+        try {
+            const orderDetails = await this.ordersService.getOrderDetails(id);
+            if (!orderDetails) {
+                return reply.code(404).send({
+                    success: false,
+                    message: 'Order not found',
+                    statusCode: 404
+                });
+            }
+            return reply.code(200).send(createSuccessResponse('Order details retrieved successfully', orderDetails));
+        }
+        catch (error) {
+            if (error.message === 'Order not found') {
+                return reply.code(404).send({
+                    success: false,
+                    message: 'Order not found',
+                    statusCode: 404
+                });
+            }
+            throw error;
+        }
+    });
+    /**
+     * Get orders by user ID with orderlines and address details
+     * GET /v1/orders/user/:userid/details
+     */
+    getOrdersByUserIdWithDetails = asyncHandler(async (request, reply) => {
+        const { userid } = request.params;
+        const { page: pageStr, limit: limitStr } = request.query;
+        const page = pageStr ? parseInt(pageStr, 10) : 1;
+        const limit = limitStr ? parseInt(limitStr, 10) : 50;
+        if (isNaN(Number(userid))) {
+            return reply.code(400).send({
+                success: false,
+                message: 'Invalid user ID',
+                statusCode: 400
+            });
+        }
+        const userId = parseInt(userid, 10);
+        const result = await this.ordersService.getOrdersByUserIdWithDetails(userId, page, limit);
+        return reply.code(200).send({
+            success: true,
+            message: 'Orders retrieved successfully',
+            data: result.orders,
+            pagination: result.pagination
+        });
+    });
 }
 //# sourceMappingURL=orders.controller.js.map

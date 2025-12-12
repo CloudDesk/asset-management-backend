@@ -146,8 +146,13 @@ model Picklist {
   createddate          BigInt?
   modifieddate         BigInt?
 
+  gstHsnMappingsAsSubcategory    GstHsnMapping[] @relation("SubcategoryMapping")
+  gstHsnMappingsAsSubsubcategory GstHsnMapping[] @relation("SubsubcategoryMapping")
+  
   @@map("picklist")
 }
+
+
 
 model PicklistBackup {
   backup_id           Int      @id @default(autoincrement())
@@ -168,6 +173,35 @@ model PicklistBackup {
 
   @@map("picklist_backup")
 }
+
+
+model GstHsnMapping {
+  id                  Int      @id @default(autoincrement())
+  subcategory_id      Int?
+  subcategory_value   String?  @db.VarChar(255)
+  subsubcategory_id   Int?
+  subsubcategory_value String? @db.VarChar(255)
+  hsn_code            String   @db.VarChar(50)
+  gst_rate            Decimal  @db.Decimal(5, 2)  // e.g., 5.00, 18.00
+  description         String?  @db.Text
+  isactive            Boolean? @default(true)
+  createddate         BigInt?
+  modifieddate        BigInt?
+  
+  subcategory         Picklist? @relation("SubcategoryMapping", fields: [subcategory_id], references: [id], onDelete: SetNull)
+  subsubcategory      Picklist? @relation("SubsubcategoryMapping", fields: [subsubcategory_id], references: [id], onDelete: SetNull)
+  
+  // Note: Unique constraints handled via partial indexes in SQL (see SQL schema above)
+  // Prisma doesn't support partial unique indexes directly, so we'll handle uniqueness in application logic
+  @@index([subcategory_value])
+  @@index([subcategory_id])
+  @@index([subsubcategory_value])
+  @@index([subsubcategory_id])
+  @@index([isactive])
+  @@map("gst_hsn_mapping")
+}
+
+
 
 
 model Supplier {
@@ -397,8 +431,18 @@ model orderline {
   promotion_discount_amount Decimal? @db.Decimal(10,2) @default(0)
   shipping_cost            Decimal? @db.Decimal(10,2) @default(0)
   // EKART Shipment Information (shared with order)
+  
+  hsn_code                String?   @db.VarChar(50)
+  gst_rate                Decimal?  @db.Decimal(5, 2)   // e.g., 5.00, 18.00
+  taxable_amount          Decimal?  @db.Decimal(10, 2)  // orderamount / (1 + gst_rate/100)
+  cgst_amount             Decimal?  @db.Decimal(10, 2)  // if same state
+  sgst_amount             Decimal?  @db.Decimal(10, 2)  // if same state
+  igst_amount             Decimal?  @db.Decimal(10, 2)  // if different state
+  total_gst_amount        Decimal?  @db.Decimal(10, 2)  // cgst + sgst OR igst
+
   tracking_id             String?   @db.VarChar(500)
   shipdate                BigInt?
+  status_history          Json?     // Array of status change history entries
   address         address?  @relation(fields: [addressid], references: [id], onDelete: NoAction, onUpdate: NoAction)
   product         Product?  @relation(fields: [productid], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users           users?    @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -455,6 +499,17 @@ model orders {
   label_downloaded_at   BigInt?
   label_printed_at      BigInt?
   shipdate              BigInt?
+  status_history        Json?                     // Array of status change history entries
+
+  items_total             Decimal?  @db.Decimal(10, 2)  // Σ(orderline.orderamount) = orderamount - shipping_cost
+  total_taxable_amount    Decimal?  @db.Decimal(10, 2)  // Sum of orderline.taxable_amount
+  total_cgst_amount       Decimal?  @db.Decimal(10, 2)  // Sum of orderline.cgst_amount
+  total_sgst_amount       Decimal?  @db.Decimal(10, 2)  // Sum of orderline.sgst_amount
+  total_igst_amount       Decimal?  @db.Decimal(10, 2)  // Sum of orderline.igst_amount
+  total_gst_amount        Decimal?  @db.Decimal(10, 2)  // Sum of orderline.total_gst_amount
+  
+
+
   orderline             orderline[]
   address               address?                 @relation(fields: [addressid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_addressid_orders")
   transaction           transaction?             @relation(fields: [transactionid], references: [transactionid], onDelete: Cascade, onUpdate: NoAction, map: "fk_transactionid")

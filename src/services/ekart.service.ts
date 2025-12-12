@@ -6,7 +6,7 @@ import { ekartAuthService } from './ekart-auth.service.js';
 export interface CreateShipmentPayload {
   seller_name: string;
   seller_address: string;
-  seller_gst_tin: string;
+  seller_gst_tin?: string; // Optional - can come from payload or ENV
   order_number: string;
   invoice_number: string;
   invoice_date: string;
@@ -185,7 +185,7 @@ export class EkartService {
     } = {}
   ): Promise<AxiosResponse<T>> {
     const { method = 'GET', data, headers = {}, responseType = 'json' } = options;
-
+logger.info(data,"data in apiRequest")
     try {
       // Ensure we have a valid token
       const authHeader = await this.authService.getAuthHeader();
@@ -226,45 +226,347 @@ export class EkartService {
       }
 
       // Log and rethrow other errors
-      logger.error(
-        {
-          endpoint,
-          method,
-          status: error.response?.status,
-          error: error.message,
-          data: error.response?.data
-        },
-        'Ekart API request failed'
-      );
+      const fullUrl = `${this.baseURL}${endpoint}`;
+      const errorData = error.response?.data;
+      
+      // Enhanced error message for 404 errors
+      if (error.response?.status === 404) {
+        logger.error(
+          {
+            endpoint,
+            fullUrl,
+            method,
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            error: error.message,
+            data: errorData,
+            requestUrl: error.config?.url,
+            requestMethod: error.config?.method,
+            ekartErrorCode: errorData?.code,
+            ekartErrorMessage: errorData?.message,
+            ekartErrorDescription: errorData?.description,
+            troubleshooting: {
+              suggestion: 'The EKART API endpoint may not be available for your account. Please verify:',
+              checks: [
+                '1. Contact EKART support to confirm endpoint availability',
+                '2. Verify your account has access to package creation API',
+                '3. Check if the endpoint requires different permissions',
+                '4. Confirm the API version (v1 vs v2) with EKART support'
+              ]
+            }
+          },
+          'Ekart API request failed - 404 Endpoint Not Found'
+        );
+      } else {
+        logger.error(
+          {
+            endpoint,
+            fullUrl,
+            method,
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            error: error.message,
+            data: errorData,
+            requestUrl: error.config?.url,
+            requestMethod: error.config?.method,
+            requestHeaders: error.config?.headers ? Object.keys(error.config.headers) : []
+          },
+          'Ekart API request failed'
+        );
+      }
 
       throw error;
     }
   }
 
   /**
-   * Create Forward Shipment (Seller → Customer)
+   * Get Addresses from EKART
+   * GET /api/v2/addresses
+   * Returns list of registered addresses (seller/pickup locations)
    */
-  async createForwardShipment(payload: CreateShipmentPayload): Promise<CreateShipmentResponse> {
-    logger.info({ orderNumber: payload.order_number }, 'Creating forward shipment');
+  async getAddresses(): Promise<Array<{
+    alias: string;
+    phone: number;
+    address_line1: string;
+    address_line2: string;
+    pincode: number;
+    city: string;
+    state: string;
+    country: string;
+    geo?: {
+      lat: number;
+      lon: number;
+    };
+  }>> {
+    logger.info(
+      { endpoint: 'GET /v2/addresses', baseUrl: this.baseURL },
+      '📍 [EKART API] Calling EKART addresses API to fetch seller addresses'
+    );
 
-    const response = await this.apiRequest<CreateShipmentResponse>(
-      '/v1/package/create',
+    const response = await this.apiRequest<Array<{
+      alias: string;
+      phone: number;
+      address_line1: string;
+      address_line2: string;
+      pincode: number;
+      city: string;
+      state: string;
+      country: string;
+      geo?: {
+        lat: number;
+        lon: number;
+      };
+    }>>(
+      '/v2/addresses',
       {
-        method: 'POST',
-        data: payload
+        method: 'GET'
       }
     );
 
+    logger.info(
+      {
+        count: response.data.length,
+        addresses: response.data.map(addr => ({
+          alias: addr.alias,
+          city: addr.city,
+          state: addr.state,
+          pincode: addr.pincode
+        }))
+      },
+      '✅ [EKART API] Addresses fetched successfully from EKART'
+    );
+
+    return response.data;
+  }
+
+  /**
+   * Get Default Seller Address from EKART
+   * Returns the first address or address with specific alias
+   * Note: GST TIN comes from environment variables, not from EKART address response
+   */
+  async getDefaultSellerAddress(alias?: string): Promise<{
+    seller_name: string;
+    seller_address: string;
+  } | null> {
+    try {
+      logger.info(
+        { alias: alias || 'first address' },
+        '📍 [ADDRESS FETCH] Fetching addresses from EKART'
+      );
+
+      const addresses = await this.getAddresses();
+      
+      if (addresses.length === 0) {
+        logger.warn('❌ [ADDRESS FETCH] No addresses found in EKART');
+        return null;
+      }
+
+      logger.info(
+        {
+          totalAddresses: addresses.length,
+          requestedAlias: alias,
+          availableAliases: addresses.map(a => a.alias)
+        },
+        '✅ [ADDRESS FETCH] Addresses retrieved, now selecting address'
+      );
+
+      // Find address by alias if provided, otherwise use first address
+      const address = alias 
+        ? addresses.find(addr => addr.alias.toLowerCase() === alias.toLowerCase())
+        : addresses[0];
+
+      if (!address) {
+        logger.warn(
+          {
+            requestedAlias: alias,
+            availableAliases: addresses.map(a => a.alias),
+            usingFirstAddress: true
+          },
+          '⚠️ [ADDRESS FETCH] Address with alias not found, using first address'
+        );
+        const firstAddress = addresses[0];
+        if (!firstAddress) {
+          logger.warn('❌ [ADDRESS FETCH] No addresses available');
+          return null;
+        }
+        const sellerInfo = {
+          seller_name: firstAddress.alias || 'Seller',
+          seller_address: `${firstAddress.address_line1}${firstAddress.address_line2 ? ', ' + firstAddress.address_line2 : ''}, ${firstAddress.city}, ${firstAddress.state} ${firstAddress.pincode}`
+        };
+        logger.info(
+          {
+            sellerName: sellerInfo.seller_name,
+            sellerAddress: sellerInfo.seller_address
+          },
+          '✅ [ADDRESS FETCH] Using first address as seller info'
+        );
+        return sellerInfo;
+      }
+
+      // Map EKART address to seller info format
+      const sellerAddress = `${address.address_line1}${address.address_line2 ? ', ' + address.address_line2 : ''}, ${address.city}, ${address.state} ${address.pincode}`;
+      
+      const sellerInfo = {
+        seller_name: address.alias || 'Seller',
+        seller_address: sellerAddress
+      };
+
+      logger.info(
+        {
+          alias: address.alias,
+          sellerName: sellerInfo.seller_name,
+          sellerAddress: sellerInfo.seller_address
+        },
+        '✅ [ADDRESS FETCH] Address selected and mapped to seller info'
+      );
+
+      return sellerInfo;
+    } catch (error: any) {
+      logger.error(
+        {
+          error: error.message,
+          stack: error.stack,
+          alias
+        },
+        '❌ [ADDRESS FETCH] Failed to fetch seller address from EKART'
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Create Forward Shipment (Seller → Customer)
+   * Seller info (name, address) must come from payload (FE)
+   * GST TIN can come from payload or environment variable
+   */
+  async createForwardShipment(payload: CreateShipmentPayload): Promise<CreateShipmentResponse> {
+    logger.info(
+      {
+        orderNumber: payload.order_number,
+        paymentMode: payload.payment_mode,
+        hasSellerName: !!payload.seller_name,
+        hasSellerAddress: !!payload.seller_address,
+        hasSellerGstTin: !!payload.seller_gst_tin
+      },
+      '🚀 [SHIPMENT CREATE] Starting forward shipment creation process'
+    );
+
+    // Validate seller info from payload
+    if (!payload.seller_name || !payload.seller_address) {
+      logger.error(
+        {
+          orderNumber: payload.order_number,
+          hasSellerName: !!payload.seller_name,
+          hasSellerAddress: !!payload.seller_address
+        },
+        '❌ [SHIPMENT CREATE] Step 1 FAILED: Seller name and address are required from payload'
+      );
+      throw new Error('Seller name and address are required from payload');
+    }
+
+    logger.info(
+      {
+        orderNumber: payload.order_number,
+        sellerName: payload.seller_name,
+        sellerAddress: payload.seller_address
+      },
+      '✅ [SHIPMENT CREATE] Step 1 SUCCESS: Seller info validated from payload'
+    );
+
+    // GST TIN can come from payload or environment variable
+    const sellerGstTin = payload.seller_gst_tin || env.SELLER_GST_TIN;
+    
+    if (!sellerGstTin) {
+      logger.error(
+        { orderNumber: payload.order_number },
+        '❌ [SHIPMENT CREATE] Step 2 FAILED: Seller GST TIN is required. Provide it in payload or set SELLER_GST_TIN environment variable'
+      );
+      throw new Error('Seller GST TIN is required. Provide it in payload or set SELLER_GST_TIN environment variable');
+    }
+
+    logger.info(
+      {
+        orderNumber: payload.order_number,
+        gstTinSource: payload.seller_gst_tin ? 'payload' : 'environment',
+        gstTinMasked: sellerGstTin ? `${sellerGstTin.substring(0, 4)}****` : 'N/A'
+      },
+      '✅ [SHIPMENT CREATE] Step 2 SUCCESS: GST TIN obtained'
+    );
+
+    // Prepare final payload with GST TIN
+    const finalPayload: CreateShipmentPayload = {
+      ...payload,
+      seller_gst_tin: sellerGstTin
+    };
+
+    logger.info(
+      {
+        orderNumber: payload.order_number,
+        sellerName: finalPayload.seller_name,
+        sellerAddress: finalPayload.seller_address,
+        sellerGstTin: finalPayload.seller_gst_tin ? `${finalPayload.seller_gst_tin.substring(0, 4)}****` : 'N/A'
+      },
+      '✅ [SHIPMENT CREATE] Step 3: Final payload prepared'
+    );
+
+    // Use finalPayload directly (no need to remove any fields)
+    const ekartPayload = finalPayload;
+
+    logger.info(
+      {
+        orderNumber: payload.order_number,
+        paymentMode: ekartPayload.payment_mode,
+        totalAmount: ekartPayload.total_amount,
+        codAmount: ekartPayload.cod_amount,
+        weight: ekartPayload.weight,
+        quantity: ekartPayload.quantity,
+        hasTemplate: !!ekartPayload.templateName,
+        hasDimensions: !!(ekartPayload.length && ekartPayload.width && ekartPayload.height)
+      },
+      '📍 [SHIPMENT CREATE] Step 4: Preparing to call EKART API (PUT /v1/package/create) - ⚠️ THIS WILL DEDUCT MONEY FROM EKART ACCOUNT'
+    );
+
+    // EKART API uses PUT method for package creation
+    const response = await this.apiRequest<CreateShipmentResponse>(
+      '/v1/package/create',
+      {
+        method: 'PUT',
+        data: ekartPayload
+      }
+    );
+
+    logger.info(
+      {
+        orderNumber: payload.order_number,
+        status: response.data.status,
+        remark: response.data.remark,
+        trackingId: response.data.tracking_id,
+        vendor: response.data.vendor
+      },
+      '📍 [SHIPMENT CREATE] Step 5: Received response from EKART API'
+    );
+
     if (!response.data.status) {
+      logger.error(
+        {
+          orderNumber: payload.order_number,
+          remark: response.data.remark,
+          status: response.data.status
+        },
+        '❌ [SHIPMENT CREATE] Step 5 FAILED: EKART API returned error status'
+      );
       throw new Error(response.data.remark || 'Failed to create shipment');
     }
 
     logger.info(
       {
+        orderNumber: payload.order_number,
         trackingId: response.data.tracking_id,
-        orderNumber: payload.order_number
+        vendor: response.data.vendor,
+        barcodes: response.data.barcodes,
+        publicTrackingLink: `https://app.elite.ekartlogistics.in/track/${response.data.tracking_id}`
       },
-      '✅ Forward shipment created successfully'
+      '✅ [SHIPMENT CREATE] Step 5 SUCCESS: Forward shipment created successfully - 💰 MONEY DEDUCTED FROM EKART ACCOUNT'
     );
 
     return response.data;
@@ -274,6 +576,7 @@ export class EkartService {
    * Create Reverse Shipment (Customer → Seller)
    */
   async createReverseShipment(payload: CreateShipmentPayload): Promise<CreateShipmentResponse> {
+    logger.info(payload,"payload createReverseShipment in service")
     if (payload.payment_mode !== 'Pickup') {
       throw new Error('Reverse shipments must have payment_mode = "Pickup"');
     }
@@ -284,11 +587,23 @@ export class EkartService {
 
     logger.info({ orderNumber: payload.order_number }, 'Creating reverse shipment');
 
+    // Use GST TIN from payload or env
+    const finalPayload = {
+      ...payload,
+      seller_gst_tin: payload.seller_gst_tin || env.SELLER_GST_TIN || ''
+    };
+
+    // Validate required seller fields are present
+    if (!finalPayload.seller_name || !finalPayload.seller_address || !finalPayload.seller_gst_tin) {
+      throw new Error('Seller name, address, and GST TIN are required (GST TIN can come from payload or SELLER_GST_TIN env variable)');
+    }
+
+    // EKART API uses PUT method for package creation
     const response = await this.apiRequest<CreateShipmentResponse>(
       '/v1/package/create',
       {
-        method: 'POST',
-        data: payload
+        method: 'PUT',
+        data: finalPayload
       }
     );
 

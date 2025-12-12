@@ -1,8 +1,10 @@
 # Frontend Guide - Order Fulfillment & EKART Integration
 
 **Date:** January 2025  
-**Version:** 1.0  
+**Version:** 1.1  
 **Target Audience:** Frontend Developers (React, React Native, Web)
+
+**Latest Update:** COD orders now correctly start with `order_confirmed` status (not `payment_completed`)
 
 This guide provides complete business flow and API reference for implementing order fulfillment in the frontend application.
 
@@ -45,6 +47,21 @@ Order fulfillment is the process of preparing and shipping customer orders. This
 - **Authentication:** Bearer token (if required)
 - **Response Format:** JSON (except label download which is PDF binary)
 
+### Payment Modes & Initial Status
+
+**⚠️ IMPORTANT:** COD and Prepaid orders have different initial statuses.
+
+| Payment Mode | Initial Status | `ispaymentsucceed` | `mode` field |
+|--------------|---------------|-------------------|--------------|
+| **Prepaid (PhonePe)** | `payment_completed` | `true` | `"phonepe"` |
+| **COD** | `order_confirmed` | `false` | `"cod"` |
+
+**Key Points:**
+- Use `order.mode` field to identify payment type
+- COD orders have `ispaymentsucceed: false` until delivery and payment collection
+- Prepaid orders have `ispaymentsucceed: true` from creation
+- COD orders end with `cod_payment_received` status after payment collection
+
 ---
 
 ## 2️⃣ Business Flow - Complete Journey
@@ -57,7 +74,8 @@ Order fulfillment is the process of preparing and shipping customer orders. This
 └─────────────────────────────────────────────────────────────┘
 
 Step 1: Order Created
-  ├─ Status: payment_completed
+  ├─ Prepaid: Status = payment_completed, ispaymentsucceed = true
+  ├─ COD: Status = order_confirmed, ispaymentsucceed = false
   └─ Location: Customer App / PhonePe Payment
 
 Step 2: Warehouse - Collect Products
@@ -113,20 +131,31 @@ Step 10: EKART - Delivery
 
 #### **Step 1: Order Created (Customer Side)**
 
-**Status:** `payment_completed`
+**Status:** 
+- **Prepaid (PhonePe):** `payment_completed` with `ispaymentsucceed: true`
+- **COD:** `order_confirmed` with `ispaymentsucceed: false`
 
 **What Happens:**
 - Customer places order via PhonePe (Prepaid) or COD
 - Order and orderlines created in database
 - Stock converted from `lockqty` → `orderedqty`
+- `mode` field set to `"phonepe"` or `"cod"`
 
 **Frontend Action:** None (happens in customer app)
+
+**Key Difference:**
+| Mode | Initial Status | `ispaymentsucceed` | `mode` |
+|------|---------------|-------------------|--------|
+| Prepaid | `payment_completed` | `true` | `"phonepe"` |
+| COD | `order_confirmed` | `false` | `"cod"` |
 
 ---
 
 #### **Step 2-3: Warehouse Physical Actions**
 
-**Status:** `payment_completed` or `packed`
+**Status:** 
+- **Prepaid:** `payment_completed` or `packed`
+- **COD:** `order_confirmed` or `packed`
 
 **What Happens:**
 - Warehouse staff physically collects products
@@ -139,7 +168,9 @@ Step 10: EKART - Delivery
 
 #### **Step 4: Mark Ready for Dispatch** 🔴 **INVENTORY APP ACTION**
 
-**Status Transition:** `payment_completed` → `ready_for_dispatch`
+**Status Transition:** 
+- **Prepaid:** `payment_completed` → `ready_for_dispatch`
+- **COD:** `order_confirmed` → `ready_for_dispatch`
 
 **Business Logic:**
 - All products collected ✅
@@ -269,6 +300,8 @@ Step 10: EKART - Delivery
 #### **Cancel Before Shipment Created**
 
 **Status:** `ready_for_dispatch` or earlier
+- **Prepaid:** `payment_completed`, `packed`, or `ready_for_dispatch`
+- **COD:** `order_confirmed`, `packed`, or `ready_for_dispatch`
 
 **User Action:**
 1. Customer clicks "Cancel Order" in customer app
@@ -1226,8 +1259,10 @@ const cancelShipment = async (trackingId: string) => {
 
 ### 5.1 Order Status Flow
 
+#### **Prepaid (PhonePe) Flow:**
+
 ```
-payment_completed
+payment_completed (ispaymentsucceed: true)
   ↓
 [User Action: Mark Ready for Dispatch]
   ↓
@@ -1250,11 +1285,65 @@ shipped
 in_transit → out_for_delivery → delivered
 ```
 
+#### **COD Flow:**
+
+```
+order_confirmed (ispaymentsucceed: false)
+  ↓
+[User Action: Mark Ready for Dispatch]
+  ↓
+ready_for_dispatch
+  ↓
+[User Action: Create EKART Shipment]
+  ↓
+ready_for_dispatch (tracking_id stored)
+  ↓
+[User Action: Download Label]
+  ↓
+ready_for_dispatch (label_url stored)
+  ↓
+[User Action: Mark as Shipped]
+  ↓
+shipped
+  ↓
+[EKART Automatic Updates]
+  ↓
+in_transit → out_for_delivery → delivered
+  ↓
+[EKART COD_COLLECTED]
+  ↓
+cod_payment_received (ispaymentsucceed: true)
+```
+
+#### **Key Differences:**
+
+| Aspect | Prepaid | COD |
+|--------|---------|-----|
+| Initial Status | `payment_completed` | `order_confirmed` |
+| Initial `ispaymentsucceed` | `true` | `false` |
+| Final Status | `delivered` | `cod_payment_received` |
+| Payment Collected | Before shipping | After delivery |
+
 ### 5.2 UI State Machine
 
 ```typescript
+interface Order {
+  id: number;
+  orderid: string;
+  orderstatus: string;
+  mode: 'phonepe' | 'cod';  // ✅ Payment mode
+  ispaymentsucceed: boolean;  // ✅ Payment status
+  tracking_id?: string;
+  label_url?: string;
+  status_history?: any[];
+}
+
 interface OrderUIState {
   status: string;
+  mode: string;
+  isPrepaid: boolean;
+  isCod: boolean;
+  isPaymentReceived: boolean;
   canMarkReady: boolean;
   canCreateShipment: boolean;
   canDownloadLabel: boolean;
@@ -1266,15 +1355,26 @@ interface OrderUIState {
 const getUIState = (order: Order): OrderUIState => {
   const hasTrackingId = !!order.tracking_id;
   const hasLabelUrl = !!order.label_url;
+  const isPrepaid = order.mode === 'phonepe';
+  const isCod = order.mode === 'cod';
+  
+  // ✅ Updated: Include order_confirmed for COD orders
+  const canMarkReadyStatuses = isPrepaid 
+    ? ['payment_completed', 'packed'] 
+    : ['order_confirmed', 'packed'];
   
   return {
     status: order.orderstatus,
-    canMarkReady: ['payment_completed', 'packed'].includes(order.orderstatus),
+    mode: order.mode,
+    isPrepaid,
+    isCod,
+    isPaymentReceived: order.ispaymentsucceed,
+    canMarkReady: canMarkReadyStatuses.includes(order.orderstatus),
     canCreateShipment: order.orderstatus === 'ready_for_dispatch' && !hasTrackingId,
     canDownloadLabel: hasTrackingId && !hasLabelUrl,
     canMarkShipped: hasTrackingId && order.orderstatus === 'ready_for_dispatch',
     canTrack: hasTrackingId && ['shipped', 'in_transit', 'out_for_delivery'].includes(order.orderstatus),
-    canCancel: !['delivered', 'cancelled', 'returned'].includes(order.orderstatus)
+    canCancel: !['delivered', 'cancelled', 'returned', 'cod_payment_received'].includes(order.orderstatus)
   };
 };
 ```
@@ -1284,19 +1384,56 @@ const getUIState = (order: Order): OrderUIState => {
 ```typescript
 const getStatusColor = (status: string): string => {
   const statusColors: Record<string, string> = {
-    'payment_completed': 'blue',
+    // Initial statuses
+    'order_confirmed': 'blue',      // ✅ COD initial status
+    'payment_completed': 'blue',    // Prepaid initial status
+    
+    // Fulfillment statuses
     'packed': 'purple',
     'ready_for_dispatch': 'orange',
     'shipped': 'teal',
     'in_transit': 'cyan',
     'out_for_delivery': 'indigo',
+    
+    // Final statuses
     'delivered': 'green',
+    'cod_payment_received': 'green',
+    
+    // Cancelled/Return statuses
     'cancelled': 'red',
     'partially_cancelled': 'yellow',
-    'cod_payment_received': 'green'
+    'cancellation_requested': 'yellow',  // ✅ New status for in-transit cancellation
+    'return_initiated': 'orange',
+    'returned': 'gray',
+    'rto_initiated': 'red',
+    'rto_delivered': 'gray'
   };
   
   return statusColors[status] || 'gray';
+};
+
+// ✅ Helper to get human-readable status text
+const getStatusText = (status: string, mode?: string): string => {
+  const statusTexts: Record<string, string> = {
+    'order_confirmed': 'Order Confirmed',
+    'payment_completed': 'Payment Completed',
+    'packed': 'Packed',
+    'ready_for_dispatch': 'Ready for Dispatch',
+    'shipped': 'Shipped',
+    'in_transit': 'In Transit',
+    'out_for_delivery': 'Out for Delivery',
+    'delivered': 'Delivered',
+    'cod_payment_received': 'COD Payment Received',
+    'cancelled': 'Cancelled',
+    'partially_cancelled': 'Partially Cancelled',
+    'cancellation_requested': 'Cancellation Requested',
+    'return_initiated': 'Return Initiated',
+    'returned': 'Returned',
+    'rto_initiated': 'Return to Origin',
+    'rto_delivered': 'RTO Completed'
+  };
+  
+  return statusTexts[status] || status;
 };
 ```
 
@@ -1305,8 +1442,10 @@ const getStatusColor = (status: string): string => {
 ```typescript
 const StatusTimeline = ({ order }: { order: Order }) => {
   const statusHistory = order.status_history || [];
+  const isCod = order.mode === 'cod';
   
-  const statusSteps = [
+  // ✅ Different status steps for COD vs Prepaid
+  const prepaidSteps = [
     { key: 'payment_completed', label: 'Payment Completed', icon: '💰' },
     { key: 'packed', label: 'Packed', icon: '📦' },
     { key: 'ready_for_dispatch', label: 'Ready for Dispatch', icon: '✅' },
@@ -1316,12 +1455,30 @@ const StatusTimeline = ({ order }: { order: Order }) => {
     { key: 'delivered', label: 'Delivered', icon: '✓' }
   ];
   
+  const codSteps = [
+    { key: 'order_confirmed', label: 'Order Confirmed', icon: '📝' },  // ✅ COD starts here
+    { key: 'packed', label: 'Packed', icon: '📦' },
+    { key: 'ready_for_dispatch', label: 'Ready for Dispatch', icon: '✅' },
+    { key: 'shipped', label: 'Shipped', icon: '🚚' },
+    { key: 'in_transit', label: 'In Transit', icon: '🚛' },
+    { key: 'out_for_delivery', label: 'Out for Delivery', icon: '🏠' },
+    { key: 'delivered', label: 'Delivered', icon: '📦' },
+    { key: 'cod_payment_received', label: 'Payment Collected', icon: '💰' }  // ✅ COD payment last
+  ];
+  
+  const statusSteps = isCod ? codSteps : prepaidSteps;
+  
   const currentStatusIndex = statusSteps.findIndex(
     step => step.key === order.orderstatus
   );
   
   return (
     <div className="status-timeline">
+      {/* ✅ Show payment mode badge */}
+      <div className={`payment-mode-badge ${isCod ? 'cod' : 'prepaid'}`}>
+        {isCod ? '💵 Cash on Delivery' : '💳 Prepaid'}
+      </div>
+      
       {statusSteps.map((step, index) => {
         const isCompleted = index <= currentStatusIndex;
         const historyEntry = statusHistory.find(
@@ -1410,8 +1567,13 @@ try {
 **Frontend Handling:**
 ```typescript
 const validateAction = (order: Order, action: string): boolean => {
+  const isCod = order.mode === 'cod';
+  
+  // ✅ Updated: COD orders start with order_confirmed, Prepaid with payment_completed
   const validStatuses: Record<string, string[]> = {
-    'markReady': ['payment_completed', 'packed'],
+    'markReady': isCod 
+      ? ['order_confirmed', 'packed']      // COD: starts with order_confirmed
+      : ['payment_completed', 'packed'],   // Prepaid: starts with payment_completed
     'createShipment': ['ready_for_dispatch'],
     'downloadLabel': ['ready_for_dispatch', 'shipped'],
     'markShipped': ['ready_for_dispatch']
@@ -1422,6 +1584,12 @@ const validateAction = (order: Order, action: string): boolean => {
 };
 
 // Usage
+if (!validateAction(order, 'markReady')) {
+  const expectedStatus = order.mode === 'cod' ? 'order_confirmed' : 'payment_completed';
+  showErrorToast(`Cannot mark ready. Order status must be '${expectedStatus}' or 'packed'`);
+  return;
+}
+
 if (!validateAction(order, 'createShipment')) {
   showErrorToast(`Cannot create shipment. Order status must be 'ready_for_dispatch'`);
   return;
@@ -1474,6 +1642,8 @@ interface Order {
   id: number;
   orderid: string;
   orderstatus: string;
+  mode: 'phonepe' | 'cod';        // ✅ Payment mode
+  ispaymentsucceed: boolean;       // ✅ Payment status
   tracking_id?: string;
   label_url?: string;
   status_history?: any[];
@@ -1643,12 +1813,25 @@ const OrderFulfillment: React.FC<{ orderId: number }> = ({ orderId }) => {
   }
 
   const uiState = getUIState(order);
+  const isCod = order.mode === 'cod';
 
   return (
     <div className="order-fulfillment">
       <div className="order-header">
         <h2>Order {order.orderid}</h2>
-        <StatusBadge status={order.orderstatus} />
+        <div className="order-badges">
+          <StatusBadge status={order.orderstatus} />
+          {/* ✅ Show payment mode badge */}
+          <span className={`payment-badge ${isCod ? 'cod' : 'prepaid'}`}>
+            {isCod ? '💵 COD' : '💳 Prepaid'}
+          </span>
+          {/* ✅ Show payment status for COD */}
+          {isCod && (
+            <span className={`payment-status ${order.ispaymentsucceed ? 'paid' : 'pending'}`}>
+              {order.ispaymentsucceed ? '✅ Paid' : '⏳ Payment Pending'}
+            </span>
+          )}
+        </div>
       </div>
 
       <StatusTimeline order={order} />
@@ -1693,6 +1876,14 @@ const OrderFulfillment: React.FC<{ orderId: number }> = ({ orderId }) => {
           </a>
         </div>
       )}
+      
+      {/* ✅ COD Amount Display */}
+      {isCod && (
+        <div className="cod-info">
+          <p><strong>COD Amount:</strong> ₹{order.orderamount}</p>
+          <p><strong>Payment Status:</strong> {order.ispaymentsucceed ? 'Collected' : 'Pending'}</p>
+        </div>
+      )}
     </div>
   );
 };
@@ -1704,13 +1895,33 @@ export default OrderFulfillment;
 
 ```typescript
 import React, { useState, useEffect } from 'react';
-import { View, Text, Button, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, Button, Alert, ActivityIndicator, StyleSheet } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+
+interface Order {
+  id: number;
+  orderid: string;
+  orderstatus: string;
+  mode: 'phonepe' | 'cod';
+  ispaymentsucceed: boolean;
+  orderamount: number;
+  tracking_id?: string;
+}
 
 const OrderFulfillmentScreen: React.FC<{ orderId: number }> = ({ orderId }) => {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // ✅ Check if order can be marked ready based on mode
+  const canMarkReady = () => {
+    if (!order) return false;
+    const isCod = order.mode === 'cod';
+    const validStatuses = isCod 
+      ? ['order_confirmed', 'packed'] 
+      : ['payment_completed', 'packed'];
+    return validStatuses.includes(order.orderstatus);
+  };
 
   const handleMarkReady = async () => {
     try {
@@ -1766,14 +1977,32 @@ const OrderFulfillmentScreen: React.FC<{ orderId: number }> = ({ orderId }) => {
     }
   };
 
+  const isCod = order?.mode === 'cod';
+
   return (
-    <View>
+    <View style={styles.container}>
       {loading && <ActivityIndicator />}
       
-      <Text>Order: {order?.orderid}</Text>
+      <Text style={styles.orderTitle}>Order: {order?.orderid}</Text>
       <Text>Status: {order?.orderstatus}</Text>
       
-      {order?.orderstatus === 'payment_completed' && (
+      {/* ✅ Payment Mode Badge */}
+      <View style={[styles.badge, isCod ? styles.codBadge : styles.prepaidBadge]}>
+        <Text style={styles.badgeText}>
+          {isCod ? '💵 COD' : '💳 Prepaid'}
+        </Text>
+      </View>
+      
+      {/* ✅ COD Payment Status */}
+      {isCod && (
+        <View style={styles.paymentStatus}>
+          <Text>Payment: {order?.ispaymentsucceed ? '✅ Collected' : '⏳ Pending'}</Text>
+          <Text>Amount: ₹{order?.orderamount}</Text>
+        </View>
+      )}
+      
+      {/* ✅ Mark Ready button - works for both COD and Prepaid */}
+      {canMarkReady() && (
         <Button title="Mark Ready for Dispatch" onPress={handleMarkReady} />
       )}
       
@@ -1783,6 +2012,16 @@ const OrderFulfillmentScreen: React.FC<{ orderId: number }> = ({ orderId }) => {
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: { padding: 16 },
+  orderTitle: { fontSize: 18, fontWeight: 'bold' },
+  badge: { padding: 8, borderRadius: 4, marginVertical: 8 },
+  codBadge: { backgroundColor: '#FFF3CD' },
+  prepaidBadge: { backgroundColor: '#D4EDDA' },
+  badgeText: { fontWeight: 'bold' },
+  paymentStatus: { marginVertical: 8 }
+});
 ```
 
 ---
@@ -1792,14 +2031,20 @@ const OrderFulfillmentScreen: React.FC<{ orderId: number }> = ({ orderId }) => {
 ### 8.1 Button States
 
 ```typescript
-// Disable buttons based on order status
+// Disable buttons based on order status and payment mode
 const getButtonStates = (order: Order) => {
+  const isCod = order.mode === 'cod';
+  
+  // ✅ COD orders start with order_confirmed, Prepaid with payment_completed
+  const initialStatus = isCod ? 'order_confirmed' : 'payment_completed';
+  const validMarkReadyStatuses = [initialStatus, 'packed'];
+  
   return {
     markReady: {
-      enabled: ['payment_completed', 'packed'].includes(order.orderstatus),
-      tooltip: order.orderstatus !== 'payment_completed' 
-        ? 'Order must be payment_completed or packed' 
-        : 'Mark order as ready for dispatch'
+      enabled: validMarkReadyStatuses.includes(order.orderstatus),
+      tooltip: validMarkReadyStatuses.includes(order.orderstatus)
+        ? 'Mark order as ready for dispatch'
+        : `Order must be '${initialStatus}' or 'packed'`
     },
     createShipment: {
       enabled: order.orderstatus === 'ready_for_dispatch' && !order.tracking_id,
@@ -1957,9 +2202,10 @@ useEffect(() => {
 |--------|----------|---------|----------------|
 | GET | `/v1/orders` | Get orders list | - |
 | GET | `/v1/orders/:id` | Get order details | - |
-| PATCH | `/v1/orders/:id/ready-for-dispatch` | Mark ready for dispatch | `payment_completed` or `packed` |
+| PATCH | `/v1/orders/:id/ready-for-dispatch` | Mark ready for dispatch | Prepaid: `payment_completed` or `packed`<br>COD: `order_confirmed` or `packed` |
 | PATCH | `/v1/orders/:id/mark-shipped` | Mark as shipped | `ready_for_dispatch` |
 | GET | `/v1/orders/:id/track` | Track order | - |
+| PATCH | `/v1/orders/:id/mark-cod-payment-received` | Mark COD payment received | `delivered` (COD orders only) |
 
 ### EKART Integration APIs
 
@@ -1989,14 +2235,32 @@ useEffect(() => {
 - [ ] Implement error handling for all API calls
 - [ ] Add loading states for async operations
 - [ ] Show confirmation dialogs for critical actions
+- [ ] ✅ **COD-specific:** Show payment mode badge (COD/Prepaid)
+- [ ] ✅ **COD-specific:** Handle `order_confirmed` as initial status for COD
+- [ ] ✅ **COD-specific:** Show payment status (Pending/Collected) for COD orders
+- [ ] ✅ **COD-specific:** Display COD amount
 
 ### For Customer App Developers:
 
 - [ ] Implement "Track Order" feature
-- [ ] Display order status timeline
+- [ ] Display order status timeline (different for COD vs Prepaid)
 - [ ] Show tracking information from EKART
 - [ ] Implement "Cancel Order" feature
 - [ ] Display cancellation status
+- [ ] ✅ **COD-specific:** Show payment mode indicator
+- [ ] ✅ **COD-specific:** Show "Payment Pending" until delivery
+- [ ] ✅ **COD-specific:** Show "Payment Collected" after `cod_payment_received`
+
+### COD vs Prepaid Quick Reference:
+
+| Aspect | Prepaid | COD |
+|--------|---------|-----|
+| Initial Status | `payment_completed` | `order_confirmed` |
+| `ispaymentsucceed` at creation | `true` | `false` |
+| `mode` field | `"phonepe"` | `"cod"` |
+| Can Mark Ready from | `payment_completed`, `packed` | `order_confirmed`, `packed` |
+| Final Status | `delivered` | `cod_payment_received` |
+| `ispaymentsucceed` final | `true` | `true` (after payment) |
 
 ---
 

@@ -34,11 +34,13 @@ const SAFE_COLUMNS_TTL = 5 * 60 * 1000; // 5 minutes for debugging
 // Predefined safe columns for common tables (to avoid schema queries)
 const PREDEFINED_SAFE_COLUMNS: Record<string, string[]> = {
   stock: ['id', 'puc', 'category', 'subcategory', 'brand', 'model', 'stockstatus', 'createddate', 'modifieddate', 'productname', 'serialnumber', 'location'],
-  product: ['id', 'productname', 'category', 'subcategory', 'brand', 'model', 'price', 'createddate', 'modifieddate', 'productstatus', 'puc'],
+  product: ['id', 'productname', 'category', 'subcategory', 'subsubcategory', 'brand', 'model', 'price', 'createddate', 'modifieddate', 'productstatus', 'puc'],
   picklist:['id', 'label', 'value', 'object', 'controlledvalue', 'fieldname', 'controlledlabel', 'controlledfieldname', 'parent'],
-  orders: ['id', 'userid', 'addressid', 'orderamount', 'orderid', 'orderstatus', 'quantity', 'transactionid', 'readytodispatchdate', 'dispatcheddate', 'productamount', 'discountamount', 'deliveryfrom', 'orderprocessingtime', 'ispaymentsucceed', 'merchanttransactionid', 'productid', 'mode', 'delivereddate', 'cancelleddate', 'returneddate', 'paymentfaileddate', 'createddate', 'modifieddate'],
-  orderline: ['id', 'orderid', 'productid', 'userid', 'addressid', 'productamount', 'discountamount', 'orderamount', 'quantity', 'merchanttransactionid', 'productname', 'productcategory', 'productcolour', 'readytodispatchdate', 'delivereddate', 'cancelleddate', 'returneddate', 'orderstatus', 'uniqueordderid', 'orderlinenumber', 'deliveryfrom', 'location', 'dispatcheddate', 'ordereddate', 'paymentfaileddate', 'createddate', 'modifieddate'],
-  platformstock: ['id', 'productid', 'platform', 'availableqty', 'orderedqty', 'soldqty', 'totalqty', 'lockqty', 'createddate', 'modifieddate']
+  orders: ['id', 'userid', 'addressid', 'orderamount', 'orderid', 'orderstatus', 'quantity', 'transactionid', 'readytodispatchdate', 'dispatcheddate', 'productamount', 'discountamount', 'deliveryfrom', 'orderprocessingtime', 'ispaymentsucceed', 'merchanttransactionid', 'productid', 'mode', 'delivereddate', 'cancelleddate', 'returneddate', 'paymentfaileddate', 'createddate', 'modifieddate', 'items_total', 'total_taxable_amount', 'total_cgst_amount', 'total_sgst_amount', 'total_igst_amount', 'total_gst_amount', 'shipping_cost'],
+  orderline: ['id', 'orderid', 'productid', 'userid', 'addressid', 'productamount', 'discountamount', 'orderamount', 'quantity', 'merchanttransactionid', 'productname', 'productcategory', 'productcolour', 'readytodispatchdate', 'delivereddate', 'cancelleddate', 'returneddate', 'orderstatus', 'uniqueordderid', 'orderlinenumber', 'deliveryfrom', 'location', 'dispatcheddate', 'ordereddate', 'paymentfaileddate', 'createddate', 'modifieddate', 'hsn_code', 'gst_rate', 'taxable_amount', 'cgst_amount', 'sgst_amount', 'igst_amount', 'total_gst_amount', 'shipping_cost'],
+  platformstock: ['id', 'productid', 'platform', 'availableqty', 'orderedqty', 'soldqty', 'totalqty', 'lockqty', 'createddate', 'modifieddate'],
+  gst_hsn_mapping: ['id', 'subcategory_id', 'subcategory_value', 'subsubcategory_id', 'subsubcategory_value', 'hsn_code', 'gst_rate', 'description', 'isactive', 'createddate', 'modifieddate'],
+  address: ['id', 'userid', 'name', 'mobilenumber', 'pincode', 'doornumber', 'address', 'landmark', 'state', 'city', 'createddate', 'modifieddate']
 };
 
 /**
@@ -534,6 +536,7 @@ async function buildDynamicWhereClause(
       /^.*partnumber$/i, // Part numbers
       /^.*modelnumber$/i, // Model numbers
       /^.*trackingnumber$/i, // Tracking numbers
+      /^.*tracking_id$/i, // Tracking IDs like "LUAP0000487968"
       /^.*accountnumber$/i, // Account numbers
       /^.*customernumber$/i, // Customer numbers
       /^.*suppliernumber$/i, // Supplier numbers
@@ -1384,7 +1387,7 @@ export async function dynamicBulkCreate(
           // Only include columns that are in our filtered columns list
           if (columns.includes(key)) {
             // Handle JSON fields properly for PostgreSQL
-            if ((key === 'paymentdata' || key === 'items' || key === 'content' || key === 'conditions' || key === 'action') && value !== null && value !== undefined) {
+            if ((key === 'paymentdata' || key === 'items' || key === 'content' || key === 'conditions' || key === 'action' || key === 'status_history' || key === 'barcodes') && value !== null && value !== undefined) {
               rawData[key] = typeof value === 'string' ? value : JSON.stringify(value);
             } else {
               rawData[key] = value;
@@ -1422,8 +1425,8 @@ export async function dynamicBulkCreate(
         const value = record[col];
         
         // Handle JSON fields with explicit casting
-        if ((col === 'paymentdata' || col === 'items' || col === 'conditions' || col === 'action') && value !== null && value !== undefined) {
-          recordValues.push(value);
+        if ((col === 'paymentdata' || col === 'items' || col === 'conditions' || col === 'action' || col === 'status_history' || col === 'barcodes') && value !== null && value !== undefined) {
+          recordValues.push(typeof value === 'string' ? value : JSON.stringify(value));
         } else {
           recordValues.push(value);
         }
@@ -1431,7 +1434,7 @@ export async function dynamicBulkCreate(
       
       const placeholders = recordValues.map((_, index) => {
         const col = columns[index];
-        if ((col === 'paymentdata' || col === 'items' || col === 'conditions' || col === 'action') && recordValues[index] !== null && recordValues[index] !== undefined) {
+        if ((col === 'paymentdata' || col === 'items' || col === 'conditions' || col === 'action' || col === 'status_history' || col === 'barcodes') && recordValues[index] !== null && recordValues[index] !== undefined) {
           return `$${allValues.length + index + 1}::jsonb`;
         }
         return `$${allValues.length + index + 1}`;
@@ -1516,7 +1519,7 @@ export async function dynamicCreate(
     for (const [key, value] of Object.entries(filteredData)) {
       if (availableColumns.includes(key)) {
         // Handle JSON fields properly for PostgreSQL
-        if ((key === 'paymentdata' || key === 'items' || key === 'content' || key === 'conditions' || key === 'action') && value !== null && value !== undefined) {
+        if ((key === 'paymentdata' || key === 'items' || key === 'content' || key === 'conditions' || key === 'action' || key === 'status_history' || key === 'barcodes') && value !== null && value !== undefined) {
           // For JSONB fields with explicit casting, stringify the JSON
           rawData[key] = typeof value === 'string' ? value : JSON.stringify(value);
         } else {
@@ -1545,7 +1548,7 @@ export async function dynamicCreate(
     
     // Build placeholders with special handling for JSON fields
     const placeholders = columns.map((col, index) => {
-      if (col === 'paymentdata' || col === 'items' || col === 'conditions' || col === 'action') {
+      if (col === 'paymentdata' || col === 'items' || col === 'conditions' || col === 'action' || col === 'status_history' || col === 'barcodes') {
         return `$${index + 1}::jsonb`;
       }
       return `$${index + 1}`;
@@ -1684,7 +1687,7 @@ export async function dynamicUpdate(
       for (const [key, value] of Object.entries(filteredData)) {
         if (availableColumns.includes(key)) {
           // Handle JSON fields properly for PostgreSQL
-          if ((key === 'paymentdata' || key === 'items' || key === 'conditions' || key === 'action') && value !== null && value !== undefined) {
+          if ((key === 'paymentdata' || key === 'items' || key === 'conditions' || key === 'action' || key === 'status_history' || key === 'barcodes') && value !== null && value !== undefined) {
             // For JSONB fields with explicit casting, stringify the JSON
             rawData[key] = typeof value === 'string' ? value : JSON.stringify(value);
             if (key === 'paymentdata') {
@@ -1730,7 +1733,7 @@ export async function dynamicUpdate(
       // Build dynamic UPDATE query
       const setClause = Object.keys(rawData)
         .map((key, index) => {
-          if (key === 'paymentdata' || key === 'items' || key === 'conditions' || key === 'action') {
+          if (key === 'paymentdata' || key === 'items' || key === 'conditions' || key === 'action' || key === 'status_history' || key === 'barcodes') {
             return `"${key}" = $${index + 2}::jsonb`; // Cast to JSONB for JSON fields
           }
           return `"${key}" = $${index + 2}`;
