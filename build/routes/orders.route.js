@@ -290,7 +290,7 @@ export async function ordersRoutes(fastify) {
                                         tax_amount: { type: 'number', nullable: true },
                                         tracking_id: { type: 'string', nullable: true },
                                         vendor: { type: 'string', nullable: true },
-                                        barcodes: { type: 'array', items: { type: 'string' }, nullable: true },
+                                        barcodes: { type: 'object', nullable: true },
                                         label_url: { type: 'string', nullable: true },
                                         public_tracking_link: { type: 'string', nullable: true },
                                         shipment_created_at: { type: 'number', nullable: true },

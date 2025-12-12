@@ -434,6 +434,7 @@ async function buildDynamicWhereClause(tableName, filters) {
             /^.*partnumber$/i, // Part numbers
             /^.*modelnumber$/i, // Model numbers
             /^.*trackingnumber$/i, // Tracking numbers
+            /^.*tracking_id$/i, // Tracking IDs like "LUAP0000487968"
             /^.*accountnumber$/i, // Account numbers
             /^.*customernumber$/i, // Customer numbers
             /^.*suppliernumber$/i, // Supplier numbers

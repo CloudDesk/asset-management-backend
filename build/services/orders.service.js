@@ -510,6 +510,7 @@ export class OrdersService {
     }
     /**
      * Find order by order number (orderid field)
+     * Uses dynamicFindUnique - works when Prisma schema is available
      */
     async findByOrderNumber(orderNumber) {
         try {
@@ -522,6 +523,30 @@ export class OrdersService {
         }
         catch (error) {
             logger.error({ error, orderNumber }, 'Error finding order by order number');
+            throw error;
+        }
+    }
+    /**
+     * Find order by orderid field using dynamicFindManyWithFilters
+     * Use this method when you need to search by orderid (string field) and dynamicFindUnique doesn't work
+     */
+    async findByOrderIdString(orderIdString) {
+        try {
+            logger.debug({ orderIdString }, 'Finding order by orderid string using filters');
+            const { data: orders } = await dynamicFindManyWithFilters('orders', { orderid: orderIdString }, { take: 1, useAllColumns: true });
+            if (!orders || orders.length === 0) {
+                logger.debug({ orderIdString }, 'Order not found by orderid string');
+                return null;
+            }
+            logger.debug({
+                orderIdString,
+                foundOrderId: orders[0].id,
+                foundOrderid: orders[0].orderid
+            }, 'Order found by orderid string');
+            return orders[0];
+        }
+        catch (error) {
+            logger.error({ error, orderIdString }, 'Error finding order by orderid string');
             throw error;
         }
     }

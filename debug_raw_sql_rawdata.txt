@@ -7272,3 +7272,25 @@ Final rawData: {
   "label_downloaded_at": 1765446892532,
   "modifieddate": 1765446892532
 }
+Final rawData: {
+  "orderstatus": "shipped",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1765360032213,\"previous_status\":\"order_placed\"},{\"source\":\"inventoryuser\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765370696216,\"previous_status\":\"payment_completed\",\"inventory_user_id\":2},{\"previous_status\":\"ready_for_dispatch\",\"new_status\":\"shipped\",\"changed_date\":1765457043204,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  "modifieddate": 1765457043205,
+  "shipdate": 1765457040201
+}
+Final rawData: {
+  "orderstatus": "shipped",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1765360032213,\"previous_status\":\"order_placed\"},{\"source\":\"inventoryuser\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765370700637,\"previous_status\":\"payment_completed\",\"inventory_user_id\":2},{\"previous_status\":\"ready_for_dispatch\",\"new_status\":\"shipped\",\"changed_date\":1765457044926,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  "modifieddate": 1765457044926,
+  "shipdate": 1765457040201
+}
+Final rawData: {
+  "orderstatus": "shipped",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1765360032212,\"previous_status\":\"order_placed\"},{\"source\":\"system\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765370703291,\"previous_status\":\"payment_completed\"},{\"previous_status\":\"ready_for_dispatch\",\"new_status\":\"shipped\",\"changed_date\":1765457045811,\"source\":\"system\",\"is_active\":true}]",
+  "modifieddate": 1765457045811
+}
+Final rawData: {
+  "shipdate": 1765457040201,
+  "label_printed_at": 1765457040201,
+  "modifieddate": 1765457046683
+}

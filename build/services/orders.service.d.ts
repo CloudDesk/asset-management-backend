@@ -19,8 +19,14 @@ export declare class OrdersService {
     findByTrackingId(trackingId: string): Promise<any>;
     /**
      * Find order by order number (orderid field)
+     * Uses dynamicFindUnique - works when Prisma schema is available
      */
     findByOrderNumber(orderNumber: string): Promise<any>;
+    /**
+     * Find order by orderid field using dynamicFindManyWithFilters
+     * Use this method when you need to search by orderid (string field) and dynamicFindUnique doesn't work
+     */
+    findByOrderIdString(orderIdString: string): Promise<any>;
     /**
      * Mark order as ready for dispatch
      */
