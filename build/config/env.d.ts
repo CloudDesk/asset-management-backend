@@ -4,9 +4,6 @@ declare const envSchema: z.ZodObject<{
     DATABASE_URL: z.ZodString;
     PORT: z.ZodDefault<z.ZodEffects<z.ZodString, number, string>>;
     NODE_ENV: z.ZodDefault<z.ZodEnum<["development", "production", "test"]>>;
-    FIREBASE_PROJECT_ID: z.ZodString;
-    FIREBASE_CLIENT_EMAIL: z.ZodString;
-    FIREBASE_PRIVATE_KEY: z.ZodString;
     APP_JWT_SECRET: z.ZodDefault<z.ZodString>;
     JWT_SECRET: z.ZodOptional<z.ZodString>;
     JWT_ACCESS_TOKEN_EXPIRY: z.ZodDefault<z.ZodOptional<z.ZodString>>;
@@ -87,9 +84,6 @@ declare const envSchema: z.ZodObject<{
     DATABASE_URL: string;
     PORT: number;
     NODE_ENV: "development" | "production" | "test";
-    FIREBASE_PROJECT_ID: string;
-    FIREBASE_CLIENT_EMAIL: string;
-    FIREBASE_PRIVATE_KEY: string;
     APP_JWT_SECRET: string;
     JWT_ACCESS_TOKEN_EXPIRY: string;
     JWT_REFRESH_TOKEN_EXPIRY: string;
@@ -168,9 +162,6 @@ declare const envSchema: z.ZodObject<{
     WAREHOUSE_PINCODE?: string | undefined;
 }, {
     DATABASE_URL: string;
-    FIREBASE_PROJECT_ID: string;
-    FIREBASE_CLIENT_EMAIL: string;
-    FIREBASE_PRIVATE_KEY: string;
     TWILIO_ACCOUNT_SID: string;
     TWILIO_AUTH_TOKEN: string;
     TWILIO_PHONE_NUMBER: string;
@@ -254,9 +245,6 @@ export declare const env: {
     DATABASE_URL: string;
     PORT: number;
     NODE_ENV: "development" | "production" | "test";
-    FIREBASE_PROJECT_ID: string;
-    FIREBASE_CLIENT_EMAIL: string;
-    FIREBASE_PRIVATE_KEY: string;
     APP_JWT_SECRET: string;
     JWT_ACCESS_TOKEN_EXPIRY: string;
     JWT_REFRESH_TOKEN_EXPIRY: string;
