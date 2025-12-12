@@ -123,7 +123,37 @@ export async function ordersRoutes(fastify: FastifyInstance) {
         type: 'object',
         required: ['inventory_user_id'],
         properties: {
-          inventory_user_id: { type: 'number', description: 'Inventory user ID who performed the action' }
+          inventory_user_id: { type: 'number', description: 'Inventory user ID who performed the action' },
+          stock_mapping: {
+            type: 'array',
+            description: 'Optional stock mapping for manual selection or batch filtering',
+            items: {
+              type: 'object',
+              properties: {
+                orderline_id: { type: 'number', description: 'Orderline ID' },
+                stock_ids: {
+                  type: 'array',
+                  items: { type: 'number' },
+                  description: 'Specific stock IDs (quantity = array length)'
+                },
+                skus: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  description: 'Specific stock SKUs (quantity = array length)'
+                },
+                batch_filter: {
+                  type: 'object',
+                  properties: {
+                    batchno: { type: 'string', description: 'Batch number filter' },
+                    supplierid: { type: 'number', description: 'Supplier ID filter' },
+                    poid: { type: 'number', description: 'Purchase Order ID filter' }
+                  },
+                  description: 'Auto-select from specific batch/supplier/PO (quantity from orderline)'
+                }
+              },
+              required: ['orderline_id']
+            }
+          }
         }
       },
       response: {

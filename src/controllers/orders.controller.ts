@@ -48,11 +48,26 @@ export class OrdersController {
    * PATCH /v1/orders/:id/ready-for-dispatch
    */
   markReadyForDispatch = asyncHandler(async (
-    request: FastifyRequest<{ Params: { id: string }, Body: { inventory_user_id: number } }>,
+    request: FastifyRequest<{ 
+      Params: { id: string }, 
+      Body: { 
+        inventory_user_id: number;
+        stock_mapping?: Array<{
+          orderline_id: number;
+          stock_ids?: number[];
+          skus?: string[];
+          batch_filter?: {
+            batchno?: string;
+            supplierid?: number;
+            poid?: number;
+          };
+        }>;
+      } 
+    }>,
     reply: FastifyReply
   ) => {
     const { id } = request.params;
-    const { inventory_user_id } = request.body;
+    const { inventory_user_id, stock_mapping } = request.body;
 
     if (!inventory_user_id) {
       return reply.code(400).send({
@@ -62,7 +77,11 @@ export class OrdersController {
       });
     }
 
-    const order = await this.ordersService.markReadyForDispatch(parseInt(id), inventory_user_id);
+    const order = await this.ordersService.markReadyForDispatch(
+      parseInt(id), 
+      inventory_user_id,
+      stock_mapping
+    );
     
     const response = createSuccessResponse(
       'Order marked as ready for dispatch',

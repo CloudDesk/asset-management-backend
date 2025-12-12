@@ -674,12 +674,130 @@ export class OrdersService {
   }
 
   /**
-   * Mark order as ready for dispatch
+   * Auto-select stocks using FIFO (First In First Out)
    */
-  async markReadyForDispatch(orderId: number, inventoryUserId: number): Promise<any> {
+  private async autoSelectStocks(
+    productId: number | bigint,  // Product.id (orderline.productid = Product.id)
+    quantity: number,  // From orderline.quantity
+    platform: string,
+    batchFilter?: {
+      batchno?: string;
+      supplierid?: number;
+      poid?: number;
+    }
+  ): Promise<any[]> {
     try {
-      logger.info({ orderId, inventoryUserId }, 'Marking order as ready for dispatch');
+      // Get Product by id to get puc
+      // Relationship: Product.id = orderline.productid, Stock.puc = Product.puc
+      const product = await dynamicFindUnique('product', { id: productId });
+      if (!product || !product.puc) {
+        throw new Error(`Product not found or missing PUC for productid: ${productId}`);
+      }
+      
+      const filters: any = {
+        puc: product.puc,  // Stock.puc = Product.puc (where Product.id = productId)
+        platform: platform,
+        stockstatus: 'available'
+      };
+      
+      // Apply batch filters if provided
+      if (batchFilter?.batchno) {
+        filters.batchno = batchFilter.batchno;
+      }
+      if (batchFilter?.supplierid) {
+        filters.supplierid = batchFilter.supplierid;
+      }
+      if (batchFilter?.poid) {
+        filters.poid = batchFilter.poid;
+      }
+      
+      // Get available stocks (FIFO by createddate)
+      const { data: stocks } = await dynamicFindManyWithFilters('stock', filters, {
+        orderBy: 'createddate',  // FIFO within filtered batch
+        orderDirection: 'ASC',
+        take: quantity,
+        useAllColumns: true
+      });
+      
+      if (!stocks || stocks.length < quantity) {
+        const batchInfo = batchFilter 
+          ? `. Batch: ${batchFilter.batchno || 'N/A'}, ` +
+            `Supplier: ${batchFilter.supplierid || 'N/A'}, ` +
+            `PO: ${batchFilter.poid || 'N/A'}. ` +
+            `Please select different batch or use manual stock_ids.`
+          : '';
+        throw new Error(
+          `Insufficient available stock: Need ${quantity}, Found ${stocks?.length || 0}${batchInfo}`
+        );
+      }
+      
+      return stocks.slice(0, quantity);
+    } catch (error) {
+      logger.error({ error, productId, quantity, platform, batchFilter }, 'Error in autoSelectStocks');
+      throw error;
+    }
+  }
 
+  /**
+   * Get stocks by IDs
+   */
+  private async getStocksByIds(stockIds: number[]): Promise<any[]> {
+    try {
+      const stocks: any[] = [];
+      for (const stockId of stockIds) {
+        const stock = await dynamicFindUnique('stock', { id: stockId });
+        if (!stock) {
+          throw new Error(`Stock with ID ${stockId} not found`);
+        }
+        stocks.push(stock);
+      }
+      return stocks;
+    } catch (error) {
+      logger.error({ error, stockIds }, 'Error in getStocksByIds');
+      throw error;
+    }
+  }
+
+  /**
+   * Get stocks by SKUs
+   */
+  private async getStocksBySKUs(skus: string[]): Promise<any[]> {
+    try {
+      const stocks: any[] = [];
+      for (const sku of skus) {
+        const { data: stockResults } = await dynamicFindManyWithFilters('stock', { sku }, {
+          take: 1,
+          useAllColumns: true
+        });
+        if (!stockResults || stockResults.length === 0) {
+          throw new Error(`Stock with SKU ${sku} not found`);
+        }
+        stocks.push(stockResults[0]);
+      }
+      return stocks;
+    } catch (error) {
+      logger.error({ error, skus }, 'Error in getStocksBySKUs');
+      throw error;
+    }
+  }
+
+  /**
+   * Allocate stock to orderlines based on stock mapping
+   */
+  private async allocateStockToOrderlines(
+    orderId: number,
+    stockMapping?: Array<{
+      orderline_id: number;
+      stock_ids?: number[];
+      skus?: string[];
+      batch_filter?: {
+        batchno?: string;
+        supplierid?: number;
+        poid?: number;
+      };
+    }>
+  ): Promise<Array<{ orderline_id: number; stocks: any[] }>> {
+    try {
       const { OrderlineService } = await import('./orderline.service.js');
       const orderlineService = new OrderlineService();
 
@@ -694,25 +812,286 @@ export class OrdersService {
         throw new Error('No orderlines found for this order');
       }
 
-      // Update all orderlines to ready_for_dispatch
+      const allocations: Array<{ orderline_id: number; stocks: any[] }> = [];
+
       for (const orderline of orderlines) {
-        await orderlineService.updateOrderlineStatus(
-          orderline.id.toString(),
-          'ready_for_dispatch',
-          {
-            source: 'inventoryuser',
-            inventory_user_id: inventoryUserId
+        const mapping = stockMapping?.find(m => m.orderline_id === orderline.id);
+        
+        let stocks: any[];
+        
+        if (mapping?.stock_ids) {
+          // Manual selection by stock IDs
+          stocks = await this.getStocksByIds(mapping.stock_ids);
+          // Validate quantity matches orderline
+          if (stocks.length !== (orderline.quantity || 0)) {
+            throw new Error(
+              `Stock count mismatch for orderline ${orderline.id}: ` +
+              `Expected ${orderline.quantity}, got ${stocks.length}`
+            );
           }
-        );
+        } else if (mapping?.skus) {
+          // Manual selection by SKUs
+          stocks = await this.getStocksBySKUs(mapping.skus);
+          // Validate quantity matches orderline
+          if (stocks.length !== (orderline.quantity || 0)) {
+            throw new Error(
+              `Stock count mismatch for orderline ${orderline.id}: ` +
+              `Expected ${orderline.quantity}, got ${stocks.length}`
+            );
+          }
+        } else if (mapping?.batch_filter) {
+          // Auto-select from specific batch/filter
+          stocks = await this.autoSelectStocks(
+            orderline.productid,
+            orderline.quantity || 1,
+            'nivapp', // Default platform, can be enhanced to use order's platform
+            mapping.batch_filter
+          );
+        } else {
+          // Auto-select available stocks (FIFO - no filter)
+          stocks = await this.autoSelectStocks(
+            orderline.productid,
+            orderline.quantity || 1,
+            'nivapp' // Default platform
+          );
+        }
+        
+        // Validate stock status and product match
+        for (const stock of stocks) {
+          if (stock.stockstatus !== 'available') {
+            throw new Error(`Stock ${stock.id} is not available (status: ${stock.stockstatus})`);
+          }
+          // Validate: Get Product by id = orderline.productid, then check Stock.puc = Product.puc
+          const orderlineProduct = await dynamicFindUnique('product', { id: orderline.productid });
+          if (!orderlineProduct || stock.puc !== orderlineProduct.puc) {
+            throw new Error(
+              `Stock ${stock.id} (puc: ${stock.puc}) does not match orderline product ` +
+              `(productid: ${orderline.productid}, Product.puc: ${orderlineProduct?.puc || 'N/A'})`
+            );
+          }
+        }
+        
+        allocations.push({
+          orderline_id: orderline.id,
+          stocks: stocks
+        });
       }
+      
+      return allocations;
+    } catch (error) {
+      logger.error({ error, orderId, stockMapping }, 'Error in allocateStockToOrderlines');
+      throw error;
+    }
+  }
 
-      // Recalculate order status (should become ready_for_dispatch)
-      await this.recalculateOrderStatus(orderId);
+  /**
+   * Update stock status and quantities for dispatch
+   */
+  private async updateStockForDispatch(
+    allocations: Array<{ orderline_id: number; stocks: any[] }>,
+    orderId: number,  // orders.id (Int type)
+    order: any         // Full order object to get order.orderid (String)
+  ): Promise<void> {
+    try {
+      const { OrderlineService } = await import('./orderline.service.js');
+      const orderlineService = new OrderlineService();
+      const currentTimestamp = Date.now();
+      
+      // Track quantity updates per product/platform to avoid duplicate updates
+      // Key: "productId-platform" -> quantity
+      const platformStockUpdates = new Map<string, { productId: number; platform: string; quantity: number }>();
+      // Key: puc -> quantity
+      const productUpdates = new Map<string, number>();
+      
+      for (const allocation of allocations) {
+        const orderline = await orderlineService.findById(allocation.orderline_id.toString());
+        const orderlineQuantity = orderline.quantity || allocation.stocks.length; // Use orderline quantity or stock count
+        
+        // Validate stock count matches orderline quantity
+        if (allocation.stocks.length !== orderlineQuantity) {
+          throw new Error(
+            `Stock count mismatch for orderline ${allocation.orderline_id}: ` +
+            `Expected ${orderlineQuantity}, got ${allocation.stocks.length}`
+          );
+        }
+        
+        // Get product info from first stock (all stocks should have same puc for same orderline)
+        const firstStock = allocation.stocks[0];
+        const product = await dynamicFindUnique('product', { puc: firstStock.puc });
+        if (!product || !product.id) {
+          throw new Error(`Product not found for puc: ${firstStock.puc}`);
+        }
+        const productId = Number(product.id);
+        
+        // Track PlatformStock update (aggregate by productId + platform)
+        const platformStockKey = `${productId}-${firstStock.platform}`;
+        if (!platformStockUpdates.has(platformStockKey)) {
+          platformStockUpdates.set(platformStockKey, {
+            productId,
+            platform: firstStock.platform,
+            quantity: 0
+          });
+        }
+        platformStockUpdates.get(platformStockKey)!.quantity += orderlineQuantity;
+        
+        // Track Product update (aggregate by puc)
+        if (!productUpdates.has(firstStock.puc)) {
+          productUpdates.set(firstStock.puc, 0);
+        }
+        productUpdates.set(firstStock.puc, productUpdates.get(firstStock.puc)! + orderlineQuantity);
+        
+        // Update each Stock record
+        for (const stock of allocation.stocks) {
+          // 1. Update Stock record
+          // Note: Stock.orderid is String (references orders.orderid, not orders.id)
+          // Note: Stock.orderlinenumber is String (references orderline.orderlinenumber)
+          await dynamicUpdate('stock', { id: stock.id }, {
+            stockstatus: 'sold',
+            orderid: order.orderid || orderId.toString(),  // Use orders.orderid (String) if available
+            orderlinenumber: orderline.orderlinenumber,    // String type
+            solddate: currentTimestamp,
+            modifieddate: currentTimestamp
+          });
+        }
+      }
+      
+      // 3. Update PlatformStock quantities (once per product/platform combination)
+      for (const [key, update] of platformStockUpdates.entries()) {
+        const { data: platformStocks } = await dynamicFindManyWithFilters('platformstock', {
+          productid: update.productId.toString(),
+          platform: update.platform
+        }, { take: 1, useAllColumns: true });
+        
+        if (platformStocks && platformStocks.length > 0) {
+          const platformStock = platformStocks[0];
+          
+          // Update PlatformStock: decrease orderedqty, increase soldqty
+          // Note: availableqty and platformstatus don't change (already done during order creation)
+          const newOrderedQty = Math.max(0, (platformStock.orderedqty || 0) - update.quantity);
+          const newSoldQty = (platformStock.soldqty || 0) + update.quantity;
+          
+          await dynamicUpdate('platformstock', { id: platformStock.id }, {
+            orderedqty: newOrderedQty,
+            soldqty: newSoldQty,
+            modifieddate: currentTimestamp
+          });
+          
+          logger.info({
+            platformStockId: platformStock.id,
+            productId: update.productId,
+            platform: update.platform,
+            quantity: update.quantity,
+            oldOrderedQty: platformStock.orderedqty,
+            newOrderedQty,
+            oldSoldQty: platformStock.soldqty,
+            newSoldQty
+          }, 'PlatformStock quantities updated');
+        }
+      }
+      
+      // 4. Update Product quantities (once per product)
+      for (const [puc, quantity] of productUpdates.entries()) {
+        const productForUpdate = await dynamicFindUnique('product', { puc });
+        if (productForUpdate) {
+          // Update Product: decrease orderedquantity, increase soldquantity
+          // Note: availablequantity doesn't change (already done during order creation)
+          const newOrderedQuantity = Math.max(0, (productForUpdate.orderedquantity || 0) - quantity);
+          const newSoldQuantity = (productForUpdate.soldquantity || 0) + quantity;
+          
+          await dynamicUpdate('product', { id: productForUpdate.id }, {
+            orderedquantity: newOrderedQuantity,
+            soldquantity: newSoldQuantity,
+            modifieddate: currentTimestamp
+          });
+          
+          logger.info({
+            productId: productForUpdate.id,
+            puc,
+            quantity,
+            oldOrderedQuantity: productForUpdate.orderedquantity,
+            newOrderedQuantity,
+            oldSoldQuantity: productForUpdate.soldquantity,
+            newSoldQuantity
+          }, 'Product quantities updated');
+        }
+      }
+    } catch (error) {
+      logger.error({ error, allocations, orderId }, 'Error in updateStockForDispatch');
+      throw error;
+    }
+  }
 
-      const order = await this.findById(orderId);
-      logger.info({ orderId, orderStatus: order.orderstatus }, 'Order marked as ready for dispatch');
+  /**
+   * Mark order as ready for dispatch
+   */
+  async markReadyForDispatch(
+    orderId: number, 
+    inventoryUserId: number,
+    stockMapping?: Array<{
+      orderline_id: number;
+      stock_ids?: number[];
+      skus?: string[];
+      batch_filter?: {
+        batchno?: string;
+        supplierid?: number;
+        poid?: number;
+      };
+    }>
+  ): Promise<any> {
+    try {
+      logger.info({ orderId, inventoryUserId, hasStockMapping: !!stockMapping }, 'Marking order as ready for dispatch');
 
-      return order;
+      // Use transaction for all updates
+      return await prisma.$transaction(async (tx) => {
+        // 1. Get full order object (needed for order.orderid String)
+        const order = await this.findById(orderId);
+        if (!order) {
+          throw new Error(`Order with ID ${orderId} not found`);
+        }
+
+        // 2. Allocate stock to orderlines
+        const allocations = await this.allocateStockToOrderlines(orderId, stockMapping);
+        
+        // 3. Update stock status and quantities
+        await this.updateStockForDispatch(allocations, orderId, order);
+
+        // 4. Update all orderlines to ready_for_dispatch
+        const { OrderlineService } = await import('./orderline.service.js');
+        const orderlineService = new OrderlineService();
+
+        const { data: orderlines } = await orderlineService.findMany(
+          { orderid: orderId.toString() },
+          1,
+          1000
+        );
+
+        if (!orderlines || orderlines.length === 0) {
+          throw new Error('No orderlines found for this order');
+        }
+
+        for (const orderline of orderlines) {
+          await orderlineService.updateOrderlineStatus(
+            orderline.id.toString(),
+            'ready_for_dispatch',
+            {
+              source: 'inventoryuser',
+              inventory_user_id: inventoryUserId
+            }
+          );
+        }
+
+        // 5. Recalculate order status (should become ready_for_dispatch)
+        await this.recalculateOrderStatus(orderId);
+
+        const updatedOrder = await this.findById(orderId);
+        logger.info({ 
+          orderId, 
+          orderStatus: updatedOrder.orderstatus,
+          allocatedStocks: allocations.reduce((sum, a) => sum + a.stocks.length, 0)
+        }, 'Order marked as ready for dispatch');
+
+        return updatedOrder;
+      });
     } catch (error) {
       logger.error({ error, orderId, inventoryUserId }, 'Error marking order as ready for dispatch');
       throw error;
