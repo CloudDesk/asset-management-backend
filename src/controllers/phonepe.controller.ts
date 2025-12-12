@@ -3990,12 +3990,15 @@ export class PhonePeController {
           }
 
           // Ensure no negative values - CRITICAL for data integrity
-          const newPlatformAvailableQty = Math.max(0, currentAvailableQty); // NO CHANGE but ensure non-negative
+          // availableqty: NO CHANGE (already reduced during locking)
+          const newPlatformAvailableQty = Math.max(0, currentAvailableQty);
+          // lockqty: DECREASE to 0 (unlock - convert to order)
           const newPlatformLockQty = Math.max(
             0,
             currentLockQty - quantityToConvert
           ); // Unlock, NEVER negative
-          const newPlatformOrderedQty = currentOrderedQty + quantityToConvert; // FIX #4: Use quantityToConvert, not requestedQuantity
+          // orderedqty: INCREASE (confirm order)
+          const newPlatformOrderedQty = currentOrderedQty + quantityToConvert;
 
           // Determine platform status based on available quantity
           let newPlatformStatus: string;
