@@ -167043,3 +167043,369 @@ Filtering data for orders (orders): {
   "label_printed_at": 1765457040201,
   "modifieddate": 1765457046683
 }
+Filtering data for product (product): {
+  "name": "New Incense sticks - Incense",
+  "shortdescription": "",
+  "fulldescription": "",
+  "price": 300,
+  "discount": 0,
+  "isdealoftheday": true,
+  "brand": "New Incense sticks",
+  "pack": "pack_of_2",
+  "material": "",
+  "manufacturer": "",
+  "netform": "",
+  "netquantity": "",
+  "usage": "",
+  "length": null,
+  "width": null,
+  "height": null,
+  "weight": null,
+  "purpose": "Home Fragrance",
+  "fragnancetype": "kasturi,kesar_chandan",
+  "category": "home_fragrance",
+  "subcategory": "incense",
+  "subsubcategory": "incense_sticks"
+}
+Filtering data for product (product): {
+  "name": "New  - Incense sticks - Kasturi, Kesar Chandan",
+  "shortdescription": "",
+  "fulldescription": "",
+  "price": 300,
+  "discount": 0,
+  "isdealoftheday": true,
+  "brand": "New ",
+  "pack": "pack_of_2",
+  "material": "",
+  "manufacturer": "",
+  "netform": "",
+  "netquantity": "",
+  "usage": "",
+  "length": null,
+  "width": null,
+  "height": null,
+  "weight": null,
+  "purpose": "Home Fragrance",
+  "fragnancetype": "kasturi,kesar_chandan",
+  "category": "home_fragrance",
+  "subcategory": "incense",
+  "subsubcategory": "incense_sticks"
+}
+Filtering data for product (product): {
+  "name": "New - Fragrance Sachets - Kesar Chandan",
+  "shortdescription": "",
+  "fulldescription": "",
+  "price": 100,
+  "discount": 0,
+  "isdealoftheday": false,
+  "brand": "New",
+  "pack": "single",
+  "material": "",
+  "manufacturer": "",
+  "netform": "",
+  "netquantity": "",
+  "usage": "",
+  "length": null,
+  "width": null,
+  "height": null,
+  "weight": null,
+  "purpose": "Home Fragrance",
+  "fragnancetype": "kesar_chandan",
+  "category": "home_fragrance",
+  "subcategory": "car_&_room_fresheners",
+  "subsubcategory": "fragrance_sachets"
+}
+Filtering data for product (product): {
+  "name": "New - Incense",
+  "category": "home_fragrance",
+  "subcategory": "incense",
+  "subsubcategory": "dhoop_sticks",
+  "brand": "New",
+  "pack": "single",
+  "price": 200,
+  "discount": 0,
+  "isdealoftheday": false,
+  "purpose": "Enhance living spaces"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 71,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 71,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 71,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtering data for product (product): {
+  "name": "New - Dhoop sticks",
+  "shortdescription": "",
+  "fulldescription": "",
+  "price": 200,
+  "discount": 0,
+  "isdealoftheday": false,
+  "brand": "New",
+  "pack": "single",
+  "material": "",
+  "manufacturer": "",
+  "netform": "",
+  "netquantity": "",
+  "usage": "",
+  "length": null,
+  "width": null,
+  "height": null,
+  "weight": null,
+  "purpose": "Home Fragrance",
+  "fragnancetype": "",
+  "category": "home_fragrance",
+  "subcategory": "incense",
+  "subsubcategory": "dhoop_sticks"
+}
+Filtering data for product (product): {
+  "name": "New - Havan Cups",
+  "category": "home_fragrance",
+  "subcategory": "incense",
+  "subsubcategory": "havan_cups",
+  "brand": "New",
+  "pack": "single",
+  "price": 150,
+  "discount": 0,
+  "isdealoftheday": false,
+  "purpose": "Enhance living spaces"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 72,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 72,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 72,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtering data for product (product): {
+  "name": "New - Room Fresheners",
+  "category": "home_fragrance",
+  "subcategory": "car_&_room_fresheners",
+  "subsubcategory": "room_fresheners",
+  "brand": "New",
+  "pack": "single",
+  "price": 200,
+  "discount": 0,
+  "isdealoftheday": false,
+  "purpose": "Enhance living spaces"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 73,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 73,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 73,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtering data for product (product): {
+  "name": "New - Car Fresheners",
+  "category": "home_fragrance",
+  "subcategory": "car_&_room_fresheners",
+  "subsubcategory": "car_fresheners",
+  "brand": "New",
+  "pack": "single",
+  "price": 250,
+  "discount": 0,
+  "isdealoftheday": false,
+  "purpose": "Enhance living spaces"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 74,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 74,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 74,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtering data for orderline (orderline): {
+  "orderstatus": "ready_for_dispatch",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1765358741686,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765781335890,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  "modifieddate": 1765781335890,
+  "source": "inventoryuser",
+  "inventory_user_id": 2
+}
+Filtering data for orders (orders): {
+  "orderstatus": "ready_for_dispatch",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1765358741684,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765781338864,\"source\":\"system\",\"is_active\":true}]",
+  "modifieddate": 1765781338864
+}
+Filtering data for product (product): {
+  "name": "New Combo - Incense sticks - Kasturi, Spiritual Harmony",
+  "category": "home_fragrance",
+  "subcategory": "incense",
+  "subsubcategory": "incense_sticks",
+  "fragnancetype": "kasturi,spiritual_harmony",
+  "brand": "New Combo",
+  "pack": "pack_of_2",
+  "price": 400,
+  "discount": 0,
+  "isdealoftheday": false,
+  "iscombo": false,
+  "combotype": "fixed",
+  "purpose": "Enhance living spaces"
+}
+Filtering data for product (product): {
+  "name": "New Combo - Incense sticks - Kasturi, Spiritual Harmony",
+  "category": "home_fragrance",
+  "subcategory": "incense",
+  "subsubcategory": "incense_sticks",
+  "fragnancetype": "kasturi,spiritual_harmony",
+  "brand": "New Combo",
+  "pack": "pack_of_2",
+  "price": 400,
+  "discount": 0,
+  "isdealoftheday": false,
+  "iscombo": false,
+  "combotype": "fixed",
+  "purpose": "Enhance living spaces"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 75,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 76,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 75,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 75,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 76,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 76,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}

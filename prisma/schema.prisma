@@ -53,16 +53,39 @@ model Product {
   usage                String?     @db.VarChar(255)
   longevity            String?     @db.VarChar(255)
   gender               String?     @db.VarChar(50)
-
+  iscombo    Boolean?  @default(false)
+  combotype  String?   @default("fixed") @db.VarChar(50)
   
 
   platformStocks       PlatformStock[]
   orderline             orderline[]
   stock                 Stock[]
   rating                rating[]
+  bundleproducts        ProductBundleMap[] @relation("BundleProducts")
+  componentproducts     ProductBundleMap[] @relation("ComponentProducts")
 
   @@map("product")
 }
+
+model ProductBundleMap {
+  id                  BigInt   @id @default(autoincrement()) @db.BigInt
+  bundleproductid     BigInt   @db.BigInt
+  componentproductid  BigInt   @db.BigInt
+  requiredqty         Int      @default(1)
+  isactive            Boolean  @default(true)
+  createddate         BigInt?
+  modifieddate        BigInt?
+
+  // Relations
+  bundleproduct       Product  @relation("BundleProducts", fields: [bundleproductid], references: [id], onDelete: Cascade)
+  componentproduct    Product  @relation("ComponentProducts", fields: [componentproductid], references: [id], onDelete: Restrict)
+
+  @@unique([bundleproductid, componentproductid], name: "unique_bundle_component")
+  @@index([bundleproductid])
+  @@index([componentproductid])
+  @@map("productbundlemap")
+}
+
 
 model PlatformStock {
   id            BigInt   @id @default(autoincrement())

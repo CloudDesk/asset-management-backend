@@ -1065,6 +1065,39 @@ export async function productRoutes(fastify: FastifyInstance) {
               maxLength: 50,
               description: "Target gender",
             },
+            // Combo Pack Support
+            iscombo: {
+              type: "boolean",
+              description: "Is this a combo product? (default: false)",
+            },
+            combotype: {
+              type: "string",
+              maxLength: 50,
+              description: "Combo type: 'fixed' or 'dynamic' (default: 'fixed')",
+            },
+            components: {
+              type: "array",
+              description: "Component products for combo pack (required if iscombo is true)",
+              items: {
+                type: "object",
+                properties: {
+                  productid: {
+                    oneOf: [
+                      { type: "string", pattern: "^\\d+$" },
+                      { type: "number" },
+                    ],
+                    description: "Component product ID",
+                  },
+                  requiredqty: {
+                    type: "integer",
+                    minimum: 1,
+                    description: "Quantity of this component needed per combo (minimum: 1)",
+                  },
+                },
+                required: ["productid", "requiredqty"],
+                additionalProperties: false,
+              },
+            },
           },
           required: ["name"], // Only name is required as per schema
           additionalProperties: false, // Strict validation - only allow specified fields
@@ -1285,6 +1318,17 @@ export async function productRoutes(fastify: FastifyInstance) {
                     nullable: true,
                     description: "Target gender",
                   },
+                  // Combo Pack Support
+                  iscombo: {
+                    type: "boolean",
+                    nullable: true,
+                    description: "Is this a combo product?",
+                  },
+                  combotype: {
+                    type: "string",
+                    nullable: true,
+                    description: "Combo type: 'fixed' or 'dynamic'",
+                  },
                 },
                 additionalProperties: true, // Allow additional dynamic fields
               },
@@ -1473,8 +1517,10 @@ export async function productRoutes(fastify: FastifyInstance) {
               maxLength: 50,
               description: "Target gender",
             },
+            // Note: iscombo, combotype, and components are NOT allowed in update
+            // These fields can only be set during product creation (POST /v1/products)
           },
-          additionalProperties: true, // Allow additional dynamic fields
+          additionalProperties: true, // Allow additional dynamic fields (but iscombo/combotype/components will be rejected by service)
         },
         response: {
           200: {

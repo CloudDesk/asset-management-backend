@@ -2080,3 +2080,27 @@ Fallback query:
         WHERE "id" = $1 
         RETURNING id, name, shortdescription, fulldescription, fragnancetype, soldquantity, availablequantity, quantity, ecompublishedquantity, productstatus, puc, averagerating, discount, price, orderedquantity, createddate, modifieddate, category, subcategory, large, medium, small, brand, pack, isdealoftheday, material, itemlength, manufacturer, netform, netquantity, numberofitems, itemthickness, purpose, burntime, power, usage, longevity, gender, length, width, height, weight, subsubcategory
       
+Fallback query: 
+        UPDATE "product" 
+        SET "name" = $2, "shortdescription" = $3, "fulldescription" = $4, "price" = $5, "discount" = $6, "isdealoftheday" = $7, "brand" = $8, "pack" = $9, "material" = $10, "manufacturer" = $11, "netform" = $12, "netquantity" = $13, "usage" = $14, "length" = $15, "width" = $16, "height" = $17, "weight" = $18, "purpose" = $19, "fragnancetype" = $20, "category" = $21, "subcategory" = $22, "subsubcategory" = $23, "modifieddate" = $24 
+        WHERE "id" = $1 
+        RETURNING id, name, shortdescription, fulldescription, fragnancetype, soldquantity, availablequantity, quantity, ecompublishedquantity, productstatus, puc, averagerating, discount, price, orderedquantity, createddate, modifieddate, category, subcategory, large, medium, small, brand, pack, isdealoftheday, material, itemlength, manufacturer, netform, netquantity, numberofitems, itemthickness, purpose, burntime, power, usage, longevity, gender, length, width, height, weight, subsubcategory
+      
+Fallback query: 
+        UPDATE "product" 
+        SET "name" = $2, "shortdescription" = $3, "fulldescription" = $4, "price" = $5, "discount" = $6, "isdealoftheday" = $7, "brand" = $8, "pack" = $9, "material" = $10, "manufacturer" = $11, "netform" = $12, "netquantity" = $13, "usage" = $14, "length" = $15, "width" = $16, "height" = $17, "weight" = $18, "purpose" = $19, "fragnancetype" = $20, "category" = $21, "subcategory" = $22, "subsubcategory" = $23, "modifieddate" = $24 
+        WHERE "id" = $1 
+        RETURNING id, name, shortdescription, fulldescription, fragnancetype, soldquantity, availablequantity, quantity, ecompublishedquantity, productstatus, puc, averagerating, discount, price, orderedquantity, createddate, modifieddate, category, subcategory, large, medium, small, brand, pack, isdealoftheday, material, itemlength, manufacturer, netform, netquantity, numberofitems, itemthickness, purpose, burntime, power, usage, longevity, gender, length, width, height, weight, subsubcategory
+      
+Fallback query: 
+        UPDATE "product" 
+        SET "name" = $2, "shortdescription" = $3, "fulldescription" = $4, "price" = $5, "discount" = $6, "isdealoftheday" = $7, "brand" = $8, "pack" = $9, "material" = $10, "manufacturer" = $11, "netform" = $12, "netquantity" = $13, "usage" = $14, "length" = $15, "width" = $16, "height" = $17, "weight" = $18, "purpose" = $19, "fragnancetype" = $20, "category" = $21, "subcategory" = $22, "subsubcategory" = $23, "modifieddate" = $24 
+        WHERE "id" = $1 
+        RETURNING id, name, shortdescription, fulldescription, fragnancetype, soldquantity, availablequantity, quantity, ecompublishedquantity, productstatus, puc, averagerating, discount, price, orderedquantity, createddate, modifieddate, category, subcategory, large, medium, small, brand, pack, isdealoftheday, material, itemlength, manufacturer, netform, netquantity, numberofitems, itemthickness, purpose, burntime, power, usage, longevity, gender, length, width, height, weight, subsubcategory
+      
+Fallback query: 
+        UPDATE "product" 
+        SET "name" = $2, "shortdescription" = $3, "fulldescription" = $4, "price" = $5, "discount" = $6, "isdealoftheday" = $7, "brand" = $8, "pack" = $9, "material" = $10, "manufacturer" = $11, "netform" = $12, "netquantity" = $13, "usage" = $14, "length" = $15, "width" = $16, "height" = $17, "weight" = $18, "purpose" = $19, "fragnancetype" = $20, "category" = $21, "subcategory" = $22, "subsubcategory" = $23, "modifieddate" = $24 
+        WHERE "id" = $1 
+        RETURNING id, name, shortdescription, fulldescription, fragnancetype, soldquantity, availablequantity, quantity, ecompublishedquantity, productstatus, puc, averagerating, discount, price, orderedquantity, createddate, modifieddate, category, subcategory, large, medium, small, brand, pack, isdealoftheday, material, itemlength, manufacturer, netform, netquantity, numberofitems, itemthickness, purpose, burntime, power, usage, longevity, gender, length, width, height, weight, subsubcategory
+      

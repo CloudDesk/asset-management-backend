@@ -7504,3 +7504,15 @@ Values: [
   1765457040201,
   1765457046
 ]
+Values: [
+  214,
+  "ready_for_dispatch",
+  "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1765358741686,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765781335890,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  1765781336
+]
+Values: [
+  159,
+  "ready_for_dispatch",
+  "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1765358741684,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765781338864,\"source\":\"system\",\"is_active\":true}]",
+  1765781338
+]

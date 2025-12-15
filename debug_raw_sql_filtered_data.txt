@@ -7404,3 +7404,13 @@ Filtered data: {
   "label_printed_at": 1765457040201,
   "modifieddate": 1765457046683
 }
+Filtered data: {
+  "orderstatus": "ready_for_dispatch",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1765358741686,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765781335890,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  "modifieddate": 1765781335890
+}
+Filtered data: {
+  "orderstatus": "ready_for_dispatch",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1765358741684,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765781338864,\"source\":\"system\",\"is_active\":true}]",
+  "modifieddate": 1765781338864
+}
