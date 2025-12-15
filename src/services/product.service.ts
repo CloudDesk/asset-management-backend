@@ -231,7 +231,7 @@ private buildPlatformWhereClause(platform: string, filters: Record<string, any>)
   async create(data: CreateProductInput & Record<string, any>) {
     try {
       logger.debug({ originalData: data }, 'Starting dynamic product create operation');
-
+console.log(data);
       // Extract combo-related fields (components is only for create, not a product table field)
       const { components, ...productData } = data;
       const isCombo = productData.iscombo === true;
@@ -245,6 +245,23 @@ private buildPlatformWhereClause(platform: string, filters: Record<string, any>)
       if (isCombo) {
         if (!components || !Array.isArray(components) || components.length === 0) {
           throw new Error('Combo products require at least one component. Please provide components array.');
+        }
+
+        // Check for duplicate combo product with same components
+        // Normalize components to handle string/number/bigint productid
+        const normalizedComponents = components.map(c => ({
+          productid: typeof c.productid === 'bigint' ? Number(c.productid) : 
+                     typeof c.productid === 'string' ? c.productid : c.productid,
+          requiredqty: c.requiredqty
+        }));
+        
+        const existingCombo = await this.findExistingComboByComponents(normalizedComponents);
+        if (existingCombo) {
+          throw new Error(
+            `A combo product with the same components already exists. ` +
+            `Existing combo product ID: ${existingCombo.id}, Name: "${existingCombo.name}". ` +
+            `Please use the existing combo product or modify the components.`
+          );
         }
 
         // Validate component product IDs exist
@@ -281,9 +298,12 @@ private buildPlatformWhereClause(platform: string, filters: Record<string, any>)
         throw new Error('Failed to create product - no valid fields provided');
       }
 
-      try {
-        await this.createDefaultPlatformStocks(product.id);
-      } catch (platformStockError: any) {
+      // Skip platform stock creation for combo products (they're virtual, no physical stock)
+      // Combo availability is calculated dynamically from components
+      if (!isCombo) {
+        try {
+          await this.createDefaultPlatformStocks(product.id);
+        } catch (platformStockError: any) {
         logger.error(
           {
             error: platformStockError?.message,
@@ -304,7 +324,8 @@ private buildPlatformWhereClause(platform: string, filters: Record<string, any>)
           );
         }
 
-        throw platformStockError;
+          throw platformStockError;
+        }
       }
 
       // Create combo bundle map entries if this is a combo product
@@ -318,15 +339,13 @@ private buildPlatformWhereClause(platform: string, filters: Record<string, any>)
               ? BigInt(component.productid) 
               : BigInt(component.productid);
             
-            await (prisma as any).productBundleMap.create({
-              data: {
-                bundleproductid: bundleProductId,
-                componentproductid: componentProductId,
-                requiredqty: component.requiredqty,
-                isactive: true,
-                createddate: currentTimestamp,
-                modifieddate: currentTimestamp,
-              }
+            await dynamicCreate('productbundlemap', {
+              bundleproductid: bundleProductId,
+              componentproductid: componentProductId,
+              requiredqty: component.requiredqty,
+              isactive: true,
+              createddate: currentTimestamp,
+              modifieddate: currentTimestamp,
             });
           }
 
@@ -1032,6 +1051,182 @@ private buildPlatformWhereClause(platform: string, filters: Record<string, any>)
         availableqty
       }, 'Error updating platform stock status');
       throw error;
+    }
+  }
+
+  /**
+   * Check if a combo product with the same components already exists
+   * @param components - Array of components to check
+   * @returns Existing combo product if found, null otherwise
+   */
+  async findExistingComboByComponents(components: Array<{ productid: string | number | bigint; requiredqty: number }>): Promise<any | null> {
+    try {
+      // Normalize and sort components for comparison
+      const normalizedComponents = components
+        .map(c => ({
+          componentproductid: typeof c.productid === 'string' ? BigInt(c.productid) : BigInt(c.productid),
+          requiredqty: c.requiredqty
+        }))
+        .sort((a, b) => {
+          // Sort by componentproductid first, then by requiredqty
+          if (a.componentproductid < b.componentproductid) return -1;
+          if (a.componentproductid > b.componentproductid) return 1;
+          return a.requiredqty - b.requiredqty;
+        });
+
+      if (normalizedComponents.length === 0) {
+        return null;
+      }
+
+      // Get all combo products using raw query since iscombo might not be in Prisma schema
+      const comboProducts = await prisma.$queryRaw<Array<{
+        id: bigint;
+        name: string;
+      }>>`
+        SELECT id, name
+        FROM product
+        WHERE iscombo = true
+      `;
+
+      if (comboProducts.length === 0) {
+        return null;
+      }
+
+      // Check each combo product for matching components
+      for (const comboProduct of comboProducts) {
+        // Get bundle map entries for this combo
+        const bundleMaps = await prisma.$queryRaw<Array<{
+          componentproductid: bigint;
+          requiredqty: number;
+        }>>`
+          SELECT componentproductid, requiredqty
+          FROM productbundlemap
+          WHERE bundleproductid = ${BigInt(comboProduct.id)}
+            AND isactive = true
+          ORDER BY componentproductid, requiredqty
+        `;
+
+        if (bundleMaps.length !== normalizedComponents.length) {
+          continue; // Different number of components
+        }
+
+        // Compare components
+        const existingComponents = bundleMaps
+          .map(bm => ({
+            componentproductid: bm.componentproductid,
+            requiredqty: bm.requiredqty
+          }))
+          .sort((a, b) => {
+            if (a.componentproductid < b.componentproductid) return -1;
+            if (a.componentproductid > b.componentproductid) return 1;
+            return a.requiredqty - b.requiredqty;
+          });
+
+        // Check if all components match
+        const isMatch = normalizedComponents.every((nc, index) => {
+          const ec = existingComponents[index];
+          return ec &&
+            ec.componentproductid === nc.componentproductid &&
+            ec.requiredqty === nc.requiredqty;
+        });
+
+        if (isMatch) {
+          return {
+            id: Number(comboProduct.id),
+            name: comboProduct.name,
+            components: existingComponents.map(ec => ({
+              productid: Number(ec.componentproductid),
+              requiredqty: ec.requiredqty
+            }))
+          };
+        }
+      }
+
+      return null;
+    } catch (error: any) {
+      logger.error(
+        { error: error.message, components },
+        'Error checking for existing combo product'
+      );
+      // Don't throw - allow creation to proceed if check fails
+      return null;
+    }
+  }
+
+  /**
+   * Validate combo components before creation (public method for validation endpoint)
+   * @param components - Array of components to validate
+   * @returns Validation result with existing combo info if found
+   */
+  async validateComboComponents(components: Array<{ productid: string | number; requiredqty: number }>): Promise<{
+    isValid: boolean;
+    existingCombo?: {
+      id: number;
+      name: string;
+      components: Array<{ productid: number; requiredqty: number }>;
+    };
+    message: string;
+  }> {
+    try {
+      if (!components || !Array.isArray(components) || components.length === 0) {
+        return {
+          isValid: false,
+          message: 'Components array is required and must not be empty'
+        };
+      }
+
+      // Validate component product IDs exist
+      for (const component of components) {
+        const componentId = typeof component.productid === 'string' 
+          ? BigInt(component.productid) 
+          : BigInt(component.productid);
+        
+        const componentProduct = await prisma.product.findUnique({
+          where: { id: componentId }
+        });
+
+        if (!componentProduct) {
+          return {
+            isValid: false,
+            message: `Component product with ID ${component.productid} does not exist`
+          };
+        }
+
+        if ((componentProduct as any).iscombo === true) {
+          return {
+            isValid: false,
+            message: `Component product ${component.productid} cannot be a combo product. Only single products can be components.`
+          };
+        }
+      }
+
+      // Check for duplicate
+      const existingCombo = await this.findExistingComboByComponents(components);
+      if (existingCombo) {
+        return {
+          isValid: false,
+          existingCombo: {
+            id: existingCombo.id,
+            name: existingCombo.name,
+            components: existingCombo.components
+          },
+          message: `A combo product with the same components already exists (ID: ${existingCombo.id}, Name: "${existingCombo.name}")`
+        };
+      }
+
+      return {
+        isValid: true,
+        message: 'Components are valid and no duplicate combo product found'
+      };
+    } catch (error: any) {
+      logger.error(
+        { error: error.message, components },
+        'Error validating combo components'
+      );
+      return {
+        isValid: false,
+        message: `Validation error: ${error.message}`
+      };
     }
   }
 

@@ -100,6 +100,37 @@ export class ProductController {
     }
   );
 
+  validateComboComponents = asyncHandler(
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const body = request.body as { components?: Array<{ productid: string | number; requiredqty: number }> };
+      
+      if (!body.components || !Array.isArray(body.components)) {
+        return reply.code(400).send({
+          success: false,
+          message: "Components array is required",
+          details: "Please provide a components array with productid and requiredqty"
+        });
+      }
+
+      const validationResult = await this.productService.validateComboComponents(body.components);
+
+      if (validationResult.isValid) {
+        return reply.code(200).send({
+          success: true,
+          isValid: true,
+          message: validationResult.message
+        });
+      } else {
+        return reply.code(409).send({
+          success: false,
+          isValid: false,
+          message: validationResult.message,
+          existingCombo: validationResult.existingCombo
+        });
+      }
+    }
+  );
+
   deleteProduct = asyncHandler(
     async (
       request: FastifyRequest<{ Params: ProductParams }>,

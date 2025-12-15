@@ -1082,7 +1082,7 @@ export async function productRoutes(fastify: FastifyInstance) {
                 type: "object",
                 properties: {
                   productid: {
-                    oneOf: [
+                    anyOf: [
                       { type: "string", pattern: "^\\d+$" },
                       { type: "number" },
                     ],
@@ -1357,6 +1357,91 @@ export async function productRoutes(fastify: FastifyInstance) {
       },
     },
     productController.createProduct.bind(productController)
+  );
+
+  // POST /v1/products/validate-combo - Validate combo components before creation
+  fastify.post(
+    "/validate-combo",
+    {
+      schema: {
+        description: "Validate combo product components before creation",
+        tags: ["Products"],
+        body: {
+          type: "object",
+          required: ["components"],
+          properties: {
+            components: {
+              type: "array",
+              description: "Component products for combo pack",
+              items: {
+                type: "object",
+                properties: {
+                  productid: {
+                    anyOf: [
+                      { type: "string", pattern: "^\\d+$" },
+                      { type: "number" },
+                    ],
+                    description: "Component product ID",
+                  },
+                  requiredqty: {
+                    type: "integer",
+                    minimum: 1,
+                    description: "Quantity of this component needed per combo (minimum: 1)",
+                  },
+                },
+                required: ["productid", "requiredqty"],
+                additionalProperties: false,
+              },
+            },
+          },
+          additionalProperties: false,
+        },
+        response: {
+          200: {
+            type: "object",
+            properties: {
+              success: { type: "boolean" },
+              isValid: { type: "boolean" },
+              message: { type: "string" },
+            },
+          },
+          400: {
+            type: "object",
+            properties: {
+              success: { type: "boolean" },
+              message: { type: "string" },
+              details: { type: "string" },
+            },
+          },
+          409: {
+            type: "object",
+            properties: {
+              success: { type: "boolean" },
+              isValid: { type: "boolean" },
+              message: { type: "string" },
+              existingCombo: {
+                type: "object",
+                properties: {
+                  id: { type: "number" },
+                  name: { type: "string" },
+                  components: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        productid: { type: "number" },
+                        requiredqty: { type: "number" },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    productController.validateComboComponents.bind(productController)
   );
 
   // PUT /v1/products/:id - Update product

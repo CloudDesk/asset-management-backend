@@ -166550,3 +166550,288 @@ Filtered data result: {
   "platformstatus": "out_of_stock",
   "platform": "nivapp"
 }
+Filtered data result: {
+  "sessiontoken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiaGFyaXNoQG1haWwuY29tIiwicm9sZUlkIjozLCJpYXQiOjE3NjU4MTI5NTcsImV4cCI6MTc2NjQxNzc1NywiYXVkIjoiYXNzZXQtbWFuYWdlbWVudC1mcm9udGVuZCIsImlzcyI6ImFzc2V0LW1hbmFnZW1lbnQtYmFja2VuZCJ9.WIp2w_zaXui0iEoC0fX-sKZ421B64Uewna2caCBgFpY",
+  "modifieddate": 1765812957909
+}
+Filtered data result: {
+  "name": "New Combo - Incense sticks - Kasturi, Spiritual Harmony",
+  "category": "home_fragrance",
+  "subcategory": "incense",
+  "subsubcategory": "incense_sticks",
+  "fragnancetype": "kasturi,spiritual_harmony",
+  "brand": "New Combo",
+  "pack": "pack_of_2",
+  "price": 400,
+  "discount": 0,
+  "isdealoftheday": false,
+  "iscombo": false,
+  "combotype": "fixed",
+  "purpose": "Enhance living spaces"
+}
+Filtered data result: {
+  "productid": 77,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtered data result: {
+  "productid": 77,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtered data result: {
+  "productid": 77,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtered data result: {
+  "name": "New Combo - Incense sticks - Kasturi, Spiritual Harmony",
+  "category": "home_fragrance",
+  "subcategory": "incense",
+  "subsubcategory": "incense_sticks",
+  "fragnancetype": "kasturi,spiritual_harmony",
+  "brand": "New Combo",
+  "pack": "pack_of_2",
+  "price": 500,
+  "discount": 0,
+  "isdealoftheday": false,
+  "iscombo": false,
+  "combotype": "fixed",
+  "purpose": "Enhance living spaces"
+}
+Filtered data result: {
+  "productid": 78,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtered data result: {
+  "productid": 78,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtered data result: {
+  "productid": 78,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtered data result: {
+  "name": "New Combo - Incense sticks - Kasturi, Spiritual Harmony",
+  "category": "home_fragrance",
+  "subcategory": "incense",
+  "subsubcategory": "incense_sticks",
+  "fragnancetype": "kasturi,spiritual_harmony",
+  "brand": "New Combo",
+  "pack": "pack_of_2",
+  "price": 500,
+  "discount": 0,
+  "isdealoftheday": false,
+  "iscombo": true,
+  "combotype": "fixed",
+  "purpose": "Enhance living spaces",
+  "quantity": 0,
+  "availablequantity": 0,
+  "ecompublishedquantity": 0
+}
+Filtered data result: {
+  "productid": 79,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtered data result: {
+  "productid": 79,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtered data result: {
+  "productid": 79,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtered data result: {
+  "name": "New Combo - Incense sticks - Kasturi, Spiritual Harmony",
+  "category": "home_fragrance",
+  "subcategory": "incense",
+  "subsubcategory": "incense_sticks",
+  "fragnancetype": "kasturi,spiritual_harmony",
+  "brand": "New Combo",
+  "pack": "pack_of_2",
+  "price": 500,
+  "discount": 0,
+  "isdealoftheday": false,
+  "iscombo": true,
+  "combotype": "fixed",
+  "purpose": "Enhance living spaces",
+  "quantity": 0,
+  "availablequantity": 0,
+  "ecompublishedquantity": 0
+}
+Filtered data result: {
+  "productid": 80,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtered data result: {
+  "productid": 80,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtered data result: {
+  "productid": 80,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtered data result: {
+  "bundleproductid": 80,
+  "componentproductid": 40,
+  "requiredqty": 1,
+  "isactive": true,
+  "createddate": 1765816122526,
+  "modifieddate": 1765816122526
+}
+Filtered data result: {
+  "bundleproductid": 80,
+  "componentproductid": 47,
+  "requiredqty": 1,
+  "isactive": true,
+  "createddate": 1765816122526,
+  "modifieddate": 1765816122526
+}
+Filtered data result: {
+  "name": "test - Incense sticks - Kasturi, Spiritual Harmony",
+  "category": "home_fragrance",
+  "subcategory": "incense",
+  "subsubcategory": "incense_sticks",
+  "fragnancetype": "kasturi,spiritual_harmony",
+  "brand": "test",
+  "pack": "pack_of_2",
+  "price": 100,
+  "discount": 0,
+  "isdealoftheday": false,
+  "iscombo": true,
+  "combotype": "fixed",
+  "purpose": "Enhance living spaces",
+  "quantity": 0,
+  "availablequantity": 0,
+  "ecompublishedquantity": 0
+}
+Filtered data result: {
+  "bundleproductid": 81,
+  "componentproductid": 40,
+  "requiredqty": 1,
+  "isactive": true,
+  "createddate": 1765819402578,
+  "modifieddate": 1765819402578
+}
+Filtered data result: {
+  "bundleproductid": 81,
+  "componentproductid": 47,
+  "requiredqty": 1,
+  "isactive": true,
+  "createddate": 1765819402578,
+  "modifieddate": 1765819402578
+}
+Filtered data result: {
+  "name": "OTHER - Incense sticks - Kasturi",
+  "category": "home_fragrance",
+  "subcategory": "incense",
+  "subsubcategory": "incense_sticks",
+  "fragnancetype": "kasturi",
+  "brand": "OTHER",
+  "pack": "single",
+  "price": 200,
+  "discount": 0,
+  "isdealoftheday": false,
+  "iscombo": false,
+  "combotype": "fixed",
+  "purpose": "Enhance living spaces"
+}
+Filtered data result: {
+  "productid": 82,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtered data result: {
+  "productid": 82,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtered data result: {
+  "productid": 82,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
