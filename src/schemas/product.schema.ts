@@ -12,6 +12,7 @@ export const createProductSchema = z.object({
   fulldescription: z.string().optional(),
   category: z.string().max(255).optional(),
   subcategory: z.string().max(255).optional(),
+  subsubcategory: z.string().max(255).optional(),
   fragnancetype: z.string().max(255).optional(),
   
   // Brand and packaging
@@ -64,6 +65,14 @@ export const createProductSchema = z.object({
   status: z.string().optional(),
   description: z.string().optional(),
   
+  // Combo Pack Support
+  iscombo: z.boolean().optional().default(false),
+  combotype: z.string().max(50).optional().default("fixed"),
+  components: z.array(z.object({
+    productid: z.union([z.string().regex(/^\d+$/), z.number(), z.bigint()]),
+    requiredqty: z.number().int().min(1, 'Required quantity must be at least 1')
+  })).optional(),
+  
 }).passthrough(); // Allow any additional fields
 
 export const updateProductSchema = z.object({
@@ -76,6 +85,7 @@ export const updateProductSchema = z.object({
   fulldescription: z.string().optional(),
   category: z.string().max(255).optional(),
   subcategory: z.string().max(255).optional(),
+  subsubcategory: z.string().max(255).optional(),
   fragnancetype: z.string().max(255).optional(),
   
   // Brand and packaging
@@ -140,6 +150,7 @@ export const upsertProductSchema = z.object({
   fulldescription: z.string().optional(),
   category: z.string().max(255).optional(),
   subcategory: z.string().max(255).optional(),
+  subsubcategory: z.string().max(255).optional(),
   fragnancetype: z.string().max(255).optional(),
   
   // Brand and packaging
@@ -205,6 +216,7 @@ export const productQuerySchema = z.object({
   name: z.string().optional(),
   category: z.string().optional(),
   subcategory: z.string().optional(),
+  subsubcategory: z.string().optional(),
   fragnancetype: z.string().optional(),
   brand: z.string().optional(),
   pack: z.string().optional(), // Picklist value - validated at runtime against picklist table

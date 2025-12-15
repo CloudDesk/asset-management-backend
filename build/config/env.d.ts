@@ -4,9 +4,6 @@ declare const envSchema: z.ZodObject<{
     DATABASE_URL: z.ZodString;
     PORT: z.ZodDefault<z.ZodEffects<z.ZodString, number, string>>;
     NODE_ENV: z.ZodDefault<z.ZodEnum<["development", "production", "test"]>>;
-    FIREBASE_PROJECT_ID: z.ZodString;
-    FIREBASE_CLIENT_EMAIL: z.ZodString;
-    FIREBASE_PRIVATE_KEY: z.ZodString;
     APP_JWT_SECRET: z.ZodDefault<z.ZodString>;
     JWT_SECRET: z.ZodOptional<z.ZodString>;
     JWT_ACCESS_TOKEN_EXPIRY: z.ZodDefault<z.ZodOptional<z.ZodString>>;
@@ -34,6 +31,9 @@ declare const envSchema: z.ZodObject<{
     GCP_PROJECT_LOCATION: z.ZodOptional<z.ZodString>;
     GCP_PROJECT_QUEUE: z.ZodOptional<z.ZodString>;
     GCP_TASK_URL: z.ZodOptional<z.ZodString>;
+    GCP_STORAGE_BUCKET: z.ZodOptional<z.ZodString>;
+    SHIPPING_BUCKET: z.ZodOptional<z.ZodString>;
+    STORAGE_BACKEND_URL: z.ZodDefault<z.ZodOptional<z.ZodString>>;
     GMAIL_SERVICE: z.ZodDefault<z.ZodOptional<z.ZodString>>;
     GMAIL_HOST: z.ZodDefault<z.ZodOptional<z.ZodString>>;
     GMAIL_PORT: z.ZodDefault<z.ZodOptional<z.ZodString>>;
@@ -74,13 +74,16 @@ declare const envSchema: z.ZodObject<{
     AMAZON_REDIRECT_URI: z.ZodOptional<z.ZodString>;
     AWS_ACCESS_KEY_ID: z.ZodOptional<z.ZodString>;
     AWS_SECRET_ACCESS_KEY: z.ZodOptional<z.ZodString>;
+    EKART_CLIENT_ID: z.ZodOptional<z.ZodString>;
+    EKART_USERNAME: z.ZodOptional<z.ZodString>;
+    EKART_PASSWORD: z.ZodOptional<z.ZodString>;
+    EKART_BASE_URL: z.ZodDefault<z.ZodOptional<z.ZodString>>;
+    SELLER_GST_TIN: z.ZodOptional<z.ZodString>;
+    WAREHOUSE_PINCODE: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     DATABASE_URL: string;
     PORT: number;
     NODE_ENV: "development" | "production" | "test";
-    FIREBASE_PROJECT_ID: string;
-    FIREBASE_CLIENT_EMAIL: string;
-    FIREBASE_PRIVATE_KEY: string;
     APP_JWT_SECRET: string;
     JWT_ACCESS_TOKEN_EXPIRY: string;
     JWT_REFRESH_TOKEN_EXPIRY: string;
@@ -96,6 +99,7 @@ declare const envSchema: z.ZodObject<{
     REDIS_USERNAME: string;
     REDIS_EMAIL_OTPEXPSEC: string;
     REDIS_SESSIONEXSEC: string;
+    STORAGE_BACKEND_URL: string;
     GMAIL_SERVICE: string;
     GMAIL_HOST: string;
     GMAIL_PORT: string;
@@ -112,6 +116,7 @@ declare const envSchema: z.ZodObject<{
     AMAZON_MARKETPLACE_ID: string;
     AMAZON_REGION: string;
     AMAZON_SELLER_CENTRAL_URL: string;
+    EKART_BASE_URL: string;
     JWT_SECRET?: string | undefined;
     TWILIO_MESSAGING_SERVICE_SID?: string | undefined;
     EXOTEL_DLT_TEMPLATE_ID?: string | undefined;
@@ -124,6 +129,8 @@ declare const envSchema: z.ZodObject<{
     GCP_PROJECT_LOCATION?: string | undefined;
     GCP_PROJECT_QUEUE?: string | undefined;
     GCP_TASK_URL?: string | undefined;
+    GCP_STORAGE_BUCKET?: string | undefined;
+    SHIPPING_BUCKET?: string | undefined;
     GMAIL_AUTH_USER?: string | undefined;
     GMAIL_AUTH_PASSWORD?: string | undefined;
     POSTGRES_HOST?: string | undefined;
@@ -148,11 +155,13 @@ declare const envSchema: z.ZodObject<{
     AMAZON_REDIRECT_URI?: string | undefined;
     AWS_ACCESS_KEY_ID?: string | undefined;
     AWS_SECRET_ACCESS_KEY?: string | undefined;
+    EKART_CLIENT_ID?: string | undefined;
+    EKART_USERNAME?: string | undefined;
+    EKART_PASSWORD?: string | undefined;
+    SELLER_GST_TIN?: string | undefined;
+    WAREHOUSE_PINCODE?: string | undefined;
 }, {
     DATABASE_URL: string;
-    FIREBASE_PROJECT_ID: string;
-    FIREBASE_CLIENT_EMAIL: string;
-    FIREBASE_PRIVATE_KEY: string;
     TWILIO_ACCOUNT_SID: string;
     TWILIO_AUTH_TOKEN: string;
     TWILIO_PHONE_NUMBER: string;
@@ -182,6 +191,9 @@ declare const envSchema: z.ZodObject<{
     GCP_PROJECT_LOCATION?: string | undefined;
     GCP_PROJECT_QUEUE?: string | undefined;
     GCP_TASK_URL?: string | undefined;
+    GCP_STORAGE_BUCKET?: string | undefined;
+    SHIPPING_BUCKET?: string | undefined;
+    STORAGE_BACKEND_URL?: string | undefined;
     GMAIL_SERVICE?: string | undefined;
     GMAIL_HOST?: string | undefined;
     GMAIL_PORT?: string | undefined;
@@ -222,14 +234,17 @@ declare const envSchema: z.ZodObject<{
     AMAZON_REDIRECT_URI?: string | undefined;
     AWS_ACCESS_KEY_ID?: string | undefined;
     AWS_SECRET_ACCESS_KEY?: string | undefined;
+    EKART_CLIENT_ID?: string | undefined;
+    EKART_USERNAME?: string | undefined;
+    EKART_PASSWORD?: string | undefined;
+    EKART_BASE_URL?: string | undefined;
+    SELLER_GST_TIN?: string | undefined;
+    WAREHOUSE_PINCODE?: string | undefined;
 }>;
 export declare const env: {
     DATABASE_URL: string;
     PORT: number;
     NODE_ENV: "development" | "production" | "test";
-    FIREBASE_PROJECT_ID: string;
-    FIREBASE_CLIENT_EMAIL: string;
-    FIREBASE_PRIVATE_KEY: string;
     APP_JWT_SECRET: string;
     JWT_ACCESS_TOKEN_EXPIRY: string;
     JWT_REFRESH_TOKEN_EXPIRY: string;
@@ -245,6 +260,7 @@ export declare const env: {
     REDIS_USERNAME: string;
     REDIS_EMAIL_OTPEXPSEC: string;
     REDIS_SESSIONEXSEC: string;
+    STORAGE_BACKEND_URL: string;
     GMAIL_SERVICE: string;
     GMAIL_HOST: string;
     GMAIL_PORT: string;
@@ -261,6 +277,7 @@ export declare const env: {
     AMAZON_MARKETPLACE_ID: string;
     AMAZON_REGION: string;
     AMAZON_SELLER_CENTRAL_URL: string;
+    EKART_BASE_URL: string;
     JWT_SECRET?: string | undefined;
     TWILIO_MESSAGING_SERVICE_SID?: string | undefined;
     EXOTEL_DLT_TEMPLATE_ID?: string | undefined;
@@ -273,6 +290,8 @@ export declare const env: {
     GCP_PROJECT_LOCATION?: string | undefined;
     GCP_PROJECT_QUEUE?: string | undefined;
     GCP_TASK_URL?: string | undefined;
+    GCP_STORAGE_BUCKET?: string | undefined;
+    SHIPPING_BUCKET?: string | undefined;
     GMAIL_AUTH_USER?: string | undefined;
     GMAIL_AUTH_PASSWORD?: string | undefined;
     POSTGRES_HOST?: string | undefined;
@@ -297,6 +316,11 @@ export declare const env: {
     AMAZON_REDIRECT_URI?: string | undefined;
     AWS_ACCESS_KEY_ID?: string | undefined;
     AWS_SECRET_ACCESS_KEY?: string | undefined;
+    EKART_CLIENT_ID?: string | undefined;
+    EKART_USERNAME?: string | undefined;
+    EKART_PASSWORD?: string | undefined;
+    SELLER_GST_TIN?: string | undefined;
+    WAREHOUSE_PINCODE?: string | undefined;
 };
 export type Env = z.infer<typeof envSchema>;
 export {};

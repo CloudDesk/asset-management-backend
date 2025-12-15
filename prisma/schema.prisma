@@ -15,6 +15,7 @@ model Product {
   puc                  String      @unique @db.VarChar(255)
   category             String?     @db.VarChar(255)
   subcategory          String?     @db.VarChar(255)
+  subsubcategory       String?     @db.VarChar(255)
   fragnancetype        String?     @db.VarChar(255)
   large                String[]
   medium               String[]
@@ -52,16 +53,39 @@ model Product {
   usage                String?     @db.VarChar(255)
   longevity            String?     @db.VarChar(255)
   gender               String?     @db.VarChar(50)
-
+  iscombo    Boolean?  @default(false)
+  combotype  String?   @default("fixed") @db.VarChar(50)
   
 
   platformStocks       PlatformStock[]
   orderline             orderline[]
   stock                 Stock[]
   rating                rating[]
+  bundleproducts        ProductBundleMap[] @relation("BundleProducts")
+  componentproducts     ProductBundleMap[] @relation("ComponentProducts")
 
   @@map("product")
 }
+
+model ProductBundleMap {
+  id                  BigInt   @id @default(autoincrement()) @db.BigInt
+  bundleproductid     BigInt   @db.BigInt
+  componentproductid  BigInt   @db.BigInt
+  requiredqty         Int      @default(1)
+  isactive            Boolean  @default(true)
+  createddate         BigInt?
+  modifieddate        BigInt?
+
+  // Relations
+  bundleproduct       Product  @relation("BundleProducts", fields: [bundleproductid], references: [id], onDelete: Cascade)
+  componentproduct    Product  @relation("ComponentProducts", fields: [componentproductid], references: [id], onDelete: Restrict)
+
+  @@unique([bundleproductid, componentproductid], name: "unique_bundle_component")
+  @@index([bundleproductid])
+  @@index([componentproductid])
+  @@map("productbundlemap")
+}
+
 
 model PlatformStock {
   id            BigInt   @id @default(autoincrement())
@@ -145,8 +169,63 @@ model Picklist {
   createddate          BigInt?
   modifieddate         BigInt?
 
+  gstHsnMappingsAsSubcategory    GstHsnMapping[] @relation("SubcategoryMapping")
+  gstHsnMappingsAsSubsubcategory GstHsnMapping[] @relation("SubsubcategoryMapping")
+  
   @@map("picklist")
 }
+
+
+
+model PicklistBackup {
+  backup_id           Int      @id @default(autoincrement())
+  id                  Int?
+  label               String?  @db.VarChar(255)
+  value               String?  @db.VarChar(255)
+  object              String?  @db.VarChar(255)
+  controlledvalue     String?  @db.VarChar(255)
+  fieldname           String?  @db.VarChar(255)
+  controlledlabel     String?  @db.VarChar(255)
+  controlledfieldname String?  @db.VarChar(255)
+  parent              String?  @db.VarChar(255)
+  description         String?  @db.VarChar(255)
+  sortorder           Int?
+  isactive            Boolean?
+  createddate         BigInt?
+  modifieddate        BigInt?
+
+  @@map("picklist_backup")
+}
+
+
+model GstHsnMapping {
+  id                  Int      @id @default(autoincrement())
+  subcategory_id      Int?
+  subcategory_value   String?  @db.VarChar(255)
+  subsubcategory_id   Int?
+  subsubcategory_value String? @db.VarChar(255)
+  hsn_code            String   @db.VarChar(50)
+  gst_rate            Decimal  @db.Decimal(5, 2)  // e.g., 5.00, 18.00
+  description         String?  @db.Text
+  isactive            Boolean? @default(true)
+  createddate         BigInt?
+  modifieddate        BigInt?
+  
+  subcategory         Picklist? @relation("SubcategoryMapping", fields: [subcategory_id], references: [id], onDelete: SetNull)
+  subsubcategory      Picklist? @relation("SubsubcategoryMapping", fields: [subsubcategory_id], references: [id], onDelete: SetNull)
+  
+  // Note: Unique constraints handled via partial indexes in SQL (see SQL schema above)
+  // Prisma doesn't support partial unique indexes directly, so we'll handle uniqueness in application logic
+  @@index([subcategory_value])
+  @@index([subcategory_id])
+  @@index([subsubcategory_value])
+  @@index([subsubcategory_id])
+  @@index([isactive])
+  @@map("gst_hsn_mapping")
+}
+
+
+
 
 model Supplier {
   id                  Int               @id @default(autoincrement())
@@ -374,6 +453,19 @@ model orderline {
   product_discount_amount  Decimal? @db.Decimal(10,2) @default(0)
   promotion_discount_amount Decimal? @db.Decimal(10,2) @default(0)
   shipping_cost            Decimal? @db.Decimal(10,2) @default(0)
+  // EKART Shipment Information (shared with order)
+  
+  hsn_code                String?   @db.VarChar(50)
+  gst_rate                Decimal?  @db.Decimal(5, 2)   // e.g., 5.00, 18.00
+  taxable_amount          Decimal?  @db.Decimal(10, 2)  // orderamount / (1 + gst_rate/100)
+  cgst_amount             Decimal?  @db.Decimal(10, 2)  // if same state
+  sgst_amount             Decimal?  @db.Decimal(10, 2)  // if same state
+  igst_amount             Decimal?  @db.Decimal(10, 2)  // if different state
+  total_gst_amount        Decimal?  @db.Decimal(10, 2)  // cgst + sgst OR igst
+
+  tracking_id             String?   @db.VarChar(500)
+  shipdate                BigInt?
+  status_history          Json?     // Array of status change history entries
   address         address?  @relation(fields: [addressid], references: [id], onDelete: NoAction, onUpdate: NoAction)
   product         Product?  @relation(fields: [productid], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users           users?    @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -415,6 +507,32 @@ model orders {
   tax_amount            Decimal?                  @db.Decimal(10,2) @default(0)
   paymentfaileddate     BigInt?
   searchtext            Unsupported("tsvector")?
+  // Payment Mode & COD Tracking
+  mode                        String?   @db.VarChar(50)  // 'cod' | 'phonepe'
+  cod_payment_received_date   BigInt?                    // When COD payment collected (epoch milliseconds)
+  cod_transaction_reference   String?   @db.VarChar(500) // EKART/payment gateway transaction reference
+  cod_amount                  Decimal?  @db.Decimal(10,2) // COD amount for verification and reconciliation
+  // EKART Shipment Information
+  tracking_id           String?                   @db.VarChar(500)
+  vendor                String?                   @db.VarChar(100) @default("EKART")
+  barcodes              Json?
+  label_url             String?                   @db.VarChar(1000)
+  public_tracking_link  String?                   @db.VarChar(1000)
+  shipment_created_at   BigInt?
+  label_downloaded_at   BigInt?
+  label_printed_at      BigInt?
+  shipdate              BigInt?
+  status_history        Json?                     // Array of status change history entries
+
+  items_total             Decimal?  @db.Decimal(10, 2)  // Σ(orderline.orderamount) = orderamount - shipping_cost
+  total_taxable_amount    Decimal?  @db.Decimal(10, 2)  // Sum of orderline.taxable_amount
+  total_cgst_amount       Decimal?  @db.Decimal(10, 2)  // Sum of orderline.cgst_amount
+  total_sgst_amount       Decimal?  @db.Decimal(10, 2)  // Sum of orderline.sgst_amount
+  total_igst_amount       Decimal?  @db.Decimal(10, 2)  // Sum of orderline.igst_amount
+  total_gst_amount        Decimal?  @db.Decimal(10, 2)  // Sum of orderline.total_gst_amount
+  
+
+
   orderline             orderline[]
   address               address?                 @relation(fields: [addressid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_addressid_orders")
   transaction           transaction?             @relation(fields: [transactionid], references: [transactionid], onDelete: Cascade, onUpdate: NoAction, map: "fk_transactionid")

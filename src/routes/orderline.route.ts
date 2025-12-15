@@ -114,6 +114,70 @@ export async function orderlineRoutes(fastify: FastifyInstance) {
       },
     },
   }, orderlineController.getOrderlines.bind(orderlineController));
+
+  // PATCH /v1/orderlines/:id/cancel - Cancel orderline
+  fastify.patch('/:id/cancel', {
+    schema: {
+      description: 'Cancel an orderline',
+      tags: ['Orderlines'],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'Orderline ID' },
+        },
+        required: ['id'],
+      },
+      body: {
+        type: 'object',
+        properties: {
+          reason: { type: 'string', description: 'Cancellation reason' },
+          additionalData: { type: 'object', description: 'Additional data to update' }
+        },
+        additionalProperties: true,
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            data: { 
+              type: 'object',
+              additionalProperties: true // Allow any fields in orderline object
+            },
+            message: { type: 'string' },
+          },
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+        404: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+      },
+    },
+  }, orderlineController.cancelOrderline.bind(orderlineController));
+
 /*
   // GET /v1/orderlines/:id - Get orderline by ID
   fastify.get('/:id', {
@@ -665,66 +729,5 @@ export async function orderlineRoutes(fastify: FastifyInstance) {
     },
   }, orderlineController.upsertOrderline.bind(orderlineController));
 */
-  // PATCH /v1/orderlines/:id/cancel - Cancel orderline
-  fastify.patch('/:id/cancel', {
-    schema: {
-      description: 'Cancel an orderline',
-      tags: ['Orderlines'],
-      params: {
-        type: 'object',
-        properties: {
-          id: { type: 'string', description: 'Orderline ID' },
-        },
-        required: ['id'],
-      },
-      body: {
-        type: 'object',
-        properties: {
-          reason: { type: 'string', description: 'Cancellation reason' },
-          additionalData: { type: 'object', description: 'Additional data to update' }
-        },
-        additionalProperties: true,
-      },
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            data: { 
-              type: 'object',
-              additionalProperties: true // Allow any fields in orderline object
-            },
-            message: { type: 'string' },
-          },
-        },
-        400: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            details: { type: 'string' },
-            statusCode: { type: 'number' },
-          },
-        },
-        404: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            details: { type: 'string' },
-            statusCode: { type: 'number' },
-          },
-        },
-        500: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            details: { type: 'string' },
-            statusCode: { type: 'number' },
-          },
-        },
-      },
-    },
-  }, orderlineController.cancelOrderline.bind(orderlineController));
+
 } 

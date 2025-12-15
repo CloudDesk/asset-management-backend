@@ -36,6 +36,10 @@ export async function productRoutes(fastify: FastifyInstance) {
               type: "string",
               description: "Filter by subcategory",
             },
+            subsubcategory: {
+              type: "string",
+              description: "Filter by sub-subcategory",
+            },
             Brand: {
               type: "string",
               description: "Filter by brand",
@@ -264,6 +268,11 @@ export async function productRoutes(fastify: FastifyInstance) {
                       nullable: true,
                       description: "Product subcategory",
                     },
+                    subsubcategory: {
+                      type: "string",
+                      nullable: true,
+                      description: "Product sub-subcategory",
+                    },
                     // Deal of the day field
                     isdealoftheday: {
                       type: "boolean",
@@ -468,6 +477,11 @@ export async function productRoutes(fastify: FastifyInstance) {
                     type: "string",
                     nullable: true,
                     description: "Product subcategory",
+                  },
+                  subsubcategory: {
+                    type: "string",
+                    nullable: true,
+                    description: "Product sub-subcategory",
                   },
                   brand: {
                     type: "string",
@@ -746,6 +760,7 @@ export async function productRoutes(fastify: FastifyInstance) {
           limit: { type: "string", description: "Items per page" },
           category: { type: "string", description: "Filter by category" },
           subcategory: { type: "string", description: "Filter by subcategory" },
+          subsubcategory: { type: "string", description: "Filter by sub-subcategory" },
           brand: { type: "string", description: "Filter by brand" },
           minPrice: { type: "string", description: "Minimum price" },
           maxPrice: { type: "string", description: "Maximum price" },
@@ -772,6 +787,7 @@ export async function productRoutes(fastify: FastifyInstance) {
                   price: { type: "number", nullable: true, description: "Product price" },
                   category: { type: "string", nullable: true, description: "Product category" },
                   subcategory: { type: "string", nullable: true, description: "Product subcategory" },
+                  subsubcategory: { type: "string", nullable: true, description: "Product sub-subcategory" },
                   platformStock: {
                     type: "object",
                     nullable: true,
@@ -959,6 +975,11 @@ export async function productRoutes(fastify: FastifyInstance) {
               maxLength: 255,
               description: "Product subcategory",
             },
+            subsubcategory: {
+              type: "string",
+              maxLength: 255,
+              description: "Product sub-subcategory",
+            },
             brand: {
               type: "string",
               maxLength: 255,
@@ -1044,6 +1065,39 @@ export async function productRoutes(fastify: FastifyInstance) {
               maxLength: 50,
               description: "Target gender",
             },
+            // Combo Pack Support
+            iscombo: {
+              type: "boolean",
+              description: "Is this a combo product? (default: false)",
+            },
+            combotype: {
+              type: "string",
+              maxLength: 50,
+              description: "Combo type: 'fixed' or 'dynamic' (default: 'fixed')",
+            },
+            components: {
+              type: "array",
+              description: "Component products for combo pack (required if iscombo is true)",
+              items: {
+                type: "object",
+                properties: {
+                  productid: {
+                    oneOf: [
+                      { type: "string", pattern: "^\\d+$" },
+                      { type: "number" },
+                    ],
+                    description: "Component product ID",
+                  },
+                  requiredqty: {
+                    type: "integer",
+                    minimum: 1,
+                    description: "Quantity of this component needed per combo (minimum: 1)",
+                  },
+                },
+                required: ["productid", "requiredqty"],
+                additionalProperties: false,
+              },
+            },
           },
           required: ["name"], // Only name is required as per schema
           additionalProperties: false, // Strict validation - only allow specified fields
@@ -1082,6 +1136,11 @@ export async function productRoutes(fastify: FastifyInstance) {
                     type: "string",
                     nullable: true,
                     description: "Product subcategory",
+                  },
+                  subsubcategory: {
+                    type: "string",
+                    nullable: true,
+                    description: "Product sub-subcategory",
                   },
                   Brand: {
                     type: "string",
@@ -1259,6 +1318,17 @@ export async function productRoutes(fastify: FastifyInstance) {
                     nullable: true,
                     description: "Target gender",
                   },
+                  // Combo Pack Support
+                  iscombo: {
+                    type: "boolean",
+                    nullable: true,
+                    description: "Is this a combo product?",
+                  },
+                  combotype: {
+                    type: "string",
+                    nullable: true,
+                    description: "Combo type: 'fixed' or 'dynamic'",
+                  },
                 },
                 additionalProperties: true, // Allow additional dynamic fields
               },
@@ -1334,6 +1404,11 @@ export async function productRoutes(fastify: FastifyInstance) {
               type: "string",
               maxLength: 255,
               description: "Product subcategory",
+            },
+            subsubcategory: {
+              type: "string",
+              maxLength: 255,
+              description: "Product sub-subcategory",
             },
             Brand: {
               type: "string",
@@ -1442,8 +1517,10 @@ export async function productRoutes(fastify: FastifyInstance) {
               maxLength: 50,
               description: "Target gender",
             },
+            // Note: iscombo, combotype, and components are NOT allowed in update
+            // These fields can only be set during product creation (POST /v1/products)
           },
-          additionalProperties: true, // Allow additional dynamic fields
+          additionalProperties: true, // Allow additional dynamic fields (but iscombo/combotype/components will be rejected by service)
         },
         response: {
           200: {
@@ -1484,6 +1561,11 @@ export async function productRoutes(fastify: FastifyInstance) {
                     type: "string",
                     nullable: true,
                     description: "Product subcategory",
+                  },
+                  subsubcategory: {
+                    type: "string",
+                    nullable: true,
+                    description: "Product sub-subcategory",
                   },
                   brand: {
                     type: "string",
@@ -1972,6 +2054,11 @@ export async function productRoutes(fastify: FastifyInstance) {
               maxLength: 255,
               description: "Product subcategory",
             },
+            subsubcategory: {
+              type: "string",
+              maxLength: 255,
+              description: "Product sub-subcategory",
+            },
             brand: {
               type: "string",
               maxLength: 255,
@@ -2124,6 +2211,11 @@ export async function productRoutes(fastify: FastifyInstance) {
                         type: "string",
                         nullable: true,
                         description: "Product subcategory",
+                      },
+                      subsubcategory: {
+                        type: "string",
+                        nullable: true,
+                        description: "Product sub-subcategory",
                       },
                       brand: {
                         type: "string",

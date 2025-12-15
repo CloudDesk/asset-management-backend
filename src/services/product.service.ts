@@ -232,7 +232,50 @@ private buildPlatformWhereClause(platform: string, filters: Record<string, any>)
     try {
       logger.debug({ originalData: data }, 'Starting dynamic product create operation');
 
-      const product = await dynamicCreate('product', data);
+      // Extract combo-related fields (components is only for create, not a product table field)
+      const { components, ...productData } = data;
+      const isCombo = productData.iscombo === true;
+
+      // Validate: components should only be provided for combo products
+      if (components && !isCombo) {
+        throw new Error('Components can only be provided when iscombo is true. Remove components or set iscombo to true.');
+      }
+
+      // Validate combo product requirements
+      if (isCombo) {
+        if (!components || !Array.isArray(components) || components.length === 0) {
+          throw new Error('Combo products require at least one component. Please provide components array.');
+        }
+
+        // Validate component product IDs exist
+        for (const component of components) {
+          const componentId = typeof component.productid === 'string' 
+            ? BigInt(component.productid) 
+            : BigInt(component.productid);
+          
+          const componentProduct = await prisma.product.findUnique({
+            where: { id: componentId }
+          });
+
+          if (!componentProduct) {
+            throw new Error(`Component product with ID ${component.productid} does not exist`);
+          }
+
+          if ((componentProduct as any).iscombo === true) {
+            throw new Error(`Component product ${component.productid} cannot be a combo product. Only single products can be components.`);
+          }
+        }
+
+        // Set combo defaults
+        productData.iscombo = true;
+        productData.combotype = productData.combotype || 'fixed';
+        // Combo products have no physical stock
+        productData.quantity = 0;
+        productData.availablequantity = 0;
+        productData.ecompublishedquantity = 0;
+      }
+
+      const product = await dynamicCreate('product', productData);
 
       if (!product) {
         throw new Error('Failed to create product - no valid fields provided');
@@ -264,9 +307,69 @@ private buildPlatformWhereClause(platform: string, filters: Record<string, any>)
         throw platformStockError;
       }
 
+      // Create combo bundle map entries if this is a combo product
+      if (isCombo && components) {
+        try {
+          const bundleProductId = BigInt(product.id);
+          const currentTimestamp = BigInt(Date.now());
+
+          for (const component of components) {
+            const componentProductId = typeof component.productid === 'string' 
+              ? BigInt(component.productid) 
+              : BigInt(component.productid);
+            
+            await (prisma as any).productBundleMap.create({
+              data: {
+                bundleproductid: bundleProductId,
+                componentproductid: componentProductId,
+                requiredqty: component.requiredqty,
+                isactive: true,
+                createddate: currentTimestamp,
+                modifieddate: currentTimestamp,
+              }
+            });
+          }
+
+          logger.info({ 
+            productId: product.id,
+            componentCount: components.length 
+          }, 'Combo product bundle map entries created successfully');
+        } catch (bundleMapError: any) {
+          logger.error(
+            {
+              error: bundleMapError?.message,
+              productId: product.id,
+            },
+            'Failed to create bundle map entries; attempting to roll back product creation'
+          );
+
+          // Rollback: Delete product and platform stocks
+          try {
+            // Delete platform stocks
+            await prisma.platformStock.deleteMany({
+              where: { productid: BigInt(product.id) }
+            });
+            // Delete product
+            await dynamicDelete('product', { id: product.id });
+          } catch (rollbackError: any) {
+            logger.error(
+              {
+                error: rollbackError?.message,
+                productId: product.id,
+              },
+              'Product rollback after bundle map failure did not complete'
+            );
+          }
+
+          throw new Error(`Failed to create combo bundle map: ${bundleMapError.message}`);
+        }
+      }
+
       logger.info({ 
         productId: product.id, 
-        availableFields: Object.keys(product) 
+        availableFields: Object.keys(product),
+        isCombo: isCombo,
+        componentCount: isCombo ? components?.length : 0
       }, 'Dynamic product create completed');
 
       return product;
@@ -286,11 +389,29 @@ private buildPlatformWhereClause(platform: string, filters: Record<string, any>)
   async update(id: string, data: UpdateProductInput & Record<string, any>) {
     try {
       // Check if product exists
-      await this.findById(id);
+      const existingProduct = await this.findById(id);
 
       logger.debug({ originalData: data, productId: id }, 'Starting dynamic product update operation');
 
-      const product = await dynamicUpdate('product', { id }, data);
+      // Extract and validate: combo-related fields are NOT allowed in update
+      const { components, iscombo, combotype, ...updateData } = data;
+      
+      // Reject components field entirely (combo components are fixed after creation)
+      if (components !== undefined) {
+        throw new Error('Components cannot be updated. Combo components are fixed after creation. To change components, delete and recreate the combo product.');
+      }
+
+      // Reject iscombo field entirely (product type cannot be changed after creation)
+      if (iscombo !== undefined) {
+        throw new Error('iscombo field cannot be updated. Product type (combo/single) cannot be changed after creation.');
+      }
+
+      // Reject combotype field entirely (combo type cannot be changed after creation)
+      if (combotype !== undefined) {
+        throw new Error('combotype field cannot be updated. Combo type cannot be changed after creation.');
+      }
+
+      const product = await dynamicUpdate('product', { id }, updateData);
 
       if (!product) {
         throw new Error('Failed to update product - no valid fields provided');
@@ -348,7 +469,7 @@ private buildPlatformWhereClause(platform: string, filters: Record<string, any>)
           puc: updateData.puc || 'TEMP-PUC'
         };
         
-        return this.create(createData);
+        return this.create(createData as CreateProductInput & Record<string, any>);
       }
     } catch (error) {
       logger.error({ error, data }, 'Error in product upsert operation');

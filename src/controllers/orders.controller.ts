@@ -13,6 +13,7 @@ import {
   asyncHandler
 } from '../utils/errorHandler.js';
 import { formatEntitiesForAPI } from '../utils/dynamicDbOperations.js';
+import { logger } from '../config/logger.js';
 
 export class OrdersController {
   public ordersService = new OrdersService();
@@ -42,61 +43,90 @@ export class OrdersController {
     });
   });
 
-  getOrder = asyncHandler(async (request: FastifyRequest<{ Params: OrdersParams }>, reply: FastifyReply) => {
-    const { id } = ordersParamsSchema.parse(request.params);
+  /**
+   * Mark order as ready for dispatch
+   * PATCH /v1/orders/:id/ready-for-dispatch
+   */
+  markReadyForDispatch = asyncHandler(async (
+    request: FastifyRequest<{ 
+      Params: { id: string }, 
+      Body: { 
+        inventory_user_id: number;
+        stock_mapping?: Array<{
+          orderline_id: number;
+          stock_ids?: number[];
+          skus?: string[];
+          batch_filter?: {
+            batchno?: string;
+            supplierid?: number;
+            poid?: number;
+          };
+        }>;
+      } 
+    }>,
+    reply: FastifyReply
+  ) => {
+    const { id } = request.params;
+    const { inventory_user_id, stock_mapping } = request.body;
+
+    if (!inventory_user_id) {
+      return reply.code(400).send({
+        success: false,
+        message: 'inventory_user_id is required',
+        statusCode: 400
+      });
+    }
+
+    const order = await this.ordersService.markReadyForDispatch(
+      parseInt(id), 
+      inventory_user_id,
+      stock_mapping
+    );
     
-    const order = await this.ordersService.findById(Number(id));
-    
-    const response = createSuccessResponse('Order retrieved successfully', formatEntitiesForAPI([order], 'orders')[0]);
+    const response = createSuccessResponse(
+      'Order marked as ready for dispatch',
+      formatEntitiesForAPI([order], 'orders')[0]
+    );
     return reply.code(200).send(response);
   });
 
-  getOrderByOrderId = asyncHandler(async (request: FastifyRequest<{ Params: { orderid: string } }>, reply: FastifyReply) => {
-    const { orderid } = request.params;
-    
-    const order = await this.ordersService.findByOrderId(orderid);
-    
-    const response = createSuccessResponse('Order retrieved successfully', formatEntitiesForAPI([order], 'orders')[0]);
-    return reply.code(200).send(response);
-  });
+  /**
+   * Mark order as shipped (after label printed)
+   * PATCH /v1/orders/:id/mark-shipped
+   */
+  markShipped = asyncHandler(async (
+    request: FastifyRequest<{ Params: { id: string }, Body: { inventory_user_id: number } }>,
+    reply: FastifyReply
+  ) => {
+    const { id } = request.params;
+    const { inventory_user_id } = request.body;
 
-  createOrder = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
-    const requestBody = request.body;
-    console.log("createOrdercreateOrder",requestBody)
-    // Check if the request body is an array (cart items) or object (single order)
-    if (Array.isArray(requestBody)) {
-      // Handle cart-based order creation
-      if (requestBody.length === 0) {
+    if (!inventory_user_id) {
+      return reply.code(400).send({
+        success: false,
+        message: 'inventory_user_id is required',
+        statusCode: 400
+      });
+    }
+
+    try {
+      const order = await this.ordersService.markShipped(parseInt(id), inventory_user_id);
+      
+      const response = createSuccessResponse(
+        'Order marked as shipped',
+        formatEntitiesForAPI([order], 'orders')[0]
+      );
+      return reply.code(200).send(response);
+    } catch (error: any) {
+      if (error.message.includes('Shipment not created')) {
         return reply.code(400).send({
           success: false,
-          message: 'Cart items array cannot be empty',
-          details: 'Please provide at least one cart item',
+          message: error.message,
           statusCode: 400
         });
       }
-      
-      const order = await this.ordersService.createFromCartItems(requestBody);
-      const response = createSuccessResponse('Order created successfully from cart', formatEntitiesForAPI([order], 'orders')[0]);
-      return reply.code(201).send(response);
-    } else {
-      // Handle single order creation
-      const data = createOrdersSchema.parse(requestBody);
-      const order = await this.ordersService.create(data);
-      const response = createSuccessResponse('Order created successfully', formatEntitiesForAPI([order], 'orders')[0]);
-      return reply.code(201).send(response);
+      throw error;
     }
-  });
-
-
-
-  updateOrder = asyncHandler(async (request: FastifyRequest<{ Params: OrdersParams }>, reply: FastifyReply) => {
-    const { id } = ordersParamsSchema.parse(request.params);
-    const data = updateOrdersSchema.parse(request.body);
-    
-    const order = await this.ordersService.update(id, data);
-    
-    const response = createSuccessResponse('Order updated successfully', formatEntitiesForAPI([order], 'orders')[0]);
-    return reply.code(200).send(response);
   });
 
   updateOrderStatus = asyncHandler(async (request: FastifyRequest<{ Params: OrdersParams; Body: { status: string; additionalData?: Record<string, any> } }>, reply: FastifyReply) => {
@@ -118,22 +148,155 @@ export class OrdersController {
     return reply.code(200).send(response);
   });
 
-  deleteOrder = asyncHandler(async (request: FastifyRequest<{ Params: OrdersParams }>, reply: FastifyReply) => {
-    const { id } = ordersParamsSchema.parse(request.params);
+  /**
+   * Track order by order ID (customer-facing)
+   * GET /v1/orders/:id/track
+   */
+  trackOrder = asyncHandler(async (
+    request: FastifyRequest<{ Params: { id: string } }>,
+    reply: FastifyReply
+  ) => {
+    const { id } = request.params;
     
-    await this.ordersService.delete(id);
+    // Find order by ID or orderid (order number)
+    let order;
+    if (isNaN(Number(id))) {
+      // If not a number, treat as orderid (order number)
+      order = await this.ordersService.findByOrderNumber(id);
+    } else {
+      // If number, treat as database ID
+      order = await this.ordersService.findById(Number(id));
+    }
     
-    const response = createSuccessResponse('Order deleted successfully', null);
-    return reply.code(200).send(response);
+    if (!order) {
+      return reply.code(404).send({
+        success: false,
+        message: 'Order not found',
+        statusCode: 404
+      });
+    }
+    
+    // Check if order has been shipped
+    if (!order.tracking_id) {
+      return reply.code(200).send(createSuccessResponse('Order tracking information', {
+        order_id: order.id,
+        order_number: order.orderid,
+        order_status: order.orderstatus,
+        tracking_id: null,
+        message: 'Order has not been shipped yet',
+        tracking_available: false
+      }));
+    }
+    
+    // Get EKART tracking info
+    try {
+      const { ekartService } = await import('../services/ekart.service.js');
+      const trackingInfo = await ekartService.trackShipment(order.tracking_id);
+      
+      return reply.code(200).send(createSuccessResponse('Order tracking retrieved successfully', {
+        order_id: order.id,
+        order_number: order.orderid,
+        order_status: order.orderstatus,
+        tracking_id: order.tracking_id,
+        vendor: order.vendor || 'EKART',
+        public_tracking_link: order.public_tracking_link || `https://app.elite.ekartlogistics.in/track/${order.tracking_id}`,
+        ekart_tracking: {
+          status: trackingInfo.track?.status,
+          current_location: trackingInfo.track?.location,
+          description: trackingInfo.track?.desc,
+          estimated_delivery: trackingInfo.edd ? new Date(trackingInfo.edd).toISOString() : null,
+          status_history: trackingInfo.track?.details || [],
+          ndr_status: trackingInfo.track?.ndrStatus,
+          ndr_actions: trackingInfo.track?.ndrActions,
+          attempts: trackingInfo.track?.attempts
+        },
+        tracking_available: true
+      }));
+    } catch (error: any) {
+      logger.error({ error: error.message, trackingId: order.tracking_id }, 'Failed to fetch EKART tracking info');
+      
+      // Return order info even if EKART tracking fails
+      return reply.code(200).send(createSuccessResponse('Order tracking information (EKART tracking unavailable)', {
+        order_id: order.id,
+        order_number: order.orderid,
+        order_status: order.orderstatus,
+        tracking_id: order.tracking_id,
+        vendor: order.vendor || 'EKART',
+        public_tracking_link: order.public_tracking_link || `https://app.elite.ekartlogistics.in/track/${order.tracking_id}`,
+        message: 'EKART tracking information temporarily unavailable',
+        tracking_available: true
+      }));
+    }
   });
 
-  upsertOrder = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
-    const data = upsertOrdersSchema.parse(request.body);
+  /**
+   * Get order details with orderlines, products, and address
+   * GET /v1/orders/:id/details
+   * For Inventory App order detail page
+   */
+  getOrderDetails = asyncHandler(async (
+    request: FastifyRequest<{ Params: { id: string } }>,
+    reply: FastifyReply
+  ) => {
+    const { id } = request.params;
     
-    const order = await this.ordersService.upsert(data);
+    try {
+      const orderDetails = await this.ordersService.getOrderDetails(id);
+      
+      if (!orderDetails) {
+        return reply.code(404).send({
+          success: false,
+          message: 'Order not found',
+          statusCode: 404
+        });
+      }
+      
+      return reply.code(200).send(createSuccessResponse('Order details retrieved successfully', orderDetails));
+    } catch (error: any) {
+      if (error.message === 'Order not found') {
+        return reply.code(404).send({
+          success: false,
+          message: 'Order not found',
+          statusCode: 404
+        });
+      }
+      throw error;
+    }
+  });
+
+  /**
+   * Get orders by user ID with orderlines and address details
+   * GET /v1/orders/user/:userid/details
+   */
+  getOrdersByUserIdWithDetails = asyncHandler(async (
+    request: FastifyRequest<{ 
+      Params: { userid: string },
+      Querystring: { page?: string; limit?: string }
+    }>,
+    reply: FastifyReply
+  ) => {
+    const { userid } = request.params;
+    const { page: pageStr, limit: limitStr } = request.query;
     
-    const message = data.id ? 'Order updated successfully' : 'Order created successfully';
-    const response = createSuccessResponse(message, formatEntitiesForAPI([order], 'orders')[0]);
-    return reply.code(200).send(response);
+    const page = pageStr ? parseInt(pageStr, 10) : 1;
+    const limit = limitStr ? parseInt(limitStr, 10) : 50;
+    
+    if (isNaN(Number(userid))) {
+      return reply.code(400).send({
+        success: false,
+        message: 'Invalid user ID',
+        statusCode: 400
+      });
+    }
+    
+    const userId = parseInt(userid, 10);
+    const result = await this.ordersService.getOrdersByUserIdWithDetails(userId, page, limit);
+    
+    return reply.code(200).send({
+      success: true,
+      message: 'Orders retrieved successfully',
+      data: result.orders,
+      pagination: result.pagination
+    });
   });
 } 

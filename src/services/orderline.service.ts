@@ -72,50 +72,6 @@ export class OrderlineService {
       throw error;
     }
   }
-
-  async findByOrderlineNumber(orderlinenumber: string) {
-    try {
-      logger.debug({ orderlinenumber }, 'Starting dynamic orderline findByOrderlineNumber operation');
-
-      const orderline = await dynamicFindUnique('orderline', { orderlinenumber });
-
-      if (!orderline) {
-        throw new Error('Orderline not found');
-      }
-
-      logger.debug({ 
-        orderlinenumber, 
-        availableFields: Object.keys(orderline) 
-      }, 'Dynamic orderline findByOrderlineNumber completed');
-
-      return orderline;
-    } catch (error) {
-      logger.error({ error, orderlinenumber }, 'Error in orderline findByOrderlineNumber operation');
-      throw error;
-    }
-  }
-
-  async findByOrderId(orderid: number) {
-    try {
-      logger.debug({ orderid }, 'Starting dynamic orderline findByOrderId operation');
-
-      const { data: orderlines, total } = await dynamicFindManyWithFilters('orderline', { orderid }, {
-        useAllColumns: true
-      });
-
-      logger.debug({ 
-        orderid, 
-        orderlineCount: orderlines.length,
-        availableFields: orderlines.length > 0 ? Object.keys(orderlines[0]) : []
-      }, 'Dynamic orderline findByOrderId completed');
-
-      return orderlines;
-    } catch (error) {
-      logger.error({ error, orderid }, 'Error in orderline findByOrderId operation');
-      throw error;
-    }
-  }
-
   async create(data: CreateOrderlineInput & Record<string, any>) {
     try {
       logger.debug({ originalData: data }, 'Starting dynamic orderline create operation');
@@ -188,46 +144,34 @@ export class OrderlineService {
       throw error;
     }
   }
-
-  async delete(id: string) {
-    try {
-      // Check if orderline exists
-      await this.findById(id);
-
-      logger.debug({ orderlineId: id }, 'Starting dynamic orderline delete operation');
-
-      const success = await dynamicDelete('orderline', { id: parseInt(id) });
-
-      if (!success) {
-        throw new Error('Failed to delete orderline');
-      }
-
-      logger.info({ orderlineId: id }, 'Dynamic orderline delete completed successfully');
-    } catch (error) {
-      logger.error({ error, orderlineId: id }, 'Error in orderline delete operation');
-      throw error;
-    }
-  }
-
-  async upsert(data: UpsertOrderlineInput & Record<string, any>) {
-    try {
-      const { id, ...updateData } = data;
-
-      if (id) {
-        // Update existing orderline
-        logger.debug({ orderlineId: id, data: updateData }, 'Upserting existing orderline');
-        return this.update(id.toString(), updateData);
-      } else {
-        // Create new orderline
-        logger.debug({ data: updateData }, 'Upserting new orderline');
-        return this.create(updateData);
-      }
-    } catch (error) {
-      logger.error({ error, data }, 'Error in orderline upsert operation');
-      throw error;
-    }
-  }
-
+  /**
+   * Update orderline status with complete lifecycle management
+   * 
+   * For CANCELLATION specifically (status === 'cancelled'):
+   * 
+   * Flow according to ORDER_FULFILLMENT_EKART_INTEGRATION_PLAN.md Section 6:
+   * 1. Check if order has tracking_id (EKART shipment created)
+   * 2. If yes, attempt to cancel EKART shipment first
+   *    - Scenario B (ready_for_dispatch): Should succeed
+   *    - Scenario C (shipped/in_transit): May fail, but continue anyway
+   * 3. Update orderline status to 'cancelled'
+   * 4. Restore stock (Product + PlatformStock) - automatic via adjustProductQuantitiesOnCancellation
+   * 5. Update status_history (orderline)
+   * 6. Recalculate order status (may become 'cancelled' or 'partially_cancelled')
+   * 7. Update order status_history (automatic via recalculateOrderStatus)
+   * 
+   * Stock Restoration (ORDER_ORDERLINE_LIFECYCLE_COMPLETE.md Section 12):
+   * - Product: availablequantity ↑, orderedquantity ↓
+   * - PlatformStock: availableqty ↑, orderedqty ↓
+   * - lockqty is NOT updated (only orderedqty restored)
+   * 
+   * @param id - Orderline ID
+   * @param status - New status (e.g., 'cancelled', 'delivered', 'shipped')
+   * @param additionalData - Additional data including:
+   *   - source: 'customer' | 'inventoryuser' | 'ekart' | 'phonepe' | 'system'
+   *   - inventory_user_id: Required when source is 'inventoryuser'
+   *   - cancellation_reason: Reason for cancellation
+   */
   async updateOrderlineStatus(id: string, status: string, additionalData?: Record<string, any>) {
     try {
       logger.debug({ orderlineId: id, status, additionalData }, 'Starting orderline status update operation');
@@ -238,8 +182,93 @@ export class OrderlineService {
         throw new Error(`Orderline with ID ${id} not found`);
       }
 
+      const previousStatus = currentOrderline.orderstatus;
+      // Default source to 'customer' for cancellation (as per plan), otherwise 'system'
+      const source = additionalData?.source || (status.toLowerCase() === 'cancelled' ? 'customer' : 'system');
+      const inventoryUserId = additionalData?.inventory_user_id;
+
+      // ✅ CANCELLATION FLOW: Handle EKART shipment cancellation before updating status
+      // According to ORDER_FULFILLMENT_EKART_INTEGRATION_PLAN.md Section 6
+      if (status.toLowerCase() === 'cancelled') {
+        try {
+          const { OrdersService } = await import('./orders.service.js');
+          const ordersService = new OrdersService();
+          const order = await ordersService.findById(parseInt(currentOrderline.orderid.toString()));
+          
+          if (order && order.tracking_id) {
+            // Scenario B & C: Cancel EKART shipment if exists
+            // - Scenario B: Before label print (ready_for_dispatch) - should succeed
+            // - Scenario C: After label print (shipped/in_transit) - may fail, but continue anyway
+            try {
+              const { ekartService } = await import('./ekart.service.js');
+              await ekartService.cancelShipment(order.tracking_id);
+              logger.info({ 
+                trackingId: order.tracking_id, 
+                orderlineId: id,
+                orderId: order.id,
+                orderStatus: order.orderstatus
+              }, '✅ EKART shipment cancelled successfully before orderline cancellation');
+            } catch (error: any) {
+              // EKART cancellation may fail if shipment is already in transit
+              // According to plan: Continue with cancellation anyway, EKART will handle RTO
+              logger.warn({ 
+                error: error.message, 
+                trackingId: order.tracking_id,
+                orderlineId: id,
+                orderStatus: order.orderstatus
+              }, '⚠️ Failed to cancel EKART shipment (may be in transit) - continuing with orderline cancellation. EKART will handle RTO automatically.');
+              // Continue with cancellation anyway - stock will be restored
+            }
+          } else {
+            // Scenario A: No tracking_id - no EKART action needed
+            logger.debug({ 
+              orderlineId: id,
+              orderId: order?.id,
+              hasTrackingId: !!order?.tracking_id
+            }, 'No EKART shipment found - proceeding with orderline cancellation only');
+          }
+        } catch (error: any) {
+          logger.warn({ 
+            error: error.message, 
+            orderlineId: id 
+          }, 'Error checking for EKART shipment cancellation - continuing with orderline cancellation');
+          // Continue with cancellation anyway - don't fail the entire operation
+        }
+      }
+
+      // Prepare status history entry
+      const existingHistory = Array.isArray(currentOrderline.status_history) 
+        ? currentOrderline.status_history 
+        : (typeof currentOrderline.status_history === 'string' ? JSON.parse(currentOrderline.status_history) : []);
+      
+      // Set all existing entries to is_active: false
+      const deactivatedHistory = existingHistory.map((entry: any) => ({
+        ...entry,
+        is_active: false
+      }));
+      
+      // New entry with is_active: true
+      const historyEntry: any = {
+        previous_status: previousStatus,
+        new_status: status,
+        changed_date: Date.now(),
+        source: source,
+        is_active: true
+      };
+      
+      // Add inventory_user_id if source is inventoryuser (REQUIRED)
+      if (source === 'inventoryuser') {
+        if (!inventoryUserId) {
+          throw new Error('inventory_user_id is required when source is inventoryuser');
+        }
+        historyEntry.inventory_user_id = inventoryUserId;
+      }
+      
+      const updatedHistory = [...deactivatedHistory, historyEntry];
+
       const updateData: Record<string, any> = {
         orderstatus: status,
+        status_history: JSON.stringify(updatedHistory), // ✅ Update status history (JSON.stringify for JSONB)
         modifieddate: Date.now(),
         ...additionalData
       };
@@ -252,7 +281,8 @@ export class OrderlineService {
           break;
         case 'cancelled':
           updateData.cancelleddate = currentTimestamp;
-          // Adjust product quantities when cancelling
+          // ✅ Restore stock quantities when cancelling (as per ORDER_ORDERLINE_LIFECYCLE_COMPLETE.md Section 12)
+          // This updates both Product and PlatformStock tables
           await this.adjustProductQuantitiesOnCancellation(currentOrderline);
           break;
         case 'returned':
@@ -273,6 +303,31 @@ export class OrderlineService {
 
       const orderline = await this.update(id, updateData);
 
+      // ✅ IMPORTANT: Recalculate order status after orderline update
+      // According to ORDER_ORDERLINE_LIFECYCLE_COMPLETE.md Section 3 & 9.12
+      // Order status is automatically derived from orderline statuses
+      if (orderline.orderid) {
+        try {
+          const { OrdersService } = await import('./orders.service.js');
+          const ordersService = new OrdersService();
+          await ordersService.recalculateOrderStatus(parseInt(orderline.orderid.toString()));
+          
+          logger.debug({ 
+            orderlineId: id, 
+            orderId: orderline.orderid,
+            previousStatus,
+            newStatus: status
+          }, 'Order status recalculated after orderline status update');
+        } catch (error: any) {
+          logger.error(
+            { error: error.message, orderlineId: id, orderId: orderline.orderid },
+            'Failed to recalculate order status after orderline update'
+          );
+          // Don't fail the orderline update if recalculation fails
+          // Orderline cancellation should succeed even if order status update fails
+        }
+      }
+
       logger.info({ 
         orderlineId: id, 
         status,
@@ -286,12 +341,21 @@ export class OrderlineService {
     }
   }
 
-  /**
-   * Adjust product quantities when an orderline is cancelled or returned
-   * - Decrease orderedquantity by the cancelled quantity
-   * - Increase availablequantity by the cancelled quantity
-   */
-  private async adjustProductQuantitiesOnCancellation(orderline: any) {
+   /**
+    * Adjust product quantities when an orderline is cancelled or returned
+    * 
+    * According to ORDER_ORDERLINE_LIFECYCLE_COMPLETE.md Section 12:
+    * - Decrease orderedquantity by the cancelled quantity (Product + PlatformStock)
+    * - Increase availablequantity by the cancelled quantity (Product + PlatformStock)
+    * - Recalculate productstatus and platformstatus
+    * 
+    * Stock restoration happens for both:
+    * - Product table (orderedquantity ↓, availablequantity ↑)
+    * - PlatformStock table (orderedqty ↓, availableqty ↑)
+    * 
+    * Note: lockqty is NOT updated (only orderedqty is restored)
+    */
+   private async adjustProductQuantitiesOnCancellation(orderline: any) {
     try {
       const productId = orderline.productid;
       const cancelledQuantity = orderline.quantity || 1;
@@ -435,6 +499,92 @@ export class OrderlineService {
     }
   }
 
+  async findByOrderId(orderid: number) {
+    try {
+      logger.debug({ orderid }, 'Starting dynamic orderline findByOrderId operation');
+
+      const { data: orderlines, total } = await dynamicFindManyWithFilters('orderline', { orderid }, {
+        useAllColumns: true
+      });
+
+      logger.debug({ 
+        orderid, 
+        orderlineCount: orderlines.length,
+        availableFields: orderlines.length > 0 ? Object.keys(orderlines[0]) : []
+      }, 'Dynamic orderline findByOrderId completed');
+
+      return orderlines;
+    } catch (error) {
+      logger.error({ error, orderid }, 'Error in orderline findByOrderId operation');
+      throw error;
+    }
+  }
+/*
+  async findByOrderlineNumber(orderlinenumber: string) {
+    try {
+      logger.debug({ orderlinenumber }, 'Starting dynamic orderline findByOrderlineNumber operation');
+
+      const orderline = await dynamicFindUnique('orderline', { orderlinenumber });
+
+      if (!orderline) {
+        throw new Error('Orderline not found');
+      }
+
+      logger.debug({ 
+        orderlinenumber, 
+        availableFields: Object.keys(orderline) 
+      }, 'Dynamic orderline findByOrderlineNumber completed');
+
+      return orderline;
+    } catch (error) {
+      logger.error({ error, orderlinenumber }, 'Error in orderline findByOrderlineNumber operation');
+      throw error;
+    }
+  }
+
+
+*/
+
+/*
+  async delete(id: string) {
+    try {
+      // Check if orderline exists
+      await this.findById(id);
+
+      logger.debug({ orderlineId: id }, 'Starting dynamic orderline delete operation');
+
+      const success = await dynamicDelete('orderline', { id: parseInt(id) });
+
+      if (!success) {
+        throw new Error('Failed to delete orderline');
+      }
+
+      logger.info({ orderlineId: id }, 'Dynamic orderline delete completed successfully');
+    } catch (error) {
+      logger.error({ error, orderlineId: id }, 'Error in orderline delete operation');
+      throw error;
+    }
+  }
+
+  async upsert(data: UpsertOrderlineInput & Record<string, any>) {
+    try {
+      const { id, ...updateData } = data;
+
+      if (id) {
+        // Update existing orderline
+        logger.debug({ orderlineId: id, data: updateData }, 'Upserting existing orderline');
+        return this.update(id.toString(), updateData);
+      } else {
+        // Create new orderline
+        logger.debug({ data: updateData }, 'Upserting new orderline');
+        return this.create(updateData);
+      }
+    } catch (error) {
+      logger.error({ error, data }, 'Error in orderline upsert operation');
+      throw error;
+    }
+  }
+
   async bulkUpdateStatus(orderlineIds: string[], status: string, additionalData?: Record<string, any>) {
     try {
       logger.debug({ orderlineIds, status, additionalData }, 'Starting bulk orderline status update operation');
@@ -461,5 +611,5 @@ export class OrderlineService {
       logger.error({ error, orderlineIds, status }, 'Error in bulk orderline status update operation');
       throw error;
     }
-  }
+  }*/
 } 

@@ -7263,3 +7263,256 @@ Values: [
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiaGFyaXNoQG1haWwuY29tIiwicm9sZUlkIjozLCJpYXQiOjE3NjQ3MzYyNDksImV4cCI6MTc2NTM0MTA0OSwiYXVkIjoiYXNzZXQtbWFuYWdlbWVudC1mcm9udGVuZCIsImlzcyI6ImFzc2V0LW1hbmFnZW1lbnQtYmFja2VuZCJ9.18z-MIkMDy8wPe5viWAYMdCCUkipe334iKmq__saz2g",
   1764736249
 ]
+Values: [
+  2,
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiaGFyaXNoQG1haWwuY29tIiwicm9sZUlkIjozLCJpYXQiOjE3NjQ4Mjg3MzMsImV4cCI6MTc2NTQzMzUzMywiYXVkIjoiYXNzZXQtbWFuYWdlbWVudC1mcm9udGVuZCIsImlzcyI6ImFzc2V0LW1hbmFnZW1lbnQtYmFja2VuZCJ9.pdoyv588xTB3dvIL1kJgN7cBGdAElnS8hIpO62IaTyk",
+  1764828733
+]
+Values: [
+  2,
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiaGFyaXNoQG1haWwuY29tIiwicm9sZUlkIjozLCJpYXQiOjE3NjQ4NTIyNTksImV4cCI6MTc2NTQ1NzA1OSwiYXVkIjoiYXNzZXQtbWFuYWdlbWVudC1mcm9udGVuZCIsImlzcyI6ImFzc2V0LW1hbmFnZW1lbnQtYmFja2VuZCJ9.SfP0mDT8wujfkh1cYfVq4JpETynR_3kid1TBHkWDufQ",
+  1764852259
+]
+Values: [
+  2,
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiaGFyaXNoQG1haWwuY29tIiwicm9sZUlkIjozLCJpYXQiOjE3NjUxNzI2MzQsImV4cCI6MTc2NTc3NzQzNCwiYXVkIjoiYXNzZXQtbWFuYWdlbWVudC1mcm9udGVuZCIsImlzcyI6ImFzc2V0LW1hbmFnZW1lbnQtYmFja2VuZCJ9.16av_mWEC-2wYN6Z36fCIHjuf8XG-rGX5QO_9XXPTco",
+  1765172634
+]
+Values: [
+  2,
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiaGFyaXNoQG1haWwuY29tIiwicm9sZUlkIjozLCJpYXQiOjE3NjUxNzI5MzksImV4cCI6MTc2NTc3NzczOSwiYXVkIjoiYXNzZXQtbWFuYWdlbWVudC1mcm9udGVuZCIsImlzcyI6ImFzc2V0LW1hbmFnZW1lbnQtYmFja2VuZCJ9.XMmISn0HFd3ftPWRM2Hl20h54srAJfMwzZtINuVinq8",
+  1765172939
+]
+Values: [
+  200,
+  "ready_for_dispatch",
+  "[{\"source\":\"phonepe\",\"new_status\":\"payment_completed\",\"changed_date\":1765186105363,\"previous_status\":\"order_placed\",\"is_active\":false},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765187363988,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  1765187364
+]
+Values: [
+  151,
+  "ready_for_dispatch",
+  "[{\"source\":\"phonepe\",\"new_status\":\"payment_completed\",\"changed_date\":1765186103209,\"previous_status\":\"order_placed\",\"is_active\":false},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765187367904,\"source\":\"system\",\"is_active\":true}]",
+  1765187367
+]
+Values: [
+  201,
+  "ready_for_dispatch",
+  "[{\"source\":\"system\",\"new_status\":\"order_confirmed\",\"changed_date\":1765186201240,\"previous_status\":\"order_placed\",\"is_active\":false},{\"previous_status\":\"order_confirmed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765187605328,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  1765187605
+]
+Values: [
+  152,
+  "ready_for_dispatch",
+  "[{\"source\":\"system\",\"new_status\":\"order_confirmed\",\"changed_date\":1765186199084,\"previous_status\":\"order_placed\",\"is_active\":false},{\"previous_status\":\"order_confirmed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765187607984,\"source\":\"system\",\"is_active\":true}]",
+  1765187607
+]
+Values: [
+  58,
+  "Free Shipping Over ₹1000",
+  "Automatic free shipping on orders above ₹1000",
+  "FREE_SHIPPING",
+  "",
+  true,
+  1704067200,
+  1861919999,
+  "active",
+  10,
+  "public",
+  15000,
+  10,
+  true,
+  750000,
+  "Asia/Kolkata",
+  15,
+  "[{\"value\":\"1000\",\"operator\":\"GTE\",\"attribute\":\"cart.total_value\"}]",
+  "{\"type\":\"FREE_SHIPPING\",\"value\":1}",
+  58,
+  1756981503,
+  1765289062
+]
+Values: [
+  58,
+  "Free Shipping Over ₹1000",
+  "Automatic free shipping on orders above ₹1000",
+  "FREE_SHIPPING",
+  "",
+  true,
+  1704067200,
+  1861919999,
+  "active",
+  10,
+  "public",
+  15000,
+  10,
+  true,
+  750000,
+  "Asia/Kolkata",
+  15,
+  "[{\"value\":\"100\",\"operator\":\"GTE\",\"attribute\":\"cart.total_value\"}]",
+  "{\"type\":\"FREE_SHIPPING\",\"value\":1}",
+  58,
+  1756981503,
+  1765346612
+]
+Values: [
+  58,
+  "Free Shipping Over ₹1000",
+  "Automatic free shipping on orders above ₹1000",
+  "FREE_SHIPPING",
+  "",
+  true,
+  1704067200,
+  1861919999,
+  "active",
+  10,
+  "public",
+  15000,
+  10,
+  true,
+  750000,
+  "Asia/Kolkata",
+  15,
+  "[{\"value\":\"1000\",\"operator\":\"GTE\",\"attribute\":\"cart.total_value\"}]",
+  "{\"type\":\"FREE_SHIPPING\",\"value\":1}",
+  58,
+  1756981503,
+  1765353182
+]
+Values: [
+  215,
+  "ready_for_dispatch",
+  "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1765360032213,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765370696216,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  1765370696
+]
+Values: [
+  216,
+  "ready_for_dispatch",
+  "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1765360032213,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765370700637,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  1765370701
+]
+Values: [
+  160,
+  "ready_for_dispatch",
+  "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1765360032212,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765370703291,\"source\":\"system\",\"is_active\":true}]",
+  1765370703
+]
+Values: [
+  160,
+  "LUAP0000487647",
+  "EKART",
+  "{\"wbn\":\"LUAP0000487647\",\"order\":\"NIVAANA-0000000160\"}",
+  "https://app.elite.ekartlogistics.in/track/LUAP0000487647",
+  1765433894315,
+  1765433894
+]
+Values: [
+  216,
+  "LUAP0000487647",
+  1765433898
+]
+Values: [
+  215,
+  "LUAP0000487647",
+  1765433900
+]
+Values: [
+  160,
+  "LUAP0000487968",
+  "EKART",
+  "{\"wbn\":\"LUAP0000487968\",\"order\":\"NIVAANA-0000000160\"}",
+  "https://app.elite.ekartlogistics.in/track/LUAP0000487968",
+  1765436394447,
+  1765436394
+]
+Values: [
+  216,
+  "LUAP0000487968",
+  1765436396
+]
+Values: [
+  215,
+  "LUAP0000487968",
+  1765436397
+]
+Values: [
+  160,
+  "https://storage.googleapis.com/niv-shipping-label-dev/LUAP0000487968/label.pdf",
+  1765442502371,
+  1765442502
+]
+Values: [
+  160,
+  "LUAP0000488889",
+  "EKART",
+  "{\"wbn\":\"LUAP0000488889\",\"order\":\"NIVAANA-0000000160\"}",
+  "https://app.elite.ekartlogistics.in/track/LUAP0000488889",
+  1765446650281,
+  1765446650
+]
+Values: [
+  216,
+  "LUAP0000488889",
+  1765446652
+]
+Values: [
+  215,
+  "LUAP0000488889",
+  1765446652
+]
+Values: [
+  160,
+  "https://storage.googleapis.com/niv-shipping-label-dev/LUAP0000488889/label.pdf",
+  1765446710951,
+  1765446710
+]
+Values: [
+  160,
+  "https://storage.googleapis.com/niv-shipping-label-dev/LUAP0000488889/label.pdf",
+  1765446758390,
+  1765446758
+]
+Values: [
+  160,
+  "https://storage.googleapis.com/niv-shipping-label-dev/LUAP0000488889/label.pdf",
+  1765446892532,
+  1765446892
+]
+Values: [
+  215,
+  "shipped",
+  "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1765360032213,\"previous_status\":\"order_placed\"},{\"source\":\"inventoryuser\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765370696216,\"previous_status\":\"payment_completed\",\"inventory_user_id\":2},{\"previous_status\":\"ready_for_dispatch\",\"new_status\":\"shipped\",\"changed_date\":1765457043204,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  1765457043,
+  1765457040201
+]
+Values: [
+  216,
+  "shipped",
+  "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1765360032213,\"previous_status\":\"order_placed\"},{\"source\":\"inventoryuser\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765370700637,\"previous_status\":\"payment_completed\",\"inventory_user_id\":2},{\"previous_status\":\"ready_for_dispatch\",\"new_status\":\"shipped\",\"changed_date\":1765457044926,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  1765457045,
+  1765457040201
+]
+Values: [
+  160,
+  "shipped",
+  "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1765360032212,\"previous_status\":\"order_placed\"},{\"source\":\"system\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765370703291,\"previous_status\":\"payment_completed\"},{\"previous_status\":\"ready_for_dispatch\",\"new_status\":\"shipped\",\"changed_date\":1765457045811,\"source\":\"system\",\"is_active\":true}]",
+  1765457045
+]
+Values: [
+  160,
+  1765457040201,
+  1765457040201,
+  1765457046
+]
+Values: [
+  214,
+  "ready_for_dispatch",
+  "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1765358741686,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765781335890,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  1765781336
+]
+Values: [
+  159,
+  "ready_for_dispatch",
+  "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1765358741684,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1765781338864,\"source\":\"system\",\"is_active\":true}]",
+  1765781338
+]

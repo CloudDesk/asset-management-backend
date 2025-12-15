@@ -489,18 +489,18 @@ export declare const healthCheckResponseSchema: z.ZodObject<{
                 failure: string;
             }>;
         }, "strip", z.ZodTypeAny, {
+            baseUrl: string;
             merchantId: string;
             saltKey: string;
-            baseUrl: string;
             redirectUrls: {
                 status: string;
                 success: string;
                 failure: string;
             };
         }, {
+            baseUrl: string;
             merchantId: string;
             saltKey: string;
-            baseUrl: string;
             redirectUrls: {
                 status: string;
                 success: string;
@@ -514,9 +514,9 @@ export declare const healthCheckResponseSchema: z.ZodObject<{
         service: string;
         environment: string;
         configuration: {
+            baseUrl: string;
             merchantId: string;
             saltKey: string;
-            baseUrl: string;
             redirectUrls: {
                 status: string;
                 success: string;
@@ -530,9 +530,9 @@ export declare const healthCheckResponseSchema: z.ZodObject<{
         service: string;
         environment: string;
         configuration: {
+            baseUrl: string;
             merchantId: string;
             saltKey: string;
-            baseUrl: string;
             redirectUrls: {
                 status: string;
                 success: string;
@@ -552,9 +552,9 @@ export declare const healthCheckResponseSchema: z.ZodObject<{
         service: string;
         environment: string;
         configuration: {
+            baseUrl: string;
             merchantId: string;
             saltKey: string;
-            baseUrl: string;
             redirectUrls: {
                 status: string;
                 success: string;
@@ -573,9 +573,9 @@ export declare const healthCheckResponseSchema: z.ZodObject<{
         service: string;
         environment: string;
         configuration: {
+            baseUrl: string;
             merchantId: string;
             saltKey: string;
-            baseUrl: string;
             redirectUrls: {
                 status: string;
                 success: string;

@@ -2,6 +2,7 @@ import { buildServer } from './server.js';
 import { env } from './config/env.js';
 import { redisClient } from './config/redis.js';
 import { ekartAuthService } from './services/ekart-auth.service.js';
+import { prisma } from './models/prisma.js';
 
 // Global BigInt serialization fix
 (BigInt.prototype as any).toJSON = function () {
@@ -43,6 +44,7 @@ async function start() {
 
     fastify.log.info(`🚀 Server running at http://localhost:${env.PORT}`);
     fastify.log.info(`📚 API Documentation available at http://localhost:${env.PORT}/docs`);
+   
 
     // Graceful shutdown
     const signals = ['SIGINT', 'SIGTERM'];

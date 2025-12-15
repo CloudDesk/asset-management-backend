@@ -4,10 +4,6 @@ const envSchema = z.object({
     DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
     PORT: z.string().transform((val) => parseInt(val, 10)).default('8080'),
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-    // Firebase Configuration
-    FIREBASE_PROJECT_ID: z.string().min(1, 'FIREBASE_PROJECT_ID is required'),
-    FIREBASE_CLIENT_EMAIL: z.string().min(1, 'FIREBASE_CLIENT_EMAIL is required'),
-    FIREBASE_PRIVATE_KEY: z.string().min(1, 'FIREBASE_PRIVATE_KEY is required'),
     // JWT Secret for app sessions
     APP_JWT_SECRET: z.string().default('your-secret-key-change-this-in-production'),
     JWT_SECRET: z.string().optional(), // Alias for APP_JWT_SECRET
@@ -41,6 +37,10 @@ const envSchema = z.object({
     GCP_PROJECT_LOCATION: z.string().optional(),
     GCP_PROJECT_QUEUE: z.string().optional(),
     GCP_TASK_URL: z.string().optional(),
+    GCP_STORAGE_BUCKET: z.string().optional(),
+    SHIPPING_BUCKET: z.string().optional(),
+    // GCP Storage Backend (server 4500) - for file uploads
+    STORAGE_BACKEND_URL: z.string().optional().default('http://localhost:4500'),
     // Email Configuration
     GMAIL_SERVICE: z.string().optional().default('gmail'),
     GMAIL_HOST: z.string().optional().default('smtp.gmail.com'),
@@ -87,6 +87,15 @@ const envSchema = z.object({
     AMAZON_REDIRECT_URI: z.string().optional(),
     AWS_ACCESS_KEY_ID: z.string().optional(),
     AWS_SECRET_ACCESS_KEY: z.string().optional(),
+    // Ekart Logistics Configuration
+    EKART_CLIENT_ID: z.string().optional(),
+    EKART_USERNAME: z.string().optional(),
+    EKART_PASSWORD: z.string().optional(),
+    EKART_BASE_URL: z.string().optional().default('https://app.elite.ekartlogistics.in/api'),
+    // Seller Information (for EKART shipments)
+    SELLER_GST_TIN: z.string().optional(),
+    // Warehouse Pincode (fallback if EKART is unavailable)
+    WAREHOUSE_PINCODE: z.string().optional(), // 6-digit pincode as fallback
 });
 export const env = envSchema.parse(process.env);
 //# sourceMappingURL=env.js.map

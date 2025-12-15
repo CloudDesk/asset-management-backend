@@ -31,6 +31,10 @@ export async function productRoutes(fastify) {
                         type: "string",
                         description: "Filter by subcategory",
                     },
+                    subsubcategory: {
+                        type: "string",
+                        description: "Filter by sub-subcategory",
+                    },
                     Brand: {
                         type: "string",
                         description: "Filter by brand",
@@ -258,6 +262,11 @@ export async function productRoutes(fastify) {
                                         nullable: true,
                                         description: "Product subcategory",
                                     },
+                                    subsubcategory: {
+                                        type: "string",
+                                        nullable: true,
+                                        description: "Product sub-subcategory",
+                                    },
                                     // Deal of the day field
                                     isdealoftheday: {
                                         type: "boolean",
@@ -317,6 +326,27 @@ export async function productRoutes(fastify) {
                                         type: "string",
                                         nullable: true,
                                         description: "Item thickness",
+                                    },
+                                    // Product Dimensions & Weight (single unit)
+                                    length: {
+                                        type: "number",
+                                        nullable: true,
+                                        description: "Product length in cm (single unit)",
+                                    },
+                                    width: {
+                                        type: "number",
+                                        nullable: true,
+                                        description: "Product width in cm (single unit)",
+                                    },
+                                    height: {
+                                        type: "number",
+                                        nullable: true,
+                                        description: "Product height in cm (single unit)",
+                                    },
+                                    weight: {
+                                        type: "number",
+                                        nullable: true,
+                                        description: "Product weight in grams (single unit)",
                                     },
                                     purpose: {
                                         type: "string",
@@ -436,6 +466,11 @@ export async function productRoutes(fastify) {
                                     type: "string",
                                     nullable: true,
                                     description: "Product subcategory",
+                                },
+                                subsubcategory: {
+                                    type: "string",
+                                    nullable: true,
+                                    description: "Product sub-subcategory",
                                 },
                                 brand: {
                                     type: "string",
@@ -559,6 +594,27 @@ export async function productRoutes(fastify) {
                                     type: "string",
                                     nullable: true,
                                     description: "Item thickness",
+                                },
+                                // Product Dimensions & Weight (single unit)
+                                length: {
+                                    type: "number",
+                                    nullable: true,
+                                    description: "Product length in cm (single unit)",
+                                },
+                                width: {
+                                    type: "number",
+                                    nullable: true,
+                                    description: "Product width in cm (single unit)",
+                                },
+                                height: {
+                                    type: "number",
+                                    nullable: true,
+                                    description: "Product height in cm (single unit)",
+                                },
+                                weight: {
+                                    type: "number",
+                                    nullable: true,
+                                    description: "Product weight in grams (single unit)",
                                 },
                                 purpose: {
                                     type: "string",
@@ -686,6 +742,7 @@ export async function productRoutes(fastify) {
                     limit: { type: "string", description: "Items per page" },
                     category: { type: "string", description: "Filter by category" },
                     subcategory: { type: "string", description: "Filter by subcategory" },
+                    subsubcategory: { type: "string", description: "Filter by sub-subcategory" },
                     brand: { type: "string", description: "Filter by brand" },
                     minPrice: { type: "string", description: "Minimum price" },
                     maxPrice: { type: "string", description: "Maximum price" },
@@ -712,6 +769,7 @@ export async function productRoutes(fastify) {
                                     price: { type: "number", nullable: true, description: "Product price" },
                                     category: { type: "string", nullable: true, description: "Product category" },
                                     subcategory: { type: "string", nullable: true, description: "Product subcategory" },
+                                    subsubcategory: { type: "string", nullable: true, description: "Product sub-subcategory" },
                                     platformStock: {
                                         type: "object",
                                         nullable: true,
@@ -895,6 +953,11 @@ export async function productRoutes(fastify) {
                         maxLength: 255,
                         description: "Product subcategory",
                     },
+                    subsubcategory: {
+                        type: "string",
+                        maxLength: 255,
+                        description: "Product sub-subcategory",
+                    },
                     brand: {
                         type: "string",
                         maxLength: 255,
@@ -1018,6 +1081,11 @@ export async function productRoutes(fastify) {
                                     type: "string",
                                     nullable: true,
                                     description: "Product subcategory",
+                                },
+                                subsubcategory: {
+                                    type: "string",
+                                    nullable: true,
+                                    description: "Product sub-subcategory",
                                 },
                                 Brand: {
                                     type: "string",
@@ -1149,6 +1217,27 @@ export async function productRoutes(fastify) {
                                     nullable: true,
                                     description: "Item thickness",
                                 },
+                                // Product Dimensions & Weight (single unit)
+                                length: {
+                                    type: "number",
+                                    nullable: true,
+                                    description: "Product length in cm (single unit)",
+                                },
+                                width: {
+                                    type: "number",
+                                    nullable: true,
+                                    description: "Product width in cm (single unit)",
+                                },
+                                height: {
+                                    type: "number",
+                                    nullable: true,
+                                    description: "Product height in cm (single unit)",
+                                },
+                                weight: {
+                                    type: "number",
+                                    nullable: true,
+                                    description: "Product weight in grams (single unit)",
+                                },
                                 purpose: {
                                     type: "string",
                                     nullable: true,
@@ -1244,6 +1333,11 @@ export async function productRoutes(fastify) {
                         type: "string",
                         maxLength: 255,
                         description: "Product subcategory",
+                    },
+                    subsubcategory: {
+                        type: "string",
+                        maxLength: 255,
+                        description: "Product sub-subcategory",
                     },
                     Brand: {
                         type: "string",
@@ -1395,6 +1489,11 @@ export async function productRoutes(fastify) {
                                     nullable: true,
                                     description: "Product subcategory",
                                 },
+                                subsubcategory: {
+                                    type: "string",
+                                    nullable: true,
+                                    description: "Product sub-subcategory",
+                                },
                                 brand: {
                                     type: "string",
                                     nullable: true,
@@ -1516,6 +1615,27 @@ export async function productRoutes(fastify) {
                                     type: "string",
                                     nullable: true,
                                     description: "Item thickness",
+                                },
+                                // Product Dimensions & Weight (single unit)
+                                length: {
+                                    type: "number",
+                                    nullable: true,
+                                    description: "Product length in cm (single unit)",
+                                },
+                                width: {
+                                    type: "number",
+                                    nullable: true,
+                                    description: "Product width in cm (single unit)",
+                                },
+                                height: {
+                                    type: "number",
+                                    nullable: true,
+                                    description: "Product height in cm (single unit)",
+                                },
+                                weight: {
+                                    type: "number",
+                                    nullable: true,
+                                    description: "Product weight in grams (single unit)",
                                 },
                                 purpose: {
                                     type: "string",
@@ -1834,6 +1954,11 @@ export async function productRoutes(fastify) {
                         maxLength: 255,
                         description: "Product subcategory",
                     },
+                    subsubcategory: {
+                        type: "string",
+                        maxLength: 255,
+                        description: "Product sub-subcategory",
+                    },
                     brand: {
                         type: "string",
                         maxLength: 255,
@@ -1987,6 +2112,11 @@ export async function productRoutes(fastify) {
                                             nullable: true,
                                             description: "Product subcategory",
                                         },
+                                        subsubcategory: {
+                                            type: "string",
+                                            nullable: true,
+                                            description: "Product sub-subcategory",
+                                        },
                                         brand: {
                                             type: "string",
                                             nullable: true,
@@ -2108,6 +2238,27 @@ export async function productRoutes(fastify) {
                                             type: "string",
                                             nullable: true,
                                             description: "Item thickness",
+                                        },
+                                        // Product Dimensions & Weight (single unit)
+                                        length: {
+                                            type: "number",
+                                            nullable: true,
+                                            description: "Product length in cm (single unit)",
+                                        },
+                                        width: {
+                                            type: "number",
+                                            nullable: true,
+                                            description: "Product width in cm (single unit)",
+                                        },
+                                        height: {
+                                            type: "number",
+                                            nullable: true,
+                                            description: "Product height in cm (single unit)",
+                                        },
+                                        weight: {
+                                            type: "number",
+                                            nullable: true,
+                                            description: "Product weight in grams (single unit)",
                                         },
                                         purpose: {
                                             type: "string",

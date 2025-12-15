@@ -145,6 +145,18 @@ export async function phonePeRoutes(fastify) {
                         ],
                         additionalProperties: false,
                     },
+                    shippingCost: {
+                        type: "number",
+                        minimum: 0,
+                        default: 0,
+                        description: "Shipping cost in INR (optional, defaults to 0)",
+                    },
+                    taxAmount: {
+                        type: "number",
+                        minimum: 0,
+                        default: 0,
+                        description: "Tax amount in INR (optional, defaults to 0)",
+                    },
                 },
                 required: ["mode", "order", "transaction"],
                 additionalProperties: false,
@@ -612,6 +624,7 @@ export async function phonePeRoutes(fastify) {
                 catch (orderError) {
                     orderCreationStatus = "failed";
                     orderCreationError = orderError.message;
+                    fastify.log.error(orderError, "Error creating order for transaction");
                     fastify.log.error(`Error creating order for transaction: ${transactionId}`, {
                         error: orderError.message,
                         stack: orderError.stack,

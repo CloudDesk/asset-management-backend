@@ -413,7 +413,7 @@ export class PicklistService {
     fieldnameOrder: 'ASC' | 'DESC' = 'ASC',
     limit: number = 1000
   ): Promise<{
-    grouped?: Record<string, any[] | Record<string, any[]>>;
+    grouped?: Record<string, any[] | Record<string, any[] | Record<string, any[]>>>;
     flat?: any[];
     meta: {
       object?: string;
@@ -542,11 +542,18 @@ export class PicklistService {
       // If grouping is requested, group by fieldname (and optionally by parent)
       if (groupByFieldname) {
         if (groupByParent) {
-          // Nested grouping: fieldname -> parent -> items
-          const grouped: Record<string, Record<string, any[]>> = {};
+          // Nested grouping: fieldname -> controlledfieldname -> parent -> items
+          // This allows items with same parent but different controlledfieldname to be in separate sections
+          const grouped: Record<string, Record<string, Record<string, any[]>>> = {};
           
           for (const picklist of formattedPicklists) {
             const fieldName = picklist.fieldname || 'unknown';
+            // Handle null, empty string, or undefined controlledfieldname values
+            const controlledFieldName = picklist.controlledfieldname;
+            const controlledFieldKey = (controlledFieldName && String(controlledFieldName).trim() !== '') 
+              ? String(controlledFieldName) 
+              : 'null';
+            
             // Handle null, empty string, or undefined parent values
             const parentValue = picklist.parent;
             const parentKey = (parentValue && String(parentValue).trim() !== '') 
@@ -556,27 +563,33 @@ export class PicklistService {
             if (!grouped[fieldName]) {
               grouped[fieldName] = {};
             }
-            if (!grouped[fieldName][parentKey]) {
-              grouped[fieldName][parentKey] = [];
+            if (!grouped[fieldName][controlledFieldKey]) {
+              grouped[fieldName][controlledFieldKey] = {};
             }
-            grouped[fieldName][parentKey].push(picklist);
+            if (!grouped[fieldName][controlledFieldKey][parentKey]) {
+              grouped[fieldName][controlledFieldKey][parentKey] = [];
+            }
+            grouped[fieldName][controlledFieldKey][parentKey].push(picklist);
           }
 
           // Sort each parent group by sortorder
           for (const fieldName in grouped) {
             const fieldGroup = grouped[fieldName];
-            for (const parentKey in fieldGroup) {
-              const parentGroup = fieldGroup[parentKey];
-              if (parentGroup && parentGroup.length > 0) {
-                parentGroup.sort((a, b) => {
-                  const aSort = a.sortorder ?? Number.MAX_SAFE_INTEGER;
-                  const bSort = b.sortorder ?? Number.MAX_SAFE_INTEGER;
-                  if (sortorder === 'ASC') {
-                    return aSort - bSort;
-                  } else {
-                    return bSort - aSort;
-                  }
-                });
+            for (const controlledFieldKey in fieldGroup) {
+              const controlledFieldGroup = fieldGroup[controlledFieldKey];
+              for (const parentKey in controlledFieldGroup) {
+                const parentGroup = controlledFieldGroup[parentKey];
+                if (parentGroup && parentGroup.length > 0) {
+                  parentGroup.sort((a, b) => {
+                    const aSort = a.sortorder ?? Number.MAX_SAFE_INTEGER;
+                    const bSort = b.sortorder ?? Number.MAX_SAFE_INTEGER;
+                    if (sortorder === 'ASC') {
+                      return aSort - bSort;
+                    } else {
+                      return bSort - aSort;
+                    }
+                  });
+                }
               }
             }
           }
