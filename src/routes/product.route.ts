@@ -757,6 +757,34 @@ export async function productRoutes(fastify: FastifyInstance) {
                           required: ["name", "puc"],
                           additionalProperties: false,
                         },
+                        platformStock: {
+                          type: "object",
+                          nullable: true,
+                          properties: {
+                            availableqty: {
+                              type: "number",
+                              description: "Available quantity for nivapp platform",
+                            },
+                            lockqty: {
+                              type: "number",
+                              description: "Lock quantity for nivapp platform",
+                            },
+                            orderedqty: {
+                              type: "number",
+                              description: "Ordered quantity for nivapp platform",
+                            },
+                            soldqty: {
+                              type: "number",
+                              description: "Sold quantity for nivapp platform",
+                            },
+                            platformstatus: {
+                              type: "string",
+                              nullable: true,
+                              description: "Platform stock status for nivapp platform",
+                            },
+                          },
+                          description: "Platform stock data for nivapp platform (fetched by componentproductid and platform=nivapp)",
+                        },
                       },
                       required: ["componentproductid", "requiredqty", "isactive", "product"],
                       additionalProperties: false,
@@ -898,20 +926,88 @@ export async function productRoutes(fastify: FastifyInstance) {
                   category: { type: "string", nullable: true, description: "Product category" },
                   subcategory: { type: "string", nullable: true, description: "Product subcategory" },
                   subsubcategory: { type: "string", nullable: true, description: "Product sub-subcategory" },
-                  platformStock: {
-                    type: "object",
+                  // Combo Pack Support
+                  iscombo: {
+                    type: "boolean",
                     nullable: true,
-                    properties: {
-                      id: { type: "number", description: "Platform Stock ID" },
-                      platform: { type: "string", description: "Platform name" },
-                      availableqty: { type: "number", description: "Available quantity" },
-                      platformstatus: { type: "string", description: "Platform stock status" },
-                      soldqty: { type: "number", description: "Sold quantity" },
-                      totalqty: { type: "number", description: "Total quantity" },
-                      orderedqty: { type: "number", description: "Ordered quantity" },
-                      lockqty: { type: "number", description: "Lock quantity" },
+                    description: "Is this a combo product?",
+                  },
+                  combotype: {
+                    type: "string",
+                    nullable: true,
+                    description: "Combo type: 'fixed' or 'dynamic'",
+                  },
+                  components: {
+                    type: "array",
+                    nullable: true,
+                    description: "Component products (only present if iscombo is true)",
+                    items: {
+                      type: "object",
+                      properties: {
+                        componentproductid: {
+                          oneOf: [
+                            { type: "string", pattern: "^\\d+$" },
+                            { type: "number" },
+                          ],
+                          description: "Component product ID",
+                        },
+                        requiredqty: {
+                          type: "integer",
+                          description: "Quantity of this component needed per combo",
+                        },
+                        isactive: {
+                          type: "boolean",
+                          description: "Is this component active?",
+                        },
+                        product: {
+                          type: "object",
+                          properties: {
+                            name: {
+                              type: "string",
+                              nullable: true,
+                              description: "Component product name",
+                            },
+                            puc: {
+                              type: "string",
+                              nullable: true,
+                              description: "Component product PUC code",
+                            },
+                          },
+                          required: ["name", "puc"],
+                          additionalProperties: false,
+                        },
+                        platformStock: {
+                          type: "object",
+                          nullable: true,
+                          properties: {
+                            availableqty: {
+                              type: "number",
+                              description: "Available quantity for nivapp platform",
+                            },
+                            lockqty: {
+                              type: "number",
+                              description: "Lock quantity for nivapp platform",
+                            },
+                            orderedqty: {
+                              type: "number",
+                              description: "Ordered quantity for nivapp platform",
+                            },
+                            soldqty: {
+                              type: "number",
+                              description: "Sold quantity for nivapp platform",
+                            },
+                            platformstatus: {
+                              type: "string",
+                              nullable: true,
+                              description: "Platform stock status for nivapp platform",
+                            },
+                          },
+                          description: "Platform stock data for nivapp platform (fetched by componentproductid and platform=nivapp)",
+                        },
+                      },
+                      required: ["componentproductid", "requiredqty", "isactive", "product"],
+                      additionalProperties: false,
                     },
-                    description: "Platform stock data (single object since each product-platform combination is unique)",
                   },
                 },
                 additionalProperties: true,
@@ -992,22 +1088,88 @@ export async function productRoutes(fastify: FastifyInstance) {
                 price: { type: "number", nullable: true, description: "Product price" },
                 category: { type: "string", nullable: true, description: "Product category" },
                 subcategory: { type: "string", nullable: true, description: "Product subcategory" },
-                platformStock: {
-                  type: "object",
+                // Combo Pack Support
+                iscombo: {
+                  type: "boolean",
                   nullable: true,
-                  properties: {
-                    id: { type: "number", description: "Platform Stock ID" },
-                    platform: { type: "string", description: "Platform name" },
-                    availableqty: { type: "number", description: "Available quantity" },
-                    platformstatus: { type: "string", description: "Platform stock status" },
-                    soldqty: { type: "number", description: "Sold quantity" },
-                    totalqty: { type: "number", description: "Total quantity" },
-                    orderedqty: { type: "number", description: "Ordered quantity" },
-                    lockqty: { type: "number", description: "Lock quantity" },
-                    createddate: { type: "number", nullable: true, description: "Creation timestamp" },
-                    modifieddate: { type: "number", nullable: true, description: "Modification timestamp" },
+                  description: "Is this a combo product?",
+                },
+                combotype: {
+                  type: "string",
+                  nullable: true,
+                  description: "Combo type: 'fixed' or 'dynamic'",
+                },
+                components: {
+                  type: "array",
+                  nullable: true,
+                  description: "Component products (only present if iscombo is true)",
+                  items: {
+                    type: "object",
+                    properties: {
+                      componentproductid: {
+                        oneOf: [
+                          { type: "string", pattern: "^\\d+$" },
+                          { type: "number" },
+                        ],
+                        description: "Component product ID",
+                      },
+                      requiredqty: {
+                        type: "integer",
+                        description: "Quantity of this component needed per combo",
+                      },
+                      isactive: {
+                        type: "boolean",
+                        description: "Is this component active?",
+                      },
+                      product: {
+                        type: "object",
+                        properties: {
+                          name: {
+                            type: "string",
+                            nullable: true,
+                            description: "Component product name",
+                          },
+                          puc: {
+                            type: "string",
+                            nullable: true,
+                            description: "Component product PUC code",
+                          },
+                        },
+                        required: ["name", "puc"],
+                        additionalProperties: false,
+                      },
+                      platformStock: {
+                        type: "object",
+                        nullable: true,
+                        properties: {
+                          availableqty: {
+                            type: "number",
+                            description: "Available quantity for nivapp platform",
+                          },
+                          lockqty: {
+                            type: "number",
+                            description: "Lock quantity for nivapp platform",
+                          },
+                          orderedqty: {
+                            type: "number",
+                            description: "Ordered quantity for nivapp platform",
+                          },
+                          soldqty: {
+                            type: "number",
+                            description: "Sold quantity for nivapp platform",
+                          },
+                          platformstatus: {
+                            type: "string",
+                            nullable: true,
+                            description: "Platform stock status for nivapp platform",
+                          },
+                        },
+                        description: "Platform stock data for nivapp platform (fetched by componentproductid and platform=nivapp)",
+                      },
+                    },
+                    required: ["componentproductid", "requiredqty", "isactive", "product"],
+                    additionalProperties: false,
                   },
-                  description: "Platform stock data (single object since each product-platform combination is unique)",
                 },
               },
               additionalProperties: true,

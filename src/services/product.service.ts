@@ -77,10 +77,44 @@ export class ProductService {
             }
           });
 
+          // Get all unique component product IDs
+          const componentProductIds = [...new Set(allComponents.map((comp: any) => comp.componentproductid))];
+
+          // Batch fetch platform stock for all component products (nivapp platform)
+          const componentPlatformStocks = componentProductIds.length > 0
+            ? await prisma.platformStock.findMany({
+                where: {
+                  productid: { in: componentProductIds.map((id: any) => BigInt(id)) },
+                  platform: 'nivapp'
+                },
+                select: {
+                  productid: true,
+                  availableqty: true,
+                  lockqty: true,
+                  orderedqty: true,
+                  soldqty: true,
+                  platformstatus: true,
+                }
+              })
+            : [];
+
+          // Create a map of component product ID to platform stock
+          const platformStockMap = new Map();
+          componentPlatformStocks.forEach((ps: any) => {
+            platformStockMap.set(ps.productid.toString(), {
+              availableqty: ps.availableqty,
+              lockqty: ps.lockqty || 0,
+              orderedqty: ps.orderedqty,
+              soldqty: ps.soldqty,
+              platformstatus: ps.platformstatus,
+            });
+          });
+
           // Group components by bundleproductid
           const componentsByBundle: Record<string, any[]> = {};
           allComponents.forEach((comp: any) => {
             const bundleId = comp.bundleproductid.toString();
+            const componentId = comp.componentproductid.toString();
             if (!componentsByBundle[bundleId]) {
               componentsByBundle[bundleId] = [];
             }
@@ -91,7 +125,8 @@ export class ProductService {
               product: {
                 name: comp.componentproduct?.name || null,
                 puc: comp.componentproduct?.puc || null,
-              }
+              },
+              platformStock: platformStockMap.get(componentId) || null,
             });
           });
 
@@ -253,6 +288,120 @@ async findManyForPlatform(
       }),
       prisma.product.count({ where: whereClause }),
     ]);
+
+    // Fetch components for combo products
+    const comboProductIds = products
+      .filter((p: any) => p.iscombo === true)
+      .map((p: any) => BigInt(p.id));
+
+    if (comboProductIds.length > 0) {
+      try {
+        // Batch fetch all components for all combo products with product details
+        const allComponents = await (prisma as any).productBundleMap.findMany({
+          where: {
+            bundleproductid: {
+              in: comboProductIds
+            }
+          },
+          select: {
+            bundleproductid: true,
+            componentproductid: true,
+            requiredqty: true,
+            isactive: true,
+            componentproduct: {
+              select: {
+                name: true,
+                puc: true,
+              }
+            }
+          },
+          orderBy: {
+            id: 'asc',
+          }
+        });
+
+        // Get all unique component product IDs
+        const componentProductIds = [...new Set(allComponents.map((comp: any) => comp.componentproductid))];
+
+        // Batch fetch platform stock for all component products (nivapp platform)
+        const componentPlatformStocks = componentProductIds.length > 0
+          ? await prisma.platformStock.findMany({
+              where: {
+                productid: { in: componentProductIds.map((id: any) => BigInt(id)) },
+                platform: 'nivapp'
+              },
+              select: {
+                productid: true,
+                availableqty: true,
+                lockqty: true,
+                orderedqty: true,
+                soldqty: true,
+                platformstatus: true,
+              }
+            })
+          : [];
+
+        // Create a map of component product ID to platform stock
+        const platformStockMap = new Map();
+        componentPlatformStocks.forEach((ps: any) => {
+          platformStockMap.set(ps.productid.toString(), {
+            availableqty: ps.availableqty,
+            lockqty: ps.lockqty || 0,
+            orderedqty: ps.orderedqty,
+            soldqty: ps.soldqty,
+            platformstatus: ps.platformstatus,
+          });
+        });
+
+        // Group components by bundleproductid
+        const componentsByBundle: Record<string, any[]> = {};
+        allComponents.forEach((comp: any) => {
+          const bundleId = comp.bundleproductid.toString();
+          const componentId = comp.componentproductid.toString();
+          if (!componentsByBundle[bundleId]) {
+            componentsByBundle[bundleId] = [];
+          }
+          componentsByBundle[bundleId].push({
+            componentproductid: Number(comp.componentproductid),
+            requiredqty: comp.requiredqty,
+            isactive: comp.isactive,
+            product: {
+              name: comp.componentproduct?.name || null,
+              puc: comp.componentproduct?.puc || null,
+            },
+            platformStock: platformStockMap.get(componentId) || null,
+          });
+        });
+
+        // Attach components to combo products
+        products.forEach((product: any) => {
+          if (product.iscombo === true) {
+            const productId = product.id.toString();
+            product.components = componentsByBundle[productId] || [];
+          }
+        });
+
+        logger.info({
+          comboProductCount: comboProductIds.length,
+          totalComponents: allComponents.length,
+          platform
+        }, 'Combo product components fetched successfully for platform');
+      } catch (componentError: any) {
+        logger.error(
+          {
+            error: componentError?.message,
+            platform,
+          },
+          'Failed to fetch combo product components in findManyForPlatform'
+        );
+        // Don't fail the request, just set empty arrays
+        products.forEach((product: any) => {
+          if (product.iscombo === true) {
+            product.components = [];
+          }
+        });
+      }
+    }
     
     return {
       data: products,
@@ -297,6 +446,97 @@ async findByIdForPlatform(id: string, platform: string): Promise<any> {
     
     if (!product) {
       throw new Error(`Product with ID ${id} not found`);
+    }
+
+    // If product is a combo, fetch component details from productbundlemap
+    if ((product as any).iscombo === true) {
+      try {
+        const bundleProductId = BigInt(product.id);
+        const components = await (prisma as any).productBundleMap.findMany({
+          where: {
+            bundleproductid: bundleProductId,
+          },
+          select: {
+            componentproductid: true,
+            requiredqty: true,
+            isactive: true,
+            componentproduct: {
+              select: {
+                name: true,
+                puc: true,
+              }
+            }
+          },
+          orderBy: {
+            id: 'asc', // Consistent ordering
+          }
+        });
+
+        // Get component product IDs
+        const componentProductIds = components.map((comp: any) => comp.componentproductid);
+
+        // Fetch platform stock for all component products (nivapp platform)
+        const componentPlatformStocks = componentProductIds.length > 0
+          ? await prisma.platformStock.findMany({
+              where: {
+                productid: { in: componentProductIds.map((id: any) => BigInt(id)) },
+                platform: 'nivapp'
+              },
+              select: {
+                productid: true,
+                availableqty: true,
+                lockqty: true,
+                orderedqty: true,
+                soldqty: true,
+                platformstatus: true,
+              }
+            })
+          : [];
+
+        // Create a map of component product ID to platform stock
+        const platformStockMap = new Map();
+        componentPlatformStocks.forEach((ps: any) => {
+          platformStockMap.set(ps.productid.toString(), {
+            availableqty: ps.availableqty,
+            lockqty: ps.lockqty || 0,
+            orderedqty: ps.orderedqty,
+            soldqty: ps.soldqty,
+            platformstatus: ps.platformstatus,
+          });
+        });
+
+        // Convert BigInt to number and include product details and platform stock
+        (product as any).components = components.map((comp: any) => {
+          const componentId = comp.componentproductid.toString();
+          return {
+            componentproductid: Number(comp.componentproductid),
+            requiredqty: comp.requiredqty,
+            isactive: comp.isactive,
+            product: {
+              name: comp.componentproduct?.name || null,
+              puc: comp.componentproduct?.puc || null,
+            },
+            platformStock: platformStockMap.get(componentId) || null,
+          };
+        });
+
+        logger.info({ 
+          productId: id,
+          platform,
+          componentCount: components.length 
+        }, 'Combo product components fetched successfully for platform');
+      } catch (componentError: any) {
+        logger.error(
+          {
+            error: componentError?.message,
+            productId: id,
+            platform,
+          },
+          'Failed to fetch combo product components in findByIdForPlatform'
+        );
+        // Don't fail the request, just set empty array
+        (product as any).components = [];
+      }
     }
     
     return product;
@@ -430,12 +670,11 @@ console.log(data);
         throw new Error('Failed to create product - no valid fields provided');
       }
 
-      // Skip platform stock creation for combo products (they're virtual, no physical stock)
-      // Combo availability is calculated dynamically from components
-      if (!isCombo) {
-        try {
-          await this.createDefaultPlatformStocks(product.id);
-        } catch (platformStockError: any) {
+      // Create platform stock for ALL products (including combo products)
+      // Combo products still need platform stock records for tracking, even though availability is calculated dynamically
+      try {
+        await this.createDefaultPlatformStocks(product.id);
+      } catch (platformStockError: any) {
         logger.error(
           {
             error: platformStockError?.message,
@@ -456,8 +695,7 @@ console.log(data);
           );
         }
 
-          throw platformStockError;
-        }
+        throw platformStockError;
       }
 
       // Create combo bundle map entries if this is a combo product

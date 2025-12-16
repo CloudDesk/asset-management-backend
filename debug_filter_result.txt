@@ -166869,3 +166869,422 @@ Filtered data result: {
   "createddate": 1765860025996,
   "modifieddate": 1765860025996
 }
+Filtered data result: {
+  "name": "New Combo - Incense sticks - Kasturi, Spiritual Harmony",
+  "category": "home_fragrance",
+  "subcategory": "incense",
+  "subsubcategory": "incense_sticks",
+  "fragnancetype": "kasturi,spiritual_harmony",
+  "brand": "New Combo",
+  "pack": "pack_of_2",
+  "price": 500,
+  "discount": 0,
+  "isdealoftheday": false,
+  "iscombo": true,
+  "combotype": "fixed",
+  "purpose": "Enhance living spaces",
+  "quantity": 0,
+  "availablequantity": 0,
+  "ecompublishedquantity": 0
+}
+Filtered data result: {
+  "bundleproductid": 84,
+  "componentproductid": 47,
+  "requiredqty": 1,
+  "isactive": true,
+  "createddate": 1765869807731,
+  "modifieddate": 1765869807731
+}
+Filtered data result: {
+  "bundleproductid": 84,
+  "componentproductid": 40,
+  "requiredqty": 1,
+  "isactive": true,
+  "createddate": 1765869807731,
+  "modifieddate": 1765869807731
+}
+Filtered data result: {
+  "name": "New Combo - Incense sticks - Kasturi, Spiritual Harmony",
+  "category": "home_fragrance",
+  "subcategory": "incense",
+  "subsubcategory": "incense_sticks",
+  "fragnancetype": "kasturi,spiritual_harmony",
+  "brand": "New Combo",
+  "pack": "pack_of_2",
+  "price": 500,
+  "discount": 0,
+  "isdealoftheday": false,
+  "iscombo": true,
+  "combotype": "fixed",
+  "purpose": "Enhance living spaces",
+  "quantity": 0,
+  "availablequantity": 0,
+  "ecompublishedquantity": 0
+}
+Filtered data result: {
+  "productid": 85,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtered data result: {
+  "productid": 85,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtered data result: {
+  "productid": 85,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtered data result: {
+  "bundleproductid": 85,
+  "componentproductid": 47,
+  "requiredqty": 1,
+  "isactive": true,
+  "createddate": 1765870213780,
+  "modifieddate": 1765870213780
+}
+Filtered data result: {
+  "bundleproductid": 85,
+  "componentproductid": 40,
+  "requiredqty": 1,
+  "isactive": true,
+  "createddate": 1765870213780,
+  "modifieddate": 1765870213780
+}
+Filtered data result: {
+  "name": "NIVAANA - Incense sticks - Royal Sandal",
+  "category": "home_fragrance",
+  "subcategory": "incense",
+  "subsubcategory": "incense_sticks",
+  "fragnancetype": "royal_sandal",
+  "brand": "NIVAANA",
+  "pack": "single",
+  "price": 150,
+  "discount": 0,
+  "isdealoftheday": false,
+  "iscombo": false,
+  "combotype": "fixed",
+  "purpose": "Enhance living spaces"
+}
+Filtered data result: {
+  "productid": 86,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtered data result: {
+  "productid": 86,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtered data result: {
+  "productid": 86,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtered data result: {
+  "name": "NIVAANA - Incense sticks - First Rains",
+  "category": "home_fragrance",
+  "subcategory": "incense",
+  "subsubcategory": "incense_sticks",
+  "fragnancetype": "first_rains",
+  "brand": "NIVAANA",
+  "pack": "single",
+  "price": 150,
+  "discount": 0,
+  "isdealoftheday": false,
+  "iscombo": false,
+  "combotype": "fixed",
+  "purpose": "Enhance living spaces"
+}
+Filtered data result: {
+  "productid": 87,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtered data result: {
+  "productid": 87,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtered data result: {
+  "productid": 87,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtered data result: {
+  "puc": "NIV-0087",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "NIV-0087",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "NIV-0087",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "NIV-0087",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "NIV-0087",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "NIV-0087",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "quantity": 5,
+  "availablequantity": 5,
+  "soldquantity": 0,
+  "ecompublishedquantity": 5,
+  "productstatus": "low_stock",
+  "modifieddate": 1765885045895
+}
+Filtered data result: {
+  "availableqty": 5,
+  "soldqty": 0,
+  "totalqty": 5,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "low_stock"
+}
+Filtered data result: {
+  "puc": "NIV-0086",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "NIV-0086",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "NIV-0086",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "NIV-0086",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "NIV-0086",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "NIV-0086",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "NIV-0086",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "NIV-0086",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "NIV-0086",
+  "platform": "nivapp",
+  "batchno": "07/0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "quantity": 8,
+  "availablequantity": 8,
+  "soldquantity": 0,
+  "ecompublishedquantity": 8,
+  "productstatus": "in_stock",
+  "modifieddate": 1765885105760
+}
+Filtered data result: {
+  "availableqty": 8,
+  "soldqty": 0,
+  "totalqty": 8,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Filtered data result: {
+  "name": "NIVAANA Combo - Incense sticks - First Rains, Royal Sandal",
+  "category": "home_fragrance",
+  "subcategory": "incense",
+  "subsubcategory": "incense_sticks",
+  "fragnancetype": "first_rains,royal_sandal",
+  "brand": "NIVAANA Combo",
+  "pack": "pack_of_2",
+  "price": 290,
+  "discount": 0,
+  "isdealoftheday": false,
+  "iscombo": true,
+  "combotype": "fixed",
+  "purpose": "Enhance living spaces",
+  "quantity": 0,
+  "availablequantity": 0,
+  "ecompublishedquantity": 0
+}
+Filtered data result: {
+  "productid": 88,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtered data result: {
+  "productid": 88,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtered data result: {
+  "productid": 88,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtered data result: {
+  "bundleproductid": 88,
+  "componentproductid": 87,
+  "requiredqty": 1,
+  "isactive": true,
+  "createddate": 1765888705734,
+  "modifieddate": 1765888705734
+}
+Filtered data result: {
+  "bundleproductid": 88,
+  "componentproductid": 86,
+  "requiredqty": 1,
+  "isactive": true,
+  "createddate": 1765888705734,
+  "modifieddate": 1765888705734
+}
