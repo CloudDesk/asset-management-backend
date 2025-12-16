@@ -167694,3 +167694,37 @@ Filtering data for platformstock (platformstock): {
   "platformstatus": "out_of_stock",
   "platform": "nivapp"
 }
+Filtering data for product (product): {
+  "name": "New Combo - Incense sticks - Kasturi, Spiritual Harmony",
+  "category": "home_fragrance",
+  "subcategory": "incense",
+  "subsubcategory": "incense_sticks",
+  "fragnancetype": "kasturi,spiritual_harmony",
+  "brand": "New Combo",
+  "pack": "pack_of_2",
+  "price": 500,
+  "discount": 0,
+  "isdealoftheday": false,
+  "iscombo": true,
+  "combotype": "fixed",
+  "purpose": "Enhance living spaces",
+  "quantity": 0,
+  "availablequantity": 0,
+  "ecompublishedquantity": 0
+}
+Filtering data for productbundlemap (productbundlemap): {
+  "bundleproductid": 83,
+  "componentproductid": 47,
+  "requiredqty": 1,
+  "isactive": true,
+  "createddate": 1765860025996,
+  "modifieddate": 1765860025996
+}
+Filtering data for productbundlemap (productbundlemap): {
+  "bundleproductid": 83,
+  "componentproductid": 40,
+  "requiredqty": 1,
+  "isactive": true,
+  "createddate": 1765860025996,
+  "modifieddate": 1765860025996
+}

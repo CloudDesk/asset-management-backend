@@ -379,6 +379,61 @@ export async function productRoutes(fastify: FastifyInstance) {
                       nullable: true,
                       description: "Target gender",
                     },
+                    // Combo Pack Support
+                    iscombo: {
+                      type: "boolean",
+                      nullable: true,
+                      description: "Is this a combo product?",
+                    },
+                    combotype: {
+                      type: "string",
+                      nullable: true,
+                      description: "Combo type: 'fixed' or 'dynamic'",
+                    },
+                    components: {
+                      type: "array",
+                      nullable: true,
+                      description: "Component products (only present if iscombo is true)",
+                      items: {
+                        type: "object",
+                        properties: {
+                          componentproductid: {
+                            oneOf: [
+                              { type: "string", pattern: "^\\d+$" },
+                              { type: "number" },
+                            ],
+                            description: "Component product ID",
+                          },
+                          requiredqty: {
+                            type: "integer",
+                            description: "Quantity of this component needed per combo",
+                          },
+                          isactive: {
+                            type: "boolean",
+                            description: "Is this component active?",
+                          },
+                          product: {
+                            type: "object",
+                            properties: {
+                              name: {
+                                type: "string",
+                                nullable: true,
+                                description: "Component product name",
+                              },
+                              puc: {
+                                type: "string",
+                                nullable: true,
+                                description: "Component product PUC code",
+                              },
+                            },
+                            required: ["name", "puc"],
+                            additionalProperties: false,
+                          },
+                        },
+                        required: ["componentproductid", "requiredqty", "isactive", "product"],
+                        additionalProperties: false,
+                      },
+                    },
                   },
                   additionalProperties: true, // Allow additional dynamic fields
                 },
@@ -651,6 +706,61 @@ export async function productRoutes(fastify: FastifyInstance) {
                     type: "string",
                     nullable: true,
                     description: "Target gender",
+                  },
+                  // Combo Pack Support
+                  iscombo: {
+                    type: "boolean",
+                    nullable: true,
+                    description: "Is this a combo product?",
+                  },
+                  combotype: {
+                    type: "string",
+                    nullable: true,
+                    description: "Combo type: 'fixed' or 'dynamic'",
+                  },
+                  components: {
+                    type: "array",
+                    nullable: true,
+                    description: "Component products (only present if iscombo is true)",
+                    items: {
+                      type: "object",
+                      properties: {
+                        componentproductid: {
+                          oneOf: [
+                            { type: "string", pattern: "^\\d+$" },
+                            { type: "number" },
+                          ],
+                          description: "Component product ID",
+                        },
+                        requiredqty: {
+                          type: "integer",
+                          description: "Quantity of this component needed per combo",
+                        },
+                        isactive: {
+                          type: "boolean",
+                          description: "Is this component active?",
+                        },
+                        product: {
+                          type: "object",
+                          properties: {
+                            name: {
+                              type: "string",
+                              nullable: true,
+                              description: "Component product name",
+                            },
+                            puc: {
+                              type: "string",
+                              nullable: true,
+                              description: "Component product PUC code",
+                            },
+                          },
+                          required: ["name", "puc"],
+                          additionalProperties: false,
+                        },
+                      },
+                      required: ["componentproductid", "requiredqty", "isactive", "product"],
+                      additionalProperties: false,
+                    },
                   },
                 },
                 additionalProperties: true, // Allow additional dynamic fields

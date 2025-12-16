@@ -46,12 +46,90 @@ export class ProductService {
         useAllColumns: true // Get all available columns
       });
 
+      // Fetch components for combo products
+      const comboProductIds = products
+        .filter((p: any) => p.iscombo === true)
+        .map((p: any) => BigInt(p.id));
+
+      if (comboProductIds.length > 0) {
+        try {
+          // Batch fetch all components for all combo products with product details
+          const allComponents = await (prisma as any).productBundleMap.findMany({
+            where: {
+              bundleproductid: {
+                in: comboProductIds
+              }
+            },
+            select: {
+              bundleproductid: true,
+              componentproductid: true,
+              requiredqty: true,
+              isactive: true,
+              componentproduct: {
+                select: {
+                  name: true,
+                  puc: true,
+                }
+              }
+            },
+            orderBy: {
+              id: 'asc',
+            }
+          });
+
+          // Group components by bundleproductid
+          const componentsByBundle: Record<string, any[]> = {};
+          allComponents.forEach((comp: any) => {
+            const bundleId = comp.bundleproductid.toString();
+            if (!componentsByBundle[bundleId]) {
+              componentsByBundle[bundleId] = [];
+            }
+            componentsByBundle[bundleId].push({
+              componentproductid: Number(comp.componentproductid),
+              requiredqty: comp.requiredqty,
+              isactive: comp.isactive,
+              product: {
+                name: comp.componentproduct?.name || null,
+                puc: comp.componentproduct?.puc || null,
+              }
+            });
+          });
+
+          // Attach components to combo products
+          products.forEach((product: any) => {
+            if (product.iscombo === true) {
+              const productId = product.id.toString();
+              product.components = componentsByBundle[productId] || [];
+            }
+          });
+
+          logger.info({
+            comboProductCount: comboProductIds.length,
+            totalComponents: allComponents.length
+          }, 'Combo product components fetched successfully');
+        } catch (componentError: any) {
+          logger.error(
+            {
+              error: componentError?.message,
+            },
+            'Failed to fetch combo product components in findMany'
+          );
+          // Don't fail the request, just set empty arrays
+          products.forEach((product: any) => {
+            if (product.iscombo === true) {
+              product.components = [];
+            }
+          });
+        }
+      }
+
       logger.info({
         productCount: products.length, 
         total,
         filtered: Object.keys(filters).length > 0,
         appliedFilters: Object.keys(filters),
-        availableFields: products.length > 0 ? Object.keys(products[0]) : []
+        availableFields: products.length > 0 ? Object.keys(products[0]) : [],
+        comboProductCount: comboProductIds.length
       }, 'Dynamic product findMany with filters completed');
 
       return createPaginationResult(products, total, page, limit);
@@ -71,9 +149,63 @@ export class ProductService {
         throw new Error('Product not found');
       }
 
+      // If product is a combo, fetch component details from productbundlemap
+      if ((product as any).iscombo === true) {
+        try {
+          const bundleProductId = BigInt(product.id);
+          const components = await (prisma as any).productBundleMap.findMany({
+            where: {
+              bundleproductid: bundleProductId,
+            },
+            select: {
+              componentproductid: true,
+              requiredqty: true,
+              isactive: true,
+              componentproduct: {
+                select: {
+                  name: true,
+                  puc: true,
+                }
+              }
+            },
+            orderBy: {
+              id: 'asc', // Consistent ordering
+            }
+          });
+
+          // Convert BigInt to number and include product details
+          (product as any).components = components.map((comp: any) => ({
+            componentproductid: Number(comp.componentproductid),
+            requiredqty: comp.requiredqty,
+            isactive: comp.isactive,
+            product: {
+              name: comp.componentproduct?.name || null,
+              puc: comp.componentproduct?.puc || null,
+            }
+          }));
+
+          logger.info({ 
+            productId: id,
+            componentCount: components.length 
+          }, 'Combo product components fetched successfully');
+        } catch (componentError: any) {
+          logger.error(
+            {
+              error: componentError?.message,
+              productId: id,
+            },
+            'Failed to fetch combo product components'
+          );
+          // Don't fail the request, just set empty array
+          (product as any).components = [];
+        }
+      }
+
       logger.debug({ 
         productId: id, 
-        availableFields: Object.keys(product) 
+        availableFields: Object.keys(product),
+        isCombo: (product as any).iscombo,
+        componentCount: (product as any).iscombo ? ((product as any).components?.length || 0) : 0
       }, 'Dynamic product findById completed');
 
       return product;
