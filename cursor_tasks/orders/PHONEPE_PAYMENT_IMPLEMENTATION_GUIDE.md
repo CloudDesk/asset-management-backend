@@ -1716,5 +1716,22 @@ After CALLBACK:
 
 ---
 
-*Last Updated: December 2024*
+*Last Updated: 10 December 2024*
 
+initiate phonepe
+
+platform stock => availableqty ↓  and lockqty ↑
+product. => no change 
+
+after callback 
+
+platform stock => availableqty (no change)  and lockqty ↓ and  orderedqty ↑
+product. => orderedquantity ↑, availablequantity ↓
+
+
+clean up task (when payment is not successful)
+
+PlatformStock
+availableqty ↑ (adds back the released quantity)
+lockqty ↓ (subtracts released quantity, floored at 0)
+orderedqty unchanged
