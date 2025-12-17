@@ -490,50 +490,65 @@ export class PhonePeController {
                 });
                 continue;
               }
-            } else {
-              // ========================================
-              // STEP 2A.2: SINGLE PRODUCT QUANTITY VALIDATION
-              // ========================================
-              // Check if product has sufficient overall available quantity
-              const productAvailableQty = product.availablequantity || 0;
-              if (productAvailableQty < requestedQuantity) {
-                const error = {
-                  productid: productId,
-                  productname: product.name,
-                  puc: product.puc,
-                  quantity: requestedQuantity,
-                  available: productAvailableQty,
-                  shortage: requestedQuantity - productAvailableQty,
-                  error: `Insufficient overall product quantity. Available: ${productAvailableQty}, Requested: ${requestedQuantity}`,
-                  error_code: "INSUFFICIENT_PRODUCT_QUANTITY",
-                };
-
-                logger.error(
-                  {
-                    productId,
-                    productname: product.name,
-                    requestedQuantity,
-                    productAvailableQty,
-                    shortage: requestedQuantity - productAvailableQty,
-                  },
-                  "Insufficient product overall quantity - payment blocked"
-                );
-
-                validationErrors.push(error);
-                continue;
-              }
 
               logger.info(
                 {
                   productId,
                   productname: product.name,
+                  platform: PLATFORM_NAME,
+                  requestedQuantity,
+                  status: "COMBO_VALIDATION_PASSED",
+                },
+                "Combo product validation passed - skipping platformstock check (combo products are virtual)"
+              );
+
+              // ✅ SKIP platformstock check for combo products
+              // Combo products don't have their own stock - only components do
+              continue;
+            }
+
+            // ========================================
+            // STEP 2A.2: SINGLE PRODUCT QUANTITY VALIDATION
+            // ========================================
+            // Check if product has sufficient overall available quantity
+            const productAvailableQty = product.availablequantity || 0;
+            if (productAvailableQty < requestedQuantity) {
+              const error = {
+                productid: productId,
+                productname: product.name,
+                puc: product.puc,
+                quantity: requestedQuantity,
+                available: productAvailableQty,
+                shortage: requestedQuantity - productAvailableQty,
+                error: `Insufficient overall product quantity. Available: ${productAvailableQty}, Requested: ${requestedQuantity}`,
+                error_code: "INSUFFICIENT_PRODUCT_QUANTITY",
+              };
+
+              logger.error(
+                {
+                  productId,
+                  productname: product.name,
                   requestedQuantity,
                   productAvailableQty,
-                  status: "PRODUCT_VALIDATED",
+                  shortage: requestedQuantity - productAvailableQty,
                 },
-                "Product overall quantity validation passed"
+                "Insufficient product overall quantity - payment blocked"
               );
+
+              validationErrors.push(error);
+              continue;
             }
+
+            logger.info(
+              {
+                productId,
+                productname: product.name,
+                requestedQuantity,
+                productAvailableQty,
+                status: "PRODUCT_VALIDATED",
+              },
+              "Product overall quantity validation passed"
+            );
 
             // STEP 2B: Validate PlatformStock for NIVAPP
             const platformStock = await prisma.platformStock.findUnique({
