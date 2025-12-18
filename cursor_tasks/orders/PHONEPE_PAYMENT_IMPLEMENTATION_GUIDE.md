@@ -43,13 +43,15 @@ This document provides a single source of truth for the PhonePe payment integrat
 {
   mode: 'phonepe' | 'cod',           // Payment mode
   evaluation_ids?: string[],          // Promotion evaluation IDs (optional)
+  shippingCost: number,               // Total shipping cost
+  taxAmount: number,                  // Total tax amount (if pre-calculated)
   order: [                            // Array of order items
     {
       addressid: number,              // Delivery address ID
       cartId: number,                 // Cart item ID
-      discountamount: number,         // Total discount on this item
-      orderamount: number,            // Final price after discount
-      productamount: number,          // Original product price
+      discountamount: number,         // ⚠️ PRODUCT discount TOTAL for this line item
+      orderamount: number,            // Final price after discount (productamount - discountamount)
+      productamount: number,          // ⚠️ ORIGINAL price PER UNIT (before any discounts)
       productcategory: string,        // Product category
       productid: number,              // Product ID
       productname: string,            // Product name
@@ -58,7 +60,7 @@ This document provides a single source of truth for the PhonePe payment integrat
     }
   ],
   transaction: {
-    amount: number,                   // Total transaction amount (INR)
+    amount: number,                   // Total transaction amount (INR, includes shipping)
     mobilenumber: string,             // 10-digit mobile number
     name: string,                     // Customer name/email
     productid: number[],              // Array of product IDs
@@ -67,6 +69,24 @@ This document provides a single source of truth for the PhonePe payment integrat
   }
 }
 ```
+
+**⚠️ CRITICAL FIELD SEMANTICS:**
+
+- **`order[].productamount`** = ORIGINAL price per unit (before any discounts)
+  - Example: Product costs ₹150, send `productamount: 150`
+  
+- **`order[].discountamount`** = TOTAL product discount for the line item
+  - Example: ₹10 off per unit, qty=2 → send `discountamount: 20`
+  - Example: ₹10 off, qty=1 → send `discountamount: 10`
+  - Example: No discount → send `discountamount: 0`
+  
+- **`order[].orderamount`** = Final price for line item after product discounts
+  - Formula: `(productamount × quantity) - discountamount`
+  - Example: ₹150 × 1 - ₹10 = ₹140
+
+- **`transaction.amount`** = Total amount to charge (includes all items + shipping)
+  - Formula: `Σ(order[].orderamount) + shippingCost`
+
 
 ---
 
@@ -454,20 +474,37 @@ This document provides a single source of truth for the PhonePe payment integrat
 │  ─────────────────────────────────────────────────────────────────────  │
 │  For each item in originalOrderData:                                    │
 │  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │  ✅ PATH A: IF evaluationData EXISTS (with promotion/coupon)       │ │
+│  │  ────────────────────────────────────────────────────────────────  │ │
 │  │  // Get from evaluation cart_data                                  │ │
 │  │  originalPrice = base_price (per-unit, NOT multiplied)            │ │
 │  │  productDiscountAmount = product_discount × quantity (total)      │ │
+│  │  itemProductAmount = (basePrice × quantity) - productDiscount     │ │
 │  │                                                                    │ │
 │  │  // Get from applied_promotions.breakdown                          │ │
 │  │  promotionDiscountAmount = breakdown[productId].total_discount     │ │
 │  │                                                                    │ │
 │  │  // If no breakdown, use pro-rata distribution                     │ │
 │  │  promotionDiscountAmount = (promotionTotal × itemAmount) / total   │ │
+│  │  ────────────────────────────────────────────────────────────────  │ │
 │  │                                                                    │ │
-│  │  // Calculate shipping per item (pro-rata)                         │ │
+│  │  ✅ PATH B: ELSE (NO evaluationData - using request values)       │ │
+│  │  ────────────────────────────────────────────────────────────────  │ │
+│  │  // Extract from request payload                                   │ │
+│  │  rawProductAmount = item.productamount  // Original price per unit│ │
+│  │  rawDiscountAmount = item.discountamount  // Total product discount│ │
+│  │                                                                    │ │
+│  │  originalPrice = rawProductAmount  // Per-unit (NOT multiplied)   │ │
+│  │  productDiscountAmount = rawDiscountAmount  // Total for line     │ │
+│  │  itemProductAmount = (rawProductAmount × qty) - rawDiscountAmount │ │
+│  │  promotionDiscountAmount = 0  // No promotion                     │ │
+│  │  ────────────────────────────────────────────────────────────────  │ │
+│  │                                                                    │ │
+│  │  // Calculate shipping per item (pro-rata, after discounts)        │ │
 │  │  shippingCostForItem = (shippingTotal × itemAmount) / total        │ │
 │  │                                                                    │ │
 │  │  // Final item amounts                                             │ │
+│  │  productamount = itemProductAmount  // Total after product disc   │ │
 │  │  discountamount = productDiscount + promotionDiscount              │ │
 │  │  orderamount = productamount - promotionDiscountAmount             │ │
 │  └────────────────────────────────────────────────────────────────────┘ │
@@ -475,13 +512,14 @@ This document provides a single source of truth for the PhonePe payment integrat
 │  enrichedOrderItems[] = [                                               │
 │    {                                                                    │
 │      ...originalItem,                                                   │
-│      original_price,                                                    │
-│      product_discount_amount,                                           │
-│      promotion_discount_amount,                                         │
-│      shipping_cost,                                                     │
+│      productamount: itemProductAmount,  // ⚠️ TOTAL after product disc │
+│      original_price,                    // ⚠️ PER-UNIT                 │
+│      product_discount_amount,           // TOTAL                       │
+│      promotion_discount_amount,         // TOTAL                       │
+│      shipping_cost,                     // TOTAL (pro-rata)            │
 │      evaluation_id,                                                     │
-│      discountamount: recalculated,                                      │
-│      orderamount: recalculated                                          │
+│      discountamount: recalculated,      // TOTAL                       │
+│      orderamount: recalculated          // TOTAL (excludes shipping)   │
 │    }                                                                    │
 │  ]                                                                      │
 └─────────────────────────────────────────────────────────────────────────┘
