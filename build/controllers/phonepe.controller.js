@@ -1660,17 +1660,21 @@ export class PhonePeController {
                 return total + itemDiscount;
             }, 0);
             // If no cart items in originalPayload, calculate from order data
-            // ⚠️ CRITICAL: Based on user's expected values, productamount appears to be PER-UNIT
-            // So we need to multiply by quantity to get total
+            // ✅ FIX: productamount in request is ORIGINAL price per unit (before discount)
+            // discountamount in request is TOTAL discount for the line item
             if (originalTotal === 0 && originalOrderData.length > 0) {
                 originalTotal = originalOrderData.reduce((total, item) => {
                     const prodAmt = parseFloat(item.productamount?.toString() || "0");
                     const qty = parseInt(item.quantity?.toString() || "1");
-                    // productamount is per-unit, so multiply by quantity to get total
+                    // productamount is original price per-unit, so multiply by quantity to get total
                     return total + (prodAmt * qty);
                 }, 0);
-                // For order data, we might not have product discount info, so keep it 0
-                productDiscountTotal = 0;
+                // ✅ FIX: Extract product discount from order data
+                productDiscountTotal = originalOrderData.reduce((total, item) => {
+                    const disc = parseFloat(item.discountamount?.toString() || "0");
+                    // discountamount is already total for the line item
+                    return total + disc;
+                }, 0);
             }
             // Get shipping and tax from original payload
             shippingCost = parseFloat(transaction.transactiondata?.originalPayload?.shippingCost?.toString() ||
@@ -1759,6 +1763,7 @@ export class PhonePeController {
                 const productId = item.productid;
                 const quantity = parseInt(item.quantity?.toString() || '1');
                 const rawProductAmount = parseFloat(item.productamount?.toString() || '0');
+                const rawDiscountAmount = parseFloat(item.discountamount?.toString() || '0'); // ✅ FIX: Extract discount from request
                 // Initialize discount values
                 let productDiscountAmount = 0;
                 let promotionDiscountAmount = 0;
@@ -1855,61 +1860,68 @@ export class PhonePeController {
                     }
                 }
                 else {
-                    // Fallback: Pro-rata distribution if evaluationData not available
+                    // Fallback: Use values from request when evaluationData not available
                     logger.warn({
                         transactionId,
                         productId,
-                        message: "No evaluationData - using pro-rata distribution (less accurate)"
-                    }, "Falling back to pro-rata discount distribution");
-                    // ⚠️ CRITICAL: Based on user's expected values, productamount appears to be PER-UNIT
-                    // Example: productamount: 290, quantity: 2 → original_price should be 290, orderamount should be 580
-                    // This suggests: 
-                    // - productamount is per-unit price
-                    // - original_price = productamount (per-unit, stored as-is in orderline)
-                    // - orderamount = productamount × quantity (total for line item)
+                        message: "No evaluationData - using values from request payload"
+                    }, "Falling back to request payload values");
+                    // ✅ FIX: When no evaluationData, request provides:
+                    // - productamount: ORIGINAL price per unit (before discount)
+                    // - discountamount: Product discount amount (already total for line item)
+                    // - quantity: Quantity
+                    // Example from user's request:
+                    // productamount: 150, discountamount: 10, quantity: 1
+                    // → original_price = 150 (per-unit)
+                    // → product_discount_amount = 10 (total)
+                    // → itemProductAmount = (150 × 1) - 10 = 140 (total after discount)
                     // Calculate values for the line item
-                    const perUnitPrice = rawProductAmount; // productamount is per-unit
-                    originalPrice = perUnitPrice; // original_price = per-unit price (stored as-is, not multiplied)
-                    const totalProductAmountForLineItem = perUnitPrice * quantity; // Total for line item (per-unit × quantity)
+                    const perUnitPrice = rawProductAmount; // Original price per unit (before discount)
+                    originalPrice = perUnitPrice; // original_price = per-unit price
+                    productDiscountAmount = rawDiscountAmount; // ✅ FIX: Use discount from request (already total)
+                    const totalProductAmountForLineItem = (perUnitPrice * quantity) - productDiscountAmount; // Total after product discount
                     itemProductAmount = totalProductAmountForLineItem; // Total product amount for this line
-                    // Calculate total product amount across all items for pro-rata calculation
-                    // ✅ FIX: productamount from request is already TOTAL, not per-unit
+                    // For pro-rata promotion discount (if any at order level)
+                    // Calculate total product amount across all items
                     const totalProductAmountForProRata = originalOrderData
                         .filter((i) => validProductIds.includes(i.productid))
                         .reduce((sum, i) => {
-                        const prodAmt = parseFloat(i.productamount?.toString() || '0');
-                        // ✅ FIX: productamount is already total, use as-is (no need to multiply by quantity)
-                        return sum + prodAmt;
+                        const origPrice = parseFloat(i.productamount?.toString() || '0');
+                        const disc = parseFloat(i.discountamount?.toString() || '0');
+                        const qty = parseInt(i.quantity?.toString() || '1');
+                        // Total after discount for each item
+                        return sum + ((origPrice * qty) - disc);
                     }, 0);
-                    if (totalProductAmountForProRata > 0) {
+                    if (totalProductAmountForProRata > 0 && promotionDiscountTotal > 0) {
                         const proRataFactor = totalProductAmountForLineItem / totalProductAmountForProRata;
-                        productDiscountAmount = productDiscountTotal * proRataFactor;
                         promotionDiscountAmount = promotionDiscountTotal * proRataFactor;
                         logger.debug({
                             transactionId,
                             productId,
                             perUnitPrice,
                             quantity,
+                            rawDiscountAmount,
+                            calculatedProductDiscount: productDiscountAmount,
                             totalProductAmountForLineItem,
-                            productDiscountTotal,
                             promotionDiscountTotal,
                             totalProductAmountForProRata,
                             proRataFactor,
-                            calculatedProductDiscount: productDiscountAmount,
                             calculatedPromotionDiscount: promotionDiscountAmount,
                             calculatedOriginalPrice: originalPrice,
-                            note: 'productamount from request is TOTAL; original_price = productamount / quantity'
-                        }, "Calculated discounts using pro-rata distribution (no evaluationData)");
+                            note: 'Using request values: productamount=original price, discountamount=product discount'
+                        }, "Calculated discounts using request payload (no evaluationData)");
                     }
                 }
-                // Calculate pro-rata shipping cost based on product amount
-                // ✅ FIX: item.productamount from request is already TOTAL, not per-unit
+                // Calculate pro-rata shipping cost based on product amount (after discount)
+                // ✅ FIX: Use amount after product discount for fair pro-rata distribution
                 const totalProductAmountForShipping = originalOrderData
                     .filter((i) => validProductIds.includes(i.productid))
                     .reduce((sum, i) => {
-                    const prodAmt = parseFloat(i.productamount?.toString() || '0');
-                    // ✅ FIX: productamount is already total, use as-is
-                    return sum + prodAmt;
+                    const origPrice = parseFloat(i.productamount?.toString() || '0');
+                    const disc = parseFloat(i.discountamount?.toString() || '0');
+                    const qty = parseInt(i.quantity?.toString() || '1');
+                    // ✅ FIX: Use amount after discount
+                    return sum + ((origPrice * qty) - disc);
                 }, 0);
                 const shippingCostForItem = totalProductAmountForShipping > 0
                     ? (shippingCost * itemProductAmount) / totalProductAmountForShipping
@@ -2210,6 +2222,32 @@ export class PhonePeController {
                                 // Store PER-ITEM prices and discounts in maps
                                 originalPriceMap.set(productId, basePrice);
                                 productDiscountMap.set(productId, productDiscount); // Store per-item discount
+                            }
+                        });
+                    }
+                    else {
+                        // ✅ FIX: When no evaluationData, populate maps from originalOrderData (request payload)
+                        const originalOrderData = transaction.transactiondata?.originalPayload?.order || [];
+                        originalOrderData.forEach((orderItem) => {
+                            const productId = parseInt(orderItem.productid?.toString() || "0");
+                            if (productId > 0) {
+                                const productAmount = parseFloat(orderItem.productamount?.toString() || "0");
+                                const discountAmount = parseFloat(orderItem.discountamount?.toString() || "0");
+                                const quantity = parseInt(orderItem.quantity?.toString() || "1");
+                                // productamount in request is ORIGINAL price per unit (before discount)
+                                // discountamount in request is TOTAL discount for line item
+                                originalPriceMap.set(productId, productAmount); // Per-unit original price
+                                productDiscountMap.set(productId, discountAmount / quantity); // Per-unit discount
+                                logger.debug({
+                                    transactionId,
+                                    productId,
+                                    productAmount,
+                                    discountAmount,
+                                    quantity,
+                                    mappedOriginalPrice: productAmount,
+                                    mappedProductDiscount: discountAmount / quantity,
+                                    note: 'Populated maps from request payload (no evaluationData)'
+                                }, 'Using request values for orderline update');
                             }
                         });
                     }

@@ -5983,3 +5983,35 @@ Filtered data: {
 }
 Ignored fields: []
 
+PlatformStock filter debug:
+Input data: {
+  "availableqty": 62,
+  "soldqty": 0,
+  "totalqty": 113,
+  "orderedqty": 54,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Available columns: [
+  "id",
+  "productid",
+  "platform",
+  "availableqty",
+  "orderedqty",
+  "soldqty",
+  "totalqty",
+  "lockqty",
+  "createddate",
+  "modifieddate",
+  "platformstatus"
+]
+Filtered data: {
+  "availableqty": 62,
+  "soldqty": 0,
+  "totalqty": 113,
+  "orderedqty": 54,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Ignored fields: []
+
