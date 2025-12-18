@@ -372,6 +372,45 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                       product_discount_amount: { type: 'number', nullable: true },
                       promotion_discount_amount: { type: 'number', nullable: true },
                       shipping_cost: { type: 'number', nullable: true },
+                      iscombo: { 
+                        type: 'boolean', 
+                        nullable: true,
+                        description: 'True if this orderline is for a combo product'
+                      },
+                      components: {
+                        type: 'array',
+                        nullable: true,
+                        description: 'Component products (only present if iscombo is true)',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            componentproductid: { 
+                              type: 'number',
+                              description: 'Component product ID'
+                            },
+                            productname: { 
+                              type: 'string', 
+                              nullable: true,
+                              description: 'Component product name'
+                            },
+                            productcategory: { 
+                              type: 'string', 
+                              nullable: true,
+                              description: 'Component product category'
+                            },
+                            subcategory: { 
+                              type: 'string', 
+                              nullable: true,
+                              description: 'Component product subcategory'
+                            },
+                            requiredqty: { 
+                              type: 'number',
+                              description: 'Required quantity of this component per combo pack'
+                            }
+                          },
+                          required: ['componentproductid', 'requiredqty']
+                        }
+                      },
                       status_history: { 
                         type: 'array', 
                         nullable: true,

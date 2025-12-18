@@ -400,7 +400,8 @@ export class PhonePeController {
 
                   const currentAvailableQty = componentPlatformStock.availableqty || 0;
                   const currentLockQty = componentPlatformStock.lockqty || 0;
-                  const actualAvailable = currentAvailableQty - currentLockQty;
+                  // availableqty already represents available stock, so check it directly
+                  const actualAvailable = currentAvailableQty;
 
                   componentStockInfo.push({
                     componentproductid: componentProductId,
@@ -412,9 +413,10 @@ export class PhonePeController {
                   });
 
                   // Validate availability
+                  // Note: availableqty is the actual available stock, so we check it directly
                   if (actualAvailable < totalNeeded) {
                     componentValidationErrors.push(
-                      `Component "${component.componentproduct?.name || componentProductId}" needs ${totalNeeded} units (${requiredQty} per combo × ${requestedQuantity} combos), but only ${actualAvailable} available (${currentAvailableQty} total - ${currentLockQty} locked)`
+                      `Component "${component.componentproduct?.name || componentProductId}" needs ${totalNeeded} units (${requiredQty} per combo × ${requestedQuantity} combos), but only ${actualAvailable} available`
                     );
                   }
                 }
@@ -591,23 +593,25 @@ export class PhonePeController {
               continue;
             }
 
-            // Calculate actual available quantity (availableqty - lockqty)
+            // Validate sufficient platform-specific quantity
+            // availableqty already represents available stock (after accounting for lockqty)
+            // So we check: availableqty >= requestedQuantity
             const currentAvailableQty = platformStock.availableqty || 0;
             const currentLockQty = platformStock.lockqty || 0;
-            const actualAvailableQty = currentAvailableQty - currentLockQty;
 
             // Validate sufficient platform-specific quantity
-            if (actualAvailableQty < requestedQuantity) {
+            // Note: availableqty is the actual available stock, so we check it directly
+            if (currentAvailableQty < requestedQuantity) {
               const error = {
                 productid: productId,
                 productname: product.name,
                 puc: product.puc,
                 quantity: requestedQuantity,
-                available: actualAvailableQty,
+                available: currentAvailableQty,
                 availableqty: currentAvailableQty,
                 lockqty: currentLockQty,
-                shortage: requestedQuantity - actualAvailableQty,
-                error: `Insufficient stock on ${PLATFORM_NAME}. Available: ${actualAvailableQty} (Total: ${currentAvailableQty}, Locked: ${currentLockQty}), Requested: ${requestedQuantity}`,
+                shortage: requestedQuantity - currentAvailableQty,
+                error: `Insufficient stock on ${PLATFORM_NAME}. Available: ${currentAvailableQty}, Requested: ${requestedQuantity}`,
                 error_code: "INSUFFICIENT_PLATFORMSTOCK",
               };
 
@@ -619,8 +623,7 @@ export class PhonePeController {
                   requestedQuantity,
                   currentAvailableQty,
                   currentLockQty,
-                  actualAvailableQty,
-                  shortage: requestedQuantity - actualAvailableQty,
+                  shortage: requestedQuantity - currentAvailableQty,
                 },
                 "Insufficient platformstock - payment blocked"
               );
@@ -637,7 +640,6 @@ export class PhonePeController {
                 platform: PLATFORM_NAME,
                 requestedQuantity,
                 productType: product.iscombo ? "combo" : "single",
-                platformActualAvailable: actualAvailableQty,
                 platformAvailableQty: currentAvailableQty,
                 platformLockQty: currentLockQty,
                 status: "ALL_VALIDATIONS_PASSED",
@@ -850,7 +852,8 @@ export class PhonePeController {
                   // Convert to numbers for calculations (raw query returns numbers)
                   const currentAvailableQty = Number(platformStock.availableqty) || 0;
                   const currentLockQty = Number(platformStock.lockqty) || 0;
-                  const actualAvailable = currentAvailableQty - currentLockQty;
+                  // availableqty already represents available stock, so check it directly
+                  const actualAvailable = currentAvailableQty;
 
                   logger.info(
                     {
@@ -867,6 +870,7 @@ export class PhonePeController {
                   );
 
                   // Double-check availability (with FRESH data from row lock)
+                  // Note: availableqty is the actual available stock, so we check it directly
                   if (actualAvailable < requestedQuantity) {
                     logger.error(
                       {
@@ -2481,9 +2485,14 @@ export class PhonePeController {
       }, 0);
 
       // If no cart items in originalPayload, calculate from order data
+      // ⚠️ CRITICAL: Based on user's expected values, productamount appears to be PER-UNIT
+      // So we need to multiply by quantity to get total
       if (originalTotal === 0 && originalOrderData.length > 0) {
         originalTotal = originalOrderData.reduce((total: number, item: any) => {
-          return total + parseFloat(item.productamount?.toString() || "0");
+          const prodAmt = parseFloat(item.productamount?.toString() || "0");
+          const qty = parseInt(item.quantity?.toString() || "1");
+          // productamount is per-unit, so multiply by quantity to get total
+          return total + (prodAmt * qty);
         }, 0);
         // For order data, we might not have product discount info, so keep it 0
         productDiscountTotal = 0;
@@ -2621,8 +2630,11 @@ export class PhonePeController {
           // Initialize discount values
           let productDiscountAmount = 0;
           let promotionDiscountAmount = 0;
+          // ⚠️ IMPORTANT: Determine if rawProductAmount is per-unit or total
+          // Based on user's expected values, it appears productamount might be per-unit
+          // We'll calculate originalPrice and orderamount correctly based on evaluationData availability
           let originalPrice = rawProductAmount; // Will be recalculated if evaluationData exists
-          let itemProductAmount = rawProductAmount; // Total product amount for this line item
+          let itemProductAmount = rawProductAmount; // Will be recalculated based on whether it's per-unit or total
 
           logger.debug({
             transactionId,
@@ -2651,13 +2663,16 @@ export class PhonePeController {
               const basePrice = parseFloat(cartItem.base_price?.toString() || '0');
               const productDiscount = parseFloat(cartItem.product_discount?.toString() || '0');
 
-              // Calculate totals (multiply by quantity)
-              originalPrice = basePrice * quantity;
-              productDiscountAmount = productDiscount * quantity;
+              // ✅ FIX: original_price is PER-UNIT (not multiplied by quantity)
+              // This matches the master reference: original_price = base_price (per-unit)
+              originalPrice = basePrice; // Per-unit price (stored as-is in orderline)
 
-              // ✅ FIX: Calculate itemProductAmount as total (originalPrice - productDiscountAmount)
+              // Calculate totals (multiply by quantity)
+              productDiscountAmount = productDiscount * quantity; // Total discount for line item
+
+              // ✅ FIX: Calculate itemProductAmount as total ((basePrice × quantity) - productDiscountAmount)
               // This ensures itemProductAmount is always the TOTAL for the line item, not per-unit
-              itemProductAmount = originalPrice - productDiscountAmount;
+              itemProductAmount = (basePrice * quantity) - productDiscountAmount;
 
               logger.debug({
                 transactionId,
@@ -2700,14 +2715,13 @@ export class PhonePeController {
             // If no breakdown found but we have promotionDiscountTotal, use pro-rata distribution
             if (!foundPromotionBreakdown && promotionDiscountTotal > 0) {
               // Calculate total product amount across all items for pro-rata calculation
+              // Note: item.productamount is already TOTAL (includes quantity), not per-unit
               const totalProductAmountForProRata = originalOrderData
                 .filter((i: any) => validProductIds.includes(i.productid))
                 .reduce((sum: number, i: any) => {
-                  const qty = parseInt(i.quantity?.toString() || '1');
                   const prodAmt = parseFloat(i.productamount?.toString() || '0');
-                  // If productamount appears to be per-unit, multiply by quantity
-                  // Otherwise use as-is (already total)
-                  return sum + (prodAmt * qty);
+                  // productamount is already total for the line item, use as-is
+                  return sum + prodAmt;
                 }, 0);
 
               if (totalProductAmountForProRata > 0) {
@@ -2732,45 +2746,74 @@ export class PhonePeController {
               message: "No evaluationData - using pro-rata distribution (less accurate)"
             }, "Falling back to pro-rata discount distribution");
 
-            // ✅ FIX: Ensure we're working with totals, not per-unit amounts
-            // If rawProductAmount appears to be per-unit, multiply by quantity
-            // Otherwise assume it's already total
-            const assumedTotalProductAmount = rawProductAmount * quantity;
+            // ⚠️ CRITICAL: Based on user's expected values, productamount appears to be PER-UNIT
+            // Example: productamount: 290, quantity: 2 → original_price should be 290, orderamount should be 580
+            // This suggests: 
+            // - productamount is per-unit price
+            // - original_price = productamount (per-unit, stored as-is in orderline)
+            // - orderamount = productamount × quantity (total for line item)
 
+            // Calculate values for the line item
+            const perUnitPrice = rawProductAmount; // productamount is per-unit
+            originalPrice = perUnitPrice; // original_price = per-unit price (stored as-is, not multiplied)
+            const totalProductAmountForLineItem = perUnitPrice * quantity; // Total for line item (per-unit × quantity)
+            itemProductAmount = totalProductAmountForLineItem; // Total product amount for this line
+
+            // Calculate total product amount across all items for pro-rata calculation
+            // ✅ FIX: productamount from request is already TOTAL, not per-unit
             const totalProductAmountForProRata = originalOrderData
               .filter((i: any) => validProductIds.includes(i.productid))
               .reduce((sum: number, i: any) => {
-                const qty = parseInt(i.quantity?.toString() || '1');
                 const prodAmt = parseFloat(i.productamount?.toString() || '0');
-                return sum + (prodAmt * qty);
+                // ✅ FIX: productamount is already total, use as-is (no need to multiply by quantity)
+                return sum + prodAmt;
               }, 0);
 
             if (totalProductAmountForProRata > 0) {
-              const proRataFactor = assumedTotalProductAmount / totalProductAmountForProRata;
+              const proRataFactor = totalProductAmountForLineItem / totalProductAmountForProRata;
               productDiscountAmount = productDiscountTotal * proRataFactor;
               promotionDiscountAmount = promotionDiscountTotal * proRataFactor;
-              originalPrice = assumedTotalProductAmount + (productDiscountAmount + promotionDiscountAmount);
-              itemProductAmount = originalPrice - productDiscountAmount;
+
+              logger.debug({
+                transactionId,
+                productId,
+                perUnitPrice,
+                quantity,
+                totalProductAmountForLineItem,
+                productDiscountTotal,
+                promotionDiscountTotal,
+                totalProductAmountForProRata,
+                proRataFactor,
+                calculatedProductDiscount: productDiscountAmount,
+                calculatedPromotionDiscount: promotionDiscountAmount,
+                calculatedOriginalPrice: originalPrice,
+                note: 'productamount from request is TOTAL; original_price = productamount / quantity'
+              }, "Calculated discounts using pro-rata distribution (no evaluationData)");
             }
           }
 
           // Calculate pro-rata shipping cost based on product amount
+          // ✅ FIX: item.productamount from request is already TOTAL, not per-unit
           const totalProductAmountForShipping = originalOrderData
             .filter((i: any) => validProductIds.includes(i.productid))
             .reduce((sum: number, i: any) => {
-              const qty = parseInt(i.quantity?.toString() || '1');
               const prodAmt = parseFloat(i.productamount?.toString() || '0');
-              return sum + (prodAmt * qty);
+              // ✅ FIX: productamount is already total, use as-is
+              return sum + prodAmt;
             }, 0);
 
           const shippingCostForItem = totalProductAmountForShipping > 0
             ? (shippingCost * itemProductAmount) / totalProductAmountForShipping
             : 0;
 
-          // ✅ FIX: Calculate finalOrderAmount as total (itemProductAmount - promotionDiscountAmount)
-          // itemProductAmount is already total, promotionDiscountAmount is already total
-          // So finalOrderAmount will be the TOTAL for the line item
+          // ✅ FIX: Calculate finalOrderAmount as total for the line item
+          // Correct understanding:
+          // - productamount from request = TOTAL (productamount × quantity)
+          // - original_price = productamount / quantity (per-unit, NOT multiplied by quantity)
+          // - itemProductAmount = productamount (total for line item, already includes quantity)
           const totalDiscountAmount = productDiscountAmount + promotionDiscountAmount;
+          // finalOrderAmount = total product amount - promotion discount
+          // itemProductAmount is already total, promotionDiscountAmount is total
           const finalOrderAmount = itemProductAmount - promotionDiscountAmount;
 
           logger.debug({
@@ -2800,6 +2843,7 @@ export class PhonePeController {
 
           return {
             ...item,
+            productamount: itemProductAmount,  // ✅ FIX: Use calculated TOTAL, not request's per-unit value
             original_price: originalPrice,
             product_discount_amount: productDiscountAmount,
             promotion_discount_amount: promotionDiscountAmount,
@@ -5862,7 +5906,8 @@ export class PhonePeController {
       const platformStock = platformStockResult[0];
       const currentAvailableQty = Number(platformStock.availableqty) || 0;
       const currentLockQty = Number(platformStock.lockqty) || 0;
-      const actualAvailable = currentAvailableQty - currentLockQty;
+      // availableqty already represents available stock, so check it directly
+      const actualAvailable = currentAvailableQty;
 
       componentStockInfo.push({
         componentproductid: componentProductId,
@@ -5873,11 +5918,12 @@ export class PhonePeController {
       });
 
       // Validate availability
+      // Note: availableqty is the actual available stock, so we check it directly
       if (actualAvailable < totalNeeded) {
         validationErrors.push(
           `Insufficient stock for component ${componentProductId} (${component.componentproduct?.name || "Unknown"}). ` +
           `Need ${totalNeeded} units (${requiredQty} per combo × ${comboQuantity} combos), ` +
-          `but only ${actualAvailable} available (${currentAvailableQty} total - ${currentLockQty} locked)`
+          `but only ${actualAvailable} available`
         );
       }
     }

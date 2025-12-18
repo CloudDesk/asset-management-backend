@@ -449,8 +449,12 @@ export class OrdersService {
     // Calculate and log totals for validation
     const successfulOrderlines = orderlines.filter(ol => ol.id);
     const totals = {
-      totalOriginalPrice: successfulOrderlines.reduce((sum, ol) => 
-        sum + (parseFloat(ol.original_price?.toString() || '0') || 0), 0),
+      // ✅ FIX: original_price is PER-UNIT, so multiply by quantity to get total
+      totalOriginalPrice: successfulOrderlines.reduce((sum, ol) => {
+        const originalPrice = parseFloat(ol.original_price?.toString() || '0') || 0;
+        const quantity = parseFloat(ol.quantity?.toString() || '1') || 1;
+        return sum + (originalPrice * quantity);
+      }, 0),
       totalProductDiscount: successfulOrderlines.reduce((sum, ol) => 
         sum + (parseFloat(ol.product_discount_amount?.toString() || '0') || 0), 0),
       totalPromotionDiscount: successfulOrderlines.reduce((sum, ol) => 
@@ -1364,23 +1368,94 @@ export class OrdersService {
         1000
       );
 
-      // Extract only required orderline fields
-      const orderlines = rawOrderlines.map((ol: any) => ({
-        id: ol.id,
-        discountamount: ol.discountamount ? Number(ol.discountamount) : null,
-        orderamount: ol.orderamount ? Number(ol.orderamount) : null,
-        quantity: ol.quantity,
-        productid: ol.productid,
-        productname: ol.productname,
-        productcategory: ol.productcategory,
-        hsn_code: ol.hsn_code,
-        orderstatus: ol.orderstatus,
-        original_price: ol.original_price ? Number(ol.original_price) : null,
-        product_discount_amount: ol.product_discount_amount ? Number(ol.product_discount_amount) : null,
-        promotion_discount_amount: ol.promotion_discount_amount ? Number(ol.promotion_discount_amount) : null,
-        shipping_cost: ol.shipping_cost ? Number(ol.shipping_cost) : null,
-        status_history: this.parseStatusHistory(ol.status_history)
-      }));
+      // Extract only required orderline fields and enrich with combo component data
+      const orderlines = await Promise.all(
+        rawOrderlines.map(async (ol: any) => {
+          const orderlineData: any = {
+            id: ol.id,
+            discountamount: ol.discountamount ? Number(ol.discountamount) : null,
+            orderamount: ol.orderamount ? Number(ol.orderamount) : null,
+            quantity: ol.quantity,
+            productid: ol.productid,
+            productname: ol.productname,
+            productcategory: ol.productcategory,
+            hsn_code: ol.hsn_code,
+            orderstatus: ol.orderstatus,
+            original_price: ol.original_price ? Number(ol.original_price) : null,
+            product_discount_amount: ol.product_discount_amount ? Number(ol.product_discount_amount) : null,
+            promotion_discount_amount: ol.promotion_discount_amount ? Number(ol.promotion_discount_amount) : null,
+            shipping_cost: ol.shipping_cost ? Number(ol.shipping_cost) : null,
+            status_history: this.parseStatusHistory(ol.status_history)
+          };
+
+          // Check if product is combo and fetch component data
+          // Only add iscombo and components fields if product is actually a combo
+          // This ensures backward compatibility - non-combo products have same structure as before
+          if (ol.productid) {
+            try {
+              const product = await dynamicFindUnique('product', { id: Number(ol.productid) });
+              
+              if (product?.iscombo === true) {
+                orderlineData.iscombo = true;
+                
+                // Fetch components from productbundlemap
+                try {
+                  const components = await prisma.productBundleMap.findMany({
+                    where: {
+                      bundleproductid: BigInt(Number(ol.productid)),
+                      isactive: true,
+                    },
+                    include: {
+                      componentproduct: {
+                        select: {
+                          id: true,
+                          name: true,
+                          category: true,
+                          subcategory: true,
+                        },
+                      },
+                    },
+                  });
+
+                  // Map components with required data
+                  orderlineData.components = components.map((c: any) => ({
+                    componentproductid: Number(c.componentproductid),
+                    productname: c.componentproduct?.name || null,
+                    productcategory: c.componentproduct?.category || null,
+                    subcategory: c.componentproduct?.subcategory || null,
+                    requiredqty: c.requiredqty || 1,
+                  }));
+                } catch (componentError: any) {
+                  logger.warn(
+                    { 
+                      orderlineId: ol.id, 
+                      productId: ol.productid, 
+                      error: componentError.message 
+                    },
+                    'Failed to fetch combo components'
+                  );
+                  orderlineData.components = [];
+                }
+              }
+              // If iscombo is false or undefined, don't add iscombo/components fields
+              // This maintains backward compatibility - response is same as before
+            } catch (productError: any) {
+              logger.warn(
+                { 
+                  orderlineId: ol.id, 
+                  productId: ol.productid, 
+                  error: productError.message 
+                },
+                'Failed to check if product is combo'
+              );
+              // Don't add iscombo field on error - maintain backward compatibility
+            }
+          }
+          // If no productid, don't add iscombo/components fields - maintain backward compatibility
+
+          return orderlineData;
+        })
+      );
 
       // Get address from first orderline (all orderlines share same address)
       let address = null;
