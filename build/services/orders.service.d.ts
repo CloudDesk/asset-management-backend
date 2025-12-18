@@ -28,9 +28,38 @@ export declare class OrdersService {
      */
     findByOrderIdString(orderIdString: string): Promise<any>;
     /**
+     * Auto-select stocks using FIFO (First In First Out)
+     */
+    private autoSelectStocks;
+    /**
+     * Get stocks by IDs
+     */
+    private getStocksByIds;
+    /**
+     * Get stocks by SKUs
+     */
+    private getStocksBySKUs;
+    /**
+     * Allocate stock to orderlines based on stock mapping
+     */
+    private allocateStockToOrderlines;
+    /**
+     * Update stock status and quantities for dispatch
+     */
+    private updateStockForDispatch;
+    /**
      * Mark order as ready for dispatch
      */
-    markReadyForDispatch(orderId: number, inventoryUserId: number): Promise<any>;
+    markReadyForDispatch(orderId: number, inventoryUserId: number, stockMapping?: Array<{
+        orderline_id: number;
+        stock_ids?: number[];
+        skus?: string[];
+        batch_filter?: {
+            batchno?: string;
+            supplierid?: number;
+            poid?: number;
+        };
+    }>): Promise<any>;
     /**
      * Mark order as shipped (after label printed)
      */

@@ -77,6 +77,35 @@ export declare class ProductService {
      * @param availableqty - Available quantity
      */
     private updatePlatformStockStatus;
+    /**
+     * Check if a combo product with the same components already exists
+     * @param components - Array of components to check
+     * @returns Existing combo product if found, null otherwise
+     */
+    findExistingComboByComponents(components: Array<{
+        productid: string | number | bigint;
+        requiredqty: number;
+    }>): Promise<any | null>;
+    /**
+     * Validate combo components before creation (public method for validation endpoint)
+     * @param components - Array of components to validate
+     * @returns Validation result with existing combo info if found
+     */
+    validateComboComponents(components: Array<{
+        productid: string | number;
+        requiredqty: number;
+    }>): Promise<{
+        isValid: boolean;
+        existingCombo?: {
+            id: number;
+            name: string;
+            components: Array<{
+                productid: number;
+                requiredqty: number;
+            }>;
+        };
+        message: string;
+    }>;
     private createDefaultPlatformStocks;
 }
 //# sourceMappingURL=product.service.d.ts.map

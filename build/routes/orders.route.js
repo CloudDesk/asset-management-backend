@@ -118,7 +118,37 @@ export async function ordersRoutes(fastify) {
                 type: 'object',
                 required: ['inventory_user_id'],
                 properties: {
-                    inventory_user_id: { type: 'number', description: 'Inventory user ID who performed the action' }
+                    inventory_user_id: { type: 'number', description: 'Inventory user ID who performed the action' },
+                    stock_mapping: {
+                        type: 'array',
+                        description: 'Optional stock mapping for manual selection or batch filtering',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                orderline_id: { type: 'number', description: 'Orderline ID' },
+                                stock_ids: {
+                                    type: 'array',
+                                    items: { type: 'number' },
+                                    description: 'Specific stock IDs (quantity = array length)'
+                                },
+                                skus: {
+                                    type: 'array',
+                                    items: { type: 'string' },
+                                    description: 'Specific stock SKUs (quantity = array length)'
+                                },
+                                batch_filter: {
+                                    type: 'object',
+                                    properties: {
+                                        batchno: { type: 'string', description: 'Batch number filter' },
+                                        supplierid: { type: 'number', description: 'Supplier ID filter' },
+                                        poid: { type: 'number', description: 'Purchase Order ID filter' }
+                                    },
+                                    description: 'Auto-select from specific batch/supplier/PO (quantity from orderline)'
+                                }
+                            },
+                            required: ['orderline_id']
+                        }
+                    }
                 }
             },
             response: {
@@ -334,6 +364,45 @@ export async function ordersRoutes(fastify) {
                                             product_discount_amount: { type: 'number', nullable: true },
                                             promotion_discount_amount: { type: 'number', nullable: true },
                                             shipping_cost: { type: 'number', nullable: true },
+                                            iscombo: {
+                                                type: 'boolean',
+                                                nullable: true,
+                                                description: 'True if this orderline is for a combo product'
+                                            },
+                                            components: {
+                                                type: 'array',
+                                                nullable: true,
+                                                description: 'Component products (only present if iscombo is true)',
+                                                items: {
+                                                    type: 'object',
+                                                    properties: {
+                                                        componentproductid: {
+                                                            type: 'number',
+                                                            description: 'Component product ID'
+                                                        },
+                                                        productname: {
+                                                            type: 'string',
+                                                            nullable: true,
+                                                            description: 'Component product name'
+                                                        },
+                                                        productcategory: {
+                                                            type: 'string',
+                                                            nullable: true,
+                                                            description: 'Component product category'
+                                                        },
+                                                        subcategory: {
+                                                            type: 'string',
+                                                            nullable: true,
+                                                            description: 'Component product subcategory'
+                                                        },
+                                                        requiredqty: {
+                                                            type: 'number',
+                                                            description: 'Required quantity of this component per combo pack'
+                                                        }
+                                                    },
+                                                    required: ['componentproductid', 'requiredqty']
+                                                }
+                                            },
                                             status_history: {
                                                 type: 'array',
                                                 nullable: true,
