@@ -1,18 +1,18 @@
 import { prisma } from '../models/prisma.js';
 import { Prisma } from '@prisma/client';
-import { 
-  CreateOrdersInput, 
-  UpdateOrdersInput, 
+import {
+  CreateOrdersInput,
+  UpdateOrdersInput,
   UpsertOrdersInput
 } from '../schemas/orders.schema.js';
 import { PaginationResult, createPaginationResult, getPrismaSkipTake } from '../utils/pagination.js';
 import { FilterOptions } from '../utils/filterBuilder.js';
-import { 
-  dynamicFindMany, 
-  dynamicCount, 
-  dynamicFindUnique, 
-  dynamicCreate, 
-  dynamicUpdate, 
+import {
+  dynamicFindMany,
+  dynamicCount,
+  dynamicFindUnique,
+  dynamicCreate,
+  dynamicUpdate,
   dynamicDelete,
   dynamicFindManyWithFilters
 } from '../utils/dynamicDbOperations.js';
@@ -23,20 +23,20 @@ export class OrdersService {
   // Helper function to parse status_history
   private parseStatusHistory(statusHistory: any): any[] {
     if (!statusHistory) return [];
-    
+
     // If it's already an array, return it (filter out empty objects)
     if (Array.isArray(statusHistory)) {
-      return statusHistory.filter((entry: any) => 
+      return statusHistory.filter((entry: any) =>
         entry && typeof entry === 'object' && Object.keys(entry).length > 0
       );
     }
-    
+
     // If it's a string, try to parse it
     if (typeof statusHistory === 'string') {
       try {
         const parsed = JSON.parse(statusHistory);
         if (Array.isArray(parsed)) {
-          return parsed.filter((entry: any) => 
+          return parsed.filter((entry: any) =>
             entry && typeof entry === 'object' && Object.keys(entry).length > 0
           );
         }
@@ -45,12 +45,12 @@ export class OrdersService {
         return [];
       }
     }
-    
+
     // If it's an object (but not an array), wrap it in an array
     if (typeof statusHistory === 'object' && Object.keys(statusHistory).length > 0) {
       return [statusHistory];
     }
-    
+
     return [];
   }
 
@@ -72,7 +72,7 @@ export class OrdersService {
       });
 
       logger.info({
-        orderCount: orders.length, 
+        orderCount: orders.length,
         total,
         filtered: Object.keys(filters).length > 0,
         appliedFilters: Object.keys(filters),
@@ -96,9 +96,9 @@ export class OrdersService {
         throw new Error('Order not found');
       }
 
-      logger.debug({ 
-        orderId: id, 
-        availableFields: Object.keys(order) 
+      logger.debug({
+        orderId: id,
+        availableFields: Object.keys(order)
       }, 'Dynamic orders findById completed');
 
       return order;
@@ -133,7 +133,7 @@ export class OrdersService {
 
       // Create orderlines for valid products if productid array is provided
       if (data.productid && Array.isArray(data.productid) && data.productid.length > 0) {
-        logger.info({ 
+        logger.info({
           orderId: order.id,
           productIds: data.productid,
           orderlineCount: data.productid.length,
@@ -147,7 +147,7 @@ export class OrdersService {
             orderId: order.id,
             orderItems: data.orderItems.length
           }, 'Creating orderlines from detailed order items');
-          
+
           orderlineResults = await this.createOrderlinesFromOrderItems(
             order.id,
             data.orderItems,
@@ -160,7 +160,7 @@ export class OrdersService {
             orderId: order.id,
             productIds: data.productid.length
           }, 'Creating orderlines from product IDs (fallback)');
-          
+
           orderlineResults = await this.createOrderlinesForProducts(
             order.id,
             data.productid,
@@ -171,8 +171,8 @@ export class OrdersService {
           );
         }
 
-        logger.info({ 
-          orderId: order.id, 
+        logger.info({
+          orderId: order.id,
           orderid: order.orderid,
           createdOrderlines: orderlineResults.length,
           totalProducts: data.productid.length
@@ -185,7 +185,7 @@ export class OrdersService {
           const orderAmount = parseFloat(order.orderamount?.toString() || '0');
           const shippingCost = parseFloat(data.shipping_cost?.toString() || '0');
           const addressId = data.addressid || null;
-          
+
           logger.info({
             orderId: order.id,
             orderAmount,
@@ -193,20 +193,20 @@ export class OrdersService {
             addressId,
             orderlinesCount: orderlineResults.length
           }, 'Starting GST calculation for order');
-          
+
           const gstResult = await gstService.processOrderGst(
             order.id,
             addressId,
             orderAmount,
             shippingCost
           );
-          
+
           if (gstResult.success) {
             logger.info({
               orderId: order.id,
               orderTotals: gstResult.orderTotals
             }, 'GST calculation completed successfully');
-            
+
             // Add GST totals to the order object for return
             order.items_total = gstResult.orderTotals?.items_total;
             order.total_taxable_amount = gstResult.orderTotals?.total_taxable_amount;
@@ -239,10 +239,10 @@ export class OrdersService {
         };
       }
 
-      logger.info({ 
-        orderId: order.id, 
+      logger.info({
+        orderId: order.id,
         orderid: order.orderid,
-        availableFields: Object.keys(order) 
+        availableFields: Object.keys(order)
       }, 'Dynamic orders create completed (no orderlines created)');
 
       return order;
@@ -260,11 +260,11 @@ export class OrdersService {
     mode?: string // ✅ Optional mode parameter for correct orderline status
   ) {
     const orderlines = [];
-    
+
     // ✅ FIX: COD orderlines should start with order_confirmed, Prepaid with payment_completed
     const isCodOrder = mode === 'cod';
     const defaultStatus = isCodOrder ? 'order_confirmed' : 'payment_completed';
-    
+
     // Initialize status_history for orderlines (JSON.stringify for JSONB column)
     // is_active: true for the current/latest entry, false for all previous entries
     const initialStatusHistory = JSON.stringify([{
@@ -274,10 +274,10 @@ export class OrdersService {
       source: isCodOrder ? 'system' : 'phonepe',
       is_active: true
     }]);
-    
+
     for (let i = 0; i < productIds.length; i++) {
       const productId = productIds[i];
-      
+
       const orderlineData = {
         orderid: orderId, // Use the database ID, not the string orderid
         productid: productId,
@@ -306,17 +306,17 @@ export class OrdersService {
         const orderline = await dynamicCreate('orderline', orderlineData);
         if (orderline) {
           orderlines.push(orderline);
-          logger.debug({ 
-            orderlineId: orderline.id, 
+          logger.debug({
+            orderlineId: orderline.id,
             orderlineNumber: orderline.orderlinenumber,
-            productId: productId 
+            productId: productId
           }, 'Orderline created successfully');
         }
       } catch (orderlineError) {
-        logger.error({ 
-          error: orderlineError, 
-          orderlineData, 
-          productId 
+        logger.error({
+          error: orderlineError,
+          orderlineData,
+          productId
         }, 'Failed to create orderline for product');
         // Continue with other orderlines even if one fails
       }
@@ -332,7 +332,7 @@ export class OrdersService {
     mode?: string // ✅ Optional mode parameter for correct orderline status
   ) {
     const orderlines = [];
-    
+
     logger.info({
       orderId,
       orderidString,
@@ -346,11 +346,11 @@ export class OrdersService {
         hasEvaluationId: 'evaluation_id' in orderItems[0]
       } : null
     }, 'Starting orderline creation from enriched order items');
-    
+
     // ✅ FIX: COD orderlines should start with order_confirmed, Prepaid with payment_completed
     const isCodOrder = mode === 'cod';
     const orderlineStatus = isCodOrder ? 'order_confirmed' : 'payment_completed';
-    
+
     // Initialize status_history for orderlines (JSON.stringify for JSONB column)
     // is_active: true for the current/latest entry, false for all previous entries
     const initialStatusHistory = JSON.stringify([{
@@ -360,10 +360,10 @@ export class OrdersService {
       source: isCodOrder ? 'system' : 'phonepe',
       is_active: true
     }]);
-    
+
     for (let i = 0; i < orderItems.length; i++) {
       const orderItem = orderItems[i];
-      
+
       const orderlineData = {
         orderid: orderId, // Use the database ID, not the string orderid
         productid: orderItem.productid,
@@ -381,17 +381,17 @@ export class OrdersService {
         modifieddate: currentTime,
         ordereddate: currentTime,
         // ✅ BUGFIX: Add promotion/discount fields with proper null handling
-        original_price: orderItem.original_price !== undefined 
-          ? parseFloat(orderItem.original_price?.toString() || '0') 
+        original_price: orderItem.original_price !== undefined
+          ? parseFloat(orderItem.original_price?.toString() || '0')
           : null,
-        product_discount_amount: orderItem.product_discount_amount !== undefined 
-          ? parseFloat(orderItem.product_discount_amount?.toString() || '0') 
+        product_discount_amount: orderItem.product_discount_amount !== undefined
+          ? parseFloat(orderItem.product_discount_amount?.toString() || '0')
           : null,
-        promotion_discount_amount: orderItem.promotion_discount_amount !== undefined 
-          ? parseFloat(orderItem.promotion_discount_amount?.toString() || '0') 
+        promotion_discount_amount: orderItem.promotion_discount_amount !== undefined
+          ? parseFloat(orderItem.promotion_discount_amount?.toString() || '0')
           : null,
-        shipping_cost: orderItem.shipping_cost !== undefined 
-          ? parseFloat(orderItem.shipping_cost?.toString() || '0') 
+        shipping_cost: orderItem.shipping_cost !== undefined
+          ? parseFloat(orderItem.shipping_cost?.toString() || '0')
           : null,
         evaluation_id: orderItem.evaluation_id || null,
         merchanttransactionid: orderItem.merchanttransactionid || null,
@@ -411,14 +411,14 @@ export class OrdersService {
             evaluation_id: orderlineData.evaluation_id
           }
         }, 'Creating orderline with discount fields');
-        
+
         const orderline = await dynamicCreate('orderline', orderlineData);
-        
+
         if (orderline) {
           orderlines.push(orderline);
-          
-          logger.info({ 
-            orderlineId: orderline.id, 
+
+          logger.info({
+            orderlineId: orderline.id,
             orderlineNumber: orderline.orderlinenumber,
             productId: orderItem.productid,
             productName: orderItem.productname,
@@ -434,10 +434,10 @@ export class OrdersService {
           }, 'Orderline created successfully with discount fields');
         }
       } catch (orderlineError: any) {
-        logger.error({ 
+        logger.error({
           error: orderlineError.message,
-          stack: orderlineError.stack, 
-          orderlineData, 
+          stack: orderlineError.stack,
+          orderlineData,
           orderItem,
           orderId,
           productid: orderItem.productid
@@ -455,11 +455,11 @@ export class OrdersService {
         const quantity = parseFloat(ol.quantity?.toString() || '1') || 1;
         return sum + (originalPrice * quantity);
       }, 0),
-      totalProductDiscount: successfulOrderlines.reduce((sum, ol) => 
+      totalProductDiscount: successfulOrderlines.reduce((sum, ol) =>
         sum + (parseFloat(ol.product_discount_amount?.toString() || '0') || 0), 0),
-      totalPromotionDiscount: successfulOrderlines.reduce((sum, ol) => 
+      totalPromotionDiscount: successfulOrderlines.reduce((sum, ol) =>
         sum + (parseFloat(ol.promotion_discount_amount?.toString() || '0') || 0), 0),
-      totalShipping: successfulOrderlines.reduce((sum, ol) => 
+      totalShipping: successfulOrderlines.reduce((sum, ol) =>
         sum + (parseFloat(ol.shipping_cost?.toString() || '0') || 0), 0)
     };
 
@@ -473,7 +473,7 @@ export class OrdersService {
 
     return orderlines;
   }
- 
+
 
   /**
    * Recalculate order status based on all orderline statuses
@@ -509,7 +509,7 @@ export class OrdersService {
       } else {
         // Check for return scenarios
         const returnedCount = orderlineStatuses.filter(s => s === 'returned').length;
-        
+
         if (returnedCount === totalCount) {
           newOrderStatus = 'returned';
         } else if (returnedCount > 0) {
@@ -517,7 +517,7 @@ export class OrdersService {
         } else {
           // All orderlines have same status
           const uniqueStatuses = [...new Set(orderlineStatuses)];
-          
+
           if (uniqueStatuses.length === 1) {
             newOrderStatus = uniqueStatuses[0];
           } else {
@@ -562,16 +562,16 @@ export class OrdersService {
       // Only update if status changed
       if (previousStatus !== newOrderStatus) {
         // Update status history for order
-        const existingHistory = Array.isArray(currentOrder.status_history) 
-          ? currentOrder.status_history 
+        const existingHistory = Array.isArray(currentOrder.status_history)
+          ? currentOrder.status_history
           : (typeof currentOrder.status_history === 'string' ? JSON.parse(currentOrder.status_history) : []);
-        
+
         // Set all existing entries to is_active: false
         const deactivatedHistory = existingHistory.map((entry: any) => ({
           ...entry,
           is_active: false
         }));
-        
+
         // New entry with is_active: true
         const historyEntry: any = {
           previous_status: previousStatus,
@@ -664,8 +664,8 @@ export class OrdersService {
         return null;
       }
 
-      logger.debug({ 
-        orderIdString, 
+      logger.debug({
+        orderIdString,
         foundOrderId: orders[0].id,
         foundOrderid: orders[0].orderid
       }, 'Order found by orderid string');
@@ -697,13 +697,13 @@ export class OrdersService {
       if (!product || !product.puc) {
         throw new Error(`Product not found or missing PUC for productid: ${productId}`);
       }
-      
+
       const filters: any = {
         puc: product.puc,  // Stock.puc = Product.puc (where Product.id = productId)
         platform: platform,
         stockstatus: 'available'
       };
-      
+
       // Apply batch filters if provided
       if (batchFilter?.batchno) {
         filters.batchno = batchFilter.batchno;
@@ -714,7 +714,7 @@ export class OrdersService {
       if (batchFilter?.poid) {
         filters.poid = batchFilter.poid;
       }
-      
+
       // Get available stocks (FIFO by createddate)
       const { data: stocks } = await dynamicFindManyWithFilters('stock', filters, {
         orderBy: 'createddate',  // FIFO within filtered batch
@@ -722,19 +722,19 @@ export class OrdersService {
         take: quantity,
         useAllColumns: true
       });
-      
+
       if (!stocks || stocks.length < quantity) {
-        const batchInfo = batchFilter 
+        const batchInfo = batchFilter
           ? `. Batch: ${batchFilter.batchno || 'N/A'}, ` +
-            `Supplier: ${batchFilter.supplierid || 'N/A'}, ` +
-            `PO: ${batchFilter.poid || 'N/A'}. ` +
-            `Please select different batch or use manual stock_ids.`
+          `Supplier: ${batchFilter.supplierid || 'N/A'}, ` +
+          `PO: ${batchFilter.poid || 'N/A'}. ` +
+          `Please select different batch or use manual stock_ids.`
           : '';
         throw new Error(
           `Insufficient available stock: Need ${quantity}, Found ${stocks?.length || 0}${batchInfo}`
         );
       }
-      
+
       return stocks.slice(0, quantity);
     } catch (error) {
       logger.error({ error, productId, quantity, platform, batchFilter }, 'Error in autoSelectStocks');
@@ -820,9 +820,9 @@ export class OrdersService {
 
       for (const orderline of orderlines) {
         const mapping = stockMapping?.find(m => m.orderline_id === orderline.id);
-        
+
         let stocks: any[];
-        
+
         if (mapping?.stock_ids) {
           // Manual selection by stock IDs
           stocks = await this.getStocksByIds(mapping.stock_ids);
@@ -859,7 +859,7 @@ export class OrdersService {
             'nivapp' // Default platform
           );
         }
-        
+
         // Validate stock status and product match
         for (const stock of stocks) {
           if (stock.stockstatus !== 'available') {
@@ -874,13 +874,13 @@ export class OrdersService {
             );
           }
         }
-        
+
         allocations.push({
           orderline_id: orderline.id,
           stocks: stocks
         });
       }
-      
+
       return allocations;
     } catch (error) {
       logger.error({ error, orderId, stockMapping }, 'Error in allocateStockToOrderlines');
@@ -900,17 +900,17 @@ export class OrdersService {
       const { OrderlineService } = await import('./orderline.service.js');
       const orderlineService = new OrderlineService();
       const currentTimestamp = Date.now();
-      
+
       // Track quantity updates per product/platform to avoid duplicate updates
       // Key: "productId-platform" -> quantity
       const platformStockUpdates = new Map<string, { productId: number; platform: string; quantity: number }>();
       // Key: puc -> quantity
       const productUpdates = new Map<string, number>();
-      
+
       for (const allocation of allocations) {
         const orderline = await orderlineService.findById(allocation.orderline_id.toString());
         const orderlineQuantity = orderline.quantity || allocation.stocks.length; // Use orderline quantity or stock count
-        
+
         // Validate stock count matches orderline quantity
         if (allocation.stocks.length !== orderlineQuantity) {
           throw new Error(
@@ -918,7 +918,7 @@ export class OrdersService {
             `Expected ${orderlineQuantity}, got ${allocation.stocks.length}`
           );
         }
-        
+
         // Get product info from first stock (all stocks should have same puc for same orderline)
         const firstStock = allocation.stocks[0];
         const product = await dynamicFindUnique('product', { puc: firstStock.puc });
@@ -926,7 +926,7 @@ export class OrdersService {
           throw new Error(`Product not found for puc: ${firstStock.puc}`);
         }
         const productId = Number(product.id);
-        
+
         // Track PlatformStock update (aggregate by productId + platform)
         const platformStockKey = `${productId}-${firstStock.platform}`;
         if (!platformStockUpdates.has(platformStockKey)) {
@@ -937,13 +937,13 @@ export class OrdersService {
           });
         }
         platformStockUpdates.get(platformStockKey)!.quantity += orderlineQuantity;
-        
+
         // Track Product update (aggregate by puc)
         if (!productUpdates.has(firstStock.puc)) {
           productUpdates.set(firstStock.puc, 0);
         }
         productUpdates.set(firstStock.puc, productUpdates.get(firstStock.puc)! + orderlineQuantity);
-        
+
         // Update each Stock record
         for (const stock of allocation.stocks) {
           // 1. Update Stock record
@@ -958,28 +958,28 @@ export class OrdersService {
           });
         }
       }
-      
+
       // 3. Update PlatformStock quantities (once per product/platform combination)
       for (const [key, update] of platformStockUpdates.entries()) {
         const { data: platformStocks } = await dynamicFindManyWithFilters('platformstock', {
           productid: update.productId.toString(),
           platform: update.platform
         }, { take: 1, useAllColumns: true });
-        
+
         if (platformStocks && platformStocks.length > 0) {
           const platformStock = platformStocks[0];
-          
+
           // Update PlatformStock: decrease orderedqty, increase soldqty
           // Note: availableqty and platformstatus don't change (already done during order creation)
           const newOrderedQty = Math.max(0, (platformStock.orderedqty || 0) - update.quantity);
           const newSoldQty = (platformStock.soldqty || 0) + update.quantity;
-          
+
           await dynamicUpdate('platformstock', { id: platformStock.id }, {
             orderedqty: newOrderedQty,
             soldqty: newSoldQty,
             modifieddate: currentTimestamp
           });
-          
+
           logger.info({
             platformStockId: platformStock.id,
             productId: update.productId,
@@ -992,7 +992,7 @@ export class OrdersService {
           }, 'PlatformStock quantities updated');
         }
       }
-      
+
       // 4. Update Product quantities (once per product)
       for (const [puc, quantity] of productUpdates.entries()) {
         const productForUpdate = await dynamicFindUnique('product', { puc });
@@ -1001,13 +1001,13 @@ export class OrdersService {
           // Note: availablequantity doesn't change (already done during order creation)
           const newOrderedQuantity = Math.max(0, (productForUpdate.orderedquantity || 0) - quantity);
           const newSoldQuantity = (productForUpdate.soldquantity || 0) + quantity;
-          
+
           await dynamicUpdate('product', { id: productForUpdate.id }, {
             orderedquantity: newOrderedQuantity,
             soldquantity: newSoldQuantity,
             modifieddate: currentTimestamp
           });
-          
+
           logger.info({
             productId: productForUpdate.id,
             puc,
@@ -1029,7 +1029,7 @@ export class OrdersService {
    * Mark order as ready for dispatch
    */
   async markReadyForDispatch(
-    orderId: number, 
+    orderId: number,
     inventoryUserId: number,
     stockMapping?: Array<{
       orderline_id: number;
@@ -1055,7 +1055,7 @@ export class OrdersService {
 
         // 2. Allocate stock to orderlines
         const allocations = await this.allocateStockToOrderlines(orderId, stockMapping);
-        
+
         // 3. Update stock status and quantities
         await this.updateStockForDispatch(allocations, orderId, order);
 
@@ -1088,8 +1088,8 @@ export class OrdersService {
         await this.recalculateOrderStatus(orderId);
 
         const updatedOrder = await this.findById(orderId);
-        logger.info({ 
-          orderId, 
+        logger.info({
+          orderId,
           orderStatus: updatedOrder.orderstatus,
           allocatedStocks: allocations.reduce((sum, a) => sum + a.stocks.length, 0)
         }, 'Order marked as ready for dispatch');
@@ -1174,16 +1174,16 @@ export class OrdersService {
       const previousStatus = currentOrder.orderstatus;
 
       // Prepare status history entry
-      const existingHistory = Array.isArray(currentOrder.status_history) 
-        ? currentOrder.status_history 
+      const existingHistory = Array.isArray(currentOrder.status_history)
+        ? currentOrder.status_history
         : (typeof currentOrder.status_history === 'string' ? JSON.parse(currentOrder.status_history) : []);
-      
+
       // Set all existing entries to is_active: false
       const deactivatedHistory = existingHistory.map((entry: any) => ({
         ...entry,
         is_active: false
       }));
-      
+
       // New entry with is_active: true
       const historyEntry: any = {
         previous_status: previousStatus,
@@ -1192,12 +1192,12 @@ export class OrdersService {
         source: additionalData?.source || 'system',
         is_active: true
       };
-      
+
       // Add inventory_user_id if source is inventoryuser
       if (historyEntry.source === 'inventoryuser' && additionalData?.inventory_user_id) {
         historyEntry.inventory_user_id = additionalData.inventory_user_id;
       }
-      
+
       const updatedHistory = [...deactivatedHistory, historyEntry];
 
       const updateData: Record<string, any> = {
@@ -1238,8 +1238,8 @@ export class OrdersService {
 
       const order = await dynamicUpdate('orders', { id: parseInt(id) }, updateData);
 
-      logger.info({ 
-        orderId: id, 
+      logger.info({
+        orderId: id,
         status,
         orderid: order.orderid
       }, 'Orders status update completed');
@@ -1273,9 +1273,9 @@ export class OrdersService {
         throw new Error('Failed to update order - no valid fields provided');
       }
 
-      logger.info({ 
-        orderId: id, 
-        availableFields: Object.keys(order) 
+      logger.info({
+        orderId: id,
+        availableFields: Object.keys(order)
       }, 'Dynamic orders update completed');
 
       return order;
@@ -1329,6 +1329,7 @@ export class OrdersService {
         returneddate: fullOrder.returneddate,
         quantity: fullOrder.quantity,
         transactionid: fullOrder.transactionid,
+        productid: fullOrder.productid, // Array of product IDs
         productamount: fullOrder.productamount ? Number(fullOrder.productamount) : null,
         discountamount: fullOrder.discountamount ? Number(fullOrder.discountamount) : null,
         ispaymentsucceed: fullOrder.ispaymentsucceed,
@@ -1361,7 +1362,7 @@ export class OrdersService {
       // Get orderlines for this order
       const { OrderlineService } = await import('./orderline.service.js');
       const orderlineService = new OrderlineService();
-      
+
       const { data: rawOrderlines } = await orderlineService.findMany(
         { orderid: fullOrder.id.toString() },
         1,
@@ -1373,6 +1374,7 @@ export class OrdersService {
         rawOrderlines.map(async (ol: any) => {
           const orderlineData: any = {
             id: ol.id,
+            productamount: ol.productamount ? Number(ol.productamount) : null,
             discountamount: ol.discountamount ? Number(ol.discountamount) : null,
             orderamount: ol.orderamount ? Number(ol.orderamount) : null,
             quantity: ol.quantity,
@@ -1385,6 +1387,12 @@ export class OrdersService {
             product_discount_amount: ol.product_discount_amount ? Number(ol.product_discount_amount) : null,
             promotion_discount_amount: ol.promotion_discount_amount ? Number(ol.promotion_discount_amount) : null,
             shipping_cost: ol.shipping_cost ? Number(ol.shipping_cost) : null,
+            gst_rate: ol.gst_rate ? Number(ol.gst_rate) : null,
+            taxable_amount: ol.taxable_amount ? Number(ol.taxable_amount) : null,
+            cgst_amount: ol.cgst_amount ? Number(ol.cgst_amount) : null,
+            sgst_amount: ol.sgst_amount ? Number(ol.sgst_amount) : null,
+            igst_amount: ol.igst_amount ? Number(ol.igst_amount) : null,
+            total_gst_amount: ol.total_gst_amount ? Number(ol.total_gst_amount) : null,
             status_history: this.parseStatusHistory(ol.status_history)
           };
 
@@ -1394,10 +1402,10 @@ export class OrdersService {
           if (ol.productid) {
             try {
               const product = await dynamicFindUnique('product', { id: Number(ol.productid) });
-              
+
               if (product?.iscombo === true) {
                 orderlineData.iscombo = true;
-                
+
                 // Fetch components from productbundlemap
                 try {
                   const components = await prisma.productBundleMap.findMany({
@@ -1427,10 +1435,10 @@ export class OrdersService {
                   }));
                 } catch (componentError: any) {
                   logger.warn(
-                    { 
-                      orderlineId: ol.id, 
-                      productId: ol.productid, 
-                      error: componentError.message 
+                    {
+                      orderlineId: ol.id,
+                      productId: ol.productid,
+                      error: componentError.message
                     },
                     'Failed to fetch combo components'
                   );
@@ -1441,10 +1449,10 @@ export class OrdersService {
               // This maintains backward compatibility - response is same as before
             } catch (productError: any) {
               logger.warn(
-                { 
-                  orderlineId: ol.id, 
-                  productId: ol.productid, 
-                  error: productError.message 
+                {
+                  orderlineId: ol.id,
+                  productId: ol.productid,
+                  error: productError.message
                 },
                 'Failed to check if product is combo'
               );
@@ -1460,11 +1468,11 @@ export class OrdersService {
       // Get address from first orderline (all orderlines share same address)
       let address = null;
       const firstOrderlineWithAddress = rawOrderlines.find((ol: any) => ol.addressid);
-      
+
       if (firstOrderlineWithAddress?.addressid) {
         try {
           const fullAddress = await dynamicFindUnique('address', { id: firstOrderlineWithAddress.addressid });
-          
+
           if (fullAddress) {
             // Extract only required address fields
             address = {
@@ -1509,7 +1517,7 @@ export class OrdersService {
     page: number = 1,
     limit: number = 50
   ): Promise<{
-      orders: Array<{
+    orders: Array<{
       id: number;
       orderamount: number | null;
       orderid: string | null;
@@ -1633,7 +1641,7 @@ export class OrdersService {
             return null;
           }
         });
-        
+
         const addressResults = await Promise.all(addressPromises);
         addressResults.forEach((result) => {
           if (result && result.address) {
@@ -1660,6 +1668,7 @@ export class OrdersService {
           orderid: order.orderid,
           orderstatus: order.orderstatus,
           quantity: order.quantity,
+          productid: order.productid, // Array of product IDs
           productamount: order.productamount ? Number(order.productamount) : null,
           discountamount: order.discountamount ? Number(order.discountamount) : null,
           ispaymentsucceed: order.ispaymentsucceed,
@@ -1689,9 +1698,16 @@ export class OrdersService {
           discountamount: ol.discountamount ? Number(ol.discountamount) : null,
           orderamount: ol.orderamount ? Number(ol.orderamount) : null,
           quantity: ol.quantity,
+          original_price: ol.original_price ? Number(ol.original_price) : null,
           product_discount_amount: ol.product_discount_amount ? Number(ol.product_discount_amount) : null,
           promotion_discount_amount: ol.promotion_discount_amount ? Number(ol.promotion_discount_amount) : null,
           shipping_cost: ol.shipping_cost ? Number(ol.shipping_cost) : null,
+          gst_rate: ol.gst_rate ? Number(ol.gst_rate) : null,
+          taxable_amount: ol.taxable_amount ? Number(ol.taxable_amount) : null,
+          cgst_amount: ol.cgst_amount ? Number(ol.cgst_amount) : null,
+          sgst_amount: ol.sgst_amount ? Number(ol.sgst_amount) : null,
+          igst_amount: ol.igst_amount ? Number(ol.igst_amount) : null,
+          total_gst_amount: ol.total_gst_amount ? Number(ol.total_gst_amount) : null,
           createddate: ol.createddate ? Number(ol.createddate) : null,
           modifieddate: ol.modifieddate ? Number(ol.modifieddate) : null,
           status_history: this.parseStatusHistory(ol.status_history)

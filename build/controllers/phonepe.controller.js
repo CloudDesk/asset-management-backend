@@ -1837,13 +1837,14 @@ export class PhonePeController {
                     // If no breakdown found but we have promotionDiscountTotal, use pro-rata distribution
                     if (!foundPromotionBreakdown && promotionDiscountTotal > 0) {
                         // Calculate total product amount across all items for pro-rata calculation
-                        // Note: item.productamount is already TOTAL (includes quantity), not per-unit
+                        // ⚠️ CRITICAL FIX: item.productamount from REQUEST is PER-UNIT, need to multiply by quantity
                         const totalProductAmountForProRata = originalOrderData
                             .filter((i) => validProductIds.includes(i.productid))
                             .reduce((sum, i) => {
                             const prodAmt = parseFloat(i.productamount?.toString() || '0');
-                            // productamount is already total for the line item, use as-is
-                            return sum + prodAmt;
+                            const qty = parseInt(i.quantity?.toString() || '1');
+                            // ✅ FIX: productamount from request is PER-UNIT, multiply by quantity to get TOTAL
+                            return sum + (prodAmt * qty);
                         }, 0);
                         if (totalProductAmountForProRata > 0) {
                             promotionDiscountAmount = (promotionDiscountTotal * itemProductAmount) / totalProductAmountForProRata;
