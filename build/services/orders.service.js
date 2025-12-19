@@ -1069,6 +1069,7 @@ export class OrdersService {
                 returneddate: fullOrder.returneddate,
                 quantity: fullOrder.quantity,
                 transactionid: fullOrder.transactionid,
+                productid: fullOrder.productid, // Array of product IDs
                 productamount: fullOrder.productamount ? Number(fullOrder.productamount) : null,
                 discountamount: fullOrder.discountamount ? Number(fullOrder.discountamount) : null,
                 ispaymentsucceed: fullOrder.ispaymentsucceed,
@@ -1105,6 +1106,7 @@ export class OrdersService {
             const orderlines = await Promise.all(rawOrderlines.map(async (ol) => {
                 const orderlineData = {
                     id: ol.id,
+                    productamount: ol.productamount ? Number(ol.productamount) : null,
                     discountamount: ol.discountamount ? Number(ol.discountamount) : null,
                     orderamount: ol.orderamount ? Number(ol.orderamount) : null,
                     quantity: ol.quantity,
@@ -1117,6 +1119,12 @@ export class OrdersService {
                     product_discount_amount: ol.product_discount_amount ? Number(ol.product_discount_amount) : null,
                     promotion_discount_amount: ol.promotion_discount_amount ? Number(ol.promotion_discount_amount) : null,
                     shipping_cost: ol.shipping_cost ? Number(ol.shipping_cost) : null,
+                    gst_rate: ol.gst_rate ? Number(ol.gst_rate) : null,
+                    taxable_amount: ol.taxable_amount ? Number(ol.taxable_amount) : null,
+                    cgst_amount: ol.cgst_amount ? Number(ol.cgst_amount) : null,
+                    sgst_amount: ol.sgst_amount ? Number(ol.sgst_amount) : null,
+                    igst_amount: ol.igst_amount ? Number(ol.igst_amount) : null,
+                    total_gst_amount: ol.total_gst_amount ? Number(ol.total_gst_amount) : null,
                     status_history: this.parseStatusHistory(ol.status_history)
                 };
                 // Check if product is combo and fetch component data
@@ -1303,6 +1311,7 @@ export class OrdersService {
                     orderid: order.orderid,
                     orderstatus: order.orderstatus,
                     quantity: order.quantity,
+                    productid: order.productid, // Array of product IDs
                     productamount: order.productamount ? Number(order.productamount) : null,
                     discountamount: order.discountamount ? Number(order.discountamount) : null,
                     ispaymentsucceed: order.ispaymentsucceed,
@@ -1331,9 +1340,16 @@ export class OrdersService {
                     discountamount: ol.discountamount ? Number(ol.discountamount) : null,
                     orderamount: ol.orderamount ? Number(ol.orderamount) : null,
                     quantity: ol.quantity,
+                    original_price: ol.original_price ? Number(ol.original_price) : null,
                     product_discount_amount: ol.product_discount_amount ? Number(ol.product_discount_amount) : null,
                     promotion_discount_amount: ol.promotion_discount_amount ? Number(ol.promotion_discount_amount) : null,
                     shipping_cost: ol.shipping_cost ? Number(ol.shipping_cost) : null,
+                    gst_rate: ol.gst_rate ? Number(ol.gst_rate) : null,
+                    taxable_amount: ol.taxable_amount ? Number(ol.taxable_amount) : null,
+                    cgst_amount: ol.cgst_amount ? Number(ol.cgst_amount) : null,
+                    sgst_amount: ol.sgst_amount ? Number(ol.sgst_amount) : null,
+                    igst_amount: ol.igst_amount ? Number(ol.igst_amount) : null,
+                    total_gst_amount: ol.total_gst_amount ? Number(ol.total_gst_amount) : null,
                     createddate: ol.createddate ? Number(ol.createddate) : null,
                     modifieddate: ol.modifieddate ? Number(ol.modifieddate) : null,
                     status_history: this.parseStatusHistory(ol.status_history)
