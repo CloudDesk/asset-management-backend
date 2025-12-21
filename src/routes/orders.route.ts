@@ -604,4 +604,65 @@ export async function ordersRoutes(fastify: FastifyInstance) {
     }
   }, ordersController.getOrdersByUserIdWithDetails.bind(ordersController));
 
+  // POST /v1/orders/:id/cancel - Cancel order (customer or admin initiated)
+  fastify.post('/:id/cancel', {
+    schema: {
+      description: 'Cancel order (customer or admin initiated)',
+      tags: ['Orders'],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'Order ID (database ID) or order number (orderid)' }
+        },
+        required: ['id']
+      },
+      body: {
+        type: 'object',
+        properties: {
+          userid: { type: 'number', description: 'Customer user ID (for customer cancellations)' },
+          inventory_user_id: { type: 'number', description: 'Inventory user ID (for admin cancellations)' },
+          cancellation_reason: { type: 'string', description: 'Reason for cancellation' }
+        },
+        required: ['cancellation_reason']
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {
+              type: 'object',
+              additionalProperties: true
+            }
+          }
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            statusCode: { type: 'number' }
+          }
+        },
+        403: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            statusCode: { type: 'number' }
+          }
+        },
+        404: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            statusCode: { type: 'number' }
+          }
+        }
+      }
+    }
+  }, ordersController.cancelOrder.bind(ordersController));
+
 } 

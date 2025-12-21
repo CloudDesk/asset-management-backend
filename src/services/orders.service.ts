@@ -1750,4 +1750,388 @@ export class OrdersService {
       throw error;
     }
   }
+
+  /**
+   * Cancel order (customer or admin initiated)
+   * Handles stock reversal based on order status
+   */
+  async cancelOrder(
+    orderId: number,
+    userId?: number,
+    inventoryUserId?: number,
+    cancellationReason?: string,
+    source: 'customer' | 'inventoryuser' = 'customer'
+  ): Promise<any> {
+    try {
+      logger.info({
+        orderId,
+        userId,
+        inventoryUserId,
+        source,
+        cancellationReason
+      }, 'Starting order cancellation');
+
+      // Get order
+      const order = await this.findById(orderId);
+      if (!order) {
+        throw new Error(`Order with ID ${orderId} not found`);
+      }
+
+      // Define cancellable statuses
+      const CANCELLABLE_STATUSES = [
+        'order_placed',
+        'payment_completed',
+        'order_confirmed',
+        'packed',
+        'ready_for_dispatch'
+      ];
+
+      // Check if order can be cancelled
+      if (!CANCELLABLE_STATUSES.includes(order.orderstatus)) {
+        throw new Error(`Order cannot be cancelled. Current status: ${order.orderstatus}`);
+      }
+
+      // Verify userid matches order owner if customer cancellation
+      if (source === 'customer' && userId && order.userid !== userId) {
+        throw new Error('Unauthorized: userid does not match order owner');
+      }
+
+      // Get all orderlines for this order
+      const { OrderlineService } = await import('./orderline.service.js');
+      const orderlineService = new OrderlineService();
+
+      const { data: orderlines } = await orderlineService.findMany(
+        { orderid: orderId.toString() },
+        1,
+        1000
+      );
+
+      if (!orderlines || orderlines.length === 0) {
+        throw new Error('No orderlines found for this order');
+      }
+
+      // Determine cancellation path based on order status
+      const currentTimestamp = Date.now();
+
+      if (order.orderstatus === 'ready_for_dispatch') {
+        // Path 2: Reverse stock allocations (soldqty → availableqty)
+        await this.cancelOrderAfterReadyForDispatch(orderId, orderlines);
+      } else {
+        // Path 1: Reverse order quantities (orderedqty → availableqty)
+        await this.cancelOrderBeforeReadyForDispatch(orderId, orderlines);
+      }
+
+      // Update all orderlines to cancelled
+      for (const orderline of orderlines) {
+        await orderlineService.updateOrderlineStatus(
+          orderline.id.toString(),
+          'cancelled',
+          {
+            source,
+            userid: userId,
+            inventory_user_id: inventoryUserId,
+            cancellation_reason: cancellationReason
+          }
+        );
+      }
+
+      // Update order status to cancelled
+      await this.updateOrderStatus(
+        orderId.toString(),
+        'cancelled',
+        {
+          source,
+          userid: userId,
+          inventory_user_id: inventoryUserId,
+          cancellation_reason: cancellationReason,
+          cancelleddate: currentTimestamp
+        }
+      );
+
+      const updatedOrder = await this.findById(orderId);
+
+      logger.info({
+        orderId,
+        previousStatus: order.orderstatus,
+        newStatus: 'cancelled',
+        source,
+        userId,
+        inventoryUserId
+      }, 'Order cancelled successfully');
+
+      return updatedOrder;
+    } catch (error) {
+      logger.error({ error, orderId }, 'Error cancelling order');
+      throw error;
+    }
+  }
+
+  /**
+   * Cancel order before ready_for_dispatch
+   * Reverses orderedqty → availableqty
+   */
+  private async cancelOrderBeforeReadyForDispatch(
+    orderId: number,
+    orderlines: any[]
+  ): Promise<void> {
+    try {
+      logger.info({ orderId, orderlinesCount: orderlines.length }, 'Reversing pre-dispatch order quantities');
+
+      const currentTimestamp = Date.now();
+
+      // Track updates by product to avoid duplicate updates
+      const platformStockUpdates = new Map<string, { productId: number; platform: string; quantity: number }>();
+      const productUpdates = new Map<number, number>();
+
+      for (const orderline of orderlines) {
+        const productId = orderline.productid;
+        const quantity = orderline.quantity || 0;
+
+        if (!productId || quantity === 0) continue;
+
+        // Get product
+        const product = await dynamicFindUnique('product', { id: Number(productId) });
+        if (!product) {
+          logger.warn({ orderlineId: orderline.id, productId }, 'Product not found for orderline');
+          continue;
+        }
+
+        // Track PlatformStock update (aggregate by productId + platform)
+        const platform = 'nivapp'; // Default platform
+        const platformStockKey = `${productId}-${platform}`;
+
+        if (!platformStockUpdates.has(platformStockKey)) {
+          platformStockUpdates.set(platformStockKey, {
+            productId: Number(productId),
+            platform,
+            quantity: 0
+          });
+        }
+        platformStockUpdates.get(platformStockKey)!.quantity += quantity;
+
+        // Track Product update
+        if (!productUpdates.has(productId)) {
+          productUpdates.set(productId, 0);
+        }
+        productUpdates.set(productId, productUpdates.get(productId)! + quantity);
+      }
+
+      // Update PlatformStock quantities
+      for (const [key, update] of platformStockUpdates.entries()) {
+        const { data: platformStocks } = await dynamicFindManyWithFilters('platformstock', {
+          productid: update.productId.toString(),
+          platform: update.platform
+        }, { take: 1, useAllColumns: true });
+
+        if (platformStocks && platformStocks.length > 0) {
+          const platformStock = platformStocks[0];
+
+          // Restore availableqty, reduce orderedqty
+          const newAvailableQty = (platformStock.availableqty || 0) + update.quantity;
+          const newOrderedQty = Math.max(0, (platformStock.orderedqty || 0) - update.quantity);
+
+          await dynamicUpdate('platformstock', { id: platformStock.id }, {
+            availableqty: newAvailableQty,
+            orderedqty: newOrderedQty,
+            modifieddate: currentTimestamp
+          });
+
+          logger.info({
+            platformStockId: platformStock.id,
+            productId: update.productId,
+            platform: update.platform,
+            quantity: update.quantity,
+            oldAvailableQty: platformStock.availableqty,
+            newAvailableQty,
+            oldOrderedQty: platformStock.orderedqty,
+            newOrderedQty
+          }, 'PlatformStock quantities restored (pre-dispatch cancellation)');
+        }
+      }
+
+      // Update Product quantities
+      for (const [productId, quantity] of productUpdates.entries()) {
+        const product = await dynamicFindUnique('product', { id: productId });
+        if (product) {
+          // Restore availablequantity, reduce orderedquantity
+          const newAvailableQuantity = (product.availablequantity || 0) + quantity;
+          const newOrderedQuantity = Math.max(0, (product.orderedquantity || 0) - quantity);
+
+          await dynamicUpdate('product', { id: product.id }, {
+            availablequantity: newAvailableQuantity,
+            orderedquantity: newOrderedQuantity,
+            modifieddate: currentTimestamp
+          });
+
+          logger.info({
+            productId: product.id,
+            quantity,
+            oldAvailableQuantity: product.availablequantity,
+            newAvailableQuantity,
+            oldOrderedQuantity: product.orderedquantity,
+            newOrderedQuantity
+          }, 'Product quantities restored (pre-dispatch cancellation)');
+        }
+      }
+
+      logger.info({ orderId }, 'Pre-dispatch order cancellation completed');
+    } catch (error) {
+      logger.error({ error, orderId }, 'Error in cancelOrderBeforeReadyForDispatch');
+      throw error;
+    }
+  }
+
+  /**
+   * Cancel order after ready_for_dispatch
+   * Reverses stock allocations and soldqty → availableqty
+   */
+  private async cancelOrderAfterReadyForDispatch(
+    orderId: number,
+    orderlines: any[]
+  ): Promise<void> {
+    try {
+      logger.info({ orderId, orderlinesCount: orderlines.length }, 'Reversing post-dispatch stock allocations');
+
+      const currentTimestamp = Date.now();
+
+      // Track updates by product to avoid duplicate updates
+      const platformStockUpdates = new Map<string, { productId: number; platform: string; quantity: number }>();
+      const productUpdates = new Map<number, number>();
+
+      // Get order to retrieve orderid string
+      const order = await this.findById(orderId);
+      if (!order) {
+        throw new Error(`Order with ID ${orderId} not found`);
+      }
+
+      // Process each orderline
+      for (const orderline of orderlines) {
+        // Get stock records allocated to this orderline via orderid and orderlinenumber
+        const { data: allocatedStocks } = await dynamicFindManyWithFilters('stock', {
+          orderid: order.orderid || orderId.toString(),
+          orderlinenumber: orderline.orderlinenumber
+        }, { useAllColumns: true });
+
+        if (!allocatedStocks || allocatedStocks.length === 0) {
+          logger.warn({
+            orderlineId: orderline.id,
+            orderid: order.orderid,
+            orderlinenumber: orderline.orderlinenumber
+          }, 'No allocated stocks found for orderline');
+          continue;
+        }
+
+        // Get product info from first stock
+        const firstStock = allocatedStocks[0];
+        const product = await dynamicFindUnique('product', { puc: firstStock.puc });
+
+        if (!product) {
+          logger.warn({ puc: firstStock.puc }, 'Product not found for stock');
+          continue;
+        }
+
+        const productId = Number(product.id);
+        const quantity = allocatedStocks.length;
+
+        // Update all stock records for this orderline
+        for (const stock of allocatedStocks) {
+          await dynamicUpdate('stock', { id: stock.id }, {
+            stockstatus: 'available',
+            orderid: null,
+            orderlinenumber: null,
+            solddate: null,
+            modifieddate: currentTimestamp
+          });
+
+          logger.info({
+            stockId: stock.id,
+            orderlineId: orderline.id,
+            orderId
+          }, 'Stock status reset to available');
+        }
+
+        // Track PlatformStock update
+        const platform = firstStock.platform || 'nivapp';
+        const platformStockKey = `${productId}-${platform}`;
+
+        if (!platformStockUpdates.has(platformStockKey)) {
+          platformStockUpdates.set(platformStockKey, {
+            productId,
+            platform,
+            quantity: 0
+          });
+        }
+        platformStockUpdates.get(platformStockKey)!.quantity += quantity;
+
+        // Track Product update
+        if (!productUpdates.has(productId)) {
+          productUpdates.set(productId, 0);
+        }
+        productUpdates.set(productId, productUpdates.get(productId)! + quantity);
+      }
+
+      // Update PlatformStock quantities
+      for (const [key, update] of platformStockUpdates.entries()) {
+        const { data: platformStocks } = await dynamicFindManyWithFilters('platformstock', {
+          productid: update.productId.toString(),
+          platform: update.platform
+        }, { take: 1, useAllColumns: true });
+
+        if (platformStocks && platformStocks.length > 0) {
+          const platformStock = platformStocks[0];
+
+          // Restore availableqty, reduce soldqty
+          const newAvailableQty = (platformStock.availableqty || 0) + update.quantity;
+          const newSoldQty = Math.max(0, (platformStock.soldqty || 0) - update.quantity);
+
+          await dynamicUpdate('platformstock', { id: platformStock.id }, {
+            availableqty: newAvailableQty,
+            soldqty: newSoldQty,
+            modifieddate: currentTimestamp
+          });
+
+          logger.info({
+            platformStockId: platformStock.id,
+            productId: update.productId,
+            platform: update.platform,
+            quantity: update.quantity,
+            oldAvailableQty: platformStock.availableqty,
+            newAvailableQty,
+            oldSoldQty: platformStock.soldqty,
+            newSoldQty
+          }, 'PlatformStock quantities restored (post-dispatch cancellation)');
+        }
+      }
+
+      // Update Product quantities
+      for (const [productId, quantity] of productUpdates.entries()) {
+        const product = await dynamicFindUnique('product', { id: productId });
+        if (product) {
+          // Restore availablequantity, reduce soldquantity
+          const newAvailableQuantity = (product.availablequantity || 0) + quantity;
+          const newSoldQuantity = Math.max(0, (product.soldquantity || 0) - quantity);
+
+          await dynamicUpdate('product', { id: product.id }, {
+            availablequantity: newAvailableQuantity,
+            soldquantity: newSoldQuantity,
+            modifieddate: currentTimestamp
+          });
+
+          logger.info({
+            productId: product.id,
+            quantity,
+            oldAvailableQuantity: product.availablequantity,
+            newAvailableQuantity,
+            oldSoldQuantity: product.soldquantity,
+            newSoldQuantity
+          }, 'Product quantities restored (post-dispatch cancellation)');
+        }
+      }
+
+      logger.info({ orderId }, 'Post-dispatch order cancellation completed');
+    } catch (error) {
+      logger.error({ error, orderId }, 'Error in cancelOrderAfterReadyForDispatch');
+      throw error;
+    }
+  }
 } 

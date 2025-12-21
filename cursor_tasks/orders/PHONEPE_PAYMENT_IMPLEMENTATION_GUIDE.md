@@ -1820,22 +1820,88 @@ After CALLBACK:
 
 ---
 
-*Last Updated: 10 December 2024*
+*Last Updated: 20 December 2024*
 
-initiate phonepe
+1. initiate phonepe
 
 platform stock => availableqty ↓  and lockqty ↑
 product. => no change 
 
-after callback 
+2. after callback 
 
 platform stock => availableqty (no change)  and lockqty ↓ and  orderedqty ↑
 product. => orderedquantity ↑, availablequantity ↓
 
-
-clean up task (when payment is not successful)
+3. clean up task (when payment is not successful)
 
 PlatformStock
 availableqty ↑ (adds back the released quantity)
 lockqty ↓ (subtracts released quantity, floored at 0)
 orderedqty unchanged
+
+
+4. after order ready for dispatch
+
+stock 
+  - stockstatus ='sold',update orderlid and orderlinenumber and solddate 
+
+platformstcok
+  -orderedqty ↓ ,soldqty ↑, availableqty (no change)
+
+product
+  -orderedquantity ↓,soldquantity ↑, availablequantity (no change)
+
+5. after order mark shipped 
+
+orderline 
+  -shipdate :current timestamp,ordersttaus:shipped
+
+order
+  -shipdate :current timestamp,ordersttaus:shipped,label_printed_at:current timestamp
+
+
+### 2.1 Orderline Statuses (Actual Item Lifecycle)
+
+| Status | Description | Who Sets | Date Field | Stock Action | Ekart Integration |
+|--------|-------------|----------|------------|--------------|-------------------|
+| **`order_placed`** | Orderline created; stock reserved | System | `ordereddate` | Reserve stock | - |
+| **`payment_completed`** | Payment done (Prepaid), OR COD accepted | System | `paymentcompleteddate` | Convert lock→order | - |
+| **`payment_failed`** | Prepaid payment failed | System | `paymentfaileddate` | Release reserved stock | - |
+| **`order_confirmed`** | Warehouse accepted orderline | System | `orderconfirmeddate` | None | - |
+| **`packed`** | Orderline packed into box | Warehouse | `packeddate` | None | - |
+| **`ready_for_dispatch`** | Box ready; manifest generated | Warehouse | `readytodispatchdate` | None | - |
+| **`shipped`** | Ekart AWB created | System | `shipdate` | None | ✅ Ekart AWB created |
+| **`in_transit`** | Ekart event | Ekart | None | None | ✅ Tracking |
+| **`out_for_delivery`** | Ekart event | Ekart | None | None | ✅ Tracking |
+| **`delivered`** | Delivered to customer | Ekart | `delivereddate` | None | ✅ Tracking |
+| **`cod_payment_received`** | COD payment collected | Ekart | `paymentreceiveddate` | None | ✅ After delivery |
+| **`cancellation_requested`** | Cancellation requested (shipped order) | Customer | `cancellationrequesteddate` | None (wait for RTO) | Wait for RTO |
+| **`cancelled`** | Orderline cancelled; stock restored | System / Customer | `cancelleddate` | ✅ Restore stock | Optional: Cancel AWB |
+| **`return_initiated`** | Customer started return | Customer | `returninitiateddate` | None | Optional Ekart |
+| **`returned`** | Reverse shipment delivered | Ekart | `returneddate` | ✅ Restore stock | Reverse AWB |
+| **`rto_initiated`** | Delivery failed → Ekart returning | Ekart | None | ✅ Restore stock | Ekart RTO |
+| **`rto_delivered`** | RTO item delivered to seller | Ekart | None | None | Ekart RTO |
+
+### 2.2 Order Statuses (Derived, Not Manually Set)
+
+| Status | Meaning |
+|--------|---------|
+| **`order_placed`** | Order created (all lines placed) |
+| **`payment_completed`** | Prepaid done OR COD accepted |
+| **`order_confirmed`** | All orderlines confirmed |
+| **`packed`** | All orderlines packed in single box |
+| **`ready_for_dispatch`** | All orderlines ready |
+| **`shipped`** | All orderlines shipped (single AWB) |
+| **`in_transit`** | All shipped and in transit |
+| **`out_for_delivery`** | All OFD |
+| **`delivered`** | All delivered |
+| **`cod_payment_received`** | COD payment fully collected |
+| **`cancellation_requested`** | Cancellation requested (waiting for RTO) |
+| **`partially_cancelled`** | Some orderlines cancelled |
+| **`cancelled`** | All orderlines cancelled |
+| **`partially_returned`** | Some returned |
+| **`returned`** | All returned |
+| **`rto_initiated`** | All RTO initiated |
+| **`rto_delivered`** | All RTO delivered |
+
+**Important:** Order status is **always derived** from orderline statuses, never manually set.
