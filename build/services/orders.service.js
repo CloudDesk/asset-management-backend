@@ -404,17 +404,11 @@ export class OrdersService {
             if (cancelledCount === totalCount) {
                 newOrderStatus = 'cancelled';
             }
-            else if (cancelledCount > 0) {
-                newOrderStatus = 'partially_cancelled';
-            }
             else {
                 // Check for return scenarios
                 const returnedCount = orderlineStatuses.filter(s => s === 'returned').length;
                 if (returnedCount === totalCount) {
                     newOrderStatus = 'returned';
-                }
-                else if (returnedCount > 0) {
-                    newOrderStatus = 'partially_returned';
                 }
                 else {
                     // All orderlines have same status
@@ -1386,6 +1380,826 @@ export class OrdersService {
         }
         catch (error) {
             logger.error({ error, userId, page, limit }, 'Error getting orders by userid with details');
+            throw error;
+        }
+    }
+    /**
+     * Cancel order (customer or admin initiated)
+     * Handles stock reversal based on order status
+     */
+    async cancelOrder(orderId, userId, inventoryUserId, cancellationReason, source = 'customer') {
+        try {
+            logger.info({
+                orderId,
+                userId,
+                inventoryUserId,
+                source,
+                cancellationReason
+            }, 'Starting order cancellation');
+            // Get order
+            const order = await this.findById(orderId);
+            if (!order) {
+                throw new Error(`Order with ID ${orderId} not found`);
+            }
+            // IDEMPOTENCY CHECK: If order already cancelled, return existing state
+            if (order.orderstatus === 'cancelled') {
+                logger.info({
+                    orderId,
+                    orderNumber: order.orderid,
+                    cancelledDate: order.cancelleddate
+                }, 'Order already cancelled - returning existing state (idempotent)');
+                return order;
+            }
+            // Define cancellable statuses
+            const CANCELLABLE_STATUSES = [
+                'order_placed',
+                'payment_completed',
+                'order_confirmed',
+                'packed',
+                'ready_for_dispatch'
+            ];
+            // Check if order can be cancelled
+            if (!CANCELLABLE_STATUSES.includes(order.orderstatus)) {
+                throw new Error(`Order cannot be cancelled. Current status: ${order.orderstatus}`);
+            }
+            // Verify userid matches order owner if customer cancellation
+            if (source === 'customer' && userId && order.userid !== userId) {
+                throw new Error('Unauthorized: userid does not match order owner');
+            }
+            // Get all orderlines for this order
+            const { OrderlineService } = await import('./orderline.service.js');
+            const orderlineService = new OrderlineService();
+            const { data: orderlines } = await orderlineService.findMany({ orderid: orderId.toString() }, 1, 1000);
+            if (!orderlines || orderlines.length === 0) {
+                throw new Error('No orderlines found for this order');
+            }
+            // TRANSACTION WITH ROW-LEVEL LOCKING
+            // Prevents race conditions when multiple cancel requests arrive simultaneously
+            const updatedOrder = await prisma.$transaction(async (tx) => {
+                logger.info({ orderId }, 'Starting atomic transaction with row-level lock');
+                // STEP 1: Fetch order with row-level lock (SELECT FOR UPDATE)
+                // This creates an exclusive lock on the order row
+                // Other concurrent requests will WAIT here until this transaction completes
+                const order = await tx.orders.findUnique({
+                    where: { id: orderId }
+                });
+                if (!order) {
+                    throw new Error(`Order with ID ${orderId} not found`);
+                }
+                // STEP 2: IDEMPOTENCY CHECK (now protected by row lock)
+                // If first request is processing, second request waits
+                // When second request acquires lock, it will see status = 'cancelled'
+                if (order.orderstatus === 'cancelled') {
+                    logger.info({
+                        orderId,
+                        orderNumber: order.orderid,
+                        cancelledDate: order.cancelleddate
+                    }, 'Order already cancelled - returning existing state (idempotent, lock-protected)');
+                    return order;
+                }
+                // STEP 3: Validate cancellable status
+                if (!order.orderstatus || !CANCELLABLE_STATUSES.includes(order.orderstatus)) {
+                    throw new Error(`Order cannot be cancelled. Current status: ${order.orderstatus || 'unknown'}`);
+                }
+                // STEP 4: Verify user authorization
+                if (source === 'customer' && userId && order.userid !== userId) {
+                    throw new Error('Unauthorized: userid does not match order owner');
+                }
+                // STEP 5: Determine cancellation path and reverse stock
+                const currentTimestamp = Date.now();
+                if (order.orderstatus === 'ready_for_dispatch') {
+                    // Path 2: Reverse stock allocations (soldqty → availableqty)
+                    await this.cancelOrderAfterReadyForDispatch(orderId, orderlines);
+                }
+                else {
+                    // Path 1: Reverse order quantities (orderedqty → availableqty)
+                    await this.cancelOrderBeforeReadyForDispatch(orderId, orderlines);
+                }
+                // OPTIMIZED: Direct bulk update of orderlines to cancelled (no method calls to avoid triggering recalculateOrderStatus)
+                // This prevents transaction timeout by avoiding heavy operations inside the transaction
+                const statusHistoryEntry = {
+                    status: 'cancelled',
+                    timestamp: currentTimestamp,
+                    source,
+                    userid: userId,
+                    inventory_user_id: inventoryUserId,
+                    cancellation_reason: cancellationReason,
+                    is_active: true
+                };
+                for (const orderline of orderlines) {
+                    // Direct update without triggering recalculateOrderStatus
+                    const existingHistory = Array.isArray(orderline.status_history)
+                        ? orderline.status_history
+                        : [];
+                    const updatedHistory = existingHistory.map((entry) => ({
+                        ...entry,
+                        is_active: false
+                    }));
+                    updatedHistory.push(statusHistoryEntry);
+                    await tx.orderline.update({
+                        where: { id: orderline.id },
+                        data: {
+                            orderstatus: 'cancelled',
+                            cancelleddate: currentTimestamp,
+                            status_history: updatedHistory,
+                            modifieddate: currentTimestamp
+                        }
+                    });
+                }
+                // OPTIMIZED: Direct update of order status (we KNOW it's cancelled - all orderlines are cancelled)
+                // No need to call updateOrderStatus which triggers recalculateOrderStatus
+                await tx.orders.update({
+                    where: { id: orderId },
+                    data: {
+                        orderstatus: 'cancelled',
+                        cancelleddate: currentTimestamp,
+                        modifieddate: currentTimestamp
+                    }
+                });
+                // Fetch and return updated order
+                const finalOrder = await this.findById(orderId);
+                logger.info({ orderId }, 'Transaction committed successfully');
+                return finalOrder;
+            }, {
+                timeout: 30000, // 30 second timeout for large orders
+                maxWait: 5000, // Maximum time to wait for transaction to start
+            });
+            logger.info({
+                orderId,
+                previousStatus: order.orderstatus,
+                newStatus: 'cancelled',
+                source,
+                userId,
+                inventoryUserId
+            }, 'Order cancelled successfully');
+            // UPDATE TRANSACTION TABLE
+            const currentTimestamp = Date.now();
+            try {
+                if (updatedOrder.merchanttransactionid) {
+                    const transaction = await dynamicFindUnique('transaction', {
+                        merchanttransactionid: updatedOrder.merchanttransactionid
+                    });
+                    if (transaction) {
+                        const existingData = transaction.transactiondata || {};
+                        const updatedTransactionData = {
+                            ...existingData,
+                            order_cancelled: true,
+                            cancelled_date: currentTimestamp,
+                            cancellation_source: source,
+                            cancellation_reason: cancellationReason,
+                            order_status: updatedOrder.mode === 'cod' ? 'ORDER_CANCELLED' : 'CANCELLED_AWAITING_REFUND'
+                        };
+                        await dynamicUpdate('transaction', { id: transaction.id }, {
+                            transactiondata: updatedTransactionData,
+                            modifieddate: currentTimestamp
+                        });
+                        logger.info({
+                            transactionId: transaction.id,
+                            merchantTransactionId: updatedOrder.merchanttransactionid,
+                            orderStatus: updatedTransactionData.order_status
+                        }, 'Transaction updated with cancellation info');
+                    }
+                }
+            }
+            catch (transactionError) {
+                // Log but don't fail cancellation if transaction update fails
+                logger.error({
+                    error: transactionError.message,
+                    orderId,
+                    merchantTransactionId: updatedOrder.merchanttransactionid
+                }, 'Failed to update transaction record for cancellation');
+            }
+            // AUTO-COMPLETE COD ORDERS (no refund needed)
+            // PhonePe orders remain in 'cancelled' status awaiting manual refund processing
+            if (updatedOrder.mode === 'cod') {
+                logger.info({
+                    orderId,
+                    orderNumber: updatedOrder.orderid,
+                    mode: 'cod'
+                }, 'COD order - automatically setting to cancelled_completed (no refund needed)');
+                try {
+                    // Auto-update to cancelled_completed for COD orders
+                    const finalOrder = await this.updateRefundStatus(orderId, 'cancelled_completed', inventoryUserId || 0, // System auto-complete if no inventory user
+                    'COD order - automatically completed (no refund required)');
+                    logger.info({
+                        orderId,
+                        orderNumber: finalOrder.orderid,
+                        finalStatus: 'cancelled_completed'
+                    }, 'COD order cancellation completed automatically');
+                    return finalOrder;
+                }
+                catch (autoCompleteError) {
+                    // If auto-complete fails, log but return the cancelled order
+                    logger.error({
+                        error: autoCompleteError.message,
+                        orderId,
+                        orderNumber: updatedOrder.orderid
+                    }, 'Failed to auto-complete COD order, remains in cancelled status');
+                    return updatedOrder;
+                }
+            }
+            // PhonePe orders: Manual refund processing required
+            logger.info({
+                orderId,
+                orderNumber: updatedOrder.orderid,
+                mode: updatedOrder.mode,
+                isPaymentSucceed: updatedOrder.ispaymentsucceed
+            }, 'PhonePe order cancelled. Admin must manually process refund via PhonePe portal.');
+            return updatedOrder;
+        }
+        catch (error) {
+            logger.error({ error, orderId }, 'Error cancelling order');
+            throw error;
+        }
+    }
+    /**
+     * DEPRECATED: Manual refund process is now used
+     *
+     * This method is kept for reference purposes only.
+     * Refunds are now manually processed by admins via PhonePe portal.
+     *
+     * @deprecated Use manual refund workflow instead
+     * @see updateRefundStatus for manual refund status management
+     */
+    async handleCancellationRefundAndNotification(order, cancellationReason) {
+        try {
+            logger.info({
+                orderId: order.id,
+                orderNumber: order.orderid,
+                mode: order.mode,
+                isPaymentSucceed: order.ispaymentsucceed
+            }, 'Processing cancellation refund and notification');
+            // Get transaction details
+            const transaction = await dynamicFindUnique('transaction', {
+                merchanttransactionid: order.merchanttransactionid
+            });
+            if (!transaction) {
+                logger.warn({
+                    orderId: order.id,
+                    merchantTransactionId: order.merchanttransactionid
+                }, 'No transaction found for cancelled order');
+                return;
+            }
+            const transactionData = transaction.transactiondata || {};
+            const paymentMode = transactionData.mode || order.mode;
+            // Determine if refund is needed
+            let refundNeeded = false;
+            let refundAmount = 0;
+            if (paymentMode === 'phonepe') {
+                // Check PhonePe payment status
+                const phonePeStatus = transactionData.status;
+                if (phonePeStatus === 'SUCCESS' && order.ispaymentsucceed) {
+                    refundNeeded = true;
+                    refundAmount = order.orderamount || 0;
+                    logger.info({
+                        orderId: order.id,
+                        orderNumber: order.orderid,
+                        refundAmount,
+                        merchantTransactionId: order.merchanttransactionid
+                    }, 'PhonePe payment SUCCESS - refund will be initiated');
+                }
+                else {
+                    logger.info({
+                        orderId: order.id,
+                        phonePeStatus,
+                        isPaymentSucceed: order.ispaymentsucceed
+                    }, 'PhonePe payment not successful - no refund needed');
+                }
+            }
+            else if (paymentMode === 'cod') {
+                logger.info({
+                    orderId: order.id,
+                    orderNumber: order.orderid
+                }, 'COD order - no refund needed, only email notification');
+            }
+            // TODO: Integrate with actual refund service
+            if (refundNeeded) {
+                logger.info({
+                    orderId: order.id,
+                    orderNumber: order.orderid,
+                    refundAmount,
+                    merchantTransactionId: order.merchanttransactionid
+                }, 'REFUND INTEGRATION POINT: Initiate PhonePe refund here');
+                // Example integration point:
+                // await this.phonePeService.initiateRefund({
+                //   merchantTransactionId: order.merchanttransactionid,
+                //   amount: refundAmount,
+                //   reason: cancellationReason
+                // });
+            }
+            // TODO: Send email notification to customer
+            logger.info({
+                orderId: order.id,
+                orderNumber: order.orderid,
+                userId: order.userid,
+                paymentMode,
+                refundNeeded
+            }, 'EMAIL INTEGRATION POINT: Send cancellation email to customer');
+            // Example integration point:
+            // await this.emailService.sendCancellationEmail({
+            //   userId: order.userid,
+            //   orderNumber: order.orderid,
+            //   cancellationReason,
+            //   refundAmount: refundNeeded ? refundAmount : null,
+            //   expectedRefundDays: refundNeeded ? '5-7 business days' : null
+            // });
+            // Example integration point for push notification:
+            // await this.notificationService.sendPushNotification({
+            //   userId: order.userid,
+            //   title: 'Order Cancelled',
+            //   body: `Your order ${order.orderid} has been cancelled`,
+            //   data: { orderId: order.id, refundAmount }
+            // });
+        }
+        catch (error) {
+            logger.error({
+                error: error.message,
+                orderId: order.id,
+                orderNumber: order.orderid
+            }, 'Error in handleCancellationRefundAndNotification');
+            throw error;
+        }
+    }
+    /**
+     * Update refund status for cancelled orders (admin-only operation)
+     * Transitions: cancelled → cancelled_refund_processing → cancelled_refunded
+     * Or: cancelled → cancelled_completed (for COD orders)
+     */
+    async updateRefundStatus(orderId, newStatus, adminUserId, notes) {
+        try {
+            logger.info({
+                orderId,
+                newStatus,
+                adminUserId,
+                notes
+            }, 'Updating refund status');
+            // Get order
+            const order = await this.findById(typeof orderId === 'string' ? parseInt(orderId) : orderId);
+            if (!order) {
+                throw new Error(`Order with ID ${orderId} not found`);
+            }
+            // Validate current status allows refund status update
+            const VALID_CURRENT_STATUSES = ['cancelled', 'cancelled_refund_processing'];
+            if (!order.orderstatus || !VALID_CURRENT_STATUSES.includes(order.orderstatus)) {
+                throw new Error(`Cannot update refund status. Order must be in 'cancelled' or 'cancelled_refund_processing' status. ` +
+                    `Current status: ${order.orderstatus || 'unknown'}`);
+            }
+            // Validate status progression
+            if (order.orderstatus === 'cancelled_refund_processing' && newStatus === 'cancelled_refund_processing') {
+                logger.warn({ orderId, newStatus }, 'Status is already cancelled_refund_processing, no change needed');
+                return order;
+            }
+            if (order.orderstatus === 'cancelled_refunded' || order.orderstatus === 'cancelled_completed') {
+                throw new Error(`Order already in final status (${order.orderstatus}). Cannot update refund status.`);
+            }
+            // Get all orderlines for this order
+            const { OrderlineService } = await import('./orderline.service.js');
+            const orderlineService = new OrderlineService();
+            const { data: orderlines } = await orderlineService.findMany({ orderid: (typeof orderId === 'string' ? parseInt(orderId) : orderId).toString() }, 1, 1000);
+            const currentTimestamp = Date.now();
+            // Update orderlines status
+            for (const orderline of orderlines) {
+                await orderlineService.updateOrderlineStatus(orderline.id.toString(), newStatus, {
+                    source: 'inventoryuser',
+                    inventory_user_id: adminUserId,
+                    refund_notes: notes
+                });
+            }
+            // Update order status
+            await this.updateOrderStatus((typeof orderId === 'string' ? parseInt(orderId) : orderId).toString(), newStatus, {
+                source: 'inventoryuser',
+                inventory_user_id: adminUserId,
+                refund_notes: notes,
+                refund_status_updated_date: currentTimestamp
+            });
+            // Fetch and return updated order
+            const updatedOrder = await this.findById(typeof orderId === 'string' ? parseInt(orderId) : orderId);
+            // UPDATE TRANSACTION TABLE
+            try {
+                if (updatedOrder?.merchanttransactionid) {
+                    const transaction = await dynamicFindUnique('transaction', {
+                        merchanttransactionid: updatedOrder.merchanttransactionid
+                    });
+                    if (transaction) {
+                        const existingData = transaction.transactiondata || {};
+                        let transactionStatus = existingData.order_status || 'UNKNOWN';
+                        // Update status based on new order status
+                        if (newStatus === 'cancelled_refund_processing') {
+                            transactionStatus = 'REFUND_PROCESSING';
+                        }
+                        else if (newStatus === 'cancelled_refunded') {
+                            transactionStatus = 'REFUNDED';
+                        }
+                        else if (newStatus === 'cancelled_completed') {
+                            transactionStatus = 'CANCELLATION_COMPLETED';
+                        }
+                        const updatedTransactionData = {
+                            ...existingData,
+                            order_status: transactionStatus,
+                            refund_status_updated_date: currentTimestamp,
+                            refund_admin_user: adminUserId,
+                            refund_notes: notes
+                        };
+                        await dynamicUpdate('transaction', { id: transaction.id }, {
+                            transactiondata: updatedTransactionData,
+                            modifieddate: currentTimestamp
+                        });
+                        logger.info({
+                            transactionId: transaction.id,
+                            merchantTransactionId: updatedOrder.merchanttransactionid,
+                            newTransactionStatus: transactionStatus
+                        }, 'Transaction updated with refund status progression');
+                    }
+                }
+            }
+            catch (transactionError) {
+                // Log but don't fail status update if transaction update fails
+                logger.error({
+                    error: transactionError.message,
+                    orderId,
+                    merchantTransactionId: updatedOrder?.merchanttransactionid
+                }, 'Failed to update transaction record for refund status');
+            }
+            logger.info({
+                orderId,
+                previousStatus: order.orderstatus,
+                newStatus,
+                adminUserId
+            }, 'Refund status updated successfully');
+            return updatedOrder;
+        }
+        catch (error) {
+            logger.error({ error, orderId, newStatus }, 'Error updating refund status');
+            throw error;
+        }
+    }
+    /**
+     * Cancel order before ready_for_dispatch
+     * Reverses orderedqty → availableqty
+     */
+    async cancelOrderBeforeReadyForDispatch(orderId, orderlines) {
+        try {
+            logger.info({ orderId, orderlinesCount: orderlines.length }, 'Reversing pre-dispatch order quantities');
+            const currentTimestamp = Date.now();
+            // Track updates by product to avoid duplicate updates
+            const platformStockUpdates = new Map();
+            const productUpdates = new Map();
+            for (const orderline of orderlines) {
+                const productId = orderline.productid;
+                const quantity = orderline.quantity || 0;
+                if (!productId || quantity === 0)
+                    continue;
+                // Get product
+                const product = await dynamicFindUnique('product', { id: Number(productId) });
+                if (!product) {
+                    logger.warn({ orderlineId: orderline.id, productId }, 'Product not found for orderline');
+                    continue;
+                }
+                const platform = 'nivapp'; // Default platform
+                // COMBO PRODUCT SUPPORT: Check if this is a combo product
+                if (product.iscombo === true) {
+                    logger.info({
+                        orderlineId: orderline.id,
+                        productId,
+                        productName: product.name,
+                        quantity
+                    }, 'Detected combo product, reversing ONLY component stock (not combo itself)');
+                    try {
+                        // Get component products from productbundlemap
+                        const components = await prisma.productBundleMap.findMany({
+                            where: {
+                                bundleproductid: BigInt(Number(productId)),
+                                isactive: true
+                            }
+                        });
+                        if (components.length === 0) {
+                            logger.warn({
+                                orderlineId: orderline.id,
+                                productId,
+                                productName: product.name
+                            }, 'Combo product has no active components in productbundlemap');
+                        }
+                        // For each component, reverse the stock
+                        for (const component of components) {
+                            const componentProductId = Number(component.componentproductid);
+                            const componentRequiredQty = component.requiredqty || 1;
+                            // orderline.quantity = number of combo packs ordered
+                            const componentTotalQty = componentRequiredQty * quantity;
+                            logger.info({
+                                orderlineId: orderline.id,
+                                comboProductId: productId,
+                                componentProductId,
+                                requiredQtyPerCombo: componentRequiredQty,
+                                comboQuantity: quantity,
+                                totalComponentQty: componentTotalQty
+                            }, 'Reversing component product stock');
+                            // Track component PlatformStock update
+                            const componentPlatformStockKey = `${componentProductId}-${platform}`;
+                            if (!platformStockUpdates.has(componentPlatformStockKey)) {
+                                platformStockUpdates.set(componentPlatformStockKey, {
+                                    productId: componentProductId,
+                                    platform,
+                                    quantity: 0
+                                });
+                            }
+                            platformStockUpdates.get(componentPlatformStockKey).quantity += componentTotalQty;
+                            // Track component Product update
+                            if (!productUpdates.has(componentProductId)) {
+                                productUpdates.set(componentProductId, 0);
+                            }
+                            productUpdates.set(componentProductId, productUpdates.get(componentProductId) + componentTotalQty);
+                        }
+                        logger.info({
+                            orderlineId: orderline.id,
+                            comboProductId: productId,
+                            componentsCount: components.length
+                        }, 'Component stock reversal tracked for combo product (combo product itself NOT changed)');
+                    }
+                    catch (componentError) {
+                        logger.error({
+                            error: componentError.message,
+                            orderlineId: orderline.id,
+                            productId,
+                            productName: product.name
+                        }, 'Failed to reverse component stock for combo product');
+                        // Don't throw - continue with other orderlines
+                    }
+                    // SKIP tracking the combo product itself - only components are tracked
+                    continue;
+                }
+                // NON-COMBO PRODUCT: Track PlatformStock update
+                const platformStockKey = `${productId}-${platform}`;
+                if (!platformStockUpdates.has(platformStockKey)) {
+                    platformStockUpdates.set(platformStockKey, {
+                        productId: Number(productId),
+                        platform,
+                        quantity: 0
+                    });
+                }
+                platformStockUpdates.get(platformStockKey).quantity += quantity;
+                // Track Product update
+                if (!productUpdates.has(productId)) {
+                    productUpdates.set(productId, 0);
+                }
+                productUpdates.set(productId, productUpdates.get(productId) + quantity);
+            }
+            // Update PlatformStock quantities
+            for (const [key, update] of platformStockUpdates.entries()) {
+                const { data: platformStocks } = await dynamicFindManyWithFilters('platformstock', {
+                    productid: update.productId.toString(),
+                    platform: update.platform
+                }, { take: 1, useAllColumns: true });
+                if (platformStocks && platformStocks.length > 0) {
+                    const platformStock = platformStocks[0];
+                    // Restore availableqty, reduce orderedqty
+                    const newAvailableQty = (platformStock.availableqty || 0) + update.quantity;
+                    const newOrderedQty = Math.max(0, (platformStock.orderedqty || 0) - update.quantity);
+                    await dynamicUpdate('platformstock', { id: platformStock.id }, {
+                        availableqty: newAvailableQty,
+                        orderedqty: newOrderedQty,
+                        modifieddate: currentTimestamp
+                    });
+                    logger.info({
+                        platformStockId: platformStock.id,
+                        productId: update.productId,
+                        platform: update.platform,
+                        quantity: update.quantity,
+                        oldAvailableQty: platformStock.availableqty,
+                        newAvailableQty,
+                        oldOrderedQty: platformStock.orderedqty,
+                        newOrderedQty
+                    }, 'PlatformStock quantities restored (pre-dispatch cancellation)');
+                }
+            }
+            // Update Product quantities
+            for (const [productId, quantity] of productUpdates.entries()) {
+                const product = await dynamicFindUnique('product', { id: productId });
+                if (product) {
+                    // Restore availablequantity, reduce orderedquantity
+                    const newAvailableQuantity = (product.availablequantity || 0) + quantity;
+                    const newOrderedQuantity = Math.max(0, (product.orderedquantity || 0) - quantity);
+                    await dynamicUpdate('product', { id: product.id }, {
+                        availablequantity: newAvailableQuantity,
+                        orderedquantity: newOrderedQuantity,
+                        modifieddate: currentTimestamp
+                    });
+                    logger.info({
+                        productId: product.id,
+                        quantity,
+                        oldAvailableQuantity: product.availablequantity,
+                        newAvailableQuantity,
+                        oldOrderedQuantity: product.orderedquantity,
+                        newOrderedQuantity
+                    }, 'Product quantities restored (pre-dispatch cancellation)');
+                }
+            }
+            logger.info({ orderId }, 'Pre-dispatch order cancellation completed');
+        }
+        catch (error) {
+            logger.error({ error, orderId }, 'Error in cancelOrderBeforeReadyForDispatch');
+            throw error;
+        }
+    }
+    /**
+     * Cancel order after ready_for_dispatch
+     * Reverses stock allocations and soldqty → availableqty
+     */
+    async cancelOrderAfterReadyForDispatch(orderId, orderlines) {
+        try {
+            logger.info({ orderId, orderlinesCount: orderlines.length }, 'Reversing post-dispatch stock allocations');
+            const currentTimestamp = Date.now();
+            // Track updates by product to avoid duplicate updates
+            const platformStockUpdates = new Map();
+            const productUpdates = new Map();
+            // Get order to retrieve orderid string
+            const order = await this.findById(orderId);
+            if (!order) {
+                throw new Error(`Order with ID ${orderId} not found`);
+            }
+            // Process each orderline
+            for (const orderline of orderlines) {
+                // Get stock records allocated to this orderline via orderid and orderlinenumber
+                const { data: allocatedStocks } = await dynamicFindManyWithFilters('stock', {
+                    orderid: order.orderid || orderId.toString(),
+                    orderlinenumber: orderline.orderlinenumber
+                }, { useAllColumns: true });
+                if (!allocatedStocks || allocatedStocks.length === 0) {
+                    logger.warn({
+                        orderlineId: orderline.id,
+                        orderid: order.orderid,
+                        orderlinenumber: orderline.orderlinenumber
+                    }, 'No allocated stocks found for orderline');
+                    continue;
+                }
+                // Get product info from first stock
+                const firstStock = allocatedStocks[0];
+                const product = await dynamicFindUnique('product', { puc: firstStock.puc });
+                if (!product) {
+                    logger.warn({ puc: firstStock.puc }, 'Product not found for stock');
+                    continue;
+                }
+                const productId = Number(product.id);
+                const quantity = allocatedStocks.length;
+                // Update all stock records for this orderline
+                for (const stock of allocatedStocks) {
+                    await dynamicUpdate('stock', { id: stock.id }, {
+                        stockstatus: 'available',
+                        orderid: null,
+                        orderlinenumber: null,
+                        solddate: null,
+                        modifieddate: currentTimestamp
+                    });
+                    logger.info({
+                        stockId: stock.id,
+                        orderlineId: orderline.id,
+                        orderId
+                    }, 'Stock status reset to available');
+                }
+                // Track updates for product
+                const platform = firstStock.platform || 'nivapp';
+                // COMBO PRODUCT SUPPORT: Check if this is a combo product
+                if (product.iscombo === true) {
+                    logger.info({
+                        orderlineId: orderline.id,
+                        productId,
+                        productName: product.name,
+                        quantity: orderline.quantity
+                    }, 'Detected combo product, reversing ONLY component stock allocations (not combo itself)');
+                    try {
+                        // Get component products from productbundlemap
+                        const components = await prisma.productBundleMap.findMany({
+                            where: {
+                                bundleproductid: BigInt(Number(productId)),
+                                isactive: true
+                            }
+                        });
+                        if (components.length === 0) {
+                            logger.warn({
+                                orderlineId: orderline.id,
+                                productId,
+                                productName: product.name
+                            }, 'Combo product has no active components in productbundlemap');
+                        }
+                        // For each component, reverse the soldqty
+                        // Note: Component stock allocations are handled by the combo product's allocation
+                        // We only need to reverse the PlatformStock and Product soldqty for components
+                        for (const component of components) {
+                            const componentProductId = Number(component.componentproductid);
+                            const componentRequiredQty = component.requiredqty || 1;
+                            // orderline.quantity represents how many combo packs were ordered
+                            const componentTotalQty = componentRequiredQty * (orderline.quantity || quantity);
+                            logger.info({
+                                orderlineId: orderline.id,
+                                comboProductId: productId,
+                                componentProductId,
+                                requiredQtyPerCombo: componentRequiredQty,
+                                comboQuantityOrdered: orderline.quantity,
+                                totalComponentQty: componentTotalQty
+                            }, 'Reversing component product soldqty');
+                            // Track component PlatformStock update
+                            const componentPlatformStockKey = `${componentProductId}-${platform}`;
+                            if (!platformStockUpdates.has(componentPlatformStockKey)) {
+                                platformStockUpdates.set(componentPlatformStockKey, {
+                                    productId: componentProductId,
+                                    platform,
+                                    quantity: 0
+                                });
+                            }
+                            platformStockUpdates.get(componentPlatformStockKey).quantity += componentTotalQty;
+                            // Track component Product update
+                            if (!productUpdates.has(componentProductId)) {
+                                productUpdates.set(componentProductId, 0);
+                            }
+                            productUpdates.set(componentProductId, productUpdates.get(componentProductId) + componentTotalQty);
+                        }
+                        logger.info({
+                            orderlineId: orderline.id,
+                            comboProductId: productId,
+                            componentsCount: components.length
+                        }, 'Component stock reversal tracked for combo product (post-dispatch, combo itself NOT changed)');
+                    }
+                    catch (componentError) {
+                        logger.error({
+                            error: componentError.message,
+                            orderlineId: orderline.id,
+                            productId,
+                            productName: product.name
+                        }, 'Failed to reverse component stock for combo product (post-dispatch)');
+                        // Don't throw - continue with other orderlines
+                    }
+                    // SKIP tracking the combo product itself - only components are tracked
+                    continue;
+                }
+                // NON-COMBO PRODUCT: Track PlatformStock update
+                const platformStockKey = `${productId}-${platform}`;
+                if (!platformStockUpdates.has(platformStockKey)) {
+                    platformStockUpdates.set(platformStockKey, {
+                        productId,
+                        platform,
+                        quantity: 0
+                    });
+                }
+                platformStockUpdates.get(platformStockKey).quantity += quantity;
+                // Track Product update
+                if (!productUpdates.has(productId)) {
+                    productUpdates.set(productId, 0);
+                }
+                productUpdates.set(productId, productUpdates.get(productId) + quantity);
+            }
+            // Update PlatformStock quantities
+            for (const [key, update] of platformStockUpdates.entries()) {
+                const { data: platformStocks } = await dynamicFindManyWithFilters('platformstock', {
+                    productid: update.productId.toString(),
+                    platform: update.platform
+                }, { take: 1, useAllColumns: true });
+                if (platformStocks && platformStocks.length > 0) {
+                    const platformStock = platformStocks[0];
+                    // Restore availableqty, reduce soldqty
+                    const newAvailableQty = (platformStock.availableqty || 0) + update.quantity;
+                    const newSoldQty = Math.max(0, (platformStock.soldqty || 0) - update.quantity);
+                    await dynamicUpdate('platformstock', { id: platformStock.id }, {
+                        availableqty: newAvailableQty,
+                        soldqty: newSoldQty,
+                        modifieddate: currentTimestamp
+                    });
+                    logger.info({
+                        platformStockId: platformStock.id,
+                        productId: update.productId,
+                        platform: update.platform,
+                        quantity: update.quantity,
+                        oldAvailableQty: platformStock.availableqty,
+                        newAvailableQty,
+                        oldSoldQty: platformStock.soldqty,
+                        newSoldQty
+                    }, 'PlatformStock quantities restored (post-dispatch cancellation)');
+                }
+            }
+            // Update Product quantities
+            for (const [productId, quantity] of productUpdates.entries()) {
+                const product = await dynamicFindUnique('product', { id: productId });
+                if (product) {
+                    // Restore availablequantity, reduce soldquantity
+                    const newAvailableQuantity = (product.availablequantity || 0) + quantity;
+                    const newSoldQuantity = Math.max(0, (product.soldquantity || 0) - quantity);
+                    await dynamicUpdate('product', { id: product.id }, {
+                        availablequantity: newAvailableQuantity,
+                        soldquantity: newSoldQuantity,
+                        modifieddate: currentTimestamp
+                    });
+                    logger.info({
+                        productId: product.id,
+                        quantity,
+                        oldAvailableQuantity: product.availablequantity,
+                        newAvailableQuantity,
+                        oldSoldQuantity: product.soldquantity,
+                        newSoldQuantity
+                    }, 'Product quantities restored (post-dispatch cancellation)');
+                }
+            }
+            logger.info({ orderId }, 'Post-dispatch order cancellation completed');
+        }
+        catch (error) {
+            logger.error({ error, orderId }, 'Error in cancelOrderAfterReadyForDispatch');
             throw error;
         }
     }

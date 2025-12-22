@@ -30,5 +30,15 @@ export declare class OrdersController {
      * GET /v1/orders/user/:userid/details
      */
     getOrdersByUserIdWithDetails: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    /**
+     * Cancel order (customer or admin initiated)
+     * POST /v1/orders/:id/cancel
+     */
+    cancelOrder: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    /**
+     * Update refund status for cancelled orders (admin-only)
+     * PATCH /v1/orders/:id/refund-status
+     */
+    updateRefundStatus: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
 }
 //# sourceMappingURL=orders.controller.d.ts.map

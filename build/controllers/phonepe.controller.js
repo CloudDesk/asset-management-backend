@@ -4080,7 +4080,18 @@ export class PhonePeController {
                 },
                 quantityToConvert,
             }, "About to update component platformstock (lock → order)");
-            // 2c. Update component platformstock
+            // 2c. Calculate platform status based on available quantity
+            let newPlatformStatus;
+            if (currentAvailableQty <= 0) {
+                newPlatformStatus = "out_of_stock";
+            }
+            else if (currentAvailableQty >= 1 && currentAvailableQty <= 5) {
+                newPlatformStatus = "low_stock";
+            }
+            else {
+                newPlatformStatus = "in_stock";
+            }
+            // 2d. Update component platformstock with status
             await prisma.platformStock.update({
                 where: {
                     productid_platform: {
@@ -4091,10 +4102,11 @@ export class PhonePeController {
                 data: {
                     lockqty: newLockQty,
                     orderedqty: newOrderedQty,
+                    platformstatus: newPlatformStatus,
                     modifieddate: BigInt(Date.now()),
                 },
             });
-            // 2d. Update component product.orderedquantity
+            // 2e. Update component product.orderedquantity and status
             const componentProduct = await prisma.product.findUnique({
                 where: { id: BigInt(componentProductId) },
                 select: {
@@ -4110,11 +4122,23 @@ export class PhonePeController {
             // Also update availablequantity
             const currentComponentAvailableQty = componentProduct.availablequantity || 0;
             const newComponentAvailableQty = Math.max(0, currentComponentAvailableQty - quantityToConvert);
+            // Calculate product status based on new available quantity
+            let newProductStatus;
+            if (newComponentAvailableQty <= 0) {
+                newProductStatus = "out_of_stock";
+            }
+            else if (newComponentAvailableQty >= 1 && newComponentAvailableQty <= 5) {
+                newProductStatus = "low_stock";
+            }
+            else {
+                newProductStatus = "in_stock";
+            }
             await prisma.product.update({
                 where: { id: BigInt(componentProductId) },
                 data: {
                     orderedquantity: newComponentOrderedQty,
                     availablequantity: newComponentAvailableQty,
+                    productstatus: newProductStatus,
                     modifieddate: BigInt(Date.now()),
                 },
             });
@@ -4155,12 +4179,15 @@ export class PhonePeController {
                     newLockQty,
                     oldOrderedQty: currentOrderedQty,
                     newOrderedQty,
+                    oldPlatformStatus: platformStock.platformstatus,
+                    newPlatformStatus,
                 },
                 productUpdate: {
                     oldOrderedQty: currentComponentOrderedQty,
                     newOrderedQty: newComponentOrderedQty,
                     oldAvailableQty: currentComponentAvailableQty,
                     newAvailableQty: newComponentAvailableQty,
+                    newProductStatus,
                 },
             }, "Component lock converted to order successfully");
         }

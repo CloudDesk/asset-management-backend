@@ -7312,3 +7312,51 @@ Final rawData: {
   "sessiontoken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiaGFyaXNoQG1haWwuY29tIiwicm9sZUlkIjozLCJpYXQiOjE3NjYxNjE3NjMsImV4cCI6MTc2Njc2NjU2MywiYXVkIjoiYXNzZXQtbWFuYWdlbWVudC1mcm9udGVuZCIsImlzcyI6ImFzc2V0LW1hbmFnZW1lbnQtYmFja2VuZCJ9.jQkYH4Gaiq3WzLKeCjL_EeKONWk9xIMpdFNfLUSBP7I",
   "modifieddate": 1766161763779
 }
+Final rawData: {
+  "orderstatus": "cancelled",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1766142597149,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"cancelled\",\"changed_date\":1766396227917,\"source\":\"customer\",\"is_active\":true}]",
+  "modifieddate": 1766396227917,
+  "userid": 41,
+  "cancelleddate": 1766396227917
+}
+Final rawData: {
+  "orderstatus": "partially_cancelled",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1766142594973,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"partially_cancelled\",\"changed_date\":1766396234495,\"source\":\"system\",\"is_active\":true}]",
+  "modifieddate": 1766396234495
+}
+Final rawData: {
+  "orderstatus": "cancelled",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1766142597149,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"cancelled\",\"changed_date\":1766396237357,\"source\":\"customer\",\"is_active\":true}]",
+  "modifieddate": 1766396237357,
+  "userid": 41,
+  "cancelleddate": 1766396237357
+}
+Final rawData: {
+  "orderstatus": "cancelled",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1766142597149,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"cancelled\",\"changed_date\":1766396244133,\"source\":\"customer\",\"is_active\":true}]",
+  "modifieddate": 1766396244133,
+  "userid": 41,
+  "cancelleddate": 1766396244133
+}
+Final rawData: {
+  "orderstatus": "cancelled",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1766142594973,\"previous_status\":\"order_placed\"},{\"source\":\"system\",\"is_active\":false,\"new_status\":\"partially_cancelled\",\"changed_date\":1766396234495,\"previous_status\":\"payment_completed\"},{\"previous_status\":\"partially_cancelled\",\"new_status\":\"cancelled\",\"changed_date\":1766396248908,\"source\":\"system\",\"is_active\":true}]",
+  "modifieddate": 1766396248908
+}
+Final rawData: {
+  "orderstatus": "cancelled",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1766142594973,\"previous_status\":\"order_placed\"},{\"source\":\"system\",\"is_active\":false,\"new_status\":\"partially_cancelled\",\"changed_date\":1766396234495,\"previous_status\":\"payment_completed\"},{\"source\":\"system\",\"is_active\":false,\"new_status\":\"cancelled\",\"changed_date\":1766396248908,\"previous_status\":\"partially_cancelled\"},{\"previous_status\":\"cancelled\",\"new_status\":\"cancelled\",\"changed_date\":1766396250283,\"source\":\"customer\",\"is_active\":true}]",
+  "modifieddate": 1766396250283,
+  "userid": 41,
+  "cancelleddate": 1766396250283
+}
+Final rawData: {
+  "orderstatus": "ready_for_dispatch",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1766063377631,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1766406230537,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  "modifieddate": 1766406230537
+}
+Final rawData: {
+  "orderstatus": "ready_for_dispatch",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1766063377631,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1766406233448,\"source\":\"system\",\"is_active\":true}]",
+  "modifieddate": 1766406233448
+}

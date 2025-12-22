@@ -167882,3 +167882,281 @@ Filtered data result: {
   "sessiontoken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiaGFyaXNoQG1haWwuY29tIiwicm9sZUlkIjozLCJpYXQiOjE3NjYxNjE3NjMsImV4cCI6MTc2Njc2NjU2MywiYXVkIjoiYXNzZXQtbWFuYWdlbWVudC1mcm9udGVuZCIsImlzcyI6ImFzc2V0LW1hbmFnZW1lbnQtYmFja2VuZCJ9.jQkYH4Gaiq3WzLKeCjL_EeKONWk9xIMpdFNfLUSBP7I",
   "modifieddate": 1766161763779
 }
+Filtered data result: {
+  "availableqty": 43,
+  "orderedqty": 73,
+  "modifieddate": 1766396211909
+}
+Filtered data result: {
+  "availableqty": 376,
+  "orderedqty": 38,
+  "modifieddate": 1766396211909
+}
+Filtered data result: {
+  "availableqty": 37,
+  "orderedqty": 90,
+  "modifieddate": 1766396211909
+}
+Filtered data result: {
+  "availablequantity": 42,
+  "orderedquantity": 73,
+  "modifieddate": 1766396211909
+}
+Filtered data result: {
+  "availablequantity": 375,
+  "orderedquantity": 37,
+  "modifieddate": 1766396211909
+}
+Filtered data result: {
+  "availablequantity": 68,
+  "orderedquantity": 90,
+  "modifieddate": 1766396211909
+}
+Filtered data result: {
+  "orderedquantity": 72,
+  "availablequantity": 43,
+  "productstatus": "in_stock",
+  "modifieddate": 1766396228384
+}
+Filtered data result: {
+  "orderedqty": 72,
+  "availableqty": 44,
+  "platformstatus": "in_stock",
+  "modifieddate": 1766396230264
+}
+Filtered data result: {
+  "orderstatus": "cancelled",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1766142597149,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"cancelled\",\"changed_date\":1766396227917,\"source\":\"customer\",\"is_active\":true}]",
+  "modifieddate": 1766396227917,
+  "userid": 41,
+  "cancelleddate": 1766396227917
+}
+Filtered data result: {
+  "orderstatus": "partially_cancelled",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1766142594973,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"partially_cancelled\",\"changed_date\":1766396234495,\"source\":\"system\",\"is_active\":true}]",
+  "modifieddate": 1766396234495
+}
+Filtered data result: {
+  "orderedquantity": 35,
+  "availablequantity": 377,
+  "productstatus": "in_stock",
+  "modifieddate": 1766396237840
+}
+Filtered data result: {
+  "orderedqty": 36,
+  "availableqty": 378,
+  "platformstatus": "in_stock",
+  "modifieddate": 1766396239280
+}
+Filtered data result: {
+  "orderstatus": "cancelled",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1766142597149,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"cancelled\",\"changed_date\":1766396237357,\"source\":\"customer\",\"is_active\":true}]",
+  "modifieddate": 1766396237357,
+  "userid": 41,
+  "cancelleddate": 1766396237357
+}
+Filtered data result: {
+  "orderedquantity": 88,
+  "availablequantity": 70,
+  "productstatus": "in_stock",
+  "modifieddate": 1766396244676
+}
+Filtered data result: {
+  "orderedqty": 88,
+  "availableqty": 39,
+  "platformstatus": "in_stock",
+  "modifieddate": 1766396246132
+}
+Filtered data result: {
+  "orderstatus": "cancelled",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1766142597149,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"cancelled\",\"changed_date\":1766396244133,\"source\":\"customer\",\"is_active\":true}]",
+  "modifieddate": 1766396244133,
+  "userid": 41,
+  "cancelleddate": 1766396244133
+}
+Filtered data result: {
+  "orderstatus": "cancelled",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1766142594973,\"previous_status\":\"order_placed\"},{\"source\":\"system\",\"is_active\":false,\"new_status\":\"partially_cancelled\",\"changed_date\":1766396234495,\"previous_status\":\"payment_completed\"},{\"previous_status\":\"partially_cancelled\",\"new_status\":\"cancelled\",\"changed_date\":1766396248908,\"source\":\"system\",\"is_active\":true}]",
+  "modifieddate": 1766396248908
+}
+Filtered data result: {
+  "orderstatus": "cancelled",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1766142594973,\"previous_status\":\"order_placed\"},{\"source\":\"system\",\"is_active\":false,\"new_status\":\"partially_cancelled\",\"changed_date\":1766396234495,\"previous_status\":\"payment_completed\"},{\"source\":\"system\",\"is_active\":false,\"new_status\":\"cancelled\",\"changed_date\":1766396248908,\"previous_status\":\"partially_cancelled\"},{\"previous_status\":\"cancelled\",\"new_status\":\"cancelled\",\"changed_date\":1766396250283,\"source\":\"customer\",\"is_active\":true}]",
+  "modifieddate": 1766396250283,
+  "userid": 41,
+  "cancelleddate": 1766396250283
+}
+Filtered data result: {
+  "availableqty": 41,
+  "orderedqty": 86,
+  "modifieddate": 1766397123949
+}
+Filtered data result: {
+  "availableqty": 380,
+  "orderedqty": 34,
+  "modifieddate": 1766397123949
+}
+Filtered data result: {
+  "availableqty": 45,
+  "orderedqty": 71,
+  "modifieddate": 1766397123949
+}
+Filtered data result: {
+  "availablequantity": 72,
+  "orderedquantity": 86,
+  "modifieddate": 1766397123949
+}
+Filtered data result: {
+  "availablequantity": 379,
+  "orderedquantity": 33,
+  "modifieddate": 1766397123949
+}
+Filtered data result: {
+  "availablequantity": 44,
+  "orderedquantity": 71,
+  "modifieddate": 1766397123949
+}
+Filtered data result: {
+  "availableqty": 43,
+  "orderedqty": 73,
+  "modifieddate": 1766398928049
+}
+Filtered data result: {
+  "availableqty": 2,
+  "orderedqty": 3,
+  "modifieddate": 1766398928049
+}
+Filtered data result: {
+  "availableqty": 5,
+  "orderedqty": 3,
+  "modifieddate": 1766398928049
+}
+Filtered data result: {
+  "availablequantity": 42,
+  "orderedquantity": 73,
+  "modifieddate": 1766398928049
+}
+Filtered data result: {
+  "availablequantity": 2,
+  "orderedquantity": 3,
+  "modifieddate": 1766398928049
+}
+Filtered data result: {
+  "availablequantity": 5,
+  "orderedquantity": 3,
+  "modifieddate": 1766398928049
+}
+Filtered data result: {
+  "availableqty": 376,
+  "orderedqty": 37,
+  "modifieddate": 1766399570759
+}
+Filtered data result: {
+  "availableqty": 44,
+  "orderedqty": 72,
+  "modifieddate": 1766399570759
+}
+Filtered data result: {
+  "availableqty": 37,
+  "orderedqty": 90,
+  "modifieddate": 1766399570759
+}
+Filtered data result: {
+  "availablequantity": 375,
+  "orderedquantity": 37,
+  "modifieddate": 1766399570759
+}
+Filtered data result: {
+  "availablequantity": 43,
+  "orderedquantity": 72,
+  "modifieddate": 1766399570759
+}
+Filtered data result: {
+  "availablequantity": 68,
+  "orderedquantity": 90,
+  "modifieddate": 1766399570759
+}
+Filtered data result: {
+  "availableqty": 45,
+  "orderedqty": 71,
+  "modifieddate": 1766400569732
+}
+Filtered data result: {
+  "availablequantity": 44,
+  "orderedquantity": 71,
+  "modifieddate": 1766400569732
+}
+Filtered data result: {
+  "availableqty": 46,
+  "orderedqty": 70,
+  "modifieddate": 1766400743641
+}
+Filtered data result: {
+  "availablequantity": 45,
+  "orderedquantity": 70,
+  "modifieddate": 1766400743641
+}
+Filtered data result: {
+  "stockstatus": "sold",
+  "orderid": "NIVAANA-0000000176",
+  "orderlinenumber": "ordline-0000000235",
+  "solddate": 1766406222988,
+  "modifieddate": 1766406222988
+}
+Filtered data result: {
+  "orderedqty": 69,
+  "soldqty": 1,
+  "modifieddate": 1766406222988
+}
+Filtered data result: {
+  "orderedquantity": 69,
+  "soldquantity": 1,
+  "modifieddate": 1766406222988
+}
+Filtered data result: {
+  "orderstatus": "ready_for_dispatch",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1766063377631,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1766406230537,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  "modifieddate": 1766406230537
+}
+Filtered data result: {
+  "orderstatus": "ready_for_dispatch",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1766063377631,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1766406233448,\"source\":\"system\",\"is_active\":true}]",
+  "modifieddate": 1766406233448
+}
+Filtered data result: {
+  "stockstatus": "available",
+  "orderid": null,
+  "orderlinenumber": null,
+  "solddate": null,
+  "modifieddate": 1766406582454
+}
+Filtered data result: {
+  "availableqty": 47,
+  "soldqty": 0,
+  "modifieddate": 1766406582454
+}
+Filtered data result: {
+  "availablequantity": 46,
+  "soldquantity": 0,
+  "modifieddate": 1766406582454
+}
+Filtered data result: {
+  "availableqty": 4,
+  "orderedqty": 1,
+  "modifieddate": 1766409581718
+}
+Filtered data result: {
+  "availableqty": 7,
+  "orderedqty": 1,
+  "modifieddate": 1766409581718
+}
+Filtered data result: {
+  "availablequantity": 4,
+  "orderedquantity": 1,
+  "modifieddate": 1766409581718
+}
+Filtered data result: {
+  "availablequantity": 7,
+  "orderedquantity": 1,
+  "modifieddate": 1766409581718
+}

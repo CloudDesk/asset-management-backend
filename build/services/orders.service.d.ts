@@ -149,5 +149,36 @@ export declare class OrdersService {
             hasPrev: boolean;
         };
     }>;
+    /**
+     * Cancel order (customer or admin initiated)
+     * Handles stock reversal based on order status
+     */
+    cancelOrder(orderId: number, userId?: number, inventoryUserId?: number, cancellationReason?: string, source?: 'customer' | 'inventoryuser'): Promise<any>;
+    /**
+     * DEPRECATED: Manual refund process is now used
+     *
+     * This method is kept for reference purposes only.
+     * Refunds are now manually processed by admins via PhonePe portal.
+     *
+     * @deprecated Use manual refund workflow instead
+     * @see updateRefundStatus for manual refund status management
+     */
+    private handleCancellationRefundAndNotification;
+    /**
+     * Update refund status for cancelled orders (admin-only operation)
+     * Transitions: cancelled → cancelled_refund_processing → cancelled_refunded
+     * Or: cancelled → cancelled_completed (for COD orders)
+     */
+    updateRefundStatus(orderId: number | string, newStatus: 'cancelled_refund_processing' | 'cancelled_refunded' | 'cancelled_completed', adminUserId: number, notes?: string): Promise<any>;
+    /**
+     * Cancel order before ready_for_dispatch
+     * Reverses orderedqty → availableqty
+     */
+    private cancelOrderBeforeReadyForDispatch;
+    /**
+     * Cancel order after ready_for_dispatch
+     * Reverses stock allocations and soldqty → availableqty
+     */
+    private cancelOrderAfterReadyForDispatch;
 }
 //# sourceMappingURL=orders.service.d.ts.map

@@ -216,5 +216,161 @@ export class OrdersController {
             pagination: result.pagination
         });
     });
+    /**
+     * Cancel order (customer or admin initiated)
+     * POST /v1/orders/:id/cancel
+     */
+    cancelOrder = asyncHandler(async (request, reply) => {
+        const { id } = request.params;
+        const { userid, inventory_user_id, cancellation_reason } = request.body;
+        // Validate: at least one of userid or inventory_user_id required
+        if (!userid && !inventory_user_id) {
+            return reply.code(400).send({
+                success: false,
+                message: 'Either userid or inventory_user_id is required',
+                statusCode: 400
+            });
+        }
+        // Cancellation reason is required
+        if (!cancellation_reason) {
+            return reply.code(400).send({
+                success: false,
+                message: 'cancellation_reason is required',
+                statusCode: 400
+            });
+        }
+        // Determine source
+        const source = userid ? 'customer' : 'inventoryuser';
+        try {
+            // Parse order ID
+            let orderId;
+            if (isNaN(Number(id))) {
+                // If not a number, treat as orderid (order number)
+                const order = await this.ordersService.findByOrderNumber(id);
+                if (!order) {
+                    return reply.code(404).send({
+                        success: false,
+                        message: 'Order not found',
+                        statusCode: 404
+                    });
+                }
+                orderId = order.id;
+            }
+            else {
+                orderId = Number(id);
+            }
+            // Call service to cancel order
+            const cancelledOrder = await this.ordersService.cancelOrder(orderId, userid, inventory_user_id, cancellation_reason, source);
+            const response = createSuccessResponse('Order cancelled successfully', formatEntitiesForAPI([cancelledOrder], 'orders')[0]);
+            return reply.code(200).send(response);
+        }
+        catch (error) {
+            // Handle specific error cases
+            if (error.message.includes('Order cannot be cancelled')) {
+                return reply.code(400).send({
+                    success: false,
+                    message: error.message,
+                    statusCode: 400
+                });
+            }
+            if (error.message.includes('Unauthorized')) {
+                return reply.code(403).send({
+                    success: false,
+                    message: error.message,
+                    statusCode: 403
+                });
+            }
+            if (error.message.includes('not found')) {
+                return reply.code(404).send({
+                    success: false,
+                    message: error.message,
+                    statusCode: 404
+                });
+            }
+            // Generic error
+            throw error;
+        }
+    });
+    /**
+     * Update refund status for cancelled orders (admin-only)
+     * PATCH /v1/orders/:id/refund-status
+     */
+    updateRefundStatus = asyncHandler(async (request, reply) => {
+        const { id } = request.params;
+        const { status, admin_user_id, notes } = request.body;
+        // Validate required fields
+        if (!status) {
+            return reply.code(400).send({
+                success: false,
+                message: 'status is required',
+                statusCode: 400
+            });
+        }
+        if (!admin_user_id) {
+            return reply.code(400).send({
+                success: false,
+                message: 'admin_user_id is required',
+                statusCode: 400
+            });
+        }
+        // Validate status value
+        const validStatuses = ['cancelled_refund_processing', 'cancelled_refunded', 'cancelled_completed'];
+        if (!validStatuses.includes(status)) {
+            return reply.code(400).send({
+                success: false,
+                message: `Invalid status. Must be one of: ${validStatuses.join(', ')}`,
+                statusCode: 400
+            });
+        }
+        try {
+            // Parse order ID
+            let orderId;
+            if (isNaN(Number(id))) {
+                // If not a number, treat as orderid (order number)
+                const order = await this.ordersService.findByOrderNumber(id);
+                if (!order) {
+                    return reply.code(404).send({
+                        success: false,
+                        message: 'Order not found',
+                        statusCode: 404
+                    });
+                }
+                orderId = order.id;
+            }
+            else {
+                orderId = Number(id);
+            }
+            // Call service to update refund status
+            const updatedOrder = await this.ordersService.updateRefundStatus(orderId, status, admin_user_id, notes);
+            const response = createSuccessResponse('Refund status updated successfully', formatEntitiesForAPI([updatedOrder], 'orders')[0]);
+            return reply.code(200).send(response);
+        }
+        catch (error) {
+            // Handle specific error cases
+            if (error.message.includes('Cannot update refund status')) {
+                return reply.code(400).send({
+                    success: false,
+                    message: error.message,
+                    statusCode: 400
+                });
+            }
+            if (error.message.includes('already in final status')) {
+                return reply.code(400).send({
+                    success: false,
+                    message: error.message,
+                    statusCode: 400
+                });
+            }
+            if (error.message.includes('not found')) {
+                return reply.code(404).send({
+                    success: false,
+                    message: error.message,
+                    statusCode: 404
+                });
+            }
+            // Generic error
+            throw error;
+        }
+    });
 }
 //# sourceMappingURL=orders.controller.js.map

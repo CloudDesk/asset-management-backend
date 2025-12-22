@@ -401,4 +401,111 @@ export class OrdersController {
       throw error;
     }
   });
+
+  /**
+   * Update refund status for cancelled orders (admin-only)
+   * PATCH /v1/orders/:id/refund-status
+   */
+  updateRefundStatus = asyncHandler(async (
+    request: FastifyRequest<{
+      Params: { id: string },
+      Body: {
+        status: 'cancelled_refund_processing' | 'cancelled_refunded' | 'cancelled_completed';
+        admin_user_id: number;
+        notes?: string;
+      }
+    }>,
+    reply: FastifyReply
+  ) => {
+    const { id } = request.params;
+    const { status, admin_user_id, notes } = request.body;
+
+    // Validate required fields
+    if (!status) {
+      return reply.code(400).send({
+        success: false,
+        message: 'status is required',
+        statusCode: 400
+      });
+    }
+
+    if (!admin_user_id) {
+      return reply.code(400).send({
+        success: false,
+        message: 'admin_user_id is required',
+        statusCode: 400
+      });
+    }
+
+    // Validate status value
+    const validStatuses = ['cancelled_refund_processing', 'cancelled_refunded', 'cancelled_completed'];
+    if (!validStatuses.includes(status)) {
+      return reply.code(400).send({
+        success: false,
+        message: `Invalid status. Must be one of: ${validStatuses.join(', ')}`,
+        statusCode: 400
+      });
+    }
+
+    try {
+      // Parse order ID
+      let orderId: number;
+      if (isNaN(Number(id))) {
+        // If not a number, treat as orderid (order number)
+        const order = await this.ordersService.findByOrderNumber(id);
+        if (!order) {
+          return reply.code(404).send({
+            success: false,
+            message: 'Order not found',
+            statusCode: 404
+          });
+        }
+        orderId = order.id;
+      } else {
+        orderId = Number(id);
+      }
+
+      // Call service to update refund status
+      const updatedOrder = await this.ordersService.updateRefundStatus(
+        orderId,
+        status,
+        admin_user_id,
+        notes
+      );
+
+      const response = createSuccessResponse(
+        'Refund status updated successfully',
+        formatEntitiesForAPI([updatedOrder], 'orders')[0]
+      );
+      return reply.code(200).send(response);
+    } catch (error: any) {
+      // Handle specific error cases
+      if (error.message.includes('Cannot update refund status')) {
+        return reply.code(400).send({
+          success: false,
+          message: error.message,
+          statusCode: 400
+        });
+      }
+
+      if (error.message.includes('already in final status')) {
+        return reply.code(400).send({
+          success: false,
+          message: error.message,
+          statusCode: 400
+        });
+      }
+
+      if (error.message.includes('not found')) {
+        return reply.code(404).send({
+          success: false,
+          message: error.message,
+          statusCode: 404
+        });
+      }
+
+      // Generic error
+      throw error;
+    }
+  });
 } 

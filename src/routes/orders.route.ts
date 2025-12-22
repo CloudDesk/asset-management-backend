@@ -665,4 +665,61 @@ export async function ordersRoutes(fastify: FastifyInstance) {
     }
   }, ordersController.cancelOrder.bind(ordersController));
 
+  // PATCH /v1/orders/:id/refund-status - Update refund status for cancelled orders (admin-only)
+  fastify.patch('/:id/refund-status', {
+    schema: {
+      description: 'Update refund status for cancelled orders (admin-only operation)',
+      tags: ['Orders'],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'Order ID (database ID) or order number (orderid)' }
+        },
+        required: ['id']
+      },
+      body: {
+        type: 'object',
+        properties: {
+          status: {
+            type: 'string',
+            enum: ['cancelled_refund_processing', 'cancelled_refunded', 'cancelled_completed'],
+            description: 'New refund status'
+          },
+          admin_user_id: { type: 'number', description: 'Inventory user ID performing the action' },
+          notes: { type: 'string', description: 'Optional notes about the refund (e.g., PhonePe transaction ID)' }
+        },
+        required: ['status', 'admin_user_id']
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {
+              type: 'object',
+              additionalProperties: true
+            }
+          }
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            statusCode: { type: 'number' }
+          }
+        },
+        404: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            statusCode: { type: 'number' }
+          }
+        }
+      }
+    }
+  }, ordersController.updateRefundStatus.bind(ordersController));
+
 } 
