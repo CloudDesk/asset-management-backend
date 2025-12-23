@@ -1807,6 +1807,7 @@ export class OrdersService {
       const { OrderlineService } = await import('./orderline.service.js');
       const orderlineService = new OrderlineService();
 
+      // Fetch orderlines with status_history for proper tracking
       const { data: orderlines } = await orderlineService.findMany(
         { orderid: orderId.toString() },
         1,
@@ -1869,17 +1870,22 @@ export class OrdersService {
 
         // OPTIMIZED: Direct bulk update of orderlines to cancelled (no method calls to avoid triggering recalculateOrderStatus)
         // This prevents transaction timeout by avoiding heavy operations inside the transaction
-        const statusHistoryEntry = {
-          status: 'cancelled',
-          timestamp: currentTimestamp,
-          source,
-          userid: userId,
-          inventory_user_id: inventoryUserId,
-          cancellation_reason: cancellationReason,
-          is_active: true
-        };
-
         for (const orderline of orderlines) {
+          // Get previous status from the orderline
+          const previousStatus = orderline.orderstatus || 'unknown';
+
+          // Create status history entry with all required fields
+          const statusHistoryEntry = {
+            previous_status: previousStatus,
+            new_status: 'cancelled',
+            changed_date: currentTimestamp,
+            source,
+            userid: userId,
+            inventory_user_id: inventoryUserId,
+            cancellation_reason: cancellationReason,
+            is_active: true
+          };
+
           // Direct update without triggering recalculateOrderStatus
           const existingHistory = Array.isArray(orderline.status_history)
             ? orderline.status_history
@@ -1902,13 +1908,35 @@ export class OrdersService {
           });
         }
 
-        // OPTIMIZED: Direct update of order status (we KNOW it's cancelled - all orderlines are cancelled)
-        // No need to call updateOrderStatus which triggers recalculateOrderStatus
+        // OPTIMIZED: Direct update of order status with status_history
+        // We KNOW it's cancelled - all orderlines are cancelled
+        const orderStatusHistoryEntry = {
+          previous_status: order.orderstatus || 'unknown',
+          new_status: 'cancelled',
+          changed_date: currentTimestamp,
+          source,
+          userid: userId,
+          inventory_user_id: inventoryUserId,
+          cancellation_reason: cancellationReason,
+          is_active: true
+        };
+
+        const existingOrderHistory = Array.isArray(order.status_history)
+          ? order.status_history
+          : [];
+
+        const updatedOrderHistory = existingOrderHistory.map((entry: any) => ({
+          ...entry,
+          is_active: false
+        }));
+        updatedOrderHistory.push(orderStatusHistoryEntry);
+
         await tx.orders.update({
           where: { id: orderId },
           data: {
             orderstatus: 'cancelled',
             cancelleddate: currentTimestamp,
+            status_history: updatedOrderHistory,
             modifieddate: currentTimestamp
           }
         });
