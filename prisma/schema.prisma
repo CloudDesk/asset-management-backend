@@ -531,6 +531,12 @@ model orders {
   total_igst_amount       Decimal?  @db.Decimal(10, 2)  // Sum of orderline.igst_amount
   total_gst_amount        Decimal?  @db.Decimal(10, 2)  // Sum of orderline.total_gst_amount
   
+  // Refund Tracking Fields (Added: December 2024)
+  refund_transaction_id   String?   @db.VarChar(500)    // PhonePe or payment gateway refund transaction ID
+  refund_amount           Decimal?  @db.Decimal(10, 2)  // Amount refunded to customer
+  refund_reference        String?   @db.VarChar(500)    // Bank or payment gateway confirmation reference
+  refund_initiated_date   BigInt?                        // Timestamp when refund was initiated (epoch ms)
+  refund_completed_date   BigInt?                        // Timestamp when refund was completed (epoch ms)
 
 
   orderline             orderline[]

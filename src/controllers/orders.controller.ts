@@ -413,12 +413,23 @@ export class OrdersController {
         status: 'cancelled_refund_processing' | 'cancelled_refunded' | 'cancelled_completed';
         admin_user_id: number;
         notes?: string;
+        // NEW: Optional structured refund fields
+        refund_transaction_id?: string;
+        refund_amount?: number;
+        refund_reference?: string;
       }
     }>,
     reply: FastifyReply
   ) => {
     const { id } = request.params;
-    const { status, admin_user_id, notes } = request.body;
+    const {
+      status,
+      admin_user_id,
+      notes,
+      refund_transaction_id,
+      refund_amount,
+      refund_reference
+    } = request.body;
 
     // Validate required fields
     if (!status) {
@@ -465,12 +476,15 @@ export class OrdersController {
         orderId = Number(id);
       }
 
-      // Call service to update refund status
+      // Call service to update refund status with new fields
       const updatedOrder = await this.ordersService.updateRefundStatus(
         orderId,
         status,
         admin_user_id,
-        notes
+        notes,
+        refund_transaction_id,
+        refund_amount,
+        refund_reference
       );
 
       const response = createSuccessResponse(

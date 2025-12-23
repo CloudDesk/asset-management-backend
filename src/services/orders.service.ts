@@ -1773,14 +1773,55 @@ export class OrdersService {
         throw new Error(`Order with ID ${orderId} not found`);
       }
 
-      // IDEMPOTENCY CHECK: If order already cancelled, return existing state
+      // IDEMPOTENCY CHECK: If order already cancelled, handle appropriately
       if (order.orderstatus === 'cancelled') {
         logger.info({
           orderId,
           orderNumber: order.orderid,
-          cancelledDate: order.cancelleddate
-        }, 'Order already cancelled - returning existing state (idempotent)');
+          cancelledDate: order.cancelleddate,
+          mode: order.mode
+        }, 'Order already cancelled - checking if COD auto-completion needed (idempotent)');
 
+        // AUTO-COMPLETE COD ORDERS even on retry/subsequent calls
+        // This ensures COD orders never get stuck in 'cancelled' status
+        if (order.mode === 'cod') {
+          logger.info({
+            orderId,
+            orderNumber: order.orderid,
+            mode: 'cod'
+          }, 'COD order already cancelled - attempting auto-completion to cancelled_completed');
+
+          try {
+            // Use proper user ID: inventoryUserId for admin, userId for customer, -1 for system
+            const adminUserIdForRefund = inventoryUserId || userId || -1;
+
+            const finalOrder = await this.updateRefundStatus(
+              orderId,
+              'cancelled_completed',
+              adminUserIdForRefund,
+              `COD order - automatically completed (no refund required). Cancelled by: ${source}`
+            );
+
+            logger.info({
+              orderId,
+              orderNumber: finalOrder.orderid,
+              finalStatus: finalOrder.orderstatus
+            }, 'COD order auto-completed during idempotent check');
+
+            return finalOrder;
+          } catch (autoCompleteError: any) {
+            logger.error({
+              error: autoCompleteError.message,
+              errorStack: autoCompleteError.stack,
+              orderId,
+              orderNumber: order.orderid
+            }, 'Failed to auto-complete COD order during idempotent check - returning cancelled order');
+
+            return order;
+          }
+        }
+
+        // PhonePe orders: Just return as-is (already cancelled, waiting for admin refund)
         return order;
       }
 
@@ -2003,26 +2044,38 @@ export class OrdersService {
 
       // AUTO-COMPLETE COD ORDERS (no refund needed)
       // PhonePe orders remain in 'cancelled' status awaiting manual refund processing
+      logger.info({
+        orderId,
+        orderNumber: updatedOrder.orderid,
+        mode: updatedOrder.mode,
+        modeType: typeof updatedOrder.mode,
+        modeComparison: `mode === 'cod': ${updatedOrder.mode === 'cod'}`,
+        modeLowerCase: updatedOrder.mode?.toLowerCase()
+      }, 'Checking if COD order for auto-completion');
+
       if (updatedOrder.mode === 'cod') {
         logger.info({
           orderId,
           orderNumber: updatedOrder.orderid,
           mode: 'cod'
-        }, 'COD order - automatically setting to cancelled_completed (no refund needed)');
+        }, 'COD order detected - automatically setting to cancelled_completed (no refund needed)');
 
         try {
           // Auto-update to cancelled_completed for COD orders
+          // Use proper user ID: inventoryUserId for admin, userId for customer, -1 for system
+          const adminUserIdForRefund = inventoryUserId || userId || -1;
+
           const finalOrder = await this.updateRefundStatus(
             orderId,
             'cancelled_completed',
-            inventoryUserId || 0, // System auto-complete if no inventory user
-            'COD order - automatically completed (no refund required)'
+            adminUserIdForRefund,
+            `COD order - automatically completed (no refund required). Cancelled by: ${source}`
           );
 
           logger.info({
             orderId,
             orderNumber: finalOrder.orderid,
-            finalStatus: 'cancelled_completed'
+            finalStatus: finalOrder.orderstatus
           }, 'COD order cancellation completed automatically');
 
           return finalOrder;
@@ -2030,13 +2083,24 @@ export class OrdersService {
           // If auto-complete fails, log but return the cancelled order
           logger.error({
             error: autoCompleteError.message,
+            errorStack: autoCompleteError.stack,
             orderId,
-            orderNumber: updatedOrder.orderid
-          }, 'Failed to auto-complete COD order, remains in cancelled status');
+            orderNumber: updatedOrder.orderid,
+            mode: updatedOrder.mode,
+            currentStatus: updatedOrder.orderstatus
+          }, 'CRITICAL: Failed to auto-complete COD order, remains in cancelled status');
 
           return updatedOrder;
         }
+      } else {
+        logger.info({
+          orderId,
+          orderNumber: updatedOrder.orderid,
+          mode: updatedOrder.mode,
+          reason: 'Not a COD order - skipping auto-completion'
+        }, 'Order is not COD, manual refund processing required');
       }
+
 
       // PhonePe orders: Manual refund processing required
       logger.info({
@@ -2184,15 +2248,22 @@ export class OrdersService {
     orderId: number | string,
     newStatus: 'cancelled_refund_processing' | 'cancelled_refunded' | 'cancelled_completed',
     adminUserId: number,
-    notes?: string
+    notes?: string,
+    // NEW: Optional structured refund fields
+    refundTransactionId?: string,
+    refundAmount?: number,
+    refundReference?: string
   ): Promise<any> {
     try {
       logger.info({
         orderId,
         newStatus,
         adminUserId,
-        notes
-      }, 'Updating refund status');
+        notes,
+        refundTransactionId,
+        refundAmount,
+        refundReference
+      }, 'Updating refund status with structured data');
 
       // Get order
       const order = await this.findById(typeof orderId === 'string' ? parseInt(orderId) : orderId);
@@ -2222,6 +2293,19 @@ export class OrdersService {
         );
       }
 
+      // VALIDATION: Refund amount (if provided)
+      if (refundAmount !== undefined && refundAmount !== null) {
+        const tolerance = 1; // Allow ₹1 difference for rounding/fees
+        if (Math.abs(refundAmount - order.orderamount) > tolerance) {
+          logger.warn({
+            orderId,
+            refundAmount,
+            orderAmount: order.orderamount,
+            difference: Math.abs(refundAmount - order.orderamount)
+          }, 'Refund amount differs from order amount');
+        }
+      }
+
       // Get all orderlines for this order
       const { OrderlineService } = await import('./orderline.service.js');
       const orderlineService = new OrderlineService();
@@ -2234,35 +2318,77 @@ export class OrdersService {
 
       const currentTimestamp = Date.now();
 
-      // Update orderlines status
+      // Build status_history entry with structured refund data
+      const statusHistoryData: any = {
+        source: 'inventoryuser',
+        inventory_user_id: adminUserId
+      };
+
+      // Add refund fields to status_history
+      if (refundTransactionId) statusHistoryData.refund_transaction_id = refundTransactionId;
+      if (refundAmount !== undefined && refundAmount !== null) statusHistoryData.refund_amount = refundAmount;
+      if (refundReference) statusHistoryData.refund_reference = refundReference;
+      if (notes) statusHistoryData.refund_notes = notes;
+
+      // Add timestamps based on status
+      if (newStatus === 'cancelled_refund_processing') {
+        statusHistoryData.refund_initiated_date = currentTimestamp;
+      }
+      if (newStatus === 'cancelled_refunded') {
+        statusHistoryData.refund_completed_date = currentTimestamp;
+        // EDGE CASE: If jumping directly to cancelled_refunded without refund_processing,
+        // set initiated date too (e.g., cancelled → cancelled_refunded)
+        if (!order.refund_initiated_date) {
+          statusHistoryData.refund_initiated_date = currentTimestamp;
+        }
+      }
+
+      // Update orderlines status with enhanced data
       for (const orderline of orderlines) {
         await orderlineService.updateOrderlineStatus(
           orderline.id.toString(),
           newStatus,
-          {
-            source: 'inventoryuser',
-            inventory_user_id: adminUserId,
-            refund_notes: notes
-          }
+          statusHistoryData
         );
+      }
+
+      // Prepare order update data
+      const orderUpdateData: any = {
+        source: 'inventoryuser',
+        inventory_user_id: adminUserId,
+        refund_status_updated_date: currentTimestamp
+      };
+
+      // Add refund fields to order update
+      if (refundTransactionId) orderUpdateData.refund_transaction_id = refundTransactionId;
+      if (refundAmount !== undefined && refundAmount !== null) orderUpdateData.refund_amount = refundAmount;
+      if (refundReference) orderUpdateData.refund_reference = refundReference;
+      if (notes) orderUpdateData.refund_notes = notes;
+
+      // Add timestamp fields to order
+      if (newStatus === 'cancelled_refund_processing') {
+        orderUpdateData.refund_initiated_date = currentTimestamp;
+      }
+      if (newStatus === 'cancelled_refunded') {
+        orderUpdateData.refund_completed_date = currentTimestamp;
+        // EDGE CASE: Backfill refund_initiated_date if it was never set
+        // (e.g., direct jump from cancelled → cancelled_refunded)
+        if (!order.refund_initiated_date) {
+          orderUpdateData.refund_initiated_date = currentTimestamp;
+        }
       }
 
       // Update order status
       await this.updateOrderStatus(
         (typeof orderId === 'string' ? parseInt(orderId) : orderId).toString(),
         newStatus,
-        {
-          source: 'inventoryuser',
-          inventory_user_id: adminUserId,
-          refund_notes: notes,
-          refund_status_updated_date: currentTimestamp
-        }
+        orderUpdateData
       );
 
       // Fetch and return updated order
       const updatedOrder = await this.findById(typeof orderId === 'string' ? parseInt(orderId) : orderId);
 
-      // UPDATE TRANSACTION TABLE
+      // UPDATE TRANSACTION TABLE with structured refund data
       try {
         if (updatedOrder?.merchanttransactionid) {
           const transaction = await dynamicFindUnique('transaction', {
@@ -2282,13 +2408,18 @@ export class OrdersService {
               transactionStatus = 'CANCELLATION_COMPLETED';
             }
 
-            const updatedTransactionData = {
+            const updatedTransactionData: any = {
               ...existingData,
               order_status: transactionStatus,
               refund_status_updated_date: currentTimestamp,
-              refund_admin_user: adminUserId,
-              refund_notes: notes
+              refund_admin_user: adminUserId
             };
+
+            // Add structured refund data to transaction
+            if (refundTransactionId) updatedTransactionData.refund_transaction_id = refundTransactionId;
+            if (refundAmount !== undefined && refundAmount !== null) updatedTransactionData.refund_amount = refundAmount;
+            if (refundReference) updatedTransactionData.refund_reference = refundReference;
+            if (notes) updatedTransactionData.refund_notes = notes;
 
             await dynamicUpdate('transaction', { id: transaction.id }, {
               transactiondata: updatedTransactionData,
@@ -2298,8 +2429,10 @@ export class OrdersService {
             logger.info({
               transactionId: transaction.id,
               merchantTransactionId: updatedOrder.merchanttransactionid,
-              newTransactionStatus: transactionStatus
-            }, 'Transaction updated with refund status progression');
+              newTransactionStatus: transactionStatus,
+              refundTransactionId,
+              refundAmount
+            }, 'Transaction updated with structured refund data');
           }
         }
       } catch (transactionError: any) {
@@ -2315,8 +2448,10 @@ export class OrdersService {
         orderId,
         previousStatus: order.orderstatus,
         newStatus,
-        adminUserId
-      }, 'Refund status updated successfully');
+        adminUserId,
+        refundTransactionId,
+        refundAmount
+      }, 'Refund status updated successfully with structured data');
 
       return updatedOrder;
     } catch (error) {

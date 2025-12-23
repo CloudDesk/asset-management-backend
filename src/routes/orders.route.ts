@@ -337,6 +337,11 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                     cod_payment_received_date: { type: 'number', nullable: true },
                     cod_transaction_reference: { type: 'string', nullable: true },
                     cod_amount: { type: 'number', nullable: true },
+                    refund_transaction_id: { type: 'string', nullable: true, description: 'PhonePe or payment gateway refund transaction ID' },
+                    refund_amount: { type: 'number', nullable: true, description: 'Amount refunded to customer' },
+                    refund_reference: { type: 'string', nullable: true, description: 'Bank or payment gateway confirmation reference' },
+                    refund_initiated_date: { type: 'number', nullable: true, description: 'Timestamp when refund was initiated (epoch ms)' },
+                    refund_completed_date: { type: 'number', nullable: true, description: 'Timestamp when refund was completed (epoch ms)' },
                     status_history: {
                       type: 'array',
                       nullable: true,
@@ -519,6 +524,11 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                   total_gst_amount: { type: 'number', nullable: true },
                   createddate: { type: 'number', nullable: true },
                   modifieddate: { type: 'number', nullable: true },
+                  refund_transaction_id: { type: 'string', nullable: true, description: 'PhonePe or payment gateway refund transaction ID' },
+                  refund_amount: { type: 'number', nullable: true, description: 'Amount refunded to customer' },
+                  refund_reference: { type: 'string', nullable: true, description: 'Bank or payment gateway confirmation reference' },
+                  refund_initiated_date: { type: 'number', nullable: true, description: 'Timestamp when refund was initiated (epoch ms)' },
+                  refund_completed_date: { type: 'number', nullable: true, description: 'Timestamp when refund was completed (epoch ms)' },
                   status_history: {
                     type: 'array',
                     items: { type: 'object' }
@@ -668,7 +678,7 @@ export async function ordersRoutes(fastify: FastifyInstance) {
   // PATCH /v1/orders/:id/refund-status - Update refund status for cancelled orders (admin-only)
   fastify.patch('/:id/refund-status', {
     schema: {
-      description: 'Update refund status for cancelled orders (admin-only operation)',
+      description: 'Update refund status for cancelled orders with optional structured refund data (admin-only operation)',
       tags: ['Orders'],
       params: {
         type: 'object',
@@ -685,8 +695,27 @@ export async function ordersRoutes(fastify: FastifyInstance) {
             enum: ['cancelled_refund_processing', 'cancelled_refunded', 'cancelled_completed'],
             description: 'New refund status'
           },
-          admin_user_id: { type: 'number', description: 'Inventory user ID performing the action' },
-          notes: { type: 'string', description: 'Optional notes about the refund (e.g., PhonePe transaction ID)' }
+          admin_user_id: {
+            type: 'number',
+            description: 'Inventory user ID performing the action'
+          },
+          notes: {
+            type: 'string',
+            description: 'Optional notes about the refund (free-form text for additional details)'
+          },
+          // NEW: Optional structured refund fields
+          refund_transaction_id: {
+            type: 'string',
+            description: 'PhonePe or payment gateway refund transaction ID (e.g., PE_REFUND_123456789)'
+          },
+          refund_amount: {
+            type: 'number',
+            description: 'Amount refunded (should match order amount, with ₹1 tolerance for fees)'
+          },
+          refund_reference: {
+            type: 'string',
+            description: 'Bank reference or payment gateway confirmation number (e.g., HDFC123456)'
+          }
         },
         required: ['status', 'admin_user_id']
       },

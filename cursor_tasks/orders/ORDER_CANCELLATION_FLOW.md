@@ -691,20 +691,49 @@ curl -X POST http://localhost:5600/v1/orders/185/cancel \
    - Transaction updated: `order_status: "CANCELLATION_COMPLETED"`
    - No admin action required ✅
 
-7. **API Endpoint:**
+7. **API Endpoint (Enhanced):**
    ```typescript
    PATCH /v1/orders/:id/refund-status
+   
+   // Enhanced Request (Recommended - with structured fields):
    {
      "status": "cancelled_refund_processing" | "cancelled_refunded" | "cancelled_completed",
      "admin_user_id": 123,
-     "notes": "Refund processed via PhonePe portal, txn: PE_123456"
+     
+     // NEW: Optional structured refund fields
+     "refund_transaction_id": "PE_REFUND_123456789",  // PhonePe refund transaction ID
+     "refund_amount": 850.00,                          // Amount refunded
+     "refund_reference": "HDFC123456",                 // Bank/payment reference
+     
+     // Optional notes for additional details
+     "notes": "Refund processed successfully, customer account credited"
+   }
+   
+   // Backward Compatible (Old way still works):
+   {
+     "status": "cancelled_refund_processing",
+     "admin_user_id": 123,
+     "notes": "Refund via PhonePe, txn: PE_123456"
    }
    ```
+   
+   **Enhanced in:** December 2024  
+   **New Fields (All Optional):**
+   - `refund_transaction_id`: PhonePe or payment gateway refund transaction ID
+   - `refund_amount`: Amount refunded (validated against order amount with ₹1 tolerance)
+   - `refund_reference`: Bank reference or payment confirmation number
+   
+   **Data Captured:**
+   - All refund fields stored in `orders` table
+   - Complete audit trail in `status_history`
+   - Transaction table updated with structured refund data
+   - Auto-set timestamps: `refund_initiated_date`, `refund_completed_date`
 
 8. **Validation:**
    - Only `cancelled` or `cancelled_refund_processing` can be updated
    - Final statuses (`cancelled_refunded`, `cancelled_completed`) cannot be changed
    - Admin user ID required for audit trail
+   - Refund amount validation: warns if differs from order amount by >₹1
    - Status progression logged in `status_history`
 
 9. **Transaction Table Updates:**
@@ -712,13 +741,16 @@ curl -X POST http://localhost:5600/v1/orders/185/cancel \
      - `order_cancelled: true`
      - `cancelled_date`, `cancellation_source`, `cancellation_reason`
      - `order_status` based on payment mode and refund stage
-   - Refund status updates also tracked in transaction
+   - Refund status updates track structured data:
+     - `refund_transaction_id`, `refund_amount`, `refund_reference`
+     - `refund_admin_user`, `refund_notes`
    - See "Transaction Table Updates" section below for details
 
 **Files Modified:**
-- `src/services/orders.service.ts` (Lines 1921-1960, 1973-1982, 2095-2280)
-- `src/controllers/orders.controller.ts` (Lines 404-511)
+- `src/services/orders.service.ts` (Lines 2242-2400)
+- `src/controllers/orders.controller.ts` (Lines 405-511)
 - `src/routes/orders.route.ts` (Lines 668-722)
+- Database: `prisma/migrations/add_refund_tracking_fields.sql`
 
 ---
 
