@@ -531,7 +531,17 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                   refund_completed_date: { type: 'number', nullable: true, description: 'Timestamp when refund was completed (epoch ms)' },
                   status_history: {
                     type: 'array',
-                    items: { type: 'object' }
+                    items: {
+                      type: 'object',
+                      properties: {
+                        previous_status: { type: 'string' },
+                        new_status: { type: 'string' },
+                        changed_date: { type: 'number' },
+                        source: { type: 'string' },
+                        inventory_user_id: { type: 'number', nullable: true },
+                        is_active: { type: 'boolean' }
+                      }
+                    }
                   },
                   orderlines: {
                     type: 'array',
@@ -561,7 +571,17 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                         modifieddate: { type: 'number', nullable: true },
                         status_history: {
                           type: 'array',
-                          items: { type: 'object' }
+                          items: {
+                            type: 'object',
+                            properties: {
+                              previous_status: { type: 'string' },
+                              new_status: { type: 'string' },
+                              changed_date: { type: 'number' },
+                              source: { type: 'string' },
+                              inventory_user_id: { type: 'number', nullable: true },
+                              is_active: { type: 'boolean' }
+                            }
+                          }
                         }
                       }
                     }

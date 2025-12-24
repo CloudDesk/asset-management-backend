@@ -543,15 +543,40 @@ async function buildDynamicWhereClause(tableName, filters) {
                 continue;
             }
         }
-        // Normalize value (handle arrays and objects)
+        // Normalize value (handle arrays, objects, and comma-separated values)
         let processedValue = value;
+        let isMultiValue = false;
+        let multiValues = [];
+        // Handle arrays (URL query params like ?status[]=val1&status[]=val2)
         if (Array.isArray(processedValue)) {
-            processedValue = processedValue[0];
+            if (processedValue.length > 1) {
+                isMultiValue = true;
+                multiValues = processedValue.filter(v => v !== undefined && v !== null && v !== '');
+            }
+            else {
+                processedValue = processedValue[0];
+            }
         }
-        if (typeof processedValue === 'object' && processedValue !== null) {
+        // Handle comma-separated values (URL query params like ?status=val1,val2,val3)
+        if (!isMultiValue && typeof processedValue === 'string' && processedValue.includes(',')) {
+            const splitValues = processedValue.split(',').map(v => v.trim()).filter(v => v !== '');
+            if (splitValues.length > 1) {
+                isMultiValue = true;
+                multiValues = splitValues;
+            }
+            else {
+                processedValue = splitValues[0] || processedValue;
+            }
+        }
+        // Handle objects
+        if (!isMultiValue && typeof processedValue === 'object' && processedValue !== null) {
             processedValue = processedValue.toString();
         }
-        if (processedValue === undefined || processedValue === null || processedValue === '') {
+        // Skip if no valid value
+        if (!isMultiValue && (processedValue === undefined || processedValue === null || processedValue === '')) {
+            continue;
+        }
+        if (isMultiValue && multiValues.length === 0) {
             continue;
         }
         // Handle range filters before direct column matching
@@ -584,60 +609,101 @@ async function buildDynamicWhereClause(tableName, filters) {
         // Find matching column with case variations
         const matchingColumn = findMatchingColumn(key);
         if (matchingColumn) {
-            // Handle different filter types
-            if (isNumericField(matchingColumn)) {
-                // Numeric fields - treat as exact numeric match
-                const numValue = Number(processedValue);
-                if (!isNaN(numValue)) {
+            // Handle multi-value filters (SQL IN operator)
+            if (isMultiValue) {
+                if (isNumericField(matchingColumn)) {
+                    // Numeric fields - convert all values to numbers
+                    const numValues = multiValues
+                        .map(v => Number(v))
+                        .filter(v => !isNaN(v));
+                    if (numValues.length > 0) {
+                        const placeholders = numValues.map(() => `$${paramIndex++}`).join(', ');
+                        conditions.push(`"${matchingColumn}" IN (${placeholders})`);
+                        values.push(...numValues);
+                    }
+                }
+                else if (isBooleanField(matchingColumn)) {
+                    // Boolean fields - convert all values to booleans
+                    const boolValues = multiValues.map(v => {
+                        if (typeof v === 'boolean')
+                            return v;
+                        if (typeof v === 'string')
+                            return v.toLowerCase() === 'true' || v === '1';
+                        return Boolean(v);
+                    });
+                    if (boolValues.length > 0) {
+                        const placeholders = boolValues.map(() => `$${paramIndex++}`).join(', ');
+                        conditions.push(`"${matchingColumn}" IN (${placeholders})`);
+                        values.push(...boolValues);
+                    }
+                }
+                else {
+                    // String fields - case-insensitive IN clause using ANY with array
+                    const stringValues = multiValues.filter(v => v !== undefined && v !== null && v !== '');
+                    if (stringValues.length > 0) {
+                        // PostgreSQL: Use = ANY(ARRAY[...]) for case-insensitive matching with LOWER
+                        const placeholders = stringValues.map(() => `LOWER($${paramIndex++})`).join(', ');
+                        conditions.push(`LOWER("${matchingColumn}") = ANY(ARRAY[${placeholders}])`);
+                        values.push(...stringValues);
+                    }
+                }
+            }
+            else {
+                // Single value filters (original logic)
+                if (isNumericField(matchingColumn)) {
+                    // Numeric fields - treat as exact numeric match
+                    const numValue = Number(processedValue);
+                    if (!isNaN(numValue)) {
+                        conditions.push(`"${matchingColumn}" = $${paramIndex}`);
+                        values.push(numValue);
+                        paramIndex++;
+                    }
+                    else {
+                        // If conversion fails, skip this filter
+                        logger.warn({
+                            tableName,
+                            fieldName: matchingColumn,
+                            value: processedValue
+                        }, `Failed to convert value to number for numeric field`);
+                    }
+                }
+                else if (isBooleanField(matchingColumn)) {
+                    // Boolean fields - convert string to boolean
+                    let boolValue;
+                    if (typeof processedValue === 'boolean') {
+                        boolValue = processedValue;
+                    }
+                    else if (typeof processedValue === 'string') {
+                        boolValue = processedValue.toLowerCase() === 'true' || processedValue === '1';
+                    }
+                    else {
+                        boolValue = Boolean(processedValue);
+                    }
                     conditions.push(`"${matchingColumn}" = $${paramIndex}`);
-                    values.push(numValue);
+                    values.push(boolValue);
+                    paramIndex++;
+                }
+                else if (typeof processedValue === 'string') {
+                    // String fields - support both exact match and ILIKE
+                    if (processedValue.includes('%') || processedValue.includes('*')) {
+                        // Wildcard search
+                        const searchValue = processedValue.replace(/\*/g, '%');
+                        conditions.push(`"${matchingColumn}" ILIKE $${paramIndex}`);
+                        values.push(searchValue);
+                    }
+                    else {
+                        // Case-insensitive exact match for string fields only
+                        conditions.push(`LOWER("${matchingColumn}") = LOWER($${paramIndex})`);
+                        values.push(processedValue);
+                    }
                     paramIndex++;
                 }
                 else {
-                    // If conversion fails, skip this filter
-                    logger.warn({
-                        tableName,
-                        fieldName: matchingColumn,
-                        value: processedValue
-                    }, `Failed to convert value to number for numeric field`);
-                }
-            }
-            else if (isBooleanField(matchingColumn)) {
-                // Boolean fields - convert string to boolean
-                let boolValue;
-                if (typeof processedValue === 'boolean') {
-                    boolValue = processedValue;
-                }
-                else if (typeof processedValue === 'string') {
-                    boolValue = processedValue.toLowerCase() === 'true' || processedValue === '1';
-                }
-                else {
-                    boolValue = Boolean(processedValue);
-                }
-                conditions.push(`"${matchingColumn}" = $${paramIndex}`);
-                values.push(boolValue);
-                paramIndex++;
-            }
-            else if (typeof processedValue === 'string') {
-                // String fields - support both exact match and ILIKE
-                if (processedValue.includes('%') || processedValue.includes('*')) {
-                    // Wildcard search
-                    const searchValue = processedValue.replace(/\*/g, '%');
-                    conditions.push(`"${matchingColumn}" ILIKE $${paramIndex}`);
-                    values.push(searchValue);
-                }
-                else {
-                    // Case-insensitive exact match for string fields only
-                    conditions.push(`LOWER("${matchingColumn}") = LOWER($${paramIndex})`);
+                    // Exact match for other types
+                    conditions.push(`"${matchingColumn}" = $${paramIndex}`);
                     values.push(processedValue);
+                    paramIndex++;
                 }
-                paramIndex++;
-            }
-            else {
-                // Exact match for other types
-                conditions.push(`"${matchingColumn}" = $${paramIndex}`);
-                values.push(processedValue);
-                paramIndex++;
             }
         }
         else {

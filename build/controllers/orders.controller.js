@@ -297,7 +297,7 @@ export class OrdersController {
      */
     updateRefundStatus = asyncHandler(async (request, reply) => {
         const { id } = request.params;
-        const { status, admin_user_id, notes } = request.body;
+        const { status, admin_user_id, notes, refund_transaction_id, refund_amount, refund_reference } = request.body;
         // Validate required fields
         if (!status) {
             return reply.code(400).send({
@@ -340,8 +340,8 @@ export class OrdersController {
             else {
                 orderId = Number(id);
             }
-            // Call service to update refund status
-            const updatedOrder = await this.ordersService.updateRefundStatus(orderId, status, admin_user_id, notes);
+            // Call service to update refund status with new fields
+            const updatedOrder = await this.ordersService.updateRefundStatus(orderId, status, admin_user_id, notes, refund_transaction_id, refund_amount, refund_reference);
             const response = createSuccessResponse('Refund status updated successfully', formatEntitiesForAPI([updatedOrder], 'orders')[0]);
             return reply.code(200).send(response);
         }

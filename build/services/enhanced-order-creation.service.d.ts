@@ -54,6 +54,11 @@ export declare class EnhancedOrderCreationService {
             total_cgst_amount: import("@prisma/client/runtime/library").Decimal | null;
             total_sgst_amount: import("@prisma/client/runtime/library").Decimal | null;
             total_igst_amount: import("@prisma/client/runtime/library").Decimal | null;
+            refund_transaction_id: string | null;
+            refund_amount: import("@prisma/client/runtime/library").Decimal | null;
+            refund_reference: string | null;
+            refund_initiated_date: bigint | null;
+            refund_completed_date: bigint | null;
         };
         orderlines: {
             id: number;
@@ -188,6 +193,11 @@ export declare class EnhancedOrderCreationService {
             total_cgst_amount: import("@prisma/client/runtime/library").Decimal | null;
             total_sgst_amount: import("@prisma/client/runtime/library").Decimal | null;
             total_igst_amount: import("@prisma/client/runtime/library").Decimal | null;
+            refund_transaction_id: string | null;
+            refund_amount: import("@prisma/client/runtime/library").Decimal | null;
+            refund_reference: string | null;
+            refund_initiated_date: bigint | null;
+            refund_completed_date: bigint | null;
         };
         evaluation: {
             status: string | null;

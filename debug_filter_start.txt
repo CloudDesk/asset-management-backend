@@ -169151,3 +169151,59 @@ Filtering data for orders (orders): {
   "refund_reference": "HDFC1111",
   "refund_completed_date": 1766500275291
 }
+Filtering data for orderline (orderline): {
+  "orderstatus": "cancelled_refund_processing",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1766142147522,\"previous_status\":\"order_placed\"},{\"source\":\"customer\",\"userid\":41,\"is_active\":false,\"new_status\":\"cancelled\",\"changed_date\":1766483539776,\"previous_status\":\"payment_completed\",\"cancellation_reason\":\"Changed my mind\"},{\"previous_status\":\"cancelled\",\"new_status\":\"cancelled_refund_processing\",\"changed_date\":1766501681808,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  "modifieddate": 1766501681808,
+  "source": "inventoryuser",
+  "inventory_user_id": 2,
+  "refund_transaction_id": "RE_0001",
+  "refund_amount": 370,
+  "refund_reference": "HDFC0001",
+  "refund_initiated_date": 1766501680653
+}
+Filtering data for orders (orders): {
+  "orderstatus": "cancelled_refund_processing",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1766142145332,\"previous_status\":\"order_placed\"},{\"source\":\"customer\",\"userid\":41,\"is_active\":false,\"new_status\":\"cancelled\",\"changed_date\":1766483539776,\"previous_status\":\"payment_completed\",\"cancellation_reason\":\"Changed my mind\"},{\"previous_status\":\"cancelled\",\"new_status\":\"cancelled_refund_processing\",\"changed_date\":1766501685383,\"source\":\"system\",\"is_active\":true}]",
+  "modifieddate": 1766501685384
+}
+Filtering data for orders (orders): {
+  "orderstatus": "cancelled_refund_processing",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1766142145332,\"previous_status\":\"order_placed\"},{\"source\":\"customer\",\"userid\":41,\"is_active\":false,\"new_status\":\"cancelled\",\"changed_date\":1766483539776,\"previous_status\":\"payment_completed\",\"cancellation_reason\":\"Changed my mind\"},{\"source\":\"system\",\"is_active\":false,\"new_status\":\"cancelled_refund_processing\",\"changed_date\":1766501685383,\"previous_status\":\"cancelled\"},{\"previous_status\":\"cancelled_refund_processing\",\"new_status\":\"cancelled_refund_processing\",\"changed_date\":1766501687091,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  "modifieddate": 1766501687091,
+  "source": "inventoryuser",
+  "inventory_user_id": 2,
+  "refund_status_updated_date": 1766501680653,
+  "refund_transaction_id": "RE_0001",
+  "refund_amount": 370,
+  "refund_reference": "HDFC0001",
+  "refund_initiated_date": 1766501680653
+}
+Filtering data for orderline (orderline): {
+  "orderstatus": "cancelled_refunded",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1766142147522,\"previous_status\":\"order_placed\"},{\"source\":\"customer\",\"userid\":41,\"is_active\":false,\"new_status\":\"cancelled\",\"changed_date\":1766483539776,\"previous_status\":\"payment_completed\",\"cancellation_reason\":\"Changed my mind\"},{\"source\":\"inventoryuser\",\"is_active\":false,\"new_status\":\"cancelled_refund_processing\",\"changed_date\":1766501681808,\"previous_status\":\"cancelled\",\"inventory_user_id\":2},{\"previous_status\":\"cancelled_refund_processing\",\"new_status\":\"cancelled_refunded\",\"changed_date\":1766501715395,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  "modifieddate": 1766501715395,
+  "source": "inventoryuser",
+  "inventory_user_id": 2,
+  "refund_transaction_id": "REFUND_0001",
+  "refund_amount": 370,
+  "refund_reference": "HDFC",
+  "refund_completed_date": 1766501714542
+}
+Filtering data for orders (orders): {
+  "orderstatus": "cancelled_refunded",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1766142145332,\"previous_status\":\"order_placed\"},{\"source\":\"customer\",\"userid\":41,\"is_active\":false,\"new_status\":\"cancelled\",\"changed_date\":1766483539776,\"previous_status\":\"payment_completed\",\"cancellation_reason\":\"Changed my mind\"},{\"source\":\"system\",\"is_active\":false,\"new_status\":\"cancelled_refund_processing\",\"changed_date\":1766501685383,\"previous_status\":\"cancelled\"},{\"source\":\"inventoryuser\",\"is_active\":false,\"new_status\":\"cancelled_refund_processing\",\"changed_date\":1766501687091,\"previous_status\":\"cancelled_refund_processing\",\"inventory_user_id\":2},{\"previous_status\":\"cancelled_refund_processing\",\"new_status\":\"cancelled_refunded\",\"changed_date\":1766501717890,\"source\":\"system\",\"is_active\":true}]",
+  "modifieddate": 1766501717890
+}
+Filtering data for orders (orders): {
+  "orderstatus": "cancelled_refunded",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1766142145332,\"previous_status\":\"order_placed\"},{\"source\":\"customer\",\"userid\":41,\"is_active\":false,\"new_status\":\"cancelled\",\"changed_date\":1766483539776,\"previous_status\":\"payment_completed\",\"cancellation_reason\":\"Changed my mind\"},{\"source\":\"system\",\"is_active\":false,\"new_status\":\"cancelled_refund_processing\",\"changed_date\":1766501685383,\"previous_status\":\"cancelled\"},{\"source\":\"inventoryuser\",\"is_active\":false,\"new_status\":\"cancelled_refund_processing\",\"changed_date\":1766501687091,\"previous_status\":\"cancelled_refund_processing\",\"inventory_user_id\":2},{\"source\":\"system\",\"is_active\":false,\"new_status\":\"cancelled_refunded\",\"changed_date\":1766501717890,\"previous_status\":\"cancelled_refund_processing\"},{\"previous_status\":\"cancelled_refunded\",\"new_status\":\"cancelled_refunded\",\"changed_date\":1766501719608,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  "modifieddate": 1766501719608,
+  "source": "inventoryuser",
+  "inventory_user_id": 2,
+  "refund_status_updated_date": 1766501714542,
+  "refund_transaction_id": "REFUND_0001",
+  "refund_amount": 370,
+  "refund_reference": "HDFC",
+  "refund_completed_date": 1766501714542
+}

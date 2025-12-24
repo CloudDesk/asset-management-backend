@@ -24,11 +24,18 @@ export class OrdersService {
   private parseStatusHistory(statusHistory: any): any[] {
     if (!statusHistory) return [];
 
+    // Helper to check if an object has any meaningful data
+    const hasData = (obj: any): boolean => {
+      if (!obj || typeof obj !== 'object') return false;
+      const keys = Object.keys(obj);
+      if (keys.length === 0) return false;
+      // Check if at least one property has a non-null, non-undefined value
+      return keys.some(key => obj[key] !== null && obj[key] !== undefined);
+    };
+
     // If it's already an array, return it (filter out empty objects)
     if (Array.isArray(statusHistory)) {
-      return statusHistory.filter((entry: any) =>
-        entry && typeof entry === 'object' && Object.keys(entry).length > 0
-      );
+      return statusHistory.filter(hasData);
     }
 
     // If it's a string, try to parse it
@@ -36,9 +43,7 @@ export class OrdersService {
       try {
         const parsed = JSON.parse(statusHistory);
         if (Array.isArray(parsed)) {
-          return parsed.filter((entry: any) =>
-            entry && typeof entry === 'object' && Object.keys(entry).length > 0
-          );
+          return parsed.filter(hasData);
         }
       } catch (e) {
         // If parsing fails, return empty array
@@ -47,7 +52,7 @@ export class OrdersService {
     }
 
     // If it's an object (but not an array), wrap it in an array
-    if (typeof statusHistory === 'object' && Object.keys(statusHistory).length > 0) {
+    if (hasData(statusHistory)) {
       return [statusHistory];
     }
 
@@ -1352,6 +1357,12 @@ export class OrdersService {
         cod_payment_received_date: fullOrder.cod_payment_received_date,
         cod_transaction_reference: fullOrder.cod_transaction_reference,
         cod_amount: fullOrder.cod_amount ? Number(fullOrder.cod_amount) : null,
+        // Refund tracking fields
+        refund_transaction_id: fullOrder.refund_transaction_id,
+        refund_amount: fullOrder.refund_amount ? Number(fullOrder.refund_amount) : null,
+        refund_reference: fullOrder.refund_reference,
+        refund_initiated_date: fullOrder.refund_initiated_date,
+        refund_completed_date: fullOrder.refund_completed_date,
         status_history: this.parseStatusHistory(fullOrder.status_history)
       };
 
@@ -1534,6 +1545,11 @@ export class OrdersService {
       total_gst_amount: number | null;
       createddate: number | null;
       modifieddate: number | null;
+      refund_transaction_id: string | null;
+      refund_amount: number | null;
+      refund_reference: string | null;
+      refund_initiated_date: number | null;
+      refund_completed_date: number | null;
       status_history: any[];
       orderlines: Array<{
         id: number;
@@ -1574,14 +1590,19 @@ export class OrdersService {
     try {
       logger.info({ userId, page, limit }, 'Getting orders by userid with orderlines and address');
 
-      // Get orders for this user
+      // Get order IDs for this user (lightweight query for pagination)
       const ordersResult = await this.findMany(
         { userid: userId.toString() },
         page,
         limit
       );
-      const orders = ordersResult.data;
       const pagination = ordersResult.pagination;
+
+      // Fetch full order details for each order using findById
+      // This ensures JSONB fields like status_history are properly deserialized
+      const orders = await Promise.all(
+        ordersResult.data.map((o: any) => this.findById(o.id))
+      );
 
       // Get orderlines for all orders
       const { OrderlineService } = await import('./orderline.service.js');
@@ -1657,32 +1678,6 @@ export class OrdersService {
 
       // Build response with orders, orderlines, and address
       const ordersWithDetails = orders.map((order: any) => {
-        // Extract required order fields
-        const orderData = {
-          id: order.id,
-          orderamount: order.orderamount ? Number(order.orderamount) : null,
-          orderid: order.orderid,
-          orderstatus: order.orderstatus,
-          quantity: order.quantity,
-          productid: order.productid, // Array of product IDs
-          productamount: order.productamount ? Number(order.productamount) : null,
-          discountamount: order.discountamount ? Number(order.discountamount) : null,
-          ispaymentsucceed: order.ispaymentsucceed,
-          mode: order.mode,
-          promotion_discount_total: order.promotion_discount_total ? Number(order.promotion_discount_total) : null,
-          original_total: order.original_total ? Number(order.original_total) : null,
-          shipping_cost: order.shipping_cost ? Number(order.shipping_cost) : null,
-          items_total: order.items_total ? Number(order.items_total) : null,
-          total_taxable_amount: order.total_taxable_amount ? Number(order.total_taxable_amount) : null,
-          total_cgst_amount: order.total_cgst_amount ? Number(order.total_cgst_amount) : null,
-          total_sgst_amount: order.total_sgst_amount ? Number(order.total_sgst_amount) : null,
-          total_igst_amount: order.total_igst_amount ? Number(order.total_igst_amount) : null,
-          total_gst_amount: order.total_gst_amount ? Number(order.total_gst_amount) : null,
-          createddate: order.createddate ? Number(order.createddate) : null,
-          modifieddate: order.modifieddate ? Number(order.modifieddate) : null,
-          status_history: this.parseStatusHistory(order.status_history)
-        };
-
         // Get orderlines for this order
         const orderOrderlines = (orderlinesByOrderId.get(order.id) || []).map((ol: any) => ({
           id: ol.id,
@@ -1723,7 +1718,33 @@ export class OrdersService {
         }
 
         return {
-          ...orderData,
+          id: order.id,
+          orderamount: order.orderamount ? Number(order.orderamount) : null,
+          orderid: order.orderid,
+          orderstatus: order.orderstatus,
+          quantity: order.quantity,
+          productid: order.productid,
+          productamount: order.productamount ? Number(order.productamount) : null,
+          discountamount: order.discountamount ? Number(order.discountamount) : null,
+          ispaymentsucceed: order.ispaymentsucceed,
+          mode: order.mode,
+          promotion_discount_total: order.promotion_discount_total ? Number(order.promotion_discount_total) : null,
+          original_total: order.original_total ? Number(order.original_total) : null,
+          shipping_cost: order.shipping_cost ? Number(order.shipping_cost) : null,
+          items_total: order.items_total ? Number(order.items_total) : null,
+          total_taxable_amount: order.total_taxable_amount ? Number(order.total_taxable_amount) : null,
+          total_cgst_amount: order.total_cgst_amount ? Number(order.total_cgst_amount) : null,
+          total_sgst_amount: order.total_sgst_amount ? Number(order.total_sgst_amount) : null,
+          total_igst_amount: order.total_igst_amount ? Number(order.total_igst_amount) : null,
+          total_gst_amount: order.total_gst_amount ? Number(order.total_gst_amount) : null,
+          createddate: order.createddate ? Number(order.createddate) : null,
+          modifieddate: order.modifieddate ? Number(order.modifieddate) : null,
+          refund_transaction_id: order.refund_transaction_id,
+          refund_amount: order.refund_amount ? Number(order.refund_amount) : null,
+          refund_reference: order.refund_reference,
+          refund_initiated_date: order.refund_initiated_date,
+          refund_completed_date: order.refund_completed_date,
+          status_history: this.parseStatusHistory(order.status_history),
           orderlines: orderOrderlines,
           address
         };

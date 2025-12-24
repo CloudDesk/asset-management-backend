@@ -7660,3 +7660,47 @@ Values: [
   "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1766142594973,\"previous_status\":\"order_placed\"},{\"source\":\"system\",\"is_active\":false,\"new_status\":\"cancelled_refund_processing\",\"changed_date\":1766498909805,\"previous_status\":\"cancelled\"},{\"source\":\"inventoryuser\",\"is_active\":false,\"new_status\":\"cancelled_refund_processing\",\"changed_date\":1766498911928,\"previous_status\":\"cancelled_refund_processing\",\"inventory_user_id\":1},{\"source\":\"system\",\"is_active\":false,\"new_status\":\"cancelled_refunded\",\"changed_date\":1766500278843,\"previous_status\":\"cancelled_refund_processing\"},{\"previous_status\":\"cancelled_refunded\",\"new_status\":\"cancelled_refunded\",\"changed_date\":1766500285585,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
   1766500285
 ]
+Values: [
+  256,
+  "cancelled_refund_processing",
+  "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1766142147522,\"previous_status\":\"order_placed\"},{\"source\":\"customer\",\"userid\":41,\"is_active\":false,\"new_status\":\"cancelled\",\"changed_date\":1766483539776,\"previous_status\":\"payment_completed\",\"cancellation_reason\":\"Changed my mind\"},{\"previous_status\":\"cancelled\",\"new_status\":\"cancelled_refund_processing\",\"changed_date\":1766501681808,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  1766501682
+]
+Values: [
+  191,
+  "cancelled_refund_processing",
+  "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1766142145332,\"previous_status\":\"order_placed\"},{\"source\":\"customer\",\"userid\":41,\"is_active\":false,\"new_status\":\"cancelled\",\"changed_date\":1766483539776,\"previous_status\":\"payment_completed\",\"cancellation_reason\":\"Changed my mind\"},{\"previous_status\":\"cancelled\",\"new_status\":\"cancelled_refund_processing\",\"changed_date\":1766501685383,\"source\":\"system\",\"is_active\":true}]",
+  1766501685
+]
+Values: [
+  191,
+  "cancelled_refund_processing",
+  "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1766142145332,\"previous_status\":\"order_placed\"},{\"source\":\"customer\",\"userid\":41,\"is_active\":false,\"new_status\":\"cancelled\",\"changed_date\":1766483539776,\"previous_status\":\"payment_completed\",\"cancellation_reason\":\"Changed my mind\"},{\"source\":\"system\",\"is_active\":false,\"new_status\":\"cancelled_refund_processing\",\"changed_date\":1766501685383,\"previous_status\":\"cancelled\"},{\"previous_status\":\"cancelled_refund_processing\",\"new_status\":\"cancelled_refund_processing\",\"changed_date\":1766501687091,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  1766501687,
+  "RE_0001",
+  370,
+  "HDFC0001",
+  1766501680653
+]
+Values: [
+  256,
+  "cancelled_refunded",
+  "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1766142147522,\"previous_status\":\"order_placed\"},{\"source\":\"customer\",\"userid\":41,\"is_active\":false,\"new_status\":\"cancelled\",\"changed_date\":1766483539776,\"previous_status\":\"payment_completed\",\"cancellation_reason\":\"Changed my mind\"},{\"source\":\"inventoryuser\",\"is_active\":false,\"new_status\":\"cancelled_refund_processing\",\"changed_date\":1766501681808,\"previous_status\":\"cancelled\",\"inventory_user_id\":2},{\"previous_status\":\"cancelled_refund_processing\",\"new_status\":\"cancelled_refunded\",\"changed_date\":1766501715395,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  1766501715
+]
+Values: [
+  191,
+  "cancelled_refunded",
+  "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1766142145332,\"previous_status\":\"order_placed\"},{\"source\":\"customer\",\"userid\":41,\"is_active\":false,\"new_status\":\"cancelled\",\"changed_date\":1766483539776,\"previous_status\":\"payment_completed\",\"cancellation_reason\":\"Changed my mind\"},{\"source\":\"system\",\"is_active\":false,\"new_status\":\"cancelled_refund_processing\",\"changed_date\":1766501685383,\"previous_status\":\"cancelled\"},{\"source\":\"inventoryuser\",\"is_active\":false,\"new_status\":\"cancelled_refund_processing\",\"changed_date\":1766501687091,\"previous_status\":\"cancelled_refund_processing\",\"inventory_user_id\":2},{\"previous_status\":\"cancelled_refund_processing\",\"new_status\":\"cancelled_refunded\",\"changed_date\":1766501717890,\"source\":\"system\",\"is_active\":true}]",
+  1766501717
+]
+Values: [
+  191,
+  "cancelled_refunded",
+  "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1766142145332,\"previous_status\":\"order_placed\"},{\"source\":\"customer\",\"userid\":41,\"is_active\":false,\"new_status\":\"cancelled\",\"changed_date\":1766483539776,\"previous_status\":\"payment_completed\",\"cancellation_reason\":\"Changed my mind\"},{\"source\":\"system\",\"is_active\":false,\"new_status\":\"cancelled_refund_processing\",\"changed_date\":1766501685383,\"previous_status\":\"cancelled\"},{\"source\":\"inventoryuser\",\"is_active\":false,\"new_status\":\"cancelled_refund_processing\",\"changed_date\":1766501687091,\"previous_status\":\"cancelled_refund_processing\",\"inventory_user_id\":2},{\"source\":\"system\",\"is_active\":false,\"new_status\":\"cancelled_refunded\",\"changed_date\":1766501717890,\"previous_status\":\"cancelled_refund_processing\"},{\"previous_status\":\"cancelled_refunded\",\"new_status\":\"cancelled_refunded\",\"changed_date\":1766501719608,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  1766501719,
+  "REFUND_0001",
+  370,
+  "HDFC",
+  1766501714542
+]

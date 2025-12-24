@@ -112,6 +112,11 @@ export declare class OrdersService {
             total_gst_amount: number | null;
             createddate: number | null;
             modifieddate: number | null;
+            refund_transaction_id: string | null;
+            refund_amount: number | null;
+            refund_reference: string | null;
+            refund_initiated_date: number | null;
+            refund_completed_date: number | null;
             status_history: any[];
             orderlines: Array<{
                 id: number;
@@ -169,7 +174,7 @@ export declare class OrdersService {
      * Transitions: cancelled → cancelled_refund_processing → cancelled_refunded
      * Or: cancelled → cancelled_completed (for COD orders)
      */
-    updateRefundStatus(orderId: number | string, newStatus: 'cancelled_refund_processing' | 'cancelled_refunded' | 'cancelled_completed', adminUserId: number, notes?: string): Promise<any>;
+    updateRefundStatus(orderId: number | string, newStatus: 'cancelled_refund_processing' | 'cancelled_refunded' | 'cancelled_completed', adminUserId: number, notes?: string, refundTransactionId?: string, refundAmount?: number, refundReference?: string): Promise<any>;
     /**
      * Cancel order before ready_for_dispatch
      * Reverses orderedqty → availableqty
