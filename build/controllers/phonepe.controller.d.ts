@@ -109,8 +109,61 @@ export declare class PhonePeController {
             productId: any;
             success: boolean;
             error: string;
-            productName?: never;
             error_code?: never;
+            productName?: never;
+            productType?: never;
+            quantity?: never;
+            componentsUpdated?: never;
+            componentDetails?: never;
+            note?: never;
+            critical?: never;
+            productQuantityUpdate?: never;
+            platformQuantityUpdate?: never;
+            verification?: never;
+            isPlatformStockError?: never;
+        } | {
+            productId: any;
+            success: boolean;
+            error: string;
+            error_code: string;
+            productName?: never;
+            productType?: never;
+            quantity?: never;
+            componentsUpdated?: never;
+            componentDetails?: never;
+            note?: never;
+            critical?: never;
+            productQuantityUpdate?: never;
+            platformQuantityUpdate?: never;
+            verification?: never;
+            isPlatformStockError?: never;
+        } | {
+            productId: any;
+            productName: string;
+            productType: string;
+            quantity: any;
+            success: boolean;
+            componentsUpdated: number;
+            componentDetails: any[];
+            note: string;
+            error?: never;
+            error_code?: never;
+            critical?: never;
+            productQuantityUpdate?: never;
+            platformQuantityUpdate?: never;
+            verification?: never;
+            isPlatformStockError?: never;
+        } | {
+            productId: any;
+            productName: string;
+            productType: string;
+            quantity: any;
+            success: boolean;
+            error: string;
+            error_code: string;
+            componentsUpdated?: never;
+            componentDetails?: never;
+            note?: never;
             critical?: never;
             productQuantityUpdate?: never;
             platformQuantityUpdate?: never;
@@ -123,6 +176,11 @@ export declare class PhonePeController {
             error: string;
             error_code: string;
             critical: boolean;
+            productType?: never;
+            quantity?: never;
+            componentsUpdated?: never;
+            componentDetails?: never;
+            note?: never;
             productQuantityUpdate?: never;
             platformQuantityUpdate?: never;
             verification?: never;
@@ -156,6 +214,11 @@ export declare class PhonePeController {
             };
             error?: never;
             error_code?: never;
+            productType?: never;
+            quantity?: never;
+            componentsUpdated?: never;
+            componentDetails?: never;
+            note?: never;
             critical?: never;
             isPlatformStockError?: never;
         } | {
@@ -163,8 +226,13 @@ export declare class PhonePeController {
             success: boolean;
             error: any;
             isPlatformStockError: any;
-            productName?: never;
             error_code?: never;
+            productName?: never;
+            productType?: never;
+            quantity?: never;
+            componentsUpdated?: never;
+            componentDetails?: never;
+            note?: never;
             critical?: never;
             productQuantityUpdate?: never;
             platformQuantityUpdate?: never;
@@ -201,5 +269,25 @@ export declare class PhonePeController {
      * Handle refund webhook
      */
     private handleRefundWebhook;
+    /**
+     * Convert locked component stock to ordered stock for combo products
+     * Called during payment callback when payment succeeds
+     * @param combo ProductId - ID of the combo product being ordered
+     * @param comboQuantity - Number of combo packs ordered
+     * @param orderData - Order data from callback
+     * @param orderItem - Original order item
+     * @param platformName - Platform name (nivapp)
+     * @returns Conversion results with component details
+     */
+    private convertComboComponentLocksToOrders;
+    /**
+     * Lock stock for all components of a combo product
+     * @param tx - Prisma transaction client
+     * @param comboProductId - Combo product ID
+     * @param comboQuantity - Number of combo packs ordered
+     * @param orderItem - Original order item (for logging)
+     * @returns Array of lock results for each component
+     */
+    private lockComboComponents;
 }
 //# sourceMappingURL=phonepe.controller.d.ts.map

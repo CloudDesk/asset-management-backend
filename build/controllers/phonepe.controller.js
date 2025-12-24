@@ -175,6 +175,7 @@ export class PhonePeController {
                             availablequantity: true,
                             orderedquantity: true,
                             productstatus: true,
+                            iscombo: true, // ✅ NEW: Check if product is combo
                         },
                     });
                     // Check if product exists
@@ -194,6 +195,171 @@ export class PhonePeController {
                         validationErrors.push(error);
                         continue;
                     }
+                    // ========================================
+                    // STEP 2A.1: COMBO PRODUCT COMPONENT VALIDATION
+                    // ========================================
+                    if (product.iscombo) {
+                        logger.info({
+                            productId,
+                            productname: product.name,
+                            quantity: requestedQuantity,
+                            productType: "combo",
+                        }, "Detected combo product - validating component stock");
+                        try {
+                            // Get all active components for this combo
+                            const components = await prisma.productBundleMap.findMany({
+                                where: {
+                                    bundleproductid: BigInt(productId),
+                                    isactive: true,
+                                },
+                                include: {
+                                    componentproduct: {
+                                        select: {
+                                            id: true,
+                                            name: true,
+                                            puc: true,
+                                        },
+                                    },
+                                },
+                            });
+                            if (!components || components.length === 0) {
+                                const error = {
+                                    productid: productId,
+                                    productname: product.name,
+                                    quantity: requestedQuantity,
+                                    error: `Combo product has no active components defined in productbundlemap`,
+                                    error_code: "COMBO_NO_COMPONENTS",
+                                    productType: "combo",
+                                };
+                                logger.error({
+                                    productId,
+                                    productname: product.name,
+                                }, "Combo product has no components - payment blocked");
+                                validationErrors.push(error);
+                                continue;
+                            }
+                            logger.info({
+                                productId,
+                                productname: product.name,
+                                componentCount: components.length,
+                                components: components.map((c) => ({
+                                    componentproductid: c.componentproductid,
+                                    requiredqty: c.requiredqty,
+                                    productname: c.componentproduct?.name,
+                                })),
+                            }, "Retrieved combo components for validation");
+                            // Validate each component has sufficient stock
+                            const componentValidationErrors = [];
+                            const componentStockInfo = [];
+                            for (const component of components) {
+                                const componentProductId = Number(component.componentproductid);
+                                const requiredQty = component.requiredqty || 1;
+                                const totalNeeded = requiredQty * requestedQuantity;
+                                // Check component platformstock
+                                const componentPlatformStock = await prisma.platformStock.findUnique({
+                                    where: {
+                                        productid_platform: {
+                                            productid: BigInt(componentProductId),
+                                            platform: PLATFORM_NAME,
+                                        },
+                                    },
+                                    select: {
+                                        availableqty: true,
+                                        lockqty: true,
+                                        orderedqty: true,
+                                    },
+                                });
+                                if (!componentPlatformStock) {
+                                    componentValidationErrors.push(`Component ${componentProductId} (${component.componentproduct?.name || "Unknown"}) has no platformstock record`);
+                                    continue;
+                                }
+                                const currentAvailableQty = componentPlatformStock.availableqty || 0;
+                                const currentLockQty = componentPlatformStock.lockqty || 0;
+                                // availableqty already represents available stock, so check it directly
+                                const actualAvailable = currentAvailableQty;
+                                componentStockInfo.push({
+                                    componentproductid: componentProductId,
+                                    componentname: component.componentproduct?.name || "Unknown",
+                                    requiredqty: requiredQty,
+                                    totalNeeded: totalNeeded,
+                                    available: actualAvailable,
+                                    lockqty: currentLockQty,
+                                });
+                                // Validate availability
+                                // Note: availableqty is the actual available stock, so we check it directly
+                                if (actualAvailable < totalNeeded) {
+                                    componentValidationErrors.push(`Component "${component.componentproduct?.name || componentProductId}" needs ${totalNeeded} units (${requiredQty} per combo × ${requestedQuantity} combos), but only ${actualAvailable} available`);
+                                }
+                            }
+                            // If any component fails validation, add to validation errors
+                            if (componentValidationErrors.length > 0) {
+                                const error = {
+                                    productid: productId,
+                                    productname: product.name,
+                                    quantity: requestedQuantity,
+                                    productType: "combo",
+                                    error: `Combo product has insufficient component stock. ${componentValidationErrors.join("; ")}`,
+                                    error_code: "INSUFFICIENT_COMBO_COMPONENT_STOCK",
+                                    componentErrors: componentValidationErrors,
+                                    componentStockInfo: componentStockInfo,
+                                };
+                                logger.error({
+                                    productId,
+                                    productname: product.name,
+                                    requestedQuantity,
+                                    componentValidationErrors,
+                                    componentStockInfo,
+                                }, "Combo product component validation failed - payment blocked");
+                                validationErrors.push(error);
+                                continue;
+                            }
+                            logger.info({
+                                productId,
+                                productname: product.name,
+                                componentCount: components.length,
+                                requestedQuantity,
+                                status: "COMBO_COMPONENTS_VALIDATED",
+                            }, "All combo components have sufficient stock");
+                            // Skip the single product quantity validation for combo products
+                            // Component validation is sufficient
+                            logger.info({
+                                productId,
+                                productname: product.name,
+                                platform: PLATFORM_NAME,
+                                requestedQuantity,
+                                status: "COMBO_VALIDATION_PASSED",
+                            }, "Combo product validation passed - skipping to platformstock check");
+                        }
+                        catch (comboValidationError) {
+                            logger.error({
+                                productId,
+                                error: comboValidationError.message,
+                                stack: comboValidationError.stack,
+                            }, "Error during combo product validation");
+                            validationErrors.push({
+                                productid: productId,
+                                productname: product.name,
+                                quantity: requestedQuantity,
+                                error: `Combo validation error: ${comboValidationError.message}`,
+                                error_code: "COMBO_VALIDATION_ERROR",
+                                productType: "combo",
+                            });
+                            continue;
+                        }
+                        logger.info({
+                            productId,
+                            productname: product.name,
+                            platform: PLATFORM_NAME,
+                            requestedQuantity,
+                            status: "COMBO_VALIDATION_PASSED",
+                        }, "Combo product validation passed - skipping platformstock check (combo products are virtual)");
+                        // ✅ SKIP platformstock check for combo products
+                        // Combo products don't have their own stock - only components do
+                        continue;
+                    }
+                    // ========================================
+                    // STEP 2A.2: SINGLE PRODUCT QUANTITY VALIDATION
+                    // ========================================
                     // Check if product has sufficient overall available quantity
                     const productAvailableQty = product.availablequantity || 0;
                     if (productAvailableQty < requestedQuantity) {
@@ -258,22 +424,24 @@ export class PhonePeController {
                         validationErrors.push(error);
                         continue;
                     }
-                    // Calculate actual available quantity (availableqty - lockqty)
+                    // Validate sufficient platform-specific quantity
+                    // availableqty already represents available stock (after accounting for lockqty)
+                    // So we check: availableqty >= requestedQuantity
                     const currentAvailableQty = platformStock.availableqty || 0;
                     const currentLockQty = platformStock.lockqty || 0;
-                    const actualAvailableQty = currentAvailableQty - currentLockQty;
                     // Validate sufficient platform-specific quantity
-                    if (actualAvailableQty < requestedQuantity) {
+                    // Note: availableqty is the actual available stock, so we check it directly
+                    if (currentAvailableQty < requestedQuantity) {
                         const error = {
                             productid: productId,
                             productname: product.name,
                             puc: product.puc,
                             quantity: requestedQuantity,
-                            available: actualAvailableQty,
+                            available: currentAvailableQty,
                             availableqty: currentAvailableQty,
                             lockqty: currentLockQty,
-                            shortage: requestedQuantity - actualAvailableQty,
-                            error: `Insufficient stock on ${PLATFORM_NAME}. Available: ${actualAvailableQty} (Total: ${currentAvailableQty}, Locked: ${currentLockQty}), Requested: ${requestedQuantity}`,
+                            shortage: requestedQuantity - currentAvailableQty,
+                            error: `Insufficient stock on ${PLATFORM_NAME}. Available: ${currentAvailableQty}, Requested: ${requestedQuantity}`,
                             error_code: "INSUFFICIENT_PLATFORMSTOCK",
                         };
                         logger.error({
@@ -283,8 +451,7 @@ export class PhonePeController {
                             requestedQuantity,
                             currentAvailableQty,
                             currentLockQty,
-                            actualAvailableQty,
-                            shortage: requestedQuantity - actualAvailableQty,
+                            shortage: requestedQuantity - currentAvailableQty,
                         }, "Insufficient platformstock - payment blocked");
                         validationErrors.push(error);
                         continue;
@@ -295,12 +462,13 @@ export class PhonePeController {
                         productname: product.name,
                         platform: PLATFORM_NAME,
                         requestedQuantity,
-                        productAvailableQty,
-                        platformActualAvailable: actualAvailableQty,
+                        productType: product.iscombo ? "combo" : "single",
                         platformAvailableQty: currentAvailableQty,
                         platformLockQty: currentLockQty,
                         status: "ALL_VALIDATIONS_PASSED",
-                    }, "Product and PlatformStock validation passed");
+                    }, product.iscombo
+                        ? "Combo product and component PlatformStock validation passed"
+                        : "Product and PlatformStock validation passed");
                 }
                 catch (validationError) {
                     logger.error({
@@ -357,98 +525,178 @@ export class PhonePeController {
                             const productId = orderItem.productid;
                             const requestedQuantity = orderItem.quantity;
                             // ========================================
-                            // FIX: Use SELECT FOR UPDATE to acquire row lock
+                            // STEP 1: CHECK IF PRODUCT IS COMBO
                             // ========================================
-                            // This prevents concurrent transactions from reading stale data
-                            // Ensures that only one transaction can lock stock at a time
-                            // Second transaction will wait and read fresh data after first commits
-                            const platformStockResult = await tx.$queryRaw `
-                  SELECT * FROM "platformstock"
-                  WHERE "productid" = ${BigInt(productId)}
-                    AND "platform" = ${PLATFORM_NAME}
-                  FOR UPDATE
-                `;
-                            if (!platformStockResult || platformStockResult.length === 0) {
-                                throw new Error(`PlatformStock not found for product ${productId} (should have been caught in validation)`);
+                            const product = await tx.product.findUnique({
+                                where: { id: BigInt(productId) },
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    iscombo: true,
+                                },
+                            });
+                            if (!product) {
+                                throw new Error(`Product ${productId} not found (should have been caught in validation)`);
                             }
-                            const platformStock = platformStockResult[0];
-                            if (!platformStock) {
-                                throw new Error(`PlatformStock data is empty for product ${productId}`);
-                            }
-                            // Convert to numbers for calculations (raw query returns numbers)
-                            const currentAvailableQty = Number(platformStock.availableqty) || 0;
-                            const currentLockQty = Number(platformStock.lockqty) || 0;
-                            const actualAvailable = currentAvailableQty - currentLockQty;
-                            logger.info({
-                                productId,
-                                productName: orderItem.productname,
-                                platform: PLATFORM_NAME,
-                                currentAvailableQty,
-                                currentLockQty,
-                                actualAvailable,
-                                requestedQuantity,
-                                lockAcquired: true, // ← Important: Row lock acquired
-                            }, "Row lock acquired for platformStock - reading fresh data");
-                            // Double-check availability (with FRESH data from row lock)
-                            if (actualAvailable < requestedQuantity) {
-                                logger.error({
+                            // ========================================
+                            // STEP 2: BRANCH - COMBO OR SINGLE PRODUCT
+                            // ========================================
+                            if (product.iscombo) {
+                                // ✅ COMBO PRODUCT: Lock all components
+                                logger.info({
                                     productId,
-                                    productName: orderItem.productname,
+                                    productName: product.name,
+                                    quantity: requestedQuantity,
+                                    productType: "combo",
+                                }, "Detected combo product - locking component stock");
+                                const comboLockResults = await this.lockComboComponents(tx, productId, requestedQuantity, orderItem);
+                                // Add combo lock results to response
+                                lockResults.push({
+                                    productId,
+                                    productName: product.name,
+                                    quantity: requestedQuantity,
+                                    productType: "combo",
+                                    componentsLocked: comboLockResults.length,
+                                    componentDetails: comboLockResults,
+                                    success: true,
+                                    oldAvailableQty: 0, // Not applicable for combo
+                                    newAvailableQty: 0, // Not applicable for combo
+                                    oldLockQty: 0, // Not applicable for combo
+                                    newLockQty: 0, // Not applicable for combo
+                                });
+                                logger.info({
+                                    productId,
+                                    productName: product.name,
+                                    quantity: requestedQuantity,
+                                    componentsLocked: comboLockResults.length,
+                                }, "Combo product components locked successfully");
+                            }
+                            else {
+                                // ✅ SINGLE PRODUCT: Existing logic
+                                logger.info({
+                                    productId,
+                                    productName: product.name,
+                                    quantity: requestedQuantity,
+                                    productType: "single",
+                                }, "Detected single product - locking product stock");
+                                // ========================================
+                                // FIX: Use SELECT FOR UPDATE to acquire row lock
+                                // ========================================
+                                // This prevents concurrent transactions from reading stale data
+                                // Ensures that only one transaction can lock stock at a time
+                                // Second transaction will wait and read fresh data after first commits
+                                const platformStockResult = await tx.$queryRaw `
+                    SELECT * FROM "platformstock"
+                    WHERE "productid" = ${BigInt(productId)}
+                      AND "platform" = ${PLATFORM_NAME}
+                    FOR UPDATE
+                  `;
+                                if (!platformStockResult || platformStockResult.length === 0) {
+                                    throw new Error(`PlatformStock not found for product ${productId} (should have been caught in validation)`);
+                                }
+                                const platformStock = platformStockResult[0];
+                                if (!platformStock) {
+                                    throw new Error(`PlatformStock data is empty for product ${productId}`);
+                                }
+                                // Convert to numbers for calculations (raw query returns numbers)
+                                const currentAvailableQty = Number(platformStock.availableqty) || 0;
+                                const currentLockQty = Number(platformStock.lockqty) || 0;
+                                // availableqty already represents available stock, so check it directly
+                                const actualAvailable = currentAvailableQty;
+                                logger.info({
+                                    productId,
+                                    productName: product.name,
                                     platform: PLATFORM_NAME,
+                                    currentAvailableQty,
+                                    currentLockQty,
                                     actualAvailable,
                                     requestedQuantity,
-                                    shortage: requestedQuantity - actualAvailable,
-                                }, "Insufficient stock during locking WITH row lock - another transaction consumed stock");
-                                throw new Error(`Insufficient stock during locking: Available ${actualAvailable}, Requested ${requestedQuantity}`);
-                            }
-                            // Calculate new quantities
-                            const newAvailableQty = currentAvailableQty - requestedQuantity;
-                            const newLockQty = currentLockQty + requestedQuantity;
-                            // Update platformstock - lock the quantity
-                            await tx.platformStock.update({
-                                where: {
-                                    productid_platform: {
-                                        productid: BigInt(productId),
+                                    lockAcquired: true, // ← Important: Row lock acquired
+                                }, "Row lock acquired for platformStock - reading fresh data");
+                                // Double-check availability (with FRESH data from row lock)
+                                // Note: availableqty is the actual available stock, so we check it directly
+                                if (actualAvailable < requestedQuantity) {
+                                    logger.error({
+                                        productId,
+                                        productName: product.name,
                                         platform: PLATFORM_NAME,
+                                        actualAvailable,
+                                        requestedQuantity,
+                                        shortage: requestedQuantity - actualAvailable,
+                                    }, "Insufficient stock during locking WITH row lock - another transaction consumed stock");
+                                    throw new Error(`Insufficient stock during locking: Available ${actualAvailable}, Requested ${requestedQuantity}`);
+                                }
+                                // Calculate new quantities
+                                const newAvailableQty = currentAvailableQty - requestedQuantity;
+                                const newLockQty = currentLockQty + requestedQuantity;
+                                // Update platformstock - lock the quantity
+                                await tx.platformStock.update({
+                                    where: {
+                                        productid_platform: {
+                                            productid: BigInt(productId),
+                                            platform: PLATFORM_NAME,
+                                        },
                                     },
-                                },
-                                data: {
-                                    availableqty: newAvailableQty,
-                                    lockqty: newLockQty,
-                                    modifieddate: BigInt(Date.now()),
-                                },
-                            });
-                            lockResults.push({
-                                productId,
-                                productName: orderItem.productname,
-                                quantity: requestedQuantity,
-                                oldAvailableQty: currentAvailableQty,
-                                newAvailableQty: newAvailableQty,
-                                oldLockQty: currentLockQty,
-                                newLockQty: newLockQty,
-                                success: true,
-                            });
-                            logger.info({
-                                productId,
-                                productName: orderItem.productname,
-                                platform: PLATFORM_NAME,
-                                requestedQuantity,
-                                oldAvailableQty: currentAvailableQty,
-                                newAvailableQty: newAvailableQty,
-                                oldLockQty: currentLockQty,
-                                newLockQty: newLockQty,
-                            }, "Stock locked successfully for product");
+                                    data: {
+                                        availableqty: newAvailableQty,
+                                        lockqty: newLockQty,
+                                        modifieddate: BigInt(Date.now()),
+                                    },
+                                });
+                                lockResults.push({
+                                    productId,
+                                    productName: product.name,
+                                    quantity: requestedQuantity,
+                                    productType: "single",
+                                    oldAvailableQty: currentAvailableQty,
+                                    newAvailableQty: newAvailableQty,
+                                    oldLockQty: currentLockQty,
+                                    newLockQty: newLockQty,
+                                    success: true,
+                                });
+                                logger.info({
+                                    productId,
+                                    productName: product.name,
+                                    platform: PLATFORM_NAME,
+                                    requestedQuantity,
+                                    oldAvailableQty: currentAvailableQty,
+                                    newAvailableQty: newAvailableQty,
+                                    oldLockQty: currentLockQty,
+                                    newLockQty: newLockQty,
+                                }, "Stock locked successfully for single product");
+                            }
                         }
                         catch (itemError) {
-                            logger.error({
-                                productId: orderItem.productid,
-                                error: itemError.message,
-                            }, "Failed to lock stock for product");
-                            lockErrors.push({
+                            // Enhanced error logging with product type context
+                            const errorContext = {
                                 productId: orderItem.productid,
                                 productName: orderItem.productname,
                                 error: itemError.message,
-                            });
+                                errorCode: itemError.code || "STOCK_LOCKING_ERROR",
+                            };
+                            // Check if it's a combo product error
+                            if (itemError.code === "INSUFFICIENT_COMBO_STOCK") {
+                                logger.error({
+                                    ...errorContext,
+                                    productType: "combo",
+                                    details: itemError.details,
+                                }, "Failed to lock combo product component stock");
+                                lockErrors.push({
+                                    productId: orderItem.productid,
+                                    productName: orderItem.productname,
+                                    error: itemError.message,
+                                    productType: "combo",
+                                    details: itemError.details,
+                                });
+                            }
+                            else {
+                                logger.error(errorContext, "Failed to lock stock for product");
+                                lockErrors.push({
+                                    productId: orderItem.productid,
+                                    productName: orderItem.productname,
+                                    error: itemError.message,
+                                });
+                            }
                             // Rollback transaction by throwing error
                             throw itemError;
                         }
@@ -1412,12 +1660,21 @@ export class PhonePeController {
                 return total + itemDiscount;
             }, 0);
             // If no cart items in originalPayload, calculate from order data
+            // ✅ FIX: productamount in request is ORIGINAL price per unit (before discount)
+            // discountamount in request is TOTAL discount for the line item
             if (originalTotal === 0 && originalOrderData.length > 0) {
                 originalTotal = originalOrderData.reduce((total, item) => {
-                    return total + parseFloat(item.productamount?.toString() || "0");
+                    const prodAmt = parseFloat(item.productamount?.toString() || "0");
+                    const qty = parseInt(item.quantity?.toString() || "1");
+                    // productamount is original price per-unit, so multiply by quantity to get total
+                    return total + (prodAmt * qty);
                 }, 0);
-                // For order data, we might not have product discount info, so keep it 0
-                productDiscountTotal = 0;
+                // ✅ FIX: Extract product discount from order data
+                productDiscountTotal = originalOrderData.reduce((total, item) => {
+                    const disc = parseFloat(item.discountamount?.toString() || "0");
+                    // discountamount is already total for the line item
+                    return total + disc;
+                }, 0);
             }
             // Get shipping and tax from original payload
             shippingCost = parseFloat(transaction.transactiondata?.originalPayload?.shippingCost?.toString() ||
@@ -1506,11 +1763,15 @@ export class PhonePeController {
                 const productId = item.productid;
                 const quantity = parseInt(item.quantity?.toString() || '1');
                 const rawProductAmount = parseFloat(item.productamount?.toString() || '0');
+                const rawDiscountAmount = parseFloat(item.discountamount?.toString() || '0'); // ✅ FIX: Extract discount from request
                 // Initialize discount values
                 let productDiscountAmount = 0;
                 let promotionDiscountAmount = 0;
+                // ⚠️ IMPORTANT: Determine if rawProductAmount is per-unit or total
+                // Based on user's expected values, it appears productamount might be per-unit
+                // We'll calculate originalPrice and orderamount correctly based on evaluationData availability
                 let originalPrice = rawProductAmount; // Will be recalculated if evaluationData exists
-                let itemProductAmount = rawProductAmount; // Total product amount for this line item
+                let itemProductAmount = rawProductAmount; // Will be recalculated based on whether it's per-unit or total
                 logger.debug({
                     transactionId,
                     productId,
@@ -1533,12 +1794,14 @@ export class PhonePeController {
                     if (cartItem) {
                         const basePrice = parseFloat(cartItem.base_price?.toString() || '0');
                         const productDiscount = parseFloat(cartItem.product_discount?.toString() || '0');
+                        // ✅ FIX: original_price is PER-UNIT (not multiplied by quantity)
+                        // This matches the master reference: original_price = base_price (per-unit)
+                        originalPrice = basePrice; // Per-unit price (stored as-is in orderline)
                         // Calculate totals (multiply by quantity)
-                        originalPrice = basePrice * quantity;
-                        productDiscountAmount = productDiscount * quantity;
-                        // ✅ FIX: Calculate itemProductAmount as total (originalPrice - productDiscountAmount)
+                        productDiscountAmount = productDiscount * quantity; // Total discount for line item
+                        // ✅ FIX: Calculate itemProductAmount as total ((basePrice × quantity) - productDiscountAmount)
                         // This ensures itemProductAmount is always the TOTAL for the line item, not per-unit
-                        itemProductAmount = originalPrice - productDiscountAmount;
+                        itemProductAmount = (basePrice * quantity) - productDiscountAmount;
                         logger.debug({
                             transactionId,
                             productId,
@@ -1574,13 +1837,13 @@ export class PhonePeController {
                     // If no breakdown found but we have promotionDiscountTotal, use pro-rata distribution
                     if (!foundPromotionBreakdown && promotionDiscountTotal > 0) {
                         // Calculate total product amount across all items for pro-rata calculation
+                        // ⚠️ CRITICAL FIX: item.productamount from REQUEST is PER-UNIT, need to multiply by quantity
                         const totalProductAmountForProRata = originalOrderData
                             .filter((i) => validProductIds.includes(i.productid))
                             .reduce((sum, i) => {
-                            const qty = parseInt(i.quantity?.toString() || '1');
                             const prodAmt = parseFloat(i.productamount?.toString() || '0');
-                            // If productamount appears to be per-unit, multiply by quantity
-                            // Otherwise use as-is (already total)
+                            const qty = parseInt(i.quantity?.toString() || '1');
+                            // ✅ FIX: productamount from request is PER-UNIT, multiply by quantity to get TOTAL
                             return sum + (prodAmt * qty);
                         }, 0);
                         if (totalProductAmountForProRata > 0) {
@@ -1598,46 +1861,80 @@ export class PhonePeController {
                     }
                 }
                 else {
-                    // Fallback: Pro-rata distribution if evaluationData not available
+                    // Fallback: Use values from request when evaluationData not available
                     logger.warn({
                         transactionId,
                         productId,
-                        message: "No evaluationData - using pro-rata distribution (less accurate)"
-                    }, "Falling back to pro-rata discount distribution");
-                    // ✅ FIX: Ensure we're working with totals, not per-unit amounts
-                    // If rawProductAmount appears to be per-unit, multiply by quantity
-                    // Otherwise assume it's already total
-                    const assumedTotalProductAmount = rawProductAmount * quantity;
+                        message: "No evaluationData - using values from request payload"
+                    }, "Falling back to request payload values");
+                    // ✅ FIX: When no evaluationData, request provides:
+                    // - productamount: ORIGINAL price per unit (before discount)
+                    // - discountamount: Product discount amount (already total for line item)
+                    // - quantity: Quantity
+                    // Example from user's request:
+                    // productamount: 150, discountamount: 10, quantity: 1
+                    // → original_price = 150 (per-unit)
+                    // → product_discount_amount = 10 (total)
+                    // → itemProductAmount = (150 × 1) - 10 = 140 (total after discount)
+                    // Calculate values for the line item
+                    const perUnitPrice = rawProductAmount; // Original price per unit (before discount)
+                    originalPrice = perUnitPrice; // original_price = per-unit price
+                    productDiscountAmount = rawDiscountAmount; // ✅ FIX: Use discount from request (already total)
+                    const totalProductAmountForLineItem = (perUnitPrice * quantity) - productDiscountAmount; // Total after product discount
+                    itemProductAmount = totalProductAmountForLineItem; // Total product amount for this line
+                    // For pro-rata promotion discount (if any at order level)
+                    // Calculate total product amount across all items
                     const totalProductAmountForProRata = originalOrderData
                         .filter((i) => validProductIds.includes(i.productid))
                         .reduce((sum, i) => {
+                        const origPrice = parseFloat(i.productamount?.toString() || '0');
+                        const disc = parseFloat(i.discountamount?.toString() || '0');
                         const qty = parseInt(i.quantity?.toString() || '1');
-                        const prodAmt = parseFloat(i.productamount?.toString() || '0');
-                        return sum + (prodAmt * qty);
+                        // Total after discount for each item
+                        return sum + ((origPrice * qty) - disc);
                     }, 0);
-                    if (totalProductAmountForProRata > 0) {
-                        const proRataFactor = assumedTotalProductAmount / totalProductAmountForProRata;
-                        productDiscountAmount = productDiscountTotal * proRataFactor;
+                    if (totalProductAmountForProRata > 0 && promotionDiscountTotal > 0) {
+                        const proRataFactor = totalProductAmountForLineItem / totalProductAmountForProRata;
                         promotionDiscountAmount = promotionDiscountTotal * proRataFactor;
-                        originalPrice = assumedTotalProductAmount + (productDiscountAmount + promotionDiscountAmount);
-                        itemProductAmount = originalPrice - productDiscountAmount;
+                        logger.debug({
+                            transactionId,
+                            productId,
+                            perUnitPrice,
+                            quantity,
+                            rawDiscountAmount,
+                            calculatedProductDiscount: productDiscountAmount,
+                            totalProductAmountForLineItem,
+                            promotionDiscountTotal,
+                            totalProductAmountForProRata,
+                            proRataFactor,
+                            calculatedPromotionDiscount: promotionDiscountAmount,
+                            calculatedOriginalPrice: originalPrice,
+                            note: 'Using request values: productamount=original price, discountamount=product discount'
+                        }, "Calculated discounts using request payload (no evaluationData)");
                     }
                 }
-                // Calculate pro-rata shipping cost based on product amount
+                // Calculate pro-rata shipping cost based on product amount (after discount)
+                // ✅ FIX: Use amount after product discount for fair pro-rata distribution
                 const totalProductAmountForShipping = originalOrderData
                     .filter((i) => validProductIds.includes(i.productid))
                     .reduce((sum, i) => {
+                    const origPrice = parseFloat(i.productamount?.toString() || '0');
+                    const disc = parseFloat(i.discountamount?.toString() || '0');
                     const qty = parseInt(i.quantity?.toString() || '1');
-                    const prodAmt = parseFloat(i.productamount?.toString() || '0');
-                    return sum + (prodAmt * qty);
+                    // ✅ FIX: Use amount after discount
+                    return sum + ((origPrice * qty) - disc);
                 }, 0);
                 const shippingCostForItem = totalProductAmountForShipping > 0
                     ? (shippingCost * itemProductAmount) / totalProductAmountForShipping
                     : 0;
-                // ✅ FIX: Calculate finalOrderAmount as total (itemProductAmount - promotionDiscountAmount)
-                // itemProductAmount is already total, promotionDiscountAmount is already total
-                // So finalOrderAmount will be the TOTAL for the line item
+                // ✅ FIX: Calculate finalOrderAmount as total for the line item
+                // Correct understanding:
+                // - productamount from request = TOTAL (productamount × quantity)
+                // - original_price = productamount / quantity (per-unit, NOT multiplied by quantity)
+                // - itemProductAmount = productamount (total for line item, already includes quantity)
                 const totalDiscountAmount = productDiscountAmount + promotionDiscountAmount;
+                // finalOrderAmount = total product amount - promotion discount
+                // itemProductAmount is already total, promotionDiscountAmount is total
                 const finalOrderAmount = itemProductAmount - promotionDiscountAmount;
                 logger.debug({
                     transactionId,
@@ -1665,6 +1962,7 @@ export class PhonePeController {
                 }, "Order item enriched with discount data and recalculated amounts");
                 return {
                     ...item,
+                    productamount: itemProductAmount, // ✅ FIX: Use calculated TOTAL, not request's per-unit value
                     original_price: originalPrice,
                     product_discount_amount: productDiscountAmount,
                     promotion_discount_amount: promotionDiscountAmount,
@@ -1925,6 +2223,32 @@ export class PhonePeController {
                                 // Store PER-ITEM prices and discounts in maps
                                 originalPriceMap.set(productId, basePrice);
                                 productDiscountMap.set(productId, productDiscount); // Store per-item discount
+                            }
+                        });
+                    }
+                    else {
+                        // ✅ FIX: When no evaluationData, populate maps from originalOrderData (request payload)
+                        const originalOrderData = transaction.transactiondata?.originalPayload?.order || [];
+                        originalOrderData.forEach((orderItem) => {
+                            const productId = parseInt(orderItem.productid?.toString() || "0");
+                            if (productId > 0) {
+                                const productAmount = parseFloat(orderItem.productamount?.toString() || "0");
+                                const discountAmount = parseFloat(orderItem.discountamount?.toString() || "0");
+                                const quantity = parseInt(orderItem.quantity?.toString() || "1");
+                                // productamount in request is ORIGINAL price per unit (before discount)
+                                // discountamount in request is TOTAL discount for line item
+                                originalPriceMap.set(productId, productAmount); // Per-unit original price
+                                productDiscountMap.set(productId, discountAmount / quantity); // Per-unit discount
+                                logger.debug({
+                                    transactionId,
+                                    productId,
+                                    productAmount,
+                                    discountAmount,
+                                    quantity,
+                                    mappedOriginalPrice: productAmount,
+                                    mappedProductDiscount: discountAmount / quantity,
+                                    note: 'Populated maps from request payload (no evaluationData)'
+                                }, 'Using request values for orderline update');
                             }
                         });
                     }
@@ -2703,6 +3027,91 @@ export class PhonePeController {
                         mode: mode,
                         platform: PLATFORM_NAME,
                     }, "Processing product quantity update with platformstock");
+                    // ========================================
+                    // STEP 1: CHECK IF PRODUCT IS COMBO
+                    // ========================================
+                    const productCheck = await prisma.product.findUnique({
+                        where: { id: BigInt(productId) },
+                        select: {
+                            id: true,
+                            name: true,
+                            iscombo: true,
+                        },
+                    });
+                    if (!productCheck) {
+                        logger.error({
+                            productId,
+                            orderId: orderData.id,
+                        }, "Product not found during callback - critical error");
+                        updateResults.push({
+                            productId: productId,
+                            success: false,
+                            error: "Product not found",
+                            error_code: "PRODUCT_NOT_FOUND",
+                        });
+                        continue;
+                    }
+                    // ========================================
+                    // STEP 2: BRANCH - COMBO OR SINGLE PRODUCT
+                    // ========================================
+                    if (productCheck.iscombo) {
+                        // ✅ COMBO PRODUCT: Convert component locks to orders
+                        logger.info({
+                            productId,
+                            productName: productCheck.name,
+                            quantity: requestedQuantity,
+                            productType: "combo",
+                            orderId: orderData.id,
+                        }, "Detected combo product in callback - converting component locks to orders");
+                        try {
+                            const conversionResult = await this.convertComboComponentLocksToOrders(productId, requestedQuantity, orderData, orderItem, PLATFORM_NAME);
+                            updateResults.push({
+                                productId: productId,
+                                productName: productCheck.name,
+                                productType: "combo",
+                                quantity: requestedQuantity,
+                                success: true,
+                                componentsUpdated: conversionResult.componentsUpdated,
+                                componentDetails: conversionResult.componentDetails,
+                                note: "Combo product - component locks converted to orders",
+                            });
+                            logger.info({
+                                productId,
+                                productName: productCheck.name,
+                                componentsUpdated: conversionResult.componentsUpdated,
+                                orderId: orderData.id,
+                            }, "Combo product component locks converted successfully");
+                        }
+                        catch (comboError) {
+                            logger.error({
+                                productId,
+                                productName: productCheck.name,
+                                error: comboError.message,
+                                stack: comboError.stack,
+                                orderId: orderData.id,
+                            }, "Failed to convert combo component locks to orders");
+                            updateResults.push({
+                                productId: productId,
+                                productName: productCheck.name,
+                                productType: "combo",
+                                quantity: requestedQuantity,
+                                success: false,
+                                error: `Combo conversion failed: ${comboError.message}`,
+                                error_code: "COMBO_CONVERSION_FAILED",
+                            });
+                        }
+                        continue; // Skip to next order item
+                    }
+                    // ========================================
+                    // STEP 3: SINGLE PRODUCT - EXISTING LOGIC
+                    // ========================================
+                    logger.info({
+                        productId,
+                        productName: productCheck.name,
+                        quantity: requestedQuantity,
+                        productType: "single",
+                        orderId: orderData.id,
+                    }, "Processing single product lock-to-order conversion");
                     // STEP 1: Get and validate platformstock for nivapp
                     let platformStock = await prisma.platformStock.findUnique({
                         where: {
@@ -2776,9 +3185,12 @@ export class PhonePeController {
                         }, "Lock quantity mismatch detected");
                     }
                     // Ensure no negative values - CRITICAL for data integrity
-                    const newPlatformAvailableQty = Math.max(0, currentAvailableQty); // NO CHANGE but ensure non-negative
+                    // availableqty: NO CHANGE (already reduced during locking)
+                    const newPlatformAvailableQty = Math.max(0, currentAvailableQty);
+                    // lockqty: DECREASE to 0 (unlock - convert to order)
                     const newPlatformLockQty = Math.max(0, currentLockQty - quantityToConvert); // Unlock, NEVER negative
-                    const newPlatformOrderedQty = currentOrderedQty + quantityToConvert; // FIX #4: Use quantityToConvert, not requestedQuantity
+                    // orderedqty: INCREASE (confirm order)
+                    const newPlatformOrderedQty = currentOrderedQty + quantityToConvert;
                     // Determine platform status based on available quantity
                     let newPlatformStatus;
                     if (newPlatformAvailableQty <= 0) {
@@ -3558,6 +3970,404 @@ export class PhonePeController {
                 payload,
             }, "Error handling refund webhook");
         }
+    }
+    /**
+     * Convert locked component stock to ordered stock for combo products
+     * Called during payment callback when payment succeeds
+     * @param combo ProductId - ID of the combo product being ordered
+     * @param comboQuantity - Number of combo packs ordered
+     * @param orderData - Order data from callback
+     * @param orderItem - Original order item
+     * @param platformName - Platform name (nivapp)
+     * @returns Conversion results with component details
+     */
+    async convertComboComponentLocksToOrders(comboProductId, comboQuantity, orderData, orderItem, platformName) {
+        logger.info({
+            comboProductId,
+            comboQuantity,
+            orderId: orderData.id,
+            platform: platformName,
+        }, "Converting combo component locks to orders");
+        // 1. Get all active components for this combo
+        const components = await prisma.productBundleMap.findMany({
+            where: {
+                bundleproductid: BigInt(comboProductId),
+                isactive: true,
+            },
+            include: {
+                componentproduct: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
+            },
+        });
+        if (!components || components.length === 0) {
+            throw new Error(`No active components found for combo product ${comboProductId}`);
+        }
+        logger.info({
+            comboProductId,
+            componentCount: components.length,
+            components: components.map((c) => ({
+                componentproductid: c.componentproductid,
+                requiredqty: c.requiredqty,
+                productname: c.componentproduct?.name,
+            })),
+        }, "Retrieved combo components for lock-to-order conversion");
+        const componentResults = [];
+        // 2. For each component, convert locks to orders
+        for (const component of components) {
+            const componentProductId = Number(component.componentproductid);
+            const requiredQty = component.requiredqty || 1;
+            const totalNeeded = requiredQty * comboQuantity;
+            logger.info({
+                componentProductId,
+                componentName: component.componentproduct?.name,
+                requiredQty,
+                totalNeeded,
+                orderId: orderData.id,
+            }, "Processing component lock-to-order conversion");
+            // 2a. Get component platformstock
+            const platformStock = await prisma.platformStock.findUnique({
+                where: {
+                    productid_platform: {
+                        productid: BigInt(componentProductId),
+                        platform: platformName,
+                    },
+                },
+                select: {
+                    id: true,
+                    availableqty: true,
+                    lockqty: true,
+                    orderedqty: true,
+                    platformstatus: true,
+                },
+            });
+            if (!platformStock) {
+                throw new Error(`PlatformStock not found for component ${componentProductId} (${component.componentproduct?.name})`);
+            }
+            const currentLockQty = platformStock.lockqty || 0;
+            const currentOrderedQty = platformStock.orderedqty || 0;
+            const currentAvailableQty = platformStock.availableqty || 0;
+            // 2b. Convert lockqty → orderedqty
+            // NOTE: availableqty already reduced during initiation, so NO CHANGE here
+            const quantityToConvert = Math.min(totalNeeded, currentLockQty);
+            const newLockQty = Math.max(0, currentLockQty - quantityToConvert);
+            const newOrderedQty = currentOrderedQty + quantityToConvert;
+            // Warn if locked quantity doesn't match expected
+            if (quantityToConvert < totalNeeded) {
+                logger.warn({
+                    componentProductId,
+                    totalNeeded,
+                    currentLockQty,
+                    quantityToConvert,
+                    warning: "Locked quantity less than expected - using available lock only",
+                }, "Component lock quantity mismatch");
+            }
+            logger.info({
+                componentProductId,
+                componentName: component.componentproduct?.name,
+                beforeUpdate: {
+                    availableqty: currentAvailableQty,
+                    lockqty: currentLockQty,
+                    orderedqty: currentOrderedQty,
+                },
+                afterUpdate: {
+                    availableqty: currentAvailableQty, // NO CHANGE
+                    lockqty: newLockQty,
+                    orderedqty: newOrderedQty,
+                },
+                quantityToConvert,
+            }, "About to update component platformstock (lock → order)");
+            // 2c. Calculate platform status based on available quantity
+            let newPlatformStatus;
+            if (currentAvailableQty <= 0) {
+                newPlatformStatus = "out_of_stock";
+            }
+            else if (currentAvailableQty >= 1 && currentAvailableQty <= 5) {
+                newPlatformStatus = "low_stock";
+            }
+            else {
+                newPlatformStatus = "in_stock";
+            }
+            // 2d. Update component platformstock with status
+            await prisma.platformStock.update({
+                where: {
+                    productid_platform: {
+                        productid: BigInt(componentProductId),
+                        platform: platformName,
+                    },
+                },
+                data: {
+                    lockqty: newLockQty,
+                    orderedqty: newOrderedQty,
+                    platformstatus: newPlatformStatus,
+                    modifieddate: BigInt(Date.now()),
+                },
+            });
+            // 2e. Update component product.orderedquantity and status
+            const componentProduct = await prisma.product.findUnique({
+                where: { id: BigInt(componentProductId) },
+                select: {
+                    orderedquantity: true,
+                    availablequantity: true,
+                },
+            });
+            if (!componentProduct) {
+                throw new Error(`Component product ${componentProductId} not found`);
+            }
+            const currentComponentOrderedQty = componentProduct.orderedquantity || 0;
+            const newComponentOrderedQty = currentComponentOrderedQty + quantityToConvert;
+            // Also update availablequantity
+            const currentComponentAvailableQty = componentProduct.availablequantity || 0;
+            const newComponentAvailableQty = Math.max(0, currentComponentAvailableQty - quantityToConvert);
+            // Calculate product status based on new available quantity
+            let newProductStatus;
+            if (newComponentAvailableQty <= 0) {
+                newProductStatus = "out_of_stock";
+            }
+            else if (newComponentAvailableQty >= 1 && newComponentAvailableQty <= 5) {
+                newProductStatus = "low_stock";
+            }
+            else {
+                newProductStatus = "in_stock";
+            }
+            await prisma.product.update({
+                where: { id: BigInt(componentProductId) },
+                data: {
+                    orderedquantity: newComponentOrderedQty,
+                    availablequantity: newComponentAvailableQty,
+                    productstatus: newProductStatus,
+                    modifieddate: BigInt(Date.now()),
+                },
+            });
+            componentResults.push({
+                componentproductid: componentProductId,
+                componentname: component.componentproduct?.name,
+                requiredqty: requiredQty,
+                totalConverted: quantityToConvert,
+                platformStock: {
+                    before: {
+                        lockqty: currentLockQty,
+                        orderedqty: currentOrderedQty,
+                        availableqty: currentAvailableQty,
+                    },
+                    after: {
+                        lockqty: newLockQty,
+                        orderedqty: newOrderedQty,
+                        availableqty: currentAvailableQty, // NO CHANGE
+                    },
+                },
+                product: {
+                    before: {
+                        orderedquantity: currentComponentOrderedQty,
+                        availablequantity: currentComponentAvailableQty,
+                    },
+                    after: {
+                        orderedquantity: newComponentOrderedQty,
+                        availablequantity: newComponentAvailableQty,
+                    },
+                },
+            });
+            logger.info({
+                componentProductId,
+                componentName: component.componentproduct?.name,
+                quantityToConvert,
+                platformStockUpdate: {
+                    oldLockQty: currentLockQty,
+                    newLockQty,
+                    oldOrderedQty: currentOrderedQty,
+                    newOrderedQty,
+                    oldPlatformStatus: platformStock.platformstatus,
+                    newPlatformStatus,
+                },
+                productUpdate: {
+                    oldOrderedQty: currentComponentOrderedQty,
+                    newOrderedQty: newComponentOrderedQty,
+                    oldAvailableQty: currentComponentAvailableQty,
+                    newAvailableQty: newComponentAvailableQty,
+                    newProductStatus,
+                },
+            }, "Component lock converted to order successfully");
+        }
+        logger.info({
+            comboProductId,
+            componentsUpdated: componentResults.length,
+            orderId: orderData.id,
+        }, "All combo component locks converted to orders successfully");
+        return {
+            success: true,
+            componentsUpdated: componentResults.length,
+            componentDetails: componentResults,
+        };
+    }
+    /**
+     * Lock stock for all components of a combo product
+     * @param tx - Prisma transaction client
+     * @param comboProductId - Combo product ID
+     * @param comboQuantity - Number of combo packs ordered
+     * @param orderItem - Original order item (for logging)
+     * @returns Array of lock results for each component
+     */
+    async lockComboComponents(tx, comboProductId, comboQuantity, orderItem) {
+        const PLATFORM_NAME = "nivapp";
+        logger.info({
+            comboProductId,
+            comboQuantity,
+            orderItem: {
+                productid: orderItem.productid,
+                productname: orderItem.productname,
+                quantity: orderItem.quantity,
+            },
+        }, "Starting combo component stock locking");
+        // Step 1: Get all active components for this combo
+        const components = await tx.productBundleMap.findMany({
+            where: {
+                bundleproductid: BigInt(comboProductId),
+                isactive: true,
+            },
+            include: {
+                componentproduct: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
+            },
+        });
+        if (!components || components.length === 0) {
+            throw new Error(`No active components found for combo product ${comboProductId}`);
+        }
+        logger.info({
+            comboProductId,
+            componentCount: components.length,
+            components: components.map((c) => ({
+                componentproductid: c.componentproductid,
+                requiredqty: c.requiredqty,
+                productname: c.componentproduct?.name,
+            })),
+        }, "Retrieved combo components for stock locking");
+        // Step 2: Validate ALL components have enough stock
+        const validationErrors = [];
+        const componentStockInfo = [];
+        for (const component of components) {
+            const componentProductId = Number(component.componentproductid);
+            const requiredQty = component.requiredqty || 1;
+            const totalNeeded = requiredQty * comboQuantity;
+            // Use SELECT FOR UPDATE to acquire row lock (prevents race conditions)
+            const platformStockResult = await tx.$queryRaw `
+        SELECT * FROM "platformstock"
+        WHERE "productid" = ${BigInt(componentProductId)}
+          AND "platform" = ${PLATFORM_NAME}
+        FOR UPDATE
+      `;
+            if (!platformStockResult || platformStockResult.length === 0) {
+                validationErrors.push(`PlatformStock not found for component ${componentProductId} (${component.componentproduct?.name || "Unknown"})`);
+                continue;
+            }
+            const platformStock = platformStockResult[0];
+            const currentAvailableQty = Number(platformStock.availableqty) || 0;
+            const currentLockQty = Number(platformStock.lockqty) || 0;
+            // availableqty already represents available stock, so check it directly
+            const actualAvailable = currentAvailableQty;
+            componentStockInfo.push({
+                componentproductid: componentProductId,
+                requiredqty: requiredQty,
+                totalNeeded: totalNeeded,
+                available: actualAvailable,
+                lockqty: currentLockQty,
+            });
+            // Validate availability
+            // Note: availableqty is the actual available stock, so we check it directly
+            if (actualAvailable < totalNeeded) {
+                validationErrors.push(`Insufficient stock for component ${componentProductId} (${component.componentproduct?.name || "Unknown"}). ` +
+                    `Need ${totalNeeded} units (${requiredQty} per combo × ${comboQuantity} combos), ` +
+                    `but only ${actualAvailable} available`);
+            }
+        }
+        // If any component fails validation, throw error (rollback transaction)
+        if (validationErrors.length > 0) {
+            logger.error({
+                comboProductId,
+                comboQuantity,
+                validationErrors,
+                componentStockInfo,
+            }, "Combo component stock validation failed");
+            throw new ValidationError(`Insufficient stock for combo product ${comboProductId}. ` +
+                `Components with insufficient stock: ${validationErrors.join("; ")}`, `INSUFFICIENT_COMBO_STOCK - Combo Product ID: ${comboProductId}, Quantity: ${comboQuantity}`, validationErrors);
+        }
+        // Step 3: Lock ALL components atomically (already in transaction)
+        const lockResults = [];
+        for (const component of components) {
+            const componentProductId = Number(component.componentproductid);
+            const requiredQty = component.requiredqty || 1;
+            const totalNeeded = requiredQty * comboQuantity;
+            // Get platform stock (already locked by SELECT FOR UPDATE above)
+            const platformStockResult = await tx.$queryRaw `
+        SELECT * FROM "platformstock"
+        WHERE "productid" = ${BigInt(componentProductId)}
+          AND "platform" = ${PLATFORM_NAME}
+        FOR UPDATE
+      `;
+            const platformStock = platformStockResult[0];
+            const currentAvailableQty = Number(platformStock.availableqty) || 0;
+            const currentLockQty = Number(platformStock.lockqty) || 0;
+            // Calculate new quantities
+            const newAvailableQty = Math.max(0, currentAvailableQty - totalNeeded);
+            const newLockQty = currentLockQty + totalNeeded;
+            // Update platformstock
+            await tx.platformStock.update({
+                where: {
+                    productid_platform: {
+                        productid: BigInt(componentProductId),
+                        platform: PLATFORM_NAME,
+                    },
+                },
+                data: {
+                    availableqty: newAvailableQty,
+                    lockqty: newLockQty,
+                    modifieddate: BigInt(Date.now()),
+                },
+            });
+            lockResults.push({
+                componentproductid: componentProductId,
+                productname: component.componentproduct?.name || "Unknown",
+                requiredqty: requiredQty,
+                totalNeeded: totalNeeded,
+                before: {
+                    availableqty: currentAvailableQty,
+                    lockqty: currentLockQty,
+                },
+                after: {
+                    availableqty: newAvailableQty,
+                    lockqty: newLockQty,
+                },
+            });
+            logger.info({
+                comboProductId,
+                componentProductId,
+                componentName: component.componentproduct?.name,
+                requiredQty,
+                comboQuantity,
+                totalNeeded,
+                before: {
+                    availableqty: currentAvailableQty,
+                    lockqty: currentLockQty,
+                },
+                after: {
+                    availableqty: newAvailableQty,
+                    lockqty: newLockQty,
+                },
+            }, "Locked stock for combo component");
+        }
+        logger.info({
+            comboProductId,
+            comboQuantity,
+            componentsLocked: lockResults.length,
+            lockResults,
+        }, "Successfully locked stock for all combo components");
+        return lockResults;
     }
 }
 //# sourceMappingURL=phonepe.controller.js.map

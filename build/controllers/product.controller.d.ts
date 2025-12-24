@@ -6,6 +6,7 @@ export declare class ProductController {
     getProduct: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     createProduct: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     updateProduct: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    validateComboComponents: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     deleteProduct: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     upsertProduct: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     upsertProductWithFile: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;

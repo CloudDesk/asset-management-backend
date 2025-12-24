@@ -1,18 +1,18 @@
 import { prisma } from '../models/prisma.js';
 import { Prisma } from '@prisma/client';
-import { 
-  CreateOrdersInput, 
-  UpdateOrdersInput, 
+import {
+  CreateOrdersInput,
+  UpdateOrdersInput,
   UpsertOrdersInput
 } from '../schemas/orders.schema.js';
 import { PaginationResult, createPaginationResult, getPrismaSkipTake } from '../utils/pagination.js';
 import { FilterOptions } from '../utils/filterBuilder.js';
-import { 
-  dynamicFindMany, 
-  dynamicCount, 
-  dynamicFindUnique, 
-  dynamicCreate, 
-  dynamicUpdate, 
+import {
+  dynamicFindMany,
+  dynamicCount,
+  dynamicFindUnique,
+  dynamicCreate,
+  dynamicUpdate,
   dynamicDelete,
   dynamicFindManyWithFilters
 } from '../utils/dynamicDbOperations.js';
@@ -23,34 +23,39 @@ export class OrdersService {
   // Helper function to parse status_history
   private parseStatusHistory(statusHistory: any): any[] {
     if (!statusHistory) return [];
-    
+
+    // Helper to check if an object has any meaningful data
+    const hasData = (obj: any): boolean => {
+      if (!obj || typeof obj !== 'object') return false;
+      const keys = Object.keys(obj);
+      if (keys.length === 0) return false;
+      // Check if at least one property has a non-null, non-undefined value
+      return keys.some(key => obj[key] !== null && obj[key] !== undefined);
+    };
+
     // If it's already an array, return it (filter out empty objects)
     if (Array.isArray(statusHistory)) {
-      return statusHistory.filter((entry: any) => 
-        entry && typeof entry === 'object' && Object.keys(entry).length > 0
-      );
+      return statusHistory.filter(hasData);
     }
-    
+
     // If it's a string, try to parse it
     if (typeof statusHistory === 'string') {
       try {
         const parsed = JSON.parse(statusHistory);
         if (Array.isArray(parsed)) {
-          return parsed.filter((entry: any) => 
-            entry && typeof entry === 'object' && Object.keys(entry).length > 0
-          );
+          return parsed.filter(hasData);
         }
       } catch (e) {
         // If parsing fails, return empty array
         return [];
       }
     }
-    
+
     // If it's an object (but not an array), wrap it in an array
-    if (typeof statusHistory === 'object' && Object.keys(statusHistory).length > 0) {
+    if (hasData(statusHistory)) {
       return [statusHistory];
     }
-    
+
     return [];
   }
 
@@ -72,7 +77,7 @@ export class OrdersService {
       });
 
       logger.info({
-        orderCount: orders.length, 
+        orderCount: orders.length,
         total,
         filtered: Object.keys(filters).length > 0,
         appliedFilters: Object.keys(filters),
@@ -96,9 +101,9 @@ export class OrdersService {
         throw new Error('Order not found');
       }
 
-      logger.debug({ 
-        orderId: id, 
-        availableFields: Object.keys(order) 
+      logger.debug({
+        orderId: id,
+        availableFields: Object.keys(order)
       }, 'Dynamic orders findById completed');
 
       return order;
@@ -133,7 +138,7 @@ export class OrdersService {
 
       // Create orderlines for valid products if productid array is provided
       if (data.productid && Array.isArray(data.productid) && data.productid.length > 0) {
-        logger.info({ 
+        logger.info({
           orderId: order.id,
           productIds: data.productid,
           orderlineCount: data.productid.length,
@@ -147,7 +152,7 @@ export class OrdersService {
             orderId: order.id,
             orderItems: data.orderItems.length
           }, 'Creating orderlines from detailed order items');
-          
+
           orderlineResults = await this.createOrderlinesFromOrderItems(
             order.id,
             data.orderItems,
@@ -160,7 +165,7 @@ export class OrdersService {
             orderId: order.id,
             productIds: data.productid.length
           }, 'Creating orderlines from product IDs (fallback)');
-          
+
           orderlineResults = await this.createOrderlinesForProducts(
             order.id,
             data.productid,
@@ -171,8 +176,8 @@ export class OrdersService {
           );
         }
 
-        logger.info({ 
-          orderId: order.id, 
+        logger.info({
+          orderId: order.id,
           orderid: order.orderid,
           createdOrderlines: orderlineResults.length,
           totalProducts: data.productid.length
@@ -185,7 +190,7 @@ export class OrdersService {
           const orderAmount = parseFloat(order.orderamount?.toString() || '0');
           const shippingCost = parseFloat(data.shipping_cost?.toString() || '0');
           const addressId = data.addressid || null;
-          
+
           logger.info({
             orderId: order.id,
             orderAmount,
@@ -193,20 +198,20 @@ export class OrdersService {
             addressId,
             orderlinesCount: orderlineResults.length
           }, 'Starting GST calculation for order');
-          
+
           const gstResult = await gstService.processOrderGst(
             order.id,
             addressId,
             orderAmount,
             shippingCost
           );
-          
+
           if (gstResult.success) {
             logger.info({
               orderId: order.id,
               orderTotals: gstResult.orderTotals
             }, 'GST calculation completed successfully');
-            
+
             // Add GST totals to the order object for return
             order.items_total = gstResult.orderTotals?.items_total;
             order.total_taxable_amount = gstResult.orderTotals?.total_taxable_amount;
@@ -239,10 +244,10 @@ export class OrdersService {
         };
       }
 
-      logger.info({ 
-        orderId: order.id, 
+      logger.info({
+        orderId: order.id,
         orderid: order.orderid,
-        availableFields: Object.keys(order) 
+        availableFields: Object.keys(order)
       }, 'Dynamic orders create completed (no orderlines created)');
 
       return order;
@@ -260,11 +265,11 @@ export class OrdersService {
     mode?: string // ✅ Optional mode parameter for correct orderline status
   ) {
     const orderlines = [];
-    
+
     // ✅ FIX: COD orderlines should start with order_confirmed, Prepaid with payment_completed
     const isCodOrder = mode === 'cod';
     const defaultStatus = isCodOrder ? 'order_confirmed' : 'payment_completed';
-    
+
     // Initialize status_history for orderlines (JSON.stringify for JSONB column)
     // is_active: true for the current/latest entry, false for all previous entries
     const initialStatusHistory = JSON.stringify([{
@@ -274,10 +279,10 @@ export class OrdersService {
       source: isCodOrder ? 'system' : 'phonepe',
       is_active: true
     }]);
-    
+
     for (let i = 0; i < productIds.length; i++) {
       const productId = productIds[i];
-      
+
       const orderlineData = {
         orderid: orderId, // Use the database ID, not the string orderid
         productid: productId,
@@ -306,17 +311,17 @@ export class OrdersService {
         const orderline = await dynamicCreate('orderline', orderlineData);
         if (orderline) {
           orderlines.push(orderline);
-          logger.debug({ 
-            orderlineId: orderline.id, 
+          logger.debug({
+            orderlineId: orderline.id,
             orderlineNumber: orderline.orderlinenumber,
-            productId: productId 
+            productId: productId
           }, 'Orderline created successfully');
         }
       } catch (orderlineError) {
-        logger.error({ 
-          error: orderlineError, 
-          orderlineData, 
-          productId 
+        logger.error({
+          error: orderlineError,
+          orderlineData,
+          productId
         }, 'Failed to create orderline for product');
         // Continue with other orderlines even if one fails
       }
@@ -332,7 +337,7 @@ export class OrdersService {
     mode?: string // ✅ Optional mode parameter for correct orderline status
   ) {
     const orderlines = [];
-    
+
     logger.info({
       orderId,
       orderidString,
@@ -346,11 +351,11 @@ export class OrdersService {
         hasEvaluationId: 'evaluation_id' in orderItems[0]
       } : null
     }, 'Starting orderline creation from enriched order items');
-    
+
     // ✅ FIX: COD orderlines should start with order_confirmed, Prepaid with payment_completed
     const isCodOrder = mode === 'cod';
     const orderlineStatus = isCodOrder ? 'order_confirmed' : 'payment_completed';
-    
+
     // Initialize status_history for orderlines (JSON.stringify for JSONB column)
     // is_active: true for the current/latest entry, false for all previous entries
     const initialStatusHistory = JSON.stringify([{
@@ -360,10 +365,10 @@ export class OrdersService {
       source: isCodOrder ? 'system' : 'phonepe',
       is_active: true
     }]);
-    
+
     for (let i = 0; i < orderItems.length; i++) {
       const orderItem = orderItems[i];
-      
+
       const orderlineData = {
         orderid: orderId, // Use the database ID, not the string orderid
         productid: orderItem.productid,
@@ -381,17 +386,17 @@ export class OrdersService {
         modifieddate: currentTime,
         ordereddate: currentTime,
         // ✅ BUGFIX: Add promotion/discount fields with proper null handling
-        original_price: orderItem.original_price !== undefined 
-          ? parseFloat(orderItem.original_price?.toString() || '0') 
+        original_price: orderItem.original_price !== undefined
+          ? parseFloat(orderItem.original_price?.toString() || '0')
           : null,
-        product_discount_amount: orderItem.product_discount_amount !== undefined 
-          ? parseFloat(orderItem.product_discount_amount?.toString() || '0') 
+        product_discount_amount: orderItem.product_discount_amount !== undefined
+          ? parseFloat(orderItem.product_discount_amount?.toString() || '0')
           : null,
-        promotion_discount_amount: orderItem.promotion_discount_amount !== undefined 
-          ? parseFloat(orderItem.promotion_discount_amount?.toString() || '0') 
+        promotion_discount_amount: orderItem.promotion_discount_amount !== undefined
+          ? parseFloat(orderItem.promotion_discount_amount?.toString() || '0')
           : null,
-        shipping_cost: orderItem.shipping_cost !== undefined 
-          ? parseFloat(orderItem.shipping_cost?.toString() || '0') 
+        shipping_cost: orderItem.shipping_cost !== undefined
+          ? parseFloat(orderItem.shipping_cost?.toString() || '0')
           : null,
         evaluation_id: orderItem.evaluation_id || null,
         merchanttransactionid: orderItem.merchanttransactionid || null,
@@ -411,14 +416,14 @@ export class OrdersService {
             evaluation_id: orderlineData.evaluation_id
           }
         }, 'Creating orderline with discount fields');
-        
+
         const orderline = await dynamicCreate('orderline', orderlineData);
-        
+
         if (orderline) {
           orderlines.push(orderline);
-          
-          logger.info({ 
-            orderlineId: orderline.id, 
+
+          logger.info({
+            orderlineId: orderline.id,
             orderlineNumber: orderline.orderlinenumber,
             productId: orderItem.productid,
             productName: orderItem.productname,
@@ -434,10 +439,10 @@ export class OrdersService {
           }, 'Orderline created successfully with discount fields');
         }
       } catch (orderlineError: any) {
-        logger.error({ 
+        logger.error({
           error: orderlineError.message,
-          stack: orderlineError.stack, 
-          orderlineData, 
+          stack: orderlineError.stack,
+          orderlineData,
           orderItem,
           orderId,
           productid: orderItem.productid
@@ -449,13 +454,17 @@ export class OrdersService {
     // Calculate and log totals for validation
     const successfulOrderlines = orderlines.filter(ol => ol.id);
     const totals = {
-      totalOriginalPrice: successfulOrderlines.reduce((sum, ol) => 
-        sum + (parseFloat(ol.original_price?.toString() || '0') || 0), 0),
-      totalProductDiscount: successfulOrderlines.reduce((sum, ol) => 
+      // ✅ FIX: original_price is PER-UNIT, so multiply by quantity to get total
+      totalOriginalPrice: successfulOrderlines.reduce((sum, ol) => {
+        const originalPrice = parseFloat(ol.original_price?.toString() || '0') || 0;
+        const quantity = parseFloat(ol.quantity?.toString() || '1') || 1;
+        return sum + (originalPrice * quantity);
+      }, 0),
+      totalProductDiscount: successfulOrderlines.reduce((sum, ol) =>
         sum + (parseFloat(ol.product_discount_amount?.toString() || '0') || 0), 0),
-      totalPromotionDiscount: successfulOrderlines.reduce((sum, ol) => 
+      totalPromotionDiscount: successfulOrderlines.reduce((sum, ol) =>
         sum + (parseFloat(ol.promotion_discount_amount?.toString() || '0') || 0), 0),
-      totalShipping: successfulOrderlines.reduce((sum, ol) => 
+      totalShipping: successfulOrderlines.reduce((sum, ol) =>
         sum + (parseFloat(ol.shipping_cost?.toString() || '0') || 0), 0)
     };
 
@@ -469,7 +478,7 @@ export class OrdersService {
 
     return orderlines;
   }
- 
+
 
   /**
    * Recalculate order status based on all orderline statuses
@@ -500,20 +509,16 @@ export class OrdersService {
 
       if (cancelledCount === totalCount) {
         newOrderStatus = 'cancelled';
-      } else if (cancelledCount > 0) {
-        newOrderStatus = 'partially_cancelled';
       } else {
         // Check for return scenarios
         const returnedCount = orderlineStatuses.filter(s => s === 'returned').length;
-        
+
         if (returnedCount === totalCount) {
           newOrderStatus = 'returned';
-        } else if (returnedCount > 0) {
-          newOrderStatus = 'partially_returned';
         } else {
           // All orderlines have same status
           const uniqueStatuses = [...new Set(orderlineStatuses)];
-          
+
           if (uniqueStatuses.length === 1) {
             newOrderStatus = uniqueStatuses[0];
           } else {
@@ -558,16 +563,16 @@ export class OrdersService {
       // Only update if status changed
       if (previousStatus !== newOrderStatus) {
         // Update status history for order
-        const existingHistory = Array.isArray(currentOrder.status_history) 
-          ? currentOrder.status_history 
+        const existingHistory = Array.isArray(currentOrder.status_history)
+          ? currentOrder.status_history
           : (typeof currentOrder.status_history === 'string' ? JSON.parse(currentOrder.status_history) : []);
-        
+
         // Set all existing entries to is_active: false
         const deactivatedHistory = existingHistory.map((entry: any) => ({
           ...entry,
           is_active: false
         }));
-        
+
         // New entry with is_active: true
         const historyEntry: any = {
           previous_status: previousStatus,
@@ -660,8 +665,8 @@ export class OrdersService {
         return null;
       }
 
-      logger.debug({ 
-        orderIdString, 
+      logger.debug({
+        orderIdString,
         foundOrderId: orders[0].id,
         foundOrderid: orders[0].orderid
       }, 'Order found by orderid string');
@@ -674,12 +679,130 @@ export class OrdersService {
   }
 
   /**
-   * Mark order as ready for dispatch
+   * Auto-select stocks using FIFO (First In First Out)
    */
-  async markReadyForDispatch(orderId: number, inventoryUserId: number): Promise<any> {
+  private async autoSelectStocks(
+    productId: number | bigint,  // Product.id (orderline.productid = Product.id)
+    quantity: number,  // From orderline.quantity
+    platform: string,
+    batchFilter?: {
+      batchno?: string;
+      supplierid?: number;
+      poid?: number;
+    }
+  ): Promise<any[]> {
     try {
-      logger.info({ orderId, inventoryUserId }, 'Marking order as ready for dispatch');
+      // Get Product by id to get puc
+      // Relationship: Product.id = orderline.productid, Stock.puc = Product.puc
+      const product = await dynamicFindUnique('product', { id: productId });
+      if (!product || !product.puc) {
+        throw new Error(`Product not found or missing PUC for productid: ${productId}`);
+      }
 
+      const filters: any = {
+        puc: product.puc,  // Stock.puc = Product.puc (where Product.id = productId)
+        platform: platform,
+        stockstatus: 'available'
+      };
+
+      // Apply batch filters if provided
+      if (batchFilter?.batchno) {
+        filters.batchno = batchFilter.batchno;
+      }
+      if (batchFilter?.supplierid) {
+        filters.supplierid = batchFilter.supplierid;
+      }
+      if (batchFilter?.poid) {
+        filters.poid = batchFilter.poid;
+      }
+
+      // Get available stocks (FIFO by createddate)
+      const { data: stocks } = await dynamicFindManyWithFilters('stock', filters, {
+        orderBy: 'createddate',  // FIFO within filtered batch
+        orderDirection: 'ASC',
+        take: quantity,
+        useAllColumns: true
+      });
+
+      if (!stocks || stocks.length < quantity) {
+        const batchInfo = batchFilter
+          ? `. Batch: ${batchFilter.batchno || 'N/A'}, ` +
+          `Supplier: ${batchFilter.supplierid || 'N/A'}, ` +
+          `PO: ${batchFilter.poid || 'N/A'}. ` +
+          `Please select different batch or use manual stock_ids.`
+          : '';
+        throw new Error(
+          `Insufficient available stock: Need ${quantity}, Found ${stocks?.length || 0}${batchInfo}`
+        );
+      }
+
+      return stocks.slice(0, quantity);
+    } catch (error) {
+      logger.error({ error, productId, quantity, platform, batchFilter }, 'Error in autoSelectStocks');
+      throw error;
+    }
+  }
+
+  /**
+   * Get stocks by IDs
+   */
+  private async getStocksByIds(stockIds: number[]): Promise<any[]> {
+    try {
+      const stocks: any[] = [];
+      for (const stockId of stockIds) {
+        const stock = await dynamicFindUnique('stock', { id: stockId });
+        if (!stock) {
+          throw new Error(`Stock with ID ${stockId} not found`);
+        }
+        stocks.push(stock);
+      }
+      return stocks;
+    } catch (error) {
+      logger.error({ error, stockIds }, 'Error in getStocksByIds');
+      throw error;
+    }
+  }
+
+  /**
+   * Get stocks by SKUs
+   */
+  private async getStocksBySKUs(skus: string[]): Promise<any[]> {
+    try {
+      const stocks: any[] = [];
+      for (const sku of skus) {
+        const { data: stockResults } = await dynamicFindManyWithFilters('stock', { sku }, {
+          take: 1,
+          useAllColumns: true
+        });
+        if (!stockResults || stockResults.length === 0) {
+          throw new Error(`Stock with SKU ${sku} not found`);
+        }
+        stocks.push(stockResults[0]);
+      }
+      return stocks;
+    } catch (error) {
+      logger.error({ error, skus }, 'Error in getStocksBySKUs');
+      throw error;
+    }
+  }
+
+  /**
+   * Allocate stock to orderlines based on stock mapping
+   */
+  private async allocateStockToOrderlines(
+    orderId: number,
+    stockMapping?: Array<{
+      orderline_id: number;
+      stock_ids?: number[];
+      skus?: string[];
+      batch_filter?: {
+        batchno?: string;
+        supplierid?: number;
+        poid?: number;
+      };
+    }>
+  ): Promise<Array<{ orderline_id: number; stocks: any[] }>> {
+    try {
       const { OrderlineService } = await import('./orderline.service.js');
       const orderlineService = new OrderlineService();
 
@@ -694,25 +817,286 @@ export class OrdersService {
         throw new Error('No orderlines found for this order');
       }
 
-      // Update all orderlines to ready_for_dispatch
+      const allocations: Array<{ orderline_id: number; stocks: any[] }> = [];
+
       for (const orderline of orderlines) {
-        await orderlineService.updateOrderlineStatus(
-          orderline.id.toString(),
-          'ready_for_dispatch',
-          {
-            source: 'inventoryuser',
-            inventory_user_id: inventoryUserId
+        const mapping = stockMapping?.find(m => m.orderline_id === orderline.id);
+
+        let stocks: any[];
+
+        if (mapping?.stock_ids) {
+          // Manual selection by stock IDs
+          stocks = await this.getStocksByIds(mapping.stock_ids);
+          // Validate quantity matches orderline
+          if (stocks.length !== (orderline.quantity || 0)) {
+            throw new Error(
+              `Stock count mismatch for orderline ${orderline.id}: ` +
+              `Expected ${orderline.quantity}, got ${stocks.length}`
+            );
           }
-        );
+        } else if (mapping?.skus) {
+          // Manual selection by SKUs
+          stocks = await this.getStocksBySKUs(mapping.skus);
+          // Validate quantity matches orderline
+          if (stocks.length !== (orderline.quantity || 0)) {
+            throw new Error(
+              `Stock count mismatch for orderline ${orderline.id}: ` +
+              `Expected ${orderline.quantity}, got ${stocks.length}`
+            );
+          }
+        } else if (mapping?.batch_filter) {
+          // Auto-select from specific batch/filter
+          stocks = await this.autoSelectStocks(
+            orderline.productid,
+            orderline.quantity || 1,
+            'nivapp', // Default platform, can be enhanced to use order's platform
+            mapping.batch_filter
+          );
+        } else {
+          // Auto-select available stocks (FIFO - no filter)
+          stocks = await this.autoSelectStocks(
+            orderline.productid,
+            orderline.quantity || 1,
+            'nivapp' // Default platform
+          );
+        }
+
+        // Validate stock status and product match
+        for (const stock of stocks) {
+          if (stock.stockstatus !== 'available') {
+            throw new Error(`Stock ${stock.id} is not available (status: ${stock.stockstatus})`);
+          }
+          // Validate: Get Product by id = orderline.productid, then check Stock.puc = Product.puc
+          const orderlineProduct = await dynamicFindUnique('product', { id: orderline.productid });
+          if (!orderlineProduct || stock.puc !== orderlineProduct.puc) {
+            throw new Error(
+              `Stock ${stock.id} (puc: ${stock.puc}) does not match orderline product ` +
+              `(productid: ${orderline.productid}, Product.puc: ${orderlineProduct?.puc || 'N/A'})`
+            );
+          }
+        }
+
+        allocations.push({
+          orderline_id: orderline.id,
+          stocks: stocks
+        });
       }
 
-      // Recalculate order status (should become ready_for_dispatch)
-      await this.recalculateOrderStatus(orderId);
+      return allocations;
+    } catch (error) {
+      logger.error({ error, orderId, stockMapping }, 'Error in allocateStockToOrderlines');
+      throw error;
+    }
+  }
 
-      const order = await this.findById(orderId);
-      logger.info({ orderId, orderStatus: order.orderstatus }, 'Order marked as ready for dispatch');
+  /**
+   * Update stock status and quantities for dispatch
+   */
+  private async updateStockForDispatch(
+    allocations: Array<{ orderline_id: number; stocks: any[] }>,
+    orderId: number,  // orders.id (Int type)
+    order: any         // Full order object to get order.orderid (String)
+  ): Promise<void> {
+    try {
+      const { OrderlineService } = await import('./orderline.service.js');
+      const orderlineService = new OrderlineService();
+      const currentTimestamp = Date.now();
 
-      return order;
+      // Track quantity updates per product/platform to avoid duplicate updates
+      // Key: "productId-platform" -> quantity
+      const platformStockUpdates = new Map<string, { productId: number; platform: string; quantity: number }>();
+      // Key: puc -> quantity
+      const productUpdates = new Map<string, number>();
+
+      for (const allocation of allocations) {
+        const orderline = await orderlineService.findById(allocation.orderline_id.toString());
+        const orderlineQuantity = orderline.quantity || allocation.stocks.length; // Use orderline quantity or stock count
+
+        // Validate stock count matches orderline quantity
+        if (allocation.stocks.length !== orderlineQuantity) {
+          throw new Error(
+            `Stock count mismatch for orderline ${allocation.orderline_id}: ` +
+            `Expected ${orderlineQuantity}, got ${allocation.stocks.length}`
+          );
+        }
+
+        // Get product info from first stock (all stocks should have same puc for same orderline)
+        const firstStock = allocation.stocks[0];
+        const product = await dynamicFindUnique('product', { puc: firstStock.puc });
+        if (!product || !product.id) {
+          throw new Error(`Product not found for puc: ${firstStock.puc}`);
+        }
+        const productId = Number(product.id);
+
+        // Track PlatformStock update (aggregate by productId + platform)
+        const platformStockKey = `${productId}-${firstStock.platform}`;
+        if (!platformStockUpdates.has(platformStockKey)) {
+          platformStockUpdates.set(platformStockKey, {
+            productId,
+            platform: firstStock.platform,
+            quantity: 0
+          });
+        }
+        platformStockUpdates.get(platformStockKey)!.quantity += orderlineQuantity;
+
+        // Track Product update (aggregate by puc)
+        if (!productUpdates.has(firstStock.puc)) {
+          productUpdates.set(firstStock.puc, 0);
+        }
+        productUpdates.set(firstStock.puc, productUpdates.get(firstStock.puc)! + orderlineQuantity);
+
+        // Update each Stock record
+        for (const stock of allocation.stocks) {
+          // 1. Update Stock record
+          // Note: Stock.orderid is String (references orders.orderid, not orders.id)
+          // Note: Stock.orderlinenumber is String (references orderline.orderlinenumber)
+          await dynamicUpdate('stock', { id: stock.id }, {
+            stockstatus: 'sold',
+            orderid: order.orderid || orderId.toString(),  // Use orders.orderid (String) if available
+            orderlinenumber: orderline.orderlinenumber,    // String type
+            solddate: currentTimestamp,
+            modifieddate: currentTimestamp
+          });
+        }
+      }
+
+      // 3. Update PlatformStock quantities (once per product/platform combination)
+      for (const [key, update] of platformStockUpdates.entries()) {
+        const { data: platformStocks } = await dynamicFindManyWithFilters('platformstock', {
+          productid: update.productId.toString(),
+          platform: update.platform
+        }, { take: 1, useAllColumns: true });
+
+        if (platformStocks && platformStocks.length > 0) {
+          const platformStock = platformStocks[0];
+
+          // Update PlatformStock: decrease orderedqty, increase soldqty
+          // Note: availableqty and platformstatus don't change (already done during order creation)
+          const newOrderedQty = Math.max(0, (platformStock.orderedqty || 0) - update.quantity);
+          const newSoldQty = (platformStock.soldqty || 0) + update.quantity;
+
+          await dynamicUpdate('platformstock', { id: platformStock.id }, {
+            orderedqty: newOrderedQty,
+            soldqty: newSoldQty,
+            modifieddate: currentTimestamp
+          });
+
+          logger.info({
+            platformStockId: platformStock.id,
+            productId: update.productId,
+            platform: update.platform,
+            quantity: update.quantity,
+            oldOrderedQty: platformStock.orderedqty,
+            newOrderedQty,
+            oldSoldQty: platformStock.soldqty,
+            newSoldQty
+          }, 'PlatformStock quantities updated');
+        }
+      }
+
+      // 4. Update Product quantities (once per product)
+      for (const [puc, quantity] of productUpdates.entries()) {
+        const productForUpdate = await dynamicFindUnique('product', { puc });
+        if (productForUpdate) {
+          // Update Product: decrease orderedquantity, increase soldquantity
+          // Note: availablequantity doesn't change (already done during order creation)
+          const newOrderedQuantity = Math.max(0, (productForUpdate.orderedquantity || 0) - quantity);
+          const newSoldQuantity = (productForUpdate.soldquantity || 0) + quantity;
+
+          await dynamicUpdate('product', { id: productForUpdate.id }, {
+            orderedquantity: newOrderedQuantity,
+            soldquantity: newSoldQuantity,
+            modifieddate: currentTimestamp
+          });
+
+          logger.info({
+            productId: productForUpdate.id,
+            puc,
+            quantity,
+            oldOrderedQuantity: productForUpdate.orderedquantity,
+            newOrderedQuantity,
+            oldSoldQuantity: productForUpdate.soldquantity,
+            newSoldQuantity
+          }, 'Product quantities updated');
+        }
+      }
+    } catch (error) {
+      logger.error({ error, allocations, orderId }, 'Error in updateStockForDispatch');
+      throw error;
+    }
+  }
+
+  /**
+   * Mark order as ready for dispatch
+   */
+  async markReadyForDispatch(
+    orderId: number,
+    inventoryUserId: number,
+    stockMapping?: Array<{
+      orderline_id: number;
+      stock_ids?: number[];
+      skus?: string[];
+      batch_filter?: {
+        batchno?: string;
+        supplierid?: number;
+        poid?: number;
+      };
+    }>
+  ): Promise<any> {
+    try {
+      logger.info({ orderId, inventoryUserId, hasStockMapping: !!stockMapping }, 'Marking order as ready for dispatch');
+
+      // Use transaction for all updates
+      return await prisma.$transaction(async (tx) => {
+        // 1. Get full order object (needed for order.orderid String)
+        const order = await this.findById(orderId);
+        if (!order) {
+          throw new Error(`Order with ID ${orderId} not found`);
+        }
+
+        // 2. Allocate stock to orderlines
+        const allocations = await this.allocateStockToOrderlines(orderId, stockMapping);
+
+        // 3. Update stock status and quantities
+        await this.updateStockForDispatch(allocations, orderId, order);
+
+        // 4. Update all orderlines to ready_for_dispatch
+        const { OrderlineService } = await import('./orderline.service.js');
+        const orderlineService = new OrderlineService();
+
+        const { data: orderlines } = await orderlineService.findMany(
+          { orderid: orderId.toString() },
+          1,
+          1000
+        );
+
+        if (!orderlines || orderlines.length === 0) {
+          throw new Error('No orderlines found for this order');
+        }
+
+        for (const orderline of orderlines) {
+          await orderlineService.updateOrderlineStatus(
+            orderline.id.toString(),
+            'ready_for_dispatch',
+            {
+              source: 'inventoryuser',
+              inventory_user_id: inventoryUserId
+            }
+          );
+        }
+
+        // 5. Recalculate order status (should become ready_for_dispatch)
+        await this.recalculateOrderStatus(orderId);
+
+        const updatedOrder = await this.findById(orderId);
+        logger.info({
+          orderId,
+          orderStatus: updatedOrder.orderstatus,
+          allocatedStocks: allocations.reduce((sum, a) => sum + a.stocks.length, 0)
+        }, 'Order marked as ready for dispatch');
+
+        return updatedOrder;
+      });
     } catch (error) {
       logger.error({ error, orderId, inventoryUserId }, 'Error marking order as ready for dispatch');
       throw error;
@@ -791,16 +1175,16 @@ export class OrdersService {
       const previousStatus = currentOrder.orderstatus;
 
       // Prepare status history entry
-      const existingHistory = Array.isArray(currentOrder.status_history) 
-        ? currentOrder.status_history 
+      const existingHistory = Array.isArray(currentOrder.status_history)
+        ? currentOrder.status_history
         : (typeof currentOrder.status_history === 'string' ? JSON.parse(currentOrder.status_history) : []);
-      
+
       // Set all existing entries to is_active: false
       const deactivatedHistory = existingHistory.map((entry: any) => ({
         ...entry,
         is_active: false
       }));
-      
+
       // New entry with is_active: true
       const historyEntry: any = {
         previous_status: previousStatus,
@@ -809,12 +1193,12 @@ export class OrdersService {
         source: additionalData?.source || 'system',
         is_active: true
       };
-      
+
       // Add inventory_user_id if source is inventoryuser
       if (historyEntry.source === 'inventoryuser' && additionalData?.inventory_user_id) {
         historyEntry.inventory_user_id = additionalData.inventory_user_id;
       }
-      
+
       const updatedHistory = [...deactivatedHistory, historyEntry];
 
       const updateData: Record<string, any> = {
@@ -855,8 +1239,8 @@ export class OrdersService {
 
       const order = await dynamicUpdate('orders', { id: parseInt(id) }, updateData);
 
-      logger.info({ 
-        orderId: id, 
+      logger.info({
+        orderId: id,
         status,
         orderid: order.orderid
       }, 'Orders status update completed');
@@ -890,9 +1274,9 @@ export class OrdersService {
         throw new Error('Failed to update order - no valid fields provided');
       }
 
-      logger.info({ 
-        orderId: id, 
-        availableFields: Object.keys(order) 
+      logger.info({
+        orderId: id,
+        availableFields: Object.keys(order)
       }, 'Dynamic orders update completed');
 
       return order;
@@ -946,6 +1330,7 @@ export class OrdersService {
         returneddate: fullOrder.returneddate,
         quantity: fullOrder.quantity,
         transactionid: fullOrder.transactionid,
+        productid: fullOrder.productid, // Array of product IDs
         productamount: fullOrder.productamount ? Number(fullOrder.productamount) : null,
         discountamount: fullOrder.discountamount ? Number(fullOrder.discountamount) : null,
         ispaymentsucceed: fullOrder.ispaymentsucceed,
@@ -972,45 +1357,129 @@ export class OrdersService {
         cod_payment_received_date: fullOrder.cod_payment_received_date,
         cod_transaction_reference: fullOrder.cod_transaction_reference,
         cod_amount: fullOrder.cod_amount ? Number(fullOrder.cod_amount) : null,
+        // Refund tracking fields
+        refund_transaction_id: fullOrder.refund_transaction_id,
+        refund_amount: fullOrder.refund_amount ? Number(fullOrder.refund_amount) : null,
+        refund_reference: fullOrder.refund_reference,
+        refund_initiated_date: fullOrder.refund_initiated_date,
+        refund_completed_date: fullOrder.refund_completed_date,
         status_history: this.parseStatusHistory(fullOrder.status_history)
       };
 
       // Get orderlines for this order
       const { OrderlineService } = await import('./orderline.service.js');
       const orderlineService = new OrderlineService();
-      
+
       const { data: rawOrderlines } = await orderlineService.findMany(
         { orderid: fullOrder.id.toString() },
         1,
         1000
       );
 
-      // Extract only required orderline fields
-      const orderlines = rawOrderlines.map((ol: any) => ({
-        id: ol.id,
-        discountamount: ol.discountamount ? Number(ol.discountamount) : null,
-        orderamount: ol.orderamount ? Number(ol.orderamount) : null,
-        quantity: ol.quantity,
-        productid: ol.productid,
-        productname: ol.productname,
-        productcategory: ol.productcategory,
-        hsn_code: ol.hsn_code,
-        orderstatus: ol.orderstatus,
-        original_price: ol.original_price ? Number(ol.original_price) : null,
-        product_discount_amount: ol.product_discount_amount ? Number(ol.product_discount_amount) : null,
-        promotion_discount_amount: ol.promotion_discount_amount ? Number(ol.promotion_discount_amount) : null,
-        shipping_cost: ol.shipping_cost ? Number(ol.shipping_cost) : null,
-        status_history: this.parseStatusHistory(ol.status_history)
-      }));
+      // Extract only required orderline fields and enrich with combo component data
+      const orderlines = await Promise.all(
+        rawOrderlines.map(async (ol: any) => {
+          const orderlineData: any = {
+            id: ol.id,
+            productamount: ol.productamount ? Number(ol.productamount) : null,
+            discountamount: ol.discountamount ? Number(ol.discountamount) : null,
+            orderamount: ol.orderamount ? Number(ol.orderamount) : null,
+            quantity: ol.quantity,
+            productid: ol.productid,
+            productname: ol.productname,
+            productcategory: ol.productcategory,
+            hsn_code: ol.hsn_code,
+            orderstatus: ol.orderstatus,
+            original_price: ol.original_price ? Number(ol.original_price) : null,
+            product_discount_amount: ol.product_discount_amount ? Number(ol.product_discount_amount) : null,
+            promotion_discount_amount: ol.promotion_discount_amount ? Number(ol.promotion_discount_amount) : null,
+            shipping_cost: ol.shipping_cost ? Number(ol.shipping_cost) : null,
+            gst_rate: ol.gst_rate ? Number(ol.gst_rate) : null,
+            taxable_amount: ol.taxable_amount ? Number(ol.taxable_amount) : null,
+            cgst_amount: ol.cgst_amount ? Number(ol.cgst_amount) : null,
+            sgst_amount: ol.sgst_amount ? Number(ol.sgst_amount) : null,
+            igst_amount: ol.igst_amount ? Number(ol.igst_amount) : null,
+            total_gst_amount: ol.total_gst_amount ? Number(ol.total_gst_amount) : null,
+            status_history: this.parseStatusHistory(ol.status_history)
+          };
+
+          // Check if product is combo and fetch component data
+          // Only add iscombo and components fields if product is actually a combo
+          // This ensures backward compatibility - non-combo products have same structure as before
+          if (ol.productid) {
+            try {
+              const product = await dynamicFindUnique('product', { id: Number(ol.productid) });
+
+              if (product?.iscombo === true) {
+                orderlineData.iscombo = true;
+
+                // Fetch components from productbundlemap
+                try {
+                  const components = await prisma.productBundleMap.findMany({
+                    where: {
+                      bundleproductid: BigInt(Number(ol.productid)),
+                      isactive: true,
+                    },
+                    include: {
+                      componentproduct: {
+                        select: {
+                          id: true,
+                          name: true,
+                          category: true,
+                          subcategory: true,
+                        },
+                      },
+                    },
+                  });
+
+                  // Map components with required data
+                  orderlineData.components = components.map((c: any) => ({
+                    componentproductid: Number(c.componentproductid),
+                    productname: c.componentproduct?.name || null,
+                    productcategory: c.componentproduct?.category || null,
+                    subcategory: c.componentproduct?.subcategory || null,
+                    requiredqty: c.requiredqty || 1,
+                  }));
+                } catch (componentError: any) {
+                  logger.warn(
+                    {
+                      orderlineId: ol.id,
+                      productId: ol.productid,
+                      error: componentError.message
+                    },
+                    'Failed to fetch combo components'
+                  );
+                  orderlineData.components = [];
+                }
+              }
+              // If iscombo is false or undefined, don't add iscombo/components fields
+              // This maintains backward compatibility - response is same as before
+            } catch (productError: any) {
+              logger.warn(
+                {
+                  orderlineId: ol.id,
+                  productId: ol.productid,
+                  error: productError.message
+                },
+                'Failed to check if product is combo'
+              );
+              // Don't add iscombo field on error - maintain backward compatibility
+            }
+          }
+          // If no productid, don't add iscombo/components fields - maintain backward compatibility
+
+          return orderlineData;
+        })
+      );
 
       // Get address from first orderline (all orderlines share same address)
       let address = null;
       const firstOrderlineWithAddress = rawOrderlines.find((ol: any) => ol.addressid);
-      
+
       if (firstOrderlineWithAddress?.addressid) {
         try {
           const fullAddress = await dynamicFindUnique('address', { id: firstOrderlineWithAddress.addressid });
-          
+
           if (fullAddress) {
             // Extract only required address fields
             address = {
@@ -1055,7 +1524,7 @@ export class OrdersService {
     page: number = 1,
     limit: number = 50
   ): Promise<{
-      orders: Array<{
+    orders: Array<{
       id: number;
       orderamount: number | null;
       orderid: string | null;
@@ -1076,6 +1545,11 @@ export class OrdersService {
       total_gst_amount: number | null;
       createddate: number | null;
       modifieddate: number | null;
+      refund_transaction_id: string | null;
+      refund_amount: number | null;
+      refund_reference: string | null;
+      refund_initiated_date: number | null;
+      refund_completed_date: number | null;
       status_history: any[];
       orderlines: Array<{
         id: number;
@@ -1116,14 +1590,19 @@ export class OrdersService {
     try {
       logger.info({ userId, page, limit }, 'Getting orders by userid with orderlines and address');
 
-      // Get orders for this user
+      // Get order IDs for this user (lightweight query for pagination)
       const ordersResult = await this.findMany(
         { userid: userId.toString() },
         page,
         limit
       );
-      const orders = ordersResult.data;
       const pagination = ordersResult.pagination;
+
+      // Fetch full order details for each order using findById
+      // This ensures JSONB fields like status_history are properly deserialized
+      const orders = await Promise.all(
+        ordersResult.data.map((o: any) => this.findById(o.id))
+      );
 
       // Get orderlines for all orders
       const { OrderlineService } = await import('./orderline.service.js');
@@ -1179,7 +1658,7 @@ export class OrdersService {
             return null;
           }
         });
-        
+
         const addressResults = await Promise.all(addressPromises);
         addressResults.forEach((result) => {
           if (result && result.address) {
@@ -1199,31 +1678,6 @@ export class OrdersService {
 
       // Build response with orders, orderlines, and address
       const ordersWithDetails = orders.map((order: any) => {
-        // Extract required order fields
-        const orderData = {
-          id: order.id,
-          orderamount: order.orderamount ? Number(order.orderamount) : null,
-          orderid: order.orderid,
-          orderstatus: order.orderstatus,
-          quantity: order.quantity,
-          productamount: order.productamount ? Number(order.productamount) : null,
-          discountamount: order.discountamount ? Number(order.discountamount) : null,
-          ispaymentsucceed: order.ispaymentsucceed,
-          mode: order.mode,
-          promotion_discount_total: order.promotion_discount_total ? Number(order.promotion_discount_total) : null,
-          original_total: order.original_total ? Number(order.original_total) : null,
-          shipping_cost: order.shipping_cost ? Number(order.shipping_cost) : null,
-          items_total: order.items_total ? Number(order.items_total) : null,
-          total_taxable_amount: order.total_taxable_amount ? Number(order.total_taxable_amount) : null,
-          total_cgst_amount: order.total_cgst_amount ? Number(order.total_cgst_amount) : null,
-          total_sgst_amount: order.total_sgst_amount ? Number(order.total_sgst_amount) : null,
-          total_igst_amount: order.total_igst_amount ? Number(order.total_igst_amount) : null,
-          total_gst_amount: order.total_gst_amount ? Number(order.total_gst_amount) : null,
-          createddate: order.createddate ? Number(order.createddate) : null,
-          modifieddate: order.modifieddate ? Number(order.modifieddate) : null,
-          status_history: this.parseStatusHistory(order.status_history)
-        };
-
         // Get orderlines for this order
         const orderOrderlines = (orderlinesByOrderId.get(order.id) || []).map((ol: any) => ({
           id: ol.id,
@@ -1235,9 +1689,16 @@ export class OrdersService {
           discountamount: ol.discountamount ? Number(ol.discountamount) : null,
           orderamount: ol.orderamount ? Number(ol.orderamount) : null,
           quantity: ol.quantity,
+          original_price: ol.original_price ? Number(ol.original_price) : null,
           product_discount_amount: ol.product_discount_amount ? Number(ol.product_discount_amount) : null,
           promotion_discount_amount: ol.promotion_discount_amount ? Number(ol.promotion_discount_amount) : null,
           shipping_cost: ol.shipping_cost ? Number(ol.shipping_cost) : null,
+          gst_rate: ol.gst_rate ? Number(ol.gst_rate) : null,
+          taxable_amount: ol.taxable_amount ? Number(ol.taxable_amount) : null,
+          cgst_amount: ol.cgst_amount ? Number(ol.cgst_amount) : null,
+          sgst_amount: ol.sgst_amount ? Number(ol.sgst_amount) : null,
+          igst_amount: ol.igst_amount ? Number(ol.igst_amount) : null,
+          total_gst_amount: ol.total_gst_amount ? Number(ol.total_gst_amount) : null,
           createddate: ol.createddate ? Number(ol.createddate) : null,
           modifieddate: ol.modifieddate ? Number(ol.modifieddate) : null,
           status_history: this.parseStatusHistory(ol.status_history)
@@ -1257,7 +1718,33 @@ export class OrdersService {
         }
 
         return {
-          ...orderData,
+          id: order.id,
+          orderamount: order.orderamount ? Number(order.orderamount) : null,
+          orderid: order.orderid,
+          orderstatus: order.orderstatus,
+          quantity: order.quantity,
+          productid: order.productid,
+          productamount: order.productamount ? Number(order.productamount) : null,
+          discountamount: order.discountamount ? Number(order.discountamount) : null,
+          ispaymentsucceed: order.ispaymentsucceed,
+          mode: order.mode,
+          promotion_discount_total: order.promotion_discount_total ? Number(order.promotion_discount_total) : null,
+          original_total: order.original_total ? Number(order.original_total) : null,
+          shipping_cost: order.shipping_cost ? Number(order.shipping_cost) : null,
+          items_total: order.items_total ? Number(order.items_total) : null,
+          total_taxable_amount: order.total_taxable_amount ? Number(order.total_taxable_amount) : null,
+          total_cgst_amount: order.total_cgst_amount ? Number(order.total_cgst_amount) : null,
+          total_sgst_amount: order.total_sgst_amount ? Number(order.total_sgst_amount) : null,
+          total_igst_amount: order.total_igst_amount ? Number(order.total_igst_amount) : null,
+          total_gst_amount: order.total_gst_amount ? Number(order.total_gst_amount) : null,
+          createddate: order.createddate ? Number(order.createddate) : null,
+          modifieddate: order.modifieddate ? Number(order.modifieddate) : null,
+          refund_transaction_id: order.refund_transaction_id,
+          refund_amount: order.refund_amount ? Number(order.refund_amount) : null,
+          refund_reference: order.refund_reference,
+          refund_initiated_date: order.refund_initiated_date,
+          refund_completed_date: order.refund_completed_date,
+          status_history: this.parseStatusHistory(order.status_history),
           orderlines: orderOrderlines,
           address
         };
@@ -1277,6 +1764,1151 @@ export class OrdersService {
       };
     } catch (error) {
       logger.error({ error, userId, page, limit }, 'Error getting orders by userid with details');
+      throw error;
+    }
+  }
+
+  /**
+   * Cancel order (customer or admin initiated)
+   * Handles stock reversal based on order status
+   */
+  async cancelOrder(
+    orderId: number,
+    userId?: number,
+    inventoryUserId?: number,
+    cancellationReason?: string,
+    source: 'customer' | 'inventoryuser' = 'customer'
+  ): Promise<any> {
+    try {
+      logger.info({
+        orderId,
+        userId,
+        inventoryUserId,
+        source,
+        cancellationReason
+      }, 'Starting order cancellation');
+
+      // Get order
+      const order = await this.findById(orderId);
+      if (!order) {
+        throw new Error(`Order with ID ${orderId} not found`);
+      }
+
+      // IDEMPOTENCY CHECK: If order already cancelled, handle appropriately
+      if (order.orderstatus === 'cancelled') {
+        logger.info({
+          orderId,
+          orderNumber: order.orderid,
+          cancelledDate: order.cancelleddate,
+          mode: order.mode
+        }, 'Order already cancelled - checking if COD auto-completion needed (idempotent)');
+
+        // AUTO-COMPLETE COD ORDERS even on retry/subsequent calls
+        // This ensures COD orders never get stuck in 'cancelled' status
+        if (order.mode === 'cod') {
+          logger.info({
+            orderId,
+            orderNumber: order.orderid,
+            mode: 'cod'
+          }, 'COD order already cancelled - attempting auto-completion to cancelled_completed');
+
+          try {
+            // Use proper user ID: inventoryUserId for admin, userId for customer, -1 for system
+            const adminUserIdForRefund = inventoryUserId || userId || -1;
+
+            const finalOrder = await this.updateRefundStatus(
+              orderId,
+              'cancelled_completed',
+              adminUserIdForRefund,
+              `COD order - automatically completed (no refund required). Cancelled by: ${source}`
+            );
+
+            logger.info({
+              orderId,
+              orderNumber: finalOrder.orderid,
+              finalStatus: finalOrder.orderstatus
+            }, 'COD order auto-completed during idempotent check');
+
+            return finalOrder;
+          } catch (autoCompleteError: any) {
+            logger.error({
+              error: autoCompleteError.message,
+              errorStack: autoCompleteError.stack,
+              orderId,
+              orderNumber: order.orderid
+            }, 'Failed to auto-complete COD order during idempotent check - returning cancelled order');
+
+            return order;
+          }
+        }
+
+        // PhonePe orders: Just return as-is (already cancelled, waiting for admin refund)
+        return order;
+      }
+
+      // Define cancellable statuses
+      const CANCELLABLE_STATUSES = [
+        'order_placed',
+        'payment_completed',
+        'order_confirmed',
+        'packed',
+        'ready_for_dispatch'
+      ];
+
+      // Check if order can be cancelled
+      if (!CANCELLABLE_STATUSES.includes(order.orderstatus)) {
+        throw new Error(`Order cannot be cancelled. Current status: ${order.orderstatus}`);
+      }
+
+      // Verify userid matches order owner if customer cancellation
+      if (source === 'customer' && userId && order.userid !== userId) {
+        throw new Error('Unauthorized: userid does not match order owner');
+      }
+
+      // Get all orderlines for this order
+      const { OrderlineService } = await import('./orderline.service.js');
+      const orderlineService = new OrderlineService();
+
+      // Fetch orderlines with status_history for proper tracking
+      const { data: orderlines } = await orderlineService.findMany(
+        { orderid: orderId.toString() },
+        1,
+        1000
+      );
+
+      if (!orderlines || orderlines.length === 0) {
+        throw new Error('No orderlines found for this order');
+      }
+
+      // TRANSACTION WITH ROW-LEVEL LOCKING
+      // Prevents race conditions when multiple cancel requests arrive simultaneously
+      const updatedOrder = await prisma.$transaction(async (tx) => {
+        logger.info({ orderId }, 'Starting atomic transaction with row-level lock');
+
+        // STEP 1: Fetch order with row-level lock (SELECT FOR UPDATE)
+        // This creates an exclusive lock on the order row
+        // Other concurrent requests will WAIT here until this transaction completes
+        const order = await tx.orders.findUnique({
+          where: { id: orderId }
+        });
+
+        if (!order) {
+          throw new Error(`Order with ID ${orderId} not found`);
+        }
+
+        // STEP 2: IDEMPOTENCY CHECK (now protected by row lock)
+        // If first request is processing, second request waits
+        // When second request acquires lock, it will see status = 'cancelled'
+        if (order.orderstatus === 'cancelled') {
+          logger.info({
+            orderId,
+            orderNumber: order.orderid,
+            cancelledDate: order.cancelleddate
+          }, 'Order already cancelled - returning existing state (idempotent, lock-protected)');
+
+          return order;
+        }
+
+        // STEP 3: Validate cancellable status
+        if (!order.orderstatus || !CANCELLABLE_STATUSES.includes(order.orderstatus)) {
+          throw new Error(`Order cannot be cancelled. Current status: ${order.orderstatus || 'unknown'}`);
+        }
+
+        // STEP 4: Verify user authorization
+        if (source === 'customer' && userId && order.userid !== userId) {
+          throw new Error('Unauthorized: userid does not match order owner');
+        }
+
+        // STEP 5: Determine cancellation path and reverse stock
+        const currentTimestamp = Date.now();
+
+        if (order.orderstatus === 'ready_for_dispatch') {
+          // Path 2: Reverse stock allocations (soldqty → availableqty)
+          await this.cancelOrderAfterReadyForDispatch(orderId, orderlines);
+        } else {
+          // Path 1: Reverse order quantities (orderedqty → availableqty)
+          await this.cancelOrderBeforeReadyForDispatch(orderId, orderlines);
+        }
+
+        // OPTIMIZED: Direct bulk update of orderlines to cancelled (no method calls to avoid triggering recalculateOrderStatus)
+        // This prevents transaction timeout by avoiding heavy operations inside the transaction
+        for (const orderline of orderlines) {
+          // Get previous status from the orderline
+          const previousStatus = orderline.orderstatus || 'unknown';
+
+          // Create status history entry with all required fields
+          const statusHistoryEntry = {
+            previous_status: previousStatus,
+            new_status: 'cancelled',
+            changed_date: currentTimestamp,
+            source,
+            userid: userId,
+            inventory_user_id: inventoryUserId,
+            cancellation_reason: cancellationReason,
+            is_active: true
+          };
+
+          // Direct update without triggering recalculateOrderStatus
+          const existingHistory = Array.isArray(orderline.status_history)
+            ? orderline.status_history
+            : [];
+
+          const updatedHistory = existingHistory.map((entry: any) => ({
+            ...entry,
+            is_active: false
+          }));
+          updatedHistory.push(statusHistoryEntry);
+
+          await tx.orderline.update({
+            where: { id: orderline.id },
+            data: {
+              orderstatus: 'cancelled',
+              cancelleddate: currentTimestamp,
+              status_history: updatedHistory,
+              modifieddate: currentTimestamp
+            }
+          });
+        }
+
+        // OPTIMIZED: Direct update of order status with status_history
+        // We KNOW it's cancelled - all orderlines are cancelled
+        const orderStatusHistoryEntry = {
+          previous_status: order.orderstatus || 'unknown',
+          new_status: 'cancelled',
+          changed_date: currentTimestamp,
+          source,
+          userid: userId,
+          inventory_user_id: inventoryUserId,
+          cancellation_reason: cancellationReason,
+          is_active: true
+        };
+
+        const existingOrderHistory = Array.isArray(order.status_history)
+          ? order.status_history
+          : [];
+
+        const updatedOrderHistory = existingOrderHistory.map((entry: any) => ({
+          ...entry,
+          is_active: false
+        }));
+        updatedOrderHistory.push(orderStatusHistoryEntry);
+
+        await tx.orders.update({
+          where: { id: orderId },
+          data: {
+            orderstatus: 'cancelled',
+            cancelleddate: currentTimestamp,
+            status_history: updatedOrderHistory,
+            modifieddate: currentTimestamp
+          }
+        });
+
+        // Fetch and return updated order
+        const finalOrder = await this.findById(orderId);
+
+        logger.info({ orderId }, 'Transaction committed successfully');
+
+        return finalOrder;
+      }, {
+        timeout: 30000, // 30 second timeout for large orders
+        maxWait: 5000,  // Maximum time to wait for transaction to start
+      });
+
+      logger.info({
+        orderId,
+        previousStatus: order.orderstatus,
+        newStatus: 'cancelled',
+        source,
+        userId,
+        inventoryUserId
+      }, 'Order cancelled successfully');
+
+      // UPDATE TRANSACTION TABLE
+      const currentTimestamp = Date.now();
+      try {
+        if (updatedOrder.merchanttransactionid) {
+          const transaction = await dynamicFindUnique('transaction', {
+            merchanttransactionid: updatedOrder.merchanttransactionid
+          });
+
+          if (transaction) {
+            const existingData = transaction.transactiondata || {};
+            const updatedTransactionData = {
+              ...existingData,
+              order_cancelled: true,
+              cancelled_date: currentTimestamp,
+              cancellation_source: source,
+              cancellation_reason: cancellationReason,
+              order_status: updatedOrder.mode === 'cod' ? 'ORDER_CANCELLED' : 'CANCELLED_AWAITING_REFUND'
+            };
+
+            await dynamicUpdate('transaction', { id: transaction.id }, {
+              transactiondata: updatedTransactionData,
+              modifieddate: currentTimestamp
+            });
+
+            logger.info({
+              transactionId: transaction.id,
+              merchantTransactionId: updatedOrder.merchanttransactionid,
+              orderStatus: updatedTransactionData.order_status
+            }, 'Transaction updated with cancellation info');
+          }
+        }
+      } catch (transactionError: any) {
+        // Log but don't fail cancellation if transaction update fails
+        logger.error({
+          error: transactionError.message,
+          orderId,
+          merchantTransactionId: updatedOrder.merchanttransactionid
+        }, 'Failed to update transaction record for cancellation');
+      }
+
+      // AUTO-COMPLETE COD ORDERS (no refund needed)
+      // PhonePe orders remain in 'cancelled' status awaiting manual refund processing
+      logger.info({
+        orderId,
+        orderNumber: updatedOrder.orderid,
+        mode: updatedOrder.mode,
+        modeType: typeof updatedOrder.mode,
+        modeComparison: `mode === 'cod': ${updatedOrder.mode === 'cod'}`,
+        modeLowerCase: updatedOrder.mode?.toLowerCase()
+      }, 'Checking if COD order for auto-completion');
+
+      if (updatedOrder.mode === 'cod') {
+        logger.info({
+          orderId,
+          orderNumber: updatedOrder.orderid,
+          mode: 'cod'
+        }, 'COD order detected - automatically setting to cancelled_completed (no refund needed)');
+
+        try {
+          // Auto-update to cancelled_completed for COD orders
+          // Use proper user ID: inventoryUserId for admin, userId for customer, -1 for system
+          const adminUserIdForRefund = inventoryUserId || userId || -1;
+
+          const finalOrder = await this.updateRefundStatus(
+            orderId,
+            'cancelled_completed',
+            adminUserIdForRefund,
+            `COD order - automatically completed (no refund required). Cancelled by: ${source}`
+          );
+
+          logger.info({
+            orderId,
+            orderNumber: finalOrder.orderid,
+            finalStatus: finalOrder.orderstatus
+          }, 'COD order cancellation completed automatically');
+
+          return finalOrder;
+        } catch (autoCompleteError: any) {
+          // If auto-complete fails, log but return the cancelled order
+          logger.error({
+            error: autoCompleteError.message,
+            errorStack: autoCompleteError.stack,
+            orderId,
+            orderNumber: updatedOrder.orderid,
+            mode: updatedOrder.mode,
+            currentStatus: updatedOrder.orderstatus
+          }, 'CRITICAL: Failed to auto-complete COD order, remains in cancelled status');
+
+          return updatedOrder;
+        }
+      } else {
+        logger.info({
+          orderId,
+          orderNumber: updatedOrder.orderid,
+          mode: updatedOrder.mode,
+          reason: 'Not a COD order - skipping auto-completion'
+        }, 'Order is not COD, manual refund processing required');
+      }
+
+
+      // PhonePe orders: Manual refund processing required
+      logger.info({
+        orderId,
+        orderNumber: updatedOrder.orderid,
+        mode: updatedOrder.mode,
+        isPaymentSucceed: updatedOrder.ispaymentsucceed
+      }, 'PhonePe order cancelled. Admin must manually process refund via PhonePe portal.');
+
+      return updatedOrder;
+    } catch (error) {
+      logger.error({ error, orderId }, 'Error cancelling order');
+      throw error;
+    }
+  }
+
+  /**
+   * DEPRECATED: Manual refund process is now used
+   * 
+   * This method is kept for reference purposes only.
+   * Refunds are now manually processed by admins via PhonePe portal.
+   * 
+   * @deprecated Use manual refund workflow instead
+   * @see updateRefundStatus for manual refund status management
+   */
+  private async handleCancellationRefundAndNotification(
+    order: any,
+    cancellationReason?: string
+  ): Promise<void> {
+    try {
+      logger.info({
+        orderId: order.id,
+        orderNumber: order.orderid,
+        mode: order.mode,
+        isPaymentSucceed: order.ispaymentsucceed
+      }, 'Processing cancellation refund and notification');
+
+      // Get transaction details
+      const transaction = await dynamicFindUnique('transaction', {
+        merchanttransactionid: order.merchanttransactionid
+      });
+
+      if (!transaction) {
+        logger.warn({
+          orderId: order.id,
+          merchantTransactionId: order.merchanttransactionid
+        }, 'No transaction found for cancelled order');
+        return;
+      }
+
+      const transactionData = transaction.transactiondata || {};
+      const paymentMode = transactionData.mode || order.mode;
+
+      // Determine if refund is needed
+      let refundNeeded = false;
+      let refundAmount = 0;
+
+      if (paymentMode === 'phonepe') {
+        // Check PhonePe payment status
+        const phonePeStatus = transactionData.status;
+
+        if (phonePeStatus === 'SUCCESS' && order.ispaymentsucceed) {
+          refundNeeded = true;
+          refundAmount = order.orderamount || 0;
+
+          logger.info({
+            orderId: order.id,
+            orderNumber: order.orderid,
+            refundAmount,
+            merchantTransactionId: order.merchanttransactionid
+          }, 'PhonePe payment SUCCESS - refund will be initiated');
+        } else {
+          logger.info({
+            orderId: order.id,
+            phonePeStatus,
+            isPaymentSucceed: order.ispaymentsucceed
+          }, 'PhonePe payment not successful - no refund needed');
+        }
+      } else if (paymentMode === 'cod') {
+        logger.info({
+          orderId: order.id,
+          orderNumber: order.orderid
+        }, 'COD order - no refund needed, only email notification');
+      }
+
+      // TODO: Integrate with actual refund service
+      if (refundNeeded) {
+        logger.info({
+          orderId: order.id,
+          orderNumber: order.orderid,
+          refundAmount,
+          merchantTransactionId: order.merchanttransactionid
+        }, 'REFUND INTEGRATION POINT: Initiate PhonePe refund here');
+
+        // Example integration point:
+        // await this.phonePeService.initiateRefund({
+        //   merchantTransactionId: order.merchanttransactionid,
+        //   amount: refundAmount,
+        //   reason: cancellationReason
+        // });
+      }
+
+      // TODO: Send email notification to customer
+      logger.info({
+        orderId: order.id,
+        orderNumber: order.orderid,
+        userId: order.userid,
+        paymentMode,
+        refundNeeded
+      }, 'EMAIL INTEGRATION POINT: Send cancellation email to customer');
+
+      // Example integration point:
+      // await this.emailService.sendCancellationEmail({
+      //   userId: order.userid,
+      //   orderNumber: order.orderid,
+      //   cancellationReason,
+      //   refundAmount: refundNeeded ? refundAmount : null,
+      //   expectedRefundDays: refundNeeded ? '5-7 business days' : null
+      // });
+
+      // Example integration point for push notification:
+      // await this.notificationService.sendPushNotification({
+      //   userId: order.userid,
+      //   title: 'Order Cancelled',
+      //   body: `Your order ${order.orderid} has been cancelled`,
+      //   data: { orderId: order.id, refundAmount }
+      // });
+
+    } catch (error: any) {
+      logger.error({
+        error: error.message,
+        orderId: order.id,
+        orderNumber: order.orderid
+      }, 'Error in handleCancellationRefundAndNotification');
+      throw error;
+    }
+  }
+
+  /**
+   * Update refund status for cancelled orders (admin-only operation)
+   * Transitions: cancelled → cancelled_refund_processing → cancelled_refunded
+   * Or: cancelled → cancelled_completed (for COD orders)
+   */
+  async updateRefundStatus(
+    orderId: number | string,
+    newStatus: 'cancelled_refund_processing' | 'cancelled_refunded' | 'cancelled_completed',
+    adminUserId: number,
+    notes?: string,
+    // NEW: Optional structured refund fields
+    refundTransactionId?: string,
+    refundAmount?: number,
+    refundReference?: string
+  ): Promise<any> {
+    try {
+      logger.info({
+        orderId,
+        newStatus,
+        adminUserId,
+        notes,
+        refundTransactionId,
+        refundAmount,
+        refundReference
+      }, 'Updating refund status with structured data');
+
+      // Get order
+      const order = await this.findById(typeof orderId === 'string' ? parseInt(orderId) : orderId);
+      if (!order) {
+        throw new Error(`Order with ID ${orderId} not found`);
+      }
+
+      // Validate current status allows refund status update
+      const VALID_CURRENT_STATUSES = ['cancelled', 'cancelled_refund_processing'];
+
+      if (!order.orderstatus || !VALID_CURRENT_STATUSES.includes(order.orderstatus)) {
+        throw new Error(
+          `Cannot update refund status. Order must be in 'cancelled' or 'cancelled_refund_processing' status. ` +
+          `Current status: ${order.orderstatus || 'unknown'}`
+        );
+      }
+
+      // Validate status progression
+      if (order.orderstatus === 'cancelled_refund_processing' && newStatus === 'cancelled_refund_processing') {
+        logger.warn({ orderId, newStatus }, 'Status is already cancelled_refund_processing, no change needed');
+        return order;
+      }
+
+      if (order.orderstatus === 'cancelled_refunded' || order.orderstatus === 'cancelled_completed') {
+        throw new Error(
+          `Order already in final status (${order.orderstatus}). Cannot update refund status.`
+        );
+      }
+
+      // VALIDATION: Refund amount (if provided)
+      if (refundAmount !== undefined && refundAmount !== null) {
+        const tolerance = 1; // Allow ₹1 difference for rounding/fees
+        if (Math.abs(refundAmount - order.orderamount) > tolerance) {
+          logger.warn({
+            orderId,
+            refundAmount,
+            orderAmount: order.orderamount,
+            difference: Math.abs(refundAmount - order.orderamount)
+          }, 'Refund amount differs from order amount');
+        }
+      }
+
+      // Get all orderlines for this order
+      const { OrderlineService } = await import('./orderline.service.js');
+      const orderlineService = new OrderlineService();
+
+      const { data: orderlines } = await orderlineService.findMany(
+        { orderid: (typeof orderId === 'string' ? parseInt(orderId) : orderId).toString() },
+        1,
+        1000
+      );
+
+      const currentTimestamp = Date.now();
+
+      // Build status_history entry with structured refund data
+      const statusHistoryData: any = {
+        source: 'inventoryuser',
+        inventory_user_id: adminUserId
+      };
+
+      // Add refund fields to status_history
+      if (refundTransactionId) statusHistoryData.refund_transaction_id = refundTransactionId;
+      if (refundAmount !== undefined && refundAmount !== null) statusHistoryData.refund_amount = refundAmount;
+      if (refundReference) statusHistoryData.refund_reference = refundReference;
+      if (notes) statusHistoryData.refund_notes = notes;
+
+      // Add timestamps based on status
+      if (newStatus === 'cancelled_refund_processing') {
+        statusHistoryData.refund_initiated_date = currentTimestamp;
+      }
+      if (newStatus === 'cancelled_refunded') {
+        statusHistoryData.refund_completed_date = currentTimestamp;
+        // EDGE CASE: If jumping directly to cancelled_refunded without refund_processing,
+        // set initiated date too (e.g., cancelled → cancelled_refunded)
+        if (!order.refund_initiated_date) {
+          statusHistoryData.refund_initiated_date = currentTimestamp;
+        }
+      }
+
+      // Update orderlines status with enhanced data
+      for (const orderline of orderlines) {
+        await orderlineService.updateOrderlineStatus(
+          orderline.id.toString(),
+          newStatus,
+          statusHistoryData
+        );
+      }
+
+      // Prepare order update data
+      const orderUpdateData: any = {
+        source: 'inventoryuser',
+        inventory_user_id: adminUserId,
+        refund_status_updated_date: currentTimestamp
+      };
+
+      // Add refund fields to order update
+      if (refundTransactionId) orderUpdateData.refund_transaction_id = refundTransactionId;
+      if (refundAmount !== undefined && refundAmount !== null) orderUpdateData.refund_amount = refundAmount;
+      if (refundReference) orderUpdateData.refund_reference = refundReference;
+      if (notes) orderUpdateData.refund_notes = notes;
+
+      // Add timestamp fields to order
+      if (newStatus === 'cancelled_refund_processing') {
+        orderUpdateData.refund_initiated_date = currentTimestamp;
+      }
+      if (newStatus === 'cancelled_refunded') {
+        orderUpdateData.refund_completed_date = currentTimestamp;
+        // EDGE CASE: Backfill refund_initiated_date if it was never set
+        // (e.g., direct jump from cancelled → cancelled_refunded)
+        if (!order.refund_initiated_date) {
+          orderUpdateData.refund_initiated_date = currentTimestamp;
+        }
+      }
+
+      // Update order status
+      await this.updateOrderStatus(
+        (typeof orderId === 'string' ? parseInt(orderId) : orderId).toString(),
+        newStatus,
+        orderUpdateData
+      );
+
+      // Fetch and return updated order
+      const updatedOrder = await this.findById(typeof orderId === 'string' ? parseInt(orderId) : orderId);
+
+      // UPDATE TRANSACTION TABLE with structured refund data
+      try {
+        if (updatedOrder?.merchanttransactionid) {
+          const transaction = await dynamicFindUnique('transaction', {
+            merchanttransactionid: updatedOrder.merchanttransactionid
+          });
+
+          if (transaction) {
+            const existingData = transaction.transactiondata || {};
+            let transactionStatus = existingData.order_status || 'UNKNOWN';
+
+            // Update status based on new order status
+            if (newStatus === 'cancelled_refund_processing') {
+              transactionStatus = 'REFUND_PROCESSING';
+            } else if (newStatus === 'cancelled_refunded') {
+              transactionStatus = 'REFUNDED';
+            } else if (newStatus === 'cancelled_completed') {
+              transactionStatus = 'CANCELLATION_COMPLETED';
+            }
+
+            const updatedTransactionData: any = {
+              ...existingData,
+              order_status: transactionStatus,
+              refund_status_updated_date: currentTimestamp,
+              refund_admin_user: adminUserId
+            };
+
+            // Add structured refund data to transaction
+            if (refundTransactionId) updatedTransactionData.refund_transaction_id = refundTransactionId;
+            if (refundAmount !== undefined && refundAmount !== null) updatedTransactionData.refund_amount = refundAmount;
+            if (refundReference) updatedTransactionData.refund_reference = refundReference;
+            if (notes) updatedTransactionData.refund_notes = notes;
+
+            await dynamicUpdate('transaction', { id: transaction.id }, {
+              transactiondata: updatedTransactionData,
+              modifieddate: currentTimestamp
+            });
+
+            logger.info({
+              transactionId: transaction.id,
+              merchantTransactionId: updatedOrder.merchanttransactionid,
+              newTransactionStatus: transactionStatus,
+              refundTransactionId,
+              refundAmount
+            }, 'Transaction updated with structured refund data');
+          }
+        }
+      } catch (transactionError: any) {
+        // Log but don't fail status update if transaction update fails
+        logger.error({
+          error: transactionError.message,
+          orderId,
+          merchantTransactionId: updatedOrder?.merchanttransactionid
+        }, 'Failed to update transaction record for refund status');
+      }
+
+      logger.info({
+        orderId,
+        previousStatus: order.orderstatus,
+        newStatus,
+        adminUserId,
+        refundTransactionId,
+        refundAmount
+      }, 'Refund status updated successfully with structured data');
+
+      return updatedOrder;
+    } catch (error) {
+      logger.error({ error, orderId, newStatus }, 'Error updating refund status');
+      throw error;
+    }
+  }
+
+  /**
+   * Cancel order before ready_for_dispatch
+   * Reverses orderedqty → availableqty
+   */
+  private async cancelOrderBeforeReadyForDispatch(
+    orderId: number,
+    orderlines: any[]
+  ): Promise<void> {
+    try {
+      logger.info({ orderId, orderlinesCount: orderlines.length }, 'Reversing pre-dispatch order quantities');
+
+      const currentTimestamp = Date.now();
+
+      // Track updates by product to avoid duplicate updates
+      const platformStockUpdates = new Map<string, { productId: number; platform: string; quantity: number }>();
+      const productUpdates = new Map<number, number>();
+
+      for (const orderline of orderlines) {
+        const productId = orderline.productid;
+        const quantity = orderline.quantity || 0;
+
+        if (!productId || quantity === 0) continue;
+
+        // Get product
+        const product = await dynamicFindUnique('product', { id: Number(productId) });
+        if (!product) {
+          logger.warn({ orderlineId: orderline.id, productId }, 'Product not found for orderline');
+          continue;
+        }
+
+        const platform = 'nivapp'; // Default platform
+
+        // COMBO PRODUCT SUPPORT: Check if this is a combo product
+        if (product.iscombo === true) {
+          logger.info({
+            orderlineId: orderline.id,
+            productId,
+            productName: product.name,
+            quantity
+          }, 'Detected combo product, reversing ONLY component stock (not combo itself)');
+
+          try {
+            // Get component products from productbundlemap
+            const components = await prisma.productBundleMap.findMany({
+              where: {
+                bundleproductid: BigInt(Number(productId)),
+                isactive: true
+              }
+            });
+
+            if (components.length === 0) {
+              logger.warn({
+                orderlineId: orderline.id,
+                productId,
+                productName: product.name
+              }, 'Combo product has no active components in productbundlemap');
+            }
+
+            // For each component, reverse the stock
+            for (const component of components) {
+              const componentProductId = Number(component.componentproductid);
+              const componentRequiredQty = component.requiredqty || 1;
+              // orderline.quantity = number of combo packs ordered
+              const componentTotalQty = componentRequiredQty * quantity;
+
+              logger.info({
+                orderlineId: orderline.id,
+                comboProductId: productId,
+                componentProductId,
+                requiredQtyPerCombo: componentRequiredQty,
+                comboQuantity: quantity,
+                totalComponentQty: componentTotalQty
+              }, 'Reversing component product stock');
+
+              // Track component PlatformStock update
+              const componentPlatformStockKey = `${componentProductId}-${platform}`;
+              if (!platformStockUpdates.has(componentPlatformStockKey)) {
+                platformStockUpdates.set(componentPlatformStockKey, {
+                  productId: componentProductId,
+                  platform,
+                  quantity: 0
+                });
+              }
+              platformStockUpdates.get(componentPlatformStockKey)!.quantity += componentTotalQty;
+
+              // Track component Product update
+              if (!productUpdates.has(componentProductId)) {
+                productUpdates.set(componentProductId, 0);
+              }
+              productUpdates.set(componentProductId, productUpdates.get(componentProductId)! + componentTotalQty);
+            }
+
+            logger.info({
+              orderlineId: orderline.id,
+              comboProductId: productId,
+              componentsCount: components.length
+            }, 'Component stock reversal tracked for combo product (combo product itself NOT changed)');
+          } catch (componentError: any) {
+            logger.error({
+              error: componentError.message,
+              orderlineId: orderline.id,
+              productId,
+              productName: product.name
+            }, 'Failed to reverse component stock for combo product');
+            // Don't throw - continue with other orderlines
+          }
+
+          // SKIP tracking the combo product itself - only components are tracked
+          continue;
+        }
+
+        // NON-COMBO PRODUCT: Track PlatformStock update
+        const platformStockKey = `${productId}-${platform}`;
+
+        if (!platformStockUpdates.has(platformStockKey)) {
+          platformStockUpdates.set(platformStockKey, {
+            productId: Number(productId),
+            platform,
+            quantity: 0
+          });
+        }
+        platformStockUpdates.get(platformStockKey)!.quantity += quantity;
+
+        // Track Product update
+        if (!productUpdates.has(productId)) {
+          productUpdates.set(productId, 0);
+        }
+        productUpdates.set(productId, productUpdates.get(productId)! + quantity);
+      }
+
+      // Update PlatformStock quantities
+      for (const [key, update] of platformStockUpdates.entries()) {
+        const { data: platformStocks } = await dynamicFindManyWithFilters('platformstock', {
+          productid: update.productId.toString(),
+          platform: update.platform
+        }, { take: 1, useAllColumns: true });
+
+        if (platformStocks && platformStocks.length > 0) {
+          const platformStock = platformStocks[0];
+
+          // Restore availableqty, reduce orderedqty
+          const newAvailableQty = (platformStock.availableqty || 0) + update.quantity;
+          const newOrderedQty = Math.max(0, (platformStock.orderedqty || 0) - update.quantity);
+
+          await dynamicUpdate('platformstock', { id: platformStock.id }, {
+            availableqty: newAvailableQty,
+            orderedqty: newOrderedQty,
+            modifieddate: currentTimestamp
+          });
+
+          logger.info({
+            platformStockId: platformStock.id,
+            productId: update.productId,
+            platform: update.platform,
+            quantity: update.quantity,
+            oldAvailableQty: platformStock.availableqty,
+            newAvailableQty,
+            oldOrderedQty: platformStock.orderedqty,
+            newOrderedQty
+          }, 'PlatformStock quantities restored (pre-dispatch cancellation)');
+        }
+      }
+
+      // Update Product quantities
+      for (const [productId, quantity] of productUpdates.entries()) {
+        const product = await dynamicFindUnique('product', { id: productId });
+        if (product) {
+          // Restore availablequantity, reduce orderedquantity
+          const newAvailableQuantity = (product.availablequantity || 0) + quantity;
+          const newOrderedQuantity = Math.max(0, (product.orderedquantity || 0) - quantity);
+
+          await dynamicUpdate('product', { id: product.id }, {
+            availablequantity: newAvailableQuantity,
+            orderedquantity: newOrderedQuantity,
+            modifieddate: currentTimestamp
+          });
+
+          logger.info({
+            productId: product.id,
+            quantity,
+            oldAvailableQuantity: product.availablequantity,
+            newAvailableQuantity,
+            oldOrderedQuantity: product.orderedquantity,
+            newOrderedQuantity
+          }, 'Product quantities restored (pre-dispatch cancellation)');
+        }
+      }
+
+      logger.info({ orderId }, 'Pre-dispatch order cancellation completed');
+    } catch (error) {
+      logger.error({ error, orderId }, 'Error in cancelOrderBeforeReadyForDispatch');
+      throw error;
+    }
+  }
+
+  /**
+   * Cancel order after ready_for_dispatch
+   * Reverses stock allocations and soldqty → availableqty
+   */
+  private async cancelOrderAfterReadyForDispatch(
+    orderId: number,
+    orderlines: any[]
+  ): Promise<void> {
+    try {
+      logger.info({ orderId, orderlinesCount: orderlines.length }, 'Reversing post-dispatch stock allocations');
+
+      const currentTimestamp = Date.now();
+
+      // Track updates by product to avoid duplicate updates
+      const platformStockUpdates = new Map<string, { productId: number; platform: string; quantity: number }>();
+      const productUpdates = new Map<number, number>();
+
+      // Get order to retrieve orderid string
+      const order = await this.findById(orderId);
+      if (!order) {
+        throw new Error(`Order with ID ${orderId} not found`);
+      }
+
+      // Process each orderline
+      for (const orderline of orderlines) {
+        // Get stock records allocated to this orderline via orderid and orderlinenumber
+        const { data: allocatedStocks } = await dynamicFindManyWithFilters('stock', {
+          orderid: order.orderid || orderId.toString(),
+          orderlinenumber: orderline.orderlinenumber
+        }, { useAllColumns: true });
+
+        if (!allocatedStocks || allocatedStocks.length === 0) {
+          logger.warn({
+            orderlineId: orderline.id,
+            orderid: order.orderid,
+            orderlinenumber: orderline.orderlinenumber
+          }, 'No allocated stocks found for orderline');
+          continue;
+        }
+
+        // Get product info from first stock
+        const firstStock = allocatedStocks[0];
+        const product = await dynamicFindUnique('product', { puc: firstStock.puc });
+
+        if (!product) {
+          logger.warn({ puc: firstStock.puc }, 'Product not found for stock');
+          continue;
+        }
+
+        const productId = Number(product.id);
+        const quantity = allocatedStocks.length;
+
+        // Update all stock records for this orderline
+        for (const stock of allocatedStocks) {
+          await dynamicUpdate('stock', { id: stock.id }, {
+            stockstatus: 'available',
+            orderid: null,
+            orderlinenumber: null,
+            solddate: null,
+            modifieddate: currentTimestamp
+          });
+
+          logger.info({
+            stockId: stock.id,
+            orderlineId: orderline.id,
+            orderId
+          }, 'Stock status reset to available');
+        }
+
+        // Track updates for product
+        const platform = firstStock.platform || 'nivapp';
+
+        // COMBO PRODUCT SUPPORT: Check if this is a combo product
+        if (product.iscombo === true) {
+          logger.info({
+            orderlineId: orderline.id,
+            productId,
+            productName: product.name,
+            quantity: orderline.quantity
+          }, 'Detected combo product, reversing ONLY component stock allocations (not combo itself)');
+
+          try {
+            // Get component products from productbundlemap
+            const components = await prisma.productBundleMap.findMany({
+              where: {
+                bundleproductid: BigInt(Number(productId)),
+                isactive: true
+              }
+            });
+
+            if (components.length === 0) {
+              logger.warn({
+                orderlineId: orderline.id,
+                productId,
+                productName: product.name
+              }, 'Combo product has no active components in productbundlemap');
+            }
+
+            // For each component, reverse the soldqty
+            // Note: Component stock allocations are handled by the combo product's allocation
+            // We only need to reverse the PlatformStock and Product soldqty for components
+            for (const component of components) {
+              const componentProductId = Number(component.componentproductid);
+              const componentRequiredQty = component.requiredqty || 1;
+              // orderline.quantity represents how many combo packs were ordered
+              const componentTotalQty = componentRequiredQty * (orderline.quantity || quantity);
+
+              logger.info({
+                orderlineId: orderline.id,
+                comboProductId: productId,
+                componentProductId,
+                requiredQtyPerCombo: componentRequiredQty,
+                comboQuantityOrdered: orderline.quantity,
+                totalComponentQty: componentTotalQty
+              }, 'Reversing component product soldqty');
+
+              // Track component PlatformStock update
+              const componentPlatformStockKey = `${componentProductId}-${platform}`;
+              if (!platformStockUpdates.has(componentPlatformStockKey)) {
+                platformStockUpdates.set(componentPlatformStockKey, {
+                  productId: componentProductId,
+                  platform,
+                  quantity: 0
+                });
+              }
+              platformStockUpdates.get(componentPlatformStockKey)!.quantity += componentTotalQty;
+
+              // Track component Product update
+              if (!productUpdates.has(componentProductId)) {
+                productUpdates.set(componentProductId, 0);
+              }
+              productUpdates.set(componentProductId, productUpdates.get(componentProductId)! + componentTotalQty);
+            }
+
+            logger.info({
+              orderlineId: orderline.id,
+              comboProductId: productId,
+              componentsCount: components.length
+            }, 'Component stock reversal tracked for combo product (post-dispatch, combo itself NOT changed)');
+          } catch (componentError: any) {
+            logger.error({
+              error: componentError.message,
+              orderlineId: orderline.id,
+              productId,
+              productName: product.name
+            }, 'Failed to reverse component stock for combo product (post-dispatch)');
+            // Don't throw - continue with other orderlines
+          }
+
+          // SKIP tracking the combo product itself - only components are tracked
+          continue;
+        }
+
+        // NON-COMBO PRODUCT: Track PlatformStock update
+        const platformStockKey = `${productId}-${platform}`;
+
+        if (!platformStockUpdates.has(platformStockKey)) {
+          platformStockUpdates.set(platformStockKey, {
+            productId,
+            platform,
+            quantity: 0
+          });
+        }
+        platformStockUpdates.get(platformStockKey)!.quantity += quantity;
+
+        // Track Product update
+        if (!productUpdates.has(productId)) {
+          productUpdates.set(productId, 0);
+        }
+        productUpdates.set(productId, productUpdates.get(productId)! + quantity);
+      }
+
+      // Update PlatformStock quantities
+      for (const [key, update] of platformStockUpdates.entries()) {
+        const { data: platformStocks } = await dynamicFindManyWithFilters('platformstock', {
+          productid: update.productId.toString(),
+          platform: update.platform
+        }, { take: 1, useAllColumns: true });
+
+        if (platformStocks && platformStocks.length > 0) {
+          const platformStock = platformStocks[0];
+
+          // Restore availableqty, reduce soldqty
+          const newAvailableQty = (platformStock.availableqty || 0) + update.quantity;
+          const newSoldQty = Math.max(0, (platformStock.soldqty || 0) - update.quantity);
+
+          await dynamicUpdate('platformstock', { id: platformStock.id }, {
+            availableqty: newAvailableQty,
+            soldqty: newSoldQty,
+            modifieddate: currentTimestamp
+          });
+
+          logger.info({
+            platformStockId: platformStock.id,
+            productId: update.productId,
+            platform: update.platform,
+            quantity: update.quantity,
+            oldAvailableQty: platformStock.availableqty,
+            newAvailableQty,
+            oldSoldQty: platformStock.soldqty,
+            newSoldQty
+          }, 'PlatformStock quantities restored (post-dispatch cancellation)');
+        }
+      }
+
+      // Update Product quantities
+      for (const [productId, quantity] of productUpdates.entries()) {
+        const product = await dynamicFindUnique('product', { id: productId });
+        if (product) {
+          // Restore availablequantity, reduce soldquantity
+          const newAvailableQuantity = (product.availablequantity || 0) + quantity;
+          const newSoldQuantity = Math.max(0, (product.soldquantity || 0) - quantity);
+
+          await dynamicUpdate('product', { id: product.id }, {
+            availablequantity: newAvailableQuantity,
+            soldquantity: newSoldQuantity,
+            modifieddate: currentTimestamp
+          });
+
+          logger.info({
+            productId: product.id,
+            quantity,
+            oldAvailableQuantity: product.availablequantity,
+            newAvailableQuantity,
+            oldSoldQuantity: product.soldquantity,
+            newSoldQuantity
+          }, 'Product quantities restored (post-dispatch cancellation)');
+        }
+      }
+
+      logger.info({ orderId }, 'Post-dispatch order cancellation completed');
+    } catch (error) {
+      logger.error({ error, orderId }, 'Error in cancelOrderAfterReadyForDispatch');
       throw error;
     }
   }

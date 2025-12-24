@@ -36,7 +36,7 @@ export async function ordersRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            data: { 
+            data: {
               type: 'array',
               items: {
                 type: 'object',
@@ -123,7 +123,37 @@ export async function ordersRoutes(fastify: FastifyInstance) {
         type: 'object',
         required: ['inventory_user_id'],
         properties: {
-          inventory_user_id: { type: 'number', description: 'Inventory user ID who performed the action' }
+          inventory_user_id: { type: 'number', description: 'Inventory user ID who performed the action' },
+          stock_mapping: {
+            type: 'array',
+            description: 'Optional stock mapping for manual selection or batch filtering',
+            items: {
+              type: 'object',
+              properties: {
+                orderline_id: { type: 'number', description: 'Orderline ID' },
+                stock_ids: {
+                  type: 'array',
+                  items: { type: 'number' },
+                  description: 'Specific stock IDs (quantity = array length)'
+                },
+                skus: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  description: 'Specific stock SKUs (quantity = array length)'
+                },
+                batch_filter: {
+                  type: 'object',
+                  properties: {
+                    batchno: { type: 'string', description: 'Batch number filter' },
+                    supplierid: { type: 'number', description: 'Supplier ID filter' },
+                    poid: { type: 'number', description: 'Purchase Order ID filter' }
+                  },
+                  description: 'Auto-select from specific batch/supplier/PO (quantity from orderline)'
+                }
+              },
+              required: ['orderline_id']
+            }
+          }
         }
       },
       response: {
@@ -280,6 +310,7 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                     returneddate: { type: 'number', nullable: true },
                     quantity: { type: 'number', nullable: true },
                     transactionid: { type: 'string', nullable: true },
+                    productid: { type: 'array', items: { type: 'number' }, nullable: true, description: 'Array of product IDs' },
                     productamount: { type: 'number', nullable: true },
                     discountamount: { type: 'number', nullable: true },
                     ispaymentsucceed: { type: 'boolean', nullable: true },
@@ -306,8 +337,13 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                     cod_payment_received_date: { type: 'number', nullable: true },
                     cod_transaction_reference: { type: 'string', nullable: true },
                     cod_amount: { type: 'number', nullable: true },
-                    status_history: { 
-                      type: 'array', 
+                    refund_transaction_id: { type: 'string', nullable: true, description: 'PhonePe or payment gateway refund transaction ID' },
+                    refund_amount: { type: 'number', nullable: true, description: 'Amount refunded to customer' },
+                    refund_reference: { type: 'string', nullable: true, description: 'Bank or payment gateway confirmation reference' },
+                    refund_initiated_date: { type: 'number', nullable: true, description: 'Timestamp when refund was initiated (epoch ms)' },
+                    refund_completed_date: { type: 'number', nullable: true, description: 'Timestamp when refund was completed (epoch ms)' },
+                    status_history: {
+                      type: 'array',
                       nullable: true,
                       items: {
                         type: 'object',
@@ -330,20 +366,66 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                     type: 'object',
                     properties: {
                       id: { type: 'number' },
-                      discountamount: { type: 'number', nullable: true },
-                      orderamount: { type: 'number', nullable: true },
+                      productamount: { type: 'number', nullable: true, description: 'Product amount AFTER product discounts (TOTAL for line item)' },
+                      discountamount: { type: 'number', nullable: true, description: 'Total discounts (product + promotion)' },
+                      orderamount: { type: 'number', nullable: true, description: 'Final amount for orderline (TOTAL, excludes shipping)' },
                       quantity: { type: 'number', nullable: true },
                       productid: { type: 'number', nullable: true },
                       productname: { type: 'string', nullable: true },
                       productcategory: { type: 'string', nullable: true },
                       hsn_code: { type: 'string', nullable: true },
                       orderstatus: { type: 'string', nullable: true },
-                      original_price: { type: 'number', nullable: true },
-                      product_discount_amount: { type: 'number', nullable: true },
-                      promotion_discount_amount: { type: 'number', nullable: true },
-                      shipping_cost: { type: 'number', nullable: true },
-                      status_history: { 
-                        type: 'array', 
+                      original_price: { type: 'number', nullable: true, description: 'Base price PER-UNIT (not multiplied by quantity)' },
+                      product_discount_amount: { type: 'number', nullable: true, description: 'Product discount TOTAL for line item' },
+                      promotion_discount_amount: { type: 'number', nullable: true, description: 'Promotion discount TOTAL for line item' },
+                      shipping_cost: { type: 'number', nullable: true, description: 'Pro-rata shipping cost for this orderline' },
+                      gst_rate: { type: 'number', nullable: true, description: 'GST percentage (e.g., 5.00)' },
+                      taxable_amount: { type: 'number', nullable: true, description: 'Taxable base amount (orderamount / (1 + gst_rate/100))' },
+                      cgst_amount: { type: 'number', nullable: true, description: 'Central GST (INTRA-STATE only)' },
+                      sgst_amount: { type: 'number', nullable: true, description: 'State GST (INTRA-STATE only)' },
+                      igst_amount: { type: 'number', nullable: true, description: 'Integrated GST (INTER-STATE only)' },
+                      total_gst_amount: { type: 'number', nullable: true, description: 'Total GST amount (cgst + sgst OR igst)' },
+                      iscombo: {
+                        type: 'boolean',
+                        nullable: true,
+                        description: 'True if this orderline is for a combo product'
+                      },
+                      components: {
+                        type: 'array',
+                        nullable: true,
+                        description: 'Component products (only present if iscombo is true)',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            componentproductid: {
+                              type: 'number',
+                              description: 'Component product ID'
+                            },
+                            productname: {
+                              type: 'string',
+                              nullable: true,
+                              description: 'Component product name'
+                            },
+                            productcategory: {
+                              type: 'string',
+                              nullable: true,
+                              description: 'Component product category'
+                            },
+                            subcategory: {
+                              type: 'string',
+                              nullable: true,
+                              description: 'Component product subcategory'
+                            },
+                            requiredqty: {
+                              type: 'number',
+                              description: 'Required quantity of this component per combo pack'
+                            }
+                          },
+                          required: ['componentproductid', 'requiredqty']
+                        }
+                      },
+                      status_history: {
+                        type: 'array',
                         nullable: true,
                         items: {
                           type: 'object',
@@ -426,6 +508,7 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                   orderid: { type: 'string', nullable: true },
                   orderstatus: { type: 'string', nullable: true },
                   quantity: { type: 'number', nullable: true },
+                  productid: { type: 'array', items: { type: 'number' }, nullable: true, description: 'Array of product IDs' },
                   productamount: { type: 'number', nullable: true },
                   discountamount: { type: 'number', nullable: true },
                   ispaymentsucceed: { type: 'boolean', nullable: true },
@@ -441,9 +524,24 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                   total_gst_amount: { type: 'number', nullable: true },
                   createddate: { type: 'number', nullable: true },
                   modifieddate: { type: 'number', nullable: true },
-                  status_history: { 
+                  refund_transaction_id: { type: 'string', nullable: true, description: 'PhonePe or payment gateway refund transaction ID' },
+                  refund_amount: { type: 'number', nullable: true, description: 'Amount refunded to customer' },
+                  refund_reference: { type: 'string', nullable: true, description: 'Bank or payment gateway confirmation reference' },
+                  refund_initiated_date: { type: 'number', nullable: true, description: 'Timestamp when refund was initiated (epoch ms)' },
+                  refund_completed_date: { type: 'number', nullable: true, description: 'Timestamp when refund was completed (epoch ms)' },
+                  status_history: {
                     type: 'array',
-                    items: { type: 'object' }
+                    items: {
+                      type: 'object',
+                      properties: {
+                        previous_status: { type: 'string' },
+                        new_status: { type: 'string' },
+                        changed_date: { type: 'number' },
+                        source: { type: 'string' },
+                        inventory_user_id: { type: 'number', nullable: true },
+                        is_active: { type: 'boolean' }
+                      }
+                    }
                   },
                   orderlines: {
                     type: 'array',
@@ -455,18 +553,35 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                         productcategory: { type: 'string', nullable: true },
                         productid: { type: 'number', nullable: true },
                         orderstatus: { type: 'string', nullable: true },
-                        productamount: { type: 'number', nullable: true },
-                        discountamount: { type: 'number', nullable: true },
-                        orderamount: { type: 'number', nullable: true },
+                        productamount: { type: 'number', nullable: true, description: 'Product amount AFTER product discounts (TOTAL)' },
+                        discountamount: { type: 'number', nullable: true, description: 'Total discounts (product + promotion)' },
+                        orderamount: { type: 'number', nullable: true, description: 'Final amount for orderline (TOTAL)' },
                         quantity: { type: 'number', nullable: true },
-                        product_discount_amount: { type: 'number', nullable: true },
-                        promotion_discount_amount: { type: 'number', nullable: true },
-                        shipping_cost: { type: 'number', nullable: true },
+                        original_price: { type: 'number', nullable: true, description: 'Base price PER-UNIT' },
+                        product_discount_amount: { type: 'number', nullable: true, description: 'Product discount TOTAL' },
+                        promotion_discount_amount: { type: 'number', nullable: true, description: 'Promotion discount TOTAL' },
+                        shipping_cost: { type: 'number', nullable: true, description: 'Pro-rata shipping cost' },
+                        gst_rate: { type: 'number', nullable: true, description: 'GST percentage' },
+                        taxable_amount: { type: 'number', nullable: true, description: 'Taxable base amount' },
+                        cgst_amount: { type: 'number', nullable: true, description: 'Central GST (INTRA-STATE)' },
+                        sgst_amount: { type: 'number', nullable: true, description: 'State GST (INTRA-STATE)' },
+                        igst_amount: { type: 'number', nullable: true, description: 'Integrated GST (INTER-STATE)' },
+                        total_gst_amount: { type: 'number', nullable: true, description: 'Total GST amount' },
                         createddate: { type: 'number', nullable: true },
                         modifieddate: { type: 'number', nullable: true },
-                        status_history: { 
+                        status_history: {
                           type: 'array',
-                          items: { type: 'object' }
+                          items: {
+                            type: 'object',
+                            properties: {
+                              previous_status: { type: 'string' },
+                              new_status: { type: 'string' },
+                              changed_date: { type: 'number' },
+                              source: { type: 'string' },
+                              inventory_user_id: { type: 'number', nullable: true },
+                              is_active: { type: 'boolean' }
+                            }
+                          }
                         }
                       }
                     }
@@ -518,5 +633,142 @@ export async function ordersRoutes(fastify: FastifyInstance) {
       }
     }
   }, ordersController.getOrdersByUserIdWithDetails.bind(ordersController));
+
+  // POST /v1/orders/:id/cancel - Cancel order (customer or admin initiated)
+  fastify.post('/:id/cancel', {
+    schema: {
+      description: 'Cancel order (customer or admin initiated)',
+      tags: ['Orders'],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'Order ID (database ID) or order number (orderid)' }
+        },
+        required: ['id']
+      },
+      body: {
+        type: 'object',
+        properties: {
+          userid: { type: 'number', description: 'Customer user ID (for customer cancellations)' },
+          inventory_user_id: { type: 'number', description: 'Inventory user ID (for admin cancellations)' },
+          cancellation_reason: { type: 'string', description: 'Reason for cancellation' }
+        },
+        required: ['cancellation_reason']
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {
+              type: 'object',
+              additionalProperties: true
+            }
+          }
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            statusCode: { type: 'number' }
+          }
+        },
+        403: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            statusCode: { type: 'number' }
+          }
+        },
+        404: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            statusCode: { type: 'number' }
+          }
+        }
+      }
+    }
+  }, ordersController.cancelOrder.bind(ordersController));
+
+  // PATCH /v1/orders/:id/refund-status - Update refund status for cancelled orders (admin-only)
+  fastify.patch('/:id/refund-status', {
+    schema: {
+      description: 'Update refund status for cancelled orders with optional structured refund data (admin-only operation)',
+      tags: ['Orders'],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'Order ID (database ID) or order number (orderid)' }
+        },
+        required: ['id']
+      },
+      body: {
+        type: 'object',
+        properties: {
+          status: {
+            type: 'string',
+            enum: ['cancelled_refund_processing', 'cancelled_refunded', 'cancelled_completed'],
+            description: 'New refund status'
+          },
+          admin_user_id: {
+            type: 'number',
+            description: 'Inventory user ID performing the action'
+          },
+          notes: {
+            type: 'string',
+            description: 'Optional notes about the refund (free-form text for additional details)'
+          },
+          // NEW: Optional structured refund fields
+          refund_transaction_id: {
+            type: 'string',
+            description: 'PhonePe or payment gateway refund transaction ID (e.g., PE_REFUND_123456789)'
+          },
+          refund_amount: {
+            type: 'number',
+            description: 'Amount refunded (should match order amount, with ₹1 tolerance for fees)'
+          },
+          refund_reference: {
+            type: 'string',
+            description: 'Bank reference or payment gateway confirmation number (e.g., HDFC123456)'
+          }
+        },
+        required: ['status', 'admin_user_id']
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {
+              type: 'object',
+              additionalProperties: true
+            }
+          }
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            statusCode: { type: 'number' }
+          }
+        },
+        404: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            statusCode: { type: 'number' }
+          }
+        }
+      }
+    }
+  }, ordersController.updateRefundStatus.bind(ordersController));
 
 } 

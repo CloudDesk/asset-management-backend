@@ -379,6 +379,61 @@ export async function productRoutes(fastify: FastifyInstance) {
                       nullable: true,
                       description: "Target gender",
                     },
+                    // Combo Pack Support
+                    iscombo: {
+                      type: "boolean",
+                      nullable: true,
+                      description: "Is this a combo product?",
+                    },
+                    combotype: {
+                      type: "string",
+                      nullable: true,
+                      description: "Combo type: 'fixed' or 'dynamic'",
+                    },
+                    components: {
+                      type: "array",
+                      nullable: true,
+                      description: "Component products (only present if iscombo is true)",
+                      items: {
+                        type: "object",
+                        properties: {
+                          componentproductid: {
+                            oneOf: [
+                              { type: "string", pattern: "^\\d+$" },
+                              { type: "number" },
+                            ],
+                            description: "Component product ID",
+                          },
+                          requiredqty: {
+                            type: "integer",
+                            description: "Quantity of this component needed per combo",
+                          },
+                          isactive: {
+                            type: "boolean",
+                            description: "Is this component active?",
+                          },
+                          product: {
+                            type: "object",
+                            properties: {
+                              name: {
+                                type: "string",
+                                nullable: true,
+                                description: "Component product name",
+                              },
+                              puc: {
+                                type: "string",
+                                nullable: true,
+                                description: "Component product PUC code",
+                              },
+                            },
+                            required: ["name", "puc"],
+                            additionalProperties: false,
+                          },
+                        },
+                        required: ["componentproductid", "requiredqty", "isactive", "product"],
+                        additionalProperties: false,
+                      },
+                    },
                   },
                   additionalProperties: true, // Allow additional dynamic fields
                 },
@@ -652,6 +707,89 @@ export async function productRoutes(fastify: FastifyInstance) {
                     nullable: true,
                     description: "Target gender",
                   },
+                  // Combo Pack Support
+                  iscombo: {
+                    type: "boolean",
+                    nullable: true,
+                    description: "Is this a combo product?",
+                  },
+                  combotype: {
+                    type: "string",
+                    nullable: true,
+                    description: "Combo type: 'fixed' or 'dynamic'",
+                  },
+                  components: {
+                    type: "array",
+                    nullable: true,
+                    description: "Component products (only present if iscombo is true)",
+                    items: {
+                      type: "object",
+                      properties: {
+                        componentproductid: {
+                          oneOf: [
+                            { type: "string", pattern: "^\\d+$" },
+                            { type: "number" },
+                          ],
+                          description: "Component product ID",
+                        },
+                        requiredqty: {
+                          type: "integer",
+                          description: "Quantity of this component needed per combo",
+                        },
+                        isactive: {
+                          type: "boolean",
+                          description: "Is this component active?",
+                        },
+                        product: {
+                          type: "object",
+                          properties: {
+                            name: {
+                              type: "string",
+                              nullable: true,
+                              description: "Component product name",
+                            },
+                            puc: {
+                              type: "string",
+                              nullable: true,
+                              description: "Component product PUC code",
+                            },
+                          },
+                          required: ["name", "puc"],
+                          additionalProperties: false,
+                        },
+                        platformStock: {
+                          type: "object",
+                          nullable: true,
+                          properties: {
+                            availableqty: {
+                              type: "number",
+                              description: "Available quantity for nivapp platform",
+                            },
+                            lockqty: {
+                              type: "number",
+                              description: "Lock quantity for nivapp platform",
+                            },
+                            orderedqty: {
+                              type: "number",
+                              description: "Ordered quantity for nivapp platform",
+                            },
+                            soldqty: {
+                              type: "number",
+                              description: "Sold quantity for nivapp platform",
+                            },
+                            platformstatus: {
+                              type: "string",
+                              nullable: true,
+                              description: "Platform stock status for nivapp platform",
+                            },
+                          },
+                          description: "Platform stock data for nivapp platform (fetched by componentproductid and platform=nivapp)",
+                        },
+                      },
+                      required: ["componentproductid", "requiredqty", "isactive", "product"],
+                      additionalProperties: false,
+                    },
+                  },
                 },
                 additionalProperties: true, // Allow additional dynamic fields
               },
@@ -788,20 +926,88 @@ export async function productRoutes(fastify: FastifyInstance) {
                   category: { type: "string", nullable: true, description: "Product category" },
                   subcategory: { type: "string", nullable: true, description: "Product subcategory" },
                   subsubcategory: { type: "string", nullable: true, description: "Product sub-subcategory" },
-                  platformStock: {
-                    type: "object",
+                  // Combo Pack Support
+                  iscombo: {
+                    type: "boolean",
                     nullable: true,
-                    properties: {
-                      id: { type: "number", description: "Platform Stock ID" },
-                      platform: { type: "string", description: "Platform name" },
-                      availableqty: { type: "number", description: "Available quantity" },
-                      platformstatus: { type: "string", description: "Platform stock status" },
-                      soldqty: { type: "number", description: "Sold quantity" },
-                      totalqty: { type: "number", description: "Total quantity" },
-                      orderedqty: { type: "number", description: "Ordered quantity" },
-                      lockqty: { type: "number", description: "Lock quantity" },
+                    description: "Is this a combo product?",
+                  },
+                  combotype: {
+                    type: "string",
+                    nullable: true,
+                    description: "Combo type: 'fixed' or 'dynamic'",
+                  },
+                  components: {
+                    type: "array",
+                    nullable: true,
+                    description: "Component products (only present if iscombo is true)",
+                    items: {
+                      type: "object",
+                      properties: {
+                        componentproductid: {
+                          oneOf: [
+                            { type: "string", pattern: "^\\d+$" },
+                            { type: "number" },
+                          ],
+                          description: "Component product ID",
+                        },
+                        requiredqty: {
+                          type: "integer",
+                          description: "Quantity of this component needed per combo",
+                        },
+                        isactive: {
+                          type: "boolean",
+                          description: "Is this component active?",
+                        },
+                        product: {
+                          type: "object",
+                          properties: {
+                            name: {
+                              type: "string",
+                              nullable: true,
+                              description: "Component product name",
+                            },
+                            puc: {
+                              type: "string",
+                              nullable: true,
+                              description: "Component product PUC code",
+                            },
+                          },
+                          required: ["name", "puc"],
+                          additionalProperties: false,
+                        },
+                        platformStock: {
+                          type: "object",
+                          nullable: true,
+                          properties: {
+                            availableqty: {
+                              type: "number",
+                              description: "Available quantity for nivapp platform",
+                            },
+                            lockqty: {
+                              type: "number",
+                              description: "Lock quantity for nivapp platform",
+                            },
+                            orderedqty: {
+                              type: "number",
+                              description: "Ordered quantity for nivapp platform",
+                            },
+                            soldqty: {
+                              type: "number",
+                              description: "Sold quantity for nivapp platform",
+                            },
+                            platformstatus: {
+                              type: "string",
+                              nullable: true,
+                              description: "Platform stock status for nivapp platform",
+                            },
+                          },
+                          description: "Platform stock data for nivapp platform (fetched by componentproductid and platform=nivapp)",
+                        },
+                      },
+                      required: ["componentproductid", "requiredqty", "isactive", "product"],
+                      additionalProperties: false,
                     },
-                    description: "Platform stock data (single object since each product-platform combination is unique)",
                   },
                 },
                 additionalProperties: true,
@@ -882,22 +1088,88 @@ export async function productRoutes(fastify: FastifyInstance) {
                 price: { type: "number", nullable: true, description: "Product price" },
                 category: { type: "string", nullable: true, description: "Product category" },
                 subcategory: { type: "string", nullable: true, description: "Product subcategory" },
-                platformStock: {
-                  type: "object",
+                // Combo Pack Support
+                iscombo: {
+                  type: "boolean",
                   nullable: true,
-                  properties: {
-                    id: { type: "number", description: "Platform Stock ID" },
-                    platform: { type: "string", description: "Platform name" },
-                    availableqty: { type: "number", description: "Available quantity" },
-                    platformstatus: { type: "string", description: "Platform stock status" },
-                    soldqty: { type: "number", description: "Sold quantity" },
-                    totalqty: { type: "number", description: "Total quantity" },
-                    orderedqty: { type: "number", description: "Ordered quantity" },
-                    lockqty: { type: "number", description: "Lock quantity" },
-                    createddate: { type: "number", nullable: true, description: "Creation timestamp" },
-                    modifieddate: { type: "number", nullable: true, description: "Modification timestamp" },
+                  description: "Is this a combo product?",
+                },
+                combotype: {
+                  type: "string",
+                  nullable: true,
+                  description: "Combo type: 'fixed' or 'dynamic'",
+                },
+                components: {
+                  type: "array",
+                  nullable: true,
+                  description: "Component products (only present if iscombo is true)",
+                  items: {
+                    type: "object",
+                    properties: {
+                      componentproductid: {
+                        oneOf: [
+                          { type: "string", pattern: "^\\d+$" },
+                          { type: "number" },
+                        ],
+                        description: "Component product ID",
+                      },
+                      requiredqty: {
+                        type: "integer",
+                        description: "Quantity of this component needed per combo",
+                      },
+                      isactive: {
+                        type: "boolean",
+                        description: "Is this component active?",
+                      },
+                      product: {
+                        type: "object",
+                        properties: {
+                          name: {
+                            type: "string",
+                            nullable: true,
+                            description: "Component product name",
+                          },
+                          puc: {
+                            type: "string",
+                            nullable: true,
+                            description: "Component product PUC code",
+                          },
+                        },
+                        required: ["name", "puc"],
+                        additionalProperties: false,
+                      },
+                      platformStock: {
+                        type: "object",
+                        nullable: true,
+                        properties: {
+                          availableqty: {
+                            type: "number",
+                            description: "Available quantity for nivapp platform",
+                          },
+                          lockqty: {
+                            type: "number",
+                            description: "Lock quantity for nivapp platform",
+                          },
+                          orderedqty: {
+                            type: "number",
+                            description: "Ordered quantity for nivapp platform",
+                          },
+                          soldqty: {
+                            type: "number",
+                            description: "Sold quantity for nivapp platform",
+                          },
+                          platformstatus: {
+                            type: "string",
+                            nullable: true,
+                            description: "Platform stock status for nivapp platform",
+                          },
+                        },
+                        description: "Platform stock data for nivapp platform (fetched by componentproductid and platform=nivapp)",
+                      },
+                    },
+                    required: ["componentproductid", "requiredqty", "isactive", "product"],
+                    additionalProperties: false,
                   },
-                  description: "Platform stock data (single object since each product-platform combination is unique)",
                 },
               },
               additionalProperties: true,
@@ -1064,6 +1336,39 @@ export async function productRoutes(fastify: FastifyInstance) {
               type: "string",
               maxLength: 50,
               description: "Target gender",
+            },
+            // Combo Pack Support
+            iscombo: {
+              type: "boolean",
+              description: "Is this a combo product? (default: false)",
+            },
+            combotype: {
+              type: "string",
+              maxLength: 50,
+              description: "Combo type: 'fixed' or 'dynamic' (default: 'fixed')",
+            },
+            components: {
+              type: "array",
+              description: "Component products for combo pack (required if iscombo is true)",
+              items: {
+                type: "object",
+                properties: {
+                  productid: {
+                    anyOf: [
+                      { type: "string", pattern: "^\\d+$" },
+                      { type: "number" },
+                    ],
+                    description: "Component product ID",
+                  },
+                  requiredqty: {
+                    type: "integer",
+                    minimum: 1,
+                    description: "Quantity of this component needed per combo (minimum: 1)",
+                  },
+                },
+                required: ["productid", "requiredqty"],
+                additionalProperties: false,
+              },
             },
           },
           required: ["name"], // Only name is required as per schema
@@ -1285,6 +1590,17 @@ export async function productRoutes(fastify: FastifyInstance) {
                     nullable: true,
                     description: "Target gender",
                   },
+                  // Combo Pack Support
+                  iscombo: {
+                    type: "boolean",
+                    nullable: true,
+                    description: "Is this a combo product?",
+                  },
+                  combotype: {
+                    type: "string",
+                    nullable: true,
+                    description: "Combo type: 'fixed' or 'dynamic'",
+                  },
                 },
                 additionalProperties: true, // Allow additional dynamic fields
               },
@@ -1313,6 +1629,91 @@ export async function productRoutes(fastify: FastifyInstance) {
       },
     },
     productController.createProduct.bind(productController)
+  );
+
+  // POST /v1/products/validate-combo - Validate combo components before creation
+  fastify.post(
+    "/validate-combo",
+    {
+      schema: {
+        description: "Validate combo product components before creation",
+        tags: ["Products"],
+        body: {
+          type: "object",
+          required: ["components"],
+          properties: {
+            components: {
+              type: "array",
+              description: "Component products for combo pack",
+              items: {
+                type: "object",
+                properties: {
+                  productid: {
+                    anyOf: [
+                      { type: "string", pattern: "^\\d+$" },
+                      { type: "number" },
+                    ],
+                    description: "Component product ID",
+                  },
+                  requiredqty: {
+                    type: "integer",
+                    minimum: 1,
+                    description: "Quantity of this component needed per combo (minimum: 1)",
+                  },
+                },
+                required: ["productid", "requiredqty"],
+                additionalProperties: false,
+              },
+            },
+          },
+          additionalProperties: false,
+        },
+        response: {
+          200: {
+            type: "object",
+            properties: {
+              success: { type: "boolean" },
+              isValid: { type: "boolean" },
+              message: { type: "string" },
+            },
+          },
+          400: {
+            type: "object",
+            properties: {
+              success: { type: "boolean" },
+              message: { type: "string" },
+              details: { type: "string" },
+            },
+          },
+          409: {
+            type: "object",
+            properties: {
+              success: { type: "boolean" },
+              isValid: { type: "boolean" },
+              message: { type: "string" },
+              existingCombo: {
+                type: "object",
+                properties: {
+                  id: { type: "number" },
+                  name: { type: "string" },
+                  components: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        productid: { type: "number" },
+                        requiredqty: { type: "number" },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    productController.validateComboComponents.bind(productController)
   );
 
   // PUT /v1/products/:id - Update product
@@ -1473,8 +1874,10 @@ export async function productRoutes(fastify: FastifyInstance) {
               maxLength: 50,
               description: "Target gender",
             },
+            // Note: iscombo, combotype, and components are NOT allowed in update
+            // These fields can only be set during product creation (POST /v1/products)
           },
-          additionalProperties: true, // Allow additional dynamic fields
+          additionalProperties: true, // Allow additional dynamic fields (but iscombo/combotype/components will be rejected by service)
         },
         response: {
           200: {

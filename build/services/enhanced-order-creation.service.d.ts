@@ -28,6 +28,7 @@ export declare class EnhancedOrderCreationService {
             paymentfaileddate: bigint | null;
             evaluation_id: string | null;
             shipping_cost: import("@prisma/client/runtime/library").Decimal | null;
+            total_gst_amount: import("@prisma/client/runtime/library").Decimal | null;
             tracking_id: string | null;
             shipdate: bigint | null;
             status_history: import("@prisma/client/runtime/library").JsonValue | null;
@@ -48,6 +49,16 @@ export declare class EnhancedOrderCreationService {
             shipment_created_at: bigint | null;
             label_downloaded_at: bigint | null;
             label_printed_at: bigint | null;
+            items_total: import("@prisma/client/runtime/library").Decimal | null;
+            total_taxable_amount: import("@prisma/client/runtime/library").Decimal | null;
+            total_cgst_amount: import("@prisma/client/runtime/library").Decimal | null;
+            total_sgst_amount: import("@prisma/client/runtime/library").Decimal | null;
+            total_igst_amount: import("@prisma/client/runtime/library").Decimal | null;
+            refund_transaction_id: string | null;
+            refund_amount: import("@prisma/client/runtime/library").Decimal | null;
+            refund_reference: string | null;
+            refund_initiated_date: bigint | null;
+            refund_completed_date: bigint | null;
         };
         orderlines: {
             id: number;
@@ -82,6 +93,13 @@ export declare class EnhancedOrderCreationService {
             product_discount_amount: import("@prisma/client/runtime/library").Decimal | null;
             promotion_discount_amount: import("@prisma/client/runtime/library").Decimal | null;
             shipping_cost: import("@prisma/client/runtime/library").Decimal | null;
+            hsn_code: string | null;
+            gst_rate: import("@prisma/client/runtime/library").Decimal | null;
+            taxable_amount: import("@prisma/client/runtime/library").Decimal | null;
+            cgst_amount: import("@prisma/client/runtime/library").Decimal | null;
+            sgst_amount: import("@prisma/client/runtime/library").Decimal | null;
+            igst_amount: import("@prisma/client/runtime/library").Decimal | null;
+            total_gst_amount: import("@prisma/client/runtime/library").Decimal | null;
             tracking_id: string | null;
             shipdate: bigint | null;
             status_history: import("@prisma/client/runtime/library").JsonValue | null;
@@ -149,6 +167,7 @@ export declare class EnhancedOrderCreationService {
             paymentfaileddate: bigint | null;
             evaluation_id: string | null;
             shipping_cost: import("@prisma/client/runtime/library").Decimal | null;
+            total_gst_amount: import("@prisma/client/runtime/library").Decimal | null;
             tracking_id: string | null;
             shipdate: bigint | null;
             status_history: import("@prisma/client/runtime/library").JsonValue | null;
@@ -169,6 +188,16 @@ export declare class EnhancedOrderCreationService {
             shipment_created_at: bigint | null;
             label_downloaded_at: bigint | null;
             label_printed_at: bigint | null;
+            items_total: import("@prisma/client/runtime/library").Decimal | null;
+            total_taxable_amount: import("@prisma/client/runtime/library").Decimal | null;
+            total_cgst_amount: import("@prisma/client/runtime/library").Decimal | null;
+            total_sgst_amount: import("@prisma/client/runtime/library").Decimal | null;
+            total_igst_amount: import("@prisma/client/runtime/library").Decimal | null;
+            refund_transaction_id: string | null;
+            refund_amount: import("@prisma/client/runtime/library").Decimal | null;
+            refund_reference: string | null;
+            refund_initiated_date: bigint | null;
+            refund_completed_date: bigint | null;
         };
         evaluation: {
             status: string | null;

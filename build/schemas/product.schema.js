@@ -53,6 +53,13 @@ export const createProductSchema = z.object({
     isdealoftheday: z.boolean().optional(),
     status: z.string().optional(),
     description: z.string().optional(),
+    // Combo Pack Support
+    iscombo: z.boolean().optional().default(false),
+    combotype: z.string().max(50).optional().default("fixed"),
+    components: z.array(z.object({
+        productid: z.union([z.string().regex(/^\d+$/), z.number(), z.bigint()]),
+        requiredqty: z.number().int().min(1, 'Required quantity must be at least 1')
+    })).optional(),
 }).passthrough(); // Allow any additional fields
 export const updateProductSchema = z.object({
     // All fields optional for updates - same as create but all optional

@@ -1,10 +1,10 @@
 import axios from 'axios';
 import { logger } from '../config/logger.js';
 import { env } from '../config/env.js';
-import { 
-  dynamicFindManyWithFilters, 
+import {
+  dynamicFindManyWithFilters,
   dynamicFindUnique,
-  dynamicUpdate 
+  dynamicUpdate
 } from '../utils/dynamicDbOperations.js';
 import { EkartService } from './ekart.service.js';
 
@@ -75,7 +75,7 @@ export class GstService {
     }
 
     const pin = pincode.toString().trim();
-    
+
     // Validate 6-digit pincode
     if (pin.length !== 6 || !/^\d{6}$/.test(pin)) {
       logger.debug({ pincode: pin }, 'Invalid pincode format');
@@ -85,19 +85,19 @@ export class GstService {
     try {
       const url = `https://api.postalpincode.in/pincode/${pin}`;
       logger.debug({ url, pincode: pin }, 'Fetching state from postal pincode API');
-      
+
       const response = await axios.get(url);
-      
+
       if (!response.data || !Array.isArray(response.data) || response.data.length === 0) {
         logger.warn({ pincode: pin }, 'Invalid response from postal pincode API');
         return null;
       }
 
       if (response.data[0].Status !== 'Success') {
-        logger.warn({ 
-          pincode: pin, 
+        logger.warn({
+          pincode: pin,
           status: response.data[0].Status,
-          message: response.data[0].Message 
+          message: response.data[0].Message
         }, 'Postal pincode API returned non-success status');
         return null;
       }
@@ -105,8 +105,8 @@ export class GstService {
       const postOffice = response.data[0].PostOffice?.[0];
       const state = postOffice?.State || null;
 
-      logger.debug({ 
-        pincode: pin, 
+      logger.debug({
+        pincode: pin,
         state,
         postOffice: postOffice ? {
           name: postOffice.Name,
@@ -117,9 +117,9 @@ export class GstService {
 
       return state;
     } catch (error: any) {
-      logger.error({ 
+      logger.error({
         error: error.message,
-        pincode: pin 
+        pincode: pin
       }, 'Error fetching state from postal pincode API');
       return null;
     }
@@ -135,21 +135,21 @@ export class GstService {
   async getWarehousePincode(alias?: string): Promise<string | null> {
     try {
       logger.info({ alias: alias || 'first address' }, 'Fetching warehouse address from EKART');
-      
+
       const addresses = await this.ekartService.getAddresses();
-      
+
       if (!addresses || addresses.length === 0) {
         logger.warn('No addresses found in EKART, checking fallback pincode');
         return this.getFallbackWarehousePincode();
       }
 
       // Find address by alias if provided, otherwise use first address
-      const address = alias 
+      const address = alias
         ? addresses.find(addr => addr.alias.toLowerCase() === alias.toLowerCase())
         : addresses[0];
 
       if (!address) {
-        logger.warn({ 
+        logger.warn({
           requestedAlias: alias,
           availableAliases: addresses.map(a => a.alias)
         }, 'Address with alias not found, using first address');
@@ -159,7 +159,7 @@ export class GstService {
           return this.getFallbackWarehousePincode();
         }
         const pincode = firstAddress.pincode?.toString() || null;
-        logger.info({ 
+        logger.info({
           pincode,
           address: firstAddress.alias,
           state: firstAddress.state
@@ -168,40 +168,40 @@ export class GstService {
       }
 
       const pincode = address.pincode?.toString() || null;
-      logger.info({ 
+      logger.info({
         pincode,
         alias: address.alias,
         state: address.state
       }, 'Warehouse pincode retrieved from EKART');
-      
+
       return pincode;
     } catch (error: any) {
       // Handle different types of errors
       const errorStatus = error.response?.status;
       const errorCode = error.response?.data?.code;
-      
+
       if (errorStatus === 401 || errorStatus === 403) {
-        logger.error({ 
+        logger.error({
           error: error.message,
           status: errorStatus,
           code: errorCode,
-          alias 
+          alias
         }, '⚠️ EKART authentication failed - cannot fetch warehouse address. Using fallback pincode.');
       } else if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
-        logger.error({ 
+        logger.error({
           error: error.message,
           code: error.code,
-          alias 
+          alias
         }, '⚠️ EKART service unavailable (connection error). Using fallback pincode.');
       } else {
-        logger.error({ 
+        logger.error({
           error: error.message,
           status: errorStatus,
           code: errorCode,
-          alias 
+          alias
         }, '⚠️ Error fetching warehouse pincode from EKART. Using fallback pincode.');
       }
-      
+
       // Always fallback to env variable
       return this.getFallbackWarehousePincode();
     }
@@ -214,25 +214,25 @@ export class GstService {
    */
   private getFallbackWarehousePincode(): string | null {
     const fallbackPincode = env.WAREHOUSE_PINCODE;
-    
+
     if (fallbackPincode) {
       const pin = fallbackPincode.trim();
       // Validate 6-digit pincode
       if (pin.length === 6 && /^\d{6}$/.test(pin)) {
-        logger.info({ 
+        logger.info({
           pincode: pin,
           source: 'ENV_WAREHOUSE_PINCODE'
         }, '✅ Using fallback warehouse pincode from environment variable');
         return pin;
       } else {
-        logger.warn({ 
-          pincode: pin 
+        logger.warn({
+          pincode: pin
         }, '⚠️ WAREHOUSE_PINCODE env variable is invalid (must be 6 digits). Ignoring.');
       }
     } else {
       logger.warn('⚠️ No WAREHOUSE_PINCODE env variable set. GST type will default to INTER-STATE.');
     }
-    
+
     return null;
   }
 
@@ -255,14 +255,14 @@ export class GstService {
 
       if (!fromState || !toState) {
         const missingPincode = !fromState ? 'warehouse' : 'delivery';
-        logger.warn({ 
-          fromPincode, 
-          toPincode, 
-          fromState, 
+        logger.warn({
+          fromPincode,
+          toPincode,
+          fromState,
           toState,
           missingPincode
         }, `⚠️ Cannot determine state for ${missingPincode} pincode - defaulting to INTER-STATE (IGST)`);
-        
+
         return {
           gst_type: 'INTER-STATE', // Default to INTER-STATE (IGST) if error
           cgst: false,
@@ -298,13 +298,13 @@ export class GstService {
 
       return result;
     } catch (error: any) {
-      logger.error({ 
+      logger.error({
         error: error.message,
         stack: error.stack,
         fromPincode,
         toPincode
       }, '⚠️ Critical error determining GST type - defaulting to INTER-STATE (IGST)');
-      
+
       return {
         gst_type: 'INTER-STATE', // Default to INTER-STATE (IGST) on error
         cgst: false,
@@ -344,12 +344,12 @@ export class GstService {
           },
           { take: 1, useAllColumns: true }
         );
-        
+
         // Filter to ensure subsubcategory_id is not null and subcategory_id is null
         const validMapping = subsubcategoryMappings.find(
           (m: any) => m.subsubcategory_id !== null && m.subcategory_id === null
         );
-        
+
         if (validMapping) {
           logger.debug({
             lookupType: 'subsubcategory',
@@ -358,11 +358,11 @@ export class GstService {
             hsn_code: validMapping.hsn_code,
             gst_rate: validMapping.gst_rate
           }, 'GST mapping found by subsubcategory');
-          
+
           return validMapping as GstHsnMapping;
         }
       }
-      
+
       // Priority 2: Fallback to subcategory_value lookup
       if (subcategory) {
         const { data: subcategoryMappings } = await dynamicFindManyWithFilters(
@@ -373,12 +373,12 @@ export class GstService {
           },
           { take: 1, useAllColumns: true }
         );
-        
+
         // Filter to ensure subcategory_id is not null and subsubcategory_id is null
         const validMapping = subcategoryMappings.find(
           (m: any) => m.subcategory_id !== null && m.subsubcategory_id === null
         );
-        
+
         if (validMapping) {
           logger.debug({
             lookupType: 'subcategory',
@@ -387,24 +387,24 @@ export class GstService {
             hsn_code: validMapping.hsn_code,
             gst_rate: validMapping.gst_rate
           }, 'GST mapping found by subcategory');
-          
+
           return validMapping as GstHsnMapping;
         }
       }
-      
+
       // Priority 3: No mapping found
       logger.debug({
         subcategory,
         subsubcategory,
         found: false
       }, 'No GST mapping found, will use default rate');
-      
+
       return null;
     } catch (error) {
-      logger.error({ 
-        error, 
-        subcategory, 
-        subsubcategory 
+      logger.error({
+        error,
+        subcategory,
+        subsubcategory
       }, 'Error fetching GST/HSN mapping');
       return null;
     }
@@ -422,15 +422,15 @@ export class GstService {
   }> {
     try {
       const product = await dynamicFindUnique('product', { id: Number(productId) });
-      
+
       return {
         subcategory: product?.subcategory || null,
         subsubcategory: product?.subsubcategory || null
       };
     } catch (error) {
-      logger.error({ 
-        error, 
-        productId 
+      logger.error({
+        error,
+        productId
       }, 'Error fetching product category info');
       return { subcategory: null, subsubcategory: null };
     }
@@ -477,7 +477,7 @@ export class GstService {
         total_gst_amount: 0
       };
     }
-    
+
     // Calculate GST as percentage of orderamount
     // Formula: total_gst_amount = orderamount * (gst_rate / 100)
     // Then: taxable_amount = orderamount - total_gst_amount
@@ -538,25 +538,25 @@ export class GstService {
       gst_type: gstType.gst_type,
       note: 'orderamount should be TOTAL for line item (includes quantity), not per-unit'
     }, 'Calculating GST for orderline');
-    
+
     // 1. Get product category info
     const { subcategory, subsubcategory } = await this.getProductCategoryInfo(productId);
-    
+
     // 2. Lookup GST mapping
     const mapping = await this.getGstHsnMapping(subcategory, subsubcategory);
-    
+
     // 3. Use default if no mapping
     const hsn_code = mapping?.hsn_code || null;
-    const gst_rate = mapping 
-      ? parseFloat(mapping.gst_rate.toString()) 
+    const gst_rate = mapping
+      ? parseFloat(mapping.gst_rate.toString())
       : this.DEFAULT_GST_RATE;
-    
+
     // 4. Calculate GST amounts
     const gstResult = this.calculateGstAmounts(orderamount, gst_rate, gstType);
-    
+
     // 5. Add HSN code to result
     gstResult.hsn_code = hsn_code;
-    
+
     logger.info({
       productId,
       subcategory,
@@ -568,7 +568,7 @@ export class GstService {
       mapping: mapping ? { hsn_code: mapping.hsn_code, gst_rate: mapping.gst_rate } : 'default',
       result: gstResult
     }, 'GST calculated for orderline');
-    
+
     return gstResult;
   }
 
@@ -599,23 +599,23 @@ export class GstService {
     orderTotals: OrderGstTotals;
     gstType: GstTypeResult;
   }> {
-      // Get warehouse pincode from EKART if not provided
-      let fromPincode = warehousePincode;
+    // Get warehouse pincode from EKART if not provided
+    let fromPincode = warehousePincode;
+    if (!fromPincode) {
+      logger.info({ warehouseAlias }, 'Warehouse pincode not provided, fetching from EKART');
+      fromPincode = await this.getWarehousePincode(warehouseAlias);
+
       if (!fromPincode) {
-        logger.info({ warehouseAlias }, 'Warehouse pincode not provided, fetching from EKART');
-        fromPincode = await this.getWarehousePincode(warehouseAlias);
-        
-        if (!fromPincode) {
-          logger.warn({
-            warehouseAlias,
-            hasEnvFallback: !!env.WAREHOUSE_PINCODE
-          }, '⚠️ Warehouse pincode unavailable from EKART and no fallback configured. GST will default to INTER-STATE.');
-        }
+        logger.warn({
+          warehouseAlias,
+          hasEnvFallback: !!env.WAREHOUSE_PINCODE
+        }, '⚠️ Warehouse pincode unavailable from EKART and no fallback configured. GST will default to INTER-STATE.');
       }
-    
+    }
+
     // Determine GST type by comparing states
     const gstType = await this.getGstType(fromPincode, deliveryPincode);
-    
+
     logger.info({
       orderlinesCount: orderlines.length,
       shippingCost,
@@ -626,46 +626,46 @@ export class GstService {
       fromState: gstType.fromState,
       toState: gstType.toState
     }, 'Starting GST calculation for order');
-    
+
     // Calculate GST for each orderline
     const orderlineGst: Array<{ orderlineId: number; gst: GstCalculationResult }> = [];
-    
+
     for (const orderline of orderlines) {
       const gst = await this.calculateGstForOrderline(
         orderline.productid,
         orderline.orderamount,
         gstType
       );
-      
+
       orderlineGst.push({
         orderlineId: orderline.id,
         gst
       });
     }
-    
+
     // Aggregate to order level
     const items_total = this.round(orderAmount - shippingCost); // Product-only total
-    
+
     const total_taxable_amount = this.round(
       orderlineGst.reduce((sum, ol) => sum + ol.gst.taxable_amount, 0)
     );
-    
+
     const total_cgst_amount = this.round(
       orderlineGst.reduce((sum, ol) => sum + ol.gst.cgst_amount, 0)
     );
-    
+
     const total_sgst_amount = this.round(
       orderlineGst.reduce((sum, ol) => sum + ol.gst.sgst_amount, 0)
     );
-    
+
     const total_igst_amount = this.round(
       orderlineGst.reduce((sum, ol) => sum + ol.gst.igst_amount, 0)
     );
-    
+
     const total_gst_amount = this.round(
       orderlineGst.reduce((sum, ol) => sum + ol.gst.total_gst_amount, 0)
     );
-    
+
     const orderTotals: OrderGstTotals = {
       items_total,
       total_taxable_amount,
@@ -674,17 +674,17 @@ export class GstService {
       total_igst_amount,
       total_gst_amount
     };
-    
+
     // Verification logging
     const sumOrderlineAmounts = this.round(
       orderlines.reduce((sum, ol) => sum + ol.orderamount, 0)
     );
-    
+
     logger.info({
       orderTotals,
       verification: {
         items_total_matches_sum: items_total === sumOrderlineAmounts,
-        taxable_plus_gst_equals_items_total: 
+        taxable_plus_gst_equals_items_total:
           this.round(total_taxable_amount + total_gst_amount) === items_total,
         cgst_sgst_igst_equals_total_gst:
           this.round(total_cgst_amount + total_sgst_amount + total_igst_amount) === total_gst_amount,
@@ -696,7 +696,7 @@ export class GstService {
       toState: gstType.toState,
       orderlinesProcessed: orderlineGst.length
     }, 'GST calculation for order completed');
-    
+
     return { orderlineGst, orderTotals, gstType };
   }
 
@@ -710,7 +710,7 @@ export class GstService {
     orderlineGst: Array<{ orderlineId: number; gst: GstCalculationResult }>
   ): Promise<void> {
     const currentTime = Date.now();
-    
+
     for (const { orderlineId, gst } of orderlineGst) {
       try {
         await dynamicUpdate(
@@ -727,7 +727,7 @@ export class GstService {
             modifieddate: currentTime
           }
         );
-        
+
         logger.debug({
           orderlineId,
           gst
@@ -755,7 +755,7 @@ export class GstService {
     orderTotals: OrderGstTotals
   ): Promise<void> {
     const currentTime = Date.now();
-    
+
     try {
       await dynamicUpdate(
         'orders',
@@ -770,7 +770,7 @@ export class GstService {
           modifieddate: currentTime
         }
       );
-      
+
       logger.info({
         orderId,
         orderTotals
@@ -793,10 +793,10 @@ export class GstService {
    */
   async getDeliveryPincode(addressId: number | null | undefined): Promise<string | null> {
     if (!addressId) return null;
-    
+
     try {
       const address = await dynamicFindUnique('address', { id: addressId });
-      
+
       return address?.pincode?.toString() || null;
     } catch (error) {
       logger.error({
@@ -841,27 +841,27 @@ export class GstService {
         warehouseAlias,
         warehousePincode
       }, 'Starting GST processing for order');
-      
+
       // 1. Get delivery pincode
       const deliveryPincode = await this.getDeliveryPincode(addressId);
-      
+
       if (!deliveryPincode) {
         logger.warn({ orderId, addressId }, 'Delivery pincode not found');
         return { success: false, error: 'Delivery pincode not found' };
       }
-      
+
       // 2. Get orderlines for this order using dynamic operation
       const { data: orderlines } = await dynamicFindManyWithFilters(
         'orderline',
         { orderid: orderId },
         { take: 100, useAllColumns: true }
       );
-      
+
       if (!orderlines || orderlines.length === 0) {
         logger.warn({ orderId }, 'No orderlines found for GST calculation');
         return { success: false, error: 'No orderlines found' };
       }
-      
+
       // 3. Calculate GST (warehouse pincode will be fetched from EKART if not provided)
       // IMPORTANT: orderamount is ALWAYS the total for the line item (quantity * unit price after discounts)
       // According to PHONEPE_PAYMENT_IMPLEMENTATION_GUIDE.md: "orderamount is Final item amount"
@@ -870,7 +870,7 @@ export class GstService {
         orderlines.map((ol: any) => {
           const orderamount = parseFloat(ol.orderamount?.toString() || '0');
           const quantity = parseFloat(ol.quantity?.toString() || '1');
-          
+
           // orderamount is already the total for the line item (includes quantity)
           // Example: If quantity=2 and unit price=300, orderamount=600 (not 300)
           // We use orderamount directly for GST calculation
@@ -886,7 +886,7 @@ export class GstService {
               note: 'orderamount MUST be TOTAL for line item (quantity × unit price after discounts)'
             }
           }, 'GST calculation: using orderamount as total for line item');
-          
+
           return {
             id: ol.id,
             productid: ol.productid ? Number(ol.productid) : 0,
@@ -899,13 +899,13 @@ export class GstService {
         deliveryPincode,
         warehouseAlias
       );
-      
+
       // 4. Update orderlines with GST data
       await this.updateOrderlinesWithGst(orderlineGst);
-      
+
       // 5. Update order with GST totals
       await this.updateOrderWithGst(orderId, orderTotals);
-      
+
       logger.info({
         orderId,
         orderTotals,
@@ -914,7 +914,7 @@ export class GstService {
         toState: gstType.toState,
         orderlinesUpdated: orderlineGst.length
       }, 'GST processing completed successfully');
-      
+
       return { success: true, orderTotals, gstType };
     } catch (error: any) {
       logger.error({
@@ -922,7 +922,7 @@ export class GstService {
         stack: error.stack,
         orderId
       }, 'Error processing order GST');
-      
+
       return { success: false, error: error.message };
     }
   }

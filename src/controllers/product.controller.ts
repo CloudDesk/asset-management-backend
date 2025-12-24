@@ -100,6 +100,37 @@ export class ProductController {
     }
   );
 
+  validateComboComponents = asyncHandler(
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const body = request.body as { components?: Array<{ productid: string | number; requiredqty: number }> };
+      
+      if (!body.components || !Array.isArray(body.components)) {
+        return reply.code(400).send({
+          success: false,
+          message: "Components array is required",
+          details: "Please provide a components array with productid and requiredqty"
+        });
+      }
+
+      const validationResult = await this.productService.validateComboComponents(body.components);
+
+      if (validationResult.isValid) {
+        return reply.code(200).send({
+          success: true,
+          isValid: true,
+          message: validationResult.message
+        });
+      } else {
+        return reply.code(409).send({
+          success: false,
+          isValid: false,
+          message: validationResult.message,
+          existingCombo: validationResult.existingCombo
+        });
+      }
+    }
+  );
+
   deleteProduct = asyncHandler(
     async (
       request: FastifyRequest<{ Params: ProductParams }>,
@@ -517,12 +548,11 @@ getProductsForPlatform = asyncHandler(
     
     const formattedData = formatEntitiesForAPI(result.data, "product");
     
-    // Transform platformStocks array to single platformStock object
-    const transformedData = formattedData.map((product: any) => ({
-      ...product,
-      platformStock: product.platformStocks?.[0] || null,
-      platformStocks: undefined, // Remove the array
-    }));
+    // Remove platformStocks array from response (only keep platformStock in components)
+    const transformedData = formattedData.map((product: any) => {
+      const { platformStocks, ...productWithoutPlatformStocks } = product;
+      return productWithoutPlatformStocks;
+    });
     
     const response = createSuccessResponse(
       `Products for ${platform} platform retrieved successfully`,
@@ -555,12 +585,8 @@ getProductForPlatform = asyncHandler(
     
     const formattedProduct = formatProductForAPI(product);
     
-    // Transform platformStocks array to single platformStock object
-    const transformedProduct = {
-      ...formattedProduct,
-      platformStock: formattedProduct.platformStocks?.[0] || null,
-      platformStocks: undefined, // Remove the array
-    };
+    // Remove platformStocks array from response (only keep platformStock in components)
+    const { platformStocks, ...transformedProduct } = formattedProduct;
     
     const response = createSuccessResponse(
       `Product ${id} for ${platform} platform retrieved successfully`,

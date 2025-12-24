@@ -7,21 +7,21 @@
 #### Field Calculation Chain
 
 ```
-Step 1: original_price = base_price × quantity
-Step 2: product_discount_amount = product_discount × quantity
-Step 3: productamount = original_price - product_discount_amount
-Step 4: promotion_discount_amount = (from breakdown) OR (pro-rata distribution)
-Step 5: orderamount = productamount - promotion_discount_amount  ⭐ NO SHIPPING
-Step 6: shipping_cost = (total_shipping × productamount) / total_productamount  (pro-rata)
+Step 1: original_price = base_price (PER-UNIT, NOT multiplied) ✅
+Step 2: product_discount_amount = product_discount × quantity (TOTAL)
+Step 3: productamount = (original_price × quantity) - product_discount_amount (TOTAL)
+Step 4: promotion_discount_amount = (from breakdown) OR (pro-rata distribution) (TOTAL)
+Step 5: orderamount = productamount - promotion_discount_amount  ⭐ NO SHIPPING (TOTAL)
+Step 6: shipping_cost = (total_shipping × productamount) / total_productamount  (pro-rata) (TOTAL)
 ```
 
 #### Key Fields
 
 | Field | Formula | Example (Product: ₹500 × 2 qty, ₹25 discount/unit, ₹50 promo) |
 |-------|---------|----------------------------------------------------------------|
-| `original_price` | `base_price × quantity` | ₹500 × 2 = ₹1000 |
-| `product_discount_amount` | `product_discount × quantity` | ₹25 × 2 = ₹50 |
-| `productamount` | `original_price - product_discount_amount` | ₹1000 - ₹50 = ₹950 |
+| `original_price` | `base_price` (PER-UNIT) ✅ | ₹500 (NOT ₹1000) |
+| `product_discount_amount` | `product_discount × quantity` (TOTAL) | ₹25 × 2 = ₹50 |
+| `productamount` | `(original_price × quantity) - product_discount_amount` (TOTAL) | (₹500 × 2) - ₹50 = ₹950 |
 | `promotion_discount_amount` | From breakdown or pro-rata | ₹50 (example) |
 | **`orderamount`** | **`productamount - promotion_discount_amount`** | **₹950 - ₹50 = ₹900** ⭐ |
 | `shipping_cost` | Pro-rata distribution | ₹37.5 (example) |
@@ -39,7 +39,7 @@ Step 6: shipping_cost = (total_shipping × productamount) / total_productamount 
 
 | Field | Formula | Example |
 |-------|---------|---------|
-| `original_total` | `Σ(orderline.original_price)` | ₹1000 + ₹400 = ₹1400 |
+| `original_total` | `Σ(orderline.original_price × orderline.quantity)` ✅ | (₹500 × 2) + (₹400 × 1) = ₹1400 |
 | `productamount` | `Σ(orderline.productamount)` | ₹950 + ₹400 = ₹1350 |
 | `discountamount` | `Σ(orderline.discountamount)` | ₹100 + ₹0 = ₹100 |
 | `promotion_discount_total` | `Σ(orderline.promotion_discount_amount)` | ₹50 + ₹0 = ₹50 |
@@ -136,9 +136,11 @@ order.orderamount = Σ(orderline.orderamount) + shipping_cost
    - ✅ Sum of all orderline orderamounts PLUS shipping
    - ✅ Matches `transaction.amount` from PhonePe
 
-3. **All amounts are TOTALS** (not per-unit)
-   - `orderline.productamount` = total for line item (includes quantity)
-   - `orderline.orderamount` = total for line item (includes quantity, excludes shipping)
+3. **Amount Types:**
+   - `orderline.original_price` = **PER-UNIT** (not multiplied by quantity) ✅
+   - `orderline.productamount` = **TOTAL** for line item (includes quantity)
+   - `orderline.orderamount` = **TOTAL** for line item (includes quantity, excludes shipping)
+   - `order.original_total` = **TOTAL** = `Σ(orderline.original_price × orderline.quantity)` ✅
 
 ---
 

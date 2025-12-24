@@ -43,13 +43,15 @@ This document provides a single source of truth for the PhonePe payment integrat
 {
   mode: 'phonepe' | 'cod',           // Payment mode
   evaluation_ids?: string[],          // Promotion evaluation IDs (optional)
+  shippingCost: number,               // Total shipping cost
+  taxAmount: number,                  // Total tax amount (if pre-calculated)
   order: [                            // Array of order items
     {
       addressid: number,              // Delivery address ID
       cartId: number,                 // Cart item ID
-      discountamount: number,         // Total discount on this item
-      orderamount: number,            // Final price after discount
-      productamount: number,          // Original product price
+      discountamount: number,         // ⚠️ PRODUCT discount TOTAL for this line item
+      orderamount: number,            // Final price after discount (productamount - discountamount)
+      productamount: number,          // ⚠️ ORIGINAL price PER UNIT (before any discounts)
       productcategory: string,        // Product category
       productid: number,              // Product ID
       productname: string,            // Product name
@@ -58,7 +60,7 @@ This document provides a single source of truth for the PhonePe payment integrat
     }
   ],
   transaction: {
-    amount: number,                   // Total transaction amount (INR)
+    amount: number,                   // Total transaction amount (INR, includes shipping)
     mobilenumber: string,             // 10-digit mobile number
     name: string,                     // Customer name/email
     productid: number[],              // Array of product IDs
@@ -67,6 +69,24 @@ This document provides a single source of truth for the PhonePe payment integrat
   }
 }
 ```
+
+**⚠️ CRITICAL FIELD SEMANTICS:**
+
+- **`order[].productamount`** = ORIGINAL price per unit (before any discounts)
+  - Example: Product costs ₹150, send `productamount: 150`
+  
+- **`order[].discountamount`** = TOTAL product discount for the line item
+  - Example: ₹10 off per unit, qty=2 → send `discountamount: 20`
+  - Example: ₹10 off, qty=1 → send `discountamount: 10`
+  - Example: No discount → send `discountamount: 0`
+  
+- **`order[].orderamount`** = Final price for line item after product discounts
+  - Formula: `(productamount × quantity) - discountamount`
+  - Example: ₹150 × 1 - ₹10 = ₹140
+
+- **`transaction.amount`** = Total amount to charge (includes all items + shipping)
+  - Formula: `Σ(order[].orderamount) + shippingCost`
+
 
 ---
 
@@ -454,20 +474,37 @@ This document provides a single source of truth for the PhonePe payment integrat
 │  ─────────────────────────────────────────────────────────────────────  │
 │  For each item in originalOrderData:                                    │
 │  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │  ✅ PATH A: IF evaluationData EXISTS (with promotion/coupon)       │ │
+│  │  ────────────────────────────────────────────────────────────────  │ │
 │  │  // Get from evaluation cart_data                                  │ │
-│  │  originalPrice = base_price × quantity                             │ │
-│  │  productDiscountAmount = product_discount × quantity               │ │
+│  │  originalPrice = base_price (per-unit, NOT multiplied)            │ │
+│  │  productDiscountAmount = product_discount × quantity (total)      │ │
+│  │  itemProductAmount = (basePrice × quantity) - productDiscount     │ │
 │  │                                                                    │ │
 │  │  // Get from applied_promotions.breakdown                          │ │
 │  │  promotionDiscountAmount = breakdown[productId].total_discount     │ │
 │  │                                                                    │ │
 │  │  // If no breakdown, use pro-rata distribution                     │ │
 │  │  promotionDiscountAmount = (promotionTotal × itemAmount) / total   │ │
+│  │  ────────────────────────────────────────────────────────────────  │ │
 │  │                                                                    │ │
-│  │  // Calculate shipping per item (pro-rata)                         │ │
+│  │  ✅ PATH B: ELSE (NO evaluationData - using request values)       │ │
+│  │  ────────────────────────────────────────────────────────────────  │ │
+│  │  // Extract from request payload                                   │ │
+│  │  rawProductAmount = item.productamount  // Original price per unit│ │
+│  │  rawDiscountAmount = item.discountamount  // Total product discount│ │
+│  │                                                                    │ │
+│  │  originalPrice = rawProductAmount  // Per-unit (NOT multiplied)   │ │
+│  │  productDiscountAmount = rawDiscountAmount  // Total for line     │ │
+│  │  itemProductAmount = (rawProductAmount × qty) - rawDiscountAmount │ │
+│  │  promotionDiscountAmount = 0  // No promotion                     │ │
+│  │  ────────────────────────────────────────────────────────────────  │ │
+│  │                                                                    │ │
+│  │  // Calculate shipping per item (pro-rata, after discounts)        │ │
 │  │  shippingCostForItem = (shippingTotal × itemAmount) / total        │ │
 │  │                                                                    │ │
 │  │  // Final item amounts                                             │ │
+│  │  productamount = itemProductAmount  // Total after product disc   │ │
 │  │  discountamount = productDiscount + promotionDiscount              │ │
 │  │  orderamount = productamount - promotionDiscountAmount             │ │
 │  └────────────────────────────────────────────────────────────────────┘ │
@@ -475,13 +512,14 @@ This document provides a single source of truth for the PhonePe payment integrat
 │  enrichedOrderItems[] = [                                               │
 │    {                                                                    │
 │      ...originalItem,                                                   │
-│      original_price,                                                    │
-│      product_discount_amount,                                           │
-│      promotion_discount_amount,                                         │
-│      shipping_cost,                                                     │
+│      productamount: itemProductAmount,  // ⚠️ TOTAL after product disc │
+│      original_price,                    // ⚠️ PER-UNIT                 │
+│      product_discount_amount,           // TOTAL                       │
+│      promotion_discount_amount,         // TOTAL                       │
+│      shipping_cost,                     // TOTAL (pro-rata)            │
 │      evaluation_id,                                                     │
-│      discountamount: recalculated,                                      │
-│      orderamount: recalculated                                          │
+│      discountamount: recalculated,      // TOTAL                       │
+│      orderamount: recalculated          // TOTAL (excludes shipping)   │
 │    }                                                                    │
 │  ]                                                                      │
 └─────────────────────────────────────────────────────────────────────────┘
@@ -834,7 +872,7 @@ This document provides a single source of truth for the PhonePe payment integrat
 
 | Field | Description | Calculation |
 |-------|-------------|-------------|
-| `original_price` | Base price × quantity | base_price × qty |
+| `original_price` | Base price per unit (NOT multiplied by quantity) | base_price (per-unit) |
 | `productamount` | After product discount | original_price - product_discount_amount |
 | `product_discount_amount` | Product-level discount | product_discount × qty |
 | `promotion_discount_amount` | Coupon discount (pro-rata) | From breakdown or pro-rata |
@@ -919,26 +957,26 @@ Formula: promotion_share = (item_productamount / total_productamount) × promoti
 ───────────────────────────────────────────────────────────────────────────
 ORDERLINE 1 (Product 1: ₹500 × 2)
 ───────────────────────────────────────────────────────────────────────────
-original_price          = 500 × 2 = ₹1000
-product_discount_amount = 25 × 2  = ₹50
-productamount           = 1000 - 50 = ₹950
+original_price          = 500 (PER-UNIT, NOT multiplied) ✅
+product_discount_amount = 25 × 2  = ₹50 (TOTAL)
+productamount           = (500 × 2) - 50 = ₹950 (TOTAL)
 
-promotion_discount_amount = (950 / 1350) × 500 = ₹351.85
+promotion_discount_amount = (950 / 1350) × 500 = ₹351.85 (TOTAL)
 
-discountamount = 50 + 351.85 = ₹401.85
-orderamount    = 950 - 351.85 = ₹598.15
+discountamount = 50 + 351.85 = ₹401.85 (TOTAL)
+orderamount    = 950 - 351.85 = ₹598.15 (TOTAL)
 
 ───────────────────────────────────────────────────────────────────────────
 ORDERLINE 2 (Product 2: ₹400 × 1)
 ───────────────────────────────────────────────────────────────────────────
-original_price          = 400 × 1 = ₹400
-product_discount_amount = 0 × 1   = ₹0
-productamount           = 400 - 0 = ₹400
+original_price          = 400 (PER-UNIT, NOT multiplied) ✅
+product_discount_amount = 0 × 1   = ₹0 (TOTAL)
+productamount           = (400 × 1) - 0 = ₹400 (TOTAL)
 
-promotion_discount_amount = (400 / 1350) × 500 = ₹148.15
+promotion_discount_amount = (400 / 1350) × 500 = ₹148.15 (TOTAL)
 
-discountamount = 0 + 148.15 = ₹148.15
-orderamount    = 400 - 148.15 = ₹251.85
+discountamount = 0 + 148.15 = ₹148.15 (TOTAL)
+orderamount    = 400 - 148.15 = ₹251.85 (TOTAL)
 ```
 
 ### Final Stored Values
@@ -962,12 +1000,12 @@ orderamount    = 400 - 148.15 = ₹251.85
 ├─────────────────────────────┼──────────┤
 │ productid                   │ 1        │
 │ quantity                    │ 2        │
-│ original_price              │ ₹1000.00 │
-│ product_discount_amount     │ ₹50.00   │
-│ promotion_discount_amount   │ ₹351.85  │
-│ productamount               │ ₹950.00  │
-│ discountamount              │ ₹401.85  │
-│ orderamount                 │ ₹598.15  │
+│ original_price              │ ₹500.00  │ ✅ PER-UNIT (not multiplied)
+│ product_discount_amount     │ ₹50.00   │ ✅ TOTAL
+│ promotion_discount_amount   │ ₹351.85  │ ✅ TOTAL
+│ productamount               │ ₹950.00  │ ✅ TOTAL
+│ discountamount              │ ₹401.85  │ ✅ TOTAL
+│ orderamount                 │ ₹598.15  │ ✅ TOTAL
 └─────────────────────────────┴──────────┘
 
 -- ORDERLINE TABLE (Product 2)
@@ -976,19 +1014,20 @@ orderamount    = 400 - 148.15 = ₹251.85
 ├─────────────────────────────┼──────────┤
 │ productid                   │ 2        │
 │ quantity                    │ 1        │
-│ original_price              │ ₹400.00  │
-│ product_discount_amount     │ ₹0.00    │
-│ promotion_discount_amount   │ ₹148.15  │
-│ productamount               │ ₹400.00  │
-│ discountamount              │ ₹148.15  │
-│ orderamount                 │ ₹251.85  │
+│ original_price              │ ₹400.00  │ ✅ PER-UNIT (not multiplied)
+│ product_discount_amount     │ ₹0.00    │ ✅ TOTAL
+│ promotion_discount_amount   │ ₹148.15  │ ✅ TOTAL
+│ productamount               │ ₹400.00  │ ✅ TOTAL
+│ discountamount              │ ₹148.15  │ ✅ TOTAL
+│ orderamount                 │ ₹251.85  │ ✅ TOTAL
 └─────────────────────────────┴──────────┘
 ```
 
 ### Verification Checksums
 
 ```
-Σ(original_price)            = 1000 + 400       = ₹1400 ✅ = order.original_total
+⚠️ NOTE: original_price is PER-UNIT, so we multiply by quantity for totals
+Σ(original_price × quantity) = (500 × 2) + (400 × 1) = ₹1400 ✅ = order.original_total
 Σ(product_discount_amount)   = 50 + 0           = ₹50   ✅
 Σ(promotion_discount_amount) = 351.85 + 148.15  = ₹500  ✅ = order.promotion_discount_total
 Σ(productamount)             = 950 + 400        = ₹1350 ✅ = order.productamount
@@ -1007,7 +1046,14 @@ Cross-check: original_total - discountamount = 1400 - 550 = ₹850 ✅
                        ▼                            ▼
                ┌───────────────┐            ┌───────────────┐
                │ original_price│            │ original_price│
-               │ = ₹1000       │            │ = ₹400        │
+               │ = ₹500 (per-unit)│         │ = ₹400 (per-unit)│
+               └───────┬───────┘            └───────┬───────┘
+                       │                            │
+                       │ (× quantity for totals)    │
+                       ▼                            ▼
+               ┌───────────────┐            ┌───────────────┐
+               │ Total: ₹1000  │            │ Total: ₹400   │
+               │ (500 × 2)     │            │ (400 × 1)     │
                └───────┬───────┘            └───────┬───────┘
                        │                            │
                        ▼                            │
@@ -1048,11 +1094,12 @@ Cross-check: original_total - discountamount = 1400 - 550 = ₹850 ✅
                ┌───────────────┐         ┌───────────────┐
                │ ORDERLINE 1   │         │ ORDERLINE 2   │
                │ ────────────  │         │ ────────────  │
-               │ orig:   ₹1000 │         │ orig:   ₹400  │
-               │ prod:   -₹50  │         │ prod:   -₹0   │
-               │ promo: -₹352  │         │ promo: -₹148  │
+               │ orig:   ₹500  │ ✅ PER-UNIT│ orig:   ₹400  │ ✅ PER-UNIT
+               │ qty:    2     │         │ qty:    1     │
+               │ prod:   -₹50  │ ✅ TOTAL│ prod:   -₹0   │ ✅ TOTAL
+               │ promo: -₹352  │ ✅ TOTAL│ promo: -₹148  │ ✅ TOTAL
                │ ────────────  │         │ ────────────  │
-               │ final: ₹598   │         │ final: ₹252   │
+               │ final: ₹598   │ ✅ TOTAL│ final: ₹252   │ ✅ TOTAL
                └───────────────┘         └───────────────┘
                        │                         │
                        └────────────┬────────────┘
@@ -1068,7 +1115,7 @@ Cross-check: original_total - discountamount = 1400 - 550 = ₹850 ✅
 ```typescript
 // phonepe.controller.ts - createOrderAfterPayment()
 
-// Lines ~2130-2160: Calculate order totals
+// Lines ~2471-2485: Calculate order totals
 originalTotal = cartItems.reduce((total, item) => {
   return total + (item.base_price * item.quantity);
 }, 0);
@@ -1077,18 +1124,42 @@ productDiscountTotal = cartItems.reduce((total, item) => {
   return total + (item.product_discount * item.quantity);
 }, 0);
 
-// Lines ~2285-2450: Enrich order items with per-line discounts
+// Lines ~2623-2854: Enrich order items with per-line discounts
 enrichedOrderItems = originalOrderData.map((item) => {
-  // Pro-rata distribution if no breakdown
-  promotionDiscountAmount = (promotionTotal * itemAmount) / totalAmount;
+  const quantity = parseInt(item.quantity || '1');
+  const rawProductAmount = parseFloat(item.productamount || '0');
+  
+  if (evaluationData) {
+    // From evaluation cart_data (most accurate)
+    const basePrice = cartItem.base_price; // Per-unit
+    const productDiscount = cartItem.product_discount; // Per-unit
+    
+    originalPrice = basePrice; // ✅ PER-UNIT (not multiplied)
+    productDiscountAmount = productDiscount * quantity; // ✅ TOTAL
+    itemProductAmount = (basePrice * quantity) - productDiscountAmount; // ✅ TOTAL
+    
+    // Get promotion discount from breakdown or pro-rata
+    promotionDiscountAmount = breakdown?.total_discount || (pro-rata);
+  } else {
+    // Fallback: productamount is PER-UNIT
+    originalPrice = rawProductAmount; // ✅ PER-UNIT
+    itemProductAmount = rawProductAmount * quantity; // ✅ TOTAL
+    // Pro-rata distribution for discounts
+    promotionDiscountAmount = (promotionTotal * itemProductAmount) / totalAmount;
+  }
+  
+  // Calculate final amounts
+  const finalOrderAmount = itemProductAmount - promotionDiscountAmount; // ✅ TOTAL
+  const shippingCostForItem = (totalShipping * itemProductAmount) / totalProductAmount;
   
   return {
     ...item,
-    original_price,
-    product_discount_amount,
-    promotion_discount_amount,
-    discountamount: productDiscountAmount + promotionDiscountAmount,
-    orderamount: productamount - promotionDiscountAmount
+    original_price: originalPrice, // ✅ PER-UNIT
+    product_discount_amount: productDiscountAmount, // ✅ TOTAL
+    promotion_discount_amount: promotionDiscountAmount, // ✅ TOTAL
+    discountamount: productDiscountAmount + promotionDiscountAmount, // ✅ TOTAL
+    orderamount: finalOrderAmount, // ✅ TOTAL
+    shipping_cost: shippingCostForItem // ✅ TOTAL
   };
 });
 ```
@@ -1142,30 +1213,30 @@ Formula: shipping_share = (item_productamount / total_productamount) × total_sh
 ───────────────────────────────────────────────────────────────────────────
 ORDERLINE 1 (Product 1: ₹500 × 2)
 ───────────────────────────────────────────────────────────────────────────
-original_price          = 500 × 2 = ₹1000
-product_discount_amount = 25 × 2  = ₹50
-productamount           = 1000 - 50 = ₹950
+original_price          = 500 (PER-UNIT, NOT multiplied) ✅
+product_discount_amount = 25 × 2  = ₹50 (TOTAL)
+productamount           = (500 × 2) - 50 = ₹950 (TOTAL)
 
 promotion_discount_amount = ₹0 (no promotion)
 
-shipping_cost = (950 / 1350) × 150 = ₹105.56
+shipping_cost = (950 / 1350) × 150 = ₹105.56 (TOTAL)
 
-discountamount = 50 + 0 = ₹50
-orderamount    = 950 - 0 = ₹950
+discountamount = 50 + 0 = ₹50 (TOTAL)
+orderamount    = 950 - 0 = ₹950 (TOTAL)
 
 ───────────────────────────────────────────────────────────────────────────
 ORDERLINE 2 (Product 2: ₹400 × 1)
 ───────────────────────────────────────────────────────────────────────────
-original_price          = 400 × 1 = ₹400
-product_discount_amount = 0 × 1   = ₹0
-productamount           = 400 - 0 = ₹400
+original_price          = 400 (PER-UNIT, NOT multiplied) ✅
+product_discount_amount = 0 × 1   = ₹0 (TOTAL)
+productamount           = (400 × 1) - 0 = ₹400 (TOTAL)
 
 promotion_discount_amount = ₹0 (no promotion)
 
-shipping_cost = (400 / 1350) × 150 = ₹44.44
+shipping_cost = (400 / 1350) × 150 = ₹44.44 (TOTAL)
 
-discountamount = 0 + 0 = ₹0
-orderamount    = 400 - 0 = ₹400
+discountamount = 0 + 0 = ₹0 (TOTAL)
+orderamount    = 400 - 0 = ₹400 (TOTAL)
 ```
 
 ### Final Stored Values
@@ -1190,13 +1261,13 @@ orderamount    = 400 - 0 = ₹400
 ├─────────────────────────────┼──────────┤
 │ productid                   │ 1        │
 │ quantity                    │ 2        │
-│ original_price              │ ₹1000.00 │
-│ product_discount_amount     │ ₹50.00   │
-│ promotion_discount_amount   │ ₹0.00    │
-│ productamount               │ ₹950.00  │
-│ discountamount              │ ₹50.00   │
-│ orderamount                 │ ₹950.00  │
-│ shipping_cost               │ ₹105.56  │
+│ original_price              │ ₹500.00  │ ✅ PER-UNIT (not multiplied)
+│ product_discount_amount     │ ₹50.00   │ ✅ TOTAL
+│ promotion_discount_amount   │ ₹0.00    │ ✅ TOTAL
+│ productamount               │ ₹950.00  │ ✅ TOTAL
+│ discountamount              │ ₹50.00   │ ✅ TOTAL
+│ orderamount                 │ ₹950.00  │ ✅ TOTAL
+│ shipping_cost               │ ₹105.56  │ ✅ TOTAL
 └─────────────────────────────┴──────────┘
 
 -- ORDERLINE TABLE (Product 2)
@@ -1205,13 +1276,13 @@ orderamount    = 400 - 0 = ₹400
 ├─────────────────────────────┼──────────┤
 │ productid                   │ 2        │
 │ quantity                    │ 1        │
-│ original_price              │ ₹400.00  │
-│ product_discount_amount     │ ₹0.00    │
-│ promotion_discount_amount   │ ₹0.00    │
-│ productamount               │ ₹400.00  │
-│ discountamount              │ ₹0.00    │
-│ orderamount                 │ ₹400.00  │
-│ shipping_cost               │ ₹44.44   │
+│ original_price              │ ₹400.00  │ ✅ PER-UNIT (not multiplied)
+│ product_discount_amount     │ ₹0.00    │ ✅ TOTAL
+│ promotion_discount_amount   │ ₹0.00    │ ✅ TOTAL
+│ productamount               │ ₹400.00  │ ✅ TOTAL
+│ discountamount              │ ₹0.00    │ ✅ TOTAL
+│ orderamount                 │ ₹400.00  │ ✅ TOTAL
+│ shipping_cost               │ ₹44.44   │ ✅ TOTAL
 └─────────────────────────────┴──────────┘
 ```
 
@@ -1219,7 +1290,8 @@ orderamount    = 400 - 0 = ₹400
 
 ```
 PRODUCT TOTALS:
-Σ(original_price)            = 1000 + 400       = ₹1400 ✅ = order.original_total
+⚠️ NOTE: original_price is PER-UNIT, so we multiply by quantity for totals
+Σ(original_price × quantity) = (500 × 2) + (400 × 1) = ₹1400 ✅ = order.original_total
 Σ(product_discount_amount)   = 50 + 0           = ₹50   ✅
 Σ(productamount)             = 950 + 400        = ₹1350 ✅ = order.productamount
 Σ(discountamount)            = 50 + 0           = ₹50   ✅ = order.discountamount
@@ -1242,7 +1314,14 @@ order.orderamount = Σ(orderamount) + shipping_cost
                        ▼                            ▼
                ┌───────────────┐            ┌───────────────┐
                │ original_price│            │ original_price│
-               │ = ₹1000       │            │ = ₹400        │
+               │ = ₹500 (per-unit)│         │ = ₹400 (per-unit)│
+               └───────┬───────┘            └───────┬───────┘
+                       │                            │
+                       │ (× quantity for totals)    │
+                       ▼                            ▼
+               ┌───────────────┐            ┌───────────────┐
+               │ Total: ₹1000  │            │ Total: ₹400   │
+               │ (500 × 2)     │            │ (400 × 1)     │
                └───────┬───────┘            └───────┬───────┘
                        │                            │
                        ▼                            │
@@ -1273,12 +1352,13 @@ order.orderamount = Σ(orderamount) + shipping_cost
                ┌───────────────┐         ┌───────────────┐
                │ ORDERLINE 1   │         │ ORDERLINE 2   │
                │ ────────────  │         │ ────────────  │
-               │ orig:   ₹1000 │         │ orig:   ₹400  │
-               │ prod:   -₹50  │         │ prod:   -₹0   │
-               │ promo:  -₹0   │         │ promo:  -₹0   │
+               │ orig:   ₹500  │ ✅ PER-UNIT│ orig:   ₹400  │ ✅ PER-UNIT
+               │ qty:    2     │         │ qty:    1     │
+               │ prod:   -₹50  │ ✅ TOTAL│ prod:   -₹0   │ ✅ TOTAL
+               │ promo:  -₹0   │ ✅ TOTAL│ promo:  -₹0   │ ✅ TOTAL
                │ ────────────  │         │ ────────────  │
-               │ amount: ₹950  │         │ amount: ₹400  │
-               │ ship:   ₹106  │         │ ship:   ₹44   │
+               │ amount: ₹950  │ ✅ TOTAL│ amount: ₹400  │ ✅ TOTAL
+               │ ship:   ₹106  │ ✅ TOTAL│ ship:   ₹44   │ ✅ TOTAL
                └───────────────┘         └───────────────┘
                        │                         │
                        └────────────┬────────────┘
@@ -1369,32 +1449,32 @@ Formulas:
 ───────────────────────────────────────────────────────────────────────────
 ORDERLINE 1 (Product 1: ₹500 × 2)
 ───────────────────────────────────────────────────────────────────────────
-original_price          = 500 × 2 = ₹1000
-product_discount_amount = 25 × 2  = ₹50
-productamount           = 1000 - 50 = ₹950
+original_price          = 500 (PER-UNIT, NOT multiplied) ✅
+product_discount_amount = 25 × 2  = ₹50 (TOTAL)
+productamount           = (500 × 2) - 50 = ₹950 (TOTAL)
 
 Pro-rata factor = 950 / 1350 = 0.7037
 
-promotion_discount_amount = 0.7037 × 500 = ₹351.85
-shipping_cost             = 0.7037 × 150 = ₹105.56
+promotion_discount_amount = 0.7037 × 500 = ₹351.85 (TOTAL)
+shipping_cost             = 0.7037 × 150 = ₹105.56 (TOTAL)
 
-discountamount = 50 + 351.85 = ₹401.85
-orderamount    = 950 - 351.85 = ₹598.15
+discountamount = 50 + 351.85 = ₹401.85 (TOTAL)
+orderamount    = 950 - 351.85 = ₹598.15 (TOTAL)
 
 ───────────────────────────────────────────────────────────────────────────
 ORDERLINE 2 (Product 2: ₹400 × 1)
 ───────────────────────────────────────────────────────────────────────────
-original_price          = 400 × 1 = ₹400
-product_discount_amount = 0 × 1   = ₹0
-productamount           = 400 - 0 = ₹400
+original_price          = 400 (PER-UNIT, NOT multiplied) ✅
+product_discount_amount = 0 × 1   = ₹0 (TOTAL)
+productamount           = (400 × 1) - 0 = ₹400 (TOTAL)
 
 Pro-rata factor = 400 / 1350 = 0.2963
 
-promotion_discount_amount = 0.2963 × 500 = ₹148.15
-shipping_cost             = 0.2963 × 150 = ₹44.44
+promotion_discount_amount = 0.2963 × 500 = ₹148.15 (TOTAL)
+shipping_cost             = 0.2963 × 150 = ₹44.44 (TOTAL)
 
-discountamount = 0 + 148.15 = ₹148.15
-orderamount    = 400 - 148.15 = ₹251.85
+discountamount = 0 + 148.15 = ₹148.15 (TOTAL)
+orderamount    = 400 - 148.15 = ₹251.85 (TOTAL)
 ```
 
 ### Final Stored Values
@@ -1419,13 +1499,13 @@ orderamount    = 400 - 148.15 = ₹251.85
 ├─────────────────────────────┼──────────┤
 │ productid                   │ 1        │
 │ quantity                    │ 2        │
-│ original_price              │ ₹1000.00 │
-│ product_discount_amount     │ ₹50.00   │
-│ promotion_discount_amount   │ ₹351.85  │
-│ productamount               │ ₹950.00  │
-│ discountamount              │ ₹401.85  │
-│ orderamount                 │ ₹598.15  │
-│ shipping_cost               │ ₹105.56  │
+│ original_price              │ ₹500.00  │ ✅ PER-UNIT (not multiplied)
+│ product_discount_amount     │ ₹50.00   │ ✅ TOTAL
+│ promotion_discount_amount   │ ₹351.85  │ ✅ TOTAL
+│ productamount               │ ₹950.00  │ ✅ TOTAL
+│ discountamount              │ ₹401.85  │ ✅ TOTAL
+│ orderamount                 │ ₹598.15  │ ✅ TOTAL
+│ shipping_cost               │ ₹105.56  │ ✅ TOTAL
 └─────────────────────────────┴──────────┘
 
 -- ORDERLINE TABLE (Product 2)
@@ -1434,13 +1514,13 @@ orderamount    = 400 - 148.15 = ₹251.85
 ├─────────────────────────────┼──────────┤
 │ productid                   │ 2        │
 │ quantity                    │ 1        │
-│ original_price              │ ₹400.00  │
-│ product_discount_amount     │ ₹0.00    │
-│ promotion_discount_amount   │ ₹148.15  │
-│ productamount               │ ₹400.00  │
-│ discountamount              │ ₹148.15  │
-│ orderamount                 │ ₹251.85  │
-│ shipping_cost               │ ₹44.44   │
+│ original_price              │ ₹400.00  │ ✅ PER-UNIT (not multiplied)
+│ product_discount_amount     │ ₹0.00    │ ✅ TOTAL
+│ promotion_discount_amount   │ ₹148.15  │ ✅ TOTAL
+│ productamount               │ ₹400.00  │ ✅ TOTAL
+│ discountamount              │ ₹148.15  │ ✅ TOTAL
+│ orderamount                 │ ₹251.85  │ ✅ TOTAL
+│ shipping_cost               │ ₹44.44   │ ✅ TOTAL
 └─────────────────────────────┴──────────┘
 ```
 
@@ -1448,7 +1528,8 @@ orderamount    = 400 - 148.15 = ₹251.85
 
 ```
 PRODUCT TOTALS:
-Σ(original_price)            = 1000 + 400       = ₹1400 ✅ = order.original_total
+⚠️ NOTE: original_price is PER-UNIT, so we multiply by quantity for totals
+Σ(original_price × quantity) = (500 × 2) + (400 × 1) = ₹1400 ✅ = order.original_total
 Σ(product_discount_amount)   = 50 + 0           = ₹50   ✅
 Σ(productamount)             = 950 + 400        = ₹1350 ✅ = order.productamount
 
@@ -1476,7 +1557,14 @@ order.orderamount = Σ(orderamount) + shipping_cost
                        ▼                            ▼
                ┌───────────────┐            ┌───────────────┐
                │ original_price│            │ original_price│
-               │ = ₹1000       │            │ = ₹400        │
+               │ = ₹500 (per-unit)│         │ = ₹400 (per-unit)│
+               └───────┬───────┘            └───────┬───────┘
+                       │                            │
+                       │ (× quantity for totals)    │
+                       ▼                            ▼
+               ┌───────────────┐            ┌───────────────┐
+               │ Total: ₹1000  │            │ Total: ₹400   │
+               │ (500 × 2)     │            │ (400 × 1)     │
                └───────┬───────┘            └───────┬───────┘
                        │                            │
                        ▼                            │
@@ -1513,8 +1601,10 @@ order.orderamount = Σ(orderamount) + shipping_cost
                ┌───────────────┐         ┌───────────────┐
                │ ORDERLINE 1   │         │ ORDERLINE 2   │
                │ ────────────  │         │ ────────────  │
-               │ amount: ₹598  │         │ amount: ₹252  │
-               │ ship:   ₹106  │         │ ship:   ₹44   │
+               │ orig:   ₹500  │ ✅ PER-UNIT│ orig:   ₹400  │ ✅ PER-UNIT
+               │ qty:    2     │         │ qty:    1     │
+               │ amount: ₹598  │ ✅ TOTAL│ amount: ₹252  │ ✅ TOTAL
+               │ ship:   ₹106  │ ✅ TOTAL│ ship:   ₹44   │ ✅ TOTAL
                │ ────────────  │         │ ────────────  │
                │ line: ₹704    │         │ line:  ₹296   │
                └───────────────┘         └───────────────┘
@@ -1585,16 +1675,24 @@ promotionDiscountTotal  = from promotion_evaluations.applied_promotions
 discountamount          = productDiscountTotal + promotionDiscountTotal
 orderamount             = (productAmount - promotionDiscountTotal) + shippingCost
 
-ORDERLINE-LEVEL (Pro-rata):
+ORDERLINE-LEVEL:
 ─────────────────────────────────────────────────────────────────
-proRataFactor           = item_productamount / total_productamount
-promotion_discount      = proRataFactor × promotionDiscountTotal
-shipping_cost           = proRataFactor × totalShippingCost
-discountamount          = product_discount + promotion_discount
-orderamount             = productamount - promotion_discount
+// PER-UNIT (stored as-is, NOT multiplied by quantity)
+original_price          = base_price (from evaluation) OR productamount (fallback)
 
-⚠️ Note: shipping_cost is stored separately (not added to orderamount at line level)
-   Final = Σ(orderline.orderamount) + Σ(orderline.shipping_cost) = order.orderamount
+// TOTALS (multiplied by quantity)
+product_discount_amount = product_discount × quantity
+itemProductAmount       = (original_price × quantity) - product_discount_amount
+promotion_discount      = (from breakdown) OR (proRataFactor × promotionDiscountTotal)
+shipping_cost           = (totalShipping × itemProductAmount) / totalProductAmount
+discountamount          = product_discount_amount + promotion_discount_amount
+orderamount             = itemProductAmount - promotion_discount_amount
+
+⚠️ CRITICAL RULES:
+  1. original_price = PER-UNIT (not multiplied by quantity)
+  2. All other amounts = TOTALS (include quantity)
+  3. shipping_cost is stored separately (not added to orderamount at line level)
+  4. Final = Σ(orderline.orderamount) + Σ(orderline.shipping_cost) = order.orderamount
 ```
 
 ---
@@ -1689,7 +1787,13 @@ After CALLBACK:
 7. **Negative Prevention**: All quantity calculations use `Math.max(0, ...)` to prevent negatives
 8. **Last-Item Adjustment**: Last orderline gets remainder to ensure totals match exactly
 9. **GCP Tasks**: Scheduled cleanup if payment not completed within timeout
-10. **GST Calculation** ⭐: Automatically calculated after orderline creation:
+10. **Orderline Amount Calculation** ⭐: 
+    - `original_price` = **PER-UNIT** (base_price, NOT multiplied by quantity)
+    - `productamount` = (original_price × quantity) - product_discount_amount (TOTAL)
+    - `orderamount` = productamount - promotion_discount_amount (TOTAL)
+    - All other amounts are TOTALS (include quantity)
+    - See `ORDER_ORDERLINE_FIELDS_MASTER_REFERENCE.md` for complete field definitions
+11. **GST Calculation** ⭐: Automatically calculated after orderline creation:
     - Fetches warehouse pincode from EKART API
     - Gets delivery pincode from order address
     - Uses postal API to get states from both pincodes
@@ -1716,5 +1820,88 @@ After CALLBACK:
 
 ---
 
-*Last Updated: December 2024*
+*Last Updated: 20 December 2024*
 
+1. initiate phonepe
+
+platform stock => availableqty ↓  and lockqty ↑
+product. => no change 
+
+2. after callback 
+
+platform stock => availableqty (no change)  and lockqty ↓ and  orderedqty ↑
+product. => orderedquantity ↑, availablequantity ↓
+
+3. clean up task (when payment is not successful)
+
+PlatformStock
+availableqty ↑ (adds back the released quantity)
+lockqty ↓ (subtracts released quantity, floored at 0)
+orderedqty unchanged
+
+
+4. after order ready for dispatch
+
+stock 
+  - stockstatus ='sold',update orderlid and orderlinenumber and solddate 
+
+platformstcok
+  -orderedqty ↓ ,soldqty ↑, availableqty (no change)
+
+product
+  -orderedquantity ↓,soldquantity ↑, availablequantity (no change)
+
+5. after order mark shipped 
+
+orderline 
+  -shipdate :current timestamp,ordersttaus:shipped
+
+order
+  -shipdate :current timestamp,ordersttaus:shipped,label_printed_at:current timestamp
+
+
+### 2.1 Orderline Statuses (Actual Item Lifecycle)
+
+| Status | Description | Who Sets | Date Field | Stock Action | Ekart Integration |
+|--------|-------------|----------|------------|--------------|-------------------|
+| **`order_placed`** | Orderline created; stock reserved | System | `ordereddate` | Reserve stock | - |
+| **`payment_completed`** | Payment done (Prepaid), OR COD accepted | System | `paymentcompleteddate` | Convert lock→order | - |
+| **`payment_failed`** | Prepaid payment failed | System | `paymentfaileddate` | Release reserved stock | - |
+| **`order_confirmed`** | Warehouse accepted orderline | System | `orderconfirmeddate` | None | - |
+| **`packed`** | Orderline packed into box | Warehouse | `packeddate` | None | - |
+| **`ready_for_dispatch`** | Box ready; manifest generated | Warehouse | `readytodispatchdate` | None | - |
+| **`shipped`** | Ekart AWB created | System | `shipdate` | None | ✅ Ekart AWB created |
+| **`in_transit`** | Ekart event | Ekart | None | None | ✅ Tracking |
+| **`out_for_delivery`** | Ekart event | Ekart | None | None | ✅ Tracking |
+| **`delivered`** | Delivered to customer | Ekart | `delivereddate` | None | ✅ Tracking |
+| **`cod_payment_received`** | COD payment collected | Ekart | `paymentreceiveddate` | None | ✅ After delivery |
+| **`cancellation_requested`** | Cancellation requested (shipped order) | Customer | `cancellationrequesteddate` | None (wait for RTO) | Wait for RTO |
+| **`cancelled`** | Orderline cancelled; stock restored | System / Customer | `cancelleddate` | ✅ Restore stock | Optional: Cancel AWB |
+| **`return_initiated`** | Customer started return | Customer | `returninitiateddate` | None | Optional Ekart |
+| **`returned`** | Reverse shipment delivered | Ekart | `returneddate` | ✅ Restore stock | Reverse AWB |
+| **`rto_initiated`** | Delivery failed → Ekart returning | Ekart | None | ✅ Restore stock | Ekart RTO |
+| **`rto_delivered`** | RTO item delivered to seller | Ekart | None | None | Ekart RTO |
+
+### 2.2 Order Statuses (Derived, Not Manually Set)
+
+| Status | Meaning |
+|--------|---------|
+| **`order_placed`** | Order created (all lines placed) |
+| **`payment_completed`** | Prepaid done OR COD accepted |
+| **`order_confirmed`** | All orderlines confirmed |
+| **`packed`** | All orderlines packed in single box |
+| **`ready_for_dispatch`** | All orderlines ready |
+| **`shipped`** | All orderlines shipped (single AWB) |
+| **`in_transit`** | All shipped and in transit |
+| **`out_for_delivery`** | All OFD |
+| **`delivered`** | All delivered |
+| **`cod_payment_received`** | COD payment fully collected |
+| **`cancellation_requested`** | Cancellation requested (waiting for RTO) |
+| **`partially_cancelled`** | Some orderlines cancelled |
+| **`cancelled`** | All orderlines cancelled |
+| **`partially_returned`** | Some returned |
+| **`returned`** | All returned |
+| **`rto_initiated`** | All RTO initiated |
+| **`rto_delivered`** | All RTO delivered |
+
+**Important:** Order status is **always derived** from orderline statuses, never manually set.

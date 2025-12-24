@@ -45,6 +45,32 @@ export class ProductController {
         const response = createSuccessResponse("Product updated successfully", formatProductForAPI(product));
         return reply.code(200).send(response);
     });
+    validateComboComponents = asyncHandler(async (request, reply) => {
+        const body = request.body;
+        if (!body.components || !Array.isArray(body.components)) {
+            return reply.code(400).send({
+                success: false,
+                message: "Components array is required",
+                details: "Please provide a components array with productid and requiredqty"
+            });
+        }
+        const validationResult = await this.productService.validateComboComponents(body.components);
+        if (validationResult.isValid) {
+            return reply.code(200).send({
+                success: true,
+                isValid: true,
+                message: validationResult.message
+            });
+        }
+        else {
+            return reply.code(409).send({
+                success: false,
+                isValid: false,
+                message: validationResult.message,
+                existingCombo: validationResult.existingCombo
+            });
+        }
+    });
     deleteProduct = asyncHandler(async (request, reply) => {
         const { id } = productParamsSchema.parse(request.params);
         await this.productService.delete(id);
@@ -362,12 +388,11 @@ export class ProductController {
         const { page: _, limit: __, ...filters } = allFilters;
         const result = await this.productService.findManyForPlatform(platform, filters, page, limit);
         const formattedData = formatEntitiesForAPI(result.data, "product");
-        // Transform platformStocks array to single platformStock object
-        const transformedData = formattedData.map((product) => ({
-            ...product,
-            platformStock: product.platformStocks?.[0] || null,
-            platformStocks: undefined, // Remove the array
-        }));
+        // Remove platformStocks array from response (only keep platformStock in components)
+        const transformedData = formattedData.map((product) => {
+            const { platformStocks, ...productWithoutPlatformStocks } = product;
+            return productWithoutPlatformStocks;
+        });
         const response = createSuccessResponse(`Products for ${platform} platform retrieved successfully`, transformedData);
         return reply.code(200).send({
             ...response,
@@ -384,12 +409,8 @@ export class ProductController {
         const { id, platform } = request.params;
         const product = await this.productService.findByIdForPlatform(id, platform);
         const formattedProduct = formatProductForAPI(product);
-        // Transform platformStocks array to single platformStock object
-        const transformedProduct = {
-            ...formattedProduct,
-            platformStock: formattedProduct.platformStocks?.[0] || null,
-            platformStocks: undefined, // Remove the array
-        };
+        // Remove platformStocks array from response (only keep platformStock in components)
+        const { platformStocks, ...transformedProduct } = formattedProduct;
         const response = createSuccessResponse(`Product ${id} for ${platform} platform retrieved successfully`, transformedProduct);
         return reply.code(200).send(response);
     });

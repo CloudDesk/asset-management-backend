@@ -38,6 +38,18 @@ export declare const createProductSchema: z.ZodObject<{
     isdealoftheday: z.ZodOptional<z.ZodBoolean>;
     status: z.ZodOptional<z.ZodString>;
     description: z.ZodOptional<z.ZodString>;
+    iscombo: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+    combotype: z.ZodDefault<z.ZodOptional<z.ZodString>>;
+    components: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        productid: z.ZodUnion<[z.ZodString, z.ZodNumber, z.ZodBigInt]>;
+        requiredqty: z.ZodNumber;
+    }, "strip", z.ZodTypeAny, {
+        productid: string | number | bigint;
+        requiredqty: number;
+    }, {
+        productid: string | number | bigint;
+        requiredqty: number;
+    }>, "many">>;
 }, "passthrough", z.ZodTypeAny, z.objectOutputType<{
     name: z.ZodString;
     puc: z.ZodOptional<z.ZodString>;
@@ -77,6 +89,18 @@ export declare const createProductSchema: z.ZodObject<{
     isdealoftheday: z.ZodOptional<z.ZodBoolean>;
     status: z.ZodOptional<z.ZodString>;
     description: z.ZodOptional<z.ZodString>;
+    iscombo: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+    combotype: z.ZodDefault<z.ZodOptional<z.ZodString>>;
+    components: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        productid: z.ZodUnion<[z.ZodString, z.ZodNumber, z.ZodBigInt]>;
+        requiredqty: z.ZodNumber;
+    }, "strip", z.ZodTypeAny, {
+        productid: string | number | bigint;
+        requiredqty: number;
+    }, {
+        productid: string | number | bigint;
+        requiredqty: number;
+    }>, "many">>;
 }, z.ZodTypeAny, "passthrough">, z.objectInputType<{
     name: z.ZodString;
     puc: z.ZodOptional<z.ZodString>;
@@ -116,6 +140,18 @@ export declare const createProductSchema: z.ZodObject<{
     isdealoftheday: z.ZodOptional<z.ZodBoolean>;
     status: z.ZodOptional<z.ZodString>;
     description: z.ZodOptional<z.ZodString>;
+    iscombo: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+    combotype: z.ZodDefault<z.ZodOptional<z.ZodString>>;
+    components: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        productid: z.ZodUnion<[z.ZodString, z.ZodNumber, z.ZodBigInt]>;
+        requiredqty: z.ZodNumber;
+    }, "strip", z.ZodTypeAny, {
+        productid: string | number | bigint;
+        requiredqty: number;
+    }, {
+        productid: string | number | bigint;
+        requiredqty: number;
+    }>, "many">>;
 }, z.ZodTypeAny, "passthrough">>;
 export declare const updateProductSchema: z.ZodObject<{
     name: z.ZodOptional<z.ZodString>;
