@@ -26,9 +26,10 @@ import { promotionsRoutes } from './promotions.route.js';
 import { ratingRoutes } from './rating.route.js';
 import { smsRoutes } from './sms.route.js';
 import { ekartRoutes } from './ekart.route.js';
+import { testRoutes } from './test.route.js';
 import { requireAuthentication } from '../middleware/auth.middleware.js';
 import { createSuccessResponse } from '../utils/errorHandler.js';
-import     {permissionRoutes} from './permission.route.js';
+import { permissionRoutes } from './permission.route.js';
 
 export async function routes(fastify: FastifyInstance) {
   // Health check endpoint (public)
@@ -68,11 +69,26 @@ export async function routes(fastify: FastifyInstance) {
     return reply.code(200).send(response);
   });
 
+  // ============================================================================
   // API v1 routes
+  // ============================================================================
   await fastify.register(async function (fastify) {
- 
+
+    // -------------------------------------------------------------------------
+    // PUBLIC ROUTES - No authentication required
+    // -------------------------------------------------------------------------
+    // Auth routes: /v1/auth/* (signin, register, forgot-password, etc.)
     await fastify.register(authRoutes, { prefix: '/auth' });
+
+    // Mobile auth routes: /v1/mobile-auth/* (for ecommerce users)
     await fastify.register(mobileAuthRoutes, { prefix: '/mobile-auth' });
+
+    // Test routes: /v1/test/public, /v1/test/protected, etc.
+    // These demonstrate public vs protected route patterns
+    await fastify.register(testRoutes, { prefix: '' });
+
+    // All routes below are currently PUBLIC (no auth middleware applied)
+    // TODO: Move routes that require authentication into the protected scope below
     await fastify.register(productRoutes, { prefix: '/products' });
     await fastify.register(stockRoutes, { prefix: '/stocks' });
     await fastify.register(platformStockRoutes, { prefix: '/platform-stocks' });
@@ -86,7 +102,6 @@ export async function routes(fastify: FastifyInstance) {
     await fastify.register(inventoryUsersRoutes, { prefix: '/inventoryusers' });
     await fastify.register(roleRoutes, { prefix: '/roles' });
     await fastify.register(permissionSetRoutes, { prefix: '/permission-sets' });
-
     await fastify.register(permissionRoutes, { prefix: '/permissions' });
     await fastify.register(poinvoiceRoutes, { prefix: '/poinvoices' });
     await fastify.register(addressRoutes, { prefix: '/addresses' });
@@ -95,20 +110,31 @@ export async function routes(fastify: FastifyInstance) {
     await fastify.register(ordersRoutes, { prefix: '/orders' });
     await fastify.register(orderlineRoutes, { prefix: '/orderlines' });
     await fastify.register(transactionRoutes, { prefix: '/transactions' });
-    await fastify.register(phonePeRoutes, { prefix: '/phonepe' });    
-    // Promotion system routes (public for guest users)
+    await fastify.register(phonePeRoutes, { prefix: '/phonepe' });
     await fastify.register(promotionsRoutes, { prefix: '/promotions' });
     await fastify.register(ratingRoutes, { prefix: '/ratings' });
-    // SMS routes (public for OTP sending)
     await fastify.register(smsRoutes, { prefix: '/sms' });
-    // Ekart Logistics routes
     await fastify.register(ekartRoutes, { prefix: '/ekart' });
 
+    // -------------------------------------------------------------------------
+    // PROTECTED ROUTES - Authentication required via requireAuthentication
+    // -------------------------------------------------------------------------
+    // Purpose: Any route registered in this scope will automatically have the
+    // requireAuthentication middleware applied via the preHandler hook.
+    // 
+    // This means ALL routes here require a valid JWT Bearer token.
+    // If authentication fails, the middleware returns 401 Unauthorized.
+    //
+    // Usage: Move routes that need auth protection here, or register new ones.
+    // Example:
+    //   await fastify.register(adminRoutes, { prefix: '/admin' });
+    // -------------------------------------------------------------------------
     await fastify.register(async function (fastify) {
-      // Apply authentication middleware to all routes in this scope
+      // Apply authentication middleware to ALL routes in this scope
       fastify.addHook('preHandler', requireAuthentication);
-      // Register protected routes
 
+      // Register protected routes here
+      // Example: Admin-only routes, user profile management, etc.
 
     });
 

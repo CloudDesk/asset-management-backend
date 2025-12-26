@@ -2,11 +2,13 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { InventoryUsersService } from '../services/inventoryusers.service.js';
 import { authRateLimit } from '../utils/auth.js';
 import { logger } from '../config/logger.js';
-import { 
+import {
   createSuccessResponse,
   asyncHandler
 } from '../utils/errorHandler.js';
 import { AuthenticatedRequest, authenticateInventoryUser } from '../middleware/auth.middleware.js';
+import { authSessionService } from '../services/authsession.service.js';
+import { generateTokenPair } from '../utils/jwt.js';
 
 export async function authRoutes(fastify: FastifyInstance) {
   const inventoryUsersService = new InventoryUsersService();
@@ -20,13 +22,13 @@ export async function authRoutes(fastify: FastifyInstance) {
         type: 'object',
         required: ['useremail', 'userpassword'],
         properties: {
-          useremail: { 
-            type: 'string', 
-            format: 'email', 
+          useremail: {
+            type: 'string',
+            format: 'email',
             description: 'User email address'
           },
-          userpassword: { 
-            type: 'string', 
+          userpassword: {
+            type: 'string',
             minLength: 1,
             description: 'User password'
           },
@@ -147,14 +149,14 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     // Rate limiting check
     const identifier = `${request.ip}-${useremail}`;
-    if (authRateLimit.isRateLimited(identifier)) {
+    /*if (authRateLimit.isRateLimited(identifier)) {
       const remainingAttempts = authRateLimit.getRemainingAttempts(identifier);
-      logger.warn({ 
-        ip: request.ip, 
+      logger.warn({
+        ip: request.ip,
         email: useremail,
-        remainingAttempts 
+        remainingAttempts
       }, 'Sign-in rate limited');
-      
+
       return reply.code(429).send({
         success: false,
         message: 'Too many sign-in attempts',
@@ -163,21 +165,21 @@ export async function authRoutes(fastify: FastifyInstance) {
         remainingAttempts,
       });
     }
-
+*/
     try {
       const result = await inventoryUsersService.authenticate(useremail, userpassword);
-      
+
       if (!result) {
         // Record failed attempt
         authRateLimit.recordAttempt(identifier);
         const remainingAttempts = authRateLimit.getRemainingAttempts(identifier);
-        
-        logger.warn({ 
-          ip: request.ip, 
+
+        logger.warn({
+          ip: request.ip,
           email: useremail,
-          remainingAttempts 
+          remainingAttempts
         }, 'Sign-in failed: Invalid credentials');
-        
+
         return reply.code(401).send({
           success: false,
           message: 'Invalid credentials',
@@ -190,11 +192,25 @@ export async function authRoutes(fastify: FastifyInstance) {
       // Clear rate limiting on successful sign-in
       authRateLimit.clearAttempts(identifier);
 
-      logger.info({ 
-        userId: result.user.id, 
+      // Create auth session (NEW: Session-based authentication)
+      const session = await authSessionService.createSession({
+        userId: result.user.id,
+        userType: 'inventory',
+        refreshToken: result.refreshToken,
+        expiresInDays: 7, // Inventory users: 7 days
+        ipAddress: request.ip,
+        ...(request.headers['user-agent'] && { userAgent: request.headers['user-agent'] }),
+      });
+
+      // Enforce session limit (keep only 5 most recent sessions)
+      await authSessionService.enforceSessionLimit(result.user.id, 'inventory', 5);
+
+      logger.info({
+        userId: result.user.id,
         email: useremail,
-        ip: request.ip 
-      }, 'User signed in successfully');
+        ip: request.ip,
+        sessionId: session.id,
+      }, 'User signed in successfully with session created');
 
       const response = createSuccessResponse('Sign-in successful', result);
       return reply.code(200).send(response);
@@ -214,44 +230,44 @@ export async function authRoutes(fastify: FastifyInstance) {
         type: 'object',
         required: ['useremail', 'userpassword', 'firstname', 'lastname'],
         properties: {
-          useremail: { 
-            type: 'string', 
-            format: 'email', 
+          useremail: {
+            type: 'string',
+            format: 'email',
             description: 'User email address'
           },
-          userpassword: { 
-            type: 'string', 
+          userpassword: {
+            type: 'string',
             minLength: 8,
             description: 'User password (minimum 8 characters)'
           },
-          firstname: { 
-            type: 'string', 
+          firstname: {
+            type: 'string',
             minLength: 1,
             maxLength: 255,
             description: 'First name'
           },
-          lastname: { 
-            type: 'string', 
+          lastname: {
+            type: 'string',
             minLength: 1,
             maxLength: 255,
             description: 'Last name'
           },
-          role: { 
-            type: 'string', 
+          role: {
+            type: 'string',
             maxLength: 500,
             description: 'User role (optional)'
           },
-          location: { 
-            type: 'string', 
+          location: {
+            type: 'string',
             maxLength: 500,
             description: 'User location (optional)'
           },
-          usersphonenumber: { 
-            type: 'number', 
+          usersphonenumber: {
+            type: 'number',
             description: 'Phone number (optional)'
           },
-          fcmid: { 
-            type: 'string', 
+          fcmid: {
+            type: 'string',
             maxLength: 400,
             description: 'FCM ID for notifications (optional)'
           },
@@ -347,11 +363,11 @@ export async function authRoutes(fastify: FastifyInstance) {
     // Rate limiting for registration
     const identifier = `register-${request.ip}-${userData.useremail}`;
     if (authRateLimit.isRateLimited(identifier)) {
-      logger.warn({ 
-        ip: request.ip, 
-        email: userData.useremail 
+      logger.warn({
+        ip: request.ip,
+        email: userData.useremail
       }, 'Registration rate limited');
-      
+
       return reply.code(429).send({
         success: false,
         message: 'Too many registration attempts',
@@ -363,30 +379,30 @@ export async function authRoutes(fastify: FastifyInstance) {
     try {
       // Store the original password before it gets hashed
       const originalPassword = userData.userpassword;
-      
+
       // Create the user
       const newUser = await inventoryUsersService.create(userData);
-      
+
       // Authenticate the user immediately after registration using the original password
       const authResult = await inventoryUsersService.authenticate(userData.useremail, originalPassword);
-      
+
       if (!authResult) {
         throw new Error('Failed to authenticate user after registration');
       }
 
       authRateLimit.recordAttempt(identifier);
 
-      logger.info({ 
-        userId: newUser.id, 
+      logger.info({
+        userId: newUser.id,
         email: userData.useremail,
-        ip: request.ip 
+        ip: request.ip
       }, 'User registered and signed in successfully');
 
       const response = createSuccessResponse('Registration successful', authResult);
       return reply.code(201).send(response);
     } catch (error) {
       authRateLimit.recordAttempt(identifier);
-      
+
       // Handle specific error cases
       if (error instanceof Error) {
         if (error.message.includes('Email already exists')) {
@@ -397,7 +413,7 @@ export async function authRoutes(fastify: FastifyInstance) {
             statusCode: 409,
           });
         }
-        
+
         if (error.message.includes('Password validation failed')) {
           return reply.code(400).send({
             success: false,
@@ -407,7 +423,7 @@ export async function authRoutes(fastify: FastifyInstance) {
           });
         }
       }
-      
+
       logger.error({ error, email: userData.useremail, ip: request.ip }, 'Error during registration');
       throw error;
     }
@@ -451,13 +467,18 @@ export async function authRoutes(fastify: FastifyInstance) {
   }, asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
     const userId = request.user!.id;
 
+    // Revoke all user sessions (logout from all devices)
+    const revokedCount = await authSessionService.revokeAllUserSessions(userId, 'inventory');
+
+    // Also clear old sessiontoken field for backward compatibility
     await inventoryUsersService.signOut(userId);
 
-    logger.info({ 
-      userId, 
+    logger.info({
+      userId,
       email: request.user!.useremail,
-      ip: request.ip 
-    }, 'User signed out successfully');
+      ip: request.ip,
+      revokedSessions: revokedCount,
+    }, 'User signed out successfully from all devices');
 
     const response = createSuccessResponse('Sign-out successful', null);
     return reply.code(200).send(response);
@@ -472,10 +493,10 @@ export async function authRoutes(fastify: FastifyInstance) {
         type: 'object',
         required: ['useremail'],
         properties: {
-          useremail: { 
-            type: 'string', 
-            format: 'email', 
-            description: 'User email address' 
+          useremail: {
+            type: 'string',
+            format: 'email',
+            description: 'User email address'
           },
         },
         additionalProperties: false,
@@ -524,11 +545,11 @@ export async function authRoutes(fastify: FastifyInstance) {
     // Rate limiting for password reset requests
     const identifier = `reset-${request.ip}-${useremail}`;
     if (authRateLimit.isRateLimited(identifier)) {
-      logger.warn({ 
-        ip: request.ip, 
-        email: useremail 
+      logger.warn({
+        ip: request.ip,
+        email: useremail
       }, 'Password reset rate limited');
-      
+
       return reply.code(429).send({
         success: false,
         message: 'Too many password reset requests',
@@ -539,13 +560,13 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     try {
       await inventoryUsersService.initiatePasswordReset(useremail);
-      
+
       // Record attempt regardless of whether email exists (security)
       authRateLimit.recordAttempt(identifier);
 
-      logger.info({ 
+      logger.info({
         email: useremail,
-        ip: request.ip 
+        ip: request.ip
       }, 'Password reset initiated');
 
       // Always return success to prevent email enumeration
@@ -570,15 +591,15 @@ export async function authRoutes(fastify: FastifyInstance) {
         type: 'object',
         required: ['token', 'newPassword'],
         properties: {
-          token: { 
-            type: 'string', 
+          token: {
+            type: 'string',
             minLength: 1,
-            description: 'Password reset token' 
+            description: 'Password reset token'
           },
-          newPassword: { 
-            type: 'string', 
+          newPassword: {
+            type: 'string',
             minLength: 8,
-            description: 'New password (minimum 8 characters)' 
+            description: 'New password (minimum 8 characters)'
           },
         },
         additionalProperties: false,
@@ -617,8 +638,8 @@ export async function authRoutes(fastify: FastifyInstance) {
     try {
       await inventoryUsersService.resetPassword(token, newPassword);
 
-      logger.info({ 
-        ip: request.ip 
+      logger.info({
+        ip: request.ip
       }, 'Password reset completed successfully');
 
       const response = createSuccessResponse('Password reset successful', null);
@@ -631,7 +652,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 
   // POST /v1/auth/update-password - Update password for authenticated user
   fastify.post('/update-password', {
-    preHandler: authenticateInventoryUser,
+    // preHandler: authenticateInventoryUser,
     schema: {
       description: 'Update password for authenticated inventory user',
       tags: ['Authentication'],
@@ -640,15 +661,15 @@ export async function authRoutes(fastify: FastifyInstance) {
         type: 'object',
         required: ['currentPassword', 'newPassword'],
         properties: {
-          currentPassword: { 
-            type: 'string', 
+          currentPassword: {
+            type: 'string',
             minLength: 1,
-            description: 'Current password' 
+            description: 'Current password'
           },
-          newPassword: { 
-            type: 'string', 
+          newPassword: {
+            type: 'string',
             minLength: 8,
-            description: 'New password (minimum 8 characters)' 
+            description: 'New password (minimum 8 characters)'
           },
         },
         additionalProperties: false,
@@ -697,10 +718,10 @@ export async function authRoutes(fastify: FastifyInstance) {
     try {
       await inventoryUsersService.updatePassword(userId, currentPassword, newPassword);
 
-      logger.info({ 
-        userId, 
+      logger.info({
+        userId,
         email: request.user!.useremail,
-        ip: request.ip 
+        ip: request.ip
       }, 'Password updated successfully');
 
       const response = createSuccessResponse('Password updated successfully', null);
@@ -765,9 +786,9 @@ export async function authRoutes(fastify: FastifyInstance) {
   }, asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
     const user = request.user!;
 
-    logger.debug({ 
-      userId: user.id, 
-      email: user.useremail 
+    logger.debug({
+      userId: user.id,
+      email: user.useremail
     }, 'User information retrieved');
 
     const response = createSuccessResponse('User information retrieved successfully', user);
@@ -839,33 +860,62 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
 
     try {
-      const { refreshAccessToken } = await import('../utils/jwt.js');
-      const tokenPair = refreshAccessToken(refreshToken);
+      // Verify session exists and is valid
+      const session = await authSessionService.verifyRefreshToken(refreshToken, 'inventory');
 
-      // Update refresh token in database if sliding expiry is enabled
-      if (tokenPair.refreshToken !== refreshToken) {
-        const { verifyToken } = await import('../utils/jwt.js');
-        const decoded = verifyToken(tokenPair.refreshToken);
-        
-        const inventoryUsersService = new InventoryUsersService();
-        await inventoryUsersService.update(decoded.userId.toString(), {
-          sessiontoken: tokenPair.refreshToken
-        } as any);
+      if (!session) {
+        return reply.code(401).send({
+          success: false,
+          message: 'Invalid refresh token',
+          details: 'Refresh token is invalid, expired, or revoked',
+          statusCode: 401
+        });
       }
 
-      logger.info({ 
-        userId: (await import('../utils/jwt.js')).verifyToken(tokenPair.refreshToken).userId
-      }, 'Access token refreshed successfully');
+      // Generate new token pair
+      const { verifyToken } = await import('../utils/jwt.js');
+      const decoded = verifyToken(refreshToken);
+
+      const newTokenPair = generateTokenPair({
+        userId: decoded.userId,
+        email: decoded.email,
+        roleId: decoded.roleId,
+      });
+
+      // Rotate refresh token (delete old, create new)
+      const newSession = await authSessionService.rotateRefreshToken(
+        refreshToken,
+        newTokenPair.refreshToken,
+        'inventory',
+        7, // 7 days for inventory users
+        request.ip,
+        request.headers['user-agent']
+      );
+
+      if (!newSession) {
+        return reply.code(401).send({
+          success: false,
+          message: 'Token rotation failed',
+          details: 'Could not rotate refresh token',
+          statusCode: 401
+        });
+      }
+
+      logger.info({
+        userId: decoded.userId,
+        oldSessionId: session.id,
+        newSessionId: newSession.id,
+      }, 'Access token refreshed with session rotation');
 
       const response = createSuccessResponse('Token refreshed successfully', {
-        token: tokenPair.accessToken,
-        refreshToken: tokenPair.refreshToken,
-        expiresIn: tokenPair.expiresIn
+        token: newTokenPair.accessToken,
+        refreshToken: newTokenPair.refreshToken,
+        expiresIn: newTokenPair.expiresIn
       });
       return reply.code(200).send(response);
     } catch (error: any) {
       logger.error({ error }, 'Error refreshing token');
-      
+
       return reply.code(401).send({
         success: false,
         message: 'Token refresh failed',

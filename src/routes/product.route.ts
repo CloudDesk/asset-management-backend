@@ -1,6 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { ProductController } from "../controllers/product.controller.js";
 import { formatProductForAPI } from "../utils/dynamicDbOperations.js";
+import { authenticateInventoryUser } from "../middleware/auth.middleware.js";
 
 export async function productRoutes(fastify: FastifyInstance) {
   const productController = new ProductController();
@@ -8,7 +9,9 @@ export async function productRoutes(fastify: FastifyInstance) {
   // GET /v1/products - Get all products with pagination and filtering
   fastify.get(
     "/",
+
     {
+      preHandler: authenticateInventoryUser,
       schema: {
         description: "Get all products with pagination and filtering",
         tags: ["Products"],
@@ -483,6 +486,7 @@ export async function productRoutes(fastify: FastifyInstance) {
   fastify.get(
     "/:id",
     {
+      preHandler: authenticateInventoryUser,
       schema: {
         description: "Get product by ID",
         tags: ["Products"],
@@ -876,48 +880,215 @@ export async function productRoutes(fastify: FastifyInstance) {
   );
 
   // GET /v1/products/platform/:platform - Get products for specific platform
-  fastify.get("/platform/:platform", {
-    schema: {
-      description: "Get products for specific platform with platform stock data",
-      tags: ["Products", "E-Commerce"],
-      params: {
-        type: "object",
-        properties: {
-          platform: { 
-            type: "string", 
-            enum: ["amazon", "flipkart", "nivapp"],
-            description: "Platform name" 
-          },
-        },
-        required: ["platform"],
-      },
-      querystring: {
-        type: "object",
-        properties: {
-          page: { type: "string", description: "Page number" },
-          limit: { type: "string", description: "Items per page" },
-          category: { type: "string", description: "Filter by category" },
-          subcategory: { type: "string", description: "Filter by subcategory" },
-          subsubcategory: { type: "string", description: "Filter by sub-subcategory" },
-          brand: { type: "string", description: "Filter by brand" },
-          minPrice: { type: "string", description: "Minimum price" },
-          maxPrice: { type: "string", description: "Maximum price" },
-          stockStatus: { 
-            type: "string", 
-            enum: ["in_stock", "low_stock", "out_of_stock"],
-            description: "Filter by platform stock status" 
-          },
-          search: { type: "string", description: "Search in product name/description" },
-        },
-      },
-      response: {
-        200: {
+  fastify.get("/platform/:platform",
+    {
+      preHandler: authenticateInventoryUser,
+      schema: {
+        description: "Get products for specific platform with platform stock data",
+        tags: ["Products", "E-Commerce"],
+        params: {
           type: "object",
           properties: {
-            success: { type: "boolean" },
-            data: {
-              type: "array",
-              items: {
+            platform: {
+              type: "string",
+              enum: ["amazon", "flipkart", "nivapp"],
+              description: "Platform name"
+            },
+          },
+          required: ["platform"],
+        },
+        querystring: {
+          type: "object",
+          properties: {
+            page: { type: "string", description: "Page number" },
+            limit: { type: "string", description: "Items per page" },
+            category: { type: "string", description: "Filter by category" },
+            subcategory: { type: "string", description: "Filter by subcategory" },
+            subsubcategory: { type: "string", description: "Filter by sub-subcategory" },
+            brand: { type: "string", description: "Filter by brand" },
+            minPrice: { type: "string", description: "Minimum price" },
+            maxPrice: { type: "string", description: "Maximum price" },
+            stockStatus: {
+              type: "string",
+              enum: ["in_stock", "low_stock", "out_of_stock"],
+              description: "Filter by platform stock status"
+            },
+            search: { type: "string", description: "Search in product name/description" },
+          },
+        },
+        response: {
+          200: {
+            type: "object",
+            properties: {
+              success: { type: "boolean" },
+              data: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    id: { type: "number", description: "Product ID" },
+                    name: { type: "string", description: "Product name" },
+                    price: { type: "number", nullable: true, description: "Product price" },
+                    category: { type: "string", nullable: true, description: "Product category" },
+                    subcategory: { type: "string", nullable: true, description: "Product subcategory" },
+                    subsubcategory: { type: "string", nullable: true, description: "Product sub-subcategory" },
+                    // Combo Pack Support
+                    iscombo: {
+                      type: "boolean",
+                      nullable: true,
+                      description: "Is this a combo product?",
+                    },
+                    combotype: {
+                      type: "string",
+                      nullable: true,
+                      description: "Combo type: 'fixed' or 'dynamic'",
+                    },
+                    components: {
+                      type: "array",
+                      nullable: true,
+                      description: "Component products (only present if iscombo is true)",
+                      items: {
+                        type: "object",
+                        properties: {
+                          componentproductid: {
+                            oneOf: [
+                              { type: "string", pattern: "^\\d+$" },
+                              { type: "number" },
+                            ],
+                            description: "Component product ID",
+                          },
+                          requiredqty: {
+                            type: "integer",
+                            description: "Quantity of this component needed per combo",
+                          },
+                          isactive: {
+                            type: "boolean",
+                            description: "Is this component active?",
+                          },
+                          product: {
+                            type: "object",
+                            properties: {
+                              name: {
+                                type: "string",
+                                nullable: true,
+                                description: "Component product name",
+                              },
+                              puc: {
+                                type: "string",
+                                nullable: true,
+                                description: "Component product PUC code",
+                              },
+                            },
+                            required: ["name", "puc"],
+                            additionalProperties: false,
+                          },
+                          platformStock: {
+                            type: "object",
+                            nullable: true,
+                            properties: {
+                              availableqty: {
+                                type: "number",
+                                description: "Available quantity for nivapp platform",
+                              },
+                              lockqty: {
+                                type: "number",
+                                description: "Lock quantity for nivapp platform",
+                              },
+                              orderedqty: {
+                                type: "number",
+                                description: "Ordered quantity for nivapp platform",
+                              },
+                              soldqty: {
+                                type: "number",
+                                description: "Sold quantity for nivapp platform",
+                              },
+                              platformstatus: {
+                                type: "string",
+                                nullable: true,
+                                description: "Platform stock status for nivapp platform",
+                              },
+                            },
+                            description: "Platform stock data for nivapp platform (fetched by componentproductid and platform=nivapp)",
+                          },
+                        },
+                        required: ["componentproductid", "requiredqty", "isactive", "product"],
+                        additionalProperties: false,
+                      },
+                    },
+                  },
+                  additionalProperties: true,
+                },
+              },
+              pagination: {
+                type: "object",
+                properties: {
+                  page: { type: "number" },
+                  limit: { type: "number" },
+                  total: { type: "number" },
+                  totalPages: { type: "number" },
+                  hasNext: { type: "boolean" },
+                  hasPrev: { type: "boolean" },
+                },
+              },
+              meta: {
+                type: "object",
+                properties: {
+                  platform: { type: "string" },
+                  filters: { type: "array", items: { type: "string" } },
+                  total: { type: "number" },
+                  filtered: { type: "boolean" },
+                },
+              },
+              message: { type: "string" },
+            },
+          },
+          400: {
+            type: "object",
+            properties: {
+              success: { type: "boolean" },
+              message: { type: "string" },
+              details: { type: "string" },
+              statusCode: { type: "number" },
+            },
+          },
+          500: {
+            type: "object",
+            properties: {
+              success: { type: "boolean" },
+              message: { type: "string" },
+              details: { type: "string" },
+              statusCode: { type: "number" },
+            },
+          },
+        },
+      },
+    }, productController.getProductsForPlatform.bind(productController));
+
+  // GET /v1/products/:id/platform/:platform - Get single product with platform stock
+  fastify.get("/:id/platform/:platform",
+    {
+      preHandler: authenticateInventoryUser,
+      schema: {
+        description: "Get single product with platform-specific stock data",
+        tags: ["Products", "E-Commerce"],
+        params: {
+          type: "object",
+          properties: {
+            id: { type: "string", description: "Product ID" },
+            platform: {
+              type: "string",
+              enum: ["amazon", "flipkart", "nivapp"],
+              description: "Platform name"
+            },
+          },
+          required: ["id", "platform"],
+        },
+        response: {
+          200: {
+            type: "object",
+            properties: {
+              success: { type: "boolean" },
+              data: {
                 type: "object",
                 properties: {
                   id: { type: "number", description: "Product ID" },
@@ -925,7 +1096,6 @@ export async function productRoutes(fastify: FastifyInstance) {
                   price: { type: "number", nullable: true, description: "Product price" },
                   category: { type: "string", nullable: true, description: "Product category" },
                   subcategory: { type: "string", nullable: true, description: "Product subcategory" },
-                  subsubcategory: { type: "string", nullable: true, description: "Product sub-subcategory" },
                   // Combo Pack Support
                   iscombo: {
                     type: "boolean",
@@ -1012,206 +1182,45 @@ export async function productRoutes(fastify: FastifyInstance) {
                 },
                 additionalProperties: true,
               },
+              message: { type: "string" },
             },
-            pagination: {
-              type: "object",
-              properties: {
-                page: { type: "number" },
-                limit: { type: "number" },
-                total: { type: "number" },
-                totalPages: { type: "number" },
-                hasNext: { type: "boolean" },
-                hasPrev: { type: "boolean" },
-              },
-            },
-            meta: {
-              type: "object",
-              properties: {
-                platform: { type: "string" },
-                filters: { type: "array", items: { type: "string" } },
-                total: { type: "number" },
-                filtered: { type: "boolean" },
-              },
-            },
-            message: { type: "string" },
           },
-        },
-        400: {
-          type: "object",
-          properties: {
-            success: { type: "boolean" },
-            message: { type: "string" },
-            details: { type: "string" },
-            statusCode: { type: "number" },
+          400: {
+            type: "object",
+            properties: {
+              success: { type: "boolean" },
+              message: { type: "string" },
+              details: { type: "string" },
+              statusCode: { type: "number" },
+            },
           },
-        },
-        500: {
-          type: "object",
-          properties: {
-            success: { type: "boolean" },
-            message: { type: "string" },
-            details: { type: "string" },
-            statusCode: { type: "number" },
+          404: {
+            type: "object",
+            properties: {
+              success: { type: "boolean" },
+              message: { type: "string" },
+              details: { type: "string" },
+              statusCode: { type: "number" },
+            },
+          },
+          500: {
+            type: "object",
+            properties: {
+              success: { type: "boolean" },
+              message: { type: "string" },
+              details: { type: "string" },
+              statusCode: { type: "number" },
+            },
           },
         },
       },
-    },
-  }, productController.getProductsForPlatform.bind(productController));
-
-  // GET /v1/products/:id/platform/:platform - Get single product with platform stock
-  fastify.get("/:id/platform/:platform", {
-    schema: {
-      description: "Get single product with platform-specific stock data",
-      tags: ["Products", "E-Commerce"],
-      params: {
-        type: "object",
-        properties: {
-          id: { type: "string", description: "Product ID" },
-          platform: { 
-            type: "string", 
-            enum: ["amazon", "flipkart", "nivapp"],
-            description: "Platform name" 
-          },
-        },
-        required: ["id", "platform"],
-      },
-      response: {
-        200: {
-          type: "object",
-          properties: {
-            success: { type: "boolean" },
-            data: {
-              type: "object",
-              properties: {
-                id: { type: "number", description: "Product ID" },
-                name: { type: "string", description: "Product name" },
-                price: { type: "number", nullable: true, description: "Product price" },
-                category: { type: "string", nullable: true, description: "Product category" },
-                subcategory: { type: "string", nullable: true, description: "Product subcategory" },
-                // Combo Pack Support
-                iscombo: {
-                  type: "boolean",
-                  nullable: true,
-                  description: "Is this a combo product?",
-                },
-                combotype: {
-                  type: "string",
-                  nullable: true,
-                  description: "Combo type: 'fixed' or 'dynamic'",
-                },
-                components: {
-                  type: "array",
-                  nullable: true,
-                  description: "Component products (only present if iscombo is true)",
-                  items: {
-                    type: "object",
-                    properties: {
-                      componentproductid: {
-                        oneOf: [
-                          { type: "string", pattern: "^\\d+$" },
-                          { type: "number" },
-                        ],
-                        description: "Component product ID",
-                      },
-                      requiredqty: {
-                        type: "integer",
-                        description: "Quantity of this component needed per combo",
-                      },
-                      isactive: {
-                        type: "boolean",
-                        description: "Is this component active?",
-                      },
-                      product: {
-                        type: "object",
-                        properties: {
-                          name: {
-                            type: "string",
-                            nullable: true,
-                            description: "Component product name",
-                          },
-                          puc: {
-                            type: "string",
-                            nullable: true,
-                            description: "Component product PUC code",
-                          },
-                        },
-                        required: ["name", "puc"],
-                        additionalProperties: false,
-                      },
-                      platformStock: {
-                        type: "object",
-                        nullable: true,
-                        properties: {
-                          availableqty: {
-                            type: "number",
-                            description: "Available quantity for nivapp platform",
-                          },
-                          lockqty: {
-                            type: "number",
-                            description: "Lock quantity for nivapp platform",
-                          },
-                          orderedqty: {
-                            type: "number",
-                            description: "Ordered quantity for nivapp platform",
-                          },
-                          soldqty: {
-                            type: "number",
-                            description: "Sold quantity for nivapp platform",
-                          },
-                          platformstatus: {
-                            type: "string",
-                            nullable: true,
-                            description: "Platform stock status for nivapp platform",
-                          },
-                        },
-                        description: "Platform stock data for nivapp platform (fetched by componentproductid and platform=nivapp)",
-                      },
-                    },
-                    required: ["componentproductid", "requiredqty", "isactive", "product"],
-                    additionalProperties: false,
-                  },
-                },
-              },
-              additionalProperties: true,
-            },
-            message: { type: "string" },
-          },
-        },
-        400: {
-          type: "object",
-          properties: {
-            success: { type: "boolean" },
-            message: { type: "string" },
-            details: { type: "string" },
-            statusCode: { type: "number" },
-          },
-        },
-        404: {
-          type: "object",
-          properties: {
-            success: { type: "boolean" },
-            message: { type: "string" },
-            details: { type: "string" },
-            statusCode: { type: "number" },
-          },
-        },
-        500: {
-          type: "object",
-          properties: {
-            success: { type: "boolean" },
-            message: { type: "string" },
-            details: { type: "string" },
-            statusCode: { type: "number" },
-          },
-        },
-      },
-    },
-  }, productController.getProductForPlatform.bind(productController));
+    }, productController.getProductForPlatform.bind(productController));
 
   // POST /v1/products - Create new product
   fastify.post(
     "/",
     {
+      preHandler: authenticateInventoryUser,
       schema: {
         description: "Create a new product",
         tags: ["Products"],
@@ -1634,7 +1643,9 @@ export async function productRoutes(fastify: FastifyInstance) {
   // POST /v1/products/validate-combo - Validate combo components before creation
   fastify.post(
     "/validate-combo",
+
     {
+      preHandler: authenticateInventoryUser,
       schema: {
         description: "Validate combo product components before creation",
         tags: ["Products"],
@@ -1720,6 +1731,7 @@ export async function productRoutes(fastify: FastifyInstance) {
   fastify.put(
     "/:id",
     {
+      preHandler: authenticateInventoryUser,
       schema: {
         description: "Update product by ID",
         tags: ["Products"],
@@ -2194,6 +2206,7 @@ export async function productRoutes(fastify: FastifyInstance) {
   fastify.delete(
     "/:id",
     {
+      preHandler: authenticateInventoryUser,
       schema: {
         description: "Delete product by ID",
         tags: ["Products"],
@@ -2308,6 +2321,7 @@ export async function productRoutes(fastify: FastifyInstance) {
   fastify.post(
     "/upsert",
     {
+      preHandler: authenticateInventoryUser,
       schema: {
         description: "Create or update product (upsert)",
         tags: ["Products"],
@@ -2348,6 +2362,7 @@ export async function productRoutes(fastify: FastifyInstance) {
   fastify.post(
     "/upsert-with-file",
     {
+      preHandler: authenticateInventoryUser,
       schema: {
         description:
           "Create or update product with file upload (image URL arrays)",
@@ -2801,6 +2816,7 @@ export async function productRoutes(fastify: FastifyInstance) {
   fastify.put(
     "/:id/rearrange-images",
     {
+      preHandler: authenticateInventoryUser,
       schema: {
         description:
           "Rearrange image URLs within product arrays (large, medium, small)",
@@ -2918,6 +2934,7 @@ export async function productRoutes(fastify: FastifyInstance) {
   fastify.delete(
     "/:id/image-urls",
     {
+      preHandler: authenticateInventoryUser,
       schema: {
         description:
           "Delete specific image URLs from product arrays (large, medium, small)",

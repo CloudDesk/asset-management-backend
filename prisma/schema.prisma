@@ -966,4 +966,30 @@ model AmazonConnection {
   @@map("amazon_connections")
 }
 
+// ============================================
+// AUTHENTICATION & SESSION MANAGEMENT
+// ============================================
+
+model AuthSession {
+  id                String   @id @default(uuid()) @db.Uuid
+  userId            Int
+  userType          String   @db.VarChar(20) // 'inventory' or 'ecommerce'
+  refreshTokenHash  String   @db.Text
+  expiresAt         DateTime @db.Timestamp(6)
+  isRevoked         Boolean  @default(false)
+  ipAddress         String?  @db.VarChar(45) // Supports IPv4 and IPv6
+  userAgent         String?  @db.Text
+  createdAt         DateTime @default(now()) @db.Timestamp(6)
+  updatedAt         DateTime @updatedAt @db.Timestamp(6)
+
+  // Prisma doesn't support conditional relations based on userType
+  // Relations will be handled in application code
+
+  @@index([userId, userType])
+  @@index([refreshTokenHash])
+  @@index([userId, userType, isRevoked])
+  @@index([expiresAt])
+  @@index([ipAddress, createdAt])
+  @@map("auth_sessions")
+}
 
