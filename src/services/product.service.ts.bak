@@ -596,14 +596,6 @@ export class ProductService {
       ];
     }
 
-    if (filters.subsubcategory) {
-      where.subsubcategory = filters.subsubcategory;
-    }
-
-    if (filters.isdealoftheday) {
-      where.isdealoftheday = filters.isdealoftheday === 'true';
-    }
-
     return where;
   }
 
@@ -1673,20 +1665,20 @@ export class ProductService {
       });
 
       // Step 4: Get actual product counts grouped by category, subcategory, and subsubcategory
-      // Using Prisma ORM groupBy instead of raw SQL
-      const productCounts = await prisma.product.groupBy({
-        by: ['category', 'subcategory', 'subsubcategory'],
-        where: {
-          platformStocks: {
-            some: {
-              platform,
-            },
-          },
-        },
-        _count: {
-          id: true,
-        },
-      });
+      const productCounts = await prisma.$queryRaw<Array<{
+        category: string | null;
+        subcategory: string | null;
+        count: bigint;
+      }>>`
+        SELECT 
+          p.category,
+          p.subcategory,
+          COUNT(DISTINCT p.id) as count
+        FROM product p
+        INNER JOIN platformstock ps ON p.id = ps.productid
+        WHERE ps.platform = ${platform}
+        GROUP BY p.category, p.subcategory
+      `;
 
       // Step 4: Create a map of actual counts
       const countsMap = new Map<string, number>();
@@ -1695,7 +1687,7 @@ export class ProductService {
       for (const row of productCounts) {
         const category = row.category || '';
         const subcategory = row.subcategory || '';
-        const count = row._count.id; // Prisma groupBy returns _count object
+        const count = Number(row.count);
         const key = `${category}::${subcategory}`;
         countsMap.set(key, count);
         totalProducts += count;
@@ -1773,7 +1765,7 @@ export class ProductService {
         const category = row.category || '';
         const subcategory = row.subcategory || '';
         const subsubcategory = row.subsubcategory || '';
-        const count = Number(row._count.id);
+        const count = Number(row.count);
 
         if (categoryMap.has(category)) {
           const categoryEntry = categoryMap.get(category)!;
@@ -1800,17 +1792,8 @@ export class ProductService {
       const categoriesArray = Array.from(categoryMap.values())
         .sort((a, b) => a.label.localeCompare(b.label))
         .map(cat => ({
-          id: cat.id,
-          label: cat.label,
-          count: cat.count,
-          subcategories: Array.from(cat.subcategories.values())
-            .sort((a, b) => a.label.localeCompare(b.label))
-            .map(subcat => ({
-              id: subcat.id,
-              label: subcat.label,
-              count: subcat.count,
-              subsubcategories: subcat.subsubcategories.sort((a, b) => a.label.localeCompare(b.label)),
-            })),
+          ...cat,
+          subcategories: cat.subcategories.sort((a, b) => a.label.localeCompare(b.label)),
         }));
 
       logger.info({
@@ -1818,7 +1801,6 @@ export class ProductService {
         totalProducts,
         categoryCount: categoriesArray.length,
         totalSubcategories: subcategories.length,
-        totalSubsubcategories: subsubcategories.length,
       }, 'Product counts by category retrieved successfully');
 
       return {

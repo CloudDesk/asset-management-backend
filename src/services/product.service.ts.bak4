@@ -596,14 +596,6 @@ export class ProductService {
       ];
     }
 
-    if (filters.subsubcategory) {
-      where.subsubcategory = filters.subsubcategory;
-    }
-
-    if (filters.isdealoftheday) {
-      where.isdealoftheday = filters.isdealoftheday === 'true';
-    }
-
     return where;
   }
 
@@ -1673,20 +1665,22 @@ export class ProductService {
       });
 
       // Step 4: Get actual product counts grouped by category, subcategory, and subsubcategory
-      // Using Prisma ORM groupBy instead of raw SQL
-      const productCounts = await prisma.product.groupBy({
-        by: ['category', 'subcategory', 'subsubcategory'],
-        where: {
-          platformStocks: {
-            some: {
-              platform,
-            },
-          },
-        },
-        _count: {
-          id: true,
-        },
-      });
+      const productCounts = await prisma.$queryRaw<Array<{
+        category: string | null;
+        subcategory: string | null;
+        subsubcategory: string | null;
+        count: bigint;
+      }>>`
+        SELECT 
+          p.category,
+          p.subcategory,
+          p.subsubcategory,
+          COUNT(DISTINCT p.id) as count
+        FROM product p
+        INNER JOIN platformstock ps ON p.id = ps.productid
+        WHERE ps.platform = ${platform}
+        GROUP BY p.category, p.subcategory, p.subsubcategory
+      `;
 
       // Step 4: Create a map of actual counts
       const countsMap = new Map<string, number>();
@@ -1773,7 +1767,7 @@ export class ProductService {
         const category = row.category || '';
         const subcategory = row.subcategory || '';
         const subsubcategory = row.subsubcategory || '';
-        const count = Number(row._count.id);
+        const count = Number(row.count);
 
         if (categoryMap.has(category)) {
           const categoryEntry = categoryMap.get(category)!;

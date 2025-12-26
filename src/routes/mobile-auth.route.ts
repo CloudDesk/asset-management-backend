@@ -7,7 +7,7 @@ import { TwilioSmsService } from '../services/twilioSms.service.js';
 import { exotelSmsService } from '../services/exotelSms.service.js';
 import { otpService } from '../services/otp.service.js';
 import { authSessionService } from '../services/authsession.service.js';
-import { authRateLimit, generateSessionToken, sanitizeUserData } from '../utils/auth.js';
+import { authRateLimit, sanitizeUserData } from '../utils/auth.js';
 import { logger } from '../config/logger.js';
 import {
   createSuccessResponse,

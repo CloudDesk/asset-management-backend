@@ -26,8 +26,7 @@ import { promotionsRoutes } from './promotions.route.js';
 import { ratingRoutes } from './rating.route.js';
 import { smsRoutes } from './sms.route.js';
 import { ekartRoutes } from './ekart.route.js';
-import { testRoutes } from './test.route.js';
-import { requireAuthentication } from '../middleware/auth.middleware.js';
+import { smartAuthentication } from '../middleware/smartAuth.middleware.js';
 import { createSuccessResponse } from '../utils/errorHandler.js';
 import { permissionRoutes } from './permission.route.js';
 
@@ -75,20 +74,19 @@ export async function routes(fastify: FastifyInstance) {
   await fastify.register(async function (fastify) {
 
     // -------------------------------------------------------------------------
-    // PUBLIC ROUTES - No authentication required
+    // ROUTE REGISTRATION - All routes inherit smart authentication
     // -------------------------------------------------------------------------
-    // Auth routes: /v1/auth/* (signin, register, forgot-password, etc.)
-    await fastify.register(authRoutes, { prefix: '/auth' });
+    // All routes registered below are automatically protected by the
+    // smartAuthentication hook (applied at the end of this scope).
+    // 
+    // Routes are public or protected based on src/config/publicRoutes.ts
+    // -------------------------------------------------------------------------
 
-    // Mobile auth routes: /v1/mobile-auth/* (for ecommerce users)
+    // Authentication routes
+    await fastify.register(authRoutes, { prefix: '/auth' });
     await fastify.register(mobileAuthRoutes, { prefix: '/mobile-auth' });
 
-    // Test routes: /v1/test/public, /v1/test/protected, etc.
-    // These demonstrate public vs protected route patterns
-    await fastify.register(testRoutes, { prefix: '' });
-
-    // All routes below are currently PUBLIC (no auth middleware applied)
-    // TODO: Move routes that require authentication into the protected scope below
+    // Application routes
     await fastify.register(productRoutes, { prefix: '/products' });
     await fastify.register(stockRoutes, { prefix: '/stocks' });
     await fastify.register(platformStockRoutes, { prefix: '/platform-stocks' });
@@ -117,31 +115,24 @@ export async function routes(fastify: FastifyInstance) {
     await fastify.register(ekartRoutes, { prefix: '/ekart' });
 
     // -------------------------------------------------------------------------
-    // PROTECTED ROUTES - Authentication required via requireAuthentication
+    // SMART AUTHENTICATION - Applied to ALL /v1 routes
     // -------------------------------------------------------------------------
-    // Purpose: Any route registered in this scope will automatically have the
-    // requireAuthentication middleware applied via the preHandler hook.
+    // The smartAuthentication middleware automatically determines if a route
+    // requires authentication by checking against the public routes whitelist.
     // 
-    // This means ALL routes here require a valid JWT Bearer token.
-    // If authentication fails, the middleware returns 401 Unauthorized.
+    // - Public routes (defined in src/config/publicRoutes.ts): Skip auth
+    // - All other routes: Require authentication
     //
-    // Usage: Move routes that need auth protection here, or register new ones.
-    // Example:
-    //   await fastify.register(adminRoutes, { prefix: '/admin' });
+    // This provides centralized route protection without manual preHandler
+    // configuration on each route.
     // -------------------------------------------------------------------------
-    await fastify.register(async function (fastify) {
-      // Apply authentication middleware to ALL routes in this scope
-      fastify.addHook('preHandler', requireAuthentication);
-
-      // Register protected routes here
-      // Example: Admin-only routes, user profile management, etc.
-
-    });
+    fastify.addHook('preHandler', smartAuthentication);
 
   }, { prefix: '/v1' });
 
   // API v2 routes
   await fastify.register(async function (fastify) {
     await fastify.register(picklistRoutesV2, { prefix: '/picklists' });
+    fastify.addHook('preHandler', smartAuthentication);
   }, { prefix: '/v2' });
 } 

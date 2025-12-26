@@ -103,7 +103,7 @@ export class ProductController {
   validateComboComponents = asyncHandler(
     async (request: FastifyRequest, reply: FastifyReply) => {
       const body = request.body as { components?: Array<{ productid: string | number; requiredqty: number }> };
-      
+
       if (!body.components || !Array.isArray(body.components)) {
         return reply.code(400).send({
           success: false,
@@ -525,75 +525,103 @@ export class ProductController {
 
   // Add these methods to ProductController class
 
-getProductsForPlatform = asyncHandler(
-  async (
-    request: FastifyRequest<{ 
-      Params: { platform: string },
-      Querystring: Record<string, any> 
-    }>,
-    reply: FastifyReply
-  ) => {
-    const { platform } = request.params;
-    const allFilters: Record<string, any> = request.query || {};
-    const { page, limit } = getPaginationParams(allFilters);
-    
-    const { page: _, limit: __, ...filters } = allFilters;
-    
-    const result = await this.productService.findManyForPlatform(
-      platform, 
-      filters, 
-      page, 
-      limit
-    );
-    
-    const formattedData = formatEntitiesForAPI(result.data, "product");
-    
-    // Remove platformStocks array from response (only keep platformStock in components)
-    const transformedData = formattedData.map((product: any) => {
-      const { platformStocks, ...productWithoutPlatformStocks } = product;
-      return productWithoutPlatformStocks;
-    });
-    
-    const response = createSuccessResponse(
-      `Products for ${platform} platform retrieved successfully`,
-      transformedData
-    );
-    
-    return reply.code(200).send({
-      ...response,
-      pagination: result.pagination,
-      meta: {
-        platform,
-        filters: Object.keys(filters),
-        total: result.pagination.total,
-        filtered: Object.keys(filters).length > 0,
-      },
-    });
-  }
-);
+  getProductsForPlatform = asyncHandler(
+    async (
+      request: FastifyRequest<{
+        Params: { platform: string },
+        Querystring: Record<string, any>
+      }>,
+      reply: FastifyReply
+    ) => {
+      const { platform } = request.params;
+      const allFilters: Record<string, any> = request.query || {};
+      const { page, limit } = getPaginationParams(allFilters);
 
-getProductForPlatform = asyncHandler(
-  async (
-    request: FastifyRequest<{ 
-      Params: { id: string; platform: string } 
-    }>,
-    reply: FastifyReply
-  ) => {
-    const { id, platform } = request.params;
-    
-    const product = await this.productService.findByIdForPlatform(id, platform);
-    
-    const formattedProduct = formatProductForAPI(product);
-    
-    // Remove platformStocks array from response (only keep platformStock in components)
-    const { platformStocks, ...transformedProduct } = formattedProduct;
-    
-    const response = createSuccessResponse(
-      `Product ${id} for ${platform} platform retrieved successfully`,
-      transformedProduct
-    );
-    
-    return reply.code(200).send(response);
-  }
-);
+      const { page: _, limit: __, ...filters } = allFilters;
+
+      const result = await this.productService.findManyForPlatform(
+        platform,
+        filters,
+        page,
+        limit
+      );
+
+      const formattedData = formatEntitiesForAPI(result.data, "product");
+
+      // Transform data: remove platformStocks array and add availablequantity from platform stock
+      const transformedData = formattedData.map((product: any) => {
+        const { platformStocks, ...productWithoutPlatformStocks } = product;
+
+        // Extract availablequantity from the platform stock (first item since we only fetch one)
+        const platformStock = platformStocks && platformStocks[0];
+        const availablequantity = platformStock?.availableqty ?? null;
+
+        return {
+          ...productWithoutPlatformStocks,
+          availablequantity, // Add availablequantity from platform stock
+        };
+      });
+
+      const response = createSuccessResponse(
+        `Products for ${platform} platform retrieved successfully`,
+        transformedData
+      );
+
+      return reply.code(200).send({
+        ...response,
+        pagination: result.pagination,
+        meta: {
+          platform,
+          filters: Object.keys(filters),
+          total: result.pagination.total,
+          filtered: Object.keys(filters).length > 0,
+        },
+      });
+    }
+  );
+
+  getProductForPlatform = asyncHandler(
+    async (
+      request: FastifyRequest<{
+        Params: { id: string; platform: string }
+      }>,
+      reply: FastifyReply
+    ) => {
+      const { id, platform } = request.params;
+
+      const product = await this.productService.findByIdForPlatform(id, platform);
+
+      const formattedProduct = formatProductForAPI(product);
+
+      // Remove platformStocks array from response (only keep platformStock in components)
+      const { platformStocks, ...transformedProduct } = formattedProduct;
+
+      const response = createSuccessResponse(
+        `Product ${id} for ${platform} platform retrieved successfully`,
+        transformedProduct
+      );
+
+      return reply.code(200).send(response);
+    }
+  );
+
+  getProductCountsByCategory = asyncHandler(
+    async (
+      request: FastifyRequest<{
+        Params: { platform: string }
+      }>,
+      reply: FastifyReply
+    ) => {
+      const { platform } = request.params;
+
+      const result = await this.productService.getProductCountsByCategory(platform);
+
+      const response = createSuccessResponse(
+        `Product counts for ${platform} platform retrieved successfully`,
+        result
+      );
+
+      return reply.code(200).send(response);
+    }
+  );
 }

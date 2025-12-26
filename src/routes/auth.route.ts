@@ -6,7 +6,7 @@ import {
   createSuccessResponse,
   asyncHandler
 } from '../utils/errorHandler.js';
-import { AuthenticatedRequest, authenticateInventoryUser } from '../middleware/auth.middleware.js';
+import { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import { authSessionService } from '../services/authsession.service.js';
 import { generateTokenPair } from '../utils/jwt.js';
 
@@ -16,6 +16,7 @@ export async function authRoutes(fastify: FastifyInstance) {
   // POST /v1/auth/signin - Sign in inventory user
   fastify.post('/signin', {
     schema: {
+
       description: 'Sign in inventory user with email and password',
       tags: ['Authentication'],
       body: {
@@ -431,7 +432,6 @@ export async function authRoutes(fastify: FastifyInstance) {
 
   // POST /v1/auth/signout - Sign out inventory user
   fastify.post('/signout', {
-    preHandler: authenticateInventoryUser,
     schema: {
       description: 'Sign out inventory user (requires authentication)',
       tags: ['Authentication'],
@@ -652,7 +652,6 @@ export async function authRoutes(fastify: FastifyInstance) {
 
   // POST /v1/auth/update-password - Update password for authenticated user
   fastify.post('/update-password', {
-    // preHandler: authenticateInventoryUser,
     schema: {
       description: 'Update password for authenticated inventory user',
       tags: ['Authentication'],
@@ -734,7 +733,6 @@ export async function authRoutes(fastify: FastifyInstance) {
 
   // GET /v1/auth/me - Get current user information
   fastify.get('/me', {
-    preHandler: authenticateInventoryUser,
     schema: {
       description: 'Get current authenticated user information',
       tags: ['Authentication'],
