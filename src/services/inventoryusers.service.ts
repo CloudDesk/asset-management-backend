@@ -404,6 +404,7 @@ export class InventoryUsersService {
         userId: user.id,
         email: user.useremail || '',
         roleId: user.roleid || undefined,
+        userType: 'inventory',
       });
 
       // NOTE: Session management is now handled by auth_sessions table

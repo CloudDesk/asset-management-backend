@@ -472,6 +472,7 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
       const tokenPair = generateTokenPair({
         userId: user.id,
         email: user.useremail || undefined, // E-commerce users may not have email
+        userType: 'ecommerce',
       });
 
       // Step 4: Create auth session (NEW: Session-based authentication)
@@ -974,6 +975,7 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
       const tokenPair = generateTokenPair({
         userId: user.id,
         email: user.useremail || undefined, // E-commerce users may not have email
+        userType: 'ecommerce',
       });
 
       // Step 4: Create auth session (NEW: Session-based authentication)

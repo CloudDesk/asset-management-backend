@@ -12,6 +12,7 @@ export interface JWTPayload {
   userId: number;
   email: string;
   roleId?: number | undefined;
+  userType?: 'inventory' | 'ecommerce'; // User type for direct table lookup
   iat?: number;
   exp?: number;
 }
@@ -28,19 +29,26 @@ export interface TokenPair {
  */
 export function generateAccessToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
   try {
-    const tokenPayload: Omit<JWTPayload, 'iat' | 'exp'> = {
+    const tokenPayload: any = {
       userId: payload.userId,
       email: payload.email,
-      roleId: payload.roleId,
     };
 
-    const token = jwt.sign(tokenPayload as object, JWT_SECRET, {
+    if (payload.roleId !== undefined) {
+      tokenPayload.roleId = payload.roleId;
+    }
+
+    if (payload.userType !== undefined) {
+      tokenPayload.userType = payload.userType;
+    }
+
+    const token = jwt.sign(tokenPayload, JWT_SECRET, {
       expiresIn: JWT_ACCESS_TOKEN_EXPIRY,
       issuer: 'asset-management-backend',
       audience: 'asset-management-frontend',
     } as jwt.SignOptions);
 
-    logger.debug({ userId: payload.userId, email: payload.email }, 'Access token generated');
+    logger.debug({ userId: payload.userId, email: payload.email, userType: payload.userType }, 'Access token generated');
     return token;
   } catch (error) {
     logger.error({ error, payload }, 'Error generating access token');
@@ -54,19 +62,26 @@ export function generateAccessToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): s
  */
 export function generateRefreshToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
   try {
-    const tokenPayload: Omit<JWTPayload, 'iat' | 'exp'> = {
+    const tokenPayload: any = {
       userId: payload.userId,
       email: payload.email,
-      roleId: payload.roleId,
     };
 
-    const token = jwt.sign(tokenPayload as object, JWT_SECRET, {
+    if (payload.roleId !== undefined) {
+      tokenPayload.roleId = payload.roleId;
+    }
+
+    if (payload.userType !== undefined) {
+      tokenPayload.userType = payload.userType;
+    }
+
+    const token = jwt.sign(tokenPayload, JWT_SECRET, {
       expiresIn: JWT_REFRESH_TOKEN_EXPIRY,
       issuer: 'asset-management-backend',
       audience: 'asset-management-frontend',
     } as jwt.SignOptions);
 
-    logger.debug({ userId: payload.userId }, 'Refresh token generated');
+    logger.debug({ userId: payload.userId, userType: payload.userType }, 'Refresh token generated');
     return token;
   } catch (error) {
     logger.error({ error, payload }, 'Error generating refresh token');
@@ -82,7 +97,7 @@ export function generateTokenPair(payload: Omit<JWTPayload, 'iat' | 'exp'>): Tok
   const refreshToken = generateRefreshToken(payload);
 
   // Calculate expiry in seconds
-    const expiresIn = parseExpiryToSeconds(JWT_ACCESS_TOKEN_EXPIRY || '24h');
+  const expiresIn = parseExpiryToSeconds(JWT_ACCESS_TOKEN_EXPIRY || '24h');
 
   return {
     accessToken,
@@ -165,7 +180,7 @@ function parseExpiryToSeconds(expiry: string | undefined): number {
   if (!expiry) {
     return 24 * 60 * 60; // Default 24 hours
   }
-  
+
   const match = expiry.match(/^(\d+)([smhd])$/);
   if (!match) {
     // Default to 24 hours if format is invalid

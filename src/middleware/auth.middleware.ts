@@ -84,42 +84,39 @@ export async function requireAuthentication(
       const { verifyToken } = await import('../utils/jwt.js');
       const decoded = verifyToken(token);
 
-      // Try to find user in inventoryusers first (internal users)
-      const inventoryUsersService = new InventoryUsersService();
+      // Use userType from token for direct table lookup (optimization)
+      // Default to 'inventory' for backward compatibility with old tokens
+      const userType = decoded.userType || 'inventory';
       let user = null;
-      let userType: 'inventory' | 'ecommerce' = 'inventory';
 
-      try {
-        user = await inventoryUsersService.findById(decoded.userId.toString());
-        userType = 'inventory';
-      } catch (error) {
-        // User not found in inventoryusers - will try users table next
-        logger.debug({ userId: decoded.userId }, 'User not found in inventoryusers table');
-      }
-
-      // If not found in inventoryusers, try users table (e-commerce users)
-      if (!user) {
+      if (userType === 'inventory') {
+        // Lookup in inventoryusers table
+        try {
+          const inventoryUsersService = new InventoryUsersService();
+          user = await inventoryUsersService.findById(decoded.userId.toString());
+          logger.debug({ userId: decoded.userId, userType: 'inventory' }, 'User found in inventoryusers table');
+        } catch (error) {
+          logger.debug({ userId: decoded.userId, userType: 'inventory' }, 'User not found in inventoryusers table');
+        }
+      } else {
+        // Lookup in users table (e-commerce)
         try {
           const { UsersService } = await import('../services/users.service.js');
           const usersService = new UsersService();
-          const ecommerceUser = await usersService.findById(decoded.userId.toString());
-
-          if (ecommerceUser) {
-            user = ecommerceUser;
-            userType = 'ecommerce';
-          }
+          user = await usersService.findById(decoded.userId.toString());
+          logger.debug({ userId: decoded.userId, userType: 'ecommerce' }, 'User found in users table');
         } catch (error) {
-          // User not found in users table either - will be handled below
-          logger.debug({ userId: decoded.userId }, 'User not found in users table');
+          logger.debug({ userId: decoded.userId, userType: 'ecommerce' }, 'User not found in users table');
         }
       }
 
       if (!user) {
         logger.warn({
           userId: decoded.userId,
+          userType,
           ip: request.ip,
           userAgent: request.headers['user-agent']
-        }, 'Authentication failed: User not found in either table');
+        }, 'Authentication failed: User not found in expected table');
 
         return reply.code(401).send({
           success: false,
