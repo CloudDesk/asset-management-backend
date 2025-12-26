@@ -75,25 +75,9 @@ export async function requireAuthentication(
       });
     }
 
-    // Check rate limiting for this token/IP
-    const identifier = `${request.ip}-${token}`;
-    if (authRateLimit.isRateLimited(identifier)) {
-      const remainingAttempts = authRateLimit.getRemainingAttempts(identifier);
-      logger.warn({
-        ip: request.ip,
-        identifier,
-        remainingAttempts
-      }, 'Authentication rate limited');
-
-      return reply.code(429).send({
-        success: false,
-        message: 'Too many authentication attempts',
-        details: 'Please try again later',
-        statusCode: 429,
-        remainingAttempts,
-        retryAfter: 900 // 15 minutes
-      });
-    }
+    // NOTE: Rate limiting removed from here - it should only apply to login routes
+    // Applying rate limiting to every authenticated request blocks legitimate users
+    // Rate limiting is handled in auth routes (signin, register, etc.)
 
     // Verify JWT token
     try {
@@ -102,23 +86,35 @@ export async function requireAuthentication(
 
       // Try to find user in inventoryusers first (internal users)
       const inventoryUsersService = new InventoryUsersService();
-      let user = await inventoryUsersService.findById(decoded.userId.toString());
+      let user = null;
       let userType: 'inventory' | 'ecommerce' = 'inventory';
+
+      try {
+        user = await inventoryUsersService.findById(decoded.userId.toString());
+        userType = 'inventory';
+      } catch (error) {
+        // User not found in inventoryusers - will try users table next
+        logger.debug({ userId: decoded.userId }, 'User not found in inventoryusers table');
+      }
 
       // If not found in inventoryusers, try users table (e-commerce users)
       if (!user) {
-        const { UsersService } = await import('../services/users.service.js');
-        const usersService = new UsersService();
-        const ecommerceUser = await usersService.findById(decoded.userId.toString());
+        try {
+          const { UsersService } = await import('../services/users.service.js');
+          const usersService = new UsersService();
+          const ecommerceUser = await usersService.findById(decoded.userId.toString());
 
-        if (ecommerceUser) {
-          user = ecommerceUser;
-          userType = 'ecommerce';
+          if (ecommerceUser) {
+            user = ecommerceUser;
+            userType = 'ecommerce';
+          }
+        } catch (error) {
+          // User not found in users table either - will be handled below
+          logger.debug({ userId: decoded.userId }, 'User not found in users table');
         }
       }
 
       if (!user) {
-        authRateLimit.recordAttempt(identifier);
         logger.warn({
           userId: decoded.userId,
           ip: request.ip,
@@ -137,7 +133,6 @@ export async function requireAuthentication(
 
       // Check token revocation (only for inventory users - they have sessiontoken field)
       if (userType === 'inventory' && (user as any).sessiontoken === null) {
-        authRateLimit.recordAttempt(identifier);
         logger.warn({
           userId: decoded.userId,
           ip: request.ip
@@ -152,9 +147,6 @@ export async function requireAuthentication(
           suggestion: 'Please sign in again to get a new token'
         });
       }
-
-      // Clear rate limiting on successful authentication
-      authRateLimit.clearAttempts(identifier);
 
       // Attach user data to request (from JWT + DB)
       request.user = {
@@ -172,8 +164,6 @@ export async function requireAuthentication(
       }, 'User authenticated successfully with JWT token');
 
     } catch (error) {
-      authRateLimit.recordAttempt(identifier);
-
       // Determine if this is a JWT-specific error (expired, invalid, etc.)
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       const isJWTError = errorMessage.includes('jwt') ||
