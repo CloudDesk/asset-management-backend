@@ -2,6 +2,7 @@ export interface JWTPayload {
     userId: number;
     email: string;
     roleId?: number | undefined;
+    userType?: 'inventory' | 'ecommerce';
     iat?: number;
     exp?: number;
 }

@@ -15,14 +15,19 @@ export function generateAccessToken(payload) {
         const tokenPayload = {
             userId: payload.userId,
             email: payload.email,
-            roleId: payload.roleId,
         };
+        if (payload.roleId !== undefined) {
+            tokenPayload.roleId = payload.roleId;
+        }
+        if (payload.userType !== undefined) {
+            tokenPayload.userType = payload.userType;
+        }
         const token = jwt.sign(tokenPayload, JWT_SECRET, {
             expiresIn: JWT_ACCESS_TOKEN_EXPIRY,
             issuer: 'asset-management-backend',
             audience: 'asset-management-frontend',
         });
-        logger.debug({ userId: payload.userId, email: payload.email }, 'Access token generated');
+        logger.debug({ userId: payload.userId, email: payload.email, userType: payload.userType }, 'Access token generated');
         return token;
     }
     catch (error) {
@@ -39,14 +44,19 @@ export function generateRefreshToken(payload) {
         const tokenPayload = {
             userId: payload.userId,
             email: payload.email,
-            roleId: payload.roleId,
         };
+        if (payload.roleId !== undefined) {
+            tokenPayload.roleId = payload.roleId;
+        }
+        if (payload.userType !== undefined) {
+            tokenPayload.userType = payload.userType;
+        }
         const token = jwt.sign(tokenPayload, JWT_SECRET, {
             expiresIn: JWT_REFRESH_TOKEN_EXPIRY,
             issuer: 'asset-management-backend',
             audience: 'asset-management-frontend',
         });
-        logger.debug({ userId: payload.userId }, 'Refresh token generated');
+        logger.debug({ userId: payload.userId, userType: payload.userType }, 'Refresh token generated');
         return token;
     }
     catch (error) {
