@@ -890,6 +890,11 @@ export async function productRoutes(fastify) {
                         description: "Filter by platform stock status"
                     },
                     search: { type: "string", description: "Search in product name/description" },
+                    isdealoftheday: {
+                        type: "string",
+                        enum: ["true", "false"],
+                        description: "Filter by deal of the day status (true or false)"
+                    },
                 },
             },
             response: {
@@ -904,10 +909,19 @@ export async function productRoutes(fastify) {
                                 properties: {
                                     id: { type: "number", description: "Product ID" },
                                     name: { type: "string", description: "Product name" },
+                                    shortdescription: { type: "string", nullable: true, description: "Short description" },
+                                    fulldescription: { type: "string", nullable: true, description: "Full description" },
                                     price: { type: "number", nullable: true, description: "Product price" },
+                                    discount: { type: "number", nullable: true, description: "Discount amount" },
                                     category: { type: "string", nullable: true, description: "Product category" },
                                     subcategory: { type: "string", nullable: true, description: "Product subcategory" },
                                     subsubcategory: { type: "string", nullable: true, description: "Product sub-subcategory" },
+                                    // Image arrays
+                                    large: { type: "array", items: { type: "string" }, nullable: true, description: "Large size images" },
+                                    medium: { type: "array", items: { type: "string" }, nullable: true, description: "Medium size images" },
+                                    small: { type: "array", items: { type: "string" }, nullable: true, description: "Small size images" },
+                                    // Platform stock quantity
+                                    availablequantity: { type: "number", nullable: true, description: "Available quantity from platform stock" },
                                     // Combo Pack Support
                                     iscombo: {
                                         type: "boolean",
@@ -1039,6 +1053,134 @@ export async function productRoutes(fastify) {
             },
         },
     }, productController.getProductsForPlatform.bind(productController));
+    // GET /v1/products/platform/:platform/counts - Get product counts by category for platform
+    fastify.get("/platform/:platform/counts", {
+        schema: {
+            description: "Get product counts grouped by category and subcategory for a specific platform",
+            tags: ["Products", "E-Commerce", "Analytics"],
+            params: {
+                type: "object",
+                properties: {
+                    platform: {
+                        type: "string",
+                        enum: ["amazon", "flipkart", "nivapp"],
+                        description: "Platform name"
+                    },
+                },
+                required: ["platform"],
+            },
+            response: {
+                200: {
+                    type: "object",
+                    properties: {
+                        success: { type: "boolean" },
+                        data: {
+                            type: "object",
+                            properties: {
+                                platform: {
+                                    type: "string",
+                                    description: "Platform name"
+                                },
+                                totalProducts: {
+                                    type: "number",
+                                    description: "Total number of products for this platform"
+                                },
+                                categories: {
+                                    type: "array",
+                                    items: {
+                                        type: "object",
+                                        properties: {
+                                            id: {
+                                                type: "string",
+                                                description: "Category ID"
+                                            },
+                                            label: {
+                                                type: "string",
+                                                description: "Human-readable category label"
+                                            },
+                                            count: {
+                                                type: "number",
+                                                description: "Number of products in this category"
+                                            },
+                                            subcategories: {
+                                                type: "array",
+                                                items: {
+                                                    type: "object",
+                                                    properties: {
+                                                        id: {
+                                                            type: "string",
+                                                            description: "Subcategory ID"
+                                                        },
+                                                        label: {
+                                                            type: "string",
+                                                            description: "Human-readable subcategory label"
+                                                        },
+                                                        count: {
+                                                            type: "number",
+                                                            description: "Number of products in this subcategory"
+                                                        },
+                                                        subsubcategories: {
+                                                            type: "array",
+                                                            items: {
+                                                                type: "object",
+                                                                properties: {
+                                                                    id: {
+                                                                        type: "string",
+                                                                        description: "Subsubcategory ID"
+                                                                    },
+                                                                    label: {
+                                                                        type: "string",
+                                                                        description: "Human-readable subsubcategory label"
+                                                                    },
+                                                                    count: {
+                                                                        type: "number",
+                                                                        description: "Number of products in this subsubcategory"
+                                                                    },
+                                                                },
+                                                                required: ["id", "label", "count"],
+                                                            },
+                                                        },
+                                                    },
+                                                    required: ["id", "label", "count", "subsubcategories"],
+                                                },
+                                            },
+                                        },
+                                        required: ["id", "label", "count", "subcategories"],
+                                    },
+                                },
+                            },
+                            required: ["platform", "totalProducts", "categories"],
+                        },
+                        message: { type: "string" },
+                    },
+                },
+                400: {
+                    type: "object",
+                    properties: {
+                        success: { type: "boolean" },
+                        error: { type: "string" },
+                        statusCode: { type: "number" },
+                    },
+                },
+                401: {
+                    type: "object",
+                    properties: {
+                        success: { type: "boolean" },
+                        error: { type: "string" },
+                        statusCode: { type: "number" },
+                    },
+                },
+                500: {
+                    type: "object",
+                    properties: {
+                        success: { type: "boolean" },
+                        error: { type: "string" },
+                        statusCode: { type: "number" },
+                    },
+                },
+            },
+        },
+    }, productController.getProductCountsByCategory.bind(productController));
     // GET /v1/products/:id/platform/:platform - Get single product with platform stock
     fastify.get("/:id/platform/:platform", {
         schema: {

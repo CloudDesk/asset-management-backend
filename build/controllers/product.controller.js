@@ -388,10 +388,16 @@ export class ProductController {
         const { page: _, limit: __, ...filters } = allFilters;
         const result = await this.productService.findManyForPlatform(platform, filters, page, limit);
         const formattedData = formatEntitiesForAPI(result.data, "product");
-        // Remove platformStocks array from response (only keep platformStock in components)
+        // Transform data: remove platformStocks array and add availablequantity from platform stock
         const transformedData = formattedData.map((product) => {
             const { platformStocks, ...productWithoutPlatformStocks } = product;
-            return productWithoutPlatformStocks;
+            // Extract availablequantity from the platform stock (first item since we only fetch one)
+            const platformStock = platformStocks && platformStocks[0];
+            const availablequantity = platformStock?.availableqty ?? null;
+            return {
+                ...productWithoutPlatformStocks,
+                availablequantity, // Add availablequantity from platform stock
+            };
         });
         const response = createSuccessResponse(`Products for ${platform} platform retrieved successfully`, transformedData);
         return reply.code(200).send({
@@ -412,6 +418,12 @@ export class ProductController {
         // Remove platformStocks array from response (only keep platformStock in components)
         const { platformStocks, ...transformedProduct } = formattedProduct;
         const response = createSuccessResponse(`Product ${id} for ${platform} platform retrieved successfully`, transformedProduct);
+        return reply.code(200).send(response);
+    });
+    getProductCountsByCategory = asyncHandler(async (request, reply) => {
+        const { platform } = request.params;
+        const result = await this.productService.getProductCountsByCategory(platform);
+        const response = createSuccessResponse(`Product counts for ${platform} platform retrieved successfully`, result);
         return reply.code(200).send(response);
     });
 }

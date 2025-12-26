@@ -123,11 +123,40 @@ export async function requireAuthentication(request, reply) {
         }
         catch (error) {
             authRateLimit.recordAttempt(identifier);
-            logger.error({ error, token: token.substring(0, 8) + '...', endpoint: request.url }, 'Error during authentication');
+            // Determine if this is a JWT-specific error (expired, invalid, etc.)
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            const isJWTError = errorMessage.includes('jwt') ||
+                errorMessage.includes('token') ||
+                errorMessage.includes('expired') ||
+                errorMessage.includes('invalid') ||
+                errorMessage.includes('malformed');
+            if (isJWTError) {
+                // JWT verification failed - return 401 (authentication failure)
+                logger.warn({
+                    error: errorMessage,
+                    token: token.substring(0, 8) + '...',
+                    endpoint: request.url,
+                    ip: request.ip
+                }, 'JWT verification failed');
+                return reply.code(401).send({
+                    success: false,
+                    message: 'Invalid or expired token',
+                    details: 'Your authentication token is invalid or has expired. Please sign in again',
+                    statusCode: 401,
+                    tokenStatus: 'invalid_or_expired',
+                    suggestion: 'Please sign in again to get a new token'
+                });
+            }
+            // Other errors - return 500 (server error)
+            logger.error({
+                error,
+                token: token.substring(0, 8) + '...',
+                endpoint: request.url
+            }, 'Unexpected error during authentication');
             return reply.code(500).send({
                 success: false,
                 message: 'Authentication error',
-                details: 'An error occurred while verifying your authentication',
+                details: 'An unexpected error occurred while verifying your authentication',
                 statusCode: 500,
             });
         }

@@ -98,7 +98,7 @@ export function generateResetToken(): { token: string; hashedToken: string; expi
     const token = crypto.randomBytes(32).toString('hex');
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
     const expiresAt = new Date(Date.now() + RESET_TOKEN_EXPIRES_IN);
-    
+
     return { token, hashedToken, expiresAt };
   } catch (error) {
     logger.error({ error }, 'Error generating reset token');
@@ -112,17 +112,17 @@ export function generateResetToken(): { token: string; hashedToken: string; expi
 export function verifyResetToken(token: string, hashedToken: string, expiresAt: Date): boolean {
   try {
     logger.debug('Verifying password reset token');
-    
+
     // Check if token has expired
     if (new Date() > expiresAt) {
       logger.warn('Reset token has expired');
       return false;
     }
-    
+
     // Hash the provided token and compare
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
     const isValid = crypto.timingSafeEqual(Buffer.from(tokenHash), Buffer.from(hashedToken));
-    
+
     return isValid;
   } catch (error) {
     logger.error({ error }, 'Error verifying reset token');
@@ -136,12 +136,12 @@ export function verifyResetToken(token: string, hashedToken: string, expiresAt: 
 export function generateUniqueUsername(baseUsername: string, existingUsernames: string[]): string {
   let username = baseUsername;
   let counter = 1;
-  
+
   while (existingUsernames.includes(username)) {
     username = `${baseUsername}${counter}`;
     counter++;
   }
-  
+
   return username;
 }
 
@@ -149,15 +149,15 @@ export function generateUniqueUsername(baseUsername: string, existingUsernames: 
  * Sanitize user data for API responses (remove sensitive fields)
  */
 export function sanitizeUserData(user: any): any {
-  const { 
-    userpassword, 
-    resetToken, 
-    resetTokenExpires, 
-    sessionToken, 
+  const {
+    userpassword,
+    resetToken,
+    resetTokenExpires,
+    sessionToken,
     sessiontoken,  // Database field (lowercase)
     resettoken,
     resettokenexpires,
-    ...sanitizedUser 
+    ...sanitizedUser
   } = user;
   return sanitizedUser;
 }
@@ -180,7 +180,7 @@ export class AuthRateLimit {
    */
   isRateLimited(identifier: string): boolean {
     const attempt = this.attempts.get(identifier);
-    
+
     if (!attempt) {
       return false;
     }
@@ -232,7 +232,7 @@ export class AuthRateLimit {
    */
   getRemainingAttempts(identifier: string): number {
     const attempt = this.attempts.get(identifier);
-    
+
     if (!attempt) {
       return this.maxAttempts;
     }
@@ -250,5 +250,8 @@ export class AuthRateLimit {
   }
 }
 
-// Global rate limiter instance
-export const authRateLimit = new AuthRateLimit(); 
+// Global rate limiter instance for protected routes (15 minutes)
+export const authRateLimit = new AuthRateLimit();
+
+// Separate rate limiter for OTP routes (2 minutes for faster recovery)
+export const otpRateLimit = new AuthRateLimit(5, 2 * 60 * 1000); // 5 attempts in 2 minutes

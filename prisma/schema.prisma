@@ -971,16 +971,16 @@ model AmazonConnection {
 // ============================================
 
 model AuthSession {
-  id                String   @id @default(uuid()) @db.Uuid
+  id                Int      @id @default(autoincrement())
   userId            Int
   userType          String   @db.VarChar(20) // 'inventory' or 'ecommerce'
   refreshTokenHash  String   @db.Text
-  expiresAt         DateTime @db.Timestamp(6)
+  expiresAt         BigInt   // Unix timestamp in milliseconds
   isRevoked         Boolean  @default(false)
   ipAddress         String?  @db.VarChar(45) // Supports IPv4 and IPv6
   userAgent         String?  @db.Text
-  createdAt         DateTime @default(now()) @db.Timestamp(6)
-  updatedAt         DateTime @updatedAt @db.Timestamp(6)
+  createddate       BigInt?  // Matches other tables naming convention
+  modifieddate      BigInt?  // Matches other tables naming convention
 
   // Prisma doesn't support conditional relations based on userType
   // Relations will be handled in application code
@@ -989,7 +989,7 @@ model AuthSession {
   @@index([refreshTokenHash])
   @@index([userId, userType, isRevoked])
   @@index([expiresAt])
-  @@index([ipAddress, createdAt])
+  @@index([ipAddress, createddate])
   @@map("auth_sessions")
 }
 

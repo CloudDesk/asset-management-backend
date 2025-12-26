@@ -106,6 +106,34 @@ export declare class ProductService {
         };
         message: string;
     }>;
+    /**
+     * Get product counts grouped by category and subcategory for a specific platform
+     * Includes all categories and subcategories from picklist, even those with 0 products
+     */
+    getProductCountsByCategory(platform: string): Promise<{
+        platform: string;
+        totalProducts: number;
+        categories: Array<{
+            id: string;
+            label: string;
+            count: number;
+            subcategories: Array<{
+                id: string;
+                label: string;
+                count: number;
+                subsubcategories: Array<{
+                    id: string;
+                    label: string;
+                    count: number;
+                }>;
+            }>;
+        }>;
+    }>;
+    /**
+     * Format a category/subcategory ID into a human-readable label
+     * Example: "home_fragrance" -> "Home Fragrance"
+     */
+    private formatLabel;
     private createDefaultPlatformStocks;
 }
 //# sourceMappingURL=product.service.d.ts.map

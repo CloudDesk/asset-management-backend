@@ -2,12 +2,18 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 export interface AuthenticatedRequest extends FastifyRequest {
     user?: {
         id: number;
-        useremail: string;
-        role?: string;
+        useremail?: string;
+        usermobilenumber?: number;
+        usersphonenumber?: number;
         firstname?: string;
         lastname?: string;
+        role?: string;
         roleId?: number;
         userType?: 'inventory' | 'ecommerce';
+        location?: string;
+        gender?: string;
+        gstnumber?: string;
+        isbusinessuser?: boolean;
     };
 }
 /**

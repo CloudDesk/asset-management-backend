@@ -208,6 +208,8 @@ export class AuthRateLimit {
         return Math.max(0, this.maxAttempts - attempt.count);
     }
 }
-// Global rate limiter instance
+// Global rate limiter instance for protected routes (15 minutes)
 export const authRateLimit = new AuthRateLimit();
+// Separate rate limiter for OTP routes (2 minutes for faster recovery)
+export const otpRateLimit = new AuthRateLimit(5, 2 * 60 * 1000); // 5 attempts in 2 minutes
 //# sourceMappingURL=auth.js.map

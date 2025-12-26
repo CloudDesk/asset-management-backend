@@ -33,8 +33,9 @@ export class AuthSessionService {
     async createSession(params: CreateSessionParams): Promise<AuthSession> {
         const { userId, userType, refreshToken, expiresInDays, ipAddress, userAgent } = params;
 
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + expiresInDays);
+        // Calculate expiry timestamp in milliseconds (BigInt)
+        const now = Date.now();
+        const expiresAt = BigInt(now + (expiresInDays * 24 * 60 * 60 * 1000));
 
         const session = await prisma.authSession.create({
             data: {
@@ -51,7 +52,7 @@ export class AuthSessionService {
             sessionId: session.id,
             userId,
             userType,
-            expiresAt,
+            expiresAt: expiresAt.toString(),
         }, 'Created new auth session');
 
         return session;
@@ -65,6 +66,7 @@ export class AuthSessionService {
         userType: 'inventory' | 'ecommerce'
     ): Promise<AuthSession | null> {
         const tokenHash = this.hashRefreshToken(refreshToken);
+        const now = BigInt(Date.now());
 
         const session = await prisma.authSession.findFirst({
             where: {
@@ -72,7 +74,7 @@ export class AuthSessionService {
                 userType,
                 isRevoked: false,
                 expiresAt: {
-                    gt: new Date(), // Greater than now = not expired
+                    gt: now, // Greater than now = not expired
                 },
             },
         });
@@ -89,7 +91,7 @@ export class AuthSessionService {
     /**
      * Revoke a specific session by ID
      */
-    async revokeSession(sessionId: string): Promise<void> {
+    async revokeSession(sessionId: number): Promise<void> {
         await prisma.authSession.update({
             where: { id: sessionId },
             data: { isRevoked: true },
@@ -126,13 +128,14 @@ export class AuthSessionService {
      * Get active session count for a user
      */
     async getActiveSessionCount(userId: number, userType: 'inventory' | 'ecommerce'): Promise<number> {
+        const now = BigInt(Date.now());
         const count = await prisma.authSession.count({
             where: {
                 userId,
                 userType,
                 isRevoked: false,
                 expiresAt: {
-                    gt: new Date(),
+                    gt: now,
                 },
             },
         });
@@ -144,17 +147,18 @@ export class AuthSessionService {
      * Get all active sessions for a user
      */
     async getUserActiveSessions(userId: number, userType: 'inventory' | 'ecommerce'): Promise<AuthSession[]> {
+        const now = BigInt(Date.now());
         const sessions = await prisma.authSession.findMany({
             where: {
                 userId,
                 userType,
                 isRevoked: false,
                 expiresAt: {
-                    gt: new Date(),
+                    gt: now,
                 },
             },
             orderBy: {
-                createdAt: 'desc',
+                createddate: 'desc',
             },
         });
 
@@ -205,9 +209,8 @@ export class AuthSessionService {
      * This replaces the need for pg_cron
      */
     async cleanupExpiredSessions(): Promise<SessionCleanupResult> {
-        const now = new Date();
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const now = BigInt(Date.now());
+        const thirtyDaysAgo = BigInt(Date.now() - (30 * 24 * 60 * 60 * 1000));
 
         // Delete expired sessions
         const expiredResult = await prisma.authSession.deleteMany({
@@ -222,7 +225,7 @@ export class AuthSessionService {
         const revokedResult = await prisma.authSession.deleteMany({
             where: {
                 isRevoked: true,
-                updatedAt: {
+                modifieddate: {
                     lt: thirtyDaysAgo,
                 },
             },
@@ -243,16 +246,17 @@ export class AuthSessionService {
      * Update session's last activity (IP and user agent)
      */
     async updateSessionActivity(
-        sessionId: string,
+        sessionId: number,
         ipAddress?: string,
         userAgent?: string
     ): Promise<void> {
+        const updateData: any = {};
+        if (ipAddress !== undefined) updateData.ipAddress = ipAddress;
+        if (userAgent !== undefined) updateData.userAgent = userAgent;
+
         await prisma.authSession.update({
             where: { id: sessionId },
-            data: {
-                ipAddress: ipAddress || undefined,
-                userAgent: userAgent || undefined,
-            },
+            data: updateData,
         });
     }
 
@@ -281,11 +285,13 @@ export class AuthSessionService {
         // Create new session
         const newSession = await this.createSession({
             userId: oldSession.userId,
-            userType: oldSession.userType,
+            userType: oldSession.userType as 'inventory' | 'ecommerce',
             refreshToken: newRefreshToken,
             expiresInDays,
-            ipAddress: ipAddress || oldSession.ipAddress || undefined,
-            userAgent: userAgent || oldSession.userAgent || undefined,
+            ...(ipAddress && { ipAddress }),
+            ...(userAgent && { userAgent }),
+            ...(!ipAddress && oldSession.ipAddress && { ipAddress: oldSession.ipAddress }),
+            ...(!userAgent && oldSession.userAgent && { userAgent: oldSession.userAgent }),
         });
 
         logger.info({
@@ -300,7 +306,7 @@ export class AuthSessionService {
     /**
      * Get session by ID
      */
-    async getSessionById(sessionId: string): Promise<AuthSession | null> {
+    async getSessionById(sessionId: number): Promise<AuthSession | null> {
         return await prisma.authSession.findUnique({
             where: { id: sessionId },
         });
@@ -316,12 +322,12 @@ export class AuthSessionService {
                 userType,
             },
             orderBy: {
-                createdAt: 'desc',
+                createddate: 'desc',
             },
             take: limit,
             select: {
                 id: true,
-                createdAt: true,
+                createddate: true,
                 ipAddress: true,
                 userAgent: true,
                 isRevoked: true,

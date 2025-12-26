@@ -2,7 +2,8 @@ import { InventoryUsersService } from '../services/inventoryusers.service.js';
 import { authRateLimit } from '../utils/auth.js';
 import { logger } from '../config/logger.js';
 import { createSuccessResponse, asyncHandler } from '../utils/errorHandler.js';
-import { authenticateInventoryUser } from '../middleware/auth.middleware.js';
+import { authSessionService } from '../services/authsession.service.js';
+import { generateTokenPair } from '../utils/jwt.js';
 export async function authRoutes(fastify) {
     const inventoryUsersService = new InventoryUsersService();
     // POST /v1/auth/signin - Sign in inventory user
@@ -140,21 +141,23 @@ export async function authRoutes(fastify) {
         const { useremail, userpassword } = request.body;
         // Rate limiting check
         const identifier = `${request.ip}-${useremail}`;
-        if (authRateLimit.isRateLimited(identifier)) {
-            const remainingAttempts = authRateLimit.getRemainingAttempts(identifier);
-            logger.warn({
-                ip: request.ip,
-                email: useremail,
-                remainingAttempts
-            }, 'Sign-in rate limited');
-            return reply.code(429).send({
-                success: false,
-                message: 'Too many sign-in attempts',
-                details: 'Please try again later',
-                statusCode: 429,
-                remainingAttempts,
-            });
+        /*if (authRateLimit.isRateLimited(identifier)) {
+          const remainingAttempts = authRateLimit.getRemainingAttempts(identifier);
+          logger.warn({
+            ip: request.ip,
+            email: useremail,
+            remainingAttempts
+          }, 'Sign-in rate limited');
+    
+          return reply.code(429).send({
+            success: false,
+            message: 'Too many sign-in attempts',
+            details: 'Please try again later',
+            statusCode: 429,
+            remainingAttempts,
+          });
         }
+    */
         try {
             const result = await inventoryUsersService.authenticate(useremail, userpassword);
             if (!result) {
@@ -176,11 +179,23 @@ export async function authRoutes(fastify) {
             }
             // Clear rate limiting on successful sign-in
             authRateLimit.clearAttempts(identifier);
+            // Create auth session (NEW: Session-based authentication)
+            const session = await authSessionService.createSession({
+                userId: result.user.id,
+                userType: 'inventory',
+                refreshToken: result.refreshToken,
+                expiresInDays: 7, // Inventory users: 7 days
+                ipAddress: request.ip,
+                ...(request.headers['user-agent'] && { userAgent: request.headers['user-agent'] }),
+            });
+            // Enforce session limit (keep only 5 most recent sessions)
+            await authSessionService.enforceSessionLimit(result.user.id, 'inventory', 5);
             logger.info({
                 userId: result.user.id,
                 email: useremail,
-                ip: request.ip
-            }, 'User signed in successfully');
+                ip: request.ip,
+                sessionId: session.id,
+            }, 'User signed in successfully with session created');
             const response = createSuccessResponse('Sign-in successful', result);
             return reply.code(200).send(response);
         }
@@ -379,7 +394,6 @@ export async function authRoutes(fastify) {
     }));
     // POST /v1/auth/signout - Sign out inventory user
     fastify.post('/signout', {
-        preHandler: authenticateInventoryUser,
         schema: {
             description: 'Sign out inventory user (requires authentication)',
             tags: ['Authentication'],
@@ -414,12 +428,16 @@ export async function authRoutes(fastify) {
         },
     }, asyncHandler(async (request, reply) => {
         const userId = request.user.id;
+        // Revoke all user sessions (logout from all devices)
+        const revokedCount = await authSessionService.revokeAllUserSessions(userId, 'inventory');
+        // Also clear old sessiontoken field for backward compatibility
         await inventoryUsersService.signOut(userId);
         logger.info({
             userId,
             email: request.user.useremail,
-            ip: request.ip
-        }, 'User signed out successfully');
+            ip: request.ip,
+            revokedSessions: revokedCount,
+        }, 'User signed out successfully from all devices');
         const response = createSuccessResponse('Sign-out successful', null);
         return reply.code(200).send(response);
     }));
@@ -582,7 +600,6 @@ export async function authRoutes(fastify) {
     }));
     // POST /v1/auth/update-password - Update password for authenticated user
     fastify.post('/update-password', {
-        preHandler: authenticateInventoryUser,
         schema: {
             description: 'Update password for authenticated inventory user',
             tags: ['Authentication'],
@@ -661,7 +678,6 @@ export async function authRoutes(fastify) {
     }));
     // GET /v1/auth/me - Get current user information
     fastify.get('/me', {
-        preHandler: authenticateInventoryUser,
         schema: {
             description: 'Get current authenticated user information',
             tags: ['Authentication'],
@@ -782,24 +798,44 @@ export async function authRoutes(fastify) {
             });
         }
         try {
-            const { refreshAccessToken } = await import('../utils/jwt.js');
-            const tokenPair = refreshAccessToken(refreshToken);
-            // Update refresh token in database if sliding expiry is enabled
-            if (tokenPair.refreshToken !== refreshToken) {
-                const { verifyToken } = await import('../utils/jwt.js');
-                const decoded = verifyToken(tokenPair.refreshToken);
-                const inventoryUsersService = new InventoryUsersService();
-                await inventoryUsersService.update(decoded.userId.toString(), {
-                    sessiontoken: tokenPair.refreshToken
+            // Verify session exists and is valid
+            const session = await authSessionService.verifyRefreshToken(refreshToken, 'inventory');
+            if (!session) {
+                return reply.code(401).send({
+                    success: false,
+                    message: 'Invalid refresh token',
+                    details: 'Refresh token is invalid, expired, or revoked',
+                    statusCode: 401
+                });
+            }
+            // Generate new token pair
+            const { verifyToken } = await import('../utils/jwt.js');
+            const decoded = verifyToken(refreshToken);
+            const newTokenPair = generateTokenPair({
+                userId: decoded.userId,
+                email: decoded.email,
+                roleId: decoded.roleId,
+            });
+            // Rotate refresh token (delete old, create new)
+            const newSession = await authSessionService.rotateRefreshToken(refreshToken, newTokenPair.refreshToken, 'inventory', 7, // 7 days for inventory users
+            request.ip, request.headers['user-agent']);
+            if (!newSession) {
+                return reply.code(401).send({
+                    success: false,
+                    message: 'Token rotation failed',
+                    details: 'Could not rotate refresh token',
+                    statusCode: 401
                 });
             }
             logger.info({
-                userId: (await import('../utils/jwt.js')).verifyToken(tokenPair.refreshToken).userId
-            }, 'Access token refreshed successfully');
+                userId: decoded.userId,
+                oldSessionId: session.id,
+                newSessionId: newSession.id,
+            }, 'Access token refreshed with session rotation');
             const response = createSuccessResponse('Token refreshed successfully', {
-                token: tokenPair.accessToken,
-                refreshToken: tokenPair.refreshToken,
-                expiresIn: tokenPair.expiresIn
+                token: newTokenPair.accessToken,
+                refreshToken: newTokenPair.refreshToken,
+                expiresIn: newTokenPair.expiresIn
             });
             return reply.code(200).send(response);
         }

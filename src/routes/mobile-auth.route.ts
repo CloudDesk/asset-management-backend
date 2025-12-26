@@ -7,7 +7,7 @@ import { TwilioSmsService } from '../services/twilioSms.service.js';
 import { exotelSmsService } from '../services/exotelSms.service.js';
 import { otpService } from '../services/otp.service.js';
 import { authSessionService } from '../services/authsession.service.js';
-import { authRateLimit, sanitizeUserData } from '../utils/auth.js';
+import { authRateLimit, otpRateLimit, sanitizeUserData } from '../utils/auth.js';
 import { logger } from '../config/logger.js';
 import {
   createSuccessResponse,
@@ -106,10 +106,10 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
   }, asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const { usermobilenumber, verifyOnly = false } = request.body as { usermobilenumber: number; verifyOnly?: boolean };
 
-    // Rate limiting check using mobile number
+    // Rate limiting check using mobile number (2-minute window for OTP)
     const identifier = `${request.ip}-${usermobilenumber}`;
-    if (authRateLimit.isRateLimited(identifier)) {
-      const remainingAttempts = authRateLimit.getRemainingAttempts(identifier);
+    if (otpRateLimit.isRateLimited(identifier)) {
+      const remainingAttempts = otpRateLimit.getRemainingAttempts(identifier);
       logger.warn({
         ip: request.ip,
         mobileNumber: usermobilenumber,
@@ -132,8 +132,8 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
 
       // Step 2: Handle verifyOnly mode (for delete account flow)
       if (!user && verifyOnly) {
-        authRateLimit.recordAttempt(identifier);
-        const remainingAttempts = authRateLimit.getRemainingAttempts(identifier);
+        otpRateLimit.recordAttempt(identifier);
+        const remainingAttempts = otpRateLimit.getRemainingAttempts(identifier);
 
         logger.warn({
           ip: request.ip,
@@ -244,7 +244,7 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
       return reply.code(200).send(response);
 
     } catch (error) {
-      authRateLimit.recordAttempt(identifier);
+      otpRateLimit.recordAttempt(identifier);
       logger.error({ error, mobileNumber: usermobilenumber, verifyOnly, ip: request.ip, provider: 'exotel' }, 'Error during OTP generation (Exotel)');
       throw error;
     }
@@ -406,8 +406,8 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
 
       if (!verifyResult.success || !verifyResult.verified) {
         // Record failed attempt
-        authRateLimit.recordAttempt(identifier);
-        const remainingAttempts = authRateLimit.getRemainingAttempts(identifier);
+        otpRateLimit.recordAttempt(identifier);
+        const remainingAttempts = otpRateLimit.getRemainingAttempts(identifier);
 
         logger.warn({
           ip: request.ip,
@@ -515,7 +515,7 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
       return reply.code(200).send(response);
 
     } catch (error) {
-      authRateLimit.recordAttempt(identifier);
+      otpRateLimit.recordAttempt(identifier);
       logger.error({ error, mobileNumber: usermobilenumber, ip: request.ip, provider: 'exotel' }, 'Error during OTP verification (Exotel)');
       throw error;
     }
@@ -631,8 +631,8 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
 
       // Step 2: Handle verifyOnly mode (for delete account flow)
       if (!user && verifyOnly) {
-        authRateLimit.recordAttempt(identifier);
-        const remainingAttempts = authRateLimit.getRemainingAttempts(identifier);
+        otpRateLimit.recordAttempt(identifier);
+        const remainingAttempts = otpRateLimit.getRemainingAttempts(identifier);
 
         logger.warn({
           ip: request.ip,

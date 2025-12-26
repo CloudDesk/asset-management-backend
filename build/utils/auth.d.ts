@@ -70,4 +70,5 @@ export declare class AuthRateLimit {
     getRemainingAttempts(identifier: string): number;
 }
 export declare const authRateLimit: AuthRateLimit;
+export declare const otpRateLimit: AuthRateLimit;
 //# sourceMappingURL=auth.d.ts.map
