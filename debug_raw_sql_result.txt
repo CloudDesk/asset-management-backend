@@ -12902,3 +12902,232 @@ Update result: [
     "refund_completed_date": 1766501714542
   }
 ]
+Update result: [
+  {
+    "id": 260,
+    "orderid": 193,
+    "productid": 74,
+    "userid": 1,
+    "addressid": 2,
+    "productamount": "250",
+    "discountamount": null,
+    "orderamount": "250",
+    "quantity": 1,
+    "createddate": 1767031598,
+    "modifieddate": 1767031605,
+    "merchanttransactionid": null,
+    "productname": "New - Car Fresheners",
+    "productcategory": "home_fragrance",
+    "productcolour": null,
+    "readytodispatchdate": null,
+    "delivereddate": null,
+    "cancelleddate": null,
+    "returneddate": null,
+    "orderstatus": "order_confirmed",
+    "uniqueordderid": "NIVAANA-0000000193",
+    "orderlinenumber": "ordline-0000000260",
+    "deliveryfrom": null,
+    "location": null,
+    "dispatcheddate": null,
+    "ordereddate": 1767011796131,
+    "paymentfaileddate": null,
+    "evaluation_id": null,
+    "original_price": "250",
+    "product_discount_amount": "0",
+    "promotion_discount_amount": "0",
+    "shipping_cost": "50",
+    "tracking_id": null,
+    "shipdate": null,
+    "status_history": [
+      {
+        "source": "system",
+        "is_active": true,
+        "new_status": "order_confirmed",
+        "changed_date": 1767011796131,
+        "previous_status": "order_placed"
+      }
+    ],
+    "hsn_code": "33074900",
+    "gst_rate": "18",
+    "taxable_amount": "205",
+    "cgst_amount": "22.5",
+    "sgst_amount": "22.5",
+    "igst_amount": "0",
+    "total_gst_amount": "45"
+  }
+]
+Update result: [
+  {
+    "id": 193,
+    "userid": 1,
+    "addressid": 2,
+    "createddate": 1767031597,
+    "modifieddate": 1767031606,
+    "orderamount": "300",
+    "orderid": "NIVAANA-0000000193",
+    "orderstatus": "order_confirmed",
+    "delivereddate": null,
+    "cancelleddate": null,
+    "returneddate": null,
+    "quantity": 1,
+    "transactionid": "NIVAANA-TRAN-00382",
+    "readytodispatchdate": null,
+    "dispatcheddate": null,
+    "productamount": "250",
+    "discountamount": "0",
+    "deliveryfrom": null,
+    "orderprocessingtime": null,
+    "ispaymentsucceed": false,
+    "merchanttransactionid": "TXN_1767011791710_YIXDPN",
+    "productid": [
+      74
+    ],
+    "paymentfaileddate": null,
+    "mode": "cod",
+    "evaluation_id": null,
+    "promotion_discount_total": "0",
+    "original_total": "250",
+    "shipping_cost": "50",
+    "tax_amount": "0",
+    "tracking_id": null,
+    "vendor": "EKART",
+    "barcodes": null,
+    "label_url": null,
+    "public_tracking_link": null,
+    "shipment_created_at": null,
+    "label_downloaded_at": null,
+    "label_printed_at": null,
+    "shipdate": null,
+    "cod_payment_received_date": null,
+    "cod_transaction_reference": null,
+    "cod_amount": null,
+    "status_history": [
+      {
+        "source": "system",
+        "is_active": true,
+        "new_status": "order_confirmed",
+        "changed_date": 1767011796129,
+        "previous_status": "order_placed"
+      }
+    ],
+    "items_total": "250",
+    "total_taxable_amount": "205",
+    "total_cgst_amount": "22.5",
+    "total_sgst_amount": "22.5",
+    "total_igst_amount": "0",
+    "total_gst_amount": "45",
+    "refund_transaction_id": null,
+    "refund_amount": null,
+    "refund_reference": null,
+    "refund_initiated_date": null,
+    "refund_completed_date": null
+  }
+]
+Update result: [
+  {
+    "id": 382,
+    "transactionid": "NIVAANA-TRAN-00382",
+    "createddate": 1767031594,
+    "modifieddate": 1767031612,
+    "transactiondata": {
+      "mode": "cod",
+      "status": "COD_ORDER_CREATED",
+      "codData": {
+        "status": "COD_ORDER_CREATED",
+        "message": "Cash on Delivery order created successfully",
+        "timestamp": "2025-12-29T12:36:31.710Z"
+      },
+      "initiatedAt": "2025-12-29T12:36:31.710Z",
+      "evaluation_ids": [],
+      "paymentRequest": {
+        "name": "harishraja411@gmail.com",
+        "amount": 300,
+        "userId": 1,
+        "productIds": [
+          74
+        ],
+        "mobileNumber": "9944626003",
+        "transactionFor": "product",
+        "merchantTransactionId": "TXN_1767011791710_YIXDPN"
+      },
+      "originalPayload": {
+        "mode": "cod",
+        "order": [
+          {
+            "cartId": 702,
+            "userid": 1,
+            "quantity": 1,
+            "addressid": 2,
+            "productid": 74,
+            "orderamount": 250,
+            "productname": "New - Car Fresheners",
+            "productamount": 250,
+            "discountamount": 0,
+            "productcategory": "home_fragrance"
+          }
+        ],
+        "taxAmount": 0,
+        "transaction": {
+          "name": "harishraja411@gmail.com",
+          "amount": 300,
+          "userId": 1,
+          "productid": [
+            74
+          ],
+          "mobilenumber": "9944626003",
+          "transactionfor": "product"
+        },
+        "shippingCost": 50
+      },
+      "phonePeResponses": null,
+      "invalid_evaluations": [],
+      "limit_reached_evaluations": []
+    },
+    "userid": 1,
+    "productid": [
+      74
+    ],
+    "merchanttransactionid": "TXN_1767011791710_YIXDPN",
+    "name": "harishraja411@gmail.com",
+    "amount": "300",
+    "mobilenumber": 9944626003,
+    "transactionfor": "product",
+    "status": "COD_SUCCESS"
+  }
+]
+Update result: [
+  {
+    "id": 703,
+    "productid": 74,
+    "userid": 41,
+    "createddate": 1767031675,
+    "quantity": "4",
+    "iscart": true,
+    "iswishlist": false,
+    "modifieddate": 1767031728
+  }
+]
+Update result: [
+  {
+    "id": 703,
+    "productid": 74,
+    "userid": 41,
+    "createddate": 1767031675,
+    "quantity": "4",
+    "iscart": true,
+    "iswishlist": false,
+    "modifieddate": 1767031728
+  }
+]
+Update result: [
+  {
+    "id": 703,
+    "productid": 74,
+    "userid": 41,
+    "createddate": 1767031675,
+    "quantity": "4",
+    "iscart": true,
+    "iswishlist": false,
+    "modifieddate": 1767032764
+  }
+]

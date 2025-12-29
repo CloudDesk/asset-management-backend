@@ -7605,3 +7605,50 @@ Filtered data: {
   "sessiontoken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiaGFyaXNoQG1haWwuY29tIiwicm9sZUlkIjozLCJpYXQiOjE3NjY3NTUwNzgsImV4cCI6MTc2NzM1OTg3OCwiYXVkIjoiYXNzZXQtbWFuYWdlbWVudC1mcm9udGVuZCIsImlzcyI6ImFzc2V0LW1hbmFnZW1lbnQtYmFja2VuZCJ9.kDO-g71mxwZ--PbWr3x5YSkYjsAGZj879fbKOMjGgl4",
   "modifieddate": 1766755078272
 }
+Filtered data: {
+  "hsn_code": "33074900",
+  "gst_rate": 18,
+  "taxable_amount": 205,
+  "cgst_amount": 22.5,
+  "sgst_amount": 22.5,
+  "igst_amount": 0,
+  "total_gst_amount": 45,
+  "modifieddate": 1767011803955
+}
+Filtered data: {
+  "items_total": 250,
+  "total_taxable_amount": 205,
+  "total_cgst_amount": 22.5,
+  "total_sgst_amount": 22.5,
+  "total_igst_amount": 0,
+  "total_gst_amount": 45,
+  "modifieddate": 1767011805277
+}
+Filtered data: {
+  "status": "COD_SUCCESS",
+  "modifieddate": 1767011811379
+}
+Filtered data: {
+  "productid": 74,
+  "userid": 41,
+  "quantity": 4,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1767011927382
+}
+Filtered data: {
+  "productid": 74,
+  "userid": 41,
+  "quantity": 4,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1767011927699
+}
+Filtered data: {
+  "productid": 74,
+  "userid": 41,
+  "quantity": 4,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1767012963760
+}

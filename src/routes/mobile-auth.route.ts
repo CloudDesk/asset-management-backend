@@ -403,7 +403,7 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
       // Step 1: Verify OTP using Redis service FIRST
       const phoneNumberString = `+91${usermobilenumber}`;
       const verifyResult = await otpService.verifyOtp(phoneNumberString, otpString);
-
+      console.log('OTP verification result:', verifyResult);
       if (!verifyResult.success || !verifyResult.verified) {
         // Record failed attempt
         otpRateLimit.recordAttempt(identifier);

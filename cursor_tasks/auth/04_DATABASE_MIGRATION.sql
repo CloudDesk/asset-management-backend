@@ -14,19 +14,30 @@
 -- Supports token rotation, revocation, and automatic cleanup
 -- ============================================================================
 
-CREATE TABLE IF NOT EXISTS auth_sessions (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL,
-    user_type VARCHAR(20) NOT NULL CHECK (
-        user_type IN ('inventory', 'ecommerce')
-    ),
-    refresh_token_hash TEXT NOT NULL,
-    expires_at BIGINT NOT NULL,
-    is_revoked BOOLEAN NOT NULL DEFAULT false,
-    ip_address VARCHAR(45),
-    user_agent TEXT,
-    createddate BIGINT,
-    modifieddate BIGINT
+CREATE TABLE auth_sessions (
+    id SERIAL NOT NULL,
+    "userId" integer NOT NULL,
+    "userType" varchar(20) NOT NULL,
+    "refreshTokenHash" text NOT NULL,
+    "expiresAt" bigint NOT NULL,
+    "isRevoked" boolean NOT NULL DEFAULT false,
+    "ipAddress" varchar(45),
+    "userAgent" text,
+    createddate bigint,
+    modifieddate bigint,
+    PRIMARY KEY (id),
+    CONSTRAINT auth_sessions_usertype_check CHECK (
+        (
+            ("userType")::text = ANY (
+                (
+                    ARRAY[
+                        'inventory'::character varying,
+                        'ecommerce'::character varying
+                    ]
+                )::text []
+            )
+        )
+    )
 );
 
 -- ============================================================================
@@ -35,25 +46,19 @@ CREATE TABLE IF NOT EXISTS auth_sessions (
 -- Optimized indexes for common query patterns
 -- ============================================================================
 
--- Index for user session lookups
-CREATE INDEX IF NOT EXISTS idx_auth_sessions_user ON auth_sessions (user_id, user_type);
+CREATE INDEX auth_sessions_userid_usertype_idx ON public.auth_sessions USING btree ("userId", "userType");
 
--- Index for refresh token verification
-CREATE INDEX IF NOT EXISTS idx_auth_sessions_token_hash ON auth_sessions (refresh_token_hash);
+CREATE INDEX auth_sessions_refreshtokenhash_idx ON public.auth_sessions USING btree ("refreshTokenHash");
 
--- Composite index for active session queries
-CREATE INDEX IF NOT EXISTS idx_auth_sessions_user_revoked ON auth_sessions (
-    user_id,
-    user_type,
-    is_revoked
+CREATE INDEX auth_sessions_userid_usertype_isrevoked_idx ON public.auth_sessions USING btree (
+    "userId",
+    "userType",
+    "isRevoked"
 );
 
--- Index for cleanup queries (expired sessions)
-CREATE INDEX IF NOT EXISTS idx_auth_sessions_expires ON auth_sessions (expires_at);
+CREATE INDEX auth_sessions_expiresat_idx ON public.auth_sessions USING btree ("expiresAt");
 
--- Index for security auditing (IP-based queries)
-CREATE INDEX IF NOT EXISTS idx_auth_sessions_ip_created ON auth_sessions (ip_address, createddate);
-
+CREATE INDEX auth_sessions_ipaddress_createddate_idx ON public.auth_sessions USING btree ("ipAddress", createddate);
 -- ============================================================================
 -- 3. CREATE TRIGGER FUNCTIONS
 -- ============================================================================
@@ -61,36 +66,42 @@ CREATE INDEX IF NOT EXISTS idx_auth_sessions_ip_created ON auth_sessions (ip_add
 -- ============================================================================
 
 -- Function: Set createddate on INSERT
-CREATE OR REPLACE FUNCTION set_auth_sessions_createddate()
-RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION public.set_auth_sessions_createddate()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
 BEGIN
-    IF NEW.createddate IS NULL THEN
-        NEW.createddate = (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT;
+    IF NEW."createddate" IS NULL THEN
+        NEW."createddate" = (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT;
     END IF;
-    
-    -- Also set modifieddate to same value on creation
-    NEW.modifieddate = NEW.createddate;
-    
+
+    NEW."modifieddate" = NEW."createddate";
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$function$
+
 
 -- Trigger: Auto-set createddate on INSERT
+
 CREATE TRIGGER trigger_auth_sessions_createddate
 BEFORE INSERT ON auth_sessions
 FOR EACH ROW
 EXECUTE FUNCTION set_auth_sessions_createddate();
 
 -- Function: Update modifieddate on UPDATE
-CREATE OR REPLACE FUNCTION update_auth_sessions_modifieddate()
-RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION public.update_auth_sessions_modifieddate()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
 BEGIN
-    NEW.modifieddate = (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT;
+    NEW."modifieddate" = (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT;
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$function$
+
 
 -- Trigger: Auto-update modifieddate on UPDATE
+
 CREATE TRIGGER trigger_auth_sessions_modifieddate
 BEFORE UPDATE ON auth_sessions
 FOR EACH ROW
