@@ -14,5 +14,6 @@ export declare class ProductController {
     deleteProductImageUrls: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     getProductsForPlatform: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     getProductForPlatform: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    getProductCountsByCategory: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
 }
 //# sourceMappingURL=product.controller.d.ts.map

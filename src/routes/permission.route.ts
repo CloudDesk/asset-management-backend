@@ -1,13 +1,12 @@
 import { FastifyInstance, FastifyReply } from 'fastify';
 import { getUserPermissions } from '../utils/permissionChecker.js';
-import { authenticateInventoryUser, AuthenticatedRequest } from '../middleware/auth.middleware.js';
+import { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import { createSuccessResponse, asyncHandler } from '../utils/errorHandler.js';
 import { logger } from '../config/logger.js';
 
 export async function permissionRoutes(fastify: FastifyInstance) {
   // GET /v1/permissions/user - Get all permissions for current user (for frontend)
   fastify.get('/user', {
-    preHandler: [authenticateInventoryUser],
     schema: {
       description: 'Get all permissions for the current authenticated inventory user',
       tags: ['Permissions'],
@@ -96,10 +95,10 @@ export async function permissionRoutes(fastify: FastifyInstance) {
 
     const permissions = await getUserPermissions(userid);
 
-    logger.info({ 
-      userid, 
+    logger.info({
+      userid,
       roleId: permissions.role?.id,
-      permissionCount: Object.keys(permissions.permissions).length 
+      permissionCount: Object.keys(permissions.permissions).length
     }, 'User permissions retrieved successfully');
 
     const response = createSuccessResponse('User permissions retrieved successfully', permissions);

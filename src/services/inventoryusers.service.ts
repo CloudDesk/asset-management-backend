@@ -1,26 +1,26 @@
-import { 
-  CreateInventoryUsersInput, 
-  UpdateInventoryUsersInput, 
+import {
+  CreateInventoryUsersInput,
+  UpdateInventoryUsersInput,
   UpsertInventoryUsersInput
 } from '../schemas/inventoryusers.schema.js';
 import { PaginationResult, createPaginationResult, getPrismaSkipTake } from '../utils/pagination.js';
 import { FilterOptions } from '../utils/filterBuilder.js';
-import { 
+import {
   dynamicFindManyWithFilters,
-  dynamicFindUnique, 
-  dynamicCreate, 
-  dynamicUpdate, 
+  dynamicFindUnique,
+  dynamicCreate,
+  dynamicUpdate,
   dynamicDelete
 } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
-import { 
-  hashPassword, 
-  verifyPassword, 
-  validatePassword, 
-  generateSessionToken, 
-  generateResetToken, 
+import {
+  hashPassword,
+  verifyPassword,
+  validatePassword,
+  generateSessionToken,
+  generateResetToken,
   verifyResetToken,
-  sanitizeUserData 
+  sanitizeUserData
 } from '../utils/auth.js';
 import { EmailService } from './email.service.js';
 import { prisma } from '../models/prisma.js';
@@ -40,7 +40,7 @@ export class InventoryUsersService {
 
       // Build where clause for Prisma
       const where: any = {};
-      
+
       // Apply filters
       if (filters.useremail) where.useremail = filters.useremail;
       if (filters.role) where.role = filters.role; // Legacy field
@@ -49,7 +49,7 @@ export class InventoryUsersService {
       if (filters.lastname) where.lastname = filters.lastname;
       if (filters.location) where.location = filters.location;
       if (filters.usersphonenumber) where.usersphonenumber = BigInt(filters.usersphonenumber as string);
-      
+
       // Date filters
       if (filters.createdAfter) {
         where.createddate = { ...where.createddate, gte: BigInt(filters.createdAfter as string) };
@@ -89,7 +89,7 @@ export class InventoryUsersService {
       });
 
       logger.info({
-        inventoryUserCount: inventoryUsers.length, 
+        inventoryUserCount: inventoryUsers.length,
         total,
         filtered: Object.keys(filters).length > 0,
         appliedFilters: Object.keys(filters)
@@ -132,8 +132,8 @@ export class InventoryUsersService {
         throw new Error('Inventory user not found');
       }
 
-      logger.debug({ 
-        inventoryUserId: id, 
+      logger.debug({
+        inventoryUserId: id,
         availableFields: Object.keys(inventoryUser),
         hasRole: !!inventoryUser.rolerelation
       }, 'Dynamic inventoryusers findById completed');
@@ -209,7 +209,7 @@ export class InventoryUsersService {
 
       // Use Prisma to create with role relation (only if roleid is not null)
       const includeRole = inventoryUserData.roleid !== null && inventoryUserData.roleid !== undefined;
-      
+
       const inventoryUser = await (prisma as any).inventoryusers.create({
         data: inventoryUserData,
         ...(includeRole ? {
@@ -237,8 +237,8 @@ export class InventoryUsersService {
         throw new Error('Failed to create inventory user - no valid fields provided');
       }
 
-      logger.info({ 
-        inventoryUserId: inventoryUser.id, 
+      logger.info({
+        inventoryUserId: inventoryUser.id,
         email: inventoryUser.useremail,
         roleid: inventoryUser.roleid,
         hasRole: !!inventoryUser.rolerelation
@@ -297,7 +297,7 @@ export class InventoryUsersService {
       // Use Prisma to update with role relation (only if roleid is not null)
       const finalRoleId = inventoryUserData.roleid !== undefined ? inventoryUserData.roleid : (await (prisma as any).inventoryusers.findUnique({ where: { id: parseInt(id) }, select: { roleid: true } }))?.roleid;
       const includeRole = finalRoleId !== null && finalRoleId !== undefined;
-      
+
       const inventoryUser = await (prisma as any).inventoryusers.update({
         where: { id: parseInt(id) },
         data: inventoryUserData,
@@ -326,8 +326,8 @@ export class InventoryUsersService {
         throw new Error('Failed to update inventory user - no valid fields provided');
       }
 
-      logger.info({ 
-        inventoryUserId: id, 
+      logger.info({
+        inventoryUserId: id,
         email: inventoryUser.useremail,
         roleid: inventoryUser.roleid,
         hasRole: !!inventoryUser.rolerelation
@@ -404,17 +404,15 @@ export class InventoryUsersService {
         userId: user.id,
         email: user.useremail || '',
         roleId: user.roleid || undefined,
+        userType: 'inventory',
       });
 
-      // Store refresh token in database (optional - for token revocation)
-      // Access token is stateless (JWT), refresh token stored for logout/revocation
-      await dynamicUpdate('inventoryusers', { id: user.id }, { 
-        sessiontoken: tokenPair.refreshToken, // Store refresh token for revocation
-        modifieddate: BigInt(Date.now())
-      });
+      // NOTE: Session management is now handled by auth_sessions table
+      // The old sessiontoken field in inventoryusers is deprecated
+      // Sessions are created in the auth route after successful authentication
 
-      logger.info({ 
-        userId: user.id, 
+      logger.info({
+        userId: user.id,
         email: user.useremail,
         role: user.role,
         roleid: user.roleid
@@ -423,7 +421,7 @@ export class InventoryUsersService {
       // Get role and permissions for the user
       let roleData = null;
       let permissionsData = {};
-      
+
       if (user.roleid) {
         try {
           // Get role details
@@ -438,7 +436,7 @@ export class InventoryUsersService {
               isactive: true
             }
           });
-          
+
           if (role) {
             roleData = {
               id: role.id,
@@ -446,7 +444,7 @@ export class InventoryUsersService {
               code: role.code,
               level: role.level || 0
             };
-            
+
             // Get permissions for this user
             const { getUserPermissions } = await import('../utils/permissionChecker.js');
             const permissionsResult = await getUserPermissions(user.id);
@@ -478,7 +476,7 @@ export class InventoryUsersService {
     try {
       logger.debug({ userId }, 'Signing out inventory user');
 
-      await dynamicUpdate('inventoryusers', { id: userId }, { 
+      await dynamicUpdate('inventoryusers', { id: userId }, {
         sessiontoken: null,
         modifieddate: BigInt(Date.now())
       });
@@ -517,9 +515,9 @@ export class InventoryUsersService {
       const userName = user.firstname || user.useremail?.split('@')[0] || 'User';
       await this.emailService.sendPasswordResetEmail(email, token, userName);
 
-      logger.info({ 
-        userId: user.id, 
-        email 
+      logger.info({
+        userId: user.id,
+        email
       }, 'Password reset email sent successfully');
     } catch (error) {
       logger.error({ error, email }, 'Error initiating password reset');
@@ -572,9 +570,9 @@ export class InventoryUsersService {
         modifieddate: BigInt(Date.now())
       });
 
-      logger.info({ 
-        userId: user.id, 
-        email: user.useremail 
+      logger.info({
+        userId: user.id,
+        email: user.useremail
       }, 'Password reset completed successfully');
     } catch (error) {
       logger.error({ error }, 'Error resetting password');
@@ -615,9 +613,9 @@ export class InventoryUsersService {
         modifieddate: BigInt(Date.now())
       });
 
-      logger.info({ 
-        userId, 
-        email: user.useremail 
+      logger.info({
+        userId,
+        email: user.useremail
       }, 'Password updated successfully');
     } catch (error) {
       logger.error({ error, userId }, 'Error updating password');

@@ -33,7 +33,7 @@ export async function addressRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            data: { 
+            data: {
               type: 'array',
               items: {
                 type: 'object',
@@ -93,72 +93,73 @@ export async function addressRoutes(fastify: FastifyInstance) {
   }, addressController.getAddresses.bind(addressController));
 
   // GET /v1/addresses/default/:userId - Get default address for user
-  fastify.get('/default/:userId', {
-    schema: {
-      description: 'Get default address for a user',
-      tags: ['Addresses'],
-      params: {
-        type: 'object',
-        properties: {
-          userId: { type: 'string', description: 'User ID' },
-        },
-        required: ['userId'],
-      },
-      response: {
-        200: {
+  fastify.get('/default/:userId',
+    {
+      schema: {
+        description: 'Get default address for a user',
+        tags: ['Addresses'],
+        params: {
           type: 'object',
           properties: {
-            success: { type: 'boolean' },
-            data: { 
-              type: 'object',
-              properties: {
-                id: { type: 'number', description: 'Address ID' },
-                userid: { type: 'number', nullable: true, description: 'User ID' },
-                name: { type: 'string', nullable: true, description: 'Name' },
-                mobilenumber: { type: 'number', nullable: true, description: 'Mobile number' },
-                pincode: { type: 'number', nullable: true, description: 'Pincode' },
-                doornumber: { type: 'string', nullable: true, description: 'Door number' },
-                address: { type: 'string', nullable: true, description: 'Address' },
-                landmark: { type: 'string', nullable: true, description: 'Landmark' },
-                state: { type: 'string', nullable: true, description: 'State' },
-                city: { type: 'string', nullable: true, description: 'City' },
-                isdefaultaddress: { type: 'boolean', description: 'Whether this is the default address' }
+            userId: { type: 'string', description: 'User ID' },
+          },
+          required: ['userId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: {
+                  id: { type: 'number', description: 'Address ID' },
+                  userid: { type: 'number', nullable: true, description: 'User ID' },
+                  name: { type: 'string', nullable: true, description: 'Name' },
+                  mobilenumber: { type: 'number', nullable: true, description: 'Mobile number' },
+                  pincode: { type: 'number', nullable: true, description: 'Pincode' },
+                  doornumber: { type: 'string', nullable: true, description: 'Door number' },
+                  address: { type: 'string', nullable: true, description: 'Address' },
+                  landmark: { type: 'string', nullable: true, description: 'Landmark' },
+                  state: { type: 'string', nullable: true, description: 'State' },
+                  city: { type: 'string', nullable: true, description: 'City' },
+                  isdefaultaddress: { type: 'boolean', description: 'Whether this is the default address' }
+                },
+                additionalProperties: true // Allow any additional fields
               },
-              additionalProperties: true // Allow any additional fields
+              message: { type: 'string' },
             },
-            message: { type: 'string' },
           },
-        },
-        400: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            details: { type: 'string' },
-            statusCode: { type: 'number' },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              details: { type: 'string' },
+              statusCode: { type: 'number' },
+            },
           },
-        },
-        404: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            details: { type: 'string' },
-            statusCode: { type: 'number' },
+          404: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              details: { type: 'string' },
+              statusCode: { type: 'number' },
+            },
           },
-        },
-        500: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            details: { type: 'string' },
-            statusCode: { type: 'number' },
+          500: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              details: { type: 'string' },
+              statusCode: { type: 'number' },
+            },
           },
         },
       },
-    },
-  }, addressController.getDefaultAddress.bind(addressController));
+    }, addressController.getDefaultAddress.bind(addressController));
 
   // GET /v1/addresses/:id - Get address by ID
   fastify.get('/:id', {
@@ -177,7 +178,7 @@ export async function addressRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            data: { 
+            data: {
               type: 'object',
               properties: {
                 id: { type: 'number', description: 'Address ID' },
@@ -254,7 +255,7 @@ export async function addressRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            data: { 
+            data: {
               type: 'object',
               properties: {
                 id: { type: 'number', description: 'Address ID' },
@@ -330,7 +331,7 @@ export async function addressRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            data: { 
+            data: {
               type: 'object',
               properties: {
                 id: { type: 'number', description: 'Address ID' },

@@ -509,6 +509,12 @@ export class ProductService {
                 { fulldescription: { contains: filters.search, mode: 'insensitive' } },
             ];
         }
+        if (filters.subsubcategory) {
+            where.subsubcategory = filters.subsubcategory;
+        }
+        if (filters.isdealoftheday) {
+            where.isdealoftheday = filters.isdealoftheday === 'true';
+        }
         return where;
     }
     async create(data) {
@@ -1367,6 +1373,191 @@ export class ProductService {
                 message: `Validation error: ${error.message}`
             };
         }
+    }
+    /**
+     * Get product counts grouped by category and subcategory for a specific platform
+     * Includes all categories and subcategories from picklist, even those with 0 products
+     */
+    async getProductCountsByCategory(platform) {
+        try {
+            logger.info({ platform }, 'Getting product counts by category for platform');
+            // Step 1: Fetch all categories from picklist
+            const categories = await prisma.picklist.findMany({
+                where: {
+                    fieldname: 'category',
+                    object: 'product',
+                },
+                select: {
+                    value: true,
+                    label: true,
+                },
+            });
+            // Step 2: Fetch all subcategories from picklist with their parent category
+            const subcategories = await prisma.picklist.findMany({
+                where: {
+                    fieldname: 'subcategory',
+                    object: 'product',
+                },
+                select: {
+                    value: true,
+                    label: true,
+                    controlledvalue: true, // This is the parent category
+                },
+            });
+            // Step 3: Fetch all subsubcategories from picklist with their parent subcategory
+            const subsubcategories = await prisma.picklist.findMany({
+                where: {
+                    fieldname: 'subsubcategory',
+                    object: 'product',
+                },
+                select: {
+                    value: true,
+                    label: true,
+                    controlledvalue: true, // This is the parent subcategory
+                },
+            });
+            // Step 4: Get actual product counts grouped by category, subcategory, and subsubcategory
+            // Using Prisma ORM groupBy instead of raw SQL
+            const productCounts = await prisma.product.groupBy({
+                by: ['category', 'subcategory', 'subsubcategory'],
+                where: {
+                    platformStocks: {
+                        some: {
+                            platform,
+                        },
+                    },
+                },
+                _count: {
+                    id: true,
+                },
+            });
+            // Step 4: Create a map of actual counts
+            const countsMap = new Map();
+            let totalProducts = 0;
+            for (const row of productCounts) {
+                const category = row.category || '';
+                const subcategory = row.subcategory || '';
+                const count = row._count.id; // Prisma groupBy returns _count object
+                const key = `${category}::${subcategory}`;
+                countsMap.set(key, count);
+                totalProducts += count;
+            }
+            // Step 5: Build the response structure with all categories, subcategories, and subsubcategories
+            const categoryMap = new Map();
+            // Initialize all categories with 0 count
+            for (const cat of categories) {
+                if (!cat.value || !cat.label)
+                    continue; // Skip if value or label is null
+                categoryMap.set(cat.value, {
+                    id: cat.value,
+                    label: cat.label,
+                    count: 0,
+                    subcategories: new Map(),
+                });
+            }
+            // Add all subcategories to their parent categories
+            for (const subcat of subcategories) {
+                // Skip if essential fields are null
+                if (!subcat.value || !subcat.label || !subcat.controlledvalue)
+                    continue;
+                const parentCategory = subcat.controlledvalue; // This is the parent category value
+                if (categoryMap.has(parentCategory)) {
+                    const categoryEntry = categoryMap.get(parentCategory);
+                    categoryEntry.subcategories.set(subcat.value, {
+                        id: subcat.value,
+                        label: subcat.label,
+                        count: 0,
+                        subsubcategories: [],
+                    });
+                }
+            }
+            // Add all subsubcategories to their parent subcategories
+            for (const subsubcat of subsubcategories) {
+                // Skip if essential fields are null
+                if (!subsubcat.value || !subsubcat.label || !subsubcat.controlledvalue)
+                    continue;
+                const parentSubcategory = subsubcat.controlledvalue; // This is the parent subcategory value
+                // Find which category contains this subcategory
+                for (const categoryEntry of categoryMap.values()) {
+                    if (categoryEntry.subcategories.has(parentSubcategory)) {
+                        const subcategoryEntry = categoryEntry.subcategories.get(parentSubcategory);
+                        subcategoryEntry.subsubcategories.push({
+                            id: subsubcat.value,
+                            label: subsubcat.label,
+                            count: 0,
+                        });
+                        break; // Found the parent, no need to continue
+                    }
+                }
+            }
+            // Now update counts based on actual product data
+            for (const row of productCounts) {
+                const category = row.category || '';
+                const subcategory = row.subcategory || '';
+                const subsubcategory = row.subsubcategory || '';
+                const count = Number(row._count.id);
+                if (categoryMap.has(category)) {
+                    const categoryEntry = categoryMap.get(category);
+                    if (categoryEntry.subcategories.has(subcategory)) {
+                        const subcategoryEntry = categoryEntry.subcategories.get(subcategory);
+                        // If there's a subsubcategory, update its count
+                        if (subsubcategory) {
+                            const subsubcatEntry = subcategoryEntry.subsubcategories.find(s => s.id === subsubcategory);
+                            if (subsubcatEntry) {
+                                subsubcatEntry.count += count;
+                            }
+                        }
+                        // Always update subcategory and category counts
+                        subcategoryEntry.count += count;
+                        categoryEntry.count += count;
+                    }
+                }
+            }
+            // Convert map to array and sort
+            const categoriesArray = Array.from(categoryMap.values())
+                .sort((a, b) => a.label.localeCompare(b.label))
+                .map(cat => ({
+                id: cat.id,
+                label: cat.label,
+                count: cat.count,
+                subcategories: Array.from(cat.subcategories.values())
+                    .sort((a, b) => a.label.localeCompare(b.label))
+                    .map(subcat => ({
+                    id: subcat.id,
+                    label: subcat.label,
+                    count: subcat.count,
+                    subsubcategories: subcat.subsubcategories.sort((a, b) => a.label.localeCompare(b.label)),
+                })),
+            }));
+            logger.info({
+                platform,
+                totalProducts,
+                categoryCount: categoriesArray.length,
+                totalSubcategories: subcategories.length,
+                totalSubsubcategories: subsubcategories.length,
+            }, 'Product counts by category retrieved successfully');
+            return {
+                platform,
+                totalProducts,
+                categories: categoriesArray,
+            };
+        }
+        catch (error) {
+            logger.error({ error: error.message, platform }, 'Error getting product counts by category');
+            throw error;
+        }
+    }
+    /**
+     * Format a category/subcategory ID into a human-readable label
+     * Example: "home_fragrance" -> "Home Fragrance"
+     */
+    formatLabel(id) {
+        if (!id)
+            return '';
+        return id
+            .split('_')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
     }
     async createDefaultPlatformStocks(productId) {
         const numericId = typeof productId === 'string' ? parseInt(productId, 10) : Number(productId);

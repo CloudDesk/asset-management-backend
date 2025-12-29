@@ -5,7 +5,8 @@ import { EmailService } from '../services/email.service.js';
 import { TwilioSmsService } from '../services/twilioSms.service.js';
 import { exotelSmsService } from '../services/exotelSms.service.js';
 import { otpService } from '../services/otp.service.js';
-import { authRateLimit, generateSessionToken, sanitizeUserData } from '../utils/auth.js';
+import { authSessionService } from '../services/authsession.service.js';
+import { authRateLimit, otpRateLimit, sanitizeUserData } from '../utils/auth.js';
 import { logger } from '../config/logger.js';
 import { createSuccessResponse, asyncHandler } from '../utils/errorHandler.js';
 export async function mobileAuthRoutes(fastify) {
@@ -97,10 +98,10 @@ export async function mobileAuthRoutes(fastify) {
         },
     }, asyncHandler(async (request, reply) => {
         const { usermobilenumber, verifyOnly = false } = request.body;
-        // Rate limiting check using mobile number
+        // Rate limiting check using mobile number (2-minute window for OTP)
         const identifier = `${request.ip}-${usermobilenumber}`;
-        if (authRateLimit.isRateLimited(identifier)) {
-            const remainingAttempts = authRateLimit.getRemainingAttempts(identifier);
+        if (otpRateLimit.isRateLimited(identifier)) {
+            const remainingAttempts = otpRateLimit.getRemainingAttempts(identifier);
             logger.warn({
                 ip: request.ip,
                 mobileNumber: usermobilenumber,
@@ -120,8 +121,8 @@ export async function mobileAuthRoutes(fastify) {
             const user = await usersService.findByMobileNumber(usermobilenumber);
             // Step 2: Handle verifyOnly mode (for delete account flow)
             if (!user && verifyOnly) {
-                authRateLimit.recordAttempt(identifier);
-                const remainingAttempts = authRateLimit.getRemainingAttempts(identifier);
+                otpRateLimit.recordAttempt(identifier);
+                const remainingAttempts = otpRateLimit.getRemainingAttempts(identifier);
                 logger.warn({
                     ip: request.ip,
                     mobileNumber: usermobilenumber,
@@ -212,7 +213,7 @@ export async function mobileAuthRoutes(fastify) {
             return reply.code(200).send(response);
         }
         catch (error) {
-            authRateLimit.recordAttempt(identifier);
+            otpRateLimit.recordAttempt(identifier);
             logger.error({ error, mobileNumber: usermobilenumber, verifyOnly, ip: request.ip, provider: 'exotel' }, 'Error during OTP generation (Exotel)');
             throw error;
         }
@@ -266,7 +267,9 @@ export async function mobileAuthRoutes(fastify) {
                                     },
                                     additionalProperties: true
                                 },
-                                token: { type: 'string' },
+                                token: { type: 'string', description: 'JWT access token' },
+                                refreshToken: { type: 'string', description: 'JWT refresh token' },
+                                expiresIn: { type: 'number', description: 'Access token expiry in seconds' },
                                 isNewUser: { type: 'boolean', description: 'True if account was just created after OTP verification' },
                             },
                         },
@@ -364,8 +367,8 @@ export async function mobileAuthRoutes(fastify) {
             const verifyResult = await otpService.verifyOtp(phoneNumberString, otpString);
             if (!verifyResult.success || !verifyResult.verified) {
                 // Record failed attempt
-                authRateLimit.recordAttempt(identifier);
-                const remainingAttempts = authRateLimit.getRemainingAttempts(identifier);
+                otpRateLimit.recordAttempt(identifier);
+                const remainingAttempts = otpRateLimit.getRemainingAttempts(identifier);
                 logger.warn({
                     ip: request.ip,
                     mobileNumber: usermobilenumber,
@@ -415,20 +418,39 @@ export async function mobileAuthRoutes(fastify) {
             }
             // Clear rate limiting on successful authentication
             authRateLimit.clearAttempts(identifier);
-            // Step 3: Generate session token
-            const sessionToken = generateSessionToken();
-            // Step 4: Sanitize user data
+            // Step 3: Generate JWT token pair (access + refresh) - Same as inventory users
+            const { generateTokenPair } = await import('../utils/jwt.js');
+            const tokenPair = generateTokenPair({
+                userId: user.id,
+                email: user.useremail || undefined, // E-commerce users may not have email
+                userType: 'ecommerce',
+            });
+            // Step 4: Create auth session (NEW: Session-based authentication)
+            const session = await authSessionService.createSession({
+                userId: user.id,
+                userType: 'ecommerce',
+                refreshToken: tokenPair.refreshToken,
+                expiresInDays: 90, // E-commerce users: 90 days
+                ipAddress: request.ip,
+                ...(request.headers['user-agent'] && { userAgent: request.headers['user-agent'] }),
+            });
+            // Enforce session limit (keep only 5 most recent sessions)
+            await authSessionService.enforceSessionLimit(user.id, 'ecommerce', 5);
+            // Step 5: Sanitize user data
             const sanitizedUser = sanitizeUserData(user);
             logger.info({
                 userId: user.id,
                 mobileNumber: usermobilenumber,
                 isNewUser,
                 ip: request.ip,
+                sessionId: session.id,
                 provider: 'exotel'
             }, `User authenticated successfully via Exotel OTP ${isNewUser ? '(new account created)' : '(existing account)'}`);
             const result = {
                 user: sanitizedUser,
-                token: sessionToken,
+                token: tokenPair.accessToken, // JWT access token
+                refreshToken: tokenPair.refreshToken, // JWT refresh token
+                expiresIn: tokenPair.expiresIn, // Token expiry in seconds
                 isNewUser // Include isNewUser flag in response
             };
             const message = isNewUser
@@ -438,7 +460,7 @@ export async function mobileAuthRoutes(fastify) {
             return reply.code(200).send(response);
         }
         catch (error) {
-            authRateLimit.recordAttempt(identifier);
+            otpRateLimit.recordAttempt(identifier);
             logger.error({ error, mobileNumber: usermobilenumber, ip: request.ip, provider: 'exotel' }, 'Error during OTP verification (Exotel)');
             throw error;
         }
@@ -549,8 +571,8 @@ export async function mobileAuthRoutes(fastify) {
             const user = await usersService.findByMobileNumber(usermobilenumber);
             // Step 2: Handle verifyOnly mode (for delete account flow)
             if (!user && verifyOnly) {
-                authRateLimit.recordAttempt(identifier);
-                const remainingAttempts = authRateLimit.getRemainingAttempts(identifier);
+                otpRateLimit.recordAttempt(identifier);
+                const remainingAttempts = otpRateLimit.getRemainingAttempts(identifier);
                 logger.warn({
                     ip: request.ip,
                     mobileNumber: usermobilenumber,
@@ -697,7 +719,9 @@ export async function mobileAuthRoutes(fastify) {
                                     },
                                     additionalProperties: true
                                 },
-                                token: { type: 'string' },
+                                token: { type: 'string', description: 'JWT access token' },
+                                refreshToken: { type: 'string', description: 'JWT refresh token' },
+                                expiresIn: { type: 'number', description: 'Access token expiry in seconds' },
                                 isNewUser: { type: 'boolean', description: 'True if account was just created after OTP verification' },
                             },
                         },
@@ -846,20 +870,39 @@ export async function mobileAuthRoutes(fastify) {
             }
             // Clear rate limiting on successful authentication
             authRateLimit.clearAttempts(identifier);
-            // Step 3: Generate session token
-            const sessionToken = generateSessionToken();
-            // Step 4: Sanitize user data
+            // Step 3: Generate JWT token pair (access + refresh) - Same as inventory users
+            const { generateTokenPair } = await import('../utils/jwt.js');
+            const tokenPair = generateTokenPair({
+                userId: user.id,
+                email: user.useremail || undefined, // E-commerce users may not have email
+                userType: 'ecommerce',
+            });
+            // Step 4: Create auth session (NEW: Session-based authentication)
+            const session = await authSessionService.createSession({
+                userId: user.id,
+                userType: 'ecommerce',
+                refreshToken: tokenPair.refreshToken,
+                expiresInDays: 90, // E-commerce users: 90 days
+                ipAddress: request.ip,
+                ...(request.headers['user-agent'] && { userAgent: request.headers['user-agent'] }),
+            });
+            // Enforce session limit (keep only 5 most recent sessions)
+            await authSessionService.enforceSessionLimit(user.id, 'ecommerce', 5);
+            // Step 5: Sanitize user data
             const sanitizedUser = sanitizeUserData(user);
             logger.info({
                 userId: user.id,
                 mobileNumber: usermobilenumber,
                 isNewUser,
                 ip: request.ip,
+                sessionId: session.id,
                 provider: 'twilio'
             }, `User authenticated successfully via Twilio OTP ${isNewUser ? '(new account created)' : '(existing account)'}`);
             const result = {
                 user: sanitizedUser,
-                token: sessionToken,
+                token: tokenPair.accessToken, // JWT access token
+                refreshToken: tokenPair.refreshToken, // JWT refresh token
+                expiresIn: tokenPair.expiresIn, // Token expiry in seconds
                 isNewUser // Include isNewUser flag in response
             };
             const message = isNewUser

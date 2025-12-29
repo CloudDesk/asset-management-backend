@@ -4,15 +4,31 @@ import { sanitizeUserData, authRateLimit } from '../utils/auth.js';
 import { InventoryUsersService } from '../services/inventoryusers.service.js';
 
 // Define authenticated request interface
+// Supports both inventory and ecommerce users with different field structures
 export interface AuthenticatedRequest extends FastifyRequest {
   user?: {
     id: number;
-    useremail: string;
-    role?: string;
+    // Email & Contact - different requirements per user type
+    useremail?: string;              // Required for inventory, optional for ecommerce
+    usermobilenumber?: number;       // Ecommerce users (BigInt from DB)
+    usersphonenumber?: number;       // Inventory users (BigInt from DB)
+
+    // Name fields - both user types have these but different usage
     firstname?: string;
     lastname?: string;
+
+    // Role-based fields - only for inventory users
+    role?: string;
     roleId?: number;
-    userType?: 'inventory' | 'ecommerce'; // User type for dual frontend support
+
+    // User type differentiation
+    userType?: 'inventory' | 'ecommerce';
+
+    // Additional optional fields
+    location?: string;               // Inventory users only
+    gender?: string;                 // Ecommerce users only
+    gstnumber?: string;              // Ecommerce users only
+    isbusinessuser?: boolean;        // Ecommerce users only
   };
 }
 
@@ -27,9 +43,9 @@ export async function requireAuthentication(
   try {
     // Get token from Authorization header or query parameter
     const authHeader = request.headers.authorization;
-    const tokenFromQuery = request.query && typeof request.query === 'object' ? 
+    const tokenFromQuery = request.query && typeof request.query === 'object' ?
       (request.query as any).token : undefined;
-    
+
     let token: string | undefined;
 
     if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -39,13 +55,13 @@ export async function requireAuthentication(
     }
 
     if (!token) {
-      logger.warn({ 
-        ip: request.ip, 
+      logger.warn({
+        ip: request.ip,
         url: request.url,
         method: request.method,
         userAgent: request.headers['user-agent']
       }, 'Authentication failed: No token provided');
-      
+
       return reply.code(401).send({
         success: false,
         message: 'Authentication required',
@@ -59,56 +75,49 @@ export async function requireAuthentication(
       });
     }
 
-    // Check rate limiting for this token/IP
-    const identifier = `${request.ip}-${token}`;
-    if (authRateLimit.isRateLimited(identifier)) {
-      const remainingAttempts = authRateLimit.getRemainingAttempts(identifier);
-      logger.warn({ 
-        ip: request.ip, 
-        identifier,
-        remainingAttempts
-      }, 'Authentication rate limited');
-      
-      return reply.code(429).send({
-        success: false,
-        message: 'Too many authentication attempts',
-        details: 'Please try again later',
-        statusCode: 429,
-        remainingAttempts,
-        retryAfter: 900 // 15 minutes
-      });
-    }
+    // NOTE: Rate limiting removed from here - it should only apply to login routes
+    // Applying rate limiting to every authenticated request blocks legitimate users
+    // Rate limiting is handled in auth routes (signin, register, etc.)
 
     // Verify JWT token
     try {
       const { verifyToken } = await import('../utils/jwt.js');
       const decoded = verifyToken(token);
 
-      // Try to find user in inventoryusers first (internal users)
-      const inventoryUsersService = new InventoryUsersService();
-      let user = await inventoryUsersService.findById(decoded.userId.toString());
-      let userType: 'inventory' | 'ecommerce' = 'inventory';
+      // Use userType from token for direct table lookup (optimization)
+      // Default to 'inventory' for backward compatibility with old tokens
+      const userType = decoded.userType || 'inventory';
+      let user = null;
 
-      // If not found in inventoryusers, try users table (e-commerce users)
-      if (!user) {
-        const { UsersService } = await import('../services/users.service.js');
-        const usersService = new UsersService();
-        const ecommerceUser = await usersService.findById(decoded.userId.toString());
-        
-        if (ecommerceUser) {
-          user = ecommerceUser;
-          userType = 'ecommerce';
+      if (userType === 'inventory') {
+        // Lookup in inventoryusers table
+        try {
+          const inventoryUsersService = new InventoryUsersService();
+          user = await inventoryUsersService.findById(decoded.userId.toString());
+          logger.debug({ userId: decoded.userId, userType: 'inventory' }, 'User found in inventoryusers table');
+        } catch (error) {
+          logger.debug({ userId: decoded.userId, userType: 'inventory' }, 'User not found in inventoryusers table');
+        }
+      } else {
+        // Lookup in users table (e-commerce)
+        try {
+          const { UsersService } = await import('../services/users.service.js');
+          const usersService = new UsersService();
+          user = await usersService.findById(decoded.userId.toString());
+          logger.debug({ userId: decoded.userId, userType: 'ecommerce' }, 'User found in users table');
+        } catch (error) {
+          logger.debug({ userId: decoded.userId, userType: 'ecommerce' }, 'User not found in users table');
         }
       }
 
       if (!user) {
-        authRateLimit.recordAttempt(identifier);
-        logger.warn({ 
+        logger.warn({
           userId: decoded.userId,
+          userType,
           ip: request.ip,
           userAgent: request.headers['user-agent']
-        }, 'Authentication failed: User not found in either table');
-        
+        }, 'Authentication failed: User not found in expected table');
+
         return reply.code(401).send({
           success: false,
           message: 'Invalid authentication token',
@@ -121,12 +130,11 @@ export async function requireAuthentication(
 
       // Check token revocation (only for inventory users - they have sessiontoken field)
       if (userType === 'inventory' && (user as any).sessiontoken === null) {
-        authRateLimit.recordAttempt(identifier);
-        logger.warn({ 
+        logger.warn({
           userId: decoded.userId,
           ip: request.ip
         }, 'Authentication failed: Token revoked (user signed out)');
-        
+
         return reply.code(401).send({
           success: false,
           message: 'Token has been revoked',
@@ -136,9 +144,6 @@ export async function requireAuthentication(
           suggestion: 'Please sign in again to get a new token'
         });
       }
-      
-      // Clear rate limiting on successful authentication
-      authRateLimit.clearAttempts(identifier);
 
       // Attach user data to request (from JWT + DB)
       request.user = {
@@ -146,9 +151,9 @@ export async function requireAuthentication(
         roleId: decoded.roleId, // From JWT (undefined for e-commerce users)
         userType, // 'inventory' or 'ecommerce'
       };
-      
-      logger.debug({ 
-        userId: user.id, 
+
+      logger.debug({
+        userId: user.id,
         email: (user as any).useremail,
         userType,
         roleId: decoded.roleId,
@@ -156,19 +161,50 @@ export async function requireAuthentication(
       }, 'User authenticated successfully with JWT token');
 
     } catch (error) {
-      authRateLimit.recordAttempt(identifier);
-      logger.error({ error, token: token.substring(0, 8) + '...', endpoint: request.url }, 'Error during authentication');
-      
+      // Determine if this is a JWT-specific error (expired, invalid, etc.)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const isJWTError = errorMessage.includes('jwt') ||
+        errorMessage.includes('token') ||
+        errorMessage.includes('expired') ||
+        errorMessage.includes('invalid') ||
+        errorMessage.includes('malformed');
+
+      if (isJWTError) {
+        // JWT verification failed - return 401 (authentication failure)
+        logger.warn({
+          error: errorMessage,
+          token: token.substring(0, 8) + '...',
+          endpoint: request.url,
+          ip: request.ip
+        }, 'JWT verification failed');
+
+        return reply.code(401).send({
+          success: false,
+          message: 'Invalid or expired token',
+          details: 'Your authentication token is invalid or has expired. Please sign in again',
+          statusCode: 401,
+          tokenStatus: 'invalid_or_expired',
+          suggestion: 'Please sign in again to get a new token'
+        });
+      }
+
+      // Other errors - return 500 (server error)
+      logger.error({
+        error,
+        token: token.substring(0, 8) + '...',
+        endpoint: request.url
+      }, 'Unexpected error during authentication');
+
       return reply.code(500).send({
         success: false,
         message: 'Authentication error',
-        details: 'An error occurred while verifying your authentication',
+        details: 'An unexpected error occurred while verifying your authentication',
         statusCode: 500,
       });
     }
   } catch (error) {
     logger.error({ error, endpoint: request.url }, 'Unexpected error in authentication middleware');
-    
+
     return reply.code(500).send({
       success: false,
       message: 'Authentication error',
@@ -192,7 +228,7 @@ export async function optionalAuthentication(
 ): Promise<void> {
   try {
     const authHeader = request.headers.authorization;
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       // No authentication provided, continue without user
       return;
@@ -212,11 +248,11 @@ export async function optionalAuthentication(
 export function requireRole(allowedRoles: string[]) {
   return async (request: AuthenticatedRequest, reply: FastifyReply): Promise<void> => {
     if (!request.user) {
-      logger.warn({ 
-        ip: request.ip, 
-        url: request.url 
+      logger.warn({
+        ip: request.ip,
+        url: request.url
       }, 'Authorization failed: User not authenticated');
-      
+
       return reply.code(401).send({
         success: false,
         message: 'Authentication required',
@@ -226,15 +262,15 @@ export function requireRole(allowedRoles: string[]) {
     }
 
     const userRole = request.user.role;
-    
+
     if (!userRole || !allowedRoles.includes(userRole)) {
-      logger.warn({ 
+      logger.warn({
         userId: request.user.id,
         userRole,
         allowedRoles,
-        url: request.url 
+        url: request.url
       }, 'Authorization failed: Insufficient permissions');
-      
+
       return reply.code(403).send({
         success: false,
         message: 'Insufficient permissions',
@@ -243,10 +279,10 @@ export function requireRole(allowedRoles: string[]) {
       });
     }
 
-    logger.debug({ 
+    logger.debug({
       userId: request.user.id,
       userRole,
-      url: request.url 
+      url: request.url
     }, 'Role authorization successful');
   };
 }
@@ -285,12 +321,12 @@ export async function requireSelfOrAdmin(
   const isSelf = requestedUserId === currentUserId;
 
   if (!isAdmin && !isSelf) {
-    logger.warn({ 
+    logger.warn({
       currentUserId,
       requestedUserId,
-      userRole 
+      userRole
     }, 'Authorization failed: Cannot access other user resources');
-    
+
     return reply.code(403).send({
       success: false,
       message: 'Access denied',
@@ -299,11 +335,11 @@ export async function requireSelfOrAdmin(
     });
   }
 
-  logger.debug({ 
+  logger.debug({
     currentUserId,
     requestedUserId,
     userRole,
     isAdmin,
-    isSelf 
+    isSelf
   }, 'Self or admin authorization successful');
 } 

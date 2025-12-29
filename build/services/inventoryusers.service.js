@@ -339,13 +339,11 @@ export class InventoryUsersService {
                 userId: user.id,
                 email: user.useremail || '',
                 roleId: user.roleid || undefined,
+                userType: 'inventory',
             });
-            // Store refresh token in database (optional - for token revocation)
-            // Access token is stateless (JWT), refresh token stored for logout/revocation
-            await dynamicUpdate('inventoryusers', { id: user.id }, {
-                sessiontoken: tokenPair.refreshToken, // Store refresh token for revocation
-                modifieddate: BigInt(Date.now())
-            });
+            // NOTE: Session management is now handled by auth_sessions table
+            // The old sessiontoken field in inventoryusers is deprecated
+            // Sessions are created in the auth route after successful authentication
             logger.info({
                 userId: user.id,
                 email: user.useremail,

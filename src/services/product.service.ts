@@ -1,25 +1,25 @@
 import { prisma } from '../models/prisma.js';
 import { Prisma } from '@prisma/client';
-import { 
-  CreateProductInput, 
-  UpdateProductInput, 
+import {
+  CreateProductInput,
+  UpdateProductInput,
   UpsertProductInput,
-  validateProductDynamicFields 
+  validateProductDynamicFields
 } from '../schemas/product.schema.js';
 import { PaginationResult, createPaginationResult, getPrismaSkipTake } from '../utils/pagination.js';
 import { buildProductFilters, FilterOptions } from '../utils/filterBuilder.js';
-import { 
-  safeFilterInputData, 
-  safeProcessDbResult, 
-  safeProcessDbResults, 
-  safePrismaOperation 
+import {
+  safeFilterInputData,
+  safeProcessDbResult,
+  safeProcessDbResults,
+  safePrismaOperation
 } from '../utils/safeDbOperations.js';
-import { 
-  dynamicFindMany, 
-  dynamicCount, 
-  dynamicFindUnique, 
-  dynamicCreate, 
-  dynamicUpdate, 
+import {
+  dynamicFindMany,
+  dynamicCount,
+  dynamicFindUnique,
+  dynamicCreate,
+  dynamicUpdate,
   dynamicDelete,
   dynamicFindManyWithFilters
 } from '../utils/dynamicDbOperations.js';
@@ -83,19 +83,19 @@ export class ProductService {
           // Batch fetch platform stock for all component products (nivapp platform)
           const componentPlatformStocks = componentProductIds.length > 0
             ? await prisma.platformStock.findMany({
-                where: {
-                  productid: { in: componentProductIds.map((id: any) => BigInt(id)) },
-                  platform: 'nivapp'
-                },
-                select: {
-                  productid: true,
-                  availableqty: true,
-                  lockqty: true,
-                  orderedqty: true,
-                  soldqty: true,
-                  platformstatus: true,
-                }
-              })
+              where: {
+                productid: { in: componentProductIds.map((id: any) => BigInt(id)) },
+                platform: 'nivapp'
+              },
+              select: {
+                productid: true,
+                availableqty: true,
+                lockqty: true,
+                orderedqty: true,
+                soldqty: true,
+                platformstatus: true,
+              }
+            })
             : [];
 
           // Create a map of component product ID to platform stock
@@ -159,7 +159,7 @@ export class ProductService {
       }
 
       logger.info({
-        productCount: products.length, 
+        productCount: products.length,
         total,
         filtered: Object.keys(filters).length > 0,
         appliedFilters: Object.keys(filters),
@@ -219,9 +219,9 @@ export class ProductService {
             }
           }));
 
-          logger.info({ 
+          logger.info({
             productId: id,
-            componentCount: components.length 
+            componentCount: components.length
           }, 'Combo product components fetched successfully');
         } catch (componentError: any) {
           logger.error(
@@ -236,8 +236,8 @@ export class ProductService {
         }
       }
 
-      logger.debug({ 
-        productId: id, 
+      logger.debug({
+        productId: id,
         availableFields: Object.keys(product),
         isCombo: (product as any).iscombo,
         componentCount: (product as any).iscombo ? ((product as any).components?.length || 0) : 0
@@ -251,21 +251,179 @@ export class ProductService {
   }
   // Add these methods to ProductService class
 
-async findManyForPlatform(
-  platform: string,
-  filters: Record<string, any> = {},
-  page: number = 1,
-  limit: number = 10
-): Promise<{ data: any[]; pagination: any }> {
-  try {
-    const offset = (page - 1) * limit;
-    
-    // Build base query with platform stock join
-    const whereClause = this.buildPlatformWhereClause(platform, filters);
-    
-    const [products, total] = await Promise.all([
-      prisma.product.findMany({
-        where: whereClause,
+  async findManyForPlatform(
+    platform: string,
+    filters: Record<string, any> = {},
+    page: number = 1,
+    limit: number = 10
+  ): Promise<{ data: any[]; pagination: any }> {
+    try {
+      const offset = (page - 1) * limit;
+
+      // Build base query with platform stock join
+      const whereClause = this.buildPlatformWhereClause(platform, filters);
+
+      const [products, total] = await Promise.all([
+        prisma.product.findMany({
+          where: whereClause,
+          include: {
+            platformStocks: {
+              where: { platform },
+              select: {
+                id: true,
+                platform: true,
+                availableqty: true,
+                platformstatus: true,
+                soldqty: true,
+                totalqty: true,
+                orderedqty: true,
+                lockqty: true,
+              } as any,
+              take: 1, // Only get one record since it's unique
+            },
+          },
+          skip: offset,
+          take: limit,
+          orderBy: { createddate: 'desc' },
+        }),
+        prisma.product.count({ where: whereClause }),
+      ]);
+
+      // Fetch components for combo products
+      const comboProductIds = products
+        .filter((p: any) => p.iscombo === true)
+        .map((p: any) => BigInt(p.id));
+
+      if (comboProductIds.length > 0) {
+        try {
+          // Batch fetch all components for all combo products with product details
+          const allComponents = await (prisma as any).productBundleMap.findMany({
+            where: {
+              bundleproductid: {
+                in: comboProductIds
+              }
+            },
+            select: {
+              bundleproductid: true,
+              componentproductid: true,
+              requiredqty: true,
+              isactive: true,
+              componentproduct: {
+                select: {
+                  name: true,
+                  puc: true,
+                }
+              }
+            },
+            orderBy: {
+              id: 'asc',
+            }
+          });
+
+          // Get all unique component product IDs
+          const componentProductIds = [...new Set(allComponents.map((comp: any) => comp.componentproductid))];
+
+          // Batch fetch platform stock for all component products (nivapp platform)
+          const componentPlatformStocks = componentProductIds.length > 0
+            ? await prisma.platformStock.findMany({
+              where: {
+                productid: { in: componentProductIds.map((id: any) => BigInt(id)) },
+                platform: 'nivapp'
+              },
+              select: {
+                productid: true,
+                availableqty: true,
+                lockqty: true,
+                orderedqty: true,
+                soldqty: true,
+                platformstatus: true,
+              }
+            })
+            : [];
+
+          // Create a map of component product ID to platform stock
+          const platformStockMap = new Map();
+          componentPlatformStocks.forEach((ps: any) => {
+            platformStockMap.set(ps.productid.toString(), {
+              availableqty: ps.availableqty,
+              lockqty: ps.lockqty || 0,
+              orderedqty: ps.orderedqty,
+              soldqty: ps.soldqty,
+              platformstatus: ps.platformstatus,
+            });
+          });
+
+          // Group components by bundleproductid
+          const componentsByBundle: Record<string, any[]> = {};
+          allComponents.forEach((comp: any) => {
+            const bundleId = comp.bundleproductid.toString();
+            const componentId = comp.componentproductid.toString();
+            if (!componentsByBundle[bundleId]) {
+              componentsByBundle[bundleId] = [];
+            }
+            componentsByBundle[bundleId].push({
+              componentproductid: Number(comp.componentproductid),
+              requiredqty: comp.requiredqty,
+              isactive: comp.isactive,
+              product: {
+                name: comp.componentproduct?.name || null,
+                puc: comp.componentproduct?.puc || null,
+              },
+              platformStock: platformStockMap.get(componentId) || null,
+            });
+          });
+
+          // Attach components to combo products
+          products.forEach((product: any) => {
+            if (product.iscombo === true) {
+              const productId = product.id.toString();
+              product.components = componentsByBundle[productId] || [];
+            }
+          });
+
+          logger.info({
+            comboProductCount: comboProductIds.length,
+            totalComponents: allComponents.length,
+            platform
+          }, 'Combo product components fetched successfully for platform');
+        } catch (componentError: any) {
+          logger.error(
+            {
+              error: componentError?.message,
+              platform,
+            },
+            'Failed to fetch combo product components in findManyForPlatform'
+          );
+          // Don't fail the request, just set empty arrays
+          products.forEach((product: any) => {
+            if (product.iscombo === true) {
+              product.components = [];
+            }
+          });
+        }
+      }
+
+      return {
+        data: products,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          hasNext: offset + limit < total,
+          hasPrev: page > 1,
+        },
+      };
+    } catch (error: any) {
+      logger.error({ error: error.message, platform, filters }, 'Error in findManyForPlatform');
+      throw error;
+    }
+  }
+
+  async findByIdForPlatform(id: string, platform: string): Promise<any> {
+    try {
+      const product = await prisma.product.findUnique({
+        where: { id: BigInt(id) },
         include: {
           platformStocks: {
             where: { platform },
@@ -278,206 +436,48 @@ async findManyForPlatform(
               totalqty: true,
               orderedqty: true,
               lockqty: true,
+              createddate: true,
+              modifieddate: true,
             } as any,
             take: 1, // Only get one record since it's unique
           },
         },
-        skip: offset,
-        take: limit,
-        orderBy: { createddate: 'desc' },
-      }),
-      prisma.product.count({ where: whereClause }),
-    ]);
+      });
 
-    // Fetch components for combo products
-    const comboProductIds = products
-      .filter((p: any) => p.iscombo === true)
-      .map((p: any) => BigInt(p.id));
-
-    if (comboProductIds.length > 0) {
-      try {
-        // Batch fetch all components for all combo products with product details
-        const allComponents = await (prisma as any).productBundleMap.findMany({
-          where: {
-            bundleproductid: {
-              in: comboProductIds
-            }
-          },
-          select: {
-            bundleproductid: true,
-            componentproductid: true,
-            requiredqty: true,
-            isactive: true,
-            componentproduct: {
-              select: {
-                name: true,
-                puc: true,
-              }
-            }
-          },
-          orderBy: {
-            id: 'asc',
-          }
-        });
-
-        // Get all unique component product IDs
-        const componentProductIds = [...new Set(allComponents.map((comp: any) => comp.componentproductid))];
-
-        // Batch fetch platform stock for all component products (nivapp platform)
-        const componentPlatformStocks = componentProductIds.length > 0
-          ? await prisma.platformStock.findMany({
-              where: {
-                productid: { in: componentProductIds.map((id: any) => BigInt(id)) },
-                platform: 'nivapp'
-              },
-              select: {
-                productid: true,
-                availableqty: true,
-                lockqty: true,
-                orderedqty: true,
-                soldqty: true,
-                platformstatus: true,
-              }
-            })
-          : [];
-
-        // Create a map of component product ID to platform stock
-        const platformStockMap = new Map();
-        componentPlatformStocks.forEach((ps: any) => {
-          platformStockMap.set(ps.productid.toString(), {
-            availableqty: ps.availableqty,
-            lockqty: ps.lockqty || 0,
-            orderedqty: ps.orderedqty,
-            soldqty: ps.soldqty,
-            platformstatus: ps.platformstatus,
-          });
-        });
-
-        // Group components by bundleproductid
-        const componentsByBundle: Record<string, any[]> = {};
-        allComponents.forEach((comp: any) => {
-          const bundleId = comp.bundleproductid.toString();
-          const componentId = comp.componentproductid.toString();
-          if (!componentsByBundle[bundleId]) {
-            componentsByBundle[bundleId] = [];
-          }
-          componentsByBundle[bundleId].push({
-            componentproductid: Number(comp.componentproductid),
-            requiredqty: comp.requiredqty,
-            isactive: comp.isactive,
-            product: {
-              name: comp.componentproduct?.name || null,
-              puc: comp.componentproduct?.puc || null,
-            },
-            platformStock: platformStockMap.get(componentId) || null,
-          });
-        });
-
-        // Attach components to combo products
-        products.forEach((product: any) => {
-          if (product.iscombo === true) {
-            const productId = product.id.toString();
-            product.components = componentsByBundle[productId] || [];
-          }
-        });
-
-        logger.info({
-          comboProductCount: comboProductIds.length,
-          totalComponents: allComponents.length,
-          platform
-        }, 'Combo product components fetched successfully for platform');
-      } catch (componentError: any) {
-        logger.error(
-          {
-            error: componentError?.message,
-            platform,
-          },
-          'Failed to fetch combo product components in findManyForPlatform'
-        );
-        // Don't fail the request, just set empty arrays
-        products.forEach((product: any) => {
-          if (product.iscombo === true) {
-            product.components = [];
-          }
-        });
+      if (!product) {
+        throw new Error(`Product with ID ${id} not found`);
       }
-    }
-    
-    return {
-      data: products,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-        hasNext: offset + limit < total,
-        hasPrev: page > 1,
-      },
-    };
-  } catch (error: any) {
-    logger.error({ error: error.message, platform, filters }, 'Error in findManyForPlatform');
-    throw error;
-  }
-}
 
-async findByIdForPlatform(id: string, platform: string): Promise<any> {
-  try {
-    const product = await prisma.product.findUnique({
-      where: { id: BigInt(id) },
-      include: {
-        platformStocks: {
-          where: { platform },
-          select: {
-            id: true,
-            platform: true,
-            availableqty: true,
-            platformstatus: true,
-            soldqty: true,
-            totalqty: true,
-            orderedqty: true,
-            lockqty: true,
-            createddate: true,
-            modifieddate: true,
-          } as any,
-          take: 1, // Only get one record since it's unique
-        },
-      },
-    });
-    
-    if (!product) {
-      throw new Error(`Product with ID ${id} not found`);
-    }
-
-    // If product is a combo, fetch component details from productbundlemap
-    if ((product as any).iscombo === true) {
-      try {
-        const bundleProductId = BigInt(product.id);
-        const components = await (prisma as any).productBundleMap.findMany({
-          where: {
-            bundleproductid: bundleProductId,
-          },
-          select: {
-            componentproductid: true,
-            requiredqty: true,
-            isactive: true,
-            componentproduct: {
-              select: {
-                name: true,
-                puc: true,
+      // If product is a combo, fetch component details from productbundlemap
+      if ((product as any).iscombo === true) {
+        try {
+          const bundleProductId = BigInt(product.id);
+          const components = await (prisma as any).productBundleMap.findMany({
+            where: {
+              bundleproductid: bundleProductId,
+            },
+            select: {
+              componentproductid: true,
+              requiredqty: true,
+              isactive: true,
+              componentproduct: {
+                select: {
+                  name: true,
+                  puc: true,
+                }
               }
+            },
+            orderBy: {
+              id: 'asc', // Consistent ordering
             }
-          },
-          orderBy: {
-            id: 'asc', // Consistent ordering
-          }
-        });
+          });
 
-        // Get component product IDs
-        const componentProductIds = components.map((comp: any) => comp.componentproductid);
+          // Get component product IDs
+          const componentProductIds = components.map((comp: any) => comp.componentproductid);
 
-        // Fetch platform stock for all component products (nivapp platform)
-        const componentPlatformStocks = componentProductIds.length > 0
-          ? await prisma.platformStock.findMany({
+          // Fetch platform stock for all component products (nivapp platform)
+          const componentPlatformStocks = componentProductIds.length > 0
+            ? await prisma.platformStock.findMany({
               where: {
                 productid: { in: componentProductIds.map((id: any) => BigInt(id)) },
                 platform: 'nivapp'
@@ -491,119 +491,127 @@ async findByIdForPlatform(id: string, platform: string): Promise<any> {
                 platformstatus: true,
               }
             })
-          : [];
+            : [];
 
-        // Create a map of component product ID to platform stock
-        const platformStockMap = new Map();
-        componentPlatformStocks.forEach((ps: any) => {
-          platformStockMap.set(ps.productid.toString(), {
-            availableqty: ps.availableqty,
-            lockqty: ps.lockqty || 0,
-            orderedqty: ps.orderedqty,
-            soldqty: ps.soldqty,
-            platformstatus: ps.platformstatus,
+          // Create a map of component product ID to platform stock
+          const platformStockMap = new Map();
+          componentPlatformStocks.forEach((ps: any) => {
+            platformStockMap.set(ps.productid.toString(), {
+              availableqty: ps.availableqty,
+              lockqty: ps.lockqty || 0,
+              orderedqty: ps.orderedqty,
+              soldqty: ps.soldqty,
+              platformstatus: ps.platformstatus,
+            });
           });
-        });
 
-        // Convert BigInt to number and include product details and platform stock
-        (product as any).components = components.map((comp: any) => {
-          const componentId = comp.componentproductid.toString();
-          return {
-            componentproductid: Number(comp.componentproductid),
-            requiredqty: comp.requiredqty,
-            isactive: comp.isactive,
-            product: {
-              name: comp.componentproduct?.name || null,
-              puc: comp.componentproduct?.puc || null,
-            },
-            platformStock: platformStockMap.get(componentId) || null,
-          };
-        });
+          // Convert BigInt to number and include product details and platform stock
+          (product as any).components = components.map((comp: any) => {
+            const componentId = comp.componentproductid.toString();
+            return {
+              componentproductid: Number(comp.componentproductid),
+              requiredqty: comp.requiredqty,
+              isactive: comp.isactive,
+              product: {
+                name: comp.componentproduct?.name || null,
+                puc: comp.componentproduct?.puc || null,
+              },
+              platformStock: platformStockMap.get(componentId) || null,
+            };
+          });
 
-        logger.info({ 
-          productId: id,
-          platform,
-          componentCount: components.length 
-        }, 'Combo product components fetched successfully for platform');
-      } catch (componentError: any) {
-        logger.error(
-          {
-            error: componentError?.message,
+          logger.info({
             productId: id,
             platform,
-          },
-          'Failed to fetch combo product components in findByIdForPlatform'
-        );
-        // Don't fail the request, just set empty array
-        (product as any).components = [];
+            componentCount: components.length
+          }, 'Combo product components fetched successfully for platform');
+        } catch (componentError: any) {
+          logger.error(
+            {
+              error: componentError?.message,
+              productId: id,
+              platform,
+            },
+            'Failed to fetch combo product components in findByIdForPlatform'
+          );
+          // Don't fail the request, just set empty array
+          (product as any).components = [];
+        }
       }
-    }
-    
-    return product;
-  } catch (error: any) {
-    logger.error({ error: error.message, id, platform }, 'Error in findByIdForPlatform');
-    throw error;
-  }
-}
 
-private buildPlatformWhereClause(platform: string, filters: Record<string, any>): any {
-  const where: any = {};
-  
-  // Add platform stock existence filter
-  where.platformStocks = {
-    some: {
-      platform,
-    },
-  };
-  
-  // Apply other filters
-  if (filters.category) {
-    where.category = filters.category;
-  }
-  
-  if (filters.subcategory) {
-    where.subcategory = filters.subcategory;
-  }
-  
-  if (filters.brand) {
-    where.Brand = filters.brand;
-  }
-  
-  if (filters.minPrice || filters.maxPrice) {
-    where.price = {};
-    if (filters.minPrice) {
-      where.price.gte = parseFloat(filters.minPrice);
-    }
-    if (filters.maxPrice) {
-      where.price.lte = parseFloat(filters.maxPrice);
+      return product;
+    } catch (error: any) {
+      logger.error({ error: error.message, id, platform }, 'Error in findByIdForPlatform');
+      throw error;
     }
   }
-  
-  if (filters.stockStatus) {
+
+  private buildPlatformWhereClause(platform: string, filters: Record<string, any>): any {
+    const where: any = {};
+
+    // Add platform stock existence filter
     where.platformStocks = {
       some: {
         platform,
-        platformstatus: filters.stockStatus,
       },
     };
+
+    // Apply other filters
+    if (filters.category) {
+      where.category = filters.category;
+    }
+
+    if (filters.subcategory) {
+      where.subcategory = filters.subcategory;
+    }
+
+    if (filters.brand) {
+      where.Brand = filters.brand;
+    }
+
+    if (filters.minPrice || filters.maxPrice) {
+      where.price = {};
+      if (filters.minPrice) {
+        where.price.gte = parseFloat(filters.minPrice);
+      }
+      if (filters.maxPrice) {
+        where.price.lte = parseFloat(filters.maxPrice);
+      }
+    }
+
+    if (filters.stockStatus) {
+      where.platformStocks = {
+        some: {
+          platform,
+          platformstatus: filters.stockStatus,
+        },
+      };
+    }
+
+    if (filters.search) {
+      where.OR = [
+        { name: { contains: filters.search, mode: 'insensitive' } },
+        { shortdescription: { contains: filters.search, mode: 'insensitive' } },
+        { fulldescription: { contains: filters.search, mode: 'insensitive' } },
+      ];
+    }
+
+    if (filters.subsubcategory) {
+      where.subsubcategory = filters.subsubcategory;
+    }
+
+    if (filters.isdealoftheday) {
+      where.isdealoftheday = filters.isdealoftheday === 'true';
+    }
+
+    return where;
   }
-  
-  if (filters.search) {
-    where.OR = [
-      { name: { contains: filters.search, mode: 'insensitive' } },
-      { shortdescription: { contains: filters.search, mode: 'insensitive' } },
-      { fulldescription: { contains: filters.search, mode: 'insensitive' } },
-    ];
-  }
-  
-  return where;
-}
 
 
   async create(data: CreateProductInput & Record<string, any>) {
     try {
       logger.debug({ originalData: data }, 'Starting dynamic product create operation');
-console.log(data);
+      console.log(data);
       // Extract combo-related fields (components is only for create, not a product table field)
       const { components, ...productData } = data;
       const isCombo = productData.iscombo === true;
@@ -622,11 +630,11 @@ console.log(data);
         // Check for duplicate combo product with same components
         // Normalize components to handle string/number/bigint productid
         const normalizedComponents = components.map(c => ({
-          productid: typeof c.productid === 'bigint' ? Number(c.productid) : 
-                     typeof c.productid === 'string' ? c.productid : c.productid,
+          productid: typeof c.productid === 'bigint' ? Number(c.productid) :
+            typeof c.productid === 'string' ? c.productid : c.productid,
           requiredqty: c.requiredqty
         }));
-        
+
         const existingCombo = await this.findExistingComboByComponents(normalizedComponents);
         if (existingCombo) {
           throw new Error(
@@ -638,10 +646,10 @@ console.log(data);
 
         // Validate component product IDs exist
         for (const component of components) {
-          const componentId = typeof component.productid === 'string' 
-            ? BigInt(component.productid) 
+          const componentId = typeof component.productid === 'string'
+            ? BigInt(component.productid)
             : BigInt(component.productid);
-          
+
           const componentProduct = await prisma.product.findUnique({
             where: { id: componentId }
           });
@@ -705,10 +713,10 @@ console.log(data);
           const currentTimestamp = BigInt(Date.now());
 
           for (const component of components) {
-            const componentProductId = typeof component.productid === 'string' 
-              ? BigInt(component.productid) 
+            const componentProductId = typeof component.productid === 'string'
+              ? BigInt(component.productid)
               : BigInt(component.productid);
-            
+
             await dynamicCreate('productbundlemap', {
               bundleproductid: bundleProductId,
               componentproductid: componentProductId,
@@ -719,9 +727,9 @@ console.log(data);
             });
           }
 
-          logger.info({ 
+          logger.info({
             productId: product.id,
-            componentCount: components.length 
+            componentCount: components.length
           }, 'Combo product bundle map entries created successfully');
         } catch (bundleMapError: any) {
           logger.error(
@@ -754,8 +762,8 @@ console.log(data);
         }
       }
 
-      logger.info({ 
-        productId: product.id, 
+      logger.info({
+        productId: product.id,
         availableFields: Object.keys(product),
         isCombo: isCombo,
         componentCount: isCombo ? components?.length : 0
@@ -763,13 +771,13 @@ console.log(data);
 
       return product;
     } catch (error: any) {
-      logger.error({ 
+      logger.error({
         error: error.message,
         errorCode: error.code,
         errorMeta: error.meta,
-        originalData: data 
+        originalData: data
       }, 'Error in product create operation');
-      
+
       // Re-throw the original error to preserve specific error details
       throw error;
     }
@@ -784,7 +792,7 @@ console.log(data);
 
       // Extract and validate: combo-related fields are NOT allowed in update
       const { components, iscombo, combotype, ...updateData } = data;
-      
+
       // Reject components field entirely (combo components are fixed after creation)
       if (components !== undefined) {
         throw new Error('Components cannot be updated. Combo components are fixed after creation. To change components, delete and recreate the combo product.');
@@ -806,9 +814,9 @@ console.log(data);
         throw new Error('Failed to update product - no valid fields provided');
       }
 
-      logger.info({ 
-        productId: id, 
-        availableFields: Object.keys(product) 
+      logger.info({
+        productId: id,
+        availableFields: Object.keys(product)
       }, 'Dynamic product update completed');
 
       return product;
@@ -849,7 +857,7 @@ console.log(data);
       } else {
         // Create new product - ensure required fields are present
         logger.debug({ data: updateData }, 'Upserting new product');
-        
+
         // Ensure required fields for creation
         const createData = {
           ...updateData,
@@ -857,7 +865,7 @@ console.log(data);
           name: updateData.name || 'TEMP-PRODUCT',
           puc: updateData.puc || 'TEMP-PUC'
         };
-        
+
         return this.create(createData as CreateProductInput & Record<string, any>);
       }
     } catch (error) {
@@ -869,7 +877,7 @@ console.log(data);
   async updateStockTotals(productIdentifier: string, insertedStock?: { ecompublish?: boolean, stockstatus?: string, quantity?: number }, stockStatusChange?: { from: string, to: string }) {
     try {
       logger.debug({ productIdentifier }, 'Starting comprehensive stock totals update');
-      
+
       // First, try to determine if productIdentifier is an ID or PUC and find the product
       let product = null;
       let productPuc = productIdentifier;
@@ -914,7 +922,7 @@ console.log(data);
 
       // Find stocks by PUC (primary relationship) - only use active stocks
       const stocks = await dynamicFindMany('stock', {
-        where: { 
+        where: {
           puc: productPuc,
           isdeleted: { not: true },
           isarchive: { not: true }
@@ -923,7 +931,7 @@ console.log(data);
 
       if (!Array.isArray(stocks) || stocks.length === 0) {
         logger.warn({ productIdentifier, productPuc, productId }, 'No active stocks found for product, setting quantities to zero');
-        
+
         // Update product to zero quantities if no stocks found
         const updateData = {
           quantity: 0,
@@ -936,7 +944,7 @@ console.log(data);
 
         await dynamicUpdate('product', { id: productId }, updateData);
         logger.info({ productIdentifier, productId }, 'Updated product quantities to zero (no active stocks found)');
-        
+
         return { totalQuantity: 0, totalAvailable: 0, totalSold: 0, totalEcomPublished: 0 };
       }
 
@@ -970,8 +978,8 @@ console.log(data);
         totalEcomPublished
       };
 
-      logger.info({ 
-        productIdentifier, 
+      logger.info({
+        productIdentifier,
         productId,
         productPuc,
         stockCount: stocks.length,
@@ -981,7 +989,7 @@ console.log(data);
           availableAndEcomPublishedCount: totalAvailable, // Available AND ecompublish=true (for reference)
           soldCount: totalSold,
           ecomPublishedCount: totalEcomPublished,
-          
+
           stockDetails: stocks.map(s => ({
             id: s.id,
             status: s.stockstatus,
@@ -1001,24 +1009,24 @@ console.log(data);
 
       // Handle orderedquantity decrease when stock changes to Sold
       let orderedQuantityAdjustment = 0;
-      if (stockStatusChange && 
-          stockStatusChange.from?.toLowerCase() !== 'sold' && 
-          stockStatusChange.to?.toLowerCase() === 'sold') {
+      if (stockStatusChange &&
+        stockStatusChange.from?.toLowerCase() !== 'sold' &&
+        stockStatusChange.to?.toLowerCase() === 'sold') {
         // When stock changes to Sold, decrease orderedquantity by 1
         orderedQuantityAdjustment = -1;
-        logger.info({ 
-          productIdentifier, 
+        logger.info({
+          productIdentifier,
           stockStatusChange,
-          orderedQuantityAdjustment 
+          orderedQuantityAdjustment
         }, 'Stock status changed to Sold - will decrease orderedquantity');
       }
 
       // Calculate availablequantity using business formula: ecompublishedquantity - orderedquantity - soldquantity
       const currentOrderedQuantity = product.orderedquantity || 0;
-      const orderedQuantityAfterAdjustment = orderedQuantityAdjustment !== 0 
+      const orderedQuantityAfterAdjustment = orderedQuantityAdjustment !== 0
         ? Math.max(0, currentOrderedQuantity + orderedQuantityAdjustment)
         : currentOrderedQuantity;
-      
+
       const calculatedAvailableQuantity = Math.max(0, totals.totalEcomPublished - orderedQuantityAfterAdjustment - totals.totalSold);
 
       // Update product with calculated totals
@@ -1036,20 +1044,20 @@ console.log(data);
         const currentOrderedQuantity = product.orderedquantity || 0;
         const newOrderedQuantity = Math.max(0, currentOrderedQuantity + orderedQuantityAdjustment);
         updateData.orderedquantity = newOrderedQuantity;
-        
-        logger.info({ 
+
+        logger.info({
           productIdentifier,
           currentOrderedQuantity,
           adjustment: orderedQuantityAdjustment,
           newOrderedQuantity
         }, 'Adjusting orderedquantity for stock status change to Sold');
       }
-      
+
       const updatedProduct = await dynamicUpdate('product', { id: productId }, updateData);
 
       if (updatedProduct) {
-        logger.info({ 
-          productIdentifier, 
+        logger.info({
+          productIdentifier,
           productId,
           productPuc,
           totals,
@@ -1063,8 +1071,8 @@ console.log(data);
           updatedFields: Object.keys(updateData)
         }, 'Updated product stock totals and status successfully - availablequantity calculated using business formula');
       } else {
-        logger.warn({ 
-          productIdentifier, 
+        logger.warn({
+          productIdentifier,
           productId,
           productPuc,
           totals,
@@ -1096,7 +1104,7 @@ console.log(data);
       if (productid) {
         logger.debug({ productId: productid }, 'Fetching existing product for file upsert');
         existingProductData = await dynamicFindUnique('product', { id: productid });
-        
+
         if (!existingProductData) {
           throw new Error(`Product with ID ${productid} not found`);
         }
@@ -1104,8 +1112,8 @@ console.log(data);
 
       // Handle image URL merging if url data is provided
       if (url) {
-        logger.debug({ 
-          productId: productid, 
+        logger.debug({
+          productId: productid,
           urlData: url,
           existingLarge: existingProductData?.large,
           existingMedium: existingProductData?.medium,
@@ -1142,7 +1150,7 @@ console.log(data);
       }
 
       let result: any;
-      
+
       if (productid) {
         // Update existing product
         logger.debug({ productId: productid, updateData: upsertProductData }, 'Updating existing product with file data');
@@ -1171,17 +1179,17 @@ console.log(data);
       };
 
     } catch (error: any) {
-      logger.error({ 
-        error: error.message, 
+      logger.error({
+        error: error.message,
         data,
-        productId: data?.productid 
+        productId: data?.productid
       }, 'Error in product upsert with file operation');
-      
+
       // Use the project's error handling pattern
       if (error.message.includes('not found')) {
         throw new Error(`Product with ID ${data?.productid} not found`);
       }
-      
+
       throw error;
     }
   }
@@ -1250,10 +1258,10 @@ console.log(data);
       return result;
 
     } catch (error: any) {
-      logger.error({ 
-        error: error.message, 
+      logger.error({
+        error: error.message,
         productId,
-        rearrangeData 
+        rearrangeData
       }, 'Error in product image rearrangement operation');
       throw error;
     }
@@ -1264,10 +1272,10 @@ console.log(data);
    */
   private arraysContainSameElements(arr1: string[], arr2: string[]): boolean {
     if (arr1.length !== arr2.length) return false;
-    
+
     const sorted1 = [...arr1].sort();
     const sorted2 = [...arr2].sort();
-    
+
     return sorted1.every((val, index) => val === sorted2[index]);
   }
 
@@ -1295,7 +1303,7 @@ console.log(data);
       if (deleteData.large && deleteData.large.length > 0) {
         const existingLarge = existingProduct.large || [];
         const filteredLarge = existingLarge.filter((url: string) => !deleteData.large!.includes(url));
-        
+
         if (filteredLarge.length === existingLarge.length) {
           logger.warn({ productId, urlsToDelete: deleteData.large }, 'No matching URLs found in large array');
         } else {
@@ -1312,7 +1320,7 @@ console.log(data);
       if (deleteData.medium && deleteData.medium.length > 0) {
         const existingMedium = existingProduct.medium || [];
         const filteredMedium = existingMedium.filter((url: string) => !deleteData.medium!.includes(url));
-        
+
         if (filteredMedium.length === existingMedium.length) {
           logger.warn({ productId, urlsToDelete: deleteData.medium }, 'No matching URLs found in medium array');
         } else {
@@ -1329,7 +1337,7 @@ console.log(data);
       if (deleteData.small && deleteData.small.length > 0) {
         const existingSmall = existingProduct.small || [];
         const filteredSmall = existingSmall.filter((url: string) => !deleteData.small!.includes(url));
-        
+
         if (filteredSmall.length === existingSmall.length) {
           logger.warn({ productId, urlsToDelete: deleteData.small }, 'No matching URLs found in small array');
         } else {
@@ -1361,10 +1369,10 @@ console.log(data);
       };
 
     } catch (error: any) {
-      logger.error({ 
-        error: error.message, 
+      logger.error({
+        error: error.message,
         productId,
-        deleteData 
+        deleteData
       }, 'Error in product image URL deletion operation');
       throw error;
     }
@@ -1547,10 +1555,10 @@ console.log(data);
 
       // Validate component product IDs exist
       for (const component of components) {
-        const componentId = typeof component.productid === 'string' 
-          ? BigInt(component.productid) 
+        const componentId = typeof component.productid === 'string'
+          ? BigInt(component.productid)
           : BigInt(component.productid);
-        
+
         const componentProduct = await prisma.product.findUnique({
           where: { id: componentId }
         });
@@ -1599,6 +1607,244 @@ console.log(data);
       };
     }
   }
+
+  /**
+   * Get product counts grouped by category and subcategory for a specific platform
+   * Includes all categories and subcategories from picklist, even those with 0 products
+   */
+  async getProductCountsByCategory(platform: string): Promise<{
+    platform: string;
+    totalProducts: number;
+    categories: Array<{
+      id: string;
+      label: string;
+      count: number;
+      subcategories: Array<{
+        id: string;
+        label: string;
+        count: number;
+        subsubcategories: Array<{
+          id: string;
+          label: string;
+          count: number;
+        }>;
+      }>;
+    }>;
+  }> {
+    try {
+      logger.info({ platform }, 'Getting product counts by category for platform');
+
+      // Step 1: Fetch all categories from picklist
+      const categories = await prisma.picklist.findMany({
+        where: {
+          fieldname: 'category',
+          object: 'product',
+        },
+        select: {
+          value: true,
+          label: true,
+        },
+      });
+
+      // Step 2: Fetch all subcategories from picklist with their parent category
+      const subcategories = await prisma.picklist.findMany({
+        where: {
+          fieldname: 'subcategory',
+          object: 'product',
+        },
+        select: {
+          value: true,
+          label: true,
+          controlledvalue: true, // This is the parent category
+        },
+      });
+
+      // Step 3: Fetch all subsubcategories from picklist with their parent subcategory
+      const subsubcategories = await prisma.picklist.findMany({
+        where: {
+          fieldname: 'subsubcategory',
+          object: 'product',
+        },
+        select: {
+          value: true,
+          label: true,
+          controlledvalue: true, // This is the parent subcategory
+        },
+      });
+
+      // Step 4: Get actual product counts grouped by category, subcategory, and subsubcategory
+      // Using Prisma ORM groupBy instead of raw SQL
+      const productCounts = await prisma.product.groupBy({
+        by: ['category', 'subcategory', 'subsubcategory'],
+        where: {
+          platformStocks: {
+            some: {
+              platform,
+            },
+          },
+        },
+        _count: {
+          id: true,
+        },
+      });
+
+      // Step 4: Create a map of actual counts
+      const countsMap = new Map<string, number>();
+      let totalProducts = 0;
+
+      for (const row of productCounts) {
+        const category = row.category || '';
+        const subcategory = row.subcategory || '';
+        const count = row._count.id; // Prisma groupBy returns _count object
+        const key = `${category}::${subcategory}`;
+        countsMap.set(key, count);
+        totalProducts += count;
+      }
+
+      // Step 5: Build the response structure with all categories, subcategories, and subsubcategories
+      const categoryMap = new Map<string, {
+        id: string;
+        label: string;
+        count: number;
+        subcategories: Map<string, {
+          id: string;
+          label: string;
+          count: number;
+          subsubcategories: Array<{ id: string; label: string; count: number }>;
+        }>;
+      }>();
+
+      // Initialize all categories with 0 count
+      for (const cat of categories) {
+        if (!cat.value || !cat.label) continue; // Skip if value or label is null
+
+        categoryMap.set(cat.value, {
+          id: cat.value,
+          label: cat.label,
+          count: 0,
+          subcategories: new Map(),
+        });
+      }
+
+      // Add all subcategories to their parent categories
+      for (const subcat of subcategories) {
+        // Skip if essential fields are null
+        if (!subcat.value || !subcat.label || !subcat.controlledvalue) continue;
+
+        const parentCategory = subcat.controlledvalue; // This is the parent category value
+
+        if (categoryMap.has(parentCategory)) {
+          const categoryEntry = categoryMap.get(parentCategory)!;
+
+          categoryEntry.subcategories.set(subcat.value, {
+            id: subcat.value,
+            label: subcat.label,
+            count: 0,
+            subsubcategories: [],
+          });
+        }
+      }
+
+      // Add all subsubcategories to their parent subcategories
+      for (const subsubcat of subsubcategories) {
+        // Skip if essential fields are null
+        if (!subsubcat.value || !subsubcat.label || !subsubcat.controlledvalue) continue;
+
+        const parentSubcategory = subsubcat.controlledvalue; // This is the parent subcategory value
+
+        // Find which category contains this subcategory
+        for (const categoryEntry of categoryMap.values()) {
+          if (categoryEntry.subcategories.has(parentSubcategory)) {
+            const subcategoryEntry = categoryEntry.subcategories.get(parentSubcategory)!;
+
+            subcategoryEntry.subsubcategories.push({
+              id: subsubcat.value,
+              label: subsubcat.label,
+              count: 0,
+            });
+
+            break; // Found the parent, no need to continue
+          }
+        }
+      }
+
+      // Now update counts based on actual product data
+      for (const row of productCounts) {
+        const category = row.category || '';
+        const subcategory = row.subcategory || '';
+        const subsubcategory = row.subsubcategory || '';
+        const count = Number(row._count.id);
+
+        if (categoryMap.has(category)) {
+          const categoryEntry = categoryMap.get(category)!;
+
+          if (categoryEntry.subcategories.has(subcategory)) {
+            const subcategoryEntry = categoryEntry.subcategories.get(subcategory)!;
+
+            // If there's a subsubcategory, update its count
+            if (subsubcategory) {
+              const subsubcatEntry = subcategoryEntry.subsubcategories.find(s => s.id === subsubcategory);
+              if (subsubcatEntry) {
+                subsubcatEntry.count += count;
+              }
+            }
+
+            // Always update subcategory and category counts
+            subcategoryEntry.count += count;
+            categoryEntry.count += count;
+          }
+        }
+      }
+
+      // Convert map to array and sort
+      const categoriesArray = Array.from(categoryMap.values())
+        .sort((a, b) => a.label.localeCompare(b.label))
+        .map(cat => ({
+          id: cat.id,
+          label: cat.label,
+          count: cat.count,
+          subcategories: Array.from(cat.subcategories.values())
+            .sort((a, b) => a.label.localeCompare(b.label))
+            .map(subcat => ({
+              id: subcat.id,
+              label: subcat.label,
+              count: subcat.count,
+              subsubcategories: subcat.subsubcategories.sort((a, b) => a.label.localeCompare(b.label)),
+            })),
+        }));
+
+      logger.info({
+        platform,
+        totalProducts,
+        categoryCount: categoriesArray.length,
+        totalSubcategories: subcategories.length,
+        totalSubsubcategories: subsubcategories.length,
+      }, 'Product counts by category retrieved successfully');
+
+      return {
+        platform,
+        totalProducts,
+        categories: categoriesArray,
+      };
+    } catch (error: any) {
+      logger.error({ error: error.message, platform }, 'Error getting product counts by category');
+      throw error;
+    }
+  }
+
+  /**
+   * Format a category/subcategory ID into a human-readable label
+   * Example: "home_fragrance" -> "Home Fragrance"
+   */
+  private formatLabel(id: string): string {
+    if (!id) return '';
+
+    return id
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  }
+
 
   private async createDefaultPlatformStocks(productId: number | string) {
     const numericId = typeof productId === 'string' ? parseInt(productId, 10) : Number(productId);
