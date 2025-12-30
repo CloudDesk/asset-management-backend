@@ -42,6 +42,11 @@ export const ECOMMERCE_PUBLIC_ROUTES = [
 
     // 7. System & Webhook APIs (Internal but public for cloud tasks/webhooks)
     'POST /v1/phonepe/cleanup-lock',
+
+    // 8. Payment Callback APIs (PhonePe SDK redirects)
+    'GET /v1/phonepe/callback/:transactionId',
+    'POST /v1/phonepe/callback/:transactionId',
+    'OPTIONS /v1/phonepe/callback/:transactionId',
 ];
 
 // ============================================================================
