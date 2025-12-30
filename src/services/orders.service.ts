@@ -1156,6 +1156,92 @@ export class OrdersService {
       const updatedOrder = await this.findById(orderId);
       logger.info({ orderId, orderStatus: updatedOrder.orderstatus }, 'Order marked as shipped');
 
+      // Generate invoice by calling storage backend
+      try {
+        logger.info({ orderId }, 'Generating invoice for shipped order');
+
+        // Get complete order details including orderlines and address
+        const orderDetails = await this.getOrderDetails(orderId.toString());
+
+        // Import axios
+        const axios = (await import('axios')).default;
+
+        // Fetch seller data from EKART addresses endpoint
+        let sellerData: any = null;
+        try {
+          const { ekartService } = await import('./ekart.service.js');
+
+          logger.info('Fetching seller addresses from EKART service');
+
+          const addresses = await ekartService.getAddresses();
+
+          // Get the first address from the response (main sales office)
+          if (addresses && addresses.length > 0) {
+            sellerData = addresses[0];
+            logger.info({ seller: sellerData?.alias }, 'Seller data fetched successfully');
+          } else {
+            logger.warn('No seller addresses found in EKART response');
+          }
+        } catch (sellerError: any) {
+          logger.error({
+            error: sellerError.message
+          }, 'Failed to fetch seller data from EKART - continuing without seller info');
+          // Continue without seller data - don't fail invoice generation
+        }
+
+        // Call storage backend to generate invoice
+        const storageBackendUrl = process.env.STORAGE_BACKEND_URL || 'http://localhost:4500';
+        const invoiceEndpoint = `${storageBackendUrl}/order/invoice`;
+
+        logger.info({
+          endpoint: invoiceEndpoint,
+          orderId: orderDetails.order.id,
+          orderNumber: orderDetails.order.orderid,
+          hasSeller: !!sellerData
+        }, 'Calling storage backend to generate invoice');
+
+        const invoiceResponse = await axios.post(invoiceEndpoint, {
+          order: orderDetails.order,
+          orderlines: orderDetails.orderlines,
+          address: orderDetails.address,
+          seller: sellerData
+        }, {
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          timeout: 30000 // 30 second timeout
+        });
+
+        logger.info({
+          orderId,
+          response: invoiceResponse.data,
+          status: invoiceResponse.status
+        }, 'Invoice generated successfully');
+
+        // If the response contains an invoice URL, update the order record
+        if (invoiceResponse.data?.invoiceUrl) {
+          await dynamicUpdate('orders', { id: orderId }, {
+            order_invoice_url: invoiceResponse.data.invoiceUrl,
+            modifieddate: Date.now()
+          });
+          logger.info({
+            orderId,
+            invoiceUrl: invoiceResponse.data.invoiceUrl
+          }, 'Order updated with invoice URL');
+        }
+
+
+      } catch (invoiceError: any) {
+        // Log the error but don't fail the markShipped operation
+        // Invoice generation is a secondary operation
+        logger.error({
+          error: invoiceError.message,
+          response: invoiceError.response?.data,
+          status: invoiceError.response?.status,
+          orderId
+        }, 'Failed to generate invoice - continuing with order shipment');
+      }
+
       return updatedOrder;
     } catch (error) {
       logger.error({ error, orderId, inventoryUserId }, 'Error marking order as shipped');
