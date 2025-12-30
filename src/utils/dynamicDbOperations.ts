@@ -1282,11 +1282,11 @@ export async function dynamicFindUnique(
       }
 
       if (result) {
-        logger.debug({
-          modelName,
-          foundId: result.id,
-          availableFields: Object.keys(result)
-        }, 'Prisma findUnique completed successfully');
+        // logger.debug({
+        //   modelName,
+        //   foundId: result.id,
+        //   availableFields: Object.keys(result)
+        // }, 'Prisma findUnique completed successfully');
         return convertBigIntToNumber(result);
       }
 

@@ -1118,11 +1118,11 @@ export async function dynamicFindUnique(modelName, where, include) {
                 });
             }
             if (result) {
-                logger.debug({
-                    modelName,
-                    foundId: result.id,
-                    availableFields: Object.keys(result)
-                }, 'Prisma findUnique completed successfully');
+                // logger.debug({
+                //   modelName,
+                //   foundId: result.id,
+                //   availableFields: Object.keys(result)
+                // }, 'Prisma findUnique completed successfully');
                 return convertBigIntToNumber(result);
             }
             // For models without proper Prisma schema or when Prisma fails, use raw SQL

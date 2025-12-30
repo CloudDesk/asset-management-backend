@@ -39,6 +39,9 @@ export const ECOMMERCE_PUBLIC_ROUTES = [
     // 6. Health Check APIs
     'GET /v1/health',
     'GET /health',
+
+    // 7. System & Webhook APIs (Internal but public for cloud tasks/webhooks)
+    'POST /v1/phonepe/cleanup-lock',
 ];
 
 // ============================================================================
