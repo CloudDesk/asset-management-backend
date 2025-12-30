@@ -922,6 +922,81 @@ export class OrdersService {
             await this.recalculateOrderStatus(orderId);
             const updatedOrder = await this.findById(orderId);
             logger.info({ orderId, orderStatus: updatedOrder.orderstatus }, 'Order marked as shipped');
+            // Generate invoice by calling storage backend
+            try {
+                logger.info({ orderId }, 'Generating invoice for shipped order');
+                // Get complete order details including orderlines and address
+                const orderDetails = await this.getOrderDetails(orderId.toString());
+                // Import axios
+                const axios = (await import('axios')).default;
+                // Fetch seller data from EKART addresses endpoint
+                let sellerData = null;
+                try {
+                    const { ekartService } = await import('./ekart.service.js');
+                    logger.info('Fetching seller addresses from EKART service');
+                    const addresses = await ekartService.getAddresses();
+                    // Get the first address from the response (main sales office)
+                    if (addresses && addresses.length > 0) {
+                        sellerData = addresses[0];
+                        logger.info({ seller: sellerData?.alias }, 'Seller data fetched successfully');
+                    }
+                    else {
+                        logger.warn('No seller addresses found in EKART response');
+                    }
+                }
+                catch (sellerError) {
+                    logger.error({
+                        error: sellerError.message
+                    }, 'Failed to fetch seller data from EKART - continuing without seller info');
+                    // Continue without seller data - don't fail invoice generation
+                }
+                // Call storage backend to generate invoice
+                const storageBackendUrl = process.env.STORAGE_BACKEND_URL || 'http://localhost:4500';
+                const invoiceEndpoint = `${storageBackendUrl}/order/invoice`;
+                logger.info({
+                    endpoint: invoiceEndpoint,
+                    orderId: orderDetails.order.id,
+                    orderNumber: orderDetails.order.orderid,
+                    hasSeller: !!sellerData
+                }, 'Calling storage backend to generate invoice');
+                const invoiceResponse = await axios.post(invoiceEndpoint, {
+                    order: orderDetails.order,
+                    orderlines: orderDetails.orderlines,
+                    address: orderDetails.address,
+                    seller: sellerData
+                }, {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 30000 // 30 second timeout
+                });
+                logger.info({
+                    orderId,
+                    response: invoiceResponse.data,
+                    status: invoiceResponse.status
+                }, 'Invoice generated successfully');
+                // If the response contains an invoice URL, update the order record
+                if (invoiceResponse.data?.invoiceUrl) {
+                    await dynamicUpdate('orders', { id: orderId }, {
+                        order_invoice_url: invoiceResponse.data.invoiceUrl,
+                        modifieddate: Date.now()
+                    });
+                    logger.info({
+                        orderId,
+                        invoiceUrl: invoiceResponse.data.invoiceUrl
+                    }, 'Order updated with invoice URL');
+                }
+            }
+            catch (invoiceError) {
+                // Log the error but don't fail the markShipped operation
+                // Invoice generation is a secondary operation
+                logger.error({
+                    error: invoiceError.message,
+                    response: invoiceError.response?.data,
+                    status: invoiceError.response?.status,
+                    orderId
+                }, 'Failed to generate invoice - continuing with order shipment');
+            }
             return updatedOrder;
         }
         catch (error) {
@@ -1643,6 +1718,63 @@ export class OrdersService {
                     merchantTransactionId: updatedOrder.merchanttransactionid
                 }, 'Failed to update transaction record for cancellation');
             }
+            // Helper function for async eKart shipment cancellation
+            // This ensures consistent eKart cancellation for both COD and PhonePe orders
+            const cancelEkartShipmentAsync = (orderToCancel) => {
+                if (orderToCancel.tracking_id) {
+                    logger.info({
+                        orderId,
+                        orderNumber: orderToCancel.orderid,
+                        trackingId: orderToCancel.tracking_id,
+                        orderStatus: orderToCancel.orderstatus
+                    }, 'Order has eKart shipment - attempting async cancellation');
+                    // Fire-and-forget async eKart cancellation
+                    // Don't await - let it run in background
+                    setImmediate(async () => {
+                        try {
+                            const { ekartService } = await import('./ekart.service.js');
+                            await ekartService.cancelShipment(orderToCancel.tracking_id);
+                            logger.info({
+                                orderId,
+                                orderNumber: orderToCancel.orderid,
+                                trackingId: orderToCancel.tracking_id
+                            }, '✅ eKart shipment cancelled successfully (async)');
+                            // Optional: Update order record with eKart cancellation status
+                            // This is best-effort - if it fails, it won't affect the order cancellation
+                            try {
+                                await dynamicUpdate('orders', { id: orderId }, {
+                                    ekart_cancellation_status: 'cancelled',
+                                    ekart_cancellation_date: Date.now(),
+                                    modifieddate: Date.now()
+                                });
+                            }
+                            catch (updateError) {
+                                logger.warn({
+                                    error: updateError.message,
+                                    orderId
+                                }, 'Failed to update eKart cancellation status in order record');
+                            }
+                        }
+                        catch (error) {
+                            // eKart cancellation may fail if shipment is already picked up or in transit
+                            // This is expected and should not affect the order cancellation
+                            logger.warn({
+                                error: error.message,
+                                errorStack: error.stack,
+                                orderId,
+                                orderNumber: orderToCancel.orderid,
+                                trackingId: orderToCancel.tracking_id
+                            }, '⚠️ Failed to cancel eKart shipment (async) - shipment may be in transit. eKart will handle RTO automatically.');
+                        }
+                    });
+                }
+                else {
+                    logger.debug({
+                        orderId,
+                        orderNumber: orderToCancel.orderid
+                    }, 'No eKart shipment found - skipping eKart cancellation');
+                }
+            };
             // AUTO-COMPLETE COD ORDERS (no refund needed)
             // PhonePe orders remain in 'cancelled' status awaiting manual refund processing
             logger.info({
@@ -1669,6 +1801,8 @@ export class OrdersService {
                         orderNumber: finalOrder.orderid,
                         finalStatus: finalOrder.orderstatus
                     }, 'COD order cancellation completed automatically');
+                    // ASYNC EKART CANCELLATION - Final step after ALL updates complete (COD path)
+                    cancelEkartShipmentAsync(finalOrder);
                     return finalOrder;
                 }
                 catch (autoCompleteError) {
@@ -1681,6 +1815,8 @@ export class OrdersService {
                         mode: updatedOrder.mode,
                         currentStatus: updatedOrder.orderstatus
                     }, 'CRITICAL: Failed to auto-complete COD order, remains in cancelled status');
+                    // ASYNC EKART CANCELLATION - Even if COD auto-complete fails (fallback)
+                    cancelEkartShipmentAsync(updatedOrder);
                     return updatedOrder;
                 }
             }
@@ -1699,6 +1835,8 @@ export class OrdersService {
                 mode: updatedOrder.mode,
                 isPaymentSucceed: updatedOrder.ispaymentsucceed
             }, 'PhonePe order cancelled. Admin must manually process refund via PhonePe portal.');
+            // ASYNC EKART CANCELLATION - Final step after ALL updates complete (PhonePe path)
+            cancelEkartShipmentAsync(updatedOrder);
             return updatedOrder;
         }
         catch (error) {

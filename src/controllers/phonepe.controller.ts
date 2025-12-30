@@ -680,6 +680,60 @@ export class PhonePeController {
             "Product/PlatformStock validation failed - blocking payment"
           );
 
+          // Cancel promotion evaluations if they exist
+          if (requestBody.evaluation_ids && Array.isArray(requestBody.evaluation_ids) && requestBody.evaluation_ids.length > 0) {
+            try {
+              logger.info(
+                {
+                  evaluationIds: requestBody.evaluation_ids,
+                  reason: 'stock_validation_failed'
+                },
+                'Cancelling promotion evaluations due to stock validation failure'
+              );
+
+              // Import and use PromotionEvaluationService
+              const { PromotionEvaluationService } = await import('../services/promotion-evaluation.service.js');
+              const promotionEvaluationService = new PromotionEvaluationService();
+
+              // Cancel each evaluation
+              for (const evaluationId of requestBody.evaluation_ids) {
+                try {
+                  await prisma.promotion_evaluations.update({
+                    where: { evaluation_id: evaluationId },
+                    data: {
+                      status: 'cancelled',
+                      modifieddate: BigInt(Date.now())
+                    }
+                  });
+
+                  logger.info(
+                    {
+                      evaluationId,
+                      reason: 'insufficient_stock'
+                    },
+                    'Promotion evaluation cancelled due to insufficient stock'
+                  );
+                } catch (cancelError: any) {
+                  // Log error but don't fail the entire request
+                  logger.warn(
+                    {
+                      evaluationId,
+                      error: cancelError.message
+                    },
+                    'Failed to cancel promotion evaluation - continuing with stock validation error response'
+                  );
+                }
+              }
+            } catch (importError: any) {
+              logger.error(
+                {
+                  error: importError.message
+                },
+                'Error importing/using promotion evaluation service to cancel evaluations'
+              );
+            }
+          }
+
           return reply.code(400).send({
             success: false,
             message: `Cannot process payment. ${validationErrors.length} product(s) have validation issues`,
@@ -1000,6 +1054,55 @@ export class PhonePeController {
             },
             "Stock locking failed - rolling back all locks"
           );
+
+          // Cancel promotion evaluations if they exist (stock locking failure means insufficient stock)
+          if (requestBody.evaluation_ids && Array.isArray(requestBody.evaluation_ids) && requestBody.evaluation_ids.length > 0) {
+            try {
+              logger.info(
+                {
+                  evaluationIds: requestBody.evaluation_ids,
+                  reason: 'stock_locking_failed'
+                },
+                'Cancelling promotion evaluations due to stock locking failure'
+              );
+
+              // Cancel each evaluation
+              for (const evaluationId of requestBody.evaluation_ids) {
+                try {
+                  await prisma.promotion_evaluations.update({
+                    where: { evaluation_id: evaluationId },
+                    data: {
+                      status: 'cancelled',
+                      modifieddate: BigInt(Date.now())
+                    }
+                  });
+
+                  logger.info(
+                    {
+                      evaluationId,
+                      reason: 'stock_locking_failed'
+                    },
+                    'Promotion evaluation cancelled due to stock locking failure'
+                  );
+                } catch (cancelError: any) {
+                  logger.warn(
+                    {
+                      evaluationId,
+                      error: cancelError.message
+                    },
+                    'Failed to cancel promotion evaluation - continuing with stock locking error response'
+                  );
+                }
+              }
+            } catch (evalCancelError: any) {
+              logger.error(
+                {
+                  error: evalCancelError.message
+                },
+                'Error cancelling promotion evaluations after stock locking failure'
+              );
+            }
+          }
 
           // Return error response - stock locking failed
           return reply.code(400).send({

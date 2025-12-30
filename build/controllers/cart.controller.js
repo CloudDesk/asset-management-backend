@@ -44,6 +44,7 @@ export class CartController {
     updateCart = asyncHandler(async (request, reply) => {
         const { id } = cartParamsSchema.parse(request.params);
         const data = updateCartSchema.parse(request.body);
+        console.log(data, id, "updateCart");
         const cart = await this.cartService.update(id, data);
         // Format the updated cart data
         const formattedCart = formatEntityForAPI(cart, 'cart');

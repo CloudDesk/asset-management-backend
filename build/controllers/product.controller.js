@@ -415,9 +415,14 @@ export class ProductController {
         const { id, platform } = request.params;
         const product = await this.productService.findByIdForPlatform(id, platform);
         const formattedProduct = formatProductForAPI(product);
-        // Remove platformStocks array from response (only keep platformStock in components)
+        // Extract platformStock from platformStocks array and include it in the response
         const { platformStocks, ...transformedProduct } = formattedProduct;
-        const response = createSuccessResponse(`Product ${id} for ${platform} platform retrieved successfully`, transformedProduct);
+        // Add platformStock (singular) - take the first record since we only fetch one per platform
+        const platformStock = platformStocks && platformStocks[0] ? platformStocks[0] : null;
+        const response = createSuccessResponse(`Product ${id} for ${platform} platform retrieved successfully`, {
+            ...transformedProduct,
+            platformStock // Include platform-specific stock data
+        });
         return reply.code(200).send(response);
     });
     getProductCountsByCategory = asyncHandler(async (request, reply) => {

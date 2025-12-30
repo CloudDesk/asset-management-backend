@@ -71,8 +71,47 @@ export class CartService {
     async update(id, data) {
         try {
             // Check if cart item exists
-            await this.findById(id);
+            const existingCart = await this.findById(id);
             logger.debug({ originalData: data, cartId: id }, 'Starting dynamic cart update operation');
+            // VALIDATION: Check stock availability for cart items (not wishlist)
+            if (data.iscart === true && data.quantity && data.productid) {
+                const productId = data.productid;
+                const requestedQty = data.quantity;
+                logger.debug({ productId, requestedQty }, 'Validating stock availability for cart update');
+                // Get platformstock for nivapp platform
+                const { dynamicFindManyWithFilters } = await import('../utils/dynamicDbOperations.js');
+                const { data: platformStocks } = await dynamicFindManyWithFilters('platformstock', {
+                    productid: productId,
+                    platform: 'nivapp'
+                }, {
+                    useAllColumns: true
+                });
+                if (!platformStocks || platformStocks.length === 0) {
+                    logger.warn({ productId }, 'Product not found in platformstock');
+                    throw new Error('Product not available');
+                }
+                const platformStock = platformStocks[0];
+                // Available quantity is already reduced during PhonePe lock
+                // During initiation: availableqty ↓, lockqty ↑ (both change)
+                // So availableqty alone represents truly available stock
+                const availableQty = platformStock.availableqty || 0;
+                logger.debug({
+                    productId,
+                    availableqty: platformStock.availableqty,
+                    lockqty: platformStock.lockqty,
+                    orderedqty: platformStock.orderedqty,
+                    requestedQty
+                }, 'Stock availability check');
+                if (requestedQty > availableQty) {
+                    logger.warn({
+                        productId,
+                        requestedQty,
+                        availableQty
+                    }, 'Insufficient stock for cart update');
+                    throw new Error(`Insufficient stock. Requested: ${requestedQty}, Available: ${availableQty}`);
+                }
+                logger.info({ productId, requestedQty, availableQty }, 'Stock availability validated successfully');
+            }
             // Add modified timestamp
             const cartData = {
                 ...data,

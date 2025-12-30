@@ -22,13 +22,15 @@ export const ECOMMERCE_PUBLIC_ROUTES = [
     // 2. Product Browsing APIs (only nivapp platform is public, other platforms like amazon are protected)
     'GET /v1/products/platform/nivapp',
     'GET /v1/products/platform/nivapp/counts',
-    'GET /v1/products/:productId/platform/nivapp',
+    'GET /v1/products/:productId/platform/:platform', // Support any platform for dynamic routing
+
 
     // 3. Promotions & Deals APIs
     'GET /v1/promotions/public',
     'GET /v1/promotions/active',
 
     // 4. Ratings & Reviews APIs
+    'GET /v1/ratings',
     'GET /v1/ratings/product/:productId',
 
     // 5. Picklists APIs
@@ -37,6 +39,14 @@ export const ECOMMERCE_PUBLIC_ROUTES = [
     // 6. Health Check APIs
     'GET /v1/health',
     'GET /health',
+
+    // 7. System & Webhook APIs (Internal but public for cloud tasks/webhooks)
+    'POST /v1/phonepe/cleanup-lock',
+
+    // 8. Payment Callback APIs (PhonePe SDK redirects)
+    'GET /v1/phonepe/callback/:transactionId',
+    'POST /v1/phonepe/callback/:transactionId',
+    'OPTIONS /v1/phonepe/callback/:transactionId',
 ];
 
 // ============================================================================
@@ -113,8 +123,8 @@ function matchesPattern(pattern: string, actualPath: string): boolean {
         const patternPart = patternParts[i];
         const pathPart = pathParts[i];
 
-        // Skip if either part is undefined (shouldn't happen, but type safety)
-        if (!patternPart || !pathPart) {
+        // Skip if either part is undefined (not checking for empty string, which is valid)
+        if (patternPart === undefined || pathPart === undefined) {
             return false;
         }
 

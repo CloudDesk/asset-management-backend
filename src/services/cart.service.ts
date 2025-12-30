@@ -1,15 +1,15 @@
-import { 
-  CreateCartInput, 
-  UpdateCartInput, 
+import {
+  CreateCartInput,
+  UpdateCartInput,
   UpsertCartInput
 } from '../schemas/cart.schema.js';
 import { PaginationResult, createPaginationResult, getPrismaSkipTake } from '../utils/pagination.js';
 import { FilterOptions } from '../utils/filterBuilder.js';
-import { 
+import {
   dynamicFindManyWithFilters,
-  dynamicFindUnique, 
-  dynamicCreate, 
-  dynamicUpdate, 
+  dynamicFindUnique,
+  dynamicCreate,
+  dynamicUpdate,
   dynamicDelete
 } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
@@ -33,7 +33,7 @@ export class CartService {
       });
 
       logger.info({
-        cartCount: carts.length, 
+        cartCount: carts.length,
         total,
         filtered: Object.keys(filters).length > 0,
         appliedFilters: Object.keys(filters),
@@ -57,9 +57,9 @@ export class CartService {
         throw new Error('Cart item not found');
       }
 
-      logger.debug({ 
-        cartId: id, 
-        availableFields: Object.keys(cart) 
+      logger.debug({
+        cartId: id,
+        availableFields: Object.keys(cart)
       }, 'Dynamic cart findById completed');
 
       return cart;
@@ -86,9 +86,9 @@ export class CartService {
         throw new Error('Failed to create cart item - no valid fields provided');
       }
 
-      logger.info({ 
-        cartId: cart.id, 
-        availableFields: Object.keys(cart) 
+      logger.info({
+        cartId: cart.id,
+        availableFields: Object.keys(cart)
       }, 'Dynamic cart create completed');
 
       return cart;
@@ -101,9 +101,59 @@ export class CartService {
   async update(id: string, data: UpdateCartInput & Record<string, any>) {
     try {
       // Check if cart item exists
-      await this.findById(id);
+      const existingCart = await this.findById(id);
 
       logger.debug({ originalData: data, cartId: id }, 'Starting dynamic cart update operation');
+
+      // VALIDATION: Check stock availability for cart items (not wishlist)
+      if (data.iscart === true && data.quantity && data.productid) {
+        const productId = data.productid;
+        const requestedQty = data.quantity;
+
+        logger.debug({ productId, requestedQty }, 'Validating stock availability for cart update');
+
+        // Get platformstock for nivapp platform
+        const { dynamicFindManyWithFilters } = await import('../utils/dynamicDbOperations.js');
+        const { data: platformStocks } = await dynamicFindManyWithFilters('platformstock', {
+          productid: productId,
+          platform: 'nivapp'
+        }, {
+          useAllColumns: true
+        });
+
+        if (!platformStocks || platformStocks.length === 0) {
+          logger.warn({ productId }, 'Product not found in platformstock');
+          throw new Error('Product not available');
+        }
+
+        const platformStock = platformStocks[0];
+        // Available quantity is already reduced during PhonePe lock
+        // During initiation: availableqty ↓, lockqty ↑ (both change)
+        // So availableqty alone represents truly available stock
+        const availableQty = platformStock.availableqty || 0;
+
+        logger.debug({
+          productId,
+          availableqty: platformStock.availableqty,
+          lockqty: platformStock.lockqty,
+          orderedqty: platformStock.orderedqty,
+          requestedQty
+        }, 'Stock availability check');
+
+        if (requestedQty > availableQty) {
+          logger.warn({
+            productId,
+            requestedQty,
+            availableQty
+          }, 'Insufficient stock for cart update');
+
+          throw new Error(
+            `Insufficient stock. Requested: ${requestedQty}, Available: ${availableQty}`
+          );
+        }
+
+        logger.info({ productId, requestedQty, availableQty }, 'Stock availability validated successfully');
+      }
 
       // Add modified timestamp
       const cartData = {
@@ -117,9 +167,9 @@ export class CartService {
         throw new Error('Failed to update cart item - no valid fields provided');
       }
 
-      logger.info({ 
-        cartId: id, 
-        availableFields: Object.keys(cart) 
+      logger.info({
+        cartId: id,
+        availableFields: Object.keys(cart)
       }, 'Dynamic cart update completed');
 
       return cart;
@@ -167,10 +217,10 @@ export class CartService {
       if (id) {
         // DIRECT UPDATE BY ID
         logger.info({ cartId: id, updateData: restData }, 'Updating cart item by ID');
-        
+
         // Validate the update data
         this.validateCartRequest(restData);
-        
+
         // Check if cart item exists
         const existingItem = await this.findById(id.toString());
         if (!existingItem) {
@@ -185,7 +235,7 @@ export class CartService {
 
         const updatedCart = await dynamicUpdate('cart', { id: parseInt(id.toString()) }, updateData);
 
-        logger.info({ 
+        logger.info({
           cartId: id,
           userid: updatedCart.userid,
           productid: updatedCart.productid
@@ -199,12 +249,12 @@ export class CartService {
 
       const { userid, productid, quantity, iscart, iswishlist } = restData;
 
-      logger.debug({ 
-        userid, 
-        productid, 
-        quantity, 
-        iscart, 
-        iswishlist 
+      logger.debug({
+        userid,
+        productid,
+        quantity,
+        iscart,
+        iswishlist
       }, 'Starting cart upsert with duplicate prevention (no ID provided)');
 
       // STEP 3: Check for existing record based on combination
@@ -226,12 +276,12 @@ export class CartService {
 
         if (existingRecord) {
           // UPDATE: Cart record exists, update quantity
-          logger.info({ 
+          logger.info({
             cartId: existingRecord.id,
-            userid, 
-            productid, 
-            oldQuantity: existingRecord.quantity, 
-            newQuantity: quantity 
+            userid,
+            productid,
+            oldQuantity: existingRecord.quantity,
+            newQuantity: quantity
           }, 'Cart item exists - Updating quantity');
 
           const updateData = {
@@ -241,19 +291,19 @@ export class CartService {
 
           const updatedCart = await dynamicUpdate('cart', { id: existingRecord.id }, updateData);
 
-          logger.info({ 
-            cartId: existingRecord.id, 
-            userid, 
-            productid 
+          logger.info({
+            cartId: existingRecord.id,
+            userid,
+            productid
           }, 'Cart item updated successfully');
 
           return updatedCart;
         } else {
           // INSERT: Create new cart record
-          logger.info({ 
-            userid, 
-            productid, 
-            quantity 
+          logger.info({
+            userid,
+            productid,
+            quantity
           }, 'Cart item does not exist - Creating new record');
 
           const newCartItem = {
@@ -268,15 +318,15 @@ export class CartService {
 
           const createdCart = await dynamicCreate('cart', newCartItem);
 
-          logger.info({ 
-            cartId: createdCart.id, 
-            userid, 
-            productid 
+          logger.info({
+            cartId: createdCart.id,
+            userid,
+            productid
           }, 'Cart item created successfully');
 
           return createdCart;
         }
-      } 
+      }
       else if (iswishlist === true) {
         // WISHLIST ITEM: Check for existing wishlist record (userid, productid, iswishlist=true)
         const filters = {
@@ -293,18 +343,18 @@ export class CartService {
 
         if (existingRecord) {
           // SKIP: Wishlist record already exists, return existing
-          logger.info({ 
+          logger.info({
             wishlistId: existingRecord.id,
-            userid, 
-            productid 
+            userid,
+            productid
           }, 'Wishlist item already exists - Returning existing record (no update)');
 
           return existingRecord;
         } else {
           // INSERT: Create new wishlist record
-          logger.info({ 
-            userid, 
-            productid 
+          logger.info({
+            userid,
+            productid
           }, 'Wishlist item does not exist - Creating new record');
 
           const newWishlistItem = {
@@ -319,10 +369,10 @@ export class CartService {
 
           const createdWishlist = await dynamicCreate('cart', newWishlistItem);
 
-          logger.info({ 
-            wishlistId: createdWishlist.id, 
-            userid, 
-            productid 
+          logger.info({
+            wishlistId: createdWishlist.id,
+            userid,
+            productid
           }, 'Wishlist item created successfully');
 
           return createdWishlist;
