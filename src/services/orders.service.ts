@@ -817,69 +817,162 @@ export class OrdersService {
         throw new Error('No orderlines found for this order');
       }
 
-      const allocations: Array<{ orderline_id: number; stocks: any[] }> = [];
+      const allocations: Array<{ orderline_id: number; stocks: any[]; is_component?: boolean; combo_product_id?: number; component_product_id?: number }> = [];
 
       for (const orderline of orderlines) {
         const mapping = stockMapping?.find(m => m.orderline_id === orderline.id);
 
-        let stocks: any[];
+        // COMBO PRODUCT SUPPORT: Check if orderline product is a combo
+        // If so, allocate stock for component products instead of combo product itself
+        const orderlineProduct = await dynamicFindUnique('product', { id: orderline.productid });
+        if (!orderlineProduct) {
+          throw new Error(`Product ${orderline.productid} not found for orderline ${orderline.id}`);
+        }
 
-        if (mapping?.stock_ids) {
-          // Manual selection by stock IDs
-          stocks = await this.getStocksByIds(mapping.stock_ids);
-          // Validate quantity matches orderline
-          if (stocks.length !== (orderline.quantity || 0)) {
+        if (orderlineProduct.iscombo === true) {
+          // COMBO PRODUCT: Allocate stock for components
+          logger.info({
+            orderlineId: orderline.id,
+            comboProductId: orderline.productid,
+            comboProductName: orderlineProduct.name,
+            quantity: orderline.quantity
+          }, 'Detected combo product - allocating stock for components');
+
+          // Get component products from productbundlemap
+          const components = await prisma.productBundleMap.findMany({
+            where: {
+              bundleproductid: BigInt(orderline.productid),
+              isactive: true
+            }
+          });
+
+          if (components.length === 0) {
             throw new Error(
-              `Stock count mismatch for orderline ${orderline.id}: ` +
-              `Expected ${orderline.quantity}, got ${stocks.length}`
+              `Combo product ${orderline.productid} has no active components in productbundlemap`
             );
           }
-        } else if (mapping?.skus) {
-          // Manual selection by SKUs
-          stocks = await this.getStocksBySKUs(mapping.skus);
-          // Validate quantity matches orderline
-          if (stocks.length !== (orderline.quantity || 0)) {
-            throw new Error(
-              `Stock count mismatch for orderline ${orderline.id}: ` +
-              `Expected ${orderline.quantity}, got ${stocks.length}`
+
+          // For each component, allocate stock
+          for (const component of components) {
+            const componentProductId = Number(component.componentproductid);
+            const requiredQty = component.requiredqty || 1;
+            const totalNeeded = requiredQty * (orderline.quantity || 1);
+
+            logger.info({
+              orderlineId: orderline.id,
+              comboProductId: orderline.productid,
+              componentProductId,
+              requiredQtyPerCombo: requiredQty,
+              comboQuantity: orderline.quantity,
+              totalNeeded
+            }, 'Allocating stock for combo component');
+
+            // Allocate stock for component product
+            // Note: Manual stock selection is not supported for combo components (auto-select only)
+            const componentStocks = await this.autoSelectStocks(
+              componentProductId,
+              totalNeeded,
+              'nivapp' // Default platform
             );
+
+            // Validate stock status and product match for component stocks
+            const componentProduct = await dynamicFindUnique('product', { id: componentProductId });
+            for (const stock of componentStocks) {
+              if (stock.stockstatus !== 'available') {
+                throw new Error(
+                  `Component stock ${stock.id} is not available (status: ${stock.stockstatus})`
+                );
+              }
+              if (!componentProduct || stock.puc !== componentProduct.puc) {
+                throw new Error(
+                  `Component stock ${stock.id} (puc: ${stock.puc}) does not match component product ` +
+                  `(productid: ${componentProductId}, Product.puc: ${componentProduct?.puc || 'N/A'})`
+                );
+              }
+            }
+
+            allocations.push({
+              orderline_id: orderline.id,
+              stocks: componentStocks,
+              is_component: true, // Flag to identify this is a component allocation
+              combo_product_id: orderline.productid, // Original combo product ID
+              component_product_id: componentProductId // Component product ID
+            });
+
+            logger.info({
+              orderlineId: orderline.id,
+              componentProductId,
+              allocatedStocks: componentStocks.length,
+              totalNeeded
+            }, 'Component stock allocated successfully');
           }
-        } else if (mapping?.batch_filter) {
-          // Auto-select from specific batch/filter
-          stocks = await this.autoSelectStocks(
-            orderline.productid,
-            orderline.quantity || 1,
-            'nivapp', // Default platform, can be enhanced to use order's platform
-            mapping.batch_filter
-          );
+
+          logger.info({
+            orderlineId: orderline.id,
+            comboProductId: orderline.productid,
+            componentsCount: components.length
+          }, 'All component stocks allocated for combo product');
+
         } else {
-          // Auto-select available stocks (FIFO - no filter)
-          stocks = await this.autoSelectStocks(
-            orderline.productid,
-            orderline.quantity || 1,
-            'nivapp' // Default platform
-          );
-        }
+          // REGULAR PRODUCT: Current logic (unchanged)
+          let stocks: any[];
 
-        // Validate stock status and product match
-        for (const stock of stocks) {
-          if (stock.stockstatus !== 'available') {
-            throw new Error(`Stock ${stock.id} is not available (status: ${stock.stockstatus})`);
-          }
-          // Validate: Get Product by id = orderline.productid, then check Stock.puc = Product.puc
-          const orderlineProduct = await dynamicFindUnique('product', { id: orderline.productid });
-          if (!orderlineProduct || stock.puc !== orderlineProduct.puc) {
-            throw new Error(
-              `Stock ${stock.id} (puc: ${stock.puc}) does not match orderline product ` +
-              `(productid: ${orderline.productid}, Product.puc: ${orderlineProduct?.puc || 'N/A'})`
+          if (mapping?.stock_ids) {
+            // Manual selection by stock IDs
+            stocks = await this.getStocksByIds(mapping.stock_ids);
+            // Validate quantity matches orderline
+            if (stocks.length !== (orderline.quantity || 0)) {
+              throw new Error(
+                `Stock count mismatch for orderline ${orderline.id}: ` +
+                `Expected ${orderline.quantity}, got ${stocks.length}`
+              );
+            }
+          } else if (mapping?.skus) {
+            // Manual selection by SKUs
+            stocks = await this.getStocksBySKUs(mapping.skus);
+            // Validate quantity matches orderline
+            if (stocks.length !== (orderline.quantity || 0)) {
+              throw new Error(
+                `Stock count mismatch for orderline ${orderline.id}: ` +
+                `Expected ${orderline.quantity}, got ${stocks.length}`
+              );
+            }
+          } else if (mapping?.batch_filter) {
+            // Auto-select from specific batch/filter
+            stocks = await this.autoSelectStocks(
+              orderline.productid,
+              orderline.quantity || 1,
+              'nivapp', // Default platform, can be enhanced to use order's platform
+              mapping.batch_filter
+            );
+          } else {
+            // Auto-select available stocks (FIFO - no filter)
+            stocks = await this.autoSelectStocks(
+              orderline.productid,
+              orderline.quantity || 1,
+              'nivapp' // Default platform
             );
           }
-        }
 
-        allocations.push({
-          orderline_id: orderline.id,
-          stocks: stocks
-        });
+          // Validate stock status and product match
+          for (const stock of stocks) {
+            if (stock.stockstatus !== 'available') {
+              throw new Error(`Stock ${stock.id} is not available (status: ${stock.stockstatus})`);
+            }
+            // Validate: Get Product by id = orderline.productid, then check Stock.puc = Product.puc
+            if (!orderlineProduct || stock.puc !== orderlineProduct.puc) {
+              throw new Error(
+                `Stock ${stock.id} (puc: ${stock.puc}) does not match orderline product ` +
+                `(productid: ${orderline.productid}, Product.puc: ${orderlineProduct?.puc || 'N/A'})`
+              );
+            }
+          }
+
+          allocations.push({
+            orderline_id: orderline.id,
+            stocks: stocks
+          });
+        }
       }
 
       return allocations;
@@ -893,7 +986,7 @@ export class OrdersService {
    * Update stock status and quantities for dispatch
    */
   private async updateStockForDispatch(
-    allocations: Array<{ orderline_id: number; stocks: any[] }>,
+    allocations: Array<{ orderline_id: number; stocks: any[]; is_component?: boolean; combo_product_id?: number; component_product_id?: number }>,
     orderId: number,  // orders.id (Int type)
     order: any         // Full order object to get order.orderid (String)
   ): Promise<void> {
@@ -910,17 +1003,30 @@ export class OrdersService {
 
       for (const allocation of allocations) {
         const orderline = await orderlineService.findById(allocation.orderline_id.toString());
-        const orderlineQuantity = orderline.quantity || allocation.stocks.length; // Use orderline quantity or stock count
 
-        // Validate stock count matches orderline quantity
-        if (allocation.stocks.length !== orderlineQuantity) {
-          throw new Error(
-            `Stock count mismatch for orderline ${allocation.orderline_id}: ` +
-            `Expected ${orderlineQuantity}, got ${allocation.stocks.length}`
-          );
+        // COMBO COMPONENT HANDLING:
+        // For combo component allocations, stock count is based on component requirements,
+        // not orderline quantity. Skip validation for component allocations.
+        if (!allocation.is_component) {
+          // Regular product: Validate stock count matches orderline quantity
+          const orderlineQuantity = orderline.quantity || allocation.stocks.length;
+          if (allocation.stocks.length !== orderlineQuantity) {
+            throw new Error(
+              `Stock count mismatch for orderline ${allocation.orderline_id}: ` +
+              `Expected ${orderlineQuantity}, got ${allocation.stocks.length}`
+            );
+          }
+        } else {
+          // Combo component: Log allocation details
+          logger.info({
+            orderlineId: allocation.orderline_id,
+            comboProductId: allocation.combo_product_id,
+            componentProductId: allocation.component_product_id,
+            stockCount: allocation.stocks.length
+          }, 'Processing combo component stock allocation');
         }
 
-        // Get product info from first stock (all stocks should have same puc for same orderline)
+        // Get product info from first stock (all stocks should have same puc)
         const firstStock = allocation.stocks[0];
         const product = await dynamicFindUnique('product', { puc: firstStock.puc });
         if (!product || !product.id) {
@@ -929,6 +1035,7 @@ export class OrdersService {
         const productId = Number(product.id);
 
         // Track PlatformStock update (aggregate by productId + platform)
+        // For combo components, this will track the COMPONENT product, not the combo product
         const platformStockKey = `${productId}-${firstStock.platform}`;
         if (!platformStockUpdates.has(platformStockKey)) {
           platformStockUpdates.set(platformStockKey, {
@@ -937,15 +1044,17 @@ export class OrdersService {
             quantity: 0
           });
         }
-        platformStockUpdates.get(platformStockKey)!.quantity += orderlineQuantity;
+        platformStockUpdates.get(platformStockKey)!.quantity += allocation.stocks.length;
 
         // Track Product update (aggregate by puc)
+        // For combo components, this will track the COMPONENT product, not the combo product
         if (!productUpdates.has(firstStock.puc)) {
           productUpdates.set(firstStock.puc, 0);
         }
-        productUpdates.set(firstStock.puc, productUpdates.get(firstStock.puc)! + orderlineQuantity);
+        productUpdates.set(firstStock.puc, productUpdates.get(firstStock.puc)! + allocation.stocks.length);
 
         // Update each Stock record
+        // For combo components, stock records are linked to the combo product's orderline
         for (const stock of allocation.stocks) {
           // 1. Update Stock record
           // Note: Stock.orderid is String (references orders.orderid, not orders.id)
@@ -953,14 +1062,24 @@ export class OrdersService {
           await dynamicUpdate('stock', { id: stock.id }, {
             stockstatus: 'sold',
             orderid: order.orderid || orderId.toString(),  // Use orders.orderid (String) if available
-            orderlinenumber: orderline.orderlinenumber,    // String type
+            orderlinenumber: orderline.orderlinenumber,    // String type (combo product's orderline)
             solddate: currentTimestamp,
             modifieddate: currentTimestamp
           });
+
+          if (allocation.is_component) {
+            logger.info({
+              stockId: stock.id,
+              stockPuc: stock.puc,
+              componentProductId: allocation.component_product_id,
+              comboOrderlineNumber: orderline.orderlinenumber
+            }, 'Component stock marked as sold and linked to combo orderline');
+          }
         }
       }
 
       // 3. Update PlatformStock quantities (once per product/platform combination)
+      // For combo products, this updates COMPONENT platformstock, not combo platformstock
       for (const [key, update] of platformStockUpdates.entries()) {
         const { data: platformStocks } = await dynamicFindManyWithFilters('platformstock', {
           productid: update.productId.toString(),
@@ -995,6 +1114,7 @@ export class OrdersService {
       }
 
       // 4. Update Product quantities (once per product)
+      // For combo products, this updates COMPONENT product quantities, not combo product
       for (const [puc, quantity] of productUpdates.entries()) {
         const productForUpdate = await dynamicFindUnique('product', { puc });
         if (productForUpdate) {
@@ -2901,20 +3021,26 @@ export class OrdersService {
         // Track updates for product
         const platform = firstStock.platform || 'nivapp';
 
-        // COMBO PRODUCT SUPPORT: Check if this is a combo product
-        if (product.iscombo === true) {
+        // COMBO PRODUCT SUPPORT: Check if the ORDERLINE's product is a combo
+        // Important: We must check orderline.productid, not stock.puc, because:
+        // - For combo orderlines, stocks belong to COMPONENT products (not the combo product itself)
+        // - If we check stock.puc, we'll get the component product which has iscombo=false
+        const orderlineProduct = await dynamicFindUnique('product', { id: orderline.productid });
+
+        if (orderlineProduct && orderlineProduct.iscombo === true) {
           logger.info({
             orderlineId: orderline.id,
-            productId,
-            productName: product.name,
-            quantity: orderline.quantity
-          }, 'Detected combo product, reversing ONLY component stock allocations (not combo itself)');
+            comboProductId: orderline.productid,
+            comboProductName: orderlineProduct.name,
+            quantity: orderline.quantity,
+            allocatedStocks: allocatedStocks.length
+          }, 'Detected combo product orderline - reversing ONLY component stock allocations (not combo itself)');
 
           try {
             // Get component products from productbundlemap
             const components = await prisma.productBundleMap.findMany({
               where: {
-                bundleproductid: BigInt(Number(productId)),
+                bundleproductid: BigInt(orderline.productid),
                 isactive: true
               }
             });
@@ -2922,8 +3048,8 @@ export class OrdersService {
             if (components.length === 0) {
               logger.warn({
                 orderlineId: orderline.id,
-                productId,
-                productName: product.name
+                comboProductId: orderline.productid,
+                comboProductName: orderlineProduct.name
               }, 'Combo product has no active components in productbundlemap');
             }
 
@@ -2938,7 +3064,7 @@ export class OrdersService {
 
               logger.info({
                 orderlineId: orderline.id,
-                comboProductId: productId,
+                comboProductId: orderline.productid,  // ✅ Use orderline's productid (combo product)
                 componentProductId,
                 requiredQtyPerCombo: componentRequiredQty,
                 comboQuantityOrdered: orderline.quantity,
