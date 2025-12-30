@@ -242,3 +242,5 @@ Available columns: ["id","transactionid","createddate","modifieddate","transacti
 Available columns: ["id","productid","userid","createddate","quantity","iscart","iswishlist","modifieddate"]
 Available columns: ["id","productid","userid","createddate","quantity","iscart","iswishlist","modifieddate"]
 Available columns: ["id","productid","userid","createddate","quantity","iscart","iswishlist","modifieddate"]
+Available columns: ["id","productid","userid","createddate","quantity","iscart","iswishlist","modifieddate"]
+Available columns: ["id","productid","userid","createddate","quantity","iscart","iswishlist","modifieddate"]

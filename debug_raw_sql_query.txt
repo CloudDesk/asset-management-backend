@@ -1462,3 +1462,15 @@ Update query:
         WHERE "id" = $1 
         RETURNING id, productid, userid, createddate, quantity, iscart, iswishlist, modifieddate
       
+Update query: 
+        UPDATE "cart" 
+        SET "productid" = $2, "userid" = $3, "quantity" = $4, "iscart" = $5, "iswishlist" = $6, "modifieddate" = $7 
+        WHERE "id" = $1 
+        RETURNING id, productid, userid, createddate, quantity, iscart, iswishlist, modifieddate
+      
+Update query: 
+        UPDATE "cart" 
+        SET "productid" = $2, "userid" = $3, "quantity" = $4, "iscart" = $5, "iswishlist" = $6, "modifieddate" = $7 
+        WHERE "id" = $1 
+        RETURNING id, productid, userid, createddate, quantity, iscart, iswishlist, modifieddate
+      

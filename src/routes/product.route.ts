@@ -1318,6 +1318,54 @@ export async function productRoutes(fastify: FastifyInstance) {
                       additionalProperties: false,
                     },
                   },
+                  platformStock: {
+                    type: "object",
+                    nullable: true,
+                    description: "Platform-specific stock data for this product",
+                    properties: {
+                      id: {
+                        type: "number",
+                        description: "Platform stock record ID",
+                      },
+                      platform: {
+                        type: "string",
+                        description: "Platform name",
+                      },
+                      availableqty: {
+                        type: "number",
+                        description: "Available quantity for this platform",
+                      },
+                      platformstatus: {
+                        type: "string",
+                        nullable: true,
+                        description: "Platform stock status",
+                      },
+                      soldqty: {
+                        type: "number",
+                        description: "Sold quantity for this platform",
+                      },
+                      totalqty: {
+                        type: "number",
+                        description: "Total quantity for this platform",
+                      },
+                      orderedqty: {
+                        type: "number",
+                        description: "Ordered quantity for this platform",
+                      },
+                      lockqty: {
+                        type: "number",
+                        description: "Locked quantity for this platform",
+                      },
+                      createddate: {
+                        type: "number",
+                        description: "Creation timestamp",
+                      },
+                      modifieddate: {
+                        type: "number",
+                        description: "Modification timestamp",
+                      },
+                    },
+                  },
                 },
                 additionalProperties: true,
               },

@@ -7652,3 +7652,19 @@ Filtered data: {
   "iswishlist": false,
   "modifieddate": 1767012963760
 }
+Filtered data: {
+  "productid": 40,
+  "userid": 41,
+  "quantity": 2,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1767038133372
+}
+Filtered data: {
+  "productid": 91,
+  "userid": 41,
+  "quantity": 2,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1767038133567
+}

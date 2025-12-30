@@ -12723,3 +12723,23 @@ Updated record: {
   "iswishlist": false,
   "modifieddate": 1767032764
 }
+Updated record: {
+  "id": 706,
+  "productid": 40,
+  "userid": 41,
+  "createddate": 1767054910,
+  "quantity": "2",
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1767057934
+}
+Updated record: {
+  "id": 705,
+  "productid": 91,
+  "userid": 41,
+  "createddate": 1767053255,
+  "quantity": "2",
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1767057934
+}

@@ -197701,3 +197701,46 @@ Filtering data for cart (cart): {
   "createddate": 1767013566794,
   "modifieddate": 1767013566794
 }
+Filtering data for cart (cart): {
+  "userid": 41,
+  "productid": 91,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1767033454380,
+  "modifieddate": 1767033454380
+}
+Filtering data for cart (cart): {
+  "userid": 41,
+  "productid": 40,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1767035109427,
+  "modifieddate": 1767035109427
+}
+Filtering data for cart (cart): {
+  "productid": 40,
+  "userid": 41,
+  "quantity": 2,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1767038133372
+}
+Filtering data for cart (cart): {
+  "productid": 91,
+  "userid": 41,
+  "quantity": 2,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1767038133567
+}
+Filtering data for cart (cart): {
+  "userid": 41,
+  "productid": 74,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1767070880168,
+  "modifieddate": 1767070880168
+}
