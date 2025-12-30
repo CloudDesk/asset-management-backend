@@ -440,6 +440,8 @@ async function buildDynamicWhereClause(tableName, filters) {
             /^.*suppliernumber$/i, // Supplier numbers
             /^.*transactionid$/i, // Transaction IDs like "TXN_1757304945963_QCG0CG"
             /^merchanttransactionid$/i, // Merchant transaction IDs
+            /^orderid$/i, // Order IDs like "NIVAANA-0000000198" (string, not numeric)
+            /^orderlinenumber$/i, // Orderline numbers like "ordline-0000000268" (string, not numeric)
         ];
         // If it matches any string number pattern, it's NOT numeric
         if (stringNumberFields.some(pattern => pattern.test(fieldName))) {

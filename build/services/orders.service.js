@@ -2501,7 +2501,7 @@ export class OrdersService {
                             const componentTotalQty = componentRequiredQty * (orderline.quantity || quantity);
                             logger.info({
                                 orderlineId: orderline.id,
-                                comboProductId: productId,
+                                comboProductId: orderline.productid, // ✅ Use orderline's productid (combo product)
                                 componentProductId,
                                 requiredQtyPerCombo: componentRequiredQty,
                                 comboQuantityOrdered: orderline.quantity,
