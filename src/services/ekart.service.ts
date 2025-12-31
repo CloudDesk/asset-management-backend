@@ -511,7 +511,13 @@ export class EkartService {
 
     // Use finalPayload directly (no need to remove any fields)
     const ekartPayload = finalPayload;
+
     logger.info(ekartPayload, "ekartPayload final")
+
+    console.log("ekartPayload final", ekartPayload)
+
+
+    console.log("ekartPayload final", JSON.stringify(ekartPayload))
 
     logger.info(
       {
