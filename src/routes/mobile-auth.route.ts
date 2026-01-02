@@ -7,7 +7,7 @@ import { TwilioSmsService } from '../services/twilioSms.service.js';
 import { exotelSmsService } from '../services/exotelSms.service.js';
 import { otpService } from '../services/otp.service.js';
 import { authSessionService } from '../services/authsession.service.js';
-import { authRateLimit, otpRateLimit, sanitizeUserData } from '../utils/auth.js';
+import { sanitizeUserData } from '../utils/auth.js';
 import { logger } from '../config/logger.js';
 import {
   createSuccessResponse,
@@ -106,25 +106,7 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
   }, asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const { usermobilenumber, verifyOnly = false } = request.body as { usermobilenumber: number; verifyOnly?: boolean };
 
-    // Rate limiting check using mobile number (2-minute window for OTP)
-    const identifier = `${request.ip}-${usermobilenumber}`;
-    if (otpRateLimit.isRateLimited(identifier)) {
-      const remainingAttempts = otpRateLimit.getRemainingAttempts(identifier);
-      logger.warn({
-        ip: request.ip,
-        mobileNumber: usermobilenumber,
-        remainingAttempts,
-        verifyOnly
-      }, 'OTP request rate limited');
 
-      return reply.code(429).send({
-        success: false,
-        message: 'Too many OTP requests',
-        details: 'Please try again later',
-        statusCode: 429,
-        remainingAttempts,
-      });
-    }
 
     try {
       // Step 1: Check if user exists
@@ -132,13 +114,11 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
 
       // Step 2: Handle verifyOnly mode (for delete account flow)
       if (!user && verifyOnly) {
-        otpRateLimit.recordAttempt(identifier);
-        const remainingAttempts = otpRateLimit.getRemainingAttempts(identifier);
+
 
         logger.warn({
           ip: request.ip,
           mobileNumber: usermobilenumber,
-          remainingAttempts
         }, 'OTP request failed: User not found (verifyOnly mode)');
 
         return reply.code(404).send({
@@ -146,7 +126,6 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
           message: 'User not found',
           details: 'No account exists with this mobile number.',
           statusCode: 404,
-          remainingAttempts,
         });
       }
 
@@ -208,8 +187,6 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
         });
       }
 
-      // Clear rate limiting on successful OTP generation and sending
-      authRateLimit.clearAttempts(identifier);
 
       logger.info({
         mobileNumber: usermobilenumber,
@@ -244,7 +221,6 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
       return reply.code(200).send(response);
 
     } catch (error) {
-      otpRateLimit.recordAttempt(identifier);
       logger.error({ error, mobileNumber: usermobilenumber, verifyOnly, ip: request.ip, provider: 'exotel' }, 'Error during OTP generation (Exotel)');
       throw error;
     }
@@ -380,24 +356,7 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
       });
     }
 
-    // Rate limiting check using mobile number
-    const identifier = `${request.ip}-${usermobilenumber}`;
-    if (authRateLimit.isRateLimited(identifier)) {
-      const remainingAttempts = authRateLimit.getRemainingAttempts(identifier);
-      logger.warn({
-        ip: request.ip,
-        mobileNumber: usermobilenumber,
-        remainingAttempts
-      }, 'OTP verification rate limited (Exotel)');
 
-      return reply.code(429).send({
-        success: false,
-        message: 'Too many verification attempts',
-        details: 'Please try again later',
-        statusCode: 429,
-        remainingAttempts,
-      });
-    }
 
     try {
       // Step 1: Verify OTP using Redis service FIRST
@@ -405,14 +364,10 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
       const verifyResult = await otpService.verifyOtp(phoneNumberString, otpString);
       console.log('OTP verification result:', verifyResult);
       if (!verifyResult.success || !verifyResult.verified) {
-        // Record failed attempt
-        otpRateLimit.recordAttempt(identifier);
-        const remainingAttempts = otpRateLimit.getRemainingAttempts(identifier);
 
         logger.warn({
           ip: request.ip,
           mobileNumber: usermobilenumber,
-          remainingAttempts,
           error: verifyResult.error
         }, 'OTP verification failed (Exotel)');
 
@@ -423,7 +378,6 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
           message: 'OTP verification failed',
           details: verifyResult.error || 'Invalid or expired OTP',
           statusCode,
-          remainingAttempts,
           attemptsRemaining: verifyResult.attemptsRemaining,
           canResend: verifyResult.canResend
         });
@@ -463,9 +417,6 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
           });
         }
       }
-
-      // Clear rate limiting on successful authentication
-      authRateLimit.clearAttempts(identifier);
 
       // Step 3: Generate JWT token pair (access + refresh) - Same as inventory users
       const { generateTokenPair } = await import('../utils/jwt.js');
@@ -516,7 +467,6 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
       return reply.code(200).send(response);
 
     } catch (error) {
-      otpRateLimit.recordAttempt(identifier);
       logger.error({ error, mobileNumber: usermobilenumber, ip: request.ip, provider: 'exotel' }, 'Error during OTP verification (Exotel)');
       throw error;
     }
@@ -606,25 +556,7 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
   }, asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const { usermobilenumber, verifyOnly = false } = request.body as { usermobilenumber: number; verifyOnly?: boolean };
 
-    // Rate limiting check using mobile number
-    const identifier = `${request.ip}-${usermobilenumber}`;
-    if (authRateLimit.isRateLimited(identifier)) {
-      const remainingAttempts = authRateLimit.getRemainingAttempts(identifier);
-      logger.warn({
-        ip: request.ip,
-        mobileNumber: usermobilenumber,
-        remainingAttempts,
-        verifyOnly
-      }, 'OTP request rate limited (Twilio)');
 
-      return reply.code(429).send({
-        success: false,
-        message: 'Too many OTP requests',
-        details: 'Please try again later',
-        statusCode: 429,
-        remainingAttempts,
-      });
-    }
 
     try {
       // Step 1: Check if user exists
@@ -632,13 +564,10 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
 
       // Step 2: Handle verifyOnly mode (for delete account flow)
       if (!user && verifyOnly) {
-        otpRateLimit.recordAttempt(identifier);
-        const remainingAttempts = otpRateLimit.getRemainingAttempts(identifier);
 
         logger.warn({
           ip: request.ip,
-          mobileNumber: usermobilenumber,
-          remainingAttempts
+          mobileNumber: usermobilenumber
         }, 'OTP request failed: User not found (verifyOnly mode - Twilio)');
 
         return reply.code(404).send({
@@ -646,7 +575,6 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
           message: 'User not found',
           details: 'No account exists with this mobile number.',
           statusCode: 404,
-          remainingAttempts,
         });
       }
 
@@ -708,9 +636,6 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
         });
       }
 
-      // Clear rate limiting on successful OTP generation and sending
-      authRateLimit.clearAttempts(identifier);
-
       logger.info({
         mobileNumber: usermobilenumber,
         ip: request.ip,
@@ -744,7 +669,6 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
       return reply.code(200).send(response);
 
     } catch (error) {
-      authRateLimit.recordAttempt(identifier);
       logger.error({ error, mobileNumber: usermobilenumber, verifyOnly, ip: request.ip, provider: 'twilio' }, 'Error during OTP generation (Twilio)');
       throw error;
     }
@@ -883,24 +807,7 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
       });
     }
 
-    // Rate limiting check using mobile number
-    const identifier = `${request.ip}-${usermobilenumber}`;
-    if (authRateLimit.isRateLimited(identifier)) {
-      const remainingAttempts = authRateLimit.getRemainingAttempts(identifier);
-      logger.warn({
-        ip: request.ip,
-        mobileNumber: usermobilenumber,
-        remainingAttempts
-      }, 'OTP verification rate limited (Twilio)');
 
-      return reply.code(429).send({
-        success: false,
-        message: 'Too many verification attempts',
-        details: 'Please try again later',
-        statusCode: 429,
-        remainingAttempts,
-      });
-    }
 
     try {
       // Step 1: Verify OTP using Redis service FIRST
@@ -908,14 +815,10 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
       const verifyResult = await otpService.verifyOtp(phoneNumberString, otpString);
 
       if (!verifyResult.success || !verifyResult.verified) {
-        // Record failed attempt
-        authRateLimit.recordAttempt(identifier);
-        const remainingAttempts = authRateLimit.getRemainingAttempts(identifier);
 
         logger.warn({
           ip: request.ip,
           mobileNumber: usermobilenumber,
-          remainingAttempts,
           error: verifyResult.error
         }, 'OTP verification failed (Twilio)');
 
@@ -926,7 +829,6 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
           message: 'OTP verification failed',
           details: verifyResult.error || 'Invalid or expired OTP',
           statusCode,
-          remainingAttempts,
           attemptsRemaining: verifyResult.attemptsRemaining,
           canResend: verifyResult.canResend
         });
@@ -966,9 +868,6 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
           });
         }
       }
-
-      // Clear rate limiting on successful authentication
-      authRateLimit.clearAttempts(identifier);
 
       // Step 3: Generate JWT token pair (access + refresh) - Same as inventory users
       const { generateTokenPair } = await import('../utils/jwt.js');
@@ -1019,7 +918,6 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
       return reply.code(200).send(response);
 
     } catch (error) {
-      authRateLimit.recordAttempt(identifier);
       logger.error({ error, mobileNumber: usermobilenumber, ip: request.ip, provider: 'twilio' }, 'Error during OTP verification (Twilio)');
       throw error;
     }
