@@ -53,7 +53,7 @@ export async function requireAuthentication(
     } else if (tokenFromQuery) {
       token = tokenFromQuery;
     }
-
+    console.log(token);
     if (!token) {
       logger.warn({
         ip: request.ip,
