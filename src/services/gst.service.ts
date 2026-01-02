@@ -446,14 +446,14 @@ export class GstService {
   /**
    * Calculate GST amounts for an orderline
    * 
-   * GST CALCULATION FORMULA:
-   * - orderamount is the total amount (what customer pays for product)
-   * - total_gst_amount = orderamount * (gst_rate / 100)
-   * - taxable_amount = orderamount - total_gst_amount
+   * GST-INCLUSIVE PRICING FORMULA:
+   * - orderamount is the GST-inclusive total amount (what customer pays for product)
+   * - taxable_amount = orderamount / (1 + gst_rate/100)
+   * - total_gst_amount = orderamount - taxable_amount
    * 
-   * Example: orderamount = 600, gst_rate = 5%
-   * - total_gst_amount = 600 * (5/100) = 30
-   * - taxable_amount = 600 - 30 = 570
+   * Example: orderamount = 598.15, gst_rate = 5%
+   * - taxable_amount = 598.15 / 1.05 = 569.67
+   * - total_gst_amount = 598.15 - 569.67 = 28.48
    * 
    * @param orderamount - Total amount AFTER discount (NOT including shipping)
    * @param gstRate - GST rate from mapping (e.g., 5, 18)
@@ -478,11 +478,13 @@ export class GstService {
       };
     }
 
-    // Calculate GST as percentage of orderamount
-    // Formula: total_gst_amount = orderamount * (gst_rate / 100)
-    // Then: taxable_amount = orderamount - total_gst_amount
-    const total_gst_amount = orderamount * (gstRate / 100);
-    const taxable_amount = orderamount - total_gst_amount;
+    // GST-INCLUSIVE PRICING FORMULA:
+    // Given: orderamount (GST-inclusive price)
+    // Given: gst_rate (e.g., 5% or 18%)
+    // Formula: taxable_amount = orderamount / (1 + gst_rate/100)
+    // Then: total_gst_amount = orderamount - taxable_amount
+    const taxable_amount = orderamount / (1 + gstRate / 100);
+    const total_gst_amount = orderamount - taxable_amount;
 
     let cgst_amount = 0;
     let sgst_amount = 0;
