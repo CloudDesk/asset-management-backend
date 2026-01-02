@@ -8,14 +8,14 @@ declare global {
 
 const prisma = globalThis.__prisma || new PrismaClient({
   log: env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-  
+
   // Error handling
   errorFormat: 'pretty',
-  
+
   // Transaction timeout settings
   transactionOptions: {
-    maxWait: 10000, // 10 seconds
-    timeout: 30000, // 30 seconds
+    maxWait: 10000, // 10 seconds - max time to wait for transaction to start
+    timeout: 90000, // 90 seconds - max time transaction can run
   }
 });
 
@@ -24,16 +24,16 @@ const prisma = globalThis.__prisma || new PrismaClient({
 prisma.$use(async (params, next) => {
   const maxRetries = 3;
   let retries = 0;
-  
+
   while (retries < maxRetries) {
     try {
       return await next(params);
     } catch (error: any) {
       retries++;
-      
+
       // Check if it's a connection error that should be retried
       if (
-        retries < maxRetries && 
+        retries < maxRetries &&
         (
           error.code === 'P1001' || // Can't reach database server
           error.code === 'P1017' || // Server has closed the connection
@@ -48,13 +48,13 @@ prisma.$use(async (params, next) => {
           model: params.model,
           action: params.action
         });
-        
+
         // Exponential backoff: 1s, 2s, 4s
         const delay = Math.pow(2, retries - 1) * 1000;
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
-      
+
       // If it's not a retry-able error or we've exhausted retries, throw the error
       throw error;
     }
@@ -83,7 +83,7 @@ if (env.NODE_ENV === 'development') {
     .catch((error) => {
       console.error('❌ Database connection failed:', error.message);
     });
-    
+
   globalThis.__prisma = prisma;
 }
 

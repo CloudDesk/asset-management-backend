@@ -800,8 +800,15 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
 
     try {
-      // Verify session exists and is valid
-      const session = await authSessionService.verifyRefreshToken(refreshToken, 'inventory');
+      // Step 1: Decode token to extract user type (before verification)
+      const { decodeToken, verifyToken } = await import('../utils/jwt.js');
+      const decodedPreview = decodeToken(refreshToken);
+
+      // Extract user type with fallback to 'inventory' for backward compatibility
+      const userType = (decodedPreview?.userType || 'inventory') as 'inventory' | 'ecommerce';
+
+      // Step 2: Verify session exists with correct user type
+      const session = await authSessionService.verifyRefreshToken(refreshToken, userType);
 
       if (!session) {
         return reply.code(401).send({
@@ -812,22 +819,30 @@ export async function authRoutes(fastify: FastifyInstance) {
         });
       }
 
-      // Generate new token pair
-      const { verifyToken } = await import('../utils/jwt.js');
+      // Verify the token itself
       const decoded = verifyToken(refreshToken);
 
+      // Step 3: Generate new token pair with preserved user type
       const newTokenPair = generateTokenPair({
         userId: decoded.userId,
         email: decoded.email,
         roleId: decoded.roleId,
+        userType: userType,
       });
 
-      // Rotate refresh token (delete old, create new)
+      // Step 4: Determine session expiry based on user type
+      const SESSION_EXPIRY_DAYS: Record<'inventory' | 'ecommerce', number> = {
+        inventory: 7,
+        ecommerce: 90
+      };
+      const expiryDays = SESSION_EXPIRY_DAYS[userType];
+
+      // Step 5: Rotate refresh token with user-type-specific expiry
       const newSession = await authSessionService.rotateRefreshToken(
         refreshToken,
         newTokenPair.refreshToken,
-        'inventory',
-        7, // 7 days for inventory users
+        userType,
+        expiryDays,
         request.ip,
         request.headers['user-agent']
       );
@@ -843,9 +858,11 @@ export async function authRoutes(fastify: FastifyInstance) {
 
       logger.info({
         userId: decoded.userId,
+        userType: userType,
         oldSessionId: session.id,
         newSessionId: newSession.id,
-      }, 'Access token refreshed with session rotation');
+        expiryDays: expiryDays
+      }, `Access token refreshed for ${userType} user with session rotation`);
 
       const response = createSuccessResponse('Token refreshed successfully', {
         token: newTokenPair.accessToken,
@@ -864,4 +881,5 @@ export async function authRoutes(fastify: FastifyInstance) {
       });
     }
   }));
+
 } 

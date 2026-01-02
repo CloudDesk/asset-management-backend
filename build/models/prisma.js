@@ -6,8 +6,8 @@ const prisma = globalThis.__prisma || new PrismaClient({
     errorFormat: 'pretty',
     // Transaction timeout settings
     transactionOptions: {
-        maxWait: 10000, // 10 seconds
-        timeout: 30000, // 30 seconds
+        maxWait: 10000, // 10 seconds - max time to wait for transaction to start
+        timeout: 90000, // 90 seconds - max time transaction can run
     }
 });
 // Add connection error handling and retry logic
