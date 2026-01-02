@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { InventoryUsersService } from '../services/inventoryusers.service.js';
-import { authRateLimit } from '../utils/auth.js';
+
 import { logger } from '../config/logger.js';
 import {
   createSuccessResponse,
@@ -148,50 +148,26 @@ export async function authRoutes(fastify: FastifyInstance) {
   }, asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const { useremail, userpassword } = request.body as { useremail: string; userpassword: string };
 
-    // Rate limiting check
-    const identifier = `${request.ip}-${useremail}`;
-    /*if (authRateLimit.isRateLimited(identifier)) {
-      const remainingAttempts = authRateLimit.getRemainingAttempts(identifier);
-      logger.warn({
-        ip: request.ip,
-        email: useremail,
-        remainingAttempts
-      }, 'Sign-in rate limited');
 
-      return reply.code(429).send({
-        success: false,
-        message: 'Too many sign-in attempts',
-        details: 'Please try again later',
-        statusCode: 429,
-        remainingAttempts,
-      });
-    }
-*/
     try {
       const result = await inventoryUsersService.authenticate(useremail, userpassword);
 
       if (!result) {
-        // Record failed attempt
-        authRateLimit.recordAttempt(identifier);
-        const remainingAttempts = authRateLimit.getRemainingAttempts(identifier);
 
         logger.warn({
           ip: request.ip,
-          email: useremail,
-          remainingAttempts
+          email: useremail
         }, 'Sign-in failed: Invalid credentials');
 
         return reply.code(401).send({
           success: false,
           message: 'Invalid credentials',
           details: 'The email or password you entered is incorrect',
-          statusCode: 401,
-          remainingAttempts,
+          statusCode: 401
         });
       }
 
-      // Clear rate limiting on successful sign-in
-      authRateLimit.clearAttempts(identifier);
+
 
       // Create auth session (NEW: Session-based authentication)
       const session = await authSessionService.createSession({
@@ -216,7 +192,6 @@ export async function authRoutes(fastify: FastifyInstance) {
       const response = createSuccessResponse('Sign-in successful', result);
       return reply.code(200).send(response);
     } catch (error) {
-      authRateLimit.recordAttempt(identifier);
       logger.error({ error, email: useremail, ip: request.ip }, 'Error during sign-in');
       throw error;
     }
@@ -361,21 +336,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       fcmid?: string;
     };
 
-    // Rate limiting for registration
-    const identifier = `register-${request.ip}-${userData.useremail}`;
-    if (authRateLimit.isRateLimited(identifier)) {
-      logger.warn({
-        ip: request.ip,
-        email: userData.useremail
-      }, 'Registration rate limited');
 
-      return reply.code(429).send({
-        success: false,
-        message: 'Too many registration attempts',
-        details: 'Please try again later',
-        statusCode: 429,
-      });
-    }
 
     try {
       // Store the original password before it gets hashed
@@ -391,8 +352,6 @@ export async function authRoutes(fastify: FastifyInstance) {
         throw new Error('Failed to authenticate user after registration');
       }
 
-      authRateLimit.recordAttempt(identifier);
-
       logger.info({
         userId: newUser.id,
         email: userData.useremail,
@@ -402,7 +361,6 @@ export async function authRoutes(fastify: FastifyInstance) {
       const response = createSuccessResponse('Registration successful', authResult);
       return reply.code(201).send(response);
     } catch (error) {
-      authRateLimit.recordAttempt(identifier);
 
       // Handle specific error cases
       if (error instanceof Error) {
@@ -542,27 +500,12 @@ export async function authRoutes(fastify: FastifyInstance) {
   }, asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const { useremail } = request.body as { useremail: string };
 
-    // Rate limiting for password reset requests
-    const identifier = `reset-${request.ip}-${useremail}`;
-    if (authRateLimit.isRateLimited(identifier)) {
-      logger.warn({
-        ip: request.ip,
-        email: useremail
-      }, 'Password reset rate limited');
 
-      return reply.code(429).send({
-        success: false,
-        message: 'Too many password reset requests',
-        details: 'Please try again later',
-        statusCode: 429,
-      });
-    }
 
     try {
       await inventoryUsersService.initiatePasswordReset(useremail);
 
-      // Record attempt regardless of whether email exists (security)
-      authRateLimit.recordAttempt(identifier);
+
 
       logger.info({
         email: useremail,
@@ -576,7 +519,6 @@ export async function authRoutes(fastify: FastifyInstance) {
         details: 'If an account with this email exists, you will receive a password reset link shortly',
       });
     } catch (error) {
-      authRateLimit.recordAttempt(identifier);
       logger.error({ error, email: useremail, ip: request.ip }, 'Error during password reset initiation');
       throw error;
     }

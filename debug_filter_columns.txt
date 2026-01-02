@@ -5474,3 +5474,4 @@ Available columns for cart: ["id","productid","userid","createddate","quantity",
 Available columns for cart: ["id","productid","userid","createddate","quantity","iscart","iswishlist","modifieddate"]
 Available columns for cart: ["id","productid","userid","createddate","quantity","iscart","iswishlist","modifieddate"]
 Available columns for cart: ["id","productid","userid","createddate","quantity","iscart","iswishlist","modifieddate"]
+Available columns for users: ["id","useremail","userpassword","createddate","modifieddate","usermobilenumber","fcmid","firstname","lastname","gender","gstnumber","isbusinessuser","isguest","isactive"]
