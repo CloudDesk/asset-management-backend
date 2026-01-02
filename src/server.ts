@@ -16,6 +16,8 @@ export async function buildServer() {
   const fastify = Fastify({
     logger: true, // Use default logger instead of passing pino instance
     disableRequestLogging: true, // We'll handle this in our logger plugin
+    requestTimeout: 120000, // 2 minutes (120 seconds) - must be > DB transaction timeout (90s)
+    connectionTimeout: 60000, // 1 minute (60 seconds) - connection establishment timeout
     ajv: {
       plugins: [ajvFilePlugin],
     },
@@ -69,13 +71,13 @@ export async function buildServer() {
       url: request.url,
       userAgent: request.headers['user-agent'],
     }, 'Route not found');
-    
+
     const response = createErrorResponse(
       'Route not found',
       `The endpoint ${request.method} ${request.url} does not exist`,
       404
     );
-    
+
     return reply.code(404).send(response);
   });
 
