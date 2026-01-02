@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { logger } from '../config/logger.js';
-import { sanitizeUserData, authRateLimit } from '../utils/auth.js';
+import { sanitizeUserData } from '../utils/auth.js';
 import { InventoryUsersService } from '../services/inventoryusers.service.js';
 
 // Define authenticated request interface
