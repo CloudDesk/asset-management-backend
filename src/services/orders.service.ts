@@ -1728,7 +1728,17 @@ export class OrdersService {
   async getOrdersByUserIdWithDetails(
     userId: number,
     page: number = 1,
-    limit: number = 50
+    limit: number = 10,
+    filters?: {
+      orderstatus?: string;
+      date_range?: string;
+      start_date?: string;
+      end_date?: string;
+      mode?: string;
+      amount_range?: string;
+      min_amount?: string;
+      max_amount?: string;
+    }
   ): Promise<{
     orders: Array<{
       id: number;
@@ -1794,11 +1804,139 @@ export class OrdersService {
     };
   }> {
     try {
-      logger.info({ userId, page, limit }, 'Getting orders by userid with orderlines and address');
+      logger.info({ userId, page, limit, filters }, 'Getting orders by userid with orderlines and address');
+
+      // Build filters for database query
+      const dbFilters: Record<string, any> = { userid: userId.toString() };
+
+      // 1. ORDER STATUS FILTER (existing)
+      if (filters?.orderstatus) {
+        dbFilters.orderstatus = filters.orderstatus; // Support comma-separated values
+      }
+
+      // 2. DATE RANGE FILTER
+      if (filters?.date_range || filters?.start_date || filters?.end_date) {
+        const now = Date.now();
+        let startDate: number | undefined;
+        let endDate: number | undefined;
+
+        // Predefined date ranges
+        if (filters.date_range) {
+          const ranges: Record<string, number> = {
+            'last_7_days': now - (7 * 24 * 60 * 60 * 1000),
+            'last_30_days': now - (30 * 24 * 60 * 60 * 1000),
+            'last_3_months': now - (90 * 24 * 60 * 60 * 1000),
+            'last_6_months': now - (180 * 24 * 60 * 60 * 1000),
+            'last_1_year': now - (365 * 24 * 60 * 60 * 1000)
+          };
+
+          startDate = ranges[filters.date_range];
+          endDate = now;
+
+          logger.debug({
+            userId,
+            dateRange: filters.date_range,
+            startDate,
+            endDate,
+            startDateReadable: startDate ? new Date(startDate).toISOString() : null,
+            endDateReadable: endDate ? new Date(endDate).toISOString() : null
+          }, 'Applying predefined date range filter');
+        }
+
+        // Custom date range (overrides predefined if both provided)
+        if (filters.start_date) {
+          startDate = parseInt(filters.start_date, 10);
+        }
+        if (filters.end_date) {
+          endDate = parseInt(filters.end_date, 10);
+        }
+
+        // Apply date filter using >= and <= operators
+        if (startDate) {
+          dbFilters['createddate_gte'] = startDate.toString();
+        }
+        if (endDate) {
+          dbFilters['createddate_lte'] = endDate.toString();
+        }
+
+        logger.debug({
+          userId,
+          appliedStartDate: startDate,
+          appliedEndDate: endDate,
+          startDateReadable: startDate ? new Date(startDate).toISOString() : null,
+          endDateReadable: endDate ? new Date(endDate).toISOString() : null
+        }, 'Date range filter applied');
+      }
+
+      // 3. PAYMENT METHOD FILTER
+      if (filters?.mode) {
+        dbFilters.mode = filters.mode; // Support comma-separated values like "cod,phonepe"
+        logger.debug({ userId, mode: filters.mode }, 'Payment method filter applied');
+      }
+
+      // 4. AMOUNT RANGE FILTER
+      if (filters?.amount_range || filters?.min_amount || filters?.max_amount) {
+        let minAmount: number | undefined;
+        let maxAmount: number | undefined;
+
+        // Predefined amount ranges
+        if (filters.amount_range) {
+          const ranges: Record<string, { min?: number; max?: number }> = {
+            'under_500': { max: 500 },
+            '500_1000': { min: 500, max: 1000 },
+            '1000_2500': { min: 1000, max: 2500 },
+            '2500_5000': { min: 2500, max: 5000 },
+            'above_5000': { min: 5000 }
+          };
+
+          const range = ranges[filters.amount_range];
+          if (range) {
+            minAmount = range.min;
+            maxAmount = range.max;
+          }
+
+          logger.debug({
+            userId,
+            amountRange: filters.amount_range,
+            minAmount,
+            maxAmount
+          }, 'Applying predefined amount range filter');
+        }
+
+        // Custom amount range (overrides predefined if both provided)
+        if (filters.min_amount) {
+          minAmount = parseFloat(filters.min_amount);
+        }
+        if (filters.max_amount) {
+          maxAmount = parseFloat(filters.max_amount);
+        }
+
+        // Apply amount filter using >= and <= operators
+        if (minAmount !== undefined) {
+          dbFilters['orderamount_gte'] = minAmount.toString();
+        }
+        if (maxAmount !== undefined) {
+          dbFilters['orderamount_lte'] = maxAmount.toString();
+        }
+
+        logger.debug({
+          userId,
+          appliedMinAmount: minAmount,
+          appliedMaxAmount: maxAmount
+        }, 'Amount range filter applied');
+      }
+
+      logger.info({
+        userId,
+        page,
+        limit,
+        dbFilters,
+        filterCount: Object.keys(dbFilters).length - 1 // Exclude userid
+      }, 'Final filters prepared for database query');
 
       // Get order IDs for this user (lightweight query for pagination)
       const ordersResult = await this.findMany(
-        { userid: userId.toString() },
+        dbFilters,
         page,
         limit
       );

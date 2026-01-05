@@ -489,7 +489,29 @@ export async function ordersRoutes(fastify: FastifyInstance) {
         type: 'object',
         properties: {
           page: { type: 'string', description: 'Page number (default: 1)' },
-          limit: { type: 'string', description: 'Items per page (default: 50)' }
+          limit: { type: 'string', description: 'Items per page (default: 10)' },
+          orderstatus: { type: 'string', description: 'Filter by order status (comma-separated for multiple statuses, e.g., "order_placed,payment_completed")' },
+
+          // Date range filters
+          date_range: {
+            type: 'string',
+            enum: ['last_7_days', 'last_30_days', 'last_3_months', 'last_6_months', 'last_1_year'],
+            description: 'Predefined date range filter'
+          },
+          start_date: { type: 'string', description: 'Custom start date (Unix timestamp in milliseconds)' },
+          end_date: { type: 'string', description: 'Custom end date (Unix timestamp in milliseconds)' },
+
+          // Payment method filter
+          mode: { type: 'string', description: 'Filter by payment method: "cod", "phonepe", or comma-separated "cod,phonepe"' },
+
+          // Amount range filters
+          amount_range: {
+            type: 'string',
+            enum: ['under_500', '500_1000', '1000_2500', '2500_5000', 'above_5000'],
+            description: 'Predefined amount range filter'
+          },
+          min_amount: { type: 'string', description: 'Custom minimum order amount' },
+          max_amount: { type: 'string', description: 'Custom maximum order amount' }
         }
       },
       response: {
