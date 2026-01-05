@@ -788,25 +788,27 @@ export class ProductService {
       // Check if product exists
       const existingProduct = await this.findById(id);
 
+
+
       logger.debug({ originalData: data, productId: id }, 'Starting dynamic product update operation');
 
-      // Extract and validate: combo-related fields are NOT allowed in update
+      // Silently extract and ignore combo-related fields from payload
+      // These fields cannot be updated after product creation
       const { components, iscombo, combotype, ...updateData } = data;
 
-      // Reject components field entirely (combo components are fixed after creation)
-      if (components !== undefined) {
-        throw new Error('Components cannot be updated. Combo components are fixed after creation. To change components, delete and recreate the combo product.');
+      if (components || iscombo || combotype) {
+        logger.debug({
+          productId: id,
+          skippedFields: {
+            components: components,
+            iscombo: iscombo,
+            combotype: combotype
+          }
+        }, 'Silently skipping combo-related fields from update payload');
       }
 
-      // Reject iscombo field entirely (product type cannot be changed after creation)
-      if (iscombo !== undefined) {
-        throw new Error('iscombo field cannot be updated. Product type (combo/single) cannot be changed after creation.');
-      }
-
-      // Reject combotype field entirely (combo type cannot be changed after creation)
-      if (combotype !== undefined) {
-        throw new Error('combotype field cannot be updated. Combo type cannot be changed after creation.');
-      }
+      // Auto-set modified date
+      updateData.modifieddate = updateData.modifieddate || Date.now();
 
       const product = await dynamicUpdate('product', { id }, updateData);
 
@@ -816,12 +818,23 @@ export class ProductService {
 
       logger.info({
         productId: id,
-        availableFields: Object.keys(product)
-      }, 'Dynamic product update completed');
+        productName: product.name,
+        updatedFields: Object.keys(updateData)
+      }, 'Dynamic product update completed successfully');
 
       return product;
-    } catch (error) {
-      logger.error({ error, data, productId: id }, 'Error in product update operation');
+    } catch (error: any) {
+      logger.error({
+        error: {
+          message: error?.message || 'Unknown error',
+          stack: error?.stack,
+          code: error?.code,
+          name: error?.name,
+          fullError: error
+        },
+        data,
+        productId: id
+      }, 'Error in product update operation');
       throw error;
     }
   }
