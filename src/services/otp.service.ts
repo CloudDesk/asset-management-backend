@@ -106,7 +106,7 @@ export class OtpService {
    */
   private generateSecureOtp(provider: OtpProvider = 'twilio'): string {
     const config = PROVIDER_CONFIGS[provider];
-    
+
     if (config.noLeadingZero) {
       // Generate OTP that doesn't start with 0 (for providers that require this)
       // Generate first digit (1-9), then remaining digits (0-9)
@@ -114,14 +114,14 @@ export class OtpService {
       const remainingDigits = crypto.randomInt(0, 10 ** (config.otpLength - 1))
         .toString()
         .padStart(config.otpLength - 1, '0');
-      
+
       return `${firstDigit}${remainingDigits}`;
     } else {
       // Standard OTP generation (can start with 0)
       const otp = crypto.randomInt(0, 10 ** config.otpLength)
         .toString()
         .padStart(config.otpLength, '0');
-      
+
       return otp;
     }
   }
@@ -133,7 +133,7 @@ export class OtpService {
     try {
       const blockKey = this.getBlockKey(phoneNumber);
       const blockData = await this.redis.get(blockKey);
-      
+
       if (blockData) {
         const ttl = await this.redis.ttl(blockKey);
         return {
@@ -142,7 +142,7 @@ export class OtpService {
           expiresIn: ttl > 0 ? ttl : 0
         };
       }
-      
+
       return { blocked: false };
     } catch (error: any) {
       logger.error({ error: error.message, phoneNumber }, 'Error checking if phone is blocked');
@@ -200,7 +200,7 @@ export class OtpService {
     try {
       const rateLimitKey = this.getRateLimitSendKey(phoneNumber);
       const count = await this.redis.incr(rateLimitKey);
-      
+
       // Set expiry only on first increment
       if (count === 1) {
         await this.redis.expire(rateLimitKey, RATE_LIMIT_SEND_WINDOW);
@@ -221,7 +221,7 @@ export class OtpService {
 
       if (currentCount >= RATE_LIMIT_VERIFY_MAX) {
         const ttl = await this.redis.ttl(rateLimitKey);
-        
+
         // Block the phone number
         await this.blockPhoneNumber(
           phoneNumber,
@@ -254,7 +254,7 @@ export class OtpService {
     try {
       const rateLimitKey = this.getRateLimitVerifyKey(phoneNumber);
       const count = await this.redis.incr(rateLimitKey);
-      
+
       // Set expiry only on first increment
       if (count === 1) {
         await this.redis.expire(rateLimitKey, RATE_LIMIT_VERIFY_WINDOW);
@@ -271,11 +271,11 @@ export class OtpService {
     try {
       const cooldownKey = this.getResendCooldownKey(phoneNumber);
       const ttl = await this.redis.ttl(cooldownKey);
-      
+
       if (ttl > 0) {
         return { canResend: false, waitTime: ttl };
       }
-      
+
       return { canResend: true };
     } catch (error: any) {
       logger.error({ error: error.message, phoneNumber }, 'Error checking resend cooldown');
@@ -361,20 +361,22 @@ export class OtpService {
         expiresAt,
         phoneNumber
       };
-
-      await this.redis.setEx(otpKey, config.expirySeconds, JSON.stringify(otpData));
-
+      console.log(otpKey, "redis otpKey");
+      console.log(config.expirySeconds, "redis expirySeconds");
+      console.log(JSON.stringify(otpData), "redis otpData");
+      let result = await this.redis.setEx(otpKey, config.expirySeconds, JSON.stringify(otpData));
+      console.log(result, "redis store result");
       // 7. Increment send rate limit
       await this.incrementSendRateLimit(phoneNumber);
 
       // 8. Set resend cooldown with provider-specific duration
       await this.setResendCooldown(phoneNumber, config.resendCooldownSeconds);
 
-      logger.info({ 
+      logger.info({
         phoneNumber: phoneNumber.replace(/(\d{2})(\d+)(\d{4})/, '$1****$3'), // Mask phone number in logs
         provider,
         otpLength: config.otpLength,
-        expiresIn: config.expirySeconds 
+        expiresIn: config.expirySeconds
       }, 'OTP generated and stored');
 
       return {
@@ -472,13 +474,13 @@ export class OtpService {
 
       if (isValid) {
         // SUCCESS: Delete OTP and clear rate limits
-        await this.redis.del(otpKey);
-        
+        let result = await this.redis.del(otpKey);
+        console.log(result, "redis clear result");
         // Clear rate limits on successful verification
         await this.redis.del(this.getRateLimitVerifyKey(phoneNumber));
-        
-        logger.info({ 
-          phoneNumber: phoneNumber.replace(/(\d{2})(\d+)(\d{4})/, '$1****$3') 
+
+        logger.info({
+          phoneNumber: phoneNumber.replace(/(\d{2})(\d+)(\d{4})/, '$1****$3')
         }, 'OTP verified successfully');
 
         return {
@@ -499,9 +501,9 @@ export class OtpService {
         // Increment failed verification rate limit
         await this.incrementVerifyRateLimit(phoneNumber);
 
-        logger.warn({ 
+        logger.warn({
           phoneNumber: phoneNumber.replace(/(\d{2})(\d+)(\d{4})/, '$1****$3'),
-          attemptsRemaining 
+          attemptsRemaining
         }, 'Invalid OTP provided');
 
         return {
@@ -543,7 +545,7 @@ export class OtpService {
     try {
       const otpKey = this.getOtpKey(phoneNumber);
       const otpDataStr = await this.redis.get(otpKey);
-      
+
       if (!otpDataStr) {
         return null;
       }
@@ -567,7 +569,7 @@ export class OtpService {
         this.redis.del(this.getBlockKey(phoneNumber)),
         this.redis.del(this.getResendCooldownKey(phoneNumber))
       ]);
-      
+
       logger.info({ phoneNumber }, 'All limits cleared for phone number');
     } catch (error: any) {
       logger.error({ error: error.message, phoneNumber }, 'Error clearing limits');
