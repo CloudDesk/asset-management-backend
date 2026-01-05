@@ -26,8 +26,7 @@ export const ECOMMERCE_PUBLIC_ROUTES = [
 
 
     // 3. Promotions & Deals APIs
-    'GET /v1/promotions/public',
-    'GET /v1/promotions/active',
+    'GET /v1/promotions', // Main promotions route - supports optional userid parameter
 
     // 4. Ratings & Reviews APIs
     'GET /v1/ratings',
