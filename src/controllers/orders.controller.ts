@@ -271,15 +271,15 @@ export class OrdersController {
   getOrdersByUserIdWithDetails = asyncHandler(async (
     request: FastifyRequest<{
       Params: { userid: string },
-      Querystring: { page?: string; limit?: string }
+      Querystring: { page?: string; limit?: string; orderstatus?: string }
     }>,
     reply: FastifyReply
   ) => {
     const { userid } = request.params;
-    const { page: pageStr, limit: limitStr } = request.query;
+    const { page: pageStr, limit: limitStr, orderstatus } = request.query;
 
     const page = pageStr ? parseInt(pageStr, 10) : 1;
-    const limit = limitStr ? parseInt(limitStr, 10) : 50;
+    const limit = limitStr ? parseInt(limitStr, 10) : 10;
 
     if (isNaN(Number(userid))) {
       return reply.code(400).send({
@@ -290,7 +290,7 @@ export class OrdersController {
     }
 
     const userId = parseInt(userid, 10);
-    const result = await this.ordersService.getOrdersByUserIdWithDetails(userId, page, limit);
+    const result = await this.ordersService.getOrdersByUserIdWithDetails(userId, page, limit, orderstatus);
 
     return reply.code(200).send({
       success: true,

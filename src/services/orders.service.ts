@@ -1728,7 +1728,8 @@ export class OrdersService {
   async getOrdersByUserIdWithDetails(
     userId: number,
     page: number = 1,
-    limit: number = 50
+    limit: number = 10,
+    orderstatus?: string
   ): Promise<{
     orders: Array<{
       id: number;
@@ -1794,11 +1795,17 @@ export class OrdersService {
     };
   }> {
     try {
-      logger.info({ userId, page, limit }, 'Getting orders by userid with orderlines and address');
+      logger.info({ userId, page, limit, orderstatus }, 'Getting orders by userid with orderlines and address');
+
+      // Build filters
+      const filters: Record<string, any> = { userid: userId.toString() };
+      if (orderstatus) {
+        filters.orderstatus = orderstatus; // Support comma-separated values (handled by findMany)
+      }
 
       // Get order IDs for this user (lightweight query for pagination)
       const ordersResult = await this.findMany(
-        { userid: userId.toString() },
+        filters,
         page,
         limit
       );

@@ -489,7 +489,8 @@ export async function ordersRoutes(fastify: FastifyInstance) {
         type: 'object',
         properties: {
           page: { type: 'string', description: 'Page number (default: 1)' },
-          limit: { type: 'string', description: 'Items per page (default: 50)' }
+          limit: { type: 'string', description: 'Items per page (default: 50)' },
+          orderstatus: { type: 'string', description: 'Filter by order status (comma-separated for multiple statuses, e.g., "order_placed,payment_completed")' }
         }
       },
       response: {
