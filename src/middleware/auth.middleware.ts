@@ -128,22 +128,10 @@ export async function requireAuthentication(
         });
       }
 
-      // Check token revocation (only for inventory users - they have sessiontoken field)
-      if (userType === 'inventory' && (user as any).sessiontoken === null) {
-        logger.warn({
-          userId: decoded.userId,
-          ip: request.ip
-        }, 'Authentication failed: Token revoked (user signed out)');
-
-        return reply.code(401).send({
-          success: false,
-          message: 'Token has been revoked',
-          details: 'This token is no longer valid. Please sign in again',
-          statusCode: 401,
-          tokenStatus: 'revoked',
-          suggestion: 'Please sign in again to get a new token'
-        });
-      }
+      // NOTE: Session management is now handled by auth_sessions table
+      // The old sessiontoken field check is removed as it's deprecated
+      // Token revocation is handled via auth_sessions.isRevoked during refresh token validation
+      // Access tokens are short-lived (24h) and validated via JWT expiry only
 
       // Attach user data to request (from JWT + DB)
       request.user = {

@@ -197750,3 +197750,47 @@ Filtering data for users (users): {
   "createddate": 1767335859200,
   "modifieddate": 1767335859200
 }
+Filtering data for product (product): {
+  "name": "NIVAANA - Bath",
+  "category": "personal_care",
+  "subcategory": "bath",
+  "subsubcategory": "",
+  "brand": "NIVAANA",
+  "pack": "single",
+  "price": 100,
+  "discount": 0,
+  "isdealoftheday": false,
+  "iscombo": false,
+  "combotype": "fixed",
+  "purpose": "Keep personal and travel spaces fresh"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 97,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 97,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 97,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}

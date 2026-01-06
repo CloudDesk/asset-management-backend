@@ -197,9 +197,9 @@ export class OrdersController {
      */
     getOrdersByUserIdWithDetails = asyncHandler(async (request, reply) => {
         const { userid } = request.params;
-        const { page: pageStr, limit: limitStr } = request.query;
+        const { page: pageStr, limit: limitStr, orderstatus, date_range, start_date, end_date, mode, amount_range, min_amount, max_amount } = request.query;
         const page = pageStr ? parseInt(pageStr, 10) : 1;
-        const limit = limitStr ? parseInt(limitStr, 10) : 50;
+        const limit = limitStr ? parseInt(limitStr, 10) : 10;
         if (isNaN(Number(userid))) {
             return reply.code(400).send({
                 success: false,
@@ -208,7 +208,25 @@ export class OrdersController {
             });
         }
         const userId = parseInt(userid, 10);
-        const result = await this.ordersService.getOrdersByUserIdWithDetails(userId, page, limit);
+        // Build filters object (only include defined values to satisfy TypeScript strict mode)
+        const filters = {};
+        if (orderstatus)
+            filters.orderstatus = orderstatus;
+        if (date_range)
+            filters.date_range = date_range;
+        if (start_date)
+            filters.start_date = start_date;
+        if (end_date)
+            filters.end_date = end_date;
+        if (mode)
+            filters.mode = mode;
+        if (amount_range)
+            filters.amount_range = amount_range;
+        if (min_amount)
+            filters.min_amount = min_amount;
+        if (max_amount)
+            filters.max_amount = max_amount;
+        const result = await this.ordersService.getOrdersByUserIdWithDetails(userId, page, limit, filters);
         return reply.code(200).send({
             success: true,
             message: 'Orders retrieved successfully',
