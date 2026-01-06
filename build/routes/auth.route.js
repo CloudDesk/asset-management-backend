@@ -386,7 +386,7 @@ export async function authRoutes(fastify) {
         const userId = request.user.id;
         // Revoke all user sessions (logout from all devices)
         const revokedCount = await authSessionService.revokeAllUserSessions(userId, 'inventory');
-        // Also clear old sessiontoken field for backward compatibility
+        // Update modifieddate (sessiontoken field is deprecated - no longer used)
         await inventoryUsersService.signOut(userId);
         logger.info({
             userId,
