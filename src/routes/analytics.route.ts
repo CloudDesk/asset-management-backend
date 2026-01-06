@@ -118,113 +118,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
             }
         }
     }, analyticsController.getInventoryHealth.bind(analyticsController));
-
-    // GET /v1/analytics/fulfillment-summary
-    fastify.get('/fulfillment-summary', {
-        schema: {
-            description: 'Get order fulfillment summary (Module B)',
-            tags: ['Analytics'],
-            response: {
-                200: {
-                    type: 'object',
-                    properties: {
-                        success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        data: {
-                            type: 'object',
-                            properties: {
-                                pending: { type: 'number' },
-                                ready_to_dispatch: { type: 'number' },
-                                shipped_today: { type: 'number' },
-                                returns_pending: { type: 'number' },
-                                sla_breached: { type: 'number' }
-                            }
-                        }
-                    }
-                },
-                500: {
-                    type: 'object',
-                    properties: {
-                        success: { type: 'boolean' },
-                        error: { type: 'string' }
-                    }
-                }
-            }
-        }
-    }, analyticsController.getFulfillmentSummary.bind(analyticsController));
-
-    // GET /v1/analytics/sales-velocity
-    fastify.get('/sales-velocity', {
-        schema: {
-            description: 'Get sales velocity metrics (Module C)',
-            tags: ['Analytics'],
-            response: {
-                200: {
-                    type: 'object',
-                    properties: {
-                        success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        data: {
-                            type: 'object',
-                            properties: {
-                                todayRevenue: { type: 'number' },
-                                yesterdayRevenue: { type: 'number' },
-                                platformSplit: {
-                                    type: 'array',
-                                    items: {
-                                        type: 'object',
-                                        properties: {
-                                            platform: { type: 'string' },
-                                            units: { type: 'number' }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                500: {
-                    type: 'object',
-                    properties: {
-                        success: { type: 'boolean' },
-                        error: { type: 'string' }
-                    }
-                }
-            }
-        }
-    }, analyticsController.getSalesVelocity.bind(analyticsController));
-
-    // GET /v1/analytics/supply-chain
-    fastify.get('/supply-chain', {
-        schema: {
-            description: 'Get procurement and supply chain stats (Module D)',
-            tags: ['Analytics'],
-            response: {
-                200: {
-                    type: 'object',
-                    properties: {
-                        success: { type: 'boolean' },
-                        message: { type: 'string' },
-                        data: {
-                            type: 'object',
-                            properties: {
-                                open_pos: { type: 'number' },
-                                pending_prs: { type: 'number' }
-                            }
-                        }
-                    }
-                },
-                500: {
-                    type: 'object',
-                    properties: {
-                        success: { type: 'boolean' },
-                        error: { type: 'string' }
-                    }
-                }
-            }
-        }
-    }, analyticsController.getSupplyChainStats.bind(analyticsController));
-
+    
     // GET /v1/analytics/orders
     fastify.get('/orders', {
         schema: {
@@ -292,7 +186,11 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
                                         total_orders: { type: 'number' },
                                         total_revenue: { 
                                             type: 'number',
-                                            description: 'Revenue from non-cancelled orders (excludes cancelled, refunded, payment_failed)'
+                                            description: 'Net revenue from non-cancelled orders. Calculated by EXCLUDING cancelled orders from query (NOT calculated as gross - cancelled). Excludes: cancelled, cancelled_refund_processing, cancelled_refunded, cancelled_completed, payment_failed, partially_cancelled'
+                                        },
+                                        gross_revenue: {
+                                            type: 'number',
+                                            description: 'Gross revenue including cancelled orders (total_revenue + cancelled_revenue). For reference only.'
                                         },
                                         average_order_value: { type: 'number' },
                                         delivered_orders: { type: 'number' },
@@ -430,5 +328,112 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
             }
         }
     }, analyticsController.getOrderAnalytics.bind(analyticsController));
+
+    // GET /v1/analytics/fulfillment-summary
+    fastify.get('/fulfillment-summary', {
+        schema: {
+            description: 'Get order fulfillment summary (Module B)',
+            tags: ['Analytics'],
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        data: {
+                            type: 'object',
+                            properties: {
+                                pending: { type: 'number' },
+                                ready_to_dispatch: { type: 'number' },
+                                shipped_today: { type: 'number' },
+                                returns_pending: { type: 'number' },
+                                sla_breached: { type: 'number' }
+                            }
+                        }
+                    }
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        error: { type: 'string' }
+                    }
+                }
+            }
+        }
+    }, analyticsController.getFulfillmentSummary.bind(analyticsController));
+
+    // GET /v1/analytics/sales-velocity
+    fastify.get('/sales-velocity', {
+        schema: {
+            description: 'Get sales velocity metrics (Module C)',
+            tags: ['Analytics'],
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        data: {
+                            type: 'object',
+                            properties: {
+                                todayRevenue: { type: 'number' },
+                                yesterdayRevenue: { type: 'number' },
+                                platformSplit: {
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            platform: { type: 'string' },
+                                            units: { type: 'number' }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        error: { type: 'string' }
+                    }
+                }
+            }
+        }
+    }, analyticsController.getSalesVelocity.bind(analyticsController));
+
+    // GET /v1/analytics/supply-chain
+    fastify.get('/supply-chain', {
+        schema: {
+            description: 'Get procurement and supply chain stats (Module D)',
+            tags: ['Analytics'],
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        data: {
+                            type: 'object',
+                            properties: {
+                                open_pos: { type: 'number' },
+                                pending_prs: { type: 'number' }
+                            }
+                        }
+                    }
+                },
+                500: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        error: { type: 'string' }
+                    }
+                }
+            }
+        }
+    }, analyticsController.getSupplyChainStats.bind(analyticsController));
+
 
 }
