@@ -371,7 +371,7 @@ model inventoryusers {
   lastname          String? @db.VarChar(255)
   location          String? @db.VarChar(500)
   fcmid             String? @db.VarChar(400)
-  sessiontoken      String? @db.VarChar(255)
+  // sessiontoken removed - session management now handled by auth_sessions table
   resettoken        String? @db.VarChar(255)
   resettokenexpires BigInt?
   
