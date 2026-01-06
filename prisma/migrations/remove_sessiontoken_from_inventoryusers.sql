@@ -12,3 +12,7 @@ ALTER TABLE inventoryusers DROP COLUMN IF EXISTS sessiontoken;
 -- 2. Session management is fully handled by auth_sessions table
 -- 3. resettoken and resettokenexpires are kept for password reset functionality
 
+
+ALTER TABLE orders
+ADD COLUMN shipment_tracking_status VARCHAR(500);
+

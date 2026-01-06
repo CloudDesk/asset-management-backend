@@ -21,8 +21,18 @@ import { logger } from '../config/logger.js';
 import { dynamicUpdate } from '../utils/dynamicDbOperations.js';
 import axios from 'axios';
 import FormData from 'form-data';
+import crypto from 'crypto';
+import { OrdersService } from '../services/orders.service.js';
+import { OrderlineService } from '../services/orderline.service.js';
 
 export class EkartController {
+  // Static service instances (stateless, reusable)
+  private readonly ordersService = new OrdersService();
+  private readonly orderlineService = new OrderlineService();
+  
+  // Webhook secret (constant, no need to recreate on each request)
+  private static readonly WEBHOOK_SECRET = 'Nivaana-Ekart-Track-Status';
+
   /**
    * Check Ekart Connection Status
    * GET /v1/ekart/connection-status
@@ -167,9 +177,6 @@ export class EkartController {
       );
 
       try {
-        const { OrdersService } = await import('../services/orders.service.js');
-        const ordersService = new OrdersService();
-        
         // Find order by order_number (orderid field)
         logger.info(
           { orderNumber: requestBody.order_number },
@@ -177,7 +184,7 @@ export class EkartController {
         );
 
         // Use findByOrderIdString for searching by orderid field (order_number from payload)
-        const order = await ordersService.findByOrderIdString(requestBody.order_number);
+        const order = await this.ordersService.findByOrderIdString(requestBody.order_number);
         
         if (order) {
           logger.info(
@@ -216,15 +223,13 @@ export class EkartController {
           );
 
           // Update all orderlines with tracking_id (NO status change, NO status_history update)
-          const { OrderlineService } = await import('../services/orderline.service.js');
-          const orderlineService = new OrderlineService();
           
           logger.info(
             { orderId: order.id },
             '📍 [CONTROLLER] Step 6.3: Fetching orderlines for update'
           );
 
-          const { data: orderlines } = await orderlineService.findMany(
+          const { data: orderlines } = await this.orderlineService.findMany(
             { orderid: order.id.toString() },
             1,
             1000
@@ -245,7 +250,7 @@ export class EkartController {
             );
 
             for (const orderline of orderlines) {
-              await orderlineService.update(orderline.id.toString(), {
+              await this.orderlineService.update(orderline.id.toString(), {
                 tracking_id: result.tracking_id
                 // Note: Status remains "ready_for_dispatch" until mark-shipped is called
                 // Note: status_history NOT updated - status doesn't change
@@ -386,8 +391,6 @@ logger.info(finalPayload,"finalPayload createReverseShipment")
       // Step 2: Upload PDF to GCP Storage Backend (server 4500) - one PDF per tracking ID
       // NO STATUS CHANGE, NO status_history update
       try {
-        const { OrdersService } = await import('../services/orders.service.js');
-        const ordersService = new OrdersService();
 
         // GCP Storage Backend URL (server 4500)
         const storageBackendUrl = process.env.STORAGE_BACKEND_URL || 'http://localhost:4500';
@@ -395,7 +398,7 @@ logger.info(finalPayload,"finalPayload createReverseShipment")
         // Upload one PDF per tracking ID (same PDF buffer, different paths)
         const updatePromises = trackingIds.map(async (trackingId) => {
           try {
-            const order = await ordersService.findByTrackingId(trackingId);
+            const order = await this.ordersService.findByTrackingId(trackingId);
             if (!order) {
               logger.warn(
                 { trackingId },
@@ -643,6 +646,146 @@ logger.info(finalPayload,"finalPayload createReverseShipment")
       );
 
       return reply.code(200).send(response);
+    }
+  );
+
+  /**
+   * Handle Ekart Tracking Status Webhook
+   * POST /v1/ekart/webhook/track-status
+   * Unauthenticated endpoint for Ekart to send tracking updates
+   */
+  handleTrackStatusWebhook = asyncHandler(
+    async (
+      request: FastifyRequest,
+      reply: FastifyReply
+    ) => {
+      try {
+        const webhookPayload = request.body as any;
+        const hmacHeader = request.headers['x-hmac'] as string || request.headers['hmac'] as string;
+
+        // Early validation (fail fast before any processing)
+        if (!webhookPayload || !webhookPayload.id || !webhookPayload.status) {
+          logger.warn(
+            { hasPayload: !!webhookPayload, hasId: !!webhookPayload?.id, hasStatus: !!webhookPayload?.status },
+            'Ekart webhook missing required fields (id or status)'
+          );
+
+          return reply.code(400).send(
+            createErrorResponse(
+              'Invalid webhook payload',
+              'Missing required fields: id and status',
+              400
+            )
+          );
+        }
+
+        // Verify HMAC signature (before logging to avoid processing invalid requests)
+        const payloadString = JSON.stringify(webhookPayload);
+        const expectedHmac = crypto
+          .createHmac('sha256', EkartController.WEBHOOK_SECRET)
+          .update(payloadString)
+          .digest('hex');
+
+        // Compare HMAC (case-insensitive, cache lowercased values)
+        const providedHmacLower = hmacHeader?.toLowerCase();
+        const expectedHmacLower = expectedHmac.toLowerCase();
+        
+        if (!hmacHeader || providedHmacLower !== expectedHmacLower) {
+          logger.warn(
+            {
+              providedHmac: hmacHeader ? hmacHeader.substring(0, 20) + '...' : 'missing',
+              expectedHmac: expectedHmac.substring(0, 20) + '...',
+            },
+            'Invalid Ekart webhook HMAC signature'
+          );
+
+          return reply.code(401).send(
+            createErrorResponse(
+              'Invalid signature',
+              'HMAC verification failed',
+              401
+            )
+          );
+        }
+
+        // Find order by tracking_id (the "id" field in webhook)
+        const trackingId = webhookPayload.id;
+        const order = await this.ordersService.findByTrackingId(trackingId);
+
+        if (!order) {
+          logger.warn(
+            { trackingId },
+            'Order not found for tracking ID from Ekart webhook'
+          );
+
+          return reply.code(404).send(
+            createErrorResponse(
+              'Order not found',
+              `No order found with tracking_id: ${trackingId}`,
+              404
+            )
+          );
+        }
+
+        // Cache timestamp to avoid multiple Date.now() calls
+        const currentTimestamp = Date.now();
+        const newStatus = webhookPayload.status;
+        
+        // Only update if status actually changed (avoid unnecessary DB write)
+        if (order.shipment_tracking_status !== newStatus) {
+          await dynamicUpdate('orders', { id: order.id }, {
+            shipment_tracking_status: newStatus,
+            modifieddate: BigInt(currentTimestamp)
+          });
+
+          logger.info(
+            {
+              orderId: order.id,
+              trackingId,
+              oldStatus: order.shipment_tracking_status,
+              newStatus,
+            },
+            'Order shipment_tracking_status updated from Ekart webhook'
+          );
+        } else {
+          logger.debug(
+            {
+              orderId: order.id,
+              trackingId,
+              status: newStatus,
+            },
+            'Ekart webhook received but status unchanged, skipping update'
+          );
+        }
+
+        return reply.code(200).send(
+          createSuccessResponse(
+            'Tracking status updated successfully',
+            {
+              orderId: order.id,
+              trackingId: webhookPayload.id,
+              status: webhookPayload.status
+            }
+          )
+        );
+      } catch (error: any) {
+        logger.error(
+          {
+            error: error.message,
+            stack: error.stack,
+            webhookPayload: request.body,
+          },
+          'Error processing Ekart track status webhook'
+        );
+
+        return reply.code(500).send(
+          createErrorResponse(
+            'Failed to process webhook',
+            error.message || 'Internal server error',
+            500
+          )
+        );
+      }
     }
   );
 }

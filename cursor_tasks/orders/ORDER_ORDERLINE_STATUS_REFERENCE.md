@@ -40,7 +40,7 @@ This document is the **single source of truth** for all order and orderline stat
         │                                   (lockqty → orderedqty)
         │                                       │
   ← STOCK CONVERTED                      order_confirmed
-    (lockqty → orderedqty)                     │
+    (lockqty → orderedqty)                      │
         │                                       │
   payment_completed                             │
         │                                       │
