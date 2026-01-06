@@ -90,7 +90,16 @@ export declare class OrdersService {
      * Get orders by userid with orderlines and address data
      * Returns orders with nested orderlines and address information
      */
-    getOrdersByUserIdWithDetails(userId: number, page?: number, limit?: number): Promise<{
+    getOrdersByUserIdWithDetails(userId: number, page?: number, limit?: number, filters?: {
+        orderstatus?: string;
+        date_range?: string;
+        start_date?: string;
+        end_date?: string;
+        mode?: string;
+        amount_range?: string;
+        min_amount?: string;
+        max_amount?: string;
+    }): Promise<{
         orders: Array<{
             id: number;
             orderamount: number | null;

@@ -66,6 +66,13 @@ export const INVENTORY_PUBLIC_ROUTES = [
     // 4. Health Check APIs
     'GET /v1/health',
     'GET /health',
+
+    // 5. Analytics APIs (Public for testing)
+    'GET /v1/analytics/inventory-health',
+    'GET /v1/analytics/fulfillment-summary',
+    'GET /v1/analytics/sales-velocity',
+    'GET /v1/analytics/supply-chain',
+    'GET /v1/analytics/orders',
 ];
 
 // ============================================================================
