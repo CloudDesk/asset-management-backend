@@ -20,6 +20,77 @@ import { logger } from '../config/logger.js';
 import { gstService } from './gst.service.js';
 
 export class OrdersService {
+  /**
+   * Maps EKART webhook status to our system status
+   * Handles various formats: "Shipped", "SHIPPED", "In Transit", "In_Transit", "Pick Up", "Picked Up", etc.
+   * 
+   * EKART Status Mapping:
+   * - "Shipped" or "Pick Up" or "Picked Up" → shipped (Picked Up)
+   * - "In Transit" → in_transit
+   * - "Out For Delivery" → out_for_delivery
+   * - "Delivered" → delivered
+   * - "COD Collected" → cod_payment_received
+   * 
+   * @param ekartStatus - Status from EKART webhook (e.g., "Shipped", "In Transit", "Pick Up")
+   * @returns Mapped system status (e.g., "shipped", "in_transit") or null if unknown
+   */
+  private mapEkartWebhookStatusToSystemStatus(ekartStatus: string): string | null {
+    if (!ekartStatus) return null;
+    
+    // Normalize: lowercase, trim, replace spaces/underscores/hyphens with single space
+    const normalized = ekartStatus
+      .toLowerCase()
+      .trim()
+      .replace(/[_\-\s]+/g, ' ')
+      .trim();
+    
+    // Status mapping (case-insensitive, handles all variations)
+    const statusMap: Record<string, string> = {
+      // Shipped/Picked Up variations (all map to shipped)
+      'shipped': 'shipped',
+      'pick up': 'shipped',
+      'picked up': 'shipped',
+      'pickedup': 'shipped',
+      'pickup': 'shipped',
+      'pick-up': 'shipped',
+      'picked-up': 'shipped',
+      
+      // In Transit variations
+      'in transit': 'in_transit',
+      'intransit': 'in_transit',
+      'in-transit': 'in_transit',
+      'in_transit': 'in_transit',
+      
+      // Out For Delivery variations
+      'out for delivery': 'out_for_delivery',
+      'outfordelivery': 'out_for_delivery',
+      'out-for-delivery': 'out_for_delivery',
+      'out_for_delivery': 'out_for_delivery',
+      
+      // Delivered
+      'delivered': 'delivered',
+      
+      // COD Collected variations
+      'cod collected': 'cod_payment_received',
+      'codcollected': 'cod_payment_received',
+      'cod-collected': 'cod_payment_received',
+      'cod_collected': 'cod_payment_received',
+      
+      // RTO variations
+      'rto initiated': 'rto_initiated',
+      'rtoinitiated': 'rto_initiated',
+      'rto-initiated': 'rto_initiated',
+      'rto_initiated': 'rto_initiated',
+      
+      'rto delivered': 'rto_delivered',
+      'rtodelivered': 'rto_delivered',
+      'rto-delivered': 'rto_delivered',
+      'rto_delivered': 'rto_delivered',
+    };
+    
+    return statusMap[normalized] || null;
+  }
+
   // Helper function to parse status_history
   private parseStatusHistory(statusHistory: any): any[] {
     if (!statusHistory) return [];
@@ -1224,61 +1295,14 @@ export class OrdersService {
   }
 
   /**
-   * Mark order as shipped (after label printed)
+   * Generate invoice for an order
+   * Fetches seller data from EKART and calls storage backend to generate invoice PDF
+   * @param orderId - Order ID
+   * @returns Invoice URL if successful, null otherwise
    */
-  async markShipped(orderId: number, inventoryUserId: number): Promise<any> {
-    try {
-      logger.info({ orderId, inventoryUserId }, 'Marking order as shipped');
-
-      const order = await this.findById(orderId);
-      if (!order.tracking_id) {
-        throw new Error('Shipment not created yet. Please create EKART shipment first.');
-      }
-
-      const { OrderlineService } = await import('./orderline.service.js');
-      const orderlineService = new OrderlineService();
-      const currentTimestamp = Date.now();
-
-      // Get all orderlines for this order
-      const { data: orderlines } = await orderlineService.findMany(
-        { orderid: orderId.toString() },
-        1,
-        1000
-      );
-
-      if (!orderlines || orderlines.length === 0) {
-        throw new Error('No orderlines found for this order');
-      }
-
-      // Update all orderlines to shipped
-      for (const orderline of orderlines) {
-        await orderlineService.updateOrderlineStatus(
-          orderline.id.toString(),
-          'shipped',
-          {
-            shipdate: currentTimestamp,
-            source: 'inventoryuser',
-            inventory_user_id: inventoryUserId
-          }
-        );
-      }
-
-      // Update order
-      await dynamicUpdate('orders', { id: orderId }, {
-        shipdate: currentTimestamp,
-        label_printed_at: currentTimestamp,
-        modifieddate: Date.now()
-      });
-
-      // Recalculate order status (should become shipped)
-      await this.recalculateOrderStatus(orderId);
-
-      const updatedOrder = await this.findById(orderId);
-      logger.info({ orderId, orderStatus: updatedOrder.orderstatus }, 'Order marked as shipped');
-
-      // Generate invoice by calling storage backend
+  async generateInvoice(orderId: number): Promise<string | null> {
       try {
-        logger.info({ orderId }, 'Generating invoice for shipped order');
+      logger.info({ orderId }, 'Generating invoice for order');
 
         // Get complete order details including orderlines and address
         const orderDetails = await this.getOrderDetails(orderId.toString());
@@ -1348,23 +1372,838 @@ export class OrdersService {
             orderId,
             invoiceUrl: invoiceResponse.data.invoiceUrl
           }, 'Order updated with invoice URL');
+        
+        return invoiceResponse.data.invoiceUrl;
         }
 
-
+      return null;
       } catch (invoiceError: any) {
-        // Log the error but don't fail the markShipped operation
+      // Log the error but don't fail the operation
         // Invoice generation is a secondary operation
         logger.error({
           error: invoiceError.message,
           response: invoiceError.response?.data,
           status: invoiceError.response?.status,
           orderId
-        }, 'Failed to generate invoice - continuing with order shipment');
+      }, 'Failed to generate invoice - continuing without invoice');
+      
+      return null;
+    }
+  }
+
+  /**
+   * Mark order as shipped (after label printed)
+   * NOTE: This endpoint is kept for backward compatibility and manual override.
+   * For EKART orders, the 'shipped' status is now set automatically via webhook.
+   */
+  async markShipped(orderId: number, inventoryUserId: number): Promise<any> {
+    try {
+      logger.info({ orderId, inventoryUserId }, 'Marking order as shipped');
+
+      const order = await this.findById(orderId);
+      
+      // Block mark-shipped for cancelled orders (all cancelled-related statuses)
+      const cancelledStatuses = [
+        'cancelled',
+        'cancelled_refund_processing',
+        'cancelled_refunded',
+        'cancelled_completed'
+      ];
+      
+      if (cancelledStatuses.includes(order.orderstatus) || order.orderstatus === 'returned') {
+        throw new Error(`Cannot mark order as shipped. Order is in ${order.orderstatus} status`);
       }
+      
+      if (!order.tracking_id) {
+        throw new Error('Shipment not created yet. Please create EKART shipment first.');
+      }
+
+      const { OrderlineService } = await import('./orderline.service.js');
+      const orderlineService = new OrderlineService();
+      const currentTimestamp = Date.now();
+
+      // Get all orderlines for this order
+      const { data: orderlines } = await orderlineService.findMany(
+        { orderid: orderId.toString() },
+        1,
+        1000
+      );
+
+      if (!orderlines || orderlines.length === 0) {
+        throw new Error('No orderlines found for this order');
+      }
+
+      // Update all orderlines to shipped
+      for (const orderline of orderlines) {
+        await orderlineService.updateOrderlineStatus(
+          orderline.id.toString(),
+          'shipped',
+          {
+            shipdate: currentTimestamp,
+            source: 'inventoryuser',
+            inventory_user_id: inventoryUserId
+          }
+        );
+      }
+
+      // Update order
+      await dynamicUpdate('orders', { id: orderId }, {
+        shipdate: currentTimestamp,
+        label_printed_at: currentTimestamp,
+        modifieddate: Date.now()
+      });
+
+      // Recalculate order status (should become shipped)
+      await this.recalculateOrderStatus(orderId);
+
+      const updatedOrder = await this.findById(orderId);
+      logger.info({ orderId, orderStatus: updatedOrder.orderstatus }, 'Order marked as shipped');
 
       return updatedOrder;
     } catch (error) {
       logger.error({ error, orderId, inventoryUserId }, 'Error marking order as shipped');
+      throw error;
+    }
+  }
+
+  /**
+   * Manually ship order with vendor details
+   * Automatically sets order status to 'shipped'
+   * PATCH /v1/orders/:id/manual-ship
+   * 
+   * Note: Allows updating from EKART to another vendor when EKART refuses to collect
+   */
+  async updateShipmentDetails(
+    orderIdOrNumber: string | number,
+    trackingId: string,
+    vendor: string,
+    inventoryUserId: number,
+    publicTrackingLink?: string,
+    shipped?: boolean
+  ): Promise<any> {
+    try {
+      logger.info(
+        { orderIdOrNumber, trackingId, vendor, inventoryUserId },
+        'Updating shipment details for manual vendor'
+      );
+
+      // Find order by ID or order number
+      let order;
+      if (typeof orderIdOrNumber === 'string' && isNaN(Number(orderIdOrNumber))) {
+        order = await this.findByOrderNumber(orderIdOrNumber);
+      } else {
+        order = await this.findById(Number(orderIdOrNumber));
+      }
+
+      if (!order) {
+        throw new Error('Order not found');
+      }
+
+      // Block shipment updates for cancelled orders (all cancelled-related statuses)
+      const cancelledStatuses = [
+        'cancelled',
+        'cancelled_refund_processing',
+        'cancelled_refunded',
+        'cancelled_completed'
+      ];
+      
+      if (cancelledStatuses.includes(order.orderstatus) || order.orderstatus === 'returned') {
+        throw new Error(`Cannot update shipment details for ${order.orderstatus} order`);
+      }
+
+      // Validate order status - allow ready_for_dispatch OR shipped (for EKART to manual vendor switch)
+      if (order.orderstatus !== 'ready_for_dispatch' && order.orderstatus !== 'shipped') {
+        throw new Error(
+          `Order must be in 'ready_for_dispatch' or 'shipped' status. Current status: ${order.orderstatus}`
+        );
+      }
+
+      // Check if switching from EKART to manual vendor
+      const isSwitchingFromEkart = order.vendor === 'EKART' && vendor !== 'EKART';
+      const isAlreadyShipped = order.orderstatus === 'shipped';
+
+      if (isSwitchingFromEkart) {
+        if (isAlreadyShipped) {
+          // Switching from EKART to manual vendor after shipped
+          logger.info(
+            { orderId: order.id, currentVendor: order.vendor, newVendor: vendor },
+            'Switching vendor from EKART to manual vendor for shipped order'
+          );
+        } else {
+          // Switching from EKART to manual vendor before pickup (EKART didn't collect)
+          logger.info(
+            { orderId: order.id, currentVendor: order.vendor, newVendor: vendor },
+            'Switching vendor from EKART to manual vendor - EKART did not collect'
+          );
+        }
+      } else if (isAlreadyShipped && !isSwitchingFromEkart) {
+        // Cannot switch vendor if already shipped with non-EKART vendor
+        throw new Error(
+          `Cannot switch vendor for shipped order. Current vendor: ${order.vendor}. Only EKART orders can be switched to another vendor after shipped status.`
+        );
+      }
+
+      // Note: We allow updating from EKART to another vendor
+      // This is needed when EKART refuses to collect after shipment creation
+      // (e.g., due to low delivery volume in that area)
+      // The new vendor in the request can be any vendor (including switching from EKART to manual vendor)
+
+      // Generate public tracking link if not provided
+      const finalTrackingLink =
+        publicTrackingLink || this.generateTrackingLink(vendor, trackingId);
+
+      const currentTimestamp = Date.now();
+
+      // Update order with shipment details
+      const updateData: Record<string, any> = {
+        tracking_id: trackingId,
+        vendor: vendor,
+        public_tracking_link: finalTrackingLink,
+        modifieddate: currentTimestamp
+      };
+
+      // If switching from EKART to manual vendor, reset EKART-specific fields
+      if (isSwitchingFromEkart) {
+        // Reset EKART-specific fields
+        updateData.label_url = null; // Reset EKART label URL
+        updateData.barcodes = null; // Reset EKART barcodes
+        updateData.shipment_tracking_status = null; // Reset EKART tracking status
+        logger.info(
+          { orderId: order.id },
+          'Resetting EKART-specific fields (label_url, barcodes, shipment_tracking_status)'
+        );
+      }
+
+      // Only update shipment_created_at, shipdate, label_printed_at if:
+      // 1. Order is not already shipped
+      // 2. Payload includes shipped: true (only set shipdate if actually shipping)
+      if (!isAlreadyShipped && shipped === true) {
+        updateData.shipment_created_at = currentTimestamp;
+        updateData.shipdate = currentTimestamp;
+        updateData.label_printed_at = currentTimestamp; // Same as shipdate for manual vendors
+      } else if (!isAlreadyShipped) {
+        // If not shipping yet, only set shipment_created_at
+        updateData.shipment_created_at = currentTimestamp;
+      } else if (isSwitchingFromEkart) {
+        // If switching from EKART after shipped, reset label_printed_at to new timestamp
+        updateData.label_printed_at = currentTimestamp;
+      }
+
+      await dynamicUpdate('orders', { id: order.id }, updateData);
+
+      logger.info(
+        { orderId: order.id, trackingId, vendor, isAlreadyShipped },
+        'Order shipment details updated'
+      );
+
+      // Update all orderlines with tracking_id
+      const { OrderlineService } = await import('./orderline.service.js');
+      const orderlineService = new OrderlineService();
+      const { data: orderlines } = await orderlineService.findMany(
+        { orderid: order.id.toString() },
+        1,
+        1000
+      );
+
+      if (orderlines && orderlines.length > 0) {
+        logger.info(
+          { orderId: order.id, orderlineCount: orderlines.length, isAlreadyShipped },
+          'Updating orderlines with tracking ID'
+        );
+
+        // Update all orderlines with tracking_id
+        for (const orderline of orderlines) {
+          // Only update status and shipdate if:
+          // 1. Order is not already shipped
+          // 2. Payload includes shipped: true
+          if (!isAlreadyShipped && shipped === true) {
+            // Update orderline status to shipped
+            await orderlineService.updateOrderlineStatus(
+              orderline.id.toString(),
+              'shipped',
+              {
+                tracking_id: trackingId,
+                shipdate: currentTimestamp,
+                source: 'inventoryuser',
+                inventory_user_id: inventoryUserId
+              }
+            );
+          } else {
+            // For already shipped orderlines OR if shipped is false/undefined, just update tracking_id
+            // If switching from EKART, we're updating to new manual vendor tracking ID
+            await orderlineService.update(orderline.id.toString(), {
+              tracking_id: trackingId,
+              modifieddate: currentTimestamp
+            });
+          }
+        }
+
+        logger.info(
+          { orderId: order.id, orderlineCount: orderlines.length, isAlreadyShipped },
+          'All orderlines updated'
+        );
+      }
+
+      // Update order status to shipped only if:
+      // 1. Order is not already shipped
+      // 2. Payload includes shipped: true
+      if (!isAlreadyShipped && shipped === true) {
+        // Update order status to shipped (triggers status_history update)
+        await this.updateOrderStatus(order.id.toString(), 'shipped', {
+          source: 'inventoryuser',
+          inventory_user_id: inventoryUserId
+        });
+        logger.info(
+          { orderId: order.id },
+          'Order status updated to shipped (shipped: true in payload)'
+        );
+      } else if (!isAlreadyShipped && shipped === false) {
+        // Explicitly keep status as ready_for_dispatch
+        logger.info(
+          { orderId: order.id },
+          'Order status remains ready_for_dispatch (shipped: false in payload)'
+        );
+      } else if (!isAlreadyShipped && shipped === undefined) {
+        // If shipped not provided, keep status as ready_for_dispatch
+        logger.info(
+          { orderId: order.id },
+          'Order status remains ready_for_dispatch (shipped not provided in payload)'
+        );
+      } else {
+        // Order is already shipped, just log the vendor switch
+        logger.info(
+          { orderId: order.id, oldVendor: order.vendor, newVendor: vendor },
+          'Vendor switched for already shipped order (no status change)'
+        );
+      }
+
+      const updatedOrder = await this.findById(order.id);
+      logger.info(
+        { orderId: order.id, orderStatus: updatedOrder.orderstatus, shipped: shipped },
+        shipped === true ? 'Order shipment details updated and marked as shipped' : 'Order shipment details updated (status unchanged)'
+      );
+
+      return updatedOrder;
+    } catch (error) {
+      logger.error(
+        { error, orderIdOrNumber, trackingId, vendor },
+        'Error updating shipment details'
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Generate tracking link for manual vendors
+   * Private helper method
+   */
+  private generateTrackingLink(vendor: string, trackingId: string): string {
+    // Vendor-specific tracking link generation
+    // IMPORTANT: Use the ACTUAL vendor's tracking URL, not aggregator sites
+    // The vendor field should match the actual logistics provider (e.g., "Delhivery", "Shiprocket", not "Shipway" aggregator)
+
+    const vendorLinks: Record<string, string> = {
+      // Logistics Providers (Direct)
+      Delhivery: `https://www.delhivery.com/track/${trackingId}`,
+      Shiprocket: `https://shiprocket.co/tracking/${trackingId}`,
+      Xpressbees: `https://www.xpressbees.com/track/${trackingId}`,
+      BlueDart: `https://www.bluedart.com/track/${trackingId}`,
+      DTDC: `https://www.dtdc.in/tracking/${trackingId}`,
+      FedEx: `https://www.fedex.com/apps/fedextrack/?tracknumbers=${trackingId}`,
+      Shadowfax: `https://shadowfax.in/track/${trackingId}`,
+      'Ecom Express': `https://ecomexpress.in/track/${trackingId}`,
+
+      // Aggregator Platforms (if vendor field is the aggregator itself)
+      Shipway: `https://shipway.in/track/${trackingId}`, // Only if Shipway is the actual vendor
+      Vamaship: `https://vamaship.com/track/${trackingId}`,
+      IthinkLogistics: `https://ithinklogistics.com/track/${trackingId}`
+
+      // Add more vendors as needed
+    };
+
+    // If vendor not found in map, generate generic URL
+    // Note: This is a fallback - prefer explicit vendor mapping above
+    return (
+      vendorLinks[vendor] ||
+      `https://tracking.${vendor.toLowerCase().replace(/\s+/g, '')}.com/${trackingId}`
+    );
+  }
+
+  /**
+   * Update shipment tracking status manually
+   * Works for ALL vendors (EKART + manual vendors)
+   * PATCH /v1/orders/:id/shipment-status
+   */
+  async updateShipmentStatus(
+    orderIdOrNumber: string | number,
+    status: string,
+    inventoryUserId: number,
+    location?: string,
+    description?: string
+  ): Promise<any> {
+    try {
+      logger.info(
+        { orderIdOrNumber, status, inventoryUserId, location },
+        'Updating shipment tracking status manually'
+      );
+
+      // Find order by ID or order number
+      let order;
+      if (typeof orderIdOrNumber === 'string' && isNaN(Number(orderIdOrNumber))) {
+        order = await this.findByOrderNumber(orderIdOrNumber);
+      } else {
+        order = await this.findById(Number(orderIdOrNumber));
+      }
+
+      if (!order) {
+        throw new Error('Order not found');
+      }
+
+      // Step 1: Prerequisites validation
+      if (!order.tracking_id) {
+        throw new Error('Order must have tracking_id to update shipment status');
+      }
+
+      // Block status updates for cancelled orders (all cancelled-related statuses)
+      const cancelledStatuses = [
+        'cancelled',
+        'cancelled_refund_processing',
+        'cancelled_refunded',
+        'cancelled_completed'
+      ];
+      
+      if (cancelledStatuses.includes(order.orderstatus) || order.orderstatus === 'returned') {
+        throw new Error(`Cannot update shipment status for ${order.orderstatus} order`);
+      }
+
+      // Order must be in ready_for_dispatch (with tracking_id) or shipped or later status
+      // Allow ready_for_dispatch if tracking_id and vendor exist (can set shipped status)
+      const validStartingStatuses = [
+        'ready_for_dispatch', // Allowed if tracking_id and vendor exist (can set shipped)
+        'shipped',
+        'in_transit',
+        'out_for_delivery',
+        'delivered',
+        'rto_initiated',
+        'rto_delivered'
+      ];
+      
+      // Special case: ready_for_dispatch is only allowed if tracking_id and vendor exist
+      if (order.orderstatus === 'ready_for_dispatch') {
+        if (!order.tracking_id || !order.vendor) {
+          throw new Error(
+            'Order must have tracking_id and vendor to set shipped status from ready_for_dispatch'
+          );
+        }
+        // Only allow 'shipped' status from ready_for_dispatch
+        if (status !== 'shipped') {
+          throw new Error(
+            `Cannot update to ${status} from ready_for_dispatch. Only 'shipped' status is allowed.`
+          );
+        }
+      } else if (!validStartingStatuses.includes(order.orderstatus)) {
+        throw new Error(
+          `Order must be in ready_for_dispatch (with tracking_id), shipped, or later status to update shipment status. Current status: ${order.orderstatus}`
+        );
+      }
+
+      // Step 2: Status value validation
+      const allowedStatuses = [
+        'shipped', // Allowed from ready_for_dispatch (if tracking_id and vendor exist)
+        'in_transit',
+        'out_for_delivery',
+        'delivered',
+        'rto_initiated',
+        'rto_delivered',
+        'cod_payment_received'
+      ];
+
+      if (!allowedStatuses.includes(status)) {
+        throw new Error(
+          `Invalid shipment status: ${status}. Allowed statuses: ${allowedStatuses.join(', ')}`
+        );
+      }
+
+      // Step 3: Idempotency check
+      // For ready_for_dispatch → shipped, check if already shipped (shouldn't happen, but handle gracefully)
+      if (order.orderstatus === 'ready_for_dispatch' && status === 'shipped') {
+        // This is a valid transition, proceed
+      } else if (order.shipment_tracking_status === status && order.orderstatus === status) {
+        // For other statuses, check if status already matches
+        logger.info(
+          { orderId: order.id, status },
+          'Status already set to requested value, no change needed'
+        );
+        return order;
+      }
+
+      // Step 4: Status transition validation
+      const currentStatus = order.orderstatus;
+      const validTransitions: Record<string, string[]> = {
+        ready_for_dispatch: ['shipped'], // Only if tracking_id and vendor exist (already validated above)
+        shipped: ['in_transit', 'out_for_delivery', 'rto_initiated'],
+        in_transit: ['out_for_delivery', 'delivered', 'rto_initiated'],
+        out_for_delivery: ['delivered', 'rto_initiated'],
+        delivered: ['cod_payment_received'],
+        rto_initiated: ['rto_delivered'],
+        rto_delivered: [] // Terminal status
+      };
+
+      // Check if transition is valid (including flexible transitions)
+      const isValidTransition = validTransitions[currentStatus]?.includes(status);
+      
+      // Allow some flexible transitions (skipping intermediate stages)
+      const flexibleTransitions: Record<string, string[]> = {
+        shipped: ['out_for_delivery'], // Can skip in_transit
+        in_transit: ['delivered'] // Can skip out_for_delivery
+      };
+      const isFlexibleTransition = flexibleTransitions[currentStatus]?.includes(status);
+
+      if (!isValidTransition && !isFlexibleTransition) {
+        throw new Error(
+          `Invalid status transition from ${currentStatus} to ${status}. Allowed transitions: ${validTransitions[currentStatus]?.join(', ') || 'none (terminal status)'}`
+        );
+      }
+
+      // Step 5: Special case validation
+      if (status === 'cod_payment_received') {
+        if (order.mode !== 'cod') {
+          throw new Error('cod_payment_received status is only allowed for COD orders');
+        }
+        if (currentStatus !== 'delivered') {
+          throw new Error('cod_payment_received can only be set after delivered status');
+        }
+      }
+
+      if (status === 'rto_delivered') {
+        if (currentStatus !== 'rto_initiated') {
+          throw new Error('rto_delivered can only be set from rto_initiated status');
+        }
+      }
+
+      // Terminal status check (already handled in transition validation, but double-check)
+      if (currentStatus === 'rto_delivered' && status !== 'rto_delivered') {
+        throw new Error('rto_delivered is a terminal status and cannot be updated');
+      }
+
+      // Step 6: Warning for EKART orders
+      if (order.vendor === 'EKART') {
+        logger.warn(
+          {
+            orderId: order.id,
+            trackingId: order.tracking_id,
+            status,
+            vendor: order.vendor
+          },
+          'Manual shipment status update for EKART order - may be overwritten by webhook'
+        );
+      }
+
+      // Step 7: Determine new order status based on shipment status
+      let newOrderStatus = status;
+      // Some shipment statuses map directly to order status
+      const statusMapping: Record<string, string> = {
+        shipped: 'shipped', // Maps directly to shipped
+        in_transit: 'in_transit',
+        out_for_delivery: 'out_for_delivery',
+        delivered: 'delivered',
+        rto_initiated: 'rto_initiated',
+        rto_delivered: 'rto_delivered',
+        cod_payment_received: 'delivered' // Keep as delivered, cod_payment_received is just a tracking status
+      };
+      newOrderStatus = statusMapping[status] || status;
+
+      const currentTimestamp = Date.now();
+
+      // Step 8: Update shipment_tracking_status and set shipdate if status is shipped
+      const orderUpdateData: Record<string, any> = {
+        shipment_tracking_status: status,
+        modifieddate: currentTimestamp
+      };
+      
+      // If setting to shipped, also set shipdate and label_printed_at
+      if (status === 'shipped' && !order.shipdate) {
+        orderUpdateData.shipdate = currentTimestamp;
+        orderUpdateData.label_printed_at = currentTimestamp;
+      }
+      
+      await dynamicUpdate('orders', { id: order.id }, orderUpdateData);
+
+      logger.info(
+        { orderId: order.id, status, vendor: order.vendor },
+        'Shipment tracking status updated'
+      );
+
+      // Step 9: Update all orderlines with same status
+      const { OrderlineService } = await import('./orderline.service.js');
+      const orderlineService = new OrderlineService();
+      const { data: orderlines } = await orderlineService.findMany(
+        { orderid: order.id.toString() },
+        1,
+        1000
+      );
+
+      if (orderlines && orderlines.length > 0) {
+        logger.info(
+          { orderId: order.id, orderlineCount: orderlines.length, status },
+          'Updating orderlines with shipment status'
+        );
+
+        for (const orderline of orderlines) {
+          const orderlineUpdateData: Record<string, any> = {
+            source: 'inventoryuser',
+            inventory_user_id: inventoryUserId,
+            location,
+            description
+          };
+          
+          // If setting to shipped, also set shipdate
+          if (status === 'shipped' && !orderline.shipdate) {
+            orderlineUpdateData.shipdate = currentTimestamp;
+          }
+          
+          await orderlineService.updateOrderlineStatus(
+            orderline.id.toString(),
+            newOrderStatus,
+            orderlineUpdateData
+          );
+        }
+
+        logger.info(
+          { orderId: order.id, orderlineCount: orderlines.length },
+          'All orderlines updated with shipment status'
+        );
+      }
+
+      // Step 10: Update order status (triggers status_history update)
+      await this.updateOrderStatus(order.id.toString(), newOrderStatus, {
+        source: 'inventoryuser',
+        inventory_user_id: inventoryUserId,
+        location,
+        description
+      });
+
+      const updatedOrder = await this.findById(order.id);
+      logger.info(
+        {
+          orderId: order.id,
+          orderStatus: updatedOrder.orderstatus,
+          shipmentTrackingStatus: updatedOrder.shipment_tracking_status
+        },
+        'Shipment status updated successfully'
+      );
+
+      return updatedOrder;
+    } catch (error) {
+      logger.error(
+        { error, orderIdOrNumber, status },
+        'Error updating shipment status'
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Handle EKART webhook status update
+   * Maps EKART webhook status to system status and updates order/orderlines
+   * @param trackingId - EKART tracking ID (wbn from webhook)
+   * @param ekartStatus - Original status from EKART webhook (e.g., "Shipped", "In Transit")
+   * @param webhookData - Additional webhook data (location, description, ctime, etc.)
+   */
+  async handleEkartWebhookStatusUpdate(
+    trackingId: string,
+    ekartStatus: string,
+    webhookData: {
+      location?: string;
+      description?: string;
+      ctime?: number;
+      pickupTime?: number;
+      attempts?: string;
+      [key: string]: any; // Allow any additional webhook fields
+    },
+    fullWebhookPayload?: Record<string, any> // Full original webhook payload
+  ): Promise<any> {
+    try {
+      logger.info(
+        { trackingId, ekartStatus, webhookData },
+        'Processing EKART webhook status update'
+      );
+
+      // Find order by tracking ID
+      const order = await this.findByTrackingId(trackingId);
+      if (!order) {
+        throw new Error(`Order not found for tracking ID: ${trackingId}`);
+      }
+
+      // Only process EKART orders
+      if (order.vendor !== 'EKART') {
+        logger.info(
+          { orderId: order.id, vendor: order.vendor, trackingId },
+          'Ekart webhook received for non-EKART order - ignoring (manual vendor)'
+        );
+        return order; // Return existing order without changes
+      }
+
+      // Map EKART status to system status
+      const systemStatus = this.mapEkartWebhookStatusToSystemStatus(ekartStatus);
+      
+      if (!systemStatus) {
+        logger.warn(
+          { trackingId, ekartStatus, orderId: order.id },
+          'Unknown EKART webhook status - storing in shipment_tracking_status and status_history only (is_active: false)'
+        );
+        
+        const currentTimestamp = webhookData.ctime || Date.now();
+        const currentOrderStatus = order.orderstatus;
+        
+        // Get existing status history
+        const existingHistory = Array.isArray(order.status_history)
+          ? order.status_history
+          : (typeof order.status_history === 'string' ? JSON.parse(order.status_history) : []);
+        
+        // Set all existing entries to is_active: false
+        const deactivatedHistory = existingHistory.map((entry: any) => ({
+          ...entry,
+          is_active: false
+        }));
+        
+        // Add new entry for unknown webhook status (is_active: false - does not affect status flow)
+        const unknownStatusEntry: any = {
+          previous_status: currentOrderStatus,
+          new_status: currentOrderStatus, // Keep current status (no change)
+          changed_date: currentTimestamp,
+          source: 'ekart',
+          location: webhookData.location,
+          description: webhookData.description || `Unknown EKART status: ${ekartStatus}`,
+          ekart_original_status: ekartStatus, // Store original unknown status
+          is_active: false, // NOT active - just for tracking/history
+          is_webhook_status: true, // Mark as webhook status
+          webhook_payload: fullWebhookPayload || {} // Store full webhook payload for debugging/auditing
+        };
+        
+        const updatedHistory = [...deactivatedHistory, unknownStatusEntry];
+        
+        // Store original status in shipment_tracking_status and status_history
+        // BUT do NOT update orderstatus or orderline statuses
+        await dynamicUpdate('orders', { id: order.id }, {
+          shipment_tracking_status: ekartStatus, // Store original unknown status
+          status_history: JSON.stringify(updatedHistory), // Add to history with is_active: false
+          modifieddate: currentTimestamp
+        });
+        
+        logger.info(
+          { orderId: order.id, ekartStatus, currentOrderStatus },
+          'Unknown EKART webhook status stored in shipment_tracking_status and status_history (is_active: false) - orderstatus unchanged'
+        );
+        
+        return await this.findById(order.id);
+      }
+
+      // Check if status actually changed
+      const currentOrderStatus = order.orderstatus;
+      if (currentOrderStatus === systemStatus && order.shipment_tracking_status === ekartStatus) {
+        logger.debug(
+          { orderId: order.id, trackingId, status: systemStatus },
+          'EKART webhook status unchanged, skipping update'
+        );
+        return order;
+      }
+
+      const currentTimestamp = webhookData.ctime || Date.now();
+
+      // Update shipment_tracking_status (store original EKART status)
+      await dynamicUpdate('orders', { id: order.id }, {
+        shipment_tracking_status: ekartStatus, // Store original EKART status
+        modifieddate: currentTimestamp
+      });
+
+      logger.info(
+        { orderId: order.id, trackingId, ekartStatus, systemStatus },
+        'Order shipment_tracking_status updated from EKART webhook'
+      );
+
+      // Prepare additional data for status update
+      const additionalData: Record<string, any> = {
+        source: 'ekart',
+        location: webhookData.location,
+        description: webhookData.description,
+        ekart_original_status: ekartStatus // Store original in status_history
+      };
+
+      // Set specific date fields based on status
+      if (systemStatus === 'shipped' && !order.shipdate) {
+        // Set shipdate on first shipped status
+        additionalData.shipdate = webhookData.pickupTime || currentTimestamp;
+      }
+      if (systemStatus === 'delivered') {
+        additionalData.delivereddate = currentTimestamp;
+      }
+      if (systemStatus === 'cod_payment_received') {
+        additionalData.cod_payment_received_date = currentTimestamp;
+      }
+
+      // Update all orderlines with same status
+      const { OrderlineService } = await import('./orderline.service.js');
+      const orderlineService = new OrderlineService();
+      const { data: orderlines } = await orderlineService.findMany(
+        { orderid: order.id.toString() },
+        1,
+        1000
+      );
+
+      if (orderlines && orderlines.length > 0) {
+        logger.info(
+          { orderId: order.id, orderlineCount: orderlines.length, systemStatus },
+          'Updating orderlines with EKART webhook status'
+        );
+
+        for (const orderline of orderlines) {
+          await orderlineService.updateOrderlineStatus(
+            orderline.id.toString(),
+            systemStatus,
+            {
+              source: 'ekart',
+              location: webhookData.location,
+              description: webhookData.description,
+              ekart_original_status: ekartStatus,
+              ...(systemStatus === 'shipped' && !orderline.shipdate && {
+                shipdate: webhookData.pickupTime || currentTimestamp
+              }),
+              ...(systemStatus === 'delivered' && {
+                delivereddate: currentTimestamp
+              })
+            }
+          );
+        }
+
+        logger.info(
+          { orderId: order.id, orderlineCount: orderlines.length },
+          'All orderlines updated with EKART webhook status'
+        );
+      }
+
+      // Update order status (triggers status_history update)
+      await this.updateOrderStatus(order.id.toString(), systemStatus, additionalData);
+
+      const updatedOrder = await this.findById(order.id);
+      logger.info(
+        {
+          orderId: order.id,
+          trackingId,
+          ekartStatus,
+          systemStatus,
+          previousStatus: currentOrderStatus,
+          newStatus: updatedOrder.orderstatus
+        },
+        'EKART webhook status update completed successfully'
+      );
+
+      return updatedOrder;
+    } catch (error) {
+      logger.error(
+        { error, trackingId, ekartStatus },
+        'Error processing EKART webhook status update'
+      );
       throw error;
     }
   }
@@ -1403,6 +2242,14 @@ export class OrdersService {
       // Add inventory_user_id if source is inventoryuser
       if (historyEntry.source === 'inventoryuser' && additionalData?.inventory_user_id) {
         historyEntry.inventory_user_id = additionalData.inventory_user_id;
+      }
+
+      // Add location and description if provided
+      if (additionalData?.location) {
+        historyEntry.location = additionalData.location;
+      }
+      if (additionalData?.description) {
+        historyEntry.description = additionalData.description;
       }
 
       const updatedHistory = [...deactivatedHistory, historyEntry];

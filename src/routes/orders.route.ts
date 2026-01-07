@@ -177,10 +177,120 @@ export async function ordersRoutes(fastify: FastifyInstance) {
     }
   }, ordersController.markReadyForDispatch.bind(ordersController));
 
-  // PATCH /v1/orders/:id/mark-shipped - Mark order as shipped (after label printed)
+  // PATCH /v1/orders/:id/manual-ship - Manually ship order with vendor details (auto-sets shipped status)
+  fastify.patch('/:id/manual-ship', {
+    schema: {
+      description: 'Update shipment details for manual vendors (tracking_id, vendor, public_tracking_link). If payload includes shipped: true, sets order status to shipped. If shipped: false or not provided, status remains ready_for_dispatch. Allows updating from EKART to another vendor when EKART refuses to collect (works for both ready_for_dispatch and shipped orders).',
+      tags: ['Orders'],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'Order ID (database ID) or order number (orderid)' }
+        },
+        required: ['id']
+      },
+      body: {
+        type: 'object',
+        required: ['tracking_id', 'vendor', 'inventory_user_id'],
+        properties: {
+          tracking_id: { type: 'string', description: 'Tracking ID (AWB) from manual vendor' },
+          vendor: { type: 'string', description: 'Vendor name (e.g., "Delhivery", "Shiprocket"). Can be used to switch from EKART to another vendor.' },
+          inventory_user_id: { type: 'number', description: 'Inventory user ID who performed the action' },
+          public_tracking_link: { type: 'string', description: 'Optional: Public tracking URL (auto-generated if not provided)' },
+          shipped: { type: 'boolean', description: 'Optional: If true, sets order status to shipped. If false or not provided, status remains ready_for_dispatch.' }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            data: { type: 'object', additionalProperties: true },
+            message: { type: 'string' }
+          }
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            statusCode: { type: 'number' }
+          }
+        },
+        404: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            statusCode: { type: 'number' }
+          }
+        }
+      }
+    }
+  }, ordersController.updateShipmentDetails.bind(ordersController));
+
+  // PATCH /v1/orders/:id/shipment-status - Manually update shipment tracking status (works for ALL vendors)
+  fastify.patch('/:id/shipment-status', {
+    schema: {
+      description: 'Manually update shipment tracking status. Works for ALL vendors (EKART + manual vendors). Allows setting shipped status from ready_for_dispatch (if tracking_id and vendor exist). Warning logged for EKART orders as webhook may overwrite.',
+      tags: ['Orders'],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'Order ID (database ID) or order number (orderid)' }
+        },
+        required: ['id']
+      },
+      body: {
+        type: 'object',
+        required: ['status', 'inventory_user_id'],
+        properties: {
+          status: {
+            type: 'string',
+            enum: ['shipped', 'in_transit', 'out_for_delivery', 'delivered', 'rto_initiated', 'rto_delivered', 'cod_payment_received'],
+            description: 'Shipment tracking status. Allowed values: shipped (from ready_for_dispatch with tracking_id), in_transit, out_for_delivery, delivered, rto_initiated, rto_delivered, cod_payment_received'
+          },
+          inventory_user_id: { type: 'number', description: 'Inventory user ID who performed the action' },
+          location: { type: 'string', description: 'Optional: Current location of shipment' },
+          description: { type: 'string', description: 'Optional: Status description or notes' }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            data: { type: 'object', additionalProperties: true },
+            message: { type: 'string' }
+          }
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            statusCode: { type: 'number' }
+          }
+        },
+        404: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            statusCode: { type: 'number' }
+          }
+        }
+      }
+    }
+  }, ordersController.updateShipmentStatus.bind(ordersController));
+
+  // PATCH /v1/orders/:id/mark-shipped - Mark order as shipped (backward compatibility / manual override)
+  // NOTE: For EKART orders, this endpoint is NOT called in normal flow.
+  // EKART webhook automatically sets 'shipped' status when pickup is confirmed.
+  // This endpoint is kept for backward compatibility and manual override scenarios.
   fastify.patch('/:id/mark-shipped', {
     schema: {
-      description: 'Mark order as shipped (label printed and stuck on box)',
+      description: 'Mark order as shipped (backward compatibility / manual override). NOTE: For EKART orders, shipped status is automatically set by webhook - this endpoint is NOT called in normal flow.',
       tags: ['Orders'],
       params: {
         type: 'object',

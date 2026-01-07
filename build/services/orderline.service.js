@@ -218,6 +218,13 @@ export class OrderlineService {
                 }
                 historyEntry.inventory_user_id = inventoryUserId;
             }
+            // Add location and description if provided
+            if (additionalData?.location) {
+                historyEntry.location = additionalData.location;
+            }
+            if (additionalData?.description) {
+                historyEntry.description = additionalData.description;
+            }
             const updatedHistory = [...deactivatedHistory, historyEntry];
             const updateData = {
                 orderstatus: status,

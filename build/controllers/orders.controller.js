@@ -45,6 +45,60 @@ export class OrdersController {
         return reply.code(200).send(response);
     });
     /**
+     * Manually ship order with vendor details
+     * Automatically sets order status to 'shipped'
+     * PATCH /v1/orders/:id/manual-ship
+     *
+     * Note: Allows updating from EKART to another vendor when EKART refuses to collect
+     */
+    updateShipmentDetails = asyncHandler(async (request, reply) => {
+        const { id } = request.params;
+        const { tracking_id, vendor, inventory_user_id, public_tracking_link, shipped } = request.body;
+        if (!tracking_id) {
+            return reply.code(400).send({
+                success: false,
+                message: 'tracking_id is required',
+                statusCode: 400
+            });
+        }
+        if (!vendor) {
+            return reply.code(400).send({
+                success: false,
+                message: 'vendor is required',
+                statusCode: 400
+            });
+        }
+        if (!inventory_user_id) {
+            return reply.code(400).send({
+                success: false,
+                message: 'inventory_user_id is required',
+                statusCode: 400
+            });
+        }
+        try {
+            const updatedOrder = await this.ordersService.updateShipmentDetails(id, tracking_id, vendor, inventory_user_id, public_tracking_link, shipped);
+            const response = createSuccessResponse(shipped ? 'Shipment details updated and order marked as shipped' : 'Shipment details updated', formatEntitiesForAPI([updatedOrder], 'orders')[0]);
+            return reply.code(200).send(response);
+        }
+        catch (error) {
+            if (error.message.includes('Order not found')) {
+                return reply.code(404).send({
+                    success: false,
+                    message: error.message,
+                    statusCode: 404
+                });
+            }
+            if (error.message.includes('ready_for_dispatch')) {
+                return reply.code(400).send({
+                    success: false,
+                    message: error.message,
+                    statusCode: 400
+                });
+            }
+            throw error;
+        }
+    });
+    /**
      * Mark order as shipped (after label printed)
      * PATCH /v1/orders/:id/mark-shipped
      */
@@ -65,6 +119,55 @@ export class OrdersController {
         }
         catch (error) {
             if (error.message.includes('Shipment not created')) {
+                return reply.code(400).send({
+                    success: false,
+                    message: error.message,
+                    statusCode: 400
+                });
+            }
+            throw error;
+        }
+    });
+    /**
+     * Update shipment tracking status manually
+     * Works for ALL vendors (EKART + manual vendors)
+     * PATCH /v1/orders/:id/shipment-status
+     */
+    updateShipmentStatus = asyncHandler(async (request, reply) => {
+        const { id } = request.params;
+        const { status, inventory_user_id, location, description } = request.body;
+        if (!status) {
+            return reply.code(400).send({
+                success: false,
+                message: 'status is required',
+                statusCode: 400
+            });
+        }
+        if (!inventory_user_id) {
+            return reply.code(400).send({
+                success: false,
+                message: 'inventory_user_id is required',
+                statusCode: 400
+            });
+        }
+        try {
+            const updatedOrder = await this.ordersService.updateShipmentStatus(id, status, inventory_user_id, location, description);
+            const response = createSuccessResponse('Shipment status updated successfully', formatEntitiesForAPI([updatedOrder], 'orders')[0]);
+            return reply.code(200).send(response);
+        }
+        catch (error) {
+            if (error.message.includes('Order not found')) {
+                return reply.code(404).send({
+                    success: false,
+                    message: error.message,
+                    statusCode: 404
+                });
+            }
+            if (error.message.includes('tracking_id') ||
+                error.message.includes('status') ||
+                error.message.includes('transition') ||
+                error.message.includes('cancelled') ||
+                error.message.includes('returned')) {
                 return reply.code(400).send({
                     success: false,
                     message: error.message,

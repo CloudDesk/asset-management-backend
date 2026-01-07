@@ -277,6 +277,37 @@ export class EkartController {
             },
             '✅ [CONTROLLER] Step 6 SUCCESS: Shipment data stored in orders and orderlines'
           );
+
+          // Step 7: Generate invoice (moved from mark-shipped)
+          try {
+            logger.info(
+              { orderId: order.id },
+              '📍 [CONTROLLER] Step 7: Generating invoice for order'
+            );
+
+            const invoiceUrl = await this.ordersService.generateInvoice(order.id);
+
+            if (invoiceUrl) {
+              logger.info(
+                { orderId: order.id, invoiceUrl },
+                '✅ [CONTROLLER] Step 7 SUCCESS: Invoice generated successfully'
+              );
+            } else {
+              logger.warn(
+                { orderId: order.id },
+                '⚠️ [CONTROLLER] Step 7 WARNING: Invoice generation returned no URL (non-blocking)'
+              );
+            }
+          } catch (invoiceError: any) {
+            // Invoice generation is non-blocking - don't fail the shipment creation
+            logger.error(
+              {
+                error: invoiceError.message,
+                orderId: order.id
+              },
+              '❌ [CONTROLLER] Step 7 ERROR: Failed to generate invoice (non-blocking)'
+            );
+          }
         } else {
           logger.warn(
             { orderNumber: requestBody.order_number },
@@ -731,44 +762,35 @@ console.log(JSON.stringify(webhookPayload),"webhookPayload stringify handleTrack
           );
         }
 
-        // Cache timestamp to avoid multiple Date.now() calls
-        const currentTimestamp = Date.now();
-        const newStatus = webhookPayload.status;
-        
-        // Only update if status actually changed (avoid unnecessary DB write)
-        if (order.shipment_tracking_status !== newStatus) {
-          await dynamicUpdate('orders', { id: order.id }, {
-            shipment_tracking_status: newStatus,
-            modifieddate: BigInt(currentTimestamp)
-          });
-
-          logger.info(
-            {
-              orderId: order.id,
+        // Process webhook status update using service method
+        // This handles:
+        // 1. Mapping EKART status to system status
+        // 2. Updating shipment_tracking_status (original EKART status)
+        // 3. Updating orderstatus (mapped system status)
+        // 4. Updating status_history for order and orderlines
+        // 5. Updating all orderlines status
+        const updatedOrder = await this.ordersService.handleEkartWebhookStatusUpdate(
               trackingId,
-              oldStatus: order.shipment_tracking_status,
-              newStatus,
-            },
-            'Order shipment_tracking_status updated from Ekart webhook'
-          );
-        } else {
-          logger.debug(
-            {
-              orderId: order.id,
-              trackingId,
-              status: newStatus,
-            },
-            'Ekart webhook received but status unchanged, skipping update'
-          );
-        }
+          webhookPayload.status,
+          {
+            location: webhookPayload.location,
+            description: webhookPayload.desc,
+            ctime: webhookPayload.ctime,
+            pickupTime: webhookPayload.pickupTime,
+            attempts: webhookPayload.attempts
+          },
+          webhookPayload // Pass full webhook payload for unknown statuses
+        );
 
         return reply.code(200).send(
           createSuccessResponse(
             'Tracking status updated successfully',
             {
-              orderId: order.id,
-              trackingId: webhookPayload.id,
-              status: webhookPayload.status
+              orderId: updatedOrder.id,
+              trackingId: webhookPayload.wbn,
+              ekartStatus: webhookPayload.status,
+              systemStatus: updatedOrder.orderstatus,
+              shipmentTrackingStatus: updatedOrder.shipment_tracking_status
             }
           )
         );
