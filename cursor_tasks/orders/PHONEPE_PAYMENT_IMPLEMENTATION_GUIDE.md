@@ -452,20 +452,32 @@ This document provides a single source of truth for the PhonePe payment integrat
 │  FINAL CALCULATION:                                                     │
 │  ┌────────────────────────────────────────────────────────────────────┐ │
 │  │  discountamount = productDiscountTotal + promotionDiscountTotal    │ │
-│  │  orderamount = transaction.amount (from PhonePe)                   │ │
+│  │  items_total = productAmount - promotionDiscountTotal              │ │
+│  │  orderamount = items_total + shipping_cost                         │ │
 │  │                                                                    │ │
-│  │  EXAMPLE:                                                          │ │
+│  │  ⚠️ HANDLES ALL COMBINATIONS:                                      │ │
+│  │  - Free shipping (shipping_cost = 0)                              │ │
+│  │  - Shipping fee (shipping_cost > 0)                               │ │
+│  │  - Product discount (may or may not exist)                        │ │
+│  │  - Promotion discount (may or may not exist)                       │ │
+│  │                                                                    │ │
+│  │  EXAMPLE (All discounts + shipping):                               │ │
 │  │  ─────────────────────────────────────────────────────────────     │ │
 │  │  base_price:       ₹1000 × 2 = ₹2000                              │ │
 │  │  product_discount: ₹100 × 2  = ₹200                               │ │
 │  │  promotion:                    ₹150 (15% off coupon)              │ │
+│  │  shipping:                     ₹150                                │ │
 │  │  ─────────────────────────────────────────────────────────────     │ │
 │  │  originalTotal:        ₹2000                                       │ │
 │  │  productDiscountTotal: ₹200                                        │ │
+│  │  productAmount:        ₹1800                                       │ │
 │  │  promotionDiscountTotal: ₹150                                      │ │
 │  │  discountamount:       ₹350                                        │ │
-│  │  orderamount:          ₹1650                                       │ │
+│  │  items_total:          ₹1650 (1800 - 150)                         │ │
+│  │  orderamount:          ₹1800 (1650 + 150)                         │ │
 │  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│  📚 See ORDER_AMOUNT_CALCULATION_COMPLETE_GUIDE.md for all 8 scenarios │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
@@ -850,6 +862,9 @@ This document provides a single source of truth for the PhonePe payment integrat
 
 ## 💰 AMOUNT FIELDS SUMMARY
 
+**📚 For complete calculation guide covering ALL combinations (free shipping, shipping fee, product discounts, promotional discounts), see:**
+**[ORDER_AMOUNT_CALCULATION_COMPLETE_GUIDE.md](./ORDER_AMOUNT_CALCULATION_COMPLETE_GUIDE.md)**
+
 ### Order Table (orders)
 
 | Field | Description | Calculation |
@@ -858,10 +873,21 @@ This document provides a single source of truth for the PhonePe payment integrat
 | `productamount` | After product discounts, before promos | original_total - productDiscountTotal |
 | `discountamount` | Total discounts (product + promotion) | productDiscountTotal + promotionDiscountTotal |
 | `promotion_discount_total` | Coupon/promotion discounts only | Σ(applied_promotions.discount_amount) |
-| `orderamount` | Final amount paid by customer | productamount - promotionDiscountTotal + shipping_cost |
-| `shipping_cost` | Shipping charges | From originalPayload |
+| `orderamount` | Final amount paid by customer | **(productamount - promotionDiscountTotal) + shipping_cost** |
+| `shipping_cost` | Shipping charges (0 if free shipping) | From originalPayload (may be 0) |
 | `tax_amount` | Tax amount | From originalPayload |
-| `items_total` ⭐ | Product-only total (GST base) | orderamount - shipping_cost |
+| `items_total` ⭐ | Product-only total (GST base, excludes shipping) | orderamount - shipping_cost |
+
+**⚠️ CRITICAL FORMULA:**
+```
+orderamount = (productamount - promotion_discount_total) + shipping_cost
+
+Where:
+- productamount = original_total - product_discount_total
+- shipping_cost = 0 (free shipping) OR > 0 (shipping fee)
+- promotion_discount_total = 0 (no promotion) OR > 0 (has promotion)
+- product_discount_total = 0 (no product discount) OR > 0 (has product discount)
+```
 | `total_taxable_amount` | Sum of base amounts | Σ(orderline.taxable_amount) |
 | `total_cgst_amount` | Sum of CGST | Σ(orderline.cgst_amount) |
 | `total_sgst_amount` | Sum of SGST | Σ(orderline.sgst_amount) |

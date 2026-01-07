@@ -82,7 +82,8 @@ export const SAFE_FIELD_CONFIGS = {
     coreFields: [
       'id', 'useremail', 'userpassword', 'createddate', 'modifieddate',
       'role', 'usersphonenumber', 'firstname', 'lastname', 'location',
-      'fcmid', 'sessiontoken', 'resettoken', 'resettokenexpires'
+      'fcmid', 'resettoken', 'resettokenexpires'
+      // sessiontoken removed - session management now handled by auth_sessions table
     ] as readonly string[],
     optionalFields: [] as readonly string[],
     dynamicFields: [] as readonly string[]

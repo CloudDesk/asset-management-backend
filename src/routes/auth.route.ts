@@ -428,7 +428,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     // Revoke all user sessions (logout from all devices)
     const revokedCount = await authSessionService.revokeAllUserSessions(userId, 'inventory');
 
-    // Also clear old sessiontoken field for backward compatibility
+    // Update modifieddate (sessiontoken field is deprecated - no longer used)
     await inventoryUsersService.signOut(userId);
 
     logger.info({
@@ -500,12 +500,8 @@ export async function authRoutes(fastify: FastifyInstance) {
   }, asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const { useremail } = request.body as { useremail: string };
 
-
-
     try {
       await inventoryUsersService.initiatePasswordReset(useremail);
-
-
 
       logger.info({
         email: useremail,

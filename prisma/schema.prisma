@@ -371,7 +371,7 @@ model inventoryusers {
   lastname          String? @db.VarChar(255)
   location          String? @db.VarChar(500)
   fcmid             String? @db.VarChar(400)
-  sessiontoken      String? @db.VarChar(255)
+  // sessiontoken removed - session management now handled by auth_sessions table
   resettoken        String? @db.VarChar(255)
   resettokenexpires BigInt?
   
@@ -522,6 +522,7 @@ model orders {
   label_downloaded_at   BigInt?
   label_printed_at      BigInt?
   shipdate              BigInt?
+  shipment_tracking_status String?                @db.VarChar(500)  // Tracking status from Ekart webhook
   status_history        Json?                     // Array of status change history entries
 
   items_total             Decimal?  @db.Decimal(10, 2)  // Σ(orderline.orderamount) = orderamount - shipping_cost

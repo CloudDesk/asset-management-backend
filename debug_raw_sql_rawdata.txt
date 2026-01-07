@@ -7558,3 +7558,13 @@ Final rawData: {
   "iswishlist": false,
   "modifieddate": 1767038133567
 }
+Final rawData: {
+  "orderstatus": "ready_for_dispatch",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1767763423799,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1767766960995,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":8}]",
+  "modifieddate": 1767766960996
+}
+Final rawData: {
+  "orderstatus": "ready_for_dispatch",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1767763421696,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1767766964005,\"source\":\"system\",\"is_active\":true}]",
+  "modifieddate": 1767766964005
+}

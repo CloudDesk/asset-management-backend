@@ -17,7 +17,7 @@ import {
   hashPassword,
   verifyPassword,
   validatePassword,
-  generateSessionToken,
+  // generateSessionToken - removed, not used (session management in auth_sessions table)
   generateResetToken,
   verifyResetToken,
   sanitizeUserData
@@ -407,8 +407,7 @@ export class InventoryUsersService {
         userType: 'inventory',
       });
 
-      // NOTE: Session management is now handled by auth_sessions table
-      // The old sessiontoken field in inventoryusers is deprecated
+      // NOTE: Session management is handled by auth_sessions table
       // Sessions are created in the auth route after successful authentication
 
       logger.info({
@@ -470,14 +469,17 @@ export class InventoryUsersService {
   }
 
   /**
-   * Sign out user by invalidating session token
+   * Sign out user
+   * NOTE: Session revocation is handled by authSessionService.revokeAllUserSessions()
+   * This method only updates modifieddate for audit purposes
    */
   async signOut(userId: number): Promise<void> {
     try {
       logger.debug({ userId }, 'Signing out inventory user');
 
+      // Session revocation is handled by authSessionService.revokeAllUserSessions()
+      // Only update modifieddate for audit purposes
       await dynamicUpdate('inventoryusers', { id: userId }, {
-        sessiontoken: null,
         modifieddate: BigInt(Date.now())
       });
 
@@ -566,7 +568,6 @@ export class InventoryUsersService {
         userpassword: hashedPassword,
         resettoken: null,
         resettokenexpires: null,
-        sessiontoken: null, // Invalidate any existing sessions
         modifieddate: BigInt(Date.now())
       });
 

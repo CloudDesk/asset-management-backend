@@ -13,6 +13,27 @@ The `/v1/analytics/orders` endpoint calculates revenue by **excluding all cancel
 
 ## 💰 Total Revenue Calculation
 
+### ⚠️ Important: How Revenue is Calculated
+
+**`total_revenue` is NOT calculated as "Gross Revenue - Cancelled Revenue"**
+
+Instead, `total_revenue` is calculated by **directly excluding cancelled orders from the database query**. This means:
+
+1. **Database Query Level Exclusion:**
+   - Query filters out cancelled orders using `orderstatus: { notIn: excludedRevenueStatuses }`
+   - Only non-cancelled orders are summed
+   - This is more efficient and accurate
+
+2. **Independent Calculation:**
+   - `total_revenue` = Sum of order amounts (excluding cancelled orders)
+   - `cancelled_revenue` = Sum of cancelled order amounts (calculated separately)
+   - `gross_revenue` = `total_revenue + cancelled_revenue` (for reference)
+
+3. **Why This Approach:**
+   - ✅ More accurate (no risk of calculation errors)
+   - ✅ More efficient (database does the filtering)
+   - ✅ Handles edge cases better (null values, etc.)
+
 ### Excluded Statuses (NOT counted as revenue)
 
 Based on `ORDER_CANCELLATION_FLOW.md`, the following statuses are **excluded** from revenue:
@@ -170,15 +191,24 @@ Orders:
 - Order 4: cancelled_refunded, ₹200
 - Order 5: payment_failed, ₹150
 
-Total Revenue Calculation:
-✅ Order 1: ₹1000 (delivered - INCLUDED)
-✅ Order 2: ₹500 (shipped - INCLUDED)
-❌ Order 3: ₹0 (cancelled - EXCLUDED)
-❌ Order 4: ₹0 (cancelled_refunded - EXCLUDED)
-❌ Order 5: ₹0 (payment_failed - EXCLUDED)
+Total Revenue Calculation (Database Query):
+✅ Order 1: ₹1000 (delivered - INCLUDED in query)
+✅ Order 2: ₹500 (shipped - INCLUDED in query)
+❌ Order 3: ₹0 (cancelled - EXCLUDED from query)
+❌ Order 4: ₹0 (cancelled_refunded - EXCLUDED from query)
+❌ Order 5: ₹0 (payment_failed - EXCLUDED from query)
 
-Total Revenue: ₹1500
-Cancelled Revenue: ₹500 (Order 3 + Order 4)
+Query Result: SUM(₹1000 + ₹500) = ₹1500
+
+Cancelled Revenue Calculation (Separate Query):
+❌ Order 3: ₹300 (cancelled)
+❌ Order 4: ₹200 (cancelled_refunded)
+Sum: ₹500
+
+Final Metrics:
+- total_revenue: ₹1500 (calculated by excluding cancelled from query)
+- cancelled_revenue: ₹500 (calculated separately)
+- gross_revenue: ₹2000 (₹1500 + ₹500)
 ```
 
 ---
@@ -343,10 +373,31 @@ payment_failed → ❌ Revenue EXCLUDED (no payment received)
 
 ### Key Metrics
 
-- **`total_revenue`**: Actual revenue (money kept)
-- **`cancelled_revenue`**: Revenue lost (refunds given)
+- **`total_revenue`**: Net revenue (calculated by excluding cancelled orders from query)
+  - **NOT** calculated as "gross - cancelled"
+  - Directly sums non-cancelled orders
+  - Represents actual revenue (money kept)
+
+- **`gross_revenue`**: Total revenue including cancelled orders
+  - Calculated as: `total_revenue + cancelled_revenue`
+  - For reference only (shows total before cancellations)
+
+- **`cancelled_revenue`**: Revenue lost (sum of cancelled order amounts)
+  - Calculated separately from status breakdown
+  - Shows impact of cancellations
+
 - **`refunded_orders`**: Count of refunded orders
 - **`refund_rate`**: Percentage of orders refunded
+
+### Revenue Calculation Formula
+
+```
+total_revenue = SUM(orderamount) WHERE orderstatus NOT IN [cancelled statuses]
+cancelled_revenue = SUM(orderamount) WHERE orderstatus IN [cancelled statuses]
+gross_revenue = total_revenue + cancelled_revenue
+
+✅ Verification: total_revenue + cancelled_revenue = gross_revenue
+```
 
 ### Business Value
 

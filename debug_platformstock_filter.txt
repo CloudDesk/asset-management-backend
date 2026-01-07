@@ -7191,3 +7191,29 @@ Filtered data: {
 }
 Ignored fields: []
 
+PlatformStock filter debug:
+Input data: {
+  "orderedqty": 1,
+  "soldqty": 3,
+  "modifieddate": 1767766953659
+}
+Available columns: [
+  "id",
+  "productid",
+  "platform",
+  "availableqty",
+  "orderedqty",
+  "soldqty",
+  "totalqty",
+  "lockqty",
+  "createddate",
+  "modifieddate",
+  "platformstatus"
+]
+Filtered data: {
+  "orderedqty": 1,
+  "soldqty": 3,
+  "modifieddate": 1767766953659
+}
+Ignored fields: []
+

@@ -63,6 +63,7 @@ export class AnalyticsService {
                     },
                 }),
                 // Out of stock on this platform (availableqty = 0)
+                // Note: PlatformStock.availableqty has default(0), so it should never be NULL
                 prisma.platformStock.findMany({
                     where: {
                         platform: filters.platform,
@@ -125,8 +126,15 @@ export class AnalyticsService {
             ]);
 
             // Calculate counts based on platform-specific stock
-            const lowStockCount = allPlatformStocks.filter(ps => ps.availableqty > 0 && ps.availableqty < lowStockThreshold).length;
-            const outOfStockCount = allPlatformStocks.filter(ps => ps.availableqty === 0).length;
+            // PlatformStock.availableqty has default(0), so null coalescing is safe but shouldn't be needed
+            const lowStockCount = allPlatformStocks.filter(ps => {
+                const qty = ps.availableqty ?? 0;
+                return qty > 0 && qty < lowStockThreshold;
+            }).length;
+            const outOfStockCount = allPlatformStocks.filter(ps => {
+                const qty = ps.availableqty ?? 0;
+                return qty === 0;
+            }).length;
             const totalProducts = allPlatformStocks.length;
             const totalStockItems = stockItemCount;
 
@@ -173,7 +181,14 @@ export class AnalyticsService {
         }
 
         // Out of stock where clause
-        const outOfStockWhere: any = { availablequantity: 0, iscombo: false };
+        // Include products with availablequantity = 0 OR NULL (products with no stock added yet)
+        const outOfStockWhere: any = {
+            OR: [
+                { availablequantity: 0 },
+                { availablequantity: null }
+            ],
+            iscombo: false
+        };
         if (filters?.category) outOfStockWhere.category = filters.category;
         if (filters?.subcategory) outOfStockWhere.subcategory = filters.subcategory;
         if (filters?.subsubcategory) outOfStockWhere.subsubcategory = filters.subsubcategory;
@@ -716,18 +731,32 @@ export class AnalyticsService {
             ? ((refundedOrders / totalOrders) * 100).toFixed(2)
             : '0.00';
 
+        // Calculate gross revenue (all orders including cancelled)
+        // This is for reference - actual total_revenue excludes cancelled orders
+        const grossRevenue = Number((totalRevenue as any)?._sum?.orderamount) || 0;
+        const netRevenue = grossRevenue; // Same as total_revenue (already excludes cancelled)
+        
+        // Verification: total_revenue + cancelled_revenue should equal gross revenue if we included cancelled
+        // But since total_revenue already excludes cancelled, we calculate gross separately for clarity
+        const grossRevenueIncludingCancelled = grossRevenue + cancelledRevenue;
+
         return {
             // Overview metrics
             overview: {
                 total_orders: totalOrders,
-                total_revenue: Number((totalRevenue as any)?._sum?.orderamount) || 0,
+                // total_revenue is calculated by EXCLUDING cancelled orders from the query
+                // It is NOT calculated as "gross - cancelled_revenue"
+                // Instead, cancelled orders are filtered out at the database query level
+                total_revenue: netRevenue, // Net revenue (excludes cancelled orders)
+                gross_revenue: grossRevenueIncludingCancelled, // Gross revenue (if we included cancelled)
                 average_order_value: Number((averageOrderValue as any)?._avg?.orderamount) || 0,
                 delivered_orders: deliveredOrders,
                 cancelled_orders: cancelledOrders,
                 returned_orders: returnedOrders,
                 refunded_orders: refundedOrders,
                 refund_processing_orders: refundProcessingOrders,
-                cancelled_revenue: cancelledRevenue, // Revenue lost due to cancellations
+                cancelled_revenue: cancelledRevenue, // Revenue lost due to cancellations (sum of cancelled order amounts)
+                // Note: total_revenue + cancelled_revenue = gross_revenue
                 conversion_rate: `${conversionRate}%`,
                 cancellation_rate: `${cancellationRate}%`,
                 return_rate: `${returnRate}%`,

@@ -41,6 +41,7 @@ export const ECOMMERCE_PUBLIC_ROUTES = [
 
     // 7. System & Webhook APIs (Internal but public for cloud tasks/webhooks)
     'POST /v1/phonepe/cleanup-lock',
+    'POST /v1/ekart/webhook/track-status', // Ekart tracking status webhook
 
     // 8. Payment Callback APIs (PhonePe SDK redirects)
     'GET /v1/phonepe/callback/:transactionId',
