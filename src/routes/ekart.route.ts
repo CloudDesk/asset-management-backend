@@ -213,8 +213,8 @@ export async function ekartRoutes(fastify: FastifyInstance) {
     }
   }, ekartController.createForwardShipment);
 
-  /**
-   * Create Reverse Shipment (Customer → Seller)
+  /**- not used now in ecom and inventory 
+   * Create Reverse Shipment (Customer → Seller) 
    * POST /v1/ekart/shipments/reverse
    */
   fastify.post('/shipments/reverse', {
@@ -407,7 +407,7 @@ export async function ekartRoutes(fastify: FastifyInstance) {
     }
   }, ekartController.trackShipment);
 
-  /**
+  /** - not used now in ecom and inventory  for cancel order route used 
    * Cancel Shipment
    * DELETE /v1/ekart/shipments/:trackingId/cancel
    */
