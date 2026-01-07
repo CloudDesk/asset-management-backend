@@ -10,12 +10,13 @@ This document consolidates all manual vendor fulfillment documentation including
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [Current EKART Flow (Reference)](#current-ekart-flow-reference)
-3. [Manual Vendor Support - Complete Design](#manual-vendor-support-complete-design)
-4. [API Endpoints](#api-endpoints)
-5. [Status Rules & Validation](#status-rules--validation)
-6. [Implementation Details](#implementation-details)
-7. [Testing Checklist](#testing-checklist)
+2. [Quick Reference: EKART Doesn't Collect](#quick-reference-ekart-doesnt-collect)
+3. [Current EKART Flow (Reference)](#current-ekart-flow-reference)
+4. [Manual Vendor Support - Complete Design](#manual-vendor-support-complete-design)
+5. [API Endpoints](#api-endpoints)
+6. [Status Rules & Validation](#status-rules--validation)
+7. [Implementation Details](#implementation-details)
+8. [Testing Checklist](#testing-checklist)
 
 ---
 
@@ -27,12 +28,55 @@ This document describes the complete implementation for supporting **manual logi
 - Manual entry of tracking ID (AWB) and vendor name
 - Manual status updates (no webhook automation)
 
+**Key Use Case:** If EKART shipment is created but EKART doesn't collect the product, you can switch to a manual vendor using `PATCH /v1/orders/:id/manual-ship`.
+
+---
+
+## Quick Reference: EKART Doesn't Collect
+
+**Scenario:** You created EKART shipment via `POST /v1/ekart/shipments/forward`, but EKART doesn't collect the product.
+
+**What Happens:**
+- Order remains in `ready_for_dispatch` status (no webhook received)
+- EKART shipment exists but not collected
+- `mark-shipped` is NOT called (webhook would have set shipped, but no webhook came)
+
+**Solution:** Switch to manual vendor
+
+**API Call:**
+```http
+PATCH /v1/orders/:id/manual-ship
+Content-Type: application/json
+
+{
+  "tracking_id": "DEL123456789",  // New manual vendor tracking ID
+  "vendor": "Delhivery",          // New manual vendor name
+  "inventory_user_id": 123
+}
+```
+
+**What Gets Updated:**
+- ✅ `tracking_id` → New manual vendor tracking ID
+- ✅ `vendor` → New manual vendor name
+- ✅ `public_tracking_link` → New manual vendor URL
+- ✅ `orderstatus` → `shipped` (automatic)
+- ✅ All orderlines → `shipped`
+- ✅ `status_history` → Updated
+- ✅ **EKART fields reset:** `label_url`, `barcodes`, `shipment_tracking_status` → `null`
+
+**Result:** Order is now shipped with manual vendor, ready for manual status updates.
+
+**See:** [EKART-to-Manual Vendor Switch Flow](#ekart-to-manual-vendor-switch-flow) for complete details.
+
+---
+
 ### Key Principles
 
 1. **Vendor-Agnostic Design:** Same endpoints work for both EKART and manual vendors where applicable
 2. **No Breaking Changes:** EKART flow remains completely unchanged
 3. **Clear Separation:** Vendor field differentiates EKART vs manual vendors
 4. **Status Ownership:** `shipped` is always set by our system, regardless of vendor type
+5. **EKART-to-Manual Switch:** Supports switching from EKART to manual vendor if EKART doesn't collect
 
 ---
 
@@ -78,7 +122,7 @@ in_transit → out_for_delivery → delivered
 ```
 ready_for_dispatch
     ↓
-[Manual Shipment Details] ← PATCH /v1/orders/:id/shipment-details
+[Manual Ship] ← PATCH /v1/orders/:id/manual-ship
     - Updates: tracking_id, vendor="Shipway", public_tracking_link
     - Updates: orderstatus → "shipped" (AUTOMATIC)
     - Updates: All orderlines → "shipped"
@@ -97,21 +141,22 @@ in_transit → out_for_delivery → delivered
 
 | Aspect | EKART | Manual Vendors |
 |--------|-------|----------------|
-| **Shipment Creation** | Automated via API | Manual entry |
-| **`shipped` Status** | System sets via `mark-shipped` (EKART-only, separate call) | System sets via `shipment-details` (automatic, one-step) |
+| **Shipment Creation** | Automated via API (`POST /v1/ekart/shipments/forward`) | Manual entry (`PATCH /v1/orders/:id/manual-ship`) |
+| **`shipped` Status** | **Webhook sets automatically** (first webhook after pickup) | System sets via `manual-ship` (automatic, one-step) |
 | **Status Updates** | Webhook (automatic) | Manual update only |
 | **Vendor Field** | `"EKART"` | `"Shipway"`, `"Shiprocket"`, etc. |
-| **Workflow** | Two-step (create shipment → mark-shipped) | One-step (shipment-details auto-sets shipped) |
+| **Workflow** | Create shipment → Download label → **Webhook sets shipped** | One-step (manual-ship auto-sets shipped) |
+| **`mark-shipped` Endpoint** | **NOT called in normal flow** (kept for backward compatibility) | Not used |
 
 ---
 
 ## API Endpoints
 
-### 1. Manual Shipment Details Update (With Auto-Shipped)
+### 1. Manual Shipment Details Update
 
-**Endpoint:** `PATCH /v1/orders/:id/shipment-details`
+**Endpoint:** `PATCH /v1/orders/:id/manual-ship`
 
-**Purpose:** Manually update tracking ID and vendor for non-EKART shipments AND automatically set status to `shipped`
+**Purpose:** Manually update tracking ID, vendor, and public tracking URL for non-EKART shipments. Status change to `shipped` is controlled by the `shipped` boolean in the payload.
 
 **Request:**
 ```json
@@ -119,9 +164,15 @@ in_transit → out_for_delivery → delivered
   "tracking_id": "DEL123456789",
   "vendor": "Delhivery",  // Actual logistics provider (not aggregator)
   "public_tracking_link": "https://www.delhivery.com/track/DEL123456789",  // Optional (auto-generated if not provided)
-  "inventory_user_id": 123  // Required (for status update)
+  "inventory_user_id": 123,  // Required
+  "shipped": true  // Optional: If true, sets order status to shipped. If false or not provided, status remains ready_for_dispatch
 }
 ```
+
+**Status Behavior:**
+- ✅ `shipped: true` → Sets order status to `shipped` (and all orderlines)
+- ✅ `shipped: false` or not provided → Status remains `ready_for_dispatch` (no change)
+- ✅ Matches user's flow: "No status for shipment created" (unless explicitly set via `shipped: true`)
 
 **Important Notes on `vendor` and `public_tracking_link`:**
 - ✅ **`vendor` field:** Should be the **actual logistics provider** (e.g., "Delhivery", "Shiprocket", "Xpressbees")
@@ -131,27 +182,53 @@ in_transit → out_for_delivery → delivered
 - ✅ **Manual override:** You can provide `public_tracking_link` manually if vendor-specific URL doesn't match your tracking ID format
 
 **Validation:**
-- ✅ Order must be in `ready_for_dispatch` status
+- ✅ Order must be in `ready_for_dispatch` OR `shipped` status
 - ✅ `tracking_id` must be provided
 - ✅ `vendor` must be provided and NOT `"EKART"` (reject if EKART)
 - ✅ `inventory_user_id` must be provided (for status update)
+- ✅ **EKART-to-Manual Switch:** If order is `shipped` with vendor="EKART", allows switching to manual vendor
 
 **Database Updates:**
+
+**For Fresh Manual Vendor Orders (ready_for_dispatch):**
 - ✅ `tracking_id` ← Provided tracking ID
 - ✅ `vendor` ← Provided vendor name (actual logistics provider, e.g., "Delhivery", "Shiprocket")
 - ✅ `public_tracking_link` ← Provided or auto-generated (vendor-specific tracking URL)
 - ✅ `shipment_created_at` ← Current timestamp
-- ✅ `shipdate` ← Current timestamp
-- ✅ `label_printed_at` ← Current timestamp (same as shipdate for manual vendors)
-- ✅ `orderstatus` → `"shipped"` (automatic)
-- ✅ `status_history` ← Appended entry (status change to shipped)
+- ✅ **Status Behavior:**
+  - If `shipped: true` → `orderstatus` → `"shipped"`, `shipdate` set, all orderlines → `"shipped"`
+  - If `shipped: false` or not provided → `orderstatus` remains `ready_for_dispatch` (no change)
+- ✅ **Matches user's flow:** "No status for shipment created" (unless `shipped: true` is provided)
+
+**For EKART-to-Manual Vendor Switch (EKART didn't collect):**
+- ✅ `tracking_id` ← New manual vendor tracking ID (replaces EKART tracking ID)
+- ✅ `vendor` ← New manual vendor name (replaces "EKART")
+- ✅ `public_tracking_link` ← New manual vendor tracking URL (replaces EKART tracking URL)
+- ✅ `label_url` ← **RESET to null** (EKART label no longer valid)
+- ✅ `barcodes` ← **RESET to null** (EKART barcodes no longer valid)
+- ✅ `shipment_tracking_status` ← **RESET to null** (EKART tracking status cleared)
+- ✅ `shipment_created_at` ← Current timestamp (if order is `ready_for_dispatch`)
+- ✅ `shipdate` ← Current timestamp (if order is `ready_for_dispatch`)
+- ✅ `label_printed_at` ← Current timestamp (if order is `ready_for_dispatch` OR if switching after shipped)
+- ✅ `orderstatus` → `"shipped"` (if order is `ready_for_dispatch`, otherwise remains `shipped`)
+- ✅ `status_history` ← Appended entry (if status changes)
 - ✅ `modifieddate` ← Current timestamp
 
+**Key Point:** When switching from EKART to manual vendor, all EKART-specific fields are reset to ensure clean data for the new vendor.
+
 **Orderline Updates:**
+
+**For Fresh Manual Vendor Orders (ready_for_dispatch):**
 - ✅ Update all orderlines with `tracking_id`
 - ✅ Update all orderlines status → `"shipped"`
 - ✅ Update all orderlines `status_history` ← Appended entry
 - ✅ Update all orderlines `shipdate` ← Current timestamp
+
+**For EKART-to-Manual Vendor Switch:**
+- ✅ Update all orderlines with new `tracking_id` (replaces EKART tracking ID)
+- ✅ Update all orderlines status → `"shipped"` (if order is `ready_for_dispatch`)
+- ✅ Update all orderlines `status_history` ← Appended entry (if status changes)
+- ✅ Update all orderlines `shipdate` ← Current timestamp (if order is `ready_for_dispatch`)
 
 **Response:**
 ```json
@@ -314,7 +391,7 @@ After `ready_for_dispatch`, status updates come from:
 
 | Status | Set By | Method | Applies To |
 |--------|--------|--------|------------|
-| `shipped` | **Our System** | `PATCH /v1/orders/:id/mark-shipped` (EKART) OR `PATCH /v1/orders/:id/shipment-details` (Manual) | **EKART uses mark-shipped, Manual uses shipment-details** |
+| `shipped` | **Our System** | `PATCH /v1/orders/:id/mark-shipped` (EKART) OR `PATCH /v1/orders/:id/manual-ship` (Manual) | **EKART uses mark-shipped, Manual uses manual-ship** |
 | `in_transit` | **Vendor** | EKART webhook OR manual update | Both vendor types |
 | `out_for_delivery` | **Vendor** | EKART webhook OR manual update | Both vendor types |
 | `delivered` | **Vendor** | EKART webhook OR manual update | Both vendor types |
@@ -326,8 +403,8 @@ After `ready_for_dispatch`, status updates come from:
 - ✅ **After `ready_for_dispatch`:** Vendor updates only (webhook or manual)
 - ✅ **Exception:** `shipped` is **ALWAYS** set by **our system**, but via different endpoints:
   - **EKART orders:** System sets `shipped` via `PATCH /v1/orders/:id/mark-shipped` (after EKART shipment created and label printed)
-  - **Manual vendor orders:** System sets `shipped` automatically via `PATCH /v1/orders/:id/shipment-details` (one-step process)
-  - **Different endpoints:** EKART uses `mark-shipped`, Manual vendors use `shipment-details`
+  - **Manual vendor orders:** System sets `shipped` automatically via `PATCH /v1/orders/:id/manual-ship` (one-step process)
+  - **Different endpoints:** EKART uses `mark-shipped`, Manual vendors use `manual-ship`
 - ✅ **After `shipped`:** All subsequent statuses are vendor-controlled
 
 ---
@@ -450,38 +527,49 @@ if (order.vendor !== 'EKART') {
 
 ## Complete Flow Comparison
 
-### EKART Flow (3 Steps + Webhook)
+### EKART Flow (2 Steps + Webhook-Driven Status Updates)
 
 ```
 ready_for_dispatch
     ↓
 1. POST /v1/ekart/shipments/forward
     - tracking_id, vendor="EKART" stored
-    - NO status change (metadata only)
+    - Invoice generated automatically
+    - NO status change (metadata only, remains ready_for_dispatch)
     ↓
 2. POST /v1/ekart/shipments/label (optional)
     - label_url stored
     - NO status change (metadata only)
     ↓
-3. PATCH /v1/orders/:id/mark-shipped (EKART-ONLY)
-    - orderstatus → "shipped"
-    - Invoice generation: Fetches seller from EKART API
+3. POST /v1/ekart/webhook/track-status (automatic - "Shipped" or "Pick Up")
+    - Stores: shipment_tracking_status = "Shipped" (original)
+    - Updates: orderstatus → shipped (mapped)
+    - Updates: All orderlines → shipped
+    - Updates: status_history
+    - Sets: shipdate (from pickupTime)
     ↓
 shipped
     ↓
-4. POST /v1/ekart/webhook/track-status (automatic)
-    - shipment_tracking_status updated
-    - orderstatus may change (in_transit, delivered, etc.)
+4. POST /v1/ekart/webhook/track-status (automatic - subsequent updates)
+    - shipment_tracking_status updated (original EKART status)
+    - orderstatus updated (mapped system status)
+    - All orderlines updated
+    - status_history updated
     ↓
 in_transit → out_for_delivery → delivered
 ```
+
+**Important Notes:**
+- ✅ **`mark-shipped` endpoint is NOT called** in normal EKART flow
+- ✅ **Webhook automatically sets `shipped` status** when pickup is confirmed
+- ✅ **If EKART doesn't collect:** Order remains `ready_for_dispatch`, can switch to manual vendor
 
 ### Manual Vendor Flow (1 Step + Manual Updates)
 
 ```
 ready_for_dispatch
     ↓
-1. PATCH /v1/orders/:id/shipment-details
+1. PATCH /v1/orders/:id/manual-ship
     - tracking_id, vendor="Shipway" stored
     - orderstatus → "shipped" (AUTOMATIC)
     - All orderlines → "shipped"
@@ -496,10 +584,88 @@ shipped
 in_transit → out_for_delivery → delivered
 ```
 
-**Key Difference:**
-- **EKART:** 3-step process (create shipment → download label → mark-shipped) + webhook
-- **Manual Vendors:** 1-step process (shipment-details automatically sets shipped) + manual status updates
-- **`mark-shipped` is EKART-only** - Manual vendors do NOT use this endpoint
+**Key Differences:**
+- **EKART:** 2-step process (create shipment → download label) + webhook-driven status updates
+- **Manual Vendors:** 1-step process (manual-ship automatically sets shipped) + manual status updates
+- **Invoice generation:** Moved to create shipment (EKART) - happens automatically
+- **`shipped` status:** Set by EKART webhook (first webhook after pickup) for EKART orders
+- **`mark-shipped` endpoint:** Kept for backward compatibility and manual override (not required for normal EKART flow)
+
+### EKART-to-Manual Vendor Switch Flow
+
+**Scenario:** EKART shipment created via `POST /v1/ekart/shipments/forward` but EKART doesn't collect the product (refuses to pick up)
+
+**When This Happens:**
+- Order is in `ready_for_dispatch` status
+- EKART shipment created successfully (tracking_id, vendor="EKART", label_url stored)
+- Label downloaded and printed
+- **EKART doesn't collect** - No pickup, no webhook received
+- Order remains in `ready_for_dispatch` status (webhook never came)
+
+**Solution:** Switch to manual vendor using `PATCH /v1/orders/:id/manual-ship`
+
+**Complete Flow:**
+```
+ready_for_dispatch
+    ↓
+[1. Create EKART Shipment] ← POST /v1/ekart/shipments/forward
+    - tracking_id: "EKART123" stored
+    - vendor: "EKART" stored
+    - barcodes: {wbn, order, cod} stored
+    - public_tracking_link: EKART tracking URL stored
+    - Invoice generated automatically
+    - Status: ready_for_dispatch (NO CHANGE - metadata only)
+    ↓
+[2. Download Label] ← POST /v1/ekart/shipments/label (optional)
+    - label_url: GCP Storage URL stored
+    - Status: ready_for_dispatch (NO CHANGE - metadata only)
+    ↓
+[3. EKART Doesn't Collect] ← No pickup, no webhook received
+    - Order still in: ready_for_dispatch
+    - No status change (webhook never came)
+    - EKART shipment exists but not collected
+    ↓
+[4. Switch to Manual Vendor] ← PATCH /v1/orders/:id/manual-ship
+    Request:
+    {
+      "tracking_id": "DEL123456789",  // New manual vendor tracking ID
+      "vendor": "Delhivery",          // New manual vendor name
+      "inventory_user_id": 123
+    }
+    
+    Database Updates:
+    - tracking_id: "EKART123" → "DEL123456789" (replaced)
+    - vendor: "EKART" → "Delhivery" (replaced)
+    - public_tracking_link: Updated to Delhivery URL
+    - label_url: RESET to null (EKART label no longer valid)
+    - barcodes: RESET to null (EKART barcodes no longer valid)
+    - shipment_tracking_status: RESET to null (EKART status cleared)
+    - shipment_created_at: Updated to current timestamp
+    - shipdate: Updated to current timestamp
+    - label_printed_at: Updated to current timestamp
+    - orderstatus: ready_for_dispatch → shipped (AUTOMATIC)
+    - status_history: Updated with status change
+    - All orderlines: tracking_id updated, status → shipped
+    ↓
+shipped (vendor="Delhivery")
+    ↓
+[5. Manual Status Updates] ← PATCH /v1/orders/:id/shipment-status (manual)
+    - shipment_tracking_status updated
+    - orderstatus updated (in_transit, delivered, etc.)
+    ↓
+in_transit → out_for_delivery → delivered
+```
+
+**Key Points:**
+- ✅ **`mark-shipped` is NOT called** - Webhook would have set shipped, but since EKART didn't collect, no webhook came
+- ✅ **Order remains `ready_for_dispatch`** until manual vendor switch
+- ✅ **All EKART fields reset** - Clean data for new vendor
+- ✅ **One-step switch** - `manual-ship` automatically sets shipped status
+- ✅ **Works for both scenarios:**
+  - `ready_for_dispatch` → Switch to manual vendor (EKART didn't collect)
+  - `shipped` → Switch to manual vendor (EKART collected but refused later)
+
+**Important:** When switching from EKART to manual vendor, all EKART-specific fields are reset to ensure clean data for the new vendor.
 
 ---
 
@@ -507,7 +673,7 @@ in_transit → out_for_delivery → delivered
 
 ### Shipment Details Update
 - [ ] Manual shipment details update (tracking_id + vendor)
-- [ ] Reject EKART vendor in shipment-details endpoint
+- [ ] Reject EKART vendor in manual-ship endpoint
 - [ ] Reject if order not in ready_for_dispatch
 - [ ] Verify status automatically changes to "shipped"
 - [ ] Verify orderlines tracking_id updated
@@ -543,18 +709,18 @@ in_transit → out_for_delivery → delivered
 
 ### Key Points
 
-1. **`shipment-details` endpoint (Manual Vendors):**
+1. **`manual-ship` endpoint (Manual Vendors):**
    - ✅ Updates metadata (tracking_id, vendor, public_tracking_link)
    - ✅ **Automatically sets `shipped` status** (one-step process)
    - ✅ Updates all orderlines to `shipped`
    - ✅ Updates `status_history`
    - ✅ **Simplified workflow** for manual vendors (no separate mark-shipped needed)
 
-2. **`mark-shipped` endpoint (EKART-Only):**
-   - ✅ **EKART-only:** Used exclusively for EKART orders (called after EKART shipment created and label printed)
-   - ❌ **NOT used for manual vendors:** Manual vendors use `shipment-details` endpoint instead
-   - ✅ **Invoice generation:** Calls EKART API for seller data (EKART-specific)
-   - ✅ **Clear separation:** EKART and manual vendors use different endpoints
+2. **`mark-shipped` endpoint (Backward Compatibility):**
+   - ⚠️ **NOT called in normal EKART flow** - Webhook automatically sets `shipped` status
+   - ✅ **Kept for backward compatibility** and manual override scenarios only
+   - ❌ **NOT used for manual vendors:** Manual vendors use `manual-ship` endpoint instead
+   - ✅ **Clear separation:** EKART uses webhook, Manual vendors use `manual-ship`
 
 3. **`shipment-status` endpoint:**
    - ✅ Updates status **after** `shipped`
@@ -563,10 +729,17 @@ in_transit → out_for_delivery → delivered
 
 4. **Status Ownership:**
    - ✅ `shipped` is **ALWAYS** set by our system (regardless of vendor type)
-   - ✅ **EKART:** Set via `mark-shipped` endpoint (EKART-only, after shipment created and label printed)
-   - ✅ **Manual vendors:** Set automatically via `shipment-details` endpoint (one-step process)
-   - ✅ **Different endpoints:** EKART uses `mark-shipped`, Manual vendors use `shipment-details`
+   - ✅ **EKART:** Set automatically via webhook (first webhook after pickup confirms shipment)
+   - ✅ **Manual vendors:** Set automatically via `manual-ship` endpoint (one-step process)
+   - ✅ **Different methods:** EKART uses webhook, Manual vendors use `manual-ship`
    - ✅ After `shipped`, vendors control subsequent statuses
+
+5. **EKART-to-Manual Vendor Switch:**
+   - ✅ **Scenario:** EKART shipment created (`POST /v1/ekart/shipments/forward`) but EKART doesn't collect
+   - ✅ **Solution:** Use `PATCH /v1/orders/:id/manual-ship` to switch to manual vendor
+   - ✅ **Works when:** Order is `ready_for_dispatch` (EKART didn't collect, no webhook)
+   - ✅ **Also works when:** Order is `shipped` (EKART collected but refused later)
+   - ✅ **All EKART fields reset:** label_url, barcodes, shipment_tracking_status cleared
 
 ### Required Code Updates
 

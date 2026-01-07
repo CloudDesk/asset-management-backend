@@ -9,10 +9,24 @@ export declare class OrdersController {
      */
     markReadyForDispatch: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     /**
+     * Manually ship order with vendor details
+     * Automatically sets order status to 'shipped'
+     * PATCH /v1/orders/:id/manual-ship
+     *
+     * Note: Allows updating from EKART to another vendor when EKART refuses to collect
+     */
+    updateShipmentDetails: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    /**
      * Mark order as shipped (after label printed)
      * PATCH /v1/orders/:id/mark-shipped
      */
     markShipped: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    /**
+     * Update shipment tracking status manually
+     * Works for ALL vendors (EKART + manual vendors)
+     * PATCH /v1/orders/:id/shipment-status
+     */
+    updateShipmentStatus: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     updateOrderStatus: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     /**
      * Track order by order ID (customer-facing)
