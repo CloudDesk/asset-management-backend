@@ -196950,3 +196950,30 @@ Filtered data result: {
   "platformstatus": "out_of_stock",
   "platform": "nivapp"
 }
+Filtered data result: {
+  "stockstatus": "sold",
+  "orderid": "NIVAANA-0000000207",
+  "orderlinenumber": "ordline-0000000278",
+  "solddate": 1767766953659,
+  "modifieddate": 1767766953659
+}
+Filtered data result: {
+  "orderedqty": 1,
+  "soldqty": 3,
+  "modifieddate": 1767766953659
+}
+Filtered data result: {
+  "orderedquantity": 1,
+  "soldquantity": 3,
+  "modifieddate": 1767766953659
+}
+Filtered data result: {
+  "orderstatus": "ready_for_dispatch",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1767763423799,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1767766960995,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":8}]",
+  "modifieddate": 1767766960996
+}
+Filtered data result: {
+  "orderstatus": "ready_for_dispatch",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1767763421696,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1767766964005,\"source\":\"system\",\"is_active\":true}]",
+  "modifieddate": 1767766964005
+}

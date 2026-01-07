@@ -533,7 +533,7 @@ export async function ekartRoutes(fastify: FastifyInstance) {
       },
       body: {
         type: 'object',
-        required: ['id', 'status'],
+        required: ['wbn', 'status'],
         properties: {
           ctime: { type: 'number', description: 'Timestamp' },
           status: { type: 'string', description: 'Tracking status (e.g., Delivered)' },
@@ -541,8 +541,8 @@ export async function ekartRoutes(fastify: FastifyInstance) {
           desc: { type: 'string', description: 'Status description' },
           attempts: { type: 'string', description: 'Delivery attempts' },
           pickupTime: { type: 'number', description: 'Pickup timestamp' },
-          wbn: { type: 'string', description: 'Waybill number' },
-          id: { type: 'string', description: 'Tracking ID (used to find order)' },
+          wbn: { type: 'string', description: 'Waybill Number (tracking_id from shipment creation - used to find order)' },
+          id: { type: 'string', description: 'Internal reference (not used for tracking)' },
           orderNumber: { type: 'string', description: 'Order number' },
           edd: { type: 'number', description: 'Estimated delivery date' }
         }

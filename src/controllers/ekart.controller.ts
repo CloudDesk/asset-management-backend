@@ -24,6 +24,7 @@ import FormData from 'form-data';
 import crypto from 'crypto';
 import { OrdersService } from '../services/orders.service.js';
 import { OrderlineService } from '../services/orderline.service.js';
+import { json } from 'stream/consumers';
 
 export class EkartController {
   // Static service instances (stateless, reusable)
@@ -662,18 +663,21 @@ logger.info(finalPayload,"finalPayload createReverseShipment")
       try {
         const webhookPayload = request.body as any;
         const hmacHeader = request.headers['x-hmac'] as string || request.headers['hmac'] as string;
-
+console.log(webhookPayload,"webhookPayload handleTrackStatusWebhook")
+console.log(JSON.stringify(webhookPayload),"webhookPayload stringify handleTrackStatusWebhook")
         // Early validation (fail fast before any processing)
-        if (!webhookPayload || !webhookPayload.id || !webhookPayload.status) {
+        // wbn = Waybill Number (tracking_id from shipment creation)
+        // id = Internal reference (not used for tracking)
+        if (!webhookPayload || !webhookPayload.wbn || !webhookPayload.status) {
           logger.warn(
-            { hasPayload: !!webhookPayload, hasId: !!webhookPayload?.id, hasStatus: !!webhookPayload?.status },
-            'Ekart webhook missing required fields (id or status)'
+            { hasPayload: !!webhookPayload, hasWbn: !!webhookPayload?.wbn, hasStatus: !!webhookPayload?.status },
+            'Ekart webhook missing required fields (wbn or status)'
           );
 
           return reply.code(400).send(
             createErrorResponse(
               'Invalid webhook payload',
-              'Missing required fields: id and status',
+              'Missing required fields: wbn and status',
               400
             )
           );
@@ -708,8 +712,8 @@ logger.info(finalPayload,"finalPayload createReverseShipment")
           );
         }
 
-        // Find order by tracking_id (the "id" field in webhook)
-        const trackingId = webhookPayload.id;
+        // Find order by tracking_id (the "wbn" field in webhook)
+        const trackingId = webhookPayload.wbn;
         const order = await this.ordersService.findByTrackingId(trackingId);
 
         if (!order) {

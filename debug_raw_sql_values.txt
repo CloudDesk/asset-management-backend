@@ -7815,3 +7815,15 @@ Values: [
   false,
   1767038133
 ]
+Values: [
+  278,
+  "ready_for_dispatch",
+  "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1767763423799,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1767766960995,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":8}]",
+  1767766961
+]
+Values: [
+  207,
+  "ready_for_dispatch",
+  "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1767763421696,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1767766964005,\"source\":\"system\",\"is_active\":true}]",
+  1767766964
+]
