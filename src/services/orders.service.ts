@@ -655,11 +655,18 @@ export class OrdersService {
         const updatedHistory = [...deactivatedHistory, historyEntry];
 
         // Update order with new status and history (JSON.stringify for JSONB column)
-        await dynamicUpdate('orders', { id: orderId }, {
+        const orderUpdateData: Record<string, any> = {
           orderstatus: newOrderStatus,
           status_history: JSON.stringify(updatedHistory),
           modifieddate: Date.now()
-        });
+        };
+
+        // Set readytodispatchdate when status becomes ready_for_dispatch
+        if (newOrderStatus === 'ready_for_dispatch') {
+          orderUpdateData.readytodispatchdate = Date.now();
+        }
+
+        await dynamicUpdate('orders', { id: orderId }, orderUpdateData);
 
         logger.info({
           orderId,
@@ -2218,6 +2225,25 @@ export class OrdersService {
       // Get current order
       const currentOrder = await this.findById(Number(id));
       const previousStatus = currentOrder.orderstatus;
+
+      // Skip status history update if status hasn't changed
+      if (previousStatus === status) {
+        logger.debug(
+          { orderId: id, status },
+          'Order status unchanged, skipping status history update'
+        );
+        // Still update other fields if provided (like modifieddate, location, description)
+        const updateData: Record<string, any> = {
+          modifieddate: Date.now(),
+          ...additionalData
+        };
+        // Remove orderstatus from additionalData to avoid unnecessary update
+        delete updateData.orderstatus;
+        if (Object.keys(updateData).length > 1) { // More than just modifieddate
+          await dynamicUpdate('orders', { id: parseInt(id) }, updateData);
+        }
+        return currentOrder;
+      }
 
       // Prepare status history entry
       const existingHistory = Array.isArray(currentOrder.status_history)
