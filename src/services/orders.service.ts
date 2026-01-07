@@ -1664,6 +1664,36 @@ export class OrdersService {
           { orderId: order.id },
           'Order status updated to shipped (shipped: true in payload)'
         );
+
+        // Generate invoice for manual vendor orders (same as EKART flow)
+        try {
+          logger.info(
+            { orderId: order.id, vendor },
+            'Generating invoice for manual vendor order'
+          );
+          const invoiceUrl = await this.generateInvoice(order.id);
+          if (invoiceUrl) {
+            logger.info(
+              { orderId: order.id, invoiceUrl, vendor },
+              'Invoice generated successfully for manual vendor order'
+            );
+          } else {
+            logger.warn(
+              { orderId: order.id, vendor },
+              'Invoice generation returned no URL (non-blocking)'
+            );
+          }
+        } catch (invoiceError: any) {
+          // Invoice generation is non-blocking - don't fail the shipment update
+          logger.error(
+            {
+              error: invoiceError.message,
+              orderId: order.id,
+              vendor
+            },
+            'Failed to generate invoice for manual vendor order (non-blocking)'
+          );
+        }
       } else if (!isAlreadyShipped && shipped === false) {
         // Explicitly keep status as ready_for_dispatch
         logger.info(
