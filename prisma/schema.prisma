@@ -53,6 +53,7 @@ model Product {
   usage                String?     @db.VarChar(255)
   longevity            String?     @db.VarChar(255)
   gender               String?     @db.VarChar(50)
+  remarks              String?     @db.VarChar(255)
   iscombo    Boolean?  @default(false)
   combotype  String?   @default("fixed") @db.VarChar(50)
   

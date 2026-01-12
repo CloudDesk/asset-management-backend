@@ -543,11 +543,16 @@ export class OrdersService {
                 };
                 const updatedHistory = [...deactivatedHistory, historyEntry];
                 // Update order with new status and history (JSON.stringify for JSONB column)
-                await dynamicUpdate('orders', { id: orderId }, {
+                const orderUpdateData = {
                     orderstatus: newOrderStatus,
                     status_history: JSON.stringify(updatedHistory),
                     modifieddate: Date.now()
-                });
+                };
+                // Set readytodispatchdate when status becomes ready_for_dispatch
+                if (newOrderStatus === 'ready_for_dispatch') {
+                    orderUpdateData.readytodispatchdate = Date.now();
+                }
+                await dynamicUpdate('orders', { id: orderId }, orderUpdateData);
                 logger.info({
                     orderId,
                     previousStatus,
@@ -1322,6 +1327,25 @@ export class OrdersService {
                     inventory_user_id: inventoryUserId
                 });
                 logger.info({ orderId: order.id }, 'Order status updated to shipped (shipped: true in payload)');
+                // Generate invoice for manual vendor orders (same as EKART flow)
+                try {
+                    logger.info({ orderId: order.id, vendor }, 'Generating invoice for manual vendor order');
+                    const invoiceUrl = await this.generateInvoice(order.id);
+                    if (invoiceUrl) {
+                        logger.info({ orderId: order.id, invoiceUrl, vendor }, 'Invoice generated successfully for manual vendor order');
+                    }
+                    else {
+                        logger.warn({ orderId: order.id, vendor }, 'Invoice generation returned no URL (non-blocking)');
+                    }
+                }
+                catch (invoiceError) {
+                    // Invoice generation is non-blocking - don't fail the shipment update
+                    logger.error({
+                        error: invoiceError.message,
+                        orderId: order.id,
+                        vendor
+                    }, 'Failed to generate invoice for manual vendor order (non-blocking)');
+                }
             }
             else if (!isAlreadyShipped && shipped === false) {
                 // Explicitly keep status as ready_for_dispatch
@@ -1709,6 +1733,21 @@ export class OrdersService {
             // Get current order
             const currentOrder = await this.findById(Number(id));
             const previousStatus = currentOrder.orderstatus;
+            // Skip status history update if status hasn't changed
+            if (previousStatus === status) {
+                logger.debug({ orderId: id, status }, 'Order status unchanged, skipping status history update');
+                // Still update other fields if provided (like modifieddate, location, description)
+                const updateData = {
+                    modifieddate: Date.now(),
+                    ...additionalData
+                };
+                // Remove orderstatus from additionalData to avoid unnecessary update
+                delete updateData.orderstatus;
+                if (Object.keys(updateData).length > 1) { // More than just modifieddate
+                    await dynamicUpdate('orders', { id: parseInt(id) }, updateData);
+                }
+                return currentOrder;
+            }
             // Prepare status history entry
             const existingHistory = Array.isArray(currentOrder.status_history)
                 ? currentOrder.status_history

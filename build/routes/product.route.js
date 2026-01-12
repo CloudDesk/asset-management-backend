@@ -163,6 +163,10 @@ export async function productRoutes(fastify) {
                         type: "string",
                         description: "Full-text search across product fields (name, description, category, etc.)",
                     },
+                    remarks: {
+                        type: "string",
+                        description: "Filter by remarks",
+                    },
                 },
                 additionalProperties: true, // Allow any query parameters for dynamic filtering
             },
@@ -372,6 +376,11 @@ export async function productRoutes(fastify) {
                                         type: "string",
                                         nullable: true,
                                         description: "Target gender",
+                                    },
+                                    remarks: {
+                                        type: "string",
+                                        nullable: true,
+                                        description: "Product remarks",
                                     },
                                     // Combo Pack Support
                                     iscombo: {
@@ -695,6 +704,11 @@ export async function productRoutes(fastify) {
                                     type: "string",
                                     nullable: true,
                                     description: "Target gender",
+                                },
+                                remarks: {
+                                    type: "string",
+                                    nullable: true,
+                                    description: "Product remarks",
                                 },
                                 // Combo Pack Support
                                 iscombo: {
@@ -1211,6 +1225,7 @@ export async function productRoutes(fastify) {
                                 price: { type: "number", nullable: true, description: "Product price" },
                                 category: { type: "string", nullable: true, description: "Product category" },
                                 subcategory: { type: "string", nullable: true, description: "Product subcategory" },
+                                remarks: { type: "string", nullable: true, description: "Product remarks" },
                                 // Combo Pack Support
                                 iscombo: {
                                     type: "boolean",
@@ -1504,6 +1519,11 @@ export async function productRoutes(fastify) {
                         type: "string",
                         maxLength: 50,
                         description: "Target gender",
+                    },
+                    remarks: {
+                        type: "string",
+                        maxLength: 255,
+                        description: "Product remarks",
                     },
                     // Combo Pack Support
                     iscombo: {
@@ -2032,6 +2052,11 @@ export async function productRoutes(fastify) {
                         maxLength: 50,
                         description: "Target gender",
                     },
+                    remarks: {
+                        type: "string",
+                        maxLength: 255,
+                        description: "Product remarks",
+                    },
                     // Note: iscombo, combotype, and components are NOT allowed in update
                     // These fields can only be set during product creation (POST /v1/products)
                 },
@@ -2249,6 +2274,11 @@ export async function productRoutes(fastify) {
                                     type: "string",
                                     nullable: true,
                                     description: "Target gender",
+                                },
+                                remarks: {
+                                    type: "string",
+                                    nullable: true,
+                                    description: "Product remarks",
                                 },
                             },
                             additionalProperties: true, // Allow additional dynamic fields
@@ -2654,6 +2684,11 @@ export async function productRoutes(fastify) {
                         maxLength: 50,
                         description: "Target gender",
                     },
+                    remarks: {
+                        type: "string",
+                        maxLength: 255,
+                        description: "Product remarks",
+                    },
                 },
                 additionalProperties: true, // Allow additional dynamic fields
             },
@@ -2872,6 +2907,11 @@ export async function productRoutes(fastify) {
                                             type: "string",
                                             nullable: true,
                                             description: "Target gender",
+                                        },
+                                        remarks: {
+                                            type: "string",
+                                            nullable: true,
+                                            description: "Product remarks",
                                         },
                                     },
                                     additionalProperties: true,
