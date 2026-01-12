@@ -253,6 +253,7 @@ export class OrderlineService {
                     updateData.dispatcheddate = currentTimestamp;
                     break;
                 case 'ready_to_dispatch':
+                case 'ready_for_dispatch':
                     updateData.readytodispatchdate = currentTimestamp;
                     break;
                 case 'payment_failed':

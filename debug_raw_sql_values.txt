@@ -7827,3 +7827,139 @@ Values: [
   "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1767763421696,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1767766964005,\"source\":\"system\",\"is_active\":true}]",
   1767766964
 ]
+Values: [
+  280,
+  "ready_for_dispatch",
+  "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1767852421052,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1767852703996,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  1767852704,
+  1767852703996
+]
+Values: [
+  209,
+  "ready_for_dispatch",
+  "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1767852421050,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1767852706991,\"source\":\"system\",\"is_active\":true}]",
+  1767852706,
+  1767852706991
+]
+Values: [
+  209,
+  "SHIPWAY_TR00001",
+  "Shipway",
+  "https://shipway.in/track/SHIPWAY_TR00001",
+  1767853000,
+  null,
+  null,
+  null,
+  1767853000742
+]
+Values: [
+  280,
+  "SHIPWAY_TR00001",
+  1767853007
+]
+Values: [
+  209,
+  "shipped",
+  1767853050,
+  1767853050829,
+  1767853050829
+]
+Values: [
+  280,
+  "shipped",
+  "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1767852421052,\"previous_status\":\"order_placed\"},{\"source\":\"inventoryuser\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1767852703996,\"previous_status\":\"payment_completed\",\"inventory_user_id\":2},{\"previous_status\":\"ready_for_dispatch\",\"new_status\":\"shipped\",\"changed_date\":1767853054404,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  1767853054,
+  "",
+  1767853050829
+]
+Values: [
+  209,
+  "shipped",
+  "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1767852421050,\"previous_status\":\"order_placed\"},{\"source\":\"system\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1767852706991,\"previous_status\":\"payment_completed\"},{\"previous_status\":\"ready_for_dispatch\",\"new_status\":\"shipped\",\"changed_date\":1767853057001,\"source\":\"system\",\"is_active\":true}]",
+  1767853057
+]
+Values: [
+  209,
+  1767853058
+]
+Values: [
+  209,
+  "in_transit",
+  1767853143
+]
+Values: [
+  280,
+  "in_transit",
+  "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1767852421052,\"previous_status\":\"order_placed\"},{\"source\":\"inventoryuser\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1767852703996,\"previous_status\":\"payment_completed\",\"inventory_user_id\":2},{\"source\":\"inventoryuser\",\"is_active\":false,\"new_status\":\"shipped\",\"changed_date\":1767853054404,\"previous_status\":\"ready_for_dispatch\",\"inventory_user_id\":2},{\"previous_status\":\"shipped\",\"new_status\":\"in_transit\",\"changed_date\":1767853145823,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  1767853146,
+  ""
+]
+Values: [
+  209,
+  "in_transit",
+  "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1767852421050,\"previous_status\":\"order_placed\"},{\"source\":\"system\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1767852706991,\"previous_status\":\"payment_completed\"},{\"source\":\"system\",\"is_active\":false,\"new_status\":\"shipped\",\"changed_date\":1767853057001,\"previous_status\":\"ready_for_dispatch\"},{\"previous_status\":\"shipped\",\"new_status\":\"in_transit\",\"changed_date\":1767853147997,\"source\":\"system\",\"is_active\":true}]",
+  1767853147
+]
+Values: [
+  209,
+  1767853149
+]
+Values: [
+  209,
+  "delivered",
+  1767853165
+]
+Values: [
+  280,
+  "delivered",
+  "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1767852421052,\"previous_status\":\"order_placed\"},{\"source\":\"inventoryuser\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1767852703996,\"previous_status\":\"payment_completed\",\"inventory_user_id\":2},{\"source\":\"inventoryuser\",\"is_active\":false,\"new_status\":\"shipped\",\"changed_date\":1767853054404,\"previous_status\":\"ready_for_dispatch\",\"inventory_user_id\":2},{\"source\":\"inventoryuser\",\"is_active\":false,\"new_status\":\"in_transit\",\"changed_date\":1767853145823,\"previous_status\":\"shipped\",\"inventory_user_id\":2},{\"previous_status\":\"in_transit\",\"new_status\":\"delivered\",\"changed_date\":1767853167276,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  1767853167,
+  "",
+  1767853167276
+]
+Values: [
+  209,
+  "delivered",
+  "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1767852421050,\"previous_status\":\"order_placed\"},{\"source\":\"system\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1767852706991,\"previous_status\":\"payment_completed\"},{\"source\":\"system\",\"is_active\":false,\"new_status\":\"shipped\",\"changed_date\":1767853057001,\"previous_status\":\"ready_for_dispatch\"},{\"source\":\"system\",\"is_active\":false,\"new_status\":\"in_transit\",\"changed_date\":1767853147997,\"previous_status\":\"shipped\"},{\"previous_status\":\"in_transit\",\"new_status\":\"delivered\",\"changed_date\":1767853169437,\"source\":\"system\",\"is_active\":true}]",
+  1767853169
+]
+Values: [
+  209,
+  1767853170
+]
+Values: [
+  206,
+  "TRACK_00001",
+  "Shiprocket",
+  "https://shiprocket.co/tracking/TRACK_00001",
+  1767855433,
+  null,
+  null,
+  null,
+  1767855433454,
+  1767855433454,
+  1767855433454
+]
+Values: [
+  277,
+  "shipped",
+  "[{\"source\":\"system\",\"is_active\":false,\"new_status\":\"order_confirmed\",\"changed_date\":1767361468502,\"previous_status\":\"order_placed\"},{\"source\":\"inventoryuser\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1767707027231,\"previous_status\":\"order_confirmed\",\"inventory_user_id\":2},{\"previous_status\":\"ready_for_dispatch\",\"new_status\":\"shipped\",\"changed_date\":1767855435399,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  1767855435,
+  "TRACK_00001",
+  1767855433454
+]
+Values: [
+  206,
+  "shipped",
+  "[{\"source\":\"system\",\"is_active\":false,\"new_status\":\"order_confirmed\",\"changed_date\":1767361466390,\"previous_status\":\"order_placed\"},{\"source\":\"system\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1767707028838,\"previous_status\":\"order_confirmed\"},{\"previous_status\":\"ready_for_dispatch\",\"new_status\":\"shipped\",\"changed_date\":1767855436718,\"source\":\"system\",\"is_active\":true}]",
+  1767855436
+]
+Values: [
+  206,
+  1767855437
+]
+Values: [
+  206,
+  "https://storage.googleapis.com/niv_order_invoice/NIVAANA-0000000206/NIVAANA-0000000206.pdf",
+  1767855456
+]

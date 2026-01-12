@@ -7678,3 +7678,118 @@ Filtered data: {
   "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1767763421696,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1767766964005,\"source\":\"system\",\"is_active\":true}]",
   "modifieddate": 1767766964005
 }
+Filtered data: {
+  "orderstatus": "ready_for_dispatch",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1767852421052,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1767852703996,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  "modifieddate": 1767852703996,
+  "readytodispatchdate": 1767852703996
+}
+Filtered data: {
+  "orderstatus": "ready_for_dispatch",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1767852421050,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1767852706991,\"source\":\"system\",\"is_active\":true}]",
+  "modifieddate": 1767852706991,
+  "readytodispatchdate": 1767852706991
+}
+Filtered data: {
+  "tracking_id": "SHIPWAY_TR00001",
+  "vendor": "Shipway",
+  "public_tracking_link": "https://shipway.in/track/SHIPWAY_TR00001",
+  "modifieddate": 1767853000742,
+  "label_url": null,
+  "barcodes": null,
+  "shipment_tracking_status": null,
+  "shipment_created_at": 1767853000742
+}
+Filtered data: {
+  "tracking_id": "SHIPWAY_TR00001",
+  "modifieddate": 1767853000742
+}
+Filtered data: {
+  "shipment_tracking_status": "shipped",
+  "modifieddate": 1767853050829,
+  "shipdate": 1767853050829,
+  "label_printed_at": 1767853050829
+}
+Filtered data: {
+  "orderstatus": "shipped",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1767852421052,\"previous_status\":\"order_placed\"},{\"source\":\"inventoryuser\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1767852703996,\"previous_status\":\"payment_completed\",\"inventory_user_id\":2},{\"previous_status\":\"ready_for_dispatch\",\"new_status\":\"shipped\",\"changed_date\":1767853054404,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  "modifieddate": 1767853054405,
+  "location": "",
+  "shipdate": 1767853050829
+}
+Filtered data: {
+  "orderstatus": "shipped",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1767852421050,\"previous_status\":\"order_placed\"},{\"source\":\"system\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1767852706991,\"previous_status\":\"payment_completed\"},{\"previous_status\":\"ready_for_dispatch\",\"new_status\":\"shipped\",\"changed_date\":1767853057001,\"source\":\"system\",\"is_active\":true}]",
+  "modifieddate": 1767853057001
+}
+Filtered data: {
+  "modifieddate": 1767853058253
+}
+Filtered data: {
+  "shipment_tracking_status": "in_transit",
+  "modifieddate": 1767853143680
+}
+Filtered data: {
+  "orderstatus": "in_transit",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1767852421052,\"previous_status\":\"order_placed\"},{\"source\":\"inventoryuser\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1767852703996,\"previous_status\":\"payment_completed\",\"inventory_user_id\":2},{\"source\":\"inventoryuser\",\"is_active\":false,\"new_status\":\"shipped\",\"changed_date\":1767853054404,\"previous_status\":\"ready_for_dispatch\",\"inventory_user_id\":2},{\"previous_status\":\"shipped\",\"new_status\":\"in_transit\",\"changed_date\":1767853145823,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  "modifieddate": 1767853145823,
+  "location": ""
+}
+Filtered data: {
+  "orderstatus": "in_transit",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1767852421050,\"previous_status\":\"order_placed\"},{\"source\":\"system\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1767852706991,\"previous_status\":\"payment_completed\"},{\"source\":\"system\",\"is_active\":false,\"new_status\":\"shipped\",\"changed_date\":1767853057001,\"previous_status\":\"ready_for_dispatch\"},{\"previous_status\":\"shipped\",\"new_status\":\"in_transit\",\"changed_date\":1767853147997,\"source\":\"system\",\"is_active\":true}]",
+  "modifieddate": 1767853147997
+}
+Filtered data: {
+  "modifieddate": 1767853149355
+}
+Filtered data: {
+  "shipment_tracking_status": "delivered",
+  "modifieddate": 1767853165600
+}
+Filtered data: {
+  "orderstatus": "delivered",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1767852421052,\"previous_status\":\"order_placed\"},{\"source\":\"inventoryuser\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1767852703996,\"previous_status\":\"payment_completed\",\"inventory_user_id\":2},{\"source\":\"inventoryuser\",\"is_active\":false,\"new_status\":\"shipped\",\"changed_date\":1767853054404,\"previous_status\":\"ready_for_dispatch\",\"inventory_user_id\":2},{\"source\":\"inventoryuser\",\"is_active\":false,\"new_status\":\"in_transit\",\"changed_date\":1767853145823,\"previous_status\":\"shipped\",\"inventory_user_id\":2},{\"previous_status\":\"in_transit\",\"new_status\":\"delivered\",\"changed_date\":1767853167276,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  "modifieddate": 1767853167276,
+  "location": "",
+  "delivereddate": 1767853167276
+}
+Filtered data: {
+  "orderstatus": "delivered",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1767852421050,\"previous_status\":\"order_placed\"},{\"source\":\"system\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1767852706991,\"previous_status\":\"payment_completed\"},{\"source\":\"system\",\"is_active\":false,\"new_status\":\"shipped\",\"changed_date\":1767853057001,\"previous_status\":\"ready_for_dispatch\"},{\"source\":\"system\",\"is_active\":false,\"new_status\":\"in_transit\",\"changed_date\":1767853147997,\"previous_status\":\"shipped\"},{\"previous_status\":\"in_transit\",\"new_status\":\"delivered\",\"changed_date\":1767853169437,\"source\":\"system\",\"is_active\":true}]",
+  "modifieddate": 1767853169437
+}
+Filtered data: {
+  "modifieddate": 1767853170330
+}
+Filtered data: {
+  "tracking_id": "TRACK_00001",
+  "vendor": "Shiprocket",
+  "public_tracking_link": "https://shiprocket.co/tracking/TRACK_00001",
+  "modifieddate": 1767855433454,
+  "label_url": null,
+  "barcodes": null,
+  "shipment_tracking_status": null,
+  "shipment_created_at": 1767855433454,
+  "shipdate": 1767855433454,
+  "label_printed_at": 1767855433454
+}
+Filtered data: {
+  "orderstatus": "shipped",
+  "status_history": "[{\"source\":\"system\",\"is_active\":false,\"new_status\":\"order_confirmed\",\"changed_date\":1767361468502,\"previous_status\":\"order_placed\"},{\"source\":\"inventoryuser\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1767707027231,\"previous_status\":\"order_confirmed\",\"inventory_user_id\":2},{\"previous_status\":\"ready_for_dispatch\",\"new_status\":\"shipped\",\"changed_date\":1767855435399,\"source\":\"inventoryuser\",\"is_active\":true,\"inventory_user_id\":2}]",
+  "modifieddate": 1767855435399,
+  "tracking_id": "TRACK_00001",
+  "shipdate": 1767855433454
+}
+Filtered data: {
+  "orderstatus": "shipped",
+  "status_history": "[{\"source\":\"system\",\"is_active\":false,\"new_status\":\"order_confirmed\",\"changed_date\":1767361466390,\"previous_status\":\"order_placed\"},{\"source\":\"system\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1767707028838,\"previous_status\":\"order_confirmed\"},{\"previous_status\":\"ready_for_dispatch\",\"new_status\":\"shipped\",\"changed_date\":1767855436718,\"source\":\"system\",\"is_active\":true}]",
+  "modifieddate": 1767855436718
+}
+Filtered data: {
+  "modifieddate": 1767855437372
+}
+Filtered data: {
+  "order_invoice_url": "https://storage.googleapis.com/niv_order_invoice/NIVAANA-0000000206/NIVAANA-0000000206.pdf",
+  "modifieddate": 1767855456279
+}
