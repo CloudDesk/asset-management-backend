@@ -200,9 +200,18 @@ export class ProductService {
         }
     }
     // Add these methods to ProductService class
-    async findManyForPlatform(platform, filters = {}, page = 1, limit = 10) {
+    async findManyForPlatform(platform, filters = {}, page = 1, limit = 10, sortBy = 'createddate', sortOrder = 'desc') {
         try {
             const offset = (page - 1) * limit;
+            // Map sortBy parameter to actual database field name
+            const sortFieldMap = {
+                'price': 'price',
+                'createddate': 'createddate',
+                'averagerating': 'averagerating',
+                'name': 'name'
+            };
+            // Get the actual field name (default to createddate if invalid)
+            const orderByField = sortFieldMap[sortBy] || 'createddate';
             // Build base query with platform stock join
             const whereClause = this.buildPlatformWhereClause(platform, filters);
             const [products, total] = await Promise.all([
@@ -226,7 +235,7 @@ export class ProductService {
                     },
                     skip: offset,
                     take: limit,
-                    orderBy: { createddate: 'desc' },
+                    orderBy: { [orderByField]: sortOrder },
                 }),
                 prisma.product.count({ where: whereClause }),
             ]);

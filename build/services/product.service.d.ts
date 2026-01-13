@@ -4,7 +4,7 @@ import { FilterOptions } from '../utils/filterBuilder.js';
 export declare class ProductService {
     findMany(filters: FilterOptions, page: number, limit: number): Promise<PaginationResult<any>>;
     findById(id: string): Promise<any>;
-    findManyForPlatform(platform: string, filters?: Record<string, any>, page?: number, limit?: number): Promise<{
+    findManyForPlatform(platform: string, filters?: Record<string, any>, page?: number, limit?: number, sortBy?: string, sortOrder?: 'asc' | 'desc'): Promise<{
         data: any[];
         pagination: any;
     }>;

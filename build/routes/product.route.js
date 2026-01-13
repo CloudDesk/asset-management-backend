@@ -909,6 +909,16 @@ export async function productRoutes(fastify) {
                         enum: ["true", "false"],
                         description: "Filter by deal of the day status (true or false)"
                     },
+                    sortBy: {
+                        type: "string",
+                        enum: ["price", "createddate", "averagerating", "name"],
+                        description: "Field to sort by (default: createddate)"
+                    },
+                    sortOrder: {
+                        type: "string",
+                        enum: ["asc", "desc"],
+                        description: "Sort order: ascending or descending (default: desc)"
+                    },
                 },
             },
             response: {
