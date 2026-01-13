@@ -385,8 +385,11 @@ export class ProductController {
         const { platform } = request.params;
         const allFilters = request.query || {};
         const { page, limit } = getPaginationParams(allFilters);
-        const { page: _, limit: __, ...filters } = allFilters;
-        const result = await this.productService.findManyForPlatform(platform, filters, page, limit);
+        // Extract sorting parameters
+        const sortBy = allFilters.sortBy || 'createddate';
+        const sortOrder = allFilters.sortOrder || 'desc';
+        const { page: _, limit: __, sortBy: _sortBy, sortOrder: _sortOrder, ...filters } = allFilters;
+        const result = await this.productService.findManyForPlatform(platform, filters, page, limit, sortBy, sortOrder);
         const formattedData = formatEntitiesForAPI(result.data, "product");
         // Transform data: remove platformStocks array and add availablequantity from platform stock
         const transformedData = formattedData.map((product) => {
@@ -408,6 +411,8 @@ export class ProductController {
                 filters: Object.keys(filters),
                 total: result.pagination.total,
                 filtered: Object.keys(filters).length > 0,
+                sortBy,
+                sortOrder,
             },
         });
     });
