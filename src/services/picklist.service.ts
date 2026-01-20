@@ -1,16 +1,16 @@
 import { prisma } from '../models/prisma.js';
-import { 
-  CreatePicklistInput, 
-  UpdatePicklistInput 
+import {
+  CreatePicklistInput,
+  UpdatePicklistInput
 } from '../schemas/picklist.schema.js';
 import { PaginationResult, createPaginationResult, getPrismaSkipTake } from '../utils/pagination.js';
 import { buildPicklistFilters, FilterOptions } from '../utils/filterBuilder.js';
-import { 
-  dynamicFindMany, 
-  dynamicCount, 
-  dynamicFindUnique, 
-  dynamicCreate, 
-  dynamicUpdate, 
+import {
+  dynamicFindMany,
+  dynamicCount,
+  dynamicFindUnique,
+  dynamicCreate,
+  dynamicUpdate,
   dynamicDelete,
   dynamicFindManyWithFilters,
   formatEntitiesForAPI,
@@ -31,20 +31,20 @@ export class PicklistService {
 
       // Extract sorting parameters and isactive from filters (remove them so they don't get used as WHERE clauses)
       const { sortorder, fieldnameOrder, objectOrder, isactive, ...actualFilters } = filters;
-      
+
       // Handle isactive filter if provided (for soft delete support)
       // Keep as string to match FilterOptions type
       if (isactive !== undefined) {
         const isactiveValue = Array.isArray(isactive) ? isactive[0] : isactive;
         actualFilters.isactive = (isactiveValue === 'true' || isactiveValue === '1') ? 'true' : 'false';
       }
-      
+
       const sortorderValue = Array.isArray(sortorder) ? sortorder[0] : sortorder;
       const sortorderDirection = sortorderValue?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
-      
+
       const fieldnameOrderValue = Array.isArray(fieldnameOrder) ? fieldnameOrder[0] : fieldnameOrder;
       const fieldnameDirection = fieldnameOrderValue?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
-      
+
       const objectOrderValue = Array.isArray(objectOrder) ? objectOrder[0] : objectOrder;
       const objectDirection = objectOrderValue?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
 
@@ -79,9 +79,9 @@ export class PicklistService {
       });
 
       const combination = objectOrderValue ? 3 : fieldnameOrderValue ? 2 : 1;
-      
+
       logger.info({
-        picklistCount: picklists.length, 
+        picklistCount: picklists.length,
         total,
         filtered: Object.keys(actualFilters).length > 0,
         appliedFilters: Object.keys(actualFilters),
@@ -108,9 +108,9 @@ export class PicklistService {
         throw new Error('Picklist item not found');
       }
 
-      logger.debug({ 
-        picklistId: id, 
-        availableFields: Object.keys(picklist) 
+      logger.debug({
+        picklistId: id,
+        availableFields: Object.keys(picklist)
       }, 'Dynamic picklist findById completed');
 
       return picklist;
@@ -188,9 +188,9 @@ export class PicklistService {
         throw new Error('Failed to create picklist - no valid fields provided');
       }
 
-      logger.info({ 
-        picklistId: picklist.id, 
-        availableFields: Object.keys(picklist) 
+      logger.info({
+        picklistId: picklist.id,
+        availableFields: Object.keys(picklist)
       }, 'Dynamic picklist create completed');
 
       return picklist;
@@ -236,9 +236,9 @@ export class PicklistService {
         throw new Error('Failed to update picklist - no valid fields provided');
       }
 
-      logger.info({ 
-        picklistId: id, 
-        availableFields: Object.keys(picklist) 
+      logger.info({
+        picklistId: id,
+        availableFields: Object.keys(picklist)
       }, 'Dynamic picklist update completed');
 
       return picklist;
@@ -289,7 +289,7 @@ export class PicklistService {
       // Uses CASE to handle null sortorder values (nulls last)
       const orderDirection = order.toUpperCase();
       const sortColumn = sortBy === 'label' ? 'label' : 'sortorder';
-      
+
       let orderByClause = '';
       if (sortBy === 'sortorder') {
         // Handle nulls: null values appear after sorted records
@@ -338,7 +338,7 @@ export class PicklistService {
 
       // Group by fieldName in memory (very efficient for reasonable dataset sizes)
       const grouped: Record<string, any[]> = {};
-      
+
       for (const picklist of picklists) {
         const fieldName = picklist.fieldname || 'unknown';
         if (!grouped[fieldName]) {
@@ -425,27 +425,27 @@ export class PicklistService {
     pagination?: PaginationResult<any>['pagination'];
   }> {
     try {
-      logger.info({ 
-        filters, 
-        groupByFieldname, 
+      logger.info({
+        filters,
+        groupByFieldname,
         groupByParent,
-        sortorder, 
-        fieldnameOrder, 
-        limit 
+        sortorder,
+        fieldnameOrder,
+        limit
       }, 'Starting v2 picklist findMany');
 
       // Extract filters (remove grouping and sorting params from WHERE clause)
-      const { 
-        groupByFieldname: _, 
+      const {
+        groupByFieldname: _,
         groupByParent: __,
-        sortorder: ___, 
-        fieldnameOrder: ____, 
+        sortorder: ___,
+        fieldnameOrder: ____,
         limit: _____,
         page: ______,
         isactive: _______,
-        ...actualFilters 
+        ...actualFilters
       } = filters;
-      
+
       // Handle isactive filter if provided (for soft delete support)
       // Keep as string to match FilterOptions type
       if (_______ !== undefined) {
@@ -482,15 +482,15 @@ export class PicklistService {
       if (actualFilters.isactive !== undefined) {
         const isactiveValue = Array.isArray(actualFilters.isactive) ? actualFilters.isactive[0] : actualFilters.isactive;
         // Convert string to boolean - handle 'true', '1', or actual boolean true
-        const isActiveValue = typeof isactiveValue === 'boolean' 
-          ? isactiveValue 
+        const isActiveValue = typeof isactiveValue === 'boolean'
+          ? isactiveValue
           : (isactiveValue === 'true' || isactiveValue === '1');
-        
+
         // Build isactive condition: null means false (inactive), true means active
         const isactiveCondition = isActiveValue
           ? { isactive: true } // Active: only true
           : { OR: [{ isactive: false }, { isactive: null }] }; // Inactive: false OR null
-        
+
         // If there's already an OR from searchtext, wrap both in AND
         if (whereConditions.OR) {
           whereConditions.AND = [
@@ -502,7 +502,7 @@ export class PicklistService {
           // No existing OR, just add the isactive condition
           Object.assign(whereConditions, isactiveCondition);
         }
-        
+
         // Remove from actualFilters so it doesn't get processed again
         delete actualFilters.isactive;
       }
@@ -516,10 +516,10 @@ export class PicklistService {
 
       // Build orderBy
       const orderBy: any[] = [];
-      
+
       // Always order by fieldname first (for grouping consistency)
       orderBy.push({ fieldname: fieldnameOrder.toLowerCase() });
-      
+
       // Then by sortorder (handle nulls last)
       if (sortorder === 'DESC') {
         orderBy.push({ sortorder: 'desc' });
@@ -545,21 +545,21 @@ export class PicklistService {
           // Nested grouping: fieldname -> controlledfieldname -> parent -> items
           // This allows items with same parent but different controlledfieldname to be in separate sections
           const grouped: Record<string, Record<string, Record<string, any[]>>> = {};
-          
+
           for (const picklist of formattedPicklists) {
             const fieldName = picklist.fieldname || 'unknown';
             // Handle null, empty string, or undefined controlledfieldname values
             const controlledFieldName = picklist.controlledfieldname;
-            const controlledFieldKey = (controlledFieldName && String(controlledFieldName).trim() !== '') 
-              ? String(controlledFieldName) 
+            const controlledFieldKey = (controlledFieldName && String(controlledFieldName).trim() !== '')
+              ? String(controlledFieldName)
               : 'null';
-            
+
             // Handle null, empty string, or undefined parent values
             const parentValue = picklist.parent;
-            const parentKey = (parentValue && String(parentValue).trim() !== '') 
-              ? String(parentValue) 
+            const parentKey = (parentValue && String(parentValue).trim() !== '')
+              ? String(parentValue)
               : 'null';
-            
+
             if (!grouped[fieldName]) {
               grouped[fieldName] = {};
             }
@@ -615,7 +615,7 @@ export class PicklistService {
         } else {
           // Simple grouping: fieldname -> items
           const grouped: Record<string, any[]> = {};
-          
+
           for (const picklist of formattedPicklists) {
             const fieldName = picklist.fieldname || 'unknown';
             if (!grouped[fieldName]) {
@@ -737,12 +737,12 @@ export class PicklistService {
       // Process each item (create or update)
       for (const item of updates) {
         try {
-          const { 
-            id, 
-            fieldname, 
-            parent, 
-            sortorder, 
-            label, 
+          const {
+            id,
+            fieldname,
+            parent,
+            sortorder,
+            label,
             value,
             object,
             description,
@@ -757,6 +757,8 @@ export class PicklistService {
           const isCreate = !id || id === null || (typeof id === 'number' && id <= 0) || (typeof id === 'string' && (id === '' || parseInt(id) <= 0));
 
           if (isCreate) {
+            console.log('Creating new picklist item');
+            console.log('isCreate', isCreate);
             // CREATE operation
             // Validate required fields for creation
             if (!label || !value || !object || !fieldname) {
@@ -803,7 +805,7 @@ export class PicklistService {
             const currentTimestamp = Date.now();
             createData.createddate = currentTimestamp;
             createData.modifieddate = currentTimestamp;
-
+            console.log('createData', createData);
             // Create the picklist
             const created = await dynamicCreate('picklist', createData);
 
@@ -969,10 +971,10 @@ export class PicklistService {
         .map(p => p.fieldname)
         .filter((fieldname): fieldname is string => fieldname !== null && fieldname !== undefined);
 
-      logger.info({ 
-        object, 
+      logger.info({
+        object,
         fieldnameCount: fieldnames.length,
-        fieldnames 
+        fieldnames
       }, 'Unique fieldnames retrieved by object');
 
       return fieldnames;
