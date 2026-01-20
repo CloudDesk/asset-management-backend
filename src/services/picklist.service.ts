@@ -755,7 +755,9 @@ export class PicklistService {
           // Determine if this is a CREATE or UPDATE operation
           // CREATE: id is missing, null, negative, or 0
           const isCreate = !id || id === null || (typeof id === 'number' && id <= 0) || (typeof id === 'string' && (id === '' || parseInt(id) <= 0));
-
+          console.log('isCreate', isCreate);
+          console.log('id', id);
+          console.log('typeof id', typeof id);
           if (isCreate) {
             console.log('Creating new picklist item');
             console.log('isCreate', isCreate);
