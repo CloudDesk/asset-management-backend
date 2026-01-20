@@ -18,6 +18,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
         properties: {
           page: { type: 'string', description: 'Page number' },
           limit: { type: 'string', description: 'Items per page' },
+          search: { type: 'string', description: 'Search promotions by name, type, code, or status (case-insensitive partial match)' },
           userid: { type: 'string', description: 'Filter by user ID for personalized promotions' },
           channel: { type: 'string', description: 'Channel (web, mobile, etc.)' },
           geo: { type: 'string', description: 'Geographic region' },
@@ -49,7 +50,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            data: { 
+            data: {
               type: 'array',
               items: {
                 type: 'object',
@@ -74,9 +75,9 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                   discount_type: { type: 'string', nullable: true, description: 'Discount type' },
                   discount_value: { type: 'number', nullable: true, description: 'Discount value' },
                   conditions: { type: 'array', nullable: true, description: 'Promotion conditions' },
-                  action: { 
-                    type: 'object', 
-                    nullable: true, 
+                  action: {
+                    type: 'object',
+                    nullable: true,
                     description: 'Promotion action object',
                     properties: {
                       type: { type: 'string' },
@@ -158,7 +159,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            data: { 
+            data: {
               type: 'object',
               additionalProperties: true
             },
@@ -197,7 +198,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
   }, async (request: any, reply: any) => {
     try {
       const { id } = request.params;
-      
+
       // Validate ID format
       if (!id || id.trim() === '' || !/^\d+$/.test(id)) {
         const errorResponse = {
@@ -208,10 +209,10 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
         };
         return reply.code(400).send(errorResponse);
       }
-      
+
       // Call the service method directly
       const promotion = await promotionsController.promotionsService.findById(id);
-      
+
       const response = {
         success: true,
         message: 'Promotion retrieved successfully',
@@ -220,7 +221,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
       return reply.code(200).send(response);
     } catch (error: any) {
       console.log('=== PROMOTION GET ERROR:', error.message);
-      
+
       if (error.message.includes('not found')) {
         const errorResponse = {
           success: false,
@@ -230,7 +231,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
         };
         return reply.code(404).send(errorResponse);
       }
-      
+
       // Default error response
       const errorResponse = {
         success: false,
@@ -252,10 +253,10 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
         properties: {
           name: { type: 'string', maxLength: 255, description: 'Promotion name' },
           description: { type: 'string', description: 'Promotion description' },
-          type: { 
-            type: 'string', 
+          type: {
+            type: 'string',
             enum: ['PERCENT_OFF_ITEM', 'FIXED_AMOUNT_OFF_ITEM', 'BOGO', 'PERCENT_OFF_CART', 'FIXED_AMOUNT_OFF_CART', 'FREE_SHIPPING', 'FREE_PRODUCT'],
-            description: 'Promotion type' 
+            description: 'Promotion type'
           },
           code: { type: 'string', description: 'Promotion code' },
           auto_apply: { type: 'boolean', description: 'Auto-apply status' },
@@ -282,19 +283,19 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
           max_free_items: { type: 'number', description: 'Maximum free items per order' },
           minimum_order_value: { type: 'number', description: 'Minimum order value (for FREE_SHIPPING)' },
           product_price: { type: 'number', description: 'Product price (for budget calculations)' },
-          conditions: { 
-            type: 'array', 
+          conditions: {
+            type: 'array',
             description: 'Promotion conditions',
             items: {
               type: 'object',
               properties: {
                 attribute: { type: 'string' },
                 operator: { type: 'string', enum: ['GTE', 'LTE', 'EQ', 'IN', 'NOT_IN', 'CONTAINS'] },
-                value: { 
+                value: {
                   description: 'Condition value - can be string, number, or array of strings',
                   anyOf: [
-                    { type: 'string' }, 
-                    { type: 'number' }, 
+                    { type: 'string' },
+                    { type: 'number' },
                     { type: 'array', items: { type: 'string' } },
                     { type: 'boolean' }
                   ]
@@ -303,15 +304,15 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
             }
           },
           // New single action object (recommended format)
-          action: { 
-            type: 'object', 
+          action: {
+            type: 'object',
             description: 'Single promotion action object',
             properties: {
               type: { type: 'string', enum: ['PERCENT_OFF', 'FIXED_AMOUNT_OFF', 'FREE_SHIPPING', 'BOGO', 'FREE_PRODUCT'] },
-              value: { 
+              value: {
                 description: 'Action value - can be number or boolean',
                 anyOf: [
-                  { type: 'number' }, 
+                  { type: 'number' },
                   { type: 'boolean' }
                 ]
               },
@@ -326,17 +327,17 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
             }
           },
           // Legacy actions array (deprecated but still supported)
-          actions: { 
-            type: 'array', 
+          actions: {
+            type: 'array',
             description: 'Legacy promotion actions array (deprecated - use action object instead)',
             items: {
               type: 'object',
               properties: {
                 type: { type: 'string', enum: ['PERCENT_OFF', 'FIXED_AMOUNT_OFF', 'FREE_SHIPPING', 'BOGO'] },
-                value: { 
+                value: {
                   description: 'Action value - can be number or boolean',
                   anyOf: [
-                    { type: 'number' }, 
+                    { type: 'number' },
                     { type: 'boolean' }
                   ]
                 }
@@ -379,7 +380,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
     try {
       // Validate required fields
       const body = request.body || {};
-      
+
       if (body.name !== undefined && (!body.name || body.name.trim().length === 0)) {
         const errorResponse = {
           success: false,
@@ -389,9 +390,9 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
         };
         return reply.code(400).send(errorResponse);
       }
-      
+
       const promotion = await promotionsController.promotionsService.create(body);
-      
+
       const response = {
         success: true,
         message: 'Promotion created successfully',
@@ -400,7 +401,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
       return reply.code(201).send(response);
     } catch (error: any) {
       console.log('=== PROMOTION CREATE ERROR:', error.message);
-      
+
       if (error.message.includes('Validation failed') || error.message.includes('validation')) {
         const errorResponse = {
           success: false,
@@ -410,7 +411,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
         };
         return reply.code(400).send(errorResponse);
       }
-      
+
       if (error.message.includes('Database') || error.message.includes('database')) {
         const errorResponse = {
           success: false,
@@ -420,7 +421,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
         };
         return reply.code(400).send(errorResponse);
       }
-      
+
       // Default error response
       const errorResponse = {
         success: false,
@@ -449,10 +450,10 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
         properties: {
           name: { type: 'string', maxLength: 255, description: 'Promotion name' },
           description: { type: 'string', description: 'Promotion description' },
-          type: { 
-            type: 'string', 
+          type: {
+            type: 'string',
             enum: ['PERCENT_OFF_ITEM', 'FIXED_AMOUNT_OFF_ITEM', 'BOGO', 'PERCENT_OFF_CART', 'FIXED_AMOUNT_OFF_CART', 'FREE_SHIPPING', 'FREE_PRODUCT'],
-            description: 'Promotion type' 
+            description: 'Promotion type'
           },
           code: { type: 'string', description: 'Promotion code' },
           auto_apply: { type: 'boolean', description: 'Auto-apply status' },
@@ -479,19 +480,19 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
           max_free_items: { type: 'number', description: 'Maximum free items per order' },
           minimum_order_value: { type: 'number', description: 'Minimum order value (for FREE_SHIPPING)' },
           product_price: { type: 'number', description: 'Product price (for budget calculations)' },
-          conditions: { 
-            type: 'array', 
+          conditions: {
+            type: 'array',
             description: 'Promotion conditions',
             items: {
               type: 'object',
               properties: {
                 attribute: { type: 'string' },
                 operator: { type: 'string', enum: ['GTE', 'LTE', 'EQ', 'IN', 'NOT_IN', 'CONTAINS'] },
-                value: { 
+                value: {
                   description: 'Condition value - can be string, number, or array of strings',
                   anyOf: [
-                    { type: 'string' }, 
-                    { type: 'number' }, 
+                    { type: 'string' },
+                    { type: 'number' },
                     { type: 'array', items: { type: 'string' } },
                     { type: 'boolean' }
                   ]
@@ -500,15 +501,15 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
             }
           },
           // New single action object (recommended format)
-          action: { 
-            type: 'object', 
+          action: {
+            type: 'object',
             description: 'Single promotion action object',
             properties: {
               type: { type: 'string', enum: ['PERCENT_OFF', 'FIXED_AMOUNT_OFF', 'FREE_SHIPPING', 'BOGO', 'FREE_PRODUCT'] },
-              value: { 
+              value: {
                 description: 'Action value - can be number or boolean',
                 anyOf: [
-                  { type: 'number' }, 
+                  { type: 'number' },
                   { type: 'boolean' }
                 ]
               },
@@ -523,17 +524,17 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
             }
           },
           // Legacy actions array (deprecated but still supported)
-          actions: { 
-            type: 'array', 
+          actions: {
+            type: 'array',
             description: 'Legacy promotion actions array (deprecated - use action object instead)',
             items: {
               type: 'object',
               properties: {
                 type: { type: 'string', enum: ['PERCENT_OFF', 'FIXED_AMOUNT_OFF', 'FREE_SHIPPING', 'BOGO'] },
-                value: { 
+                value: {
                   description: 'Action value - can be number or boolean',
                   anyOf: [
-                    { type: 'number' }, 
+                    { type: 'number' },
                     { type: 'boolean' }
                   ]
                 }
@@ -585,7 +586,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
     try {
       const { id } = request.params;
       const body = request.body || {};
-      
+
       // Validate ID format
       if (!id || id.trim() === '' || !/^\d+$/.test(id)) {
         const errorResponse = {
@@ -596,7 +597,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
         };
         return reply.code(400).send(errorResponse);
       }
-      
+
       // Validate fields if provided
       if (body.name !== undefined && (!body.name || body.name.trim().length === 0)) {
         const errorResponse = {
@@ -607,9 +608,9 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
         };
         return reply.code(400).send(errorResponse);
       }
-      
+
       const promotion = await promotionsController.promotionsService.update(id, body);
-      
+
       const response = {
         success: true,
         message: 'Promotion updated successfully',
@@ -618,7 +619,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
       return reply.code(200).send(response);
     } catch (error: any) {
       console.log('=== PROMOTION UPDATE ERROR:', error.message);
-      
+
       if (error.message.includes('not found')) {
         const errorResponse = {
           success: false,
@@ -628,7 +629,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
         };
         return reply.code(404).send(errorResponse);
       }
-      
+
       if (error.message.includes('Validation failed') || error.message.includes('validation')) {
         const errorResponse = {
           success: false,
@@ -638,7 +639,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
         };
         return reply.code(400).send(errorResponse);
       }
-      
+
       // Default error response
       const errorResponse = {
         success: false,
@@ -703,7 +704,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
   }, async (request: any, reply: any) => {
     try {
       const { id } = request.params;
-      
+
       // Validate ID format
       if (!id || id.trim() === '' || !/^\d+$/.test(id)) {
         const errorResponse = {
@@ -714,9 +715,9 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
         };
         return reply.code(400).send(errorResponse);
       }
-      
+
       await promotionsController.promotionsService.delete(id);
-      
+
       const response = {
         success: true,
         message: 'Promotion deleted successfully',
@@ -725,7 +726,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
       return reply.code(200).send(response);
     } catch (error: any) {
       console.log('=== PROMOTION DELETE ERROR:', error.message);
-      
+
       if (error.message.includes('not found')) {
         const errorResponse = {
           success: false,
@@ -735,7 +736,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
         };
         return reply.code(404).send(errorResponse);
       }
-      
+
       // Default error response
       const errorResponse = {
         success: false,
@@ -1098,10 +1099,10 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
               required: ['productId', 'qty', 'category', 'price']
             }
           },
-          mode: { 
-            type: 'string', 
-            enum: ['phonepe', 'cod'], 
-            description: 'Payment mode' 
+          mode: {
+            type: 'string',
+            enum: ['phonepe', 'cod'],
+            description: 'Payment mode'
           }
         },
         required: ['userId', 'cartItems', 'mode']
@@ -1126,10 +1127,10 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                     priority: { type: 'number' },
                     start_date: { type: 'integer' },
                     end_date: { type: 'integer' },
-                    promotionState: { 
-                      type: 'string', 
-                      enum: ['available', 'applied'], 
-                      description: 'State of promotion - available to apply or already applied' 
+                    promotionState: {
+                      type: 'string',
+                      enum: ['available', 'applied'],
+                      description: 'State of promotion - available to apply or already applied'
                     },
                     evaluation_id: { type: 'string', description: 'Evaluation ID for remove operations (present if promotionState is applied)' },
                     applied_discount: { type: 'number', description: 'Applied discount amount (present if promotionState is applied)' },
@@ -1223,16 +1224,16 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                       priority: { type: 'number' },
                       start_date: { type: 'integer' },
                       end_date: { type: 'integer' },
-                      promotionState: { 
-                        type: 'string', 
-                        enum: ['available', 'applied'], 
-                        description: 'State of promotion - available to apply or already applied' 
+                      promotionState: {
+                        type: 'string',
+                        enum: ['available', 'applied'],
+                        description: 'State of promotion - available to apply or already applied'
                       },
                       evaluation_id: { type: 'string', description: 'Evaluation ID for remove operations (present if promotionState is applied)' },
                       applied_discount: { type: 'number', description: 'Applied discount amount (present if promotionState is applied)' },
-                      action: { 
-                        type: 'object', 
-                        nullable: true, 
+                      action: {
+                        type: 'object',
+                        nullable: true,
                         description: 'Promotion action object',
                         properties: {
                           type: { type: 'string' },
@@ -1285,9 +1286,9 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                       priority: { type: 'number' },
                       start_date: { type: 'integer' },
                       end_date: { type: 'integer' },
-                      action: { 
-                        type: 'object', 
-                        nullable: true, 
+                      action: {
+                        type: 'object',
+                        nullable: true,
                         description: 'Promotion action object',
                         properties: {
                           type: { type: 'string' },
@@ -1347,7 +1348,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                           is_auto: { type: 'boolean', description: 'Whether promotion was auto-applied' },
                           is_free_shipping: { type: 'boolean' },
                           is_stacked: { type: 'boolean', nullable: true, description: 'Whether promotion can stack with others' },
-                          
+
                           // BOGO-specific details
                           bogo_details: {
                             type: 'object',
@@ -1356,15 +1357,15 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                             properties: {
                               buy_quantity: { type: 'number', description: 'How many items to buy' },
                               get_quantity: { type: 'number', description: 'How many items to get free' },
-                              affected_products: { 
-                                type: 'array', 
-                                items: { type: 'string' }, 
-                                description: 'Product IDs that got BOGO applied' 
+                              affected_products: {
+                                type: 'array',
+                                items: { type: 'string' },
+                                description: 'Product IDs that got BOGO applied'
                               },
                               free_items_count: { type: 'number', description: 'Total free items granted' }
                             }
                           },
-                          
+
                           // FREE_PRODUCT-specific details
                           free_product_details: {
                             type: 'object',
@@ -1376,7 +1377,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                               granted_items_count: { type: 'number', description: 'Number of free items actually granted' }
                             }
                           },
-                          
+
                           // Backward compatibility fields
                           breakdown: { type: 'object', nullable: true },
                           is_shipping_discount: { type: 'boolean', nullable: true },
@@ -1494,7 +1495,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                       is_auto: { type: 'boolean' },
                       is_free_shipping: { type: 'boolean', description: 'True if this is a free shipping promotion' },
                       is_stacked: { type: 'boolean', description: 'True if this promotion can stack with others' },
-                      
+
                       // BOGO-specific details
                       bogo_details: {
                         type: 'object',
@@ -1503,15 +1504,15 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                         properties: {
                           buy_quantity: { type: 'number', description: 'How many items to buy' },
                           get_quantity: { type: 'number', description: 'How many items to get free' },
-                          affected_products: { 
-                            type: 'array', 
-                            items: { type: 'string' }, 
-                            description: 'Product IDs that got BOGO applied' 
+                          affected_products: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            description: 'Product IDs that got BOGO applied'
                           },
                           free_items_count: { type: 'number', description: 'Total free items granted' }
                         }
                       },
-                      
+
                       // FREE_PRODUCT-specific details
                       free_product_details: {
                         type: 'object',
@@ -1523,7 +1524,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                           granted_items_count: { type: 'number', description: 'Number of free items actually granted' }
                         }
                       },
-                      
+
                       // Backward compatibility fields
                       breakdown: { type: 'object', nullable: true },
                       is_shipping_discount: { type: 'boolean', nullable: true },
@@ -1568,9 +1569,9 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
       querystring: {
         type: 'object',
         properties: {
-          user_id: { 
-            type: 'string', 
-            description: 'User ID to get evaluations for' 
+          user_id: {
+            type: 'string',
+            description: 'User ID to get evaluations for'
           }
         },
         required: ['user_id'],
@@ -1595,7 +1596,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                       promotion_id: { type: 'number' },
                       original_total: { type: 'number' },
                       discounted_total: { type: 'number' },
-                      applied_promotions: { 
+                      applied_promotions: {
                         type: 'array',
                         items: {
                           type: 'object',
@@ -1648,12 +1649,12 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
           user_id: { type: 'string', description: 'User ID (required for all operations)' },
           promotion_id: { type: 'number', description: 'Promotion ID to evaluate or apply' },
           code: { type: 'string', description: 'Promotion code to evaluate (optional if promotion_id provided)' },
-          application_type: { 
-            type: 'string', 
-            enum: ['manual_coupon', 'stackable_promotion', 'preview_only'], 
+          application_type: {
+            type: 'string',
+            enum: ['manual_coupon', 'stackable_promotion', 'preview_only'],
             description: 'Type of promotion application - manual_coupon: apply exclusive discount to evaluation, stackable_promotion: add stackable benefit to evaluation, preview_only: calculate preview without saving'
           },
-          
+
           // Optional fields
           evaluation_id: { type: 'string', description: 'Existing evaluation ID (optional - backend will auto-detect if not provided)' },
           cart_items: {
@@ -1721,7 +1722,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                 original_total: { type: 'number', nullable: true },
                 discounted_total: { type: 'number', nullable: true },
                 total_discount: { type: 'number', nullable: true },
-                discount_breakdown: { 
+                discount_breakdown: {
                   type: 'array',
                   items: {
                     type: 'object',
@@ -1739,7 +1740,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                     additionalProperties: true
                   }
                 },
-                applied_promotions: { 
+                applied_promotions: {
                   type: 'array',
                   items: {
                     type: 'object',
@@ -1751,7 +1752,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                       is_free_shipping: { type: 'boolean' },
                       discount_amount: { type: 'number', nullable: true },
                       is_stacked: { type: 'boolean', nullable: true, description: 'True if this promotion can stack with others' },
-                      
+
                       // BOGO-specific details
                       bogo_details: {
                         type: 'object',
@@ -1760,15 +1761,15 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                         properties: {
                           buy_quantity: { type: 'number', description: 'How many items to buy' },
                           get_quantity: { type: 'number', description: 'How many items to get free' },
-                          affected_products: { 
-                            type: 'array', 
-                            items: { type: 'string' }, 
-                            description: 'Product IDs that got BOGO applied' 
+                          affected_products: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            description: 'Product IDs that got BOGO applied'
                           },
                           free_items_count: { type: 'number', description: 'Total free items granted' }
                         }
                       },
-                      
+
                       // FREE_PRODUCT-specific details
                       free_product_details: {
                         type: 'object',
@@ -1780,7 +1781,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                           granted_items_count: { type: 'number', description: 'Number of free items actually granted' }
                         }
                       },
-                      
+
                       // Backward compatibility fields
                       breakdown: { type: 'object', nullable: true },
                       is_shipping_discount: { type: 'boolean', nullable: true },

@@ -1,15 +1,15 @@
 import { PrismaClient } from '@prisma/client';
-import { 
-  CreatePromotionsInput, 
+import {
+  CreatePromotionsInput,
   UpdatePromotionsInput
 } from '../schemas/promotions.schema.js';
 import { PaginationResult, createPaginationResult, getPrismaSkipTake } from '../utils/pagination.js';
 import { FilterOptions } from '../utils/filterBuilder.js';
-import { 
+import {
   dynamicFindManyWithFilters,
-  dynamicFindUnique, 
-  dynamicCreate, 
-  dynamicUpdate, 
+  dynamicFindUnique,
+  dynamicCreate,
+  dynamicUpdate,
   dynamicDelete
 } from '../utils/dynamicDbOperations.js';
 import { getTimezoneFromGeo } from '../utils/geoUtils.js';
@@ -43,8 +43,8 @@ export class PromotionsService {
       }
 
       // Parse applied promotions and filter for auto-applied ones
-      const appliedPromotions = Array.isArray(activeEvaluation.applied_promotions) 
-        ? activeEvaluation.applied_promotions 
+      const appliedPromotions = Array.isArray(activeEvaluation.applied_promotions)
+        ? activeEvaluation.applied_promotions
         : JSON.parse(activeEvaluation.applied_promotions as string);
 
       const autoAppliedPromotions = appliedPromotions.filter((promo: any) => promo.is_auto === true);
@@ -66,10 +66,10 @@ export class PromotionsService {
   // Helper function to convert date string to Unix timestamp
   private convertDateToUnixTimestamp(dateString: string): number {
     if (!dateString) return 0;
-    
+
     // If it's already a number, return it
     if (typeof dateString === 'number') return dateString;
-    
+
     // Convert date string to Unix timestamp (seconds since epoch)
     const date = new Date(dateString);
     return Math.floor(date.getTime() / 1000);
@@ -78,10 +78,10 @@ export class PromotionsService {
   // Helper function to convert Unix timestamp to readable date string
   private convertUnixTimestampToDateString(timestamp: number | string | null): string | null {
     if (!timestamp) return null;
-    
+
     const numTimestamp = typeof timestamp === 'string' ? parseInt(timestamp) : timestamp;
     if (isNaN(numTimestamp)) return null;
-    
+
     // Convert Unix timestamp to ISO string
     return new Date(numTimestamp * 1000).toISOString();
   }
@@ -89,10 +89,10 @@ export class PromotionsService {
   // Helper function to convert Unix timestamp to Date object
   private convertUnixTimestampToDate(timestamp: number | string | null): Date | null {
     if (!timestamp) return null;
-    
+
     const numTimestamp = typeof timestamp === 'string' ? parseInt(timestamp) : timestamp;
     if (isNaN(numTimestamp)) return null;
-    
+
     return new Date(numTimestamp * 1000);
   }
 
@@ -161,7 +161,7 @@ export class PromotionsService {
 
     return transformed;
   }
-  
+
   // Get public promotions for guest users
   async getPublicPromotions(options: { channel: string; geo: string; limit: number }): Promise<any[]> {
     try {
@@ -196,13 +196,13 @@ export class PromotionsService {
           const now = new Date();
           const startDate = this.convertUnixTimestampToDate(promo.start_date);
           const endDate = this.convertUnixTimestampToDate(promo.end_date);
-          
+
           // Date filtering for active promotions
-          
+
           // Check if promotion is currently active
           if (startDate && startDate > now) return false;
           if (endDate && endDate < now) return false;
-          
+
           return true;
         })
         .map((promo: any) => ({
@@ -226,7 +226,7 @@ export class PromotionsService {
           return (b.discount_value || 0) - (a.discount_value || 0);
         });
 
-      logger.info({ 
+      logger.info({
         totalPromotions: promotions.length,
         publicPromotions: publicPromotions.length,
         channel: options.channel,
@@ -252,14 +252,14 @@ export class PromotionsService {
       logger.info({ options }, 'Getting personalized promotions for identified user');
 
       const currentDate = options.currentDate || new Date().toISOString();
-      
+
       // Convert geo code to timezone
       const timezone = getTimezoneFromGeo(options.geo);
       logger.info({ geo: options.geo, timezone }, 'Geo to timezone mapping');
-      
+
       // Get user segments for personalized targeting
       const userSegments = await this.getUserSegments(options.userId);
-      
+
       // Build filters with date constraints
       const filters: FilterOptions = {
         status: 'active',
@@ -293,7 +293,7 @@ export class PromotionsService {
           return (a.priority || 999) - (b.priority || 999);
         });
 
-      logger.info({ 
+      logger.info({
         userId: options.userId,
         totalPromotions: promotions.length,
         personalizedPromotions: personalizedPromotions.length,
@@ -325,12 +325,12 @@ export class PromotionsService {
       }
 
       const segments: string[] = ['authenticated_user'];
-      
+
       // Check if new user (created within configured days)
       const daysSinceCreation = Math.floor(
         (Date.now() - Number(user.createddate)) / (1000 * 60 * 60 * 24)
       );
-      
+
       if (daysSinceCreation <= USER_SEGMENT_CONFIG.NEW_USER_DAYS) {
         segments.push('new_user');
       }
@@ -355,10 +355,10 @@ export class PromotionsService {
     const now = new Date();
     const startDate = this.convertUnixTimestampToDate(promotion.start_date);
     const endDate = this.convertUnixTimestampToDate(promotion.end_date);
-    
+
     if (startDate && startDate > now) return false;
     if (endDate && endDate < now) return false;
-    
+
     return true;
   }
 
@@ -370,7 +370,7 @@ export class PromotionsService {
       return true;
     }
 
-    const conditions = Array.isArray(promotion.conditions) ? 
+    const conditions = Array.isArray(promotion.conditions) ?
       promotion.conditions : JSON.parse(promotion.conditions);
 
     return conditions.every((condition: any) => {
@@ -383,13 +383,13 @@ export class PromotionsService {
     switch (condition.attribute) {
       case 'user.segment':
         return condition.value.some((segment: string) => userSegments.includes(segment));
-      
+
       case 'user.created_date':
         return true; // Simplified for now
-      
+
       case 'user.order_count':
         return true; // Simplified for now
-      
+
       default:
         return true;
     }
@@ -405,15 +405,15 @@ export class PromotionsService {
       logger.info({ filters, page, limit, adminMode }, 'Starting dynamic promotions findMany with filters');
 
       // Handle userid filtering for personalized promotions
-      const { userid, channel = 'web', geo = 'IN', current_date, ...otherFilters } = filters;
-      
+      const { userid, channel = 'web', geo = 'IN', current_date, search, ...otherFilters } = filters;
+
       // Convert geo code to timezone
       const geoString = Array.isArray(geo) ? (geo[0] || 'IN') : (geo || 'IN');
       const timezone = getTimezoneFromGeo(geoString);
-      
+
       let baseFilters: FilterOptions;
-      
-      if (adminMode && Object.keys(otherFilters).length === 0) {
+
+      if (adminMode && Object.keys(otherFilters).length === 0 && !search) {
         // Admin mode with no filters - get ALL promotions
         logger.info('Admin mode: Getting all promotions without default filters');
         baseFilters = {};
@@ -424,6 +424,24 @@ export class PromotionsService {
           timezone: timezone,
           ...otherFilters
         };
+      }
+
+      // Add search functionality - search across name, type, code, status
+      // Handle search separately with Prisma to avoid FilterOptions type issues
+      let searchWhere: any = null;
+      if (search) {
+        const searchText = Array.isArray(search) ? search[0] : search;
+        if (searchText && searchText.trim()) {
+          logger.info({ searchText: searchText.trim() }, 'Searching promotions with text');
+          searchWhere = {
+            OR: [
+              { name: { contains: searchText.trim(), mode: 'insensitive' } },
+              { type: { contains: searchText.trim(), mode: 'insensitive' } },
+              { code: { contains: searchText.trim(), mode: 'insensitive' } },
+              { status: { contains: searchText.trim(), mode: 'insensitive' } }
+            ]
+          };
+        }
       }
 
       // Add date filtering if current_date provided
@@ -440,10 +458,43 @@ export class PromotionsService {
       let finalPromotions: any[] = [];
       let total = 0;
 
-      if (adminMode && Object.keys(otherFilters).length === 0) {
+      // Handle search with Prisma directly
+      if (searchWhere) {
+        // Apply base filters to search where clause
+        if (!adminMode) {
+          searchWhere.status = 'active';
+          searchWhere.timezone = timezone;
+        }
+
+        // Apply other filters
+        Object.keys(otherFilters).forEach(key => {
+          if (otherFilters[key] !== undefined) {
+            searchWhere[key] = otherFilters[key];
+          }
+        });
+
+        const [promotions, promotionTotal] = await Promise.all([
+          this.prisma.promotions.findMany({
+            where: searchWhere,
+            skip: (page - 1) * limit,
+            take: limit,
+            orderBy: { modifieddate: 'desc' }
+          }),
+          this.prisma.promotions.count({ where: searchWhere })
+        ]);
+
+        finalPromotions = promotions.map((promo: any) => this.formatPromotionForDisplay(promo));
+        total = promotionTotal;
+
+        logger.info({
+          search,
+          totalPromotions: promotionTotal,
+          returnedPromotions: finalPromotions.length
+        }, 'Search promotions completed');
+      } else if (adminMode && Object.keys(otherFilters).length === 0 && !search) {
         // Admin mode with no filters - get ALL promotions
         logger.info('Admin mode: Getting all promotions for admin portal');
-        
+
         const { data: allPromotions, total: promotionTotal } = await dynamicFindManyWithFilters('promotions', baseFilters, {
           skip: (page - 1) * limit,
           take: limit,
@@ -464,8 +515,8 @@ export class PromotionsService {
           });
 
         total = promotionTotal;
-        
-        logger.info({ 
+
+        logger.info({
           totalPromotions: promotionTotal,
           returnedPromotions: finalPromotions.length,
           adminMode: true
@@ -473,11 +524,11 @@ export class PromotionsService {
       } else if (userid) {
         // Identified user - get personalized promotions
         logger.info({ userid }, 'Getting personalized promotions for identified user');
-        
+
         // Get user segments for personalization
         const userIdString = Array.isArray(userid) ? (userid[0] || '') : (userid || '');
         const userSegments = await this.getUserSegments(userIdString);
-        
+
         // Get all active promotions (both public and private)
         const { data: allPromotions } = await dynamicFindManyWithFilters('promotions', baseFilters, {
           skip: 0,
@@ -499,8 +550,8 @@ export class PromotionsService {
 
         finalPromotions = personalizedPromotions.slice(0, limit);
         total = personalizedPromotions.length;
-        
-        logger.info({ 
+
+        logger.info({
           userid,
           totalPromotions: allPromotions.length,
           personalizedPromotions: finalPromotions.length,
@@ -509,7 +560,7 @@ export class PromotionsService {
       } else {
         // Guest user - get ONLY public promotions
         logger.info('Getting public promotions for guest user');
-        
+
         const publicFilters: FilterOptions = {
           ...baseFilters,
           visibility: 'public'
@@ -534,8 +585,8 @@ export class PromotionsService {
           });
 
         total = finalPromotions.length;
-        
-        logger.info({ 
+
+        logger.info({
           totalPromotions: promotions.length,
           publicPromotions: finalPromotions.length,
           channel,
@@ -544,7 +595,7 @@ export class PromotionsService {
       }
 
       logger.info({
-        promotionsCount: finalPromotions.length, 
+        promotionsCount: finalPromotions.length,
         total,
         filtered: Object.keys(filters).length > 0,
         appliedFilters: Object.keys(filters),
@@ -567,9 +618,9 @@ export class PromotionsService {
         throw new Error('Promotion not found');
       }
 
-      logger.debug({ 
-        promotionId: id, 
-        availableFields: Object.keys(promotion) 
+      logger.debug({
+        promotionId: id,
+        availableFields: Object.keys(promotion)
       }, 'Dynamic promotion findById completed');
 
       return promotion;
@@ -599,9 +650,9 @@ export class PromotionsService {
         throw new Error('Failed to create promotion - no valid fields provided');
       }
 
-      logger.info({ 
-        promotionId: promotion.id, 
-        availableFields: Object.keys(promotion) 
+      logger.info({
+        promotionId: promotion.id,
+        availableFields: Object.keys(promotion)
       }, 'Dynamic promotion create completed');
 
       return promotion;
@@ -630,9 +681,9 @@ export class PromotionsService {
         throw new Error('Promotion not found or update failed');
       }
 
-      logger.info({ 
-        promotionId: id, 
-        availableFields: Object.keys(promotion) 
+      logger.info({
+        promotionId: id,
+        availableFields: Object.keys(promotion)
       }, 'Dynamic promotion update completed');
 
       return promotion;
@@ -734,14 +785,14 @@ export class PromotionsService {
             totalItemDiscount += itemDiscount;
           }
         }
-        
+
         // Apply max_discount cap at promotion level (not per item)
         if (promotion.action && promotion.action.max_discount) {
           discountAmount = Math.min(totalItemDiscount, promotion.action.max_discount);
         } else {
           discountAmount = totalItemDiscount;
         }
-        
+
         discountPercentage = discountValue;
         savingsAmount = discountAmount;
         break;
@@ -783,7 +834,7 @@ export class PromotionsService {
     if (!promotion.conditions) return true;
 
     try {
-      const conditions = Array.isArray(promotion.conditions) ? 
+      const conditions = Array.isArray(promotion.conditions) ?
         promotion.conditions : JSON.parse(promotion.conditions);
 
       for (const condition of conditions) {
@@ -795,7 +846,7 @@ export class PromotionsService {
               }
             }
             break;
-          
+
           case 'cart.category':
             if (condition.operator === 'IN') {
               if (!condition.value.includes(item.category)) {
@@ -826,9 +877,9 @@ export class PromotionsService {
   // Helper methods for condition evaluation
   private evaluateNumericCondition(condition: any, value: number): boolean {
     // Convert condition value to number if it's a string
-    const conditionValue = typeof condition.value === 'string' ? 
+    const conditionValue = typeof condition.value === 'string' ?
       parseFloat(condition.value) : condition.value;
-    
+
     if (isNaN(conditionValue)) {
       logger.warn({ condition, value }, 'Invalid numeric condition value');
       return false;
@@ -840,7 +891,7 @@ export class PromotionsService {
       case 'EQ': return value === conditionValue;
       case 'GT': return value > conditionValue;
       case 'LT': return value < conditionValue;
-      default: 
+      default:
         logger.warn({ operator: condition.operator }, 'Unknown numeric condition operator');
         return false;
     }
@@ -849,13 +900,13 @@ export class PromotionsService {
   private evaluateDateCondition(condition: any, date: Date): boolean {
     try {
       const { operator, value, comparison, compare_with } = condition;
-      
+
       switch (operator) {
         case 'DATE_ADD_DAYS':
           // Handle DATE_ADD_DAYS: Add specified days to user's created date
           const targetDate = new Date(date.getTime() + (value * 24 * 60 * 60 * 1000));
           const currentDate = new Date();
-          
+
           switch (comparison) {
             case 'GTE': // Greater than or equal
               return currentDate >= targetDate;
@@ -871,11 +922,11 @@ export class PromotionsService {
               logger.warn({ operator, comparison }, 'Unknown date comparison operator');
               return false;
           }
-          
+
         case 'DATE_SUBTRACT_DAYS':
           // Handle DATE_SUBTRACT_DAYS: Subtract specified days from current date
           const referenceDate = new Date(Date.now() - (value * 24 * 60 * 60 * 1000));
-          
+
           switch (comparison) {
             case 'GTE': // User created date >= reference date (user is newer than X days ago)
               return date >= referenceDate;
@@ -891,7 +942,7 @@ export class PromotionsService {
               logger.warn({ operator, comparison }, 'Unknown date comparison operator');
               return false;
           }
-          
+
         case 'GTE':
         case 'GT':
         case 'LTE':
@@ -903,7 +954,7 @@ export class PromotionsService {
             logger.warn({ value }, 'Invalid date value for comparison');
             return false;
           }
-          
+
           switch (operator) {
             case 'GTE':
               return date >= compareDate;
@@ -918,7 +969,7 @@ export class PromotionsService {
             default:
               return false;
           }
-          
+
         default:
           logger.warn({ operator }, 'Unknown date condition operator');
           return false;
@@ -1001,20 +1052,20 @@ export class PromotionsService {
 
     let alreadyAppliedPromotionIds: number[] = [];
     let appliedPromotionDetails: any[] = [];
-    
+
     if (activeEvaluation?.applied_promotions) {
-      const appliedPromotions = Array.isArray(activeEvaluation.applied_promotions) 
-        ? activeEvaluation.applied_promotions 
+      const appliedPromotions = Array.isArray(activeEvaluation.applied_promotions)
+        ? activeEvaluation.applied_promotions
         : JSON.parse(activeEvaluation.applied_promotions as string);
-      
+
       alreadyAppliedPromotionIds = appliedPromotions.map((p: any) => p.promotion_id);
       appliedPromotionDetails = appliedPromotions;
     }
     try {
-      logger.info({ 
-        userId: request.userId, 
-        cartItemsCount: request.cartItems.length, 
-        mode: request.mode 
+      logger.info({
+        userId: request.userId,
+        cartItemsCount: request.cartItems.length,
+        mode: request.mode
       }, 'Getting eligible and ineligible promotions');
 
       // Calculate cart totals
@@ -1022,10 +1073,10 @@ export class PromotionsService {
       const categories = [...new Set(request.cartItems.map(item => item.category).filter(Boolean))];
       const itemCount = request.cartItems.reduce((sum, item) => sum + item.qty, 0);
 
-      logger.info({ 
-        cartTotal, 
-        categories, 
-        itemCount 
+      logger.info({
+        cartTotal,
+        categories,
+        itemCount
       }, 'Cart analysis completed');
 
       // Get all active promotions
@@ -1038,7 +1089,7 @@ export class PromotionsService {
         take: 100, // Get more promotions to evaluate
         useAllColumns: true
       });
-logger.info(allPromotions,"allPromotions")
+      logger.info(allPromotions, "allPromotions")
       logger.info({ totalPromotions: allPromotions.length }, 'Retrieved active promotions');
 
       // Evaluate each promotion against the cart
@@ -1051,7 +1102,7 @@ logger.info(allPromotions,"allPromotions")
           // Check if promotion is currently active
           const startDate = this.convertUnixTimestampToDate(promotion.start_date);
           const endDate = this.convertUnixTimestampToDate(promotion.end_date);
-          
+
           if (startDate && startDate > now) {
             const promotionData = this.formatPromotionForDisplay(promotion);
             ineligibleCoupons.push({
@@ -1065,7 +1116,7 @@ logger.info(allPromotions,"allPromotions")
             });
             continue;
           }
-          
+
           if (endDate && endDate < now) {
             const promotionData = this.formatPromotionForDisplay(promotion);
             ineligibleCoupons.push({
@@ -1099,7 +1150,7 @@ logger.info(allPromotions,"allPromotions")
 
           // Check if promotion is already applied
           const isAlreadyApplied = alreadyAppliedPromotionIds.includes(promotion.id);
-          
+
           if (isAlreadyApplied) {
             // Skip already applied promotions from regular categorization
             // They will be handled separately in the response
@@ -1132,7 +1183,7 @@ logger.info(allPromotions,"allPromotions")
 
           // FREE_PRODUCT promotions are eligible even with 0 discount (they provide free gifts)
           const isFreeProduct = promotion.type === 'FREE_PRODUCT';
-          
+
           if (discountInfo.discountAmount > 0 || isFreeProduct) {
             const promotionData = this.formatPromotionForDisplay(promotion);
             eligibleCoupons.push({
@@ -1195,14 +1246,14 @@ logger.info(allPromotions,"allPromotions")
 
       // Get auto-applied promotions from user's active evaluation record (not live calculation)
       const autoAppliedFromEvaluation = await this.getAutoAppliedPromotionsFromEvaluation(request.userId);
-      
+
       // Fetch full promotion details for auto-applied promotions
       const autoAppliedPromotions = [];
       for (const evalPromo of autoAppliedFromEvaluation) {
         try {
           // Get full promotion details from database
           const fullPromotion = await this.findById(evalPromo.promotion_id.toString());
-          
+
           if (fullPromotion) {
             const promotionData = this.formatPromotionForDisplay(fullPromotion);
             autoAppliedPromotions.push({
@@ -1230,20 +1281,20 @@ logger.info(allPromotions,"allPromotions")
       }
 
       const autoAppliedIds = autoAppliedPromotions.map(promo => promo.promotion_id);
-      
+
       // Remove auto-applied promotions from eligible coupons (they shouldn't be offered as choices)
       // Also remove any promotions that are already applied in the evaluation
-      const manualEligibleCoupons = eligibleCoupons.filter(promo => 
+      const manualEligibleCoupons = eligibleCoupons.filter(promo =>
         promo.auto_apply !== true && !autoAppliedIds.includes(promo.id)
       );
-      
+
       // Get the best coupon from manual coupons only (auto-applied are already applied)
       // const bestCoupon = manualEligibleCoupons.length > 0 ? manualEligibleCoupons[0] : null;
       // ✅ FIXED: Create separate lists for UI that include applied promotions with proper states
-      
+
       // For bestCoupon: Include all eligible promotions (including applied ones) with state indicators
       const allEligibleForUI = [...manualEligibleCoupons];
-      
+
       // Add applied promotions back with 'applied' state for UI
       if (activeEvaluation && appliedPromotionDetails.length > 0) {
         for (const appliedPromo of appliedPromotionDetails) {
@@ -1268,26 +1319,26 @@ logger.info(allPromotions,"allPromotions")
         // For applied promotions, use applied_discount; for available ones, use potential discount
         const aDiscount = a.applied_discount || a.discountInfo?.discountAmount || 0;
         const bDiscount = b.applied_discount || b.discountInfo?.discountAmount || 0;
-        
+
         // Primary sort: by actual discount amount (higher discount = better)
         if (aDiscount !== bDiscount) {
           return bDiscount - aDiscount;
         }
-        
+
         // Secondary sort: by priority (lower number = higher priority)
         return (a.priority || 999) - (b.priority || 999);
       });
-      
+
       const bestCoupon = allEligibleForUI.length > 0 ? allEligibleForUI[0] : null;
 
-        // Stackable promotions that user can ADD (exclude auto-applied ones)
-        // const stackablePromotions = manualEligibleCoupons.filter(promo => 
+      // Stackable promotions that user can ADD (exclude auto-applied ones)
+      // const stackablePromotions = manualEligibleCoupons.filter(promo => 
       // For stackablePromotions: Include stackable promotions (both available and applied)
-      const stackablePromotions = allEligibleForUI.filter(promo => 
+      const stackablePromotions = allEligibleForUI.filter(promo =>
         promo.stackable === true
       );
 
-      logger.info({ 
+      logger.info({
         totalEligibleCount: eligibleCoupons.length,
         manualEligibleCount: manualEligibleCoupons.length,
         autoAppliedCount: autoAppliedPromotions.length,
@@ -1328,11 +1379,11 @@ logger.info(allPromotions,"allPromotions")
   }
 
   // Check user eligibility for eligible promotions (with detailed reasons)
-  private async checkUserEligibilityForEligible(promotion: any, userId: string): Promise<{isEligible: boolean, reason: string}> {
+  private async checkUserEligibilityForEligible(promotion: any, userId: string): Promise<{ isEligible: boolean, reason: string }> {
     if (!promotion.conditions) return { isEligible: true, reason: '' };
 
     try {
-      const conditions = Array.isArray(promotion.conditions) ? 
+      const conditions = Array.isArray(promotion.conditions) ?
         promotion.conditions : JSON.parse(promotion.conditions);
 
       for (const condition of conditions) {
@@ -1385,11 +1436,11 @@ logger.info(allPromotions,"allPromotions")
     categories: string[];
     itemCount: number;
     items: Array<{ productId: string; qty: number; category: string; price: number }>;
-  }): {isEligible: boolean, reason: string} {
+  }): { isEligible: boolean, reason: string } {
     if (!promotion.conditions) return { isEligible: true, reason: '' };
 
     try {
-      const conditions = Array.isArray(promotion.conditions) ? 
+      const conditions = Array.isArray(promotion.conditions) ?
         promotion.conditions : JSON.parse(promotion.conditions);
 
       for (const condition of conditions) {
@@ -1425,7 +1476,7 @@ logger.info(allPromotions,"allPromotions")
             // Handle cart.items.category condition for individual item category matching
             if (condition.operator === 'IN') {
               // Check if any cart item has a category that matches the condition values
-              const hasMatchingCategory = cartInfo.items.some(item => 
+              const hasMatchingCategory = cartInfo.items.some(item =>
                 condition.value.includes(item.category)
               );
               if (!hasMatchingCategory) {
