@@ -70,9 +70,9 @@ export class EkartAuthService {
       // Correct endpoint format: /integrations/v2/auth/token/{client_id}
       // Reference: https://app.elite.ekartlogistics.in/api/docs#operation/get_access_token_v2
       const authUrl = `https://app.elite.ekartlogistics.in/integrations/v2/auth/token/${this.clientId}`;
-      
-      logger.info({ 
-        authUrl, 
+
+      logger.info({
+        authUrl,
         clientId: this.clientId
       }, 'Attempting authentication with official endpoint...');
 
@@ -156,6 +156,7 @@ export class EkartAuthService {
       (this.tokenCache.expires_at - this.bufferTime) > now
     ) {
       logger.debug('Using cached Ekart token');
+      logger.debug(this.tokenCache.access_token, 'Using cached Ekart token');
       return this.tokenCache.access_token;
     }
 
@@ -178,6 +179,8 @@ export class EkartAuthService {
    */
   async getAuthHeader(): Promise<string> {
     const token = await this.getValidToken();
+    logger.debug(token, 'Using cached Ekart token');
+    logger.debug(this.tokenCache.token_type, 'Using cached Ekart token type');
     return `${this.tokenCache.token_type} ${token}`;
   }
 

@@ -39,11 +39,11 @@ export function createErrorResponse(
     message: message || 'An error occurred',
     statusCode: statusCode || 500,
   };
-  
+
   if (details !== undefined && details !== null && details !== '') {
     response.details = details;
   }
-  
+
   return response;
 }
 
@@ -107,14 +107,14 @@ export class InvalidFieldError extends Error {
 // Enhanced function to parse Prisma errors with field-specific messages
 function parsePrismaError(error: any, requestBody?: any): { message: string; details: string; statusCode: number } {
   const errorCode = error.code;
-  
+
   switch (errorCode) {
     case 'P2002': {
       // Unique constraint violation
       const target = error.meta?.target;
       let fieldName = 'field';
       let fieldValue = 'value';
-      
+
       if (Array.isArray(target) && target.length > 0) {
         fieldName = target[0];
         // Try to get the actual value from request body
@@ -122,14 +122,14 @@ function parsePrismaError(error: any, requestBody?: any): { message: string; det
           fieldValue = requestBody[fieldName];
         }
       }
-      
+
       return {
         message: `The ${fieldName} '${fieldValue}' already exists. Please use a unique value.`,
         details: `Duplicate entry detected for field: ${fieldName}`,
         statusCode: 400
       };
     }
-    
+
     case 'P2025': {
       // Record not found
       return {
@@ -138,7 +138,7 @@ function parsePrismaError(error: any, requestBody?: any): { message: string; det
         statusCode: 404
       };
     }
-    
+
     case 'P2003': {
       // Foreign key constraint violation
       const fieldName = error.meta?.field_name || 'reference field';
@@ -148,7 +148,7 @@ function parsePrismaError(error: any, requestBody?: any): { message: string; det
         statusCode: 400
       };
     }
-    
+
     case 'P2011': {
       // Null constraint violation
       const fieldName = error.meta?.constraint || 'field';
@@ -158,7 +158,7 @@ function parsePrismaError(error: any, requestBody?: any): { message: string; det
         statusCode: 400
       };
     }
-    
+
     case 'P2012': {
       // Missing required value
       const fieldName = error.meta?.path || 'field';
@@ -168,11 +168,11 @@ function parsePrismaError(error: any, requestBody?: any): { message: string; det
         statusCode: 400
       };
     }
-    
+
     case 'P2010': {
       // Raw query failed - parse the underlying database error
       const rawMessage = error.meta?.message || error.message || '';
-      
+
       // Handle unique constraint from raw query
       if (rawMessage.includes('already exists')) {
         const keyMatch = rawMessage.match(/Key \(([^)]+)\)=\(([^)]*)\)/);
@@ -186,7 +186,7 @@ function parsePrismaError(error: any, requestBody?: any): { message: string; det
             statusCode: 400
           };
         }
-        
+
         // Fallback parsing for other unique constraint formats
         return {
           message: 'Duplicate entry detected',
@@ -194,23 +194,23 @@ function parsePrismaError(error: any, requestBody?: any): { message: string; det
           statusCode: 400
         };
       }
-      
+
       // Handle foreign key constraint violations
       if (rawMessage.includes('violates foreign key constraint')) {
         const constraintMatch = rawMessage.match(/violates foreign key constraint "([^"]+)"/);
         const keyMatch = rawMessage.match(/Key \(([^)]+)\)=\(([^)]*)\)/);
-        
+
         const constraintName = constraintMatch ? constraintMatch[1] : 'foreign key';
         const fieldName = keyMatch ? keyMatch[1] : 'field';
         const fieldValue = keyMatch ? (keyMatch[2] || '(empty)') : 'unknown';
-        
+
         return {
           message: `Invalid ${fieldName} reference: ${fieldValue === '(empty)' ? 'empty value' : fieldValue}`,
           details: `The ${fieldName} value does not exist in the referenced table. Please provide a valid ${fieldName}.`,
           statusCode: 400
         };
       }
-      
+
       // Handle tsvector deserialization errors
       if (rawMessage.includes('Failed to deserialize column of type') && rawMessage.includes('tsvector')) {
         return {
@@ -219,24 +219,24 @@ function parsePrismaError(error: any, requestBody?: any): { message: string; det
           statusCode: 500
         };
       }
-      
+
       // Handle type mismatch errors
       if (rawMessage.includes('is of type') && rawMessage.includes('but expression is of type')) {
         const columnMatch = rawMessage.match(/column "([^"]+)"/);
         const expectedTypeMatch = rawMessage.match(/is of type (\w+)/);
         const actualTypeMatch = rawMessage.match(/expression is of type (\w+)/);
-        
+
         const column = columnMatch ? columnMatch[1] : 'field';
         const expectedType = expectedTypeMatch ? expectedTypeMatch[1] : 'expected type';
         const actualType = actualTypeMatch ? actualTypeMatch[1] : 'provided type';
-        
+
         return {
           message: `Invalid data type for ${column}`,
           details: `Field '${column}' expects ${expectedType} but received ${actualType}`,
           statusCode: 400
         };
       }
-      
+
       // Handle value too long errors
       if (rawMessage.includes('value too long for type')) {
         const match = rawMessage.match(/value too long for type character varying\((\d+)\)/);
@@ -247,7 +247,7 @@ function parsePrismaError(error: any, requestBody?: any): { message: string; det
           statusCode: 400
         };
       }
-      
+
       // Handle other constraint violations
       if (rawMessage.includes('violates')) {
         return {
@@ -256,7 +256,7 @@ function parsePrismaError(error: any, requestBody?: any): { message: string; det
           statusCode: 400
         };
       }
-      
+
       // Handle PostgreSQL custom constraint/trigger errors
       if (rawMessage.includes('Invalid')) {
         // Extract specific constraint message
@@ -270,7 +270,7 @@ function parsePrismaError(error: any, requestBody?: any): { message: string; det
             statusCode: 400
           };
         }
-        
+
         // Fallback for other "Invalid" messages
         return {
           message: rawMessage,
@@ -278,7 +278,7 @@ function parsePrismaError(error: any, requestBody?: any): { message: string; det
           statusCode: 400
         };
       }
-      
+
       // Fallback for P2010
       return {
         message: 'Database operation failed',
@@ -286,7 +286,7 @@ function parsePrismaError(error: any, requestBody?: any): { message: string; det
         statusCode: 400
       };
     }
-    
+
     case 'P2014': {
       // Required relation violation
       const relationName = error.meta?.relation_name || 'relation';
@@ -296,7 +296,7 @@ function parsePrismaError(error: any, requestBody?: any): { message: string; det
         statusCode: 400
       };
     }
-    
+
     case 'P2015': {
       // Related record not found
       const relationName = error.meta?.relation_name || 'related record';
@@ -306,7 +306,7 @@ function parsePrismaError(error: any, requestBody?: any): { message: string; det
         statusCode: 400
       };
     }
-    
+
     case 'P2016': {
       // Query interpretation error
       return {
@@ -315,7 +315,7 @@ function parsePrismaError(error: any, requestBody?: any): { message: string; det
         statusCode: 400
       };
     }
-    
+
     case 'P2017': {
       // Records not connected
       const relationName = error.meta?.relation_name || 'records';
@@ -325,7 +325,7 @@ function parsePrismaError(error: any, requestBody?: any): { message: string; det
         statusCode: 400
       };
     }
-    
+
     case 'P2018': {
       // Required connected records not found
       const relationName = error.meta?.relation_name || 'connected records';
@@ -335,7 +335,7 @@ function parsePrismaError(error: any, requestBody?: any): { message: string; det
         statusCode: 400
       };
     }
-    
+
     case 'P2019': {
       // Input error
       return {
@@ -344,7 +344,7 @@ function parsePrismaError(error: any, requestBody?: any): { message: string; det
         statusCode: 400
       };
     }
-    
+
     case 'P2020': {
       // Value out of range
       const fieldName = error.meta?.field_name || 'field';
@@ -354,7 +354,7 @@ function parsePrismaError(error: any, requestBody?: any): { message: string; det
         statusCode: 400
       };
     }
-    
+
     case 'P2021': {
       // Table does not exist
       const tableName = error.meta?.table || 'table';
@@ -364,7 +364,7 @@ function parsePrismaError(error: any, requestBody?: any): { message: string; det
         statusCode: 404
       };
     }
-    
+
     case 'P2022': {
       // Column does not exist
       const columnName = error.meta?.column || 'field';
@@ -374,7 +374,7 @@ function parsePrismaError(error: any, requestBody?: any): { message: string; det
         statusCode: 400
       };
     }
-    
+
     default: {
       // Generic Prisma error
       return {
@@ -418,6 +418,7 @@ export function processError(
 
   // DEBUG: Add logging to see which condition is matched
   console.log('=== ERROR DEBUG ===');
+  console.log('Error Data:', error);
   console.log('Error name:', error.name);
   console.log('Error constructor:', error.constructor.name);
   console.log('Is NotFoundError?', error instanceof NotFoundError);
@@ -438,7 +439,7 @@ export function processError(
     statusCode = 400;
     message = 'Invalid data provided';
     details = 'The provided data does not match the expected format';
-    
+
     // Try to extract more specific information from the validation error
     if (error.message.includes('Unknown argument')) {
       // Extract the unknown field name
@@ -551,7 +552,7 @@ export function asyncHandler(fn: Function) {
     } catch (error: any) {
       // Process the error using our custom error processor
       const errorResponse = processError(error, request);
-      
+
       // Send the error response directly
       return reply.code(errorResponse.statusCode).send(errorResponse);
     }
@@ -560,7 +561,7 @@ export function asyncHandler(fn: Function) {
 
 // Utility function to validate fields against database schema
 export function validateFields(
-  inputData: Record<string, any>, 
+  inputData: Record<string, any>,
   validFields: string[]
 ): { validData: Record<string, any>; invalidFields: string[] } {
   const validData: Record<string, any> = {};
@@ -585,7 +586,7 @@ export async function errorHandler(
 ): Promise<void> {
   // Process the error using our custom error processor
   const errorResponse = processError(error, request);
-  
+
   // Send the error response
   return reply.code(errorResponse.statusCode).send(errorResponse);
 }
@@ -599,9 +600,9 @@ export function validateIntegerId(id: string, resourceName: string = 'Resource')
       `The provided ID '${id}' is not a valid integer format.`
     );
   }
-  
+
   const numericId = parseInt(id, 10);
-  
+
   // Check if ID is a positive number
   if (numericId <= 0) {
     throw new ValidationError(
@@ -609,14 +610,14 @@ export function validateIntegerId(id: string, resourceName: string = 'Resource')
       `The provided ID '${id}' must be greater than 0.`
     );
   }
-  
+
   return numericId;
 }
 
 // Utility function to create consistent error responses for route handlers
 export function createRouteErrorResponse(error: any, resourceName: string, id?: string): { response: any; statusCode: number } {
   console.log(`=== ${resourceName.toUpperCase()} ERROR:`, error.message);
-  
+
   if (error.message.includes('not found')) {
     return {
       response: {
@@ -628,7 +629,7 @@ export function createRouteErrorResponse(error: any, resourceName: string, id?: 
       statusCode: 404
     };
   }
-  
+
   if (error.message.includes('already exists')) {
     return {
       response: {
@@ -640,7 +641,7 @@ export function createRouteErrorResponse(error: any, resourceName: string, id?: 
       statusCode: 400
     };
   }
-  
+
   // Default error response
   return {
     response: {
@@ -667,6 +668,6 @@ export function validateRouteId(id: string, resourceName: string): { isValid: bo
       statusCode: 400
     };
   }
-  
+
   return { isValid: true };
 } 
