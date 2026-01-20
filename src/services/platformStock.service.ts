@@ -124,7 +124,7 @@ export class PlatformStockService {
       // Calculate platform status based on availableqty if provided
       const availableqty = data.availableqty || 0;
       const platformStatus = this.calculatePlatformStatus(Number(availableqty));
-      
+
       // Add platform status and date fields to create data
       const dataWithStatus = {
         ...data,
@@ -170,14 +170,14 @@ export class PlatformStockService {
       // Calculate platform status based on availableqty if provided
       const availableqty = data.availableqty;
       let dataWithStatus = { ...data };
-      
+
       if (availableqty !== undefined) {
         const platformStatus = this.calculatePlatformStatus(Number(availableqty));
         dataWithStatus.platformstatus = platformStatus;
-        
+
         logger.debug(
-          { 
-            id, 
+          {
+            id,
             availableqty,
             calculatedPlatformStatus: platformStatus,
             dataToPassToDynamicUpdate: dataWithStatus,
@@ -187,11 +187,11 @@ export class PlatformStockService {
           "Data being passed to dynamicUpdate with calculated platform status"
         );
       } else {
-  
-        
+
+
         logger.debug(
-          { 
-            id, 
+          {
+            id,
             dataToPassToDynamicUpdate: dataWithStatus,
             dataKeys: Object.keys(dataWithStatus),
             dataValues: Object.values(dataWithStatus)
@@ -266,11 +266,11 @@ export class PlatformStockService {
       const { productid, platform, ...updateData } = data;
 
       logger.debug(
-        { 
+        {
           originalData: data,
-          productid, 
-          platform, 
-          updateData 
+          productid,
+          platform,
+          updateData
         },
         "Upsert method - destructured data"
       );
@@ -299,7 +299,7 @@ export class PlatformStockService {
       // Calculate platform status based on availableqty if provided
       const availableqty = updateData.availableqty || existingPlatformStock?.availableqty || 0;
       const platformStatus = this.calculatePlatformStatus(Number(availableqty));
-      
+
       // Add platform status and date fields to update data
       const dataWithStatus = {
         ...updateData,
@@ -311,8 +311,8 @@ export class PlatformStockService {
         // Update existing
         platformStock = await this.update(existingPlatformStock.id, dataWithStatus);
         logger.info(
-          { 
-            platformStockId: platformStock.id, 
+          {
+            platformStockId: platformStock.id,
             action: "updated",
             platformStatus: platformStatus,
             availableqty: availableqty
@@ -326,15 +326,15 @@ export class PlatformStockService {
           platform: platform,
           ...dataWithStatus,
         };
-        
+
         // Ensure productid is defined
         if (!createData.productid) {
           throw new Error("productid is required for creating platform stock");
         }
         platformStock = await this.create(createData);
         logger.info(
-          { 
-            platformStockId: platformStock.id, 
+          {
+            platformStockId: platformStock.id,
             action: "created",
             platformStatus: platformStatus,
             availableqty: availableqty
@@ -383,7 +383,7 @@ export class PlatformStockService {
       );
 
       const operation = stockInfo.operation || (stockInfo.isNewStock ? 'create' : 'update');
-      
+
       let availableQtyChange = 0;
       let soldQtyChange = 0;
       let totalQtyChange = 0;
@@ -398,6 +398,12 @@ export class PlatformStockService {
             if (stockInfo.ecompublish) {
               availableQtyChange = quantityToAdd; // Increase available quantity by provided quantity if e-commerce enabled
             }
+          } else if (stockInfo.stockstatus === 'sold') {
+            totalQtyChange = quantityToAdd; // Increase total quantity by provided quantity
+            soldQtyChange = quantityToAdd; // Increase sold quantity by provided quantity
+          } else if (stockInfo.stockstatus === 'ordered') {
+            totalQtyChange = quantityToAdd; // Increase total quantity by provided quantity
+            // orderedqty is handled separately in the upsert logic
           }
           break;
 
@@ -481,7 +487,7 @@ export class PlatformStockService {
       const currentAvailableQty = currentRecord ? Number(currentRecord.availableqty) : 0;
       const currentSoldQty = currentRecord ? Number(currentRecord.soldqty) : 0;
       const currentTotalQty = currentRecord ? Number(currentRecord.totalqty) : 0;
-      
+
       const newAvailableQty = Math.max(0, currentAvailableQty + availableQtyChange);
       const newSoldQty = Math.max(0, currentSoldQty + soldQtyChange);
       const newTotalQty = Math.max(0, currentTotalQty + totalQtyChange);
@@ -607,7 +613,7 @@ export class PlatformStockService {
           },
           take: 1
         });
-        
+
         if (fromRecords && fromRecords.length > 0) {
           const fromRecord = fromRecords[0];
           fromPlatformStock = await dynamicUpdate('platformstock', { id: fromRecord.id }, {
@@ -640,7 +646,7 @@ export class PlatformStockService {
           },
           take: 1
         });
-        
+
         if (toRecords && toRecords.length > 0) {
           const toRecord = toRecords[0];
           toPlatformStock = await dynamicUpdate('platformstock', { id: toRecord.id }, {
