@@ -58,6 +58,77 @@ export class StockService {
         }
       );
 
+      // Fetch product information for all unique PUCs
+      if (stocks.length > 0) {
+        const uniquePucs = [...new Set(stocks.map((stock: any) => stock.puc).filter(Boolean))];
+        
+        if (uniquePucs.length > 0) {
+          try {
+            // Fetch products by PUCs in batch with name, category, subcategory, and subsubcategory
+            const products = await prisma.product.findMany({
+              where: {
+                puc: {
+                  in: uniquePucs
+                }
+              },
+              select: {
+                puc: true,
+                name: true,
+                category: true,
+                subcategory: true,
+                subsubcategory: true
+              }
+            });
+
+            // Create a map of PUC -> product information
+            const productInfoMap = new Map<string, {
+              name: string | null;
+              category: string | null;
+              subcategory: string | null;
+              subsubcategory: string | null;
+            }>();
+            products.forEach((product: any) => {
+              if (product.puc) {
+                productInfoMap.set(product.puc, {
+                  name: product.name || null,
+                  category: product.category || null,
+                  subcategory: product.subcategory || null,
+                  subsubcategory: product.subsubcategory || null
+                });
+              }
+            });
+
+            // Add product information to each stock object
+            stocks.forEach((stock: any) => {
+              if (stock.puc && productInfoMap.has(stock.puc)) {
+                const productInfo = productInfoMap.get(stock.puc);
+                if (productInfo) {
+                  stock.productname = productInfo.name;
+                  stock.productcategory = productInfo.category;
+                  stock.productsubcategory = productInfo.subcategory;
+                  stock.productsubsubcategory = productInfo.subsubcategory;
+                }
+              }
+            });
+
+            logger.debug(
+              {
+                uniquePucsCount: uniquePucs.length,
+                productsFound: products.length,
+                stocksWithProductInfo: stocks.filter((s: any) => s.productname).length
+              },
+              "Product information added to stocks"
+            );
+          } catch (error: any) {
+            logger.warn(
+              { error: error.message },
+              "Failed to fetch product information, continuing without product information"
+            );
+            // Continue without product information if fetch fails
+          }
+        }
+      }
+
       logger.info(
         {
           stockCount: stocks.length,

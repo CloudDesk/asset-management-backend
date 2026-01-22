@@ -95,6 +95,7 @@ model PlatformStock {
   orderedqty    Int      @default(0)
   soldqty       Int      @default(0)
   totalqty      Int      @default(0)
+  ecomqty       Int      @default(0) // E-commerce published quantity (available AND ecompublish=true)
   lockqty       Int?     @default(0) // Add this for NIVAPP cart locking
   createddate   BigInt?
   modifieddate  BigInt?

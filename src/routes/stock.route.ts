@@ -64,6 +64,10 @@ export async function stockRoutes(fastify: FastifyInstance) {
                 properties: {
                   id: { type: 'number', description: 'Stock ID' },
                   puc: { type: 'string', description: 'Product unique code' },
+                  productname: { type: 'string', nullable: true, description: 'Product name' },
+                  productcategory: { type: 'string', nullable: true, description: 'Product category' },
+                  productsubcategory: { type: 'string', nullable: true, description: 'Product subcategory' },
+                  productsubsubcategory: { type: 'string', nullable: true, description: 'Product subsubcategory' },
                   platform: { type: 'string', description: 'Platform (amazon, flipkart, nivapp)' },
                   sku: { type: 'string', description: 'Stock keeping unit (auto-generated)' },
                   serialnumber: { type: 'string', nullable: true, description: 'Serial number' },

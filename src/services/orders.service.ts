@@ -36,14 +36,14 @@ export class OrdersService {
    */
   private mapEkartWebhookStatusToSystemStatus(ekartStatus: string): string | null {
     if (!ekartStatus) return null;
-    
+
     // Normalize: lowercase, trim, replace spaces/underscores/hyphens with single space
     const normalized = ekartStatus
       .toLowerCase()
       .trim()
       .replace(/[_\-\s]+/g, ' ')
       .trim();
-    
+
     // Status mapping (case-insensitive, handles all variations)
     const statusMap: Record<string, string> = {
       // Shipped/Picked Up variations (all map to shipped)
@@ -54,40 +54,40 @@ export class OrdersService {
       'pickup': 'shipped',
       'pick-up': 'shipped',
       'picked-up': 'shipped',
-      
+
       // In Transit variations
       'in transit': 'in_transit',
       'intransit': 'in_transit',
       'in-transit': 'in_transit',
       'in_transit': 'in_transit',
-      
+
       // Out For Delivery variations
       'out for delivery': 'out_for_delivery',
       'outfordelivery': 'out_for_delivery',
       'out-for-delivery': 'out_for_delivery',
       'out_for_delivery': 'out_for_delivery',
-      
+
       // Delivered
       'delivered': 'delivered',
-      
+
       // COD Collected variations
       'cod collected': 'cod_payment_received',
       'codcollected': 'cod_payment_received',
       'cod-collected': 'cod_payment_received',
       'cod_collected': 'cod_payment_received',
-      
+
       // RTO variations
       'rto initiated': 'rto_initiated',
       'rtoinitiated': 'rto_initiated',
       'rto-initiated': 'rto_initiated',
       'rto_initiated': 'rto_initiated',
-      
+
       'rto delivered': 'rto_delivered',
       'rtodelivered': 'rto_delivered',
       'rto-delivered': 'rto_delivered',
       'rto_delivered': 'rto_delivered',
     };
-    
+
     return statusMap[normalized] || null;
   }
 
@@ -140,22 +140,72 @@ export class OrdersService {
 
       const { skip, take } = getPrismaSkipTake(page, limit);
 
-      // Use the new dynamic filtering system
-      const { data: orders, total } = await dynamicFindManyWithFilters('orders', filters, {
-        skip,
-        take,
-        useAllColumns: true // Get all available columns
+      // Build where clause from filters
+      const whereClause: any = {};
+      for (const [key, value] of Object.entries(filters)) {
+        if (!['page', 'limit'].includes(key)) {
+          // Handle numeric fields
+          if (['userid', 'addressid', 'id', 'quantity'].includes(key)) {
+            whereClause[key] = parseInt(value as string);
+          }
+          // // Handle boolean fields
+          // else if (key === 'ispaymentsucceed') {
+          //   whereClause[key] = value === 'true' || value === true;
+          // }
+          // Handle string fields
+          else {
+            whereClause[key] = value;
+          }
+        }
+      }
+
+      // Fetch orders with user information using Prisma
+      const [orders, total] = await Promise.all([
+        prisma.orders.findMany({
+          where: whereClause,
+          skip,
+          take,
+          include: {
+            users: {
+              select: {
+                id: true,
+                firstname: true,
+                lastname: true,
+                useremail: true,
+                usermobilenumber: true
+              }
+            }
+          },
+          orderBy: {
+            createddate: 'desc'
+          }
+        }),
+        prisma.orders.count({ where: whereClause })
+      ]);
+
+      // Transform the data to include user properties at order level
+      const transformedOrders = orders.map((order: any) => {
+        const { users, ...orderData } = order;
+        return {
+          ...orderData,
+          // Add user information as separate properties
+          username: users ? `${users.firstname || ''} ${users.lastname || ''}`.trim() : null,
+          useremail: users?.useremail || null,
+          usermobilenumber: users?.usermobilenumber || null,
+          user_firstname: users?.firstname || null,
+          user_lastname: users?.lastname || null
+        };
       });
 
       logger.info({
-        orderCount: orders.length,
+        orderCount: transformedOrders.length,
         total,
         filtered: Object.keys(filters).length > 0,
         appliedFilters: Object.keys(filters),
-        availableFields: orders.length > 0 ? Object.keys(orders[0]) : []
-      }, 'Dynamic orders findMany with filters completed');
+        availableFields: transformedOrders.length > 0 ? Object.keys(transformedOrders[0]) : []
+      }, 'Dynamic orders findMany with user data completed');
 
-      return createPaginationResult(orders, total, page, limit);
+      return createPaginationResult(transformedOrders, total, page, limit);
     } catch (error) {
       logger.error({ error, filters, page, limit }, 'Error in dynamic orders findMany operation');
       throw error;
@@ -780,7 +830,8 @@ export class OrdersService {
       const filters: any = {
         puc: product.puc,  // Stock.puc = Product.puc (where Product.id = productId)
         platform: platform,
-        stockstatus: 'available'
+        stockstatus: 'available',
+        ecompublish: true  // Only select e-commerce published stocks
       };
 
       // Apply batch filters if provided
@@ -832,6 +883,13 @@ export class OrdersService {
         if (!stock) {
           throw new Error(`Stock with ID ${stockId} not found`);
         }
+        // Validate: Only allow e-commerce published stocks
+        if (stock.ecompublish !== true) {
+          throw new Error(
+            `Stock with ID ${stockId} is not e-commerce published (ecompublish: ${stock.ecompublish}). ` +
+            `Only stocks with ecompublish=true can be allocated for dispatch.`
+          );
+        }
         stocks.push(stock);
       }
       return stocks;
@@ -848,12 +906,18 @@ export class OrdersService {
     try {
       const stocks: any[] = [];
       for (const sku of skus) {
-        const { data: stockResults } = await dynamicFindManyWithFilters('stock', { sku }, {
+        const { data: stockResults } = await dynamicFindManyWithFilters('stock', { 
+          sku,
+          ecompublish: true  // Only select e-commerce published stocks
+        }, {
           take: 1,
           useAllColumns: true
         });
         if (!stockResults || stockResults.length === 0) {
-          throw new Error(`Stock with SKU ${sku} not found`);
+          throw new Error(
+            `Stock with SKU ${sku} not found or not e-commerce published. ` +
+            `Only stocks with ecompublish=true can be allocated for dispatch.`
+          );
         }
         stocks.push(stockResults[0]);
       }
@@ -953,12 +1017,19 @@ export class OrdersService {
               'nivapp' // Default platform
             );
 
-            // Validate stock status and product match for component stocks
+            // Validate stock status, e-commerce publish status, and product match for component stocks
             const componentProduct = await dynamicFindUnique('product', { id: componentProductId });
             for (const stock of componentStocks) {
               if (stock.stockstatus !== 'available') {
                 throw new Error(
                   `Component stock ${stock.id} is not available (status: ${stock.stockstatus})`
+                );
+              }
+              // Validate: Only allow e-commerce published stocks for components
+              if (stock.ecompublish !== true) {
+                throw new Error(
+                  `Component stock ${stock.id} is not e-commerce published (ecompublish: ${stock.ecompublish}). ` +
+                  `Only stocks with ecompublish=true can be allocated for dispatch.`
                 );
               }
               if (!componentProduct || stock.puc !== componentProduct.puc) {
@@ -1032,10 +1103,17 @@ export class OrdersService {
             );
           }
 
-          // Validate stock status and product match
+          // Validate stock status, e-commerce publish status, and product match
           for (const stock of stocks) {
             if (stock.stockstatus !== 'available') {
               throw new Error(`Stock ${stock.id} is not available (status: ${stock.stockstatus})`);
+            }
+            // Validate: Only allow e-commerce published stocks
+            if (stock.ecompublish !== true) {
+              throw new Error(
+                `Stock ${stock.id} is not e-commerce published (ecompublish: ${stock.ecompublish}). ` +
+                `Only stocks with ecompublish=true can be allocated for dispatch.`
+              );
             }
             // Validate: Get Product by id = orderline.productid, then check Stock.puc = Product.puc
             if (!orderlineProduct || stock.puc !== orderlineProduct.puc) {
@@ -1074,8 +1152,8 @@ export class OrdersService {
       const currentTimestamp = Date.now();
 
       // Track quantity updates per product/platform to avoid duplicate updates
-      // Key: "productId-platform" -> quantity
-      const platformStockUpdates = new Map<string, { productId: number; platform: string; quantity: number }>();
+      // Key: "productId-platform" -> { quantity, ecomQuantity }
+      const platformStockUpdates = new Map<string, { productId: number; platform: string; quantity: number; ecomQuantity: number }>();
       // Key: puc -> quantity
       const productUpdates = new Map<string, number>();
 
@@ -1119,10 +1197,15 @@ export class OrdersService {
           platformStockUpdates.set(platformStockKey, {
             productId,
             platform: firstStock.platform,
-            quantity: 0
+            quantity: 0,
+            ecomQuantity: 0
           });
         }
-        platformStockUpdates.get(platformStockKey)!.quantity += allocation.stocks.length;
+        const update = platformStockUpdates.get(platformStockKey)!;
+        update.quantity += allocation.stocks.length;
+        // Count how many stocks were e-commerce published (before they're marked as sold)
+        const ecomPublishedCount = allocation.stocks.filter(s => s.ecompublish === true).length;
+        update.ecomQuantity += ecomPublishedCount;
 
         // Track Product update (aggregate by puc)
         // For combo components, this will track the COMPONENT product, not the combo product
@@ -1167,14 +1250,33 @@ export class OrdersService {
         if (platformStocks && platformStocks.length > 0) {
           const platformStock = platformStocks[0];
 
-          // Update PlatformStock: decrease orderedqty, increase soldqty
-          // Note: availableqty and platformstatus don't change (already done during order creation)
-          const newOrderedQty = Math.max(0, (platformStock.orderedqty || 0) - update.quantity);
-          const newSoldQty = (platformStock.soldqty || 0) + update.quantity;
+          // Get current quantities
+          const currentEcomQty = Number(platformStock.ecomqty || 0);
+          const currentOrderedQty = Number(platformStock.orderedqty || 0);
+          const currentSoldQty = Number(platformStock.soldqty || 0);
+          const currentLockQty = Number(platformStock.lockqty || 0);
+
+          // Update PlatformStock: 
+          // - Decrease orderedqty (stocks were reserved, now sold)
+          // - Increase soldqty (stocks are now sold)
+          // - Decrease ecomqty (if stocks were e-commerce published)
+          // - Recalculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
+          const newOrderedQty = Math.max(0, currentOrderedQty - update.quantity);
+          const newSoldQty = currentSoldQty + update.quantity;
+          const newEcomQty = Math.max(0, currentEcomQty - update.ecomQuantity); // Decrease by e-commerce published count
+          const newAvailableQty = Math.max(0, newEcomQty - newOrderedQty - newSoldQty - currentLockQty);
+
+          // Calculate platform status
+          const { PlatformStockService } = await import('./platformStock.service.js');
+          const platformStockService = new PlatformStockService();
+          const platformStatus = platformStockService['calculatePlatformStatus'](newAvailableQty);
 
           await dynamicUpdate('platformstock', { id: platformStock.id }, {
+            ecomqty: newEcomQty,
             orderedqty: newOrderedQty,
             soldqty: newSoldQty,
+            availableqty: newAvailableQty,
+            platformstatus: platformStatus,
             modifieddate: currentTimestamp
           });
 
@@ -1183,11 +1285,19 @@ export class OrdersService {
             productId: update.productId,
             platform: update.platform,
             quantity: update.quantity,
-            oldOrderedQty: platformStock.orderedqty,
+            ecomQuantity: update.ecomQuantity,
+            oldEcomQty: currentEcomQty,
+            newEcomQty,
+            oldOrderedQty: currentOrderedQty,
             newOrderedQty,
-            oldSoldQty: platformStock.soldqty,
-            newSoldQty
-          }, 'PlatformStock quantities updated');
+            oldSoldQty: currentSoldQty,
+            newSoldQty,
+            oldAvailableQty: platformStock.availableqty,
+            newAvailableQty,
+            formula: {
+              availableqty: `${newEcomQty} - ${newOrderedQty} - ${newSoldQty} - ${currentLockQty} = ${newAvailableQty}`
+            }
+          }, 'PlatformStock quantities updated (dispatch)');
         }
       }
 
@@ -1308,92 +1418,92 @@ export class OrdersService {
    * @returns Invoice URL if successful, null otherwise
    */
   async generateInvoice(orderId: number): Promise<string | null> {
-      try {
+    try {
       logger.info({ orderId }, 'Generating invoice for order');
 
-        // Get complete order details including orderlines and address
-        const orderDetails = await this.getOrderDetails(orderId.toString());
+      // Get complete order details including orderlines and address
+      const orderDetails = await this.getOrderDetails(orderId.toString());
 
-        // Import axios
-        const axios = (await import('axios')).default;
+      // Import axios
+      const axios = (await import('axios')).default;
 
-        // Fetch seller data from EKART addresses endpoint
-        let sellerData: any = null;
-        try {
-          const { ekartService } = await import('./ekart.service.js');
+      // Fetch seller data from EKART addresses endpoint
+      let sellerData: any = null;
+      try {
+        const { ekartService } = await import('./ekart.service.js');
 
-          logger.info('Fetching seller addresses from EKART service');
+        logger.info('Fetching seller addresses from EKART service');
 
-          const addresses = await ekartService.getAddresses();
+        const addresses = await ekartService.getAddresses();
 
-          // Get the first address from the response (main sales office)
-          if (addresses && addresses.length > 0) {
-            sellerData = addresses[0];
-            logger.info({ seller: sellerData?.alias }, 'Seller data fetched successfully');
-          } else {
-            logger.warn('No seller addresses found in EKART response');
-          }
-        } catch (sellerError: any) {
-          logger.error({
-            error: sellerError.message
-          }, 'Failed to fetch seller data from EKART - continuing without seller info');
-          // Continue without seller data - don't fail invoice generation
+        // Get the first address from the response (main sales office)
+        if (addresses && addresses.length > 0) {
+          sellerData = addresses[0];
+          logger.info({ seller: sellerData?.alias }, 'Seller data fetched successfully');
+        } else {
+          logger.warn('No seller addresses found in EKART response');
         }
+      } catch (sellerError: any) {
+        logger.error({
+          error: sellerError.message
+        }, 'Failed to fetch seller data from EKART - continuing without seller info');
+        // Continue without seller data - don't fail invoice generation
+      }
 
-        // Call storage backend to generate invoice
-        const storageBackendUrl = process.env.STORAGE_BACKEND_URL || 'http://localhost:4500';
-        const invoiceEndpoint = `${storageBackendUrl}/order/invoice`;
+      // Call storage backend to generate invoice
+      const storageBackendUrl = process.env.STORAGE_BACKEND_URL || 'http://localhost:4500';
+      const invoiceEndpoint = `${storageBackendUrl}/order/invoice`;
 
-        logger.info({
-          endpoint: invoiceEndpoint,
-          orderId: orderDetails.order.id,
-          orderNumber: orderDetails.order.orderid,
-          hasSeller: !!sellerData
-        }, 'Calling storage backend to generate invoice');
+      logger.info({
+        endpoint: invoiceEndpoint,
+        orderId: orderDetails.order.id,
+        orderNumber: orderDetails.order.orderid,
+        hasSeller: !!sellerData
+      }, 'Calling storage backend to generate invoice');
 
-        const invoiceResponse = await axios.post(invoiceEndpoint, {
-          order: orderDetails.order,
-          orderlines: orderDetails.orderlines,
-          address: orderDetails.address,
-          seller: sellerData
-        }, {
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          timeout: 30000 // 30 second timeout
+      const invoiceResponse = await axios.post(invoiceEndpoint, {
+        order: orderDetails.order,
+        orderlines: orderDetails.orderlines,
+        address: orderDetails.address,
+        seller: sellerData
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        timeout: 30000 // 30 second timeout
+      });
+
+      logger.info({
+        orderId,
+        response: invoiceResponse.data,
+        status: invoiceResponse.status
+      }, 'Invoice generated successfully');
+
+      // If the response contains an invoice URL, update the order record
+      if (invoiceResponse.data?.invoiceUrl) {
+        await dynamicUpdate('orders', { id: orderId }, {
+          order_invoice_url: invoiceResponse.data.invoiceUrl,
+          modifieddate: Date.now()
         });
-
         logger.info({
           orderId,
-          response: invoiceResponse.data,
-          status: invoiceResponse.status
-        }, 'Invoice generated successfully');
+          invoiceUrl: invoiceResponse.data.invoiceUrl
+        }, 'Order updated with invoice URL');
 
-        // If the response contains an invoice URL, update the order record
-        if (invoiceResponse.data?.invoiceUrl) {
-          await dynamicUpdate('orders', { id: orderId }, {
-            order_invoice_url: invoiceResponse.data.invoiceUrl,
-            modifieddate: Date.now()
-          });
-          logger.info({
-            orderId,
-            invoiceUrl: invoiceResponse.data.invoiceUrl
-          }, 'Order updated with invoice URL');
-        
         return invoiceResponse.data.invoiceUrl;
-        }
+      }
 
       return null;
-      } catch (invoiceError: any) {
+    } catch (invoiceError: any) {
       // Log the error but don't fail the operation
-        // Invoice generation is a secondary operation
-        logger.error({
-          error: invoiceError.message,
-          response: invoiceError.response?.data,
-          status: invoiceError.response?.status,
-          orderId
+      // Invoice generation is a secondary operation
+      logger.error({
+        error: invoiceError.message,
+        response: invoiceError.response?.data,
+        status: invoiceError.response?.status,
+        orderId
       }, 'Failed to generate invoice - continuing without invoice');
-      
+
       return null;
     }
   }
@@ -1408,7 +1518,7 @@ export class OrdersService {
       logger.info({ orderId, inventoryUserId }, 'Marking order as shipped');
 
       const order = await this.findById(orderId);
-      
+
       // Block mark-shipped for cancelled orders (all cancelled-related statuses)
       const cancelledStatuses = [
         'cancelled',
@@ -1416,11 +1526,11 @@ export class OrdersService {
         'cancelled_refunded',
         'cancelled_completed'
       ];
-      
+
       if (cancelledStatuses.includes(order.orderstatus) || order.orderstatus === 'returned') {
         throw new Error(`Cannot mark order as shipped. Order is in ${order.orderstatus} status`);
       }
-      
+
       if (!order.tracking_id) {
         throw new Error('Shipment not created yet. Please create EKART shipment first.');
       }
@@ -1513,7 +1623,7 @@ export class OrdersService {
         'cancelled_refunded',
         'cancelled_completed'
       ];
-      
+
       if (cancelledStatuses.includes(order.orderstatus) || order.orderstatus === 'returned') {
         throw new Error(`Cannot update shipment details for ${order.orderstatus} order`);
       }
@@ -1808,7 +1918,7 @@ export class OrdersService {
         'cancelled_refunded',
         'cancelled_completed'
       ];
-      
+
       if (cancelledStatuses.includes(order.orderstatus) || order.orderstatus === 'returned') {
         throw new Error(`Cannot update shipment status for ${order.orderstatus} order`);
       }
@@ -1824,7 +1934,7 @@ export class OrdersService {
         'rto_initiated',
         'rto_delivered'
       ];
-      
+
       // Special case: ready_for_dispatch is only allowed if tracking_id and vendor exist
       if (order.orderstatus === 'ready_for_dispatch') {
         if (!order.tracking_id || !order.vendor) {
@@ -1888,7 +1998,7 @@ export class OrdersService {
 
       // Check if transition is valid (including flexible transitions)
       const isValidTransition = validTransitions[currentStatus]?.includes(status);
-      
+
       // Allow some flexible transitions (skipping intermediate stages)
       const flexibleTransitions: Record<string, string[]> = {
         shipped: ['out_for_delivery'], // Can skip in_transit
@@ -1957,13 +2067,13 @@ export class OrdersService {
         shipment_tracking_status: status,
         modifieddate: currentTimestamp
       };
-      
+
       // If setting to shipped, also set shipdate and label_printed_at
       if (status === 'shipped' && !order.shipdate) {
         orderUpdateData.shipdate = currentTimestamp;
         orderUpdateData.label_printed_at = currentTimestamp;
       }
-      
+
       await dynamicUpdate('orders', { id: order.id }, orderUpdateData);
 
       logger.info(
@@ -1993,12 +2103,12 @@ export class OrdersService {
             location,
             description
           };
-          
+
           // If setting to shipped, also set shipdate
           if (status === 'shipped' && !orderline.shipdate) {
             orderlineUpdateData.shipdate = currentTimestamp;
           }
-          
+
           await orderlineService.updateOrderlineStatus(
             orderline.id.toString(),
             newOrderStatus,
@@ -2083,27 +2193,27 @@ export class OrdersService {
 
       // Map EKART status to system status
       const systemStatus = this.mapEkartWebhookStatusToSystemStatus(ekartStatus);
-      
+
       if (!systemStatus) {
         logger.warn(
           { trackingId, ekartStatus, orderId: order.id },
           'Unknown EKART webhook status - storing in shipment_tracking_status and status_history only (is_active: false)'
         );
-        
+
         const currentTimestamp = webhookData.ctime || Date.now();
         const currentOrderStatus = order.orderstatus;
-        
+
         // Get existing status history
         const existingHistory = Array.isArray(order.status_history)
           ? order.status_history
           : (typeof order.status_history === 'string' ? JSON.parse(order.status_history) : []);
-        
+
         // Set all existing entries to is_active: false
         const deactivatedHistory = existingHistory.map((entry: any) => ({
           ...entry,
           is_active: false
         }));
-        
+
         // Add new entry for unknown webhook status (is_active: false - does not affect status flow)
         const unknownStatusEntry: any = {
           previous_status: currentOrderStatus,
@@ -2117,9 +2227,9 @@ export class OrdersService {
           is_webhook_status: true, // Mark as webhook status
           webhook_payload: fullWebhookPayload || {} // Store full webhook payload for debugging/auditing
         };
-        
+
         const updatedHistory = [...deactivatedHistory, unknownStatusEntry];
-        
+
         // Store original status in shipment_tracking_status and status_history
         // BUT do NOT update orderstatus or orderline statuses
         await dynamicUpdate('orders', { id: order.id }, {
@@ -2127,12 +2237,12 @@ export class OrdersService {
           status_history: JSON.stringify(updatedHistory), // Add to history with is_active: false
           modifieddate: currentTimestamp
         });
-        
+
         logger.info(
           { orderId: order.id, ekartStatus, currentOrderStatus },
           'Unknown EKART webhook status stored in shipment_tracking_status and status_history (is_active: false) - orderstatus unchanged'
         );
-        
+
         return await this.findById(order.id);
       }
 
@@ -3935,9 +4045,17 @@ export class OrdersService {
         if (platformStocks && platformStocks.length > 0) {
           const platformStock = platformStocks[0];
 
-          // Restore availableqty, reduce orderedqty
-          const newAvailableQty = (platformStock.availableqty || 0) + update.quantity;
+          // Get current quantities
+          const currentEcomQty = Number(platformStock.ecomqty || 0);
+          const currentSoldQty = Number(platformStock.soldqty || 0);
+          const currentLockQty = Number(platformStock.lockqty || 0);
+
+          // Restore orderedqty → availableqty
           const newOrderedQty = Math.max(0, (platformStock.orderedqty || 0) - update.quantity);
+          
+          // Recalculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
+          // ecomqty doesn't change (stocks still available, just not ordered anymore)
+          const newAvailableQty = Math.max(0, currentEcomQty - newOrderedQty - currentSoldQty - currentLockQty);
 
           await dynamicUpdate('platformstock', { id: platformStock.id }, {
             availableqty: newAvailableQty,
@@ -4004,7 +4122,8 @@ export class OrdersService {
       const currentTimestamp = Date.now();
 
       // Track updates by product to avoid duplicate updates
-      const platformStockUpdates = new Map<string, { productId: number; platform: string; quantity: number }>();
+      // Key: "productId-platform" -> { quantity, ecomQuantity }
+      const platformStockUpdates = new Map<string, { productId: number; platform: string; quantity: number; ecomQuantity: number }>();
       const productUpdates = new Map<number, number>();
 
       // Get order to retrieve orderid string
@@ -4118,10 +4237,17 @@ export class OrdersService {
                 platformStockUpdates.set(componentPlatformStockKey, {
                   productId: componentProductId,
                   platform,
-                  quantity: 0
+                  quantity: 0,
+                  ecomQuantity: 0
                 });
               }
-              platformStockUpdates.get(componentPlatformStockKey)!.quantity += componentTotalQty;
+              const componentUpdate = platformStockUpdates.get(componentPlatformStockKey)!;
+              componentUpdate.quantity += componentTotalQty;
+              // For combo components, we need to check if the stocks were e-commerce published
+              // Since we don't have direct access to component stocks here, we'll assume they were e-commerce published
+              // (components of combo products are typically e-commerce published)
+              // Note: In cancellation, we're restoring stocks that were already allocated, so they were e-commerce published
+              componentUpdate.ecomQuantity += componentTotalQty;
 
               // Track component Product update
               if (!productUpdates.has(componentProductId)) {
@@ -4156,10 +4282,16 @@ export class OrdersService {
           platformStockUpdates.set(platformStockKey, {
             productId,
             platform,
-            quantity: 0
+            quantity: 0,
+            ecomQuantity: 0
           });
         }
-        platformStockUpdates.get(platformStockKey)!.quantity += quantity;
+        const update = platformStockUpdates.get(platformStockKey)!;
+        update.quantity += quantity;
+        // Count how many stocks were e-commerce published (before they were marked as sold)
+        // Stocks that were sold were e-commerce published (otherwise they wouldn't be in soldqty)
+        const ecomPublishedCount = allocatedStocks.filter(s => s.ecompublish === true).length;
+        update.ecomQuantity += ecomPublishedCount;
 
         // Track Product update
         if (!productUpdates.has(productId)) {
@@ -4178,11 +4310,25 @@ export class OrdersService {
         if (platformStocks && platformStocks.length > 0) {
           const platformStock = platformStocks[0];
 
-          // Restore availableqty, reduce soldqty
-          const newAvailableQty = (platformStock.availableqty || 0) + update.quantity;
+          // Get current quantities
+          const currentEcomQty = Number(platformStock.ecomqty || 0);
+          const currentOrderedQty = Number(platformStock.orderedqty || 0);
+          const currentLockQty = Number(platformStock.lockqty || 0);
+
+          // Restore soldqty → availableqty
+          // ecomqty increases because stocks are back to 'available' status (if they were e-commerce published)
+          // Note: We need to check if the stocks were e-commerce published
+          // For now, we'll recalculate ecomqty from actual stocks, but for cancellation we increment it
+          // Actually, ecomqty should be recalculated from stocks, but for performance we increment it
+          // The stocks being cancelled were sold, so they were e-commerce published (otherwise they wouldn't be in soldqty)
           const newSoldQty = Math.max(0, (platformStock.soldqty || 0) - update.quantity);
+          const newEcomQty = currentEcomQty + update.ecomQuantity; // Increase by e-commerce published count
+          
+          // Recalculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
+          const newAvailableQty = Math.max(0, newEcomQty - currentOrderedQty - newSoldQty - currentLockQty);
 
           await dynamicUpdate('platformstock', { id: platformStock.id }, {
+            ecomqty: newEcomQty,
             availableqty: newAvailableQty,
             soldqty: newSoldQty,
             modifieddate: currentTimestamp
@@ -4193,10 +4339,16 @@ export class OrdersService {
             productId: update.productId,
             platform: update.platform,
             quantity: update.quantity,
+            ecomQuantity: update.ecomQuantity,
+            oldEcomQty: currentEcomQty,
+            newEcomQty,
             oldAvailableQty: platformStock.availableqty,
             newAvailableQty,
             oldSoldQty: platformStock.soldqty,
-            newSoldQty
+            newSoldQty,
+            formula: {
+              availableqty: `${newEcomQty} - ${currentOrderedQty} - ${newSoldQty} - ${currentLockQty} = ${newAvailableQty}`
+            }
           }, 'PlatformStock quantities restored (post-dispatch cancellation)');
         }
       }

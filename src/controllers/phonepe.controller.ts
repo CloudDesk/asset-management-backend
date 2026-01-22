@@ -54,6 +54,45 @@ export class PhonePeController {
         };
         console.log("test");
         console.log(request.body, "req body");
+        
+        // ⚠️ RESTRICTION: Block COD mode - only PhonePe mode allowed
+        if (requestBody.mode === "cod") {
+          logger.warn(
+            {
+              mode: requestBody.mode,
+              userId: requestBody.transaction?.userId,
+            },
+            "COD mode is currently disabled - only PhonePe mode is allowed"
+          );
+          
+          return reply.code(400).send({
+            success: false,
+            message: "COD (Cash on Delivery) mode is currently disabled. Please use PhonePe payment mode.",
+            error: "COD_MODE_DISABLED",
+            error_code: "COD_MODE_DISABLED",
+            statusCode: 400,
+          });
+        }
+
+        // Validate mode is phonepe
+        if (requestBody.mode !== "phonepe") {
+          logger.warn(
+            {
+              mode: requestBody.mode,
+              userId: requestBody.transaction?.userId,
+            },
+            "Invalid payment mode - only 'phonepe' mode is allowed"
+          );
+          
+          return reply.code(400).send({
+            success: false,
+            message: `Invalid payment mode: ${requestBody.mode}. Only 'phonepe' mode is currently supported.`,
+            error: "INVALID_PAYMENT_MODE",
+            error_code: "INVALID_PAYMENT_MODE",
+            statusCode: 400,
+          });
+        }
+
         logger.info(
           {
             mode: requestBody.mode,
@@ -944,8 +983,16 @@ export class PhonePeController {
                   }
 
                   // Calculate new quantities
-                  const newAvailableQty = currentAvailableQty - requestedQuantity;
+                  // Calculate new quantities
+                  // ecomqty doesn't change (stocks still available, just locked)
+                  const currentEcomQty = Number(platformStock.ecomqty || 0);
+                  const currentOrderedQty = Number(platformStock.orderedqty || 0);
+                  const currentSoldQty = Number(platformStock.soldqty || 0);
+                  
                   const newLockQty = currentLockQty + requestedQuantity;
+                  
+                  // Recalculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
+                  const newAvailableQty = Math.max(0, currentEcomQty - currentOrderedQty - currentSoldQty - newLockQty);
 
                   // Update platformstock - lock the quantity
                   await tx.platformStock.update({
@@ -4614,9 +4661,11 @@ export class PhonePeController {
             );
           }
 
+          // Get current ecomqty and soldqty for formula calculation
+          const currentEcomQty = Number(platformStock.ecomqty || 0);
+          const currentSoldQty = Number(platformStock.soldqty || 0);
+          
           // Ensure no negative values - CRITICAL for data integrity
-          // availableqty: NO CHANGE (already reduced during locking)
-          const newPlatformAvailableQty = Math.max(0, currentAvailableQty);
           // lockqty: DECREASE to 0 (unlock - convert to order)
           const newPlatformLockQty = Math.max(
             0,
@@ -4624,6 +4673,10 @@ export class PhonePeController {
           ); // Unlock, NEVER negative
           // orderedqty: INCREASE (confirm order)
           const newPlatformOrderedQty = currentOrderedQty + quantityToConvert;
+          
+          // Recalculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
+          // ecomqty doesn't change (stocks still available, just ordered now)
+          const newPlatformAvailableQty = Math.max(0, currentEcomQty - newPlatformOrderedQty - currentSoldQty - newPlatformLockQty);
 
           // Determine platform status based on available quantity
           let newPlatformStatus: string;
@@ -4644,20 +4697,27 @@ export class PhonePeController {
               productId: productId,
               platform: PLATFORM_NAME,
               beforePlatformUpdate: {
+                ecomqty: currentEcomQty,
                 availableqty: currentAvailableQty,
                 lockqty: currentLockQty,
                 orderedqty: currentOrderedQty,
+                soldqty: currentSoldQty,
                 platformstatus: platformStock.platformstatus,
               },
               afterPlatformUpdate: {
+                ecomqty: currentEcomQty,
                 availableqty: newPlatformAvailableQty,
                 lockqty: newPlatformLockQty,
                 orderedqty: newPlatformOrderedQty,
+                soldqty: currentSoldQty,
                 platformstatus: newPlatformStatus,
               },
               requestedQuantity: requestedQuantity,
               quantityToConvert: quantityToConvert,
               operation: "CONVERT_LOCK_TO_ORDER",
+              formula: {
+                availableqty: `${currentEcomQty} - ${newPlatformOrderedQty} - ${currentSoldQty} - ${newPlatformLockQty} = ${newPlatformAvailableQty}`
+              },
               note: "lockqty will be reset to 0 or reduced, never negative",
             },
             "About to convert locked quantity to ordered quantity (lockqty → orderedqty)"
@@ -4672,6 +4732,7 @@ export class PhonePeController {
               },
             },
             data: {
+              ecomqty: currentEcomQty, // No change (stocks still available, just ordered)
               availableqty: newPlatformAvailableQty,
               lockqty: newPlatformLockQty,
               orderedqty: newPlatformOrderedQty,
@@ -5190,13 +5251,20 @@ export class PhonePeController {
                   continue;
                 }
 
+                // Get current ecomqty and other quantities for formula calculation
+                const currentEcomQty = Number(platformStock.ecomqty || 0);
+                const currentOrderedQty = Number(platformStock.orderedqty || 0);
+                const currentSoldQty = Number(platformStock.soldqty || 0);
+                
                 // Calculate new quantities
-                const newAvailableQty =
-                  platformStock.availableqty + quantityToRelease;
                 const newLockQty = Math.max(
                   0,
                   currentLockQty - quantityToRelease
                 );
+                
+                // Recalculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
+                // ecomqty doesn't change (stocks still available, just unlocked)
+                const newAvailableQty = Math.max(0, currentEcomQty - currentOrderedQty - currentSoldQty - newLockQty);
 
                 // Update platformstock - release lock back to available
                 await tx.platformStock.update({
@@ -6153,9 +6221,17 @@ export class PhonePeController {
       const currentAvailableQty = Number(platformStock.availableqty) || 0;
       const currentLockQty = Number(platformStock.lockqty) || 0;
 
+      // Get current ecomqty and other quantities for formula calculation
+      const currentEcomQty = Number(platformStock.ecomqty || 0);
+      const currentOrderedQty = Number(platformStock.orderedqty || 0);
+      const currentSoldQty = Number(platformStock.soldqty || 0);
+      
       // Calculate new quantities
-      const newAvailableQty = Math.max(0, currentAvailableQty - totalNeeded);
       const newLockQty = currentLockQty + totalNeeded;
+      
+      // Recalculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
+      // ecomqty doesn't change (stocks still available, just locked)
+      const newAvailableQty = Math.max(0, currentEcomQty - currentOrderedQty - currentSoldQty - newLockQty);
 
       // Update platformstock
       await tx.platformStock.update({
