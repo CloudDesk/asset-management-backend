@@ -1431,8 +1431,8 @@ export class StockImportService {
               orderedqty: true,
               lockqty: true,
               availableqty: true,
-            } as any // Include ecomqty - Prisma client may need regeneration
-          });
+            }
+          }) as any; // Type assertion to include ecomqty - Prisma client may need regeneration
 
           // Calculate new quantities
           const currentEcomQty = (currentRecord as any)?.ecomqty || 0;
