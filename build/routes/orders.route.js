@@ -60,6 +60,12 @@ export async function ordersRoutes(fastify) {
                                     paymentfaileddate: { type: 'number', nullable: true, description: 'Payment failed date' },
                                     createddate: { type: 'number', nullable: true, description: 'Created date' },
                                     modifieddate: { type: 'number', nullable: true, description: 'Modified date' },
+                                    // User-related fields
+                                    username: { type: 'string', nullable: true, description: 'User full name (firstname + lastname)' },
+                                    useremail: { type: 'string', nullable: true, description: 'User email' },
+                                    usermobilenumber: { type: 'number', nullable: true, description: 'User mobile number' },
+                                    user_firstname: { type: 'string', nullable: true, description: 'User first name' },
+                                    user_lastname: { type: 'string', nullable: true, description: 'User last name' },
                                 },
                                 additionalProperties: true // Allow any additional fields
                             }

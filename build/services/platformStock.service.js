@@ -239,7 +239,7 @@ export class PlatformStockService {
         try {
             logger.debug({ productId, platform, stockInfo }, "Starting platform stock quantities update");
             const operation = stockInfo.operation || (stockInfo.isNewStock ? 'create' : 'update');
-            let availableQtyChange = 0;
+            let ecomQtyChange = 0; // Track e-commerce published quantity changes
             let soldQtyChange = 0;
             let totalQtyChange = 0;
             // Handle different operations
@@ -248,10 +248,19 @@ export class PlatformStockService {
                     // New stock added
                     const quantityToAdd = stockInfo.quantity || 1; // Use provided quantity or default to 1
                     if (stockInfo.stockstatus === 'available') {
-                        totalQtyChange = quantityToAdd; // Increase total quantity by provided quantity
-                        if (stockInfo.ecompublish) {
-                            availableQtyChange = quantityToAdd; // Increase available quantity by provided quantity if e-commerce enabled
+                        totalQtyChange = quantityToAdd; // Increase total quantity by provided quantity (ALL stocks)
+                        // Only increase ecomqty if e-commerce published
+                        if (stockInfo.ecompublish === true) {
+                            ecomQtyChange = quantityToAdd; // Increase e-commerce quantity if e-commerce enabled
                         }
+                    }
+                    else if (stockInfo.stockstatus === 'sold') {
+                        totalQtyChange = quantityToAdd; // Increase total quantity by provided quantity
+                        soldQtyChange = quantityToAdd; // Increase sold quantity by provided quantity
+                    }
+                    else if (stockInfo.stockstatus === 'ordered') {
+                        totalQtyChange = quantityToAdd; // Increase total quantity by provided quantity
+                        // orderedqty is handled separately in the upsert logic
                     }
                     break;
                 case 'delete':
@@ -259,8 +268,9 @@ export class PlatformStockService {
                     const quantityToRemove = stockInfo.quantity || 1; // Use provided quantity or default to 1
                     if (stockInfo.stockstatus === 'available') {
                         totalQtyChange = -quantityToRemove; // Decrease total quantity by provided quantity
-                        if (stockInfo.ecompublish) {
-                            availableQtyChange = -quantityToRemove; // Decrease available quantity by provided quantity if e-commerce was enabled
+                        // Only decrease ecomqty if e-commerce was enabled
+                        if (stockInfo.ecompublish === true) {
+                            ecomQtyChange = -quantityToRemove; // Decrease e-commerce quantity if e-commerce was enabled
                         }
                     }
                     else if (stockInfo.stockstatus === 'sold') {
@@ -274,31 +284,41 @@ export class PlatformStockService {
                 case 'update':
                 default:
                     // Handle status changes
+                    // IMPORTANT: Track ecomqty changes (only for available + ecompublish=true stocks)
                     if (stockInfo.oldStockstatus !== stockInfo.stockstatus) {
                         if (stockInfo.oldStockstatus === 'available' && stockInfo.stockstatus === 'sold') {
-                            availableQtyChange = -1;
+                            // Stock moved from available to sold
+                            // Only decrease ecomqty if it was e-commerce published
+                            if (stockInfo.oldEcompublish === true || stockInfo.ecompublish === true) {
+                                ecomQtyChange = -1;
+                            }
                             soldQtyChange = 1;
                         }
                         else if (stockInfo.oldStockstatus === 'sold' && stockInfo.stockstatus === 'available') {
-                            availableQtyChange = 1;
+                            // Stock moved from sold to available
+                            // Only increase ecomqty if e-commerce published
+                            if (stockInfo.ecompublish === true) {
+                                ecomQtyChange = 1;
+                            }
                             soldQtyChange = -1;
                         }
                     }
                     // Handle e-com publish changes
+                    // Only applies when stock is in 'available' status
                     if (stockInfo.oldEcompublish !== stockInfo.ecompublish && stockInfo.stockstatus === 'available') {
                         if (stockInfo.ecompublish && !stockInfo.oldEcompublish) {
-                            // E-com enabled - increase available
-                            availableQtyChange += 1;
+                            // E-com enabled - increase ecomqty
+                            ecomQtyChange += 1;
                         }
                         else if (!stockInfo.ecompublish && stockInfo.oldEcompublish) {
-                            // E-com disabled - decrease available
-                            availableQtyChange -= 1;
+                            // E-com disabled - decrease ecomqty
+                            ecomQtyChange -= 1;
                         }
                     }
                     break;
             }
             // Skip if no changes
-            if (availableQtyChange === 0 && soldQtyChange === 0 && totalQtyChange === 0) {
+            if (ecomQtyChange === 0 && soldQtyChange === 0 && totalQtyChange === 0) {
                 logger.debug({ productId, platform, operation }, "No quantity changes needed for platform stock");
                 return null;
             }
@@ -321,29 +341,41 @@ export class PlatformStockService {
                 logger.debug({ error: error.message, productId, platform }, "No existing platform stock record found");
             }
             // Calculate new quantities - convert BigInt to Number for calculations
-            const currentAvailableQty = currentRecord ? Number(currentRecord.availableqty) : 0;
+            const currentEcomQty = currentRecord ? Number(currentRecord.ecomqty || 0) : 0;
             const currentSoldQty = currentRecord ? Number(currentRecord.soldqty) : 0;
             const currentTotalQty = currentRecord ? Number(currentRecord.totalqty) : 0;
-            const newAvailableQty = Math.max(0, currentAvailableQty + availableQtyChange);
+            const currentOrderedQty = currentRecord ? Number(currentRecord.orderedqty || 0) : 0;
+            const currentLockQty = currentRecord ? Number(currentRecord.lockqty || 0) : 0;
+            // Update ecomqty, totalqty, soldqty
+            const newEcomQty = Math.max(0, currentEcomQty + ecomQtyChange);
             const newSoldQty = Math.max(0, currentSoldQty + soldQtyChange);
             const newTotalQty = Math.max(0, currentTotalQty + totalQtyChange);
+            // Calculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
+            const newAvailableQty = Math.max(0, newEcomQty - currentOrderedQty - newSoldQty - currentLockQty);
             logger.debug({
                 productId,
                 platform,
                 currentRecord: currentRecord ? {
+                    ecomqty: currentRecord.ecomqty || 0,
                     availableqty: currentRecord.availableqty,
                     soldqty: currentRecord.soldqty,
-                    totalqty: currentRecord.totalqty
+                    totalqty: currentRecord.totalqty,
+                    orderedqty: currentRecord.orderedqty || 0,
+                    lockqty: currentRecord.lockqty || 0
                 } : null,
                 calculatedNewValues: {
+                    newEcomQty,
                     newAvailableQty,
                     newSoldQty,
                     newTotalQty
                 },
                 changes: {
-                    availableQtyChange,
+                    ecomQtyChange,
                     soldQtyChange,
                     totalQtyChange
+                },
+                formula: {
+                    availableqty: `${newEcomQty} - ${currentOrderedQty} - ${newSoldQty} - ${currentLockQty} = ${newAvailableQty}`
                 }
             }, "PlatformStock quantity calculations");
             // Calculate platform status based on new available quantity
@@ -352,11 +384,12 @@ export class PlatformStockService {
             const upsertData = {
                 productid: productId,
                 platform: platform,
+                ecomqty: newEcomQty,
                 availableqty: newAvailableQty,
                 soldqty: newSoldQty,
                 totalqty: newTotalQty,
-                orderedqty: currentRecord?.orderedqty || 0,
-                lockqty: currentRecord?.lockqty || 0,
+                orderedqty: currentOrderedQty,
+                lockqty: currentLockQty,
                 platformstatus: platformStatus,
             };
             logger.debug({
@@ -373,14 +406,17 @@ export class PlatformStockService {
                 platform,
                 operation,
                 changes: {
-                    availableQtyChange,
+                    ecomQtyChange,
                     soldQtyChange,
                     totalQtyChange,
                 },
                 finalQuantities: {
+                    ecomqty: platformStock.ecomqty || 0,
                     availableqty: platformStock.availableqty,
                     soldqty: platformStock.soldqty,
                     totalqty: platformStock.totalqty,
+                    orderedqty: platformStock.orderedqty || 0,
+                    lockqty: platformStock.lockqty || 0,
                 },
                 platformStatus: platformStatus,
             }, "Platform stock quantities and status updated successfully");
@@ -415,9 +451,17 @@ export class PlatformStockService {
                 });
                 if (fromRecords && fromRecords.length > 0) {
                     const fromRecord = fromRecords[0];
+                    const currentEcomQty = Number(fromRecord.ecomqty || 0);
+                    const currentOrderedQty = Number(fromRecord.orderedqty || 0);
+                    const currentSoldQty = Number(fromRecord.soldqty || 0);
+                    const currentLockQty = Number(fromRecord.lockqty || 0);
+                    const newEcomQty = Math.max(0, currentEcomQty - 1);
+                    const newTotalQty = Math.max(0, Number(fromRecord.totalqty) - 1);
+                    const newAvailableQty = Math.max(0, newEcomQty - currentOrderedQty - currentSoldQty - currentLockQty);
                     fromPlatformStock = await dynamicUpdate('platformstock', { id: fromRecord.id }, {
-                        availableqty: Math.max(0, fromRecord.availableqty - 1),
-                        totalqty: Math.max(0, fromRecord.totalqty - 1),
+                        ecomqty: newEcomQty,
+                        availableqty: newAvailableQty,
+                        totalqty: newTotalQty,
                     });
                 }
                 else {
@@ -425,6 +469,7 @@ export class PlatformStockService {
                     fromPlatformStock = await dynamicCreate('platformstock', {
                         productid: productId,
                         platform: fromPlatform,
+                        ecomqty: 0,
                         availableqty: 0,
                         soldqty: 0,
                         totalqty: 0,
@@ -448,9 +493,17 @@ export class PlatformStockService {
                 });
                 if (toRecords && toRecords.length > 0) {
                     const toRecord = toRecords[0];
+                    const currentEcomQty = Number(toRecord.ecomqty || 0);
+                    const currentOrderedQty = Number(toRecord.orderedqty || 0);
+                    const currentSoldQty = Number(toRecord.soldqty || 0);
+                    const currentLockQty = Number(toRecord.lockqty || 0);
+                    const newEcomQty = currentEcomQty + 1;
+                    const newTotalQty = Number(toRecord.totalqty) + 1;
+                    const newAvailableQty = Math.max(0, newEcomQty - currentOrderedQty - currentSoldQty - currentLockQty);
                     toPlatformStock = await dynamicUpdate('platformstock', { id: toRecord.id }, {
-                        availableqty: toRecord.availableqty + 1,
-                        totalqty: toRecord.totalqty + 1,
+                        ecomqty: newEcomQty,
+                        availableqty: newAvailableQty,
+                        totalqty: newTotalQty,
                     });
                 }
                 else {
@@ -458,6 +511,7 @@ export class PlatformStockService {
                     toPlatformStock = await dynamicCreate('platformstock', {
                         productid: productId,
                         platform: toPlatform,
+                        ecomqty: 1,
                         availableqty: 1,
                         soldqty: 0,
                         totalqty: 1,
@@ -507,6 +561,142 @@ export class PlatformStockService {
         }
         catch (error) {
             logger.error({ error: error.message, productId, platform }, "Error getting platform stock by product and platform");
+            throw error;
+        }
+    }
+    /**
+     * Recalculate PlatformStock quantities from scratch (similar to Product.updateStockTotals)
+     * Counts actual stocks and recalculates all quantities
+     *
+     * Formula:
+     * - totalqty = Count of ALL stocks for this product+platform
+     * - ecomqty = Count of stocks where stockstatus = 'available' AND ecompublish = true
+     * - soldqty = Count of stocks where stockstatus = 'sold'
+     * - availableqty = ecomqty - orderedqty - soldqty - lockqty
+     */
+    async recalculatePlatformStockQuantities(productId, platform) {
+        try {
+            logger.debug({ productId, platform }, "Starting PlatformStock recalculation from scratch");
+            // Find product by ID to get PUC
+            const product = await dynamicFindUnique('product', { id: productId });
+            if (!product || !product.puc) {
+                logger.warn({ productId }, "Product not found or has no PUC, skipping recalculation");
+                return null;
+            }
+            // Find all stocks for this product+platform
+            const stocks = await dynamicFindMany('stock', {
+                where: {
+                    puc: product.puc,
+                    platform: platform,
+                    isdeleted: { not: true },
+                    isarchive: { not: true }
+                },
+            });
+            if (!Array.isArray(stocks) || stocks.length === 0) {
+                logger.debug({ productId, platform }, "No active stocks found, setting quantities to zero");
+                const updateData = {
+                    totalqty: 0,
+                    ecomqty: 0,
+                    soldqty: 0,
+                    availableqty: 0,
+                    platformstatus: 'out_of_stock',
+                    modifieddate: BigInt(Date.now())
+                };
+                const existing = await dynamicFindMany('platformstock', {
+                    where: {
+                        productid: productId,
+                        platform: platform
+                    },
+                    take: 1
+                });
+                if (existing && existing.length > 0) {
+                    const currentRecord = existing[0];
+                    await dynamicUpdate('platformstock', { id: currentRecord.id }, {
+                        ...updateData,
+                        orderedqty: currentRecord.orderedqty || 0,
+                        lockqty: currentRecord.lockqty || 0
+                    });
+                }
+                else {
+                    await dynamicCreate('platformstock', {
+                        productid: productId,
+                        platform: platform,
+                        ...updateData,
+                        orderedqty: 0,
+                        lockqty: 0
+                    });
+                }
+                return updateData;
+            }
+            // Calculate totals from actual stock records
+            let totalQty = 0;
+            let ecomQty = 0;
+            let soldQty = 0;
+            stocks.forEach(stock => {
+                const stockStatus = stock.stockstatus?.toLowerCase();
+                // totalqty = ALL stocks (regardless of status or ecompublish)
+                totalQty += 1;
+                if (stockStatus === 'available') {
+                    // ecomqty = Only available stocks with ecompublish = true
+                    if (stock.ecompublish === true) {
+                        ecomQty += 1;
+                    }
+                }
+                else if (stockStatus === 'sold') {
+                    soldQty += 1;
+                }
+            });
+            // Get current orderedqty and lockqty (these are not recalculated from stocks)
+            const existing = await dynamicFindMany('platformstock', {
+                where: {
+                    productid: productId,
+                    platform: platform
+                },
+                take: 1
+            });
+            const currentOrderedQty = existing && existing.length > 0 ? Number(existing[0].orderedqty || 0) : 0;
+            const currentLockQty = existing && existing.length > 0 ? Number(existing[0].lockqty || 0) : 0;
+            // Calculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
+            const availableQty = Math.max(0, ecomQty - currentOrderedQty - soldQty - currentLockQty);
+            // Calculate platform status
+            const platformStatus = this.calculatePlatformStatus(availableQty);
+            const updateData = {
+                totalqty: totalQty,
+                ecomqty: ecomQty,
+                soldqty: soldQty,
+                availableqty: availableQty,
+                orderedqty: currentOrderedQty,
+                lockqty: currentLockQty,
+                platformstatus: platformStatus,
+                modifieddate: BigInt(Date.now())
+            };
+            // Update or create PlatformStock record
+            const platformStock = await this.upsert({
+                productid: productId,
+                platform: platform,
+                ...updateData
+            });
+            logger.info({
+                platformStockId: platformStock.id,
+                productId,
+                platform,
+                recalculatedQuantities: {
+                    totalqty: totalQty,
+                    ecomqty: ecomQty,
+                    soldqty: soldQty,
+                    availableqty: availableQty,
+                    orderedqty: currentOrderedQty,
+                    lockqty: currentLockQty
+                },
+                formula: {
+                    availableqty: `${ecomQty} - ${currentOrderedQty} - ${soldQty} - ${currentLockQty} = ${availableQty}`
+                },
+                platformStatus
+            }, "PlatformStock quantities recalculated from scratch successfully");
+            return platformStock;
+        }
+        catch (error) {
+            logger.error({ error: error.message, productId, platform }, "Error recalculating PlatformStock quantities");
             throw error;
         }
     }

@@ -344,6 +344,7 @@ export function processError(error, request) {
     let details;
     // DEBUG: Add logging to see which condition is matched
     console.log('=== ERROR DEBUG ===');
+    console.log('Error Data:', error);
     console.log('Error name:', error.name);
     console.log('Error constructor:', error.constructor.name);
     console.log('Is NotFoundError?', error instanceof NotFoundError);
