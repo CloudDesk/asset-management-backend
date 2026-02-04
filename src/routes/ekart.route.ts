@@ -509,94 +509,103 @@ export async function ekartRoutes(fastify: FastifyInstance) {
   }, ekartController.getShippingRates);
 
   /**
-   * Ekart Tracking Status Webhook
+   * Ekart Tracking Status Webhook (Scoped with Raw Body Parser)
    * POST /v1/ekart/webhook/track-status
-   * Unauthenticated endpoint for Ekart to send tracking status updates
    */
-  fastify.post('/webhook/track-status', {
-    schema: {
-      description: 'Handle Ekart tracking status webhook notifications (unauthenticated)',
-      tags: ['Ekart Logistics'],
-      summary: 'Process tracking status updates from Ekart webhook',
-      headers: {
-        type: 'object',
-        properties: {
-          'x-hmac': {
-            type: 'string',
-            description: 'HMAC signature for webhook verification'
-          },
-          'hmac': {
-            type: 'string',
-            description: 'Alternative HMAC header name'
-          }
-        }
-      },
-      body: {
-        type: 'object',
-        required: ['wbn', 'status'],
-        properties: {
-          ctime: { type: 'number', description: 'Timestamp' },
-          status: { type: 'string', description: 'Tracking status (e.g., Delivered)' },
-          location: { type: 'string', description: 'Current location' },
-          desc: { type: 'string', description: 'Status description' },
-          attempts: { type: 'string', description: 'Delivery attempts' },
-          pickupTime: { type: 'number', description: 'Pickup timestamp' },
-          wbn: { type: 'string', description: 'Waybill Number (tracking_id from shipment creation - used to find order)' },
-          id: { type: 'string', description: 'Internal reference (not used for tracking)' },
-          orderNumber: { type: 'string', description: 'Order number' },
-          edd: { type: 'number', description: 'Estimated delivery date' }
-        }
-      },
-      response: {
-        200: {
+  fastify.register(async (webhookInstance) => {
+    // Scoped content type parser ONLY for this route
+    webhookInstance.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req, body, done) => {
+      try {
+        const json = JSON.parse(body.toString('utf8'));
+        (req as any).rawBody = body; // Attach raw buffer for signature verification
+        done(null, json);
+      } catch (err: any) {
+        err.statusCode = 400;
+        done(err);
+      }
+    });
+
+    webhookInstance.post('/webhook/track-status', {
+      schema: {
+        description: 'Handle Ekart tracking status webhook notifications (unauthenticated)',
+        tags: ['Ekart Logistics'],
+        summary: 'Process tracking status updates from Ekart webhook',
+        headers: {
           type: 'object',
           properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            data: {
-              type: 'object',
-              properties: {
-                orderId: { type: 'number' },
-                trackingId: { type: 'string' },
-                status: { type: 'string' }
+            'x-ekart-signature': { type: 'string' },
+            'x-hub-signature': { type: 'string' },
+            'eka-webhook-signature': { type: 'string' }
+          },
+          additionalProperties: true
+        },
+        body: {
+          type: 'object',
+          required: ['wbn', 'status'],
+          properties: {
+            ctime: { type: 'number', description: 'Timestamp' },
+            status: { type: 'string', description: 'Tracking status (e.g., Delivered)' },
+            location: { type: 'string', description: 'Current location' },
+            desc: { type: 'string', description: 'Status description' },
+            attempts: { type: 'string', description: 'Delivery attempts' },
+            pickupTime: { type: 'number', description: 'Pickup timestamp' },
+            wbn: { type: 'string', description: 'Waybill Number (tracking_id from shipment creation - used to find order)' },
+            id: { type: 'string', description: 'Internal reference (not used for tracking)' },
+            orderNumber: { type: 'string', description: 'Order number' },
+            edd: { type: 'number', description: 'Estimated delivery date' }
+          }
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: {
+                type: 'object',
+                properties: {
+                  orderId: { type: 'number' },
+                  trackingId: { type: 'string' },
+                  status: { type: 'string' }
+                }
               }
             }
-          }
-        },
-        400: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            error: { type: 'string' }
-          }
-        },
-        401: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            error: { type: 'string' }
-          }
-        },
-        404: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            error: { type: 'string' }
-          }
-        },
-        500: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            error: { type: 'string' }
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              error: { type: 'string' }
+            }
+          },
+          401: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              error: { type: 'string' }
+            }
+          },
+          404: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              error: { type: 'string' }
+            }
+          },
+          500: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              error: { type: 'string' }
+            }
           }
         }
       }
-    }
-  }, ekartController.handleTrackStatusWebhook);
+    }, ekartController.handleTrackStatusWebhook);
+  });
 }
 

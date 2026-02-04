@@ -981,20 +981,25 @@ export class ProductService {
       let totalEcomPublished = 0;
 
       stocks.forEach(stock => {
-        // Count each stock record as 1 unit (not using stock.quantity field)
-        totalQuantity += 1;
+        const stockStatus = stock.stockstatus?.toLowerCase();
 
-        if (stock.stockstatus?.toLowerCase() === 'available') {
+        // ✅ FIX: Exclude sold stocks from totalQuantity
+        // Total quantity = stocks physically in warehouse (exclude sold)
+        if (stockStatus !== 'sold') {
+          totalQuantity += 1;
+        }
+
+        if (stockStatus === 'available') {
           // Only count e-commerce published if stock is available AND ecompublish is true
           if (stock.ecompublish === true) {
             totalEcomPublished += 1;
             totalAvailable += 1; // Available quantity = stocks that are Available AND ecompublish=true
           }
           // Note: Available stocks with ecompublish=false are NOT counted in availablequantity
-        } else if (stock.stockstatus?.toLowerCase() === 'sold') {
+        } else if (stockStatus === 'sold') {
           totalSold += 1;
         }
-        // Note: Damaged stocks are not counted in available or sold
+        // Note: Damaged stocks are not counted in available or sold, but ARE counted in totalQuantity
       });
 
       const totals = {

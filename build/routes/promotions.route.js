@@ -15,6 +15,7 @@ export async function promotionsRoutes(fastify) {
                 properties: {
                     page: { type: 'string', description: 'Page number' },
                     limit: { type: 'string', description: 'Items per page' },
+                    search: { type: 'string', description: 'Search promotions by name, type, code, or status (case-insensitive partial match)' },
                     userid: { type: 'string', description: 'Filter by user ID for personalized promotions' },
                     channel: { type: 'string', description: 'Channel (web, mobile, etc.)' },
                     geo: { type: 'string', description: 'Geographic region' },

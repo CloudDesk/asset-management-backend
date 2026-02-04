@@ -107,20 +107,68 @@ export class OrdersService {
         try {
             logger.info({ filters, page, limit }, 'Starting dynamic orders findMany with filters');
             const { skip, take } = getPrismaSkipTake(page, limit);
-            // Use the new dynamic filtering system
-            const { data: orders, total } = await dynamicFindManyWithFilters('orders', filters, {
-                skip,
-                take,
-                useAllColumns: true // Get all available columns
+            // Build where clause from filters
+            const whereClause = {};
+            for (const [key, value] of Object.entries(filters)) {
+                if (!['page', 'limit'].includes(key)) {
+                    // Handle numeric fields
+                    if (['userid', 'addressid', 'id', 'quantity'].includes(key)) {
+                        whereClause[key] = parseInt(value);
+                    }
+                    // // Handle boolean fields
+                    // else if (key === 'ispaymentsucceed') {
+                    //   whereClause[key] = value === 'true' || value === true;
+                    // }
+                    // Handle string fields
+                    else {
+                        whereClause[key] = value;
+                    }
+                }
+            }
+            // Fetch orders with user information using Prisma
+            const [orders, total] = await Promise.all([
+                prisma.orders.findMany({
+                    where: whereClause,
+                    skip,
+                    take,
+                    include: {
+                        users: {
+                            select: {
+                                id: true,
+                                firstname: true,
+                                lastname: true,
+                                useremail: true,
+                                usermobilenumber: true
+                            }
+                        }
+                    },
+                    orderBy: {
+                        createddate: 'desc'
+                    }
+                }),
+                prisma.orders.count({ where: whereClause })
+            ]);
+            // Transform the data to include user properties at order level
+            const transformedOrders = orders.map((order) => {
+                const { users, ...orderData } = order;
+                return {
+                    ...orderData,
+                    // Add user information as separate properties
+                    username: users ? `${users.firstname || ''} ${users.lastname || ''}`.trim() : null,
+                    useremail: users?.useremail || null,
+                    usermobilenumber: users?.usermobilenumber || null,
+                    user_firstname: users?.firstname || null,
+                    user_lastname: users?.lastname || null
+                };
             });
             logger.info({
-                orderCount: orders.length,
+                orderCount: transformedOrders.length,
                 total,
                 filtered: Object.keys(filters).length > 0,
                 appliedFilters: Object.keys(filters),
-                availableFields: orders.length > 0 ? Object.keys(orders[0]) : []
-            }, 'Dynamic orders findMany with filters completed');
-            return createPaginationResult(orders, total, page, limit);
+                availableFields: transformedOrders.length > 0 ? Object.keys(transformedOrders[0]) : []
+            }, 'Dynamic orders findMany with user data completed');
+            return createPaginationResult(transformedOrders, total, page, limit);
         }
         catch (error) {
             logger.error({ error, filters, page, limit }, 'Error in dynamic orders findMany operation');
@@ -643,7 +691,8 @@ export class OrdersService {
             const filters = {
                 puc: product.puc, // Stock.puc = Product.puc (where Product.id = productId)
                 platform: platform,
-                stockstatus: 'available'
+                stockstatus: 'available',
+                ecompublish: true // Only select e-commerce published stocks
             };
             // Apply batch filters if provided
             if (batchFilter?.batchno) {
@@ -689,6 +738,11 @@ export class OrdersService {
                 if (!stock) {
                     throw new Error(`Stock with ID ${stockId} not found`);
                 }
+                // Validate: Only allow e-commerce published stocks
+                if (stock.ecompublish !== true) {
+                    throw new Error(`Stock with ID ${stockId} is not e-commerce published (ecompublish: ${stock.ecompublish}). ` +
+                        `Only stocks with ecompublish=true can be allocated for dispatch.`);
+                }
                 stocks.push(stock);
             }
             return stocks;
@@ -705,12 +759,16 @@ export class OrdersService {
         try {
             const stocks = [];
             for (const sku of skus) {
-                const { data: stockResults } = await dynamicFindManyWithFilters('stock', { sku }, {
+                const { data: stockResults } = await dynamicFindManyWithFilters('stock', {
+                    sku,
+                    ecompublish: true // Only select e-commerce published stocks
+                }, {
                     take: 1,
                     useAllColumns: true
                 });
                 if (!stockResults || stockResults.length === 0) {
-                    throw new Error(`Stock with SKU ${sku} not found`);
+                    throw new Error(`Stock with SKU ${sku} not found or not e-commerce published. ` +
+                        `Only stocks with ecompublish=true can be allocated for dispatch.`);
                 }
                 stocks.push(stockResults[0]);
             }
@@ -777,11 +835,16 @@ export class OrdersService {
                         // Note: Manual stock selection is not supported for combo components (auto-select only)
                         const componentStocks = await this.autoSelectStocks(componentProductId, totalNeeded, 'nivapp' // Default platform
                         );
-                        // Validate stock status and product match for component stocks
+                        // Validate stock status, e-commerce publish status, and product match for component stocks
                         const componentProduct = await dynamicFindUnique('product', { id: componentProductId });
                         for (const stock of componentStocks) {
                             if (stock.stockstatus !== 'available') {
                                 throw new Error(`Component stock ${stock.id} is not available (status: ${stock.stockstatus})`);
+                            }
+                            // Validate: Only allow e-commerce published stocks for components
+                            if (stock.ecompublish !== true) {
+                                throw new Error(`Component stock ${stock.id} is not e-commerce published (ecompublish: ${stock.ecompublish}). ` +
+                                    `Only stocks with ecompublish=true can be allocated for dispatch.`);
                             }
                             if (!componentProduct || stock.puc !== componentProduct.puc) {
                                 throw new Error(`Component stock ${stock.id} (puc: ${stock.puc}) does not match component product ` +
@@ -839,10 +902,15 @@ export class OrdersService {
                         stocks = await this.autoSelectStocks(orderline.productid, orderline.quantity || 1, 'nivapp' // Default platform
                         );
                     }
-                    // Validate stock status and product match
+                    // Validate stock status, e-commerce publish status, and product match
                     for (const stock of stocks) {
                         if (stock.stockstatus !== 'available') {
                             throw new Error(`Stock ${stock.id} is not available (status: ${stock.stockstatus})`);
+                        }
+                        // Validate: Only allow e-commerce published stocks
+                        if (stock.ecompublish !== true) {
+                            throw new Error(`Stock ${stock.id} is not e-commerce published (ecompublish: ${stock.ecompublish}). ` +
+                                `Only stocks with ecompublish=true can be allocated for dispatch.`);
                         }
                         // Validate: Get Product by id = orderline.productid, then check Stock.puc = Product.puc
                         if (!orderlineProduct || stock.puc !== orderlineProduct.puc) {
@@ -874,7 +942,7 @@ export class OrdersService {
             const orderlineService = new OrderlineService();
             const currentTimestamp = Date.now();
             // Track quantity updates per product/platform to avoid duplicate updates
-            // Key: "productId-platform" -> quantity
+            // Key: "productId-platform" -> { quantity, ecomQuantity }
             const platformStockUpdates = new Map();
             // Key: puc -> quantity
             const productUpdates = new Map();
@@ -914,10 +982,15 @@ export class OrdersService {
                     platformStockUpdates.set(platformStockKey, {
                         productId,
                         platform: firstStock.platform,
-                        quantity: 0
+                        quantity: 0,
+                        ecomQuantity: 0
                     });
                 }
-                platformStockUpdates.get(platformStockKey).quantity += allocation.stocks.length;
+                const update = platformStockUpdates.get(platformStockKey);
+                update.quantity += allocation.stocks.length;
+                // Count how many stocks were e-commerce published (before they're marked as sold)
+                const ecomPublishedCount = allocation.stocks.filter(s => s.ecompublish === true).length;
+                update.ecomQuantity += ecomPublishedCount;
                 // Track Product update (aggregate by puc)
                 // For combo components, this will track the COMPONENT product, not the combo product
                 if (!productUpdates.has(firstStock.puc)) {
@@ -956,13 +1029,30 @@ export class OrdersService {
                 }, { take: 1, useAllColumns: true });
                 if (platformStocks && platformStocks.length > 0) {
                     const platformStock = platformStocks[0];
-                    // Update PlatformStock: decrease orderedqty, increase soldqty
-                    // Note: availableqty and platformstatus don't change (already done during order creation)
-                    const newOrderedQty = Math.max(0, (platformStock.orderedqty || 0) - update.quantity);
-                    const newSoldQty = (platformStock.soldqty || 0) + update.quantity;
+                    // Get current quantities
+                    const currentEcomQty = Number(platformStock.ecomqty || 0);
+                    const currentOrderedQty = Number(platformStock.orderedqty || 0);
+                    const currentSoldQty = Number(platformStock.soldqty || 0);
+                    const currentLockQty = Number(platformStock.lockqty || 0);
+                    // Update PlatformStock: 
+                    // - Decrease orderedqty (stocks were reserved, now sold)
+                    // - Increase soldqty (stocks are now sold)
+                    // - Decrease ecomqty (if stocks were e-commerce published)
+                    // - Recalculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
+                    const newOrderedQty = Math.max(0, currentOrderedQty - update.quantity);
+                    const newSoldQty = currentSoldQty + update.quantity;
+                    const newEcomQty = Math.max(0, currentEcomQty - update.ecomQuantity); // Decrease by e-commerce published count
+                    const newAvailableQty = Math.max(0, newEcomQty - newOrderedQty - newSoldQty - currentLockQty);
+                    // Calculate platform status
+                    const { PlatformStockService } = await import('./platformStock.service.js');
+                    const platformStockService = new PlatformStockService();
+                    const platformStatus = platformStockService['calculatePlatformStatus'](newAvailableQty);
                     await dynamicUpdate('platformstock', { id: platformStock.id }, {
+                        ecomqty: newEcomQty,
                         orderedqty: newOrderedQty,
                         soldqty: newSoldQty,
+                        availableqty: newAvailableQty,
+                        platformstatus: platformStatus,
                         modifieddate: currentTimestamp
                     });
                     logger.info({
@@ -970,11 +1060,19 @@ export class OrdersService {
                         productId: update.productId,
                         platform: update.platform,
                         quantity: update.quantity,
-                        oldOrderedQty: platformStock.orderedqty,
+                        ecomQuantity: update.ecomQuantity,
+                        oldEcomQty: currentEcomQty,
+                        newEcomQty,
+                        oldOrderedQty: currentOrderedQty,
                         newOrderedQty,
-                        oldSoldQty: platformStock.soldqty,
-                        newSoldQty
-                    }, 'PlatformStock quantities updated');
+                        oldSoldQty: currentSoldQty,
+                        newSoldQty,
+                        oldAvailableQty: platformStock.availableqty,
+                        newAvailableQty,
+                        formula: {
+                            availableqty: `${newEcomQty} - ${newOrderedQty} - ${newSoldQty} - ${currentLockQty} = ${newAvailableQty}`
+                        }
+                    }, 'PlatformStock quantities updated (dispatch)');
                 }
             }
             // 4. Update Product quantities (once per product)
@@ -3108,9 +3206,15 @@ export class OrdersService {
                 }, { take: 1, useAllColumns: true });
                 if (platformStocks && platformStocks.length > 0) {
                     const platformStock = platformStocks[0];
-                    // Restore availableqty, reduce orderedqty
-                    const newAvailableQty = (platformStock.availableqty || 0) + update.quantity;
+                    // Get current quantities
+                    const currentEcomQty = Number(platformStock.ecomqty || 0);
+                    const currentSoldQty = Number(platformStock.soldqty || 0);
+                    const currentLockQty = Number(platformStock.lockqty || 0);
+                    // Restore orderedqty → availableqty
                     const newOrderedQty = Math.max(0, (platformStock.orderedqty || 0) - update.quantity);
+                    // Recalculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
+                    // ecomqty doesn't change (stocks still available, just not ordered anymore)
+                    const newAvailableQty = Math.max(0, currentEcomQty - newOrderedQty - currentSoldQty - currentLockQty);
                     await dynamicUpdate('platformstock', { id: platformStock.id }, {
                         availableqty: newAvailableQty,
                         orderedqty: newOrderedQty,
@@ -3166,6 +3270,7 @@ export class OrdersService {
             logger.info({ orderId, orderlinesCount: orderlines.length }, 'Reversing post-dispatch stock allocations');
             const currentTimestamp = Date.now();
             // Track updates by product to avoid duplicate updates
+            // Key: "productId-platform" -> { quantity, ecomQuantity }
             const platformStockUpdates = new Map();
             const productUpdates = new Map();
             // Get order to retrieve orderid string
@@ -3264,10 +3369,17 @@ export class OrdersService {
                                 platformStockUpdates.set(componentPlatformStockKey, {
                                     productId: componentProductId,
                                     platform,
-                                    quantity: 0
+                                    quantity: 0,
+                                    ecomQuantity: 0
                                 });
                             }
-                            platformStockUpdates.get(componentPlatformStockKey).quantity += componentTotalQty;
+                            const componentUpdate = platformStockUpdates.get(componentPlatformStockKey);
+                            componentUpdate.quantity += componentTotalQty;
+                            // For combo components, we need to check if the stocks were e-commerce published
+                            // Since we don't have direct access to component stocks here, we'll assume they were e-commerce published
+                            // (components of combo products are typically e-commerce published)
+                            // Note: In cancellation, we're restoring stocks that were already allocated, so they were e-commerce published
+                            componentUpdate.ecomQuantity += componentTotalQty;
                             // Track component Product update
                             if (!productUpdates.has(componentProductId)) {
                                 productUpdates.set(componentProductId, 0);
@@ -3298,10 +3410,16 @@ export class OrdersService {
                     platformStockUpdates.set(platformStockKey, {
                         productId,
                         platform,
-                        quantity: 0
+                        quantity: 0,
+                        ecomQuantity: 0
                     });
                 }
-                platformStockUpdates.get(platformStockKey).quantity += quantity;
+                const update = platformStockUpdates.get(platformStockKey);
+                update.quantity += quantity;
+                // Count how many stocks were e-commerce published (before they were marked as sold)
+                // Stocks that were sold were e-commerce published (otherwise they wouldn't be in soldqty)
+                const ecomPublishedCount = allocatedStocks.filter(s => s.ecompublish === true).length;
+                update.ecomQuantity += ecomPublishedCount;
                 // Track Product update
                 if (!productUpdates.has(productId)) {
                     productUpdates.set(productId, 0);
@@ -3316,10 +3434,22 @@ export class OrdersService {
                 }, { take: 1, useAllColumns: true });
                 if (platformStocks && platformStocks.length > 0) {
                     const platformStock = platformStocks[0];
-                    // Restore availableqty, reduce soldqty
-                    const newAvailableQty = (platformStock.availableqty || 0) + update.quantity;
+                    // Get current quantities
+                    const currentEcomQty = Number(platformStock.ecomqty || 0);
+                    const currentOrderedQty = Number(platformStock.orderedqty || 0);
+                    const currentLockQty = Number(platformStock.lockqty || 0);
+                    // Restore soldqty → availableqty
+                    // ecomqty increases because stocks are back to 'available' status (if they were e-commerce published)
+                    // Note: We need to check if the stocks were e-commerce published
+                    // For now, we'll recalculate ecomqty from actual stocks, but for cancellation we increment it
+                    // Actually, ecomqty should be recalculated from stocks, but for performance we increment it
+                    // The stocks being cancelled were sold, so they were e-commerce published (otherwise they wouldn't be in soldqty)
                     const newSoldQty = Math.max(0, (platformStock.soldqty || 0) - update.quantity);
+                    const newEcomQty = currentEcomQty + update.ecomQuantity; // Increase by e-commerce published count
+                    // Recalculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
+                    const newAvailableQty = Math.max(0, newEcomQty - currentOrderedQty - newSoldQty - currentLockQty);
                     await dynamicUpdate('platformstock', { id: platformStock.id }, {
+                        ecomqty: newEcomQty,
                         availableqty: newAvailableQty,
                         soldqty: newSoldQty,
                         modifieddate: currentTimestamp
@@ -3329,10 +3459,16 @@ export class OrdersService {
                         productId: update.productId,
                         platform: update.platform,
                         quantity: update.quantity,
+                        ecomQuantity: update.ecomQuantity,
+                        oldEcomQty: currentEcomQty,
+                        newEcomQty,
                         oldAvailableQty: platformStock.availableqty,
                         newAvailableQty,
                         oldSoldQty: platformStock.soldqty,
-                        newSoldQty
+                        newSoldQty,
+                        formula: {
+                            availableqty: `${newEcomQty} - ${currentOrderedQty} - ${newSoldQty} - ${currentLockQty} = ${newAvailableQty}`
+                        }
                     }, 'PlatformStock quantities restored (post-dispatch cancellation)');
                 }
             }

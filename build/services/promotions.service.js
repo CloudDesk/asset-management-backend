@@ -329,12 +329,12 @@ export class PromotionsService {
         try {
             logger.info({ filters, page, limit, adminMode }, 'Starting dynamic promotions findMany with filters');
             // Handle userid filtering for personalized promotions
-            const { userid, channel = 'web', geo = 'IN', current_date, ...otherFilters } = filters;
+            const { userid, channel = 'web', geo = 'IN', current_date, search, ...otherFilters } = filters;
             // Convert geo code to timezone
             const geoString = Array.isArray(geo) ? (geo[0] || 'IN') : (geo || 'IN');
             const timezone = getTimezoneFromGeo(geoString);
             let baseFilters;
-            if (adminMode && Object.keys(otherFilters).length === 0) {
+            if (adminMode && Object.keys(otherFilters).length === 0 && !search) {
                 // Admin mode with no filters - get ALL promotions
                 logger.info('Admin mode: Getting all promotions without default filters');
                 baseFilters = {};
@@ -346,6 +346,23 @@ export class PromotionsService {
                     timezone: timezone,
                     ...otherFilters
                 };
+            }
+            // Add search functionality - search across name, type, code, status
+            // Handle search separately with Prisma to avoid FilterOptions type issues
+            let searchWhere = null;
+            if (search) {
+                const searchText = Array.isArray(search) ? search[0] : search;
+                if (searchText && searchText.trim()) {
+                    logger.info({ searchText: searchText.trim() }, 'Searching promotions with text');
+                    searchWhere = {
+                        OR: [
+                            { name: { contains: searchText.trim(), mode: 'insensitive' } },
+                            { type: { contains: searchText.trim(), mode: 'insensitive' } },
+                            { code: { contains: searchText.trim(), mode: 'insensitive' } },
+                            { status: { contains: searchText.trim(), mode: 'insensitive' } }
+                        ]
+                    };
+                }
             }
             // Add date filtering if current_date provided
             if (current_date) {
@@ -359,7 +376,37 @@ export class PromotionsService {
             }
             let finalPromotions = [];
             let total = 0;
-            if (adminMode && Object.keys(otherFilters).length === 0) {
+            // Handle search with Prisma directly
+            if (searchWhere) {
+                // Apply base filters to search where clause
+                if (!adminMode) {
+                    searchWhere.status = 'active';
+                    searchWhere.timezone = timezone;
+                }
+                // Apply other filters
+                Object.keys(otherFilters).forEach(key => {
+                    if (otherFilters[key] !== undefined) {
+                        searchWhere[key] = otherFilters[key];
+                    }
+                });
+                const [promotions, promotionTotal] = await Promise.all([
+                    this.prisma.promotions.findMany({
+                        where: searchWhere,
+                        skip: (page - 1) * limit,
+                        take: limit,
+                        orderBy: { modifieddate: 'desc' }
+                    }),
+                    this.prisma.promotions.count({ where: searchWhere })
+                ]);
+                finalPromotions = promotions.map((promo) => this.formatPromotionForDisplay(promo));
+                total = promotionTotal;
+                logger.info({
+                    search,
+                    totalPromotions: promotionTotal,
+                    returnedPromotions: finalPromotions.length
+                }, 'Search promotions completed');
+            }
+            else if (adminMode && Object.keys(otherFilters).length === 0 && !search) {
                 // Admin mode with no filters - get ALL promotions
                 logger.info('Admin mode: Getting all promotions for admin portal');
                 const { data: allPromotions, total: promotionTotal } = await dynamicFindManyWithFilters('promotions', baseFilters, {
