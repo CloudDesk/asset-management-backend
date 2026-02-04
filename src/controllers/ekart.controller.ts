@@ -30,7 +30,7 @@ export class EkartController {
   // Static service instances (stateless, reusable)
   private readonly ordersService = new OrdersService();
   private readonly orderlineService = new OrderlineService();
-  
+
   // Webhook secret (constant, no need to recreate on each request)
   private static readonly WEBHOOK_SECRET = 'Nivaana-Ekart-Track-Status';
 
@@ -59,18 +59,18 @@ export class EkartController {
             expires_in: tokenInfo.expiresIn,
             expires_at: tokenInfo.expiresAt ? new Date(tokenInfo.expiresAt).toISOString() : null,
             is_valid: tokenInfo.isValid,
-            message: tokenInfo.isValid 
+            message: tokenInfo.isValid
               ? 'Ekart channel is connected and ready to use'
               : isConfigured
-              ? 'Ekart channel is not connected. Use POST /connect-channel to connect.'
-              : 'Ekart credentials are not configured in environment variables'
+                ? 'Ekart channel is not connected. Use POST /connect-channel to connect.'
+                : 'Ekart credentials are not configured in environment variables'
           }
         );
 
         return reply.code(200).send(response);
       } catch (error: any) {
         logger.error({ error: error.message }, 'Failed to check connection status');
-        
+
         const errorResponse = createErrorResponse(
           'Failed to check connection status',
           error.message || 'Status check failed',
@@ -96,7 +96,7 @@ export class EkartController {
       try {
         // Connect to Ekart
         const tokenCache = await ekartAuthService.connect();
-        
+
         // Get token info
         const tokenInfo = ekartAuthService.getTokenInfo();
 
@@ -115,7 +115,7 @@ export class EkartController {
         return reply.code(200).send(response);
       } catch (error: any) {
         logger.error({ error: error.message }, 'Failed to connect to Ekart channel');
-        
+
         const errorResponse = createErrorResponse(
           'Failed to connect to Ekart channel',
           error.message || 'Connection failed',
@@ -186,7 +186,7 @@ export class EkartController {
 
         // Use findByOrderIdString for searching by orderid field (order_number from payload)
         const order = await this.ordersService.findByOrderIdString(requestBody.order_number);
-        
+
         if (order) {
           logger.info(
             {
@@ -224,7 +224,7 @@ export class EkartController {
           );
 
           // Update all orderlines with tracking_id (NO status change, NO status_history update)
-          
+
           logger.info(
             { orderId: order.id },
             '📍 [CONTROLLER] Step 6.3: Fetching orderlines for update'
@@ -368,7 +368,7 @@ export class EkartController {
       request: FastifyRequest<{ Body: ReverseShipmentInput }>,
       reply: FastifyReply
     ) => {
-      logger.info(request.body,"request.body createReverseShipment in controller")
+      logger.info(request.body, "request.body createReverseShipment in controller")
       const requestBody = reverseShipmentSchemaWithDimensions.parse(request.body);
 
       // Use GST TIN from payload or env
@@ -386,7 +386,7 @@ export class EkartController {
         { orderNumber: finalPayload.order_number, returnReason: finalPayload.return_reason },
         'Creating reverse shipment'
       );
-logger.info(finalPayload,"finalPayload createReverseShipment")
+      logger.info(finalPayload, "finalPayload createReverseShipment")
       const result = await ekartService.createReverseShipment(finalPayload as CreateShipmentPayload);
 
       const response = createSuccessResponse(
@@ -492,7 +492,7 @@ logger.info(finalPayload,"finalPayload createReverseShipment")
               { orderId: order.id, trackingId, labelUrl },
               'Label URL stored in orders table'
             );
-            
+
             return { trackingId, orderId: order.id, labelUrl, success: true };
           } catch (error: any) {
             logger.error(
@@ -508,7 +508,7 @@ logger.info(finalPayload,"finalPayload createReverseShipment")
         const failed = updateResults.filter(r => !r.success).length;
 
         logger.info(
-          { 
+          {
             totalTrackingIds: trackingIds.length,
             successful,
             failed,
@@ -519,8 +519,8 @@ logger.info(finalPayload,"finalPayload createReverseShipment")
 
         // Return JSON response with label URLs
         // If single tracking ID, return single object; if multiple, return array
-        const responseData = trackingIds.length === 1 
-          ? updateResults[0] 
+        const responseData = trackingIds.length === 1
+          ? updateResults[0]
           : updateResults;
 
         const response = createSuccessResponse(
@@ -534,7 +534,7 @@ logger.info(finalPayload,"finalPayload createReverseShipment")
           { error: error.message, trackingIds, stack: error.stack },
           'Failed to process label uploads to GCP Storage Backend'
         );
-        
+
         // Return error response
         const errorResponse = createErrorResponse(
           'Failed to upload labels to storage backend',
@@ -693,12 +693,17 @@ logger.info(finalPayload,"finalPayload createReverseShipment")
     ) => {
       try {
         const webhookPayload = request.body as any;
-        const hmacHeader = request.headers['x-hmac'] as string || request.headers['hmac'] as string;
-console.log(webhookPayload,"webhookPayload handleTrackStatusWebhook")
-console.log(JSON.stringify(webhookPayload),"webhookPayload stringify handleTrackStatusWebhook")
+        const hmacHeader =
+          request.headers['x-ekart-signature'] as string ||
+          request.headers['x-hub-signature'] as string ||
+          request.headers['eka-webhook-signature'] as string ||
+          request.headers['x-hmac'] as string ||
+          request.headers['hmac'] as string;
+
+        console.log(webhookPayload, "webhookPayload handleTrackStatusWebhook")
+        console.log(JSON.stringify(webhookPayload), "webhookPayload stringify handleTrackStatusWebhook")
+        console.log(hmacHeader, "hmacHeader");
         // Early validation (fail fast before any processing)
-        // wbn = Waybill Number (tracking_id from shipment creation)
-        // id = Internal reference (not used for tracking)
         if (!webhookPayload || !webhookPayload.wbn || !webhookPayload.status) {
           logger.warn(
             { hasPayload: !!webhookPayload, hasWbn: !!webhookPayload?.wbn, hasStatus: !!webhookPayload?.status },
@@ -714,22 +719,49 @@ console.log(JSON.stringify(webhookPayload),"webhookPayload stringify handleTrack
           );
         }
 
-        // Verify HMAC signature (before logging to avoid processing invalid requests)
-        const payloadString = JSON.stringify(webhookPayload);
+        // Verify HMAC signature using raw body (captured in ekart.route.ts)
+        const rawBody = (request as any).rawBody;
+        if (!rawBody) {
+          logger.error('Raw body missing — cannot verify Ekart signature');
+          return reply.code(401).send(
+            createErrorResponse(
+              'Invalid signature',
+              'Raw body missing for HMAC verification',
+              401
+            )
+          );
+        }
+
+
         const expectedHmac = crypto
           .createHmac('sha256', EkartController.WEBHOOK_SECRET)
-          .update(payloadString)
+          .update(rawBody)
           .digest('hex');
+        console.log(expectedHmac, "expectedHmac");
 
-        // Compare HMAC (case-insensitive, cache lowercased values)
-        const providedHmacLower = hmacHeader?.toLowerCase();
-        const expectedHmacLower = expectedHmac.toLowerCase();
-        
-        if (!hmacHeader || providedHmacLower !== expectedHmacLower) {
+        // Clean provided HMAC (Ekart sometimes sends `sha256=<hash>`)
+        const providedHmac = hmacHeader ? hmacHeader.replace(/^sha256=/, '') : '';
+        console.log(providedHmac, "providedHmac");
+        // Timing-safe comparison to prevent timing attacks
+        let isSignatureValid = false;
+        if (hmacHeader && providedHmac.length === expectedHmac.length) {
+          try {
+            isSignatureValid = crypto.timingSafeEqual(
+              Buffer.from(providedHmac, 'hex'),
+              Buffer.from(expectedHmac, 'hex')
+            );
+          } catch (e) {
+            isSignatureValid = false;
+          }
+        }
+        console.log(isSignatureValid, "isSignatureValid");
+
+        if (!isSignatureValid) {
           logger.warn(
             {
-              providedHmac: hmacHeader ? hmacHeader.substring(0, 20) + '...' : 'missing',
+              providedHmac: hmacHeader ? (providedHmac.substring(0, 20) + '...') : 'missing',
               expectedHmac: expectedHmac.substring(0, 20) + '...',
+              headers: request.headers // Log headers for debugging
             },
             'Invalid Ekart webhook HMAC signature'
           );
@@ -746,7 +778,7 @@ console.log(JSON.stringify(webhookPayload),"webhookPayload stringify handleTrack
         // Find order by tracking_id (the "wbn" field in webhook)
         const trackingId = webhookPayload.wbn;
         const order = await this.ordersService.findByTrackingId(trackingId);
-
+        console.log(order, "order");
         if (!order) {
           logger.warn(
             { trackingId },
@@ -770,7 +802,7 @@ console.log(JSON.stringify(webhookPayload),"webhookPayload stringify handleTrack
         // 4. Updating status_history for order and orderlines
         // 5. Updating all orderlines status
         const updatedOrder = await this.ordersService.handleEkartWebhookStatusUpdate(
-              trackingId,
+          trackingId,
           webhookPayload.status,
           {
             location: webhookPayload.location,
