@@ -538,7 +538,7 @@ export class ProductController {
       const { page, limit } = getPaginationParams(allFilters);
 
       // Extract sorting parameters
-      const sortBy = allFilters.sortBy || 'createddate';
+      const sortBy = allFilters.sortBy || 'modifieddate';
       const sortOrder = allFilters.sortOrder || 'desc';
 
       const { page: _, limit: __, sortBy: _sortBy, sortOrder: _sortOrder, ...filters } = allFilters;

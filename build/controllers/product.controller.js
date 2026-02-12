@@ -386,7 +386,7 @@ export class ProductController {
         const allFilters = request.query || {};
         const { page, limit } = getPaginationParams(allFilters);
         // Extract sorting parameters
-        const sortBy = allFilters.sortBy || 'createddate';
+        const sortBy = allFilters.sortBy || 'modifieddate';
         const sortOrder = allFilters.sortOrder || 'desc';
         const { page: _, limit: __, sortBy: _sortBy, sortOrder: _sortOrder, ...filters } = allFilters;
         const result = await this.productService.findManyForPlatform(platform, filters, page, limit, sortBy, sortOrder);
