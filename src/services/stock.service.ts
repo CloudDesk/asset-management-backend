@@ -58,6 +58,77 @@ export class StockService {
         }
       );
 
+      // Fetch product information for all unique PUCs
+      if (stocks.length > 0) {
+        const uniquePucs = [...new Set(stocks.map((stock: any) => stock.puc).filter(Boolean))];
+        
+        if (uniquePucs.length > 0) {
+          try {
+            // Fetch products by PUCs in batch with name, category, subcategory, and subsubcategory
+            const products = await prisma.product.findMany({
+              where: {
+                puc: {
+                  in: uniquePucs
+                }
+              },
+              select: {
+                puc: true,
+                name: true,
+                category: true,
+                subcategory: true,
+                subsubcategory: true
+              }
+            });
+
+            // Create a map of PUC -> product information
+            const productInfoMap = new Map<string, {
+              name: string | null;
+              category: string | null;
+              subcategory: string | null;
+              subsubcategory: string | null;
+            }>();
+            products.forEach((product: any) => {
+              if (product.puc) {
+                productInfoMap.set(product.puc, {
+                  name: product.name || null,
+                  category: product.category || null,
+                  subcategory: product.subcategory || null,
+                  subsubcategory: product.subsubcategory || null
+                });
+              }
+            });
+
+            // Add product information to each stock object
+            stocks.forEach((stock: any) => {
+              if (stock.puc && productInfoMap.has(stock.puc)) {
+                const productInfo = productInfoMap.get(stock.puc);
+                if (productInfo) {
+                  stock.productname = productInfo.name;
+                  stock.productcategory = productInfo.category;
+                  stock.productsubcategory = productInfo.subcategory;
+                  stock.productsubsubcategory = productInfo.subsubcategory;
+                }
+              }
+            });
+
+            logger.debug(
+              {
+                uniquePucsCount: uniquePucs.length,
+                productsFound: products.length,
+                stocksWithProductInfo: stocks.filter((s: any) => s.productname).length
+              },
+              "Product information added to stocks"
+            );
+          } catch (error: any) {
+            logger.warn(
+              { error: error.message },
+              "Failed to fetch product information, continuing without product information"
+            );
+            // Continue without product information if fetch fails
+          }
+        }
+      }
+
       logger.info(
         {
           stockCount: stocks.length,
@@ -300,7 +371,41 @@ export class StockService {
         }
       }
 
-      const stock = await dynamicCreate("stock", data);
+      // Auto-populate order fields when stockstatus is 'sold'
+      const stockData = { ...data };
+      if (stockData.stockstatus?.toLowerCase() === 'sold') {
+        // Auto-set solddate if not provided
+        if (!stockData.solddate) {
+          stockData.solddate = BigInt(Date.now());
+          logger.debug(
+            { solddate: stockData.solddate },
+            "Auto-set solddate for sold stock"
+          );
+        }
+
+        // Log warning if order information is missing
+        if (!stockData.orderid || !stockData.orderlinenumber) {
+          logger.warn(
+            {
+              stockstatus: stockData.stockstatus,
+              hasOrderId: !!stockData.orderid,
+              hasOrderLineNumber: !!stockData.orderlinenumber
+            },
+            "Stock marked as 'sold' but order information (orderid/orderlinenumber) not provided"
+          );
+        } else {
+          logger.info(
+            {
+              orderid: stockData.orderid,
+              orderlinenumber: stockData.orderlinenumber,
+              solddate: stockData.solddate
+            },
+            "Capturing order information for sold stock"
+          );
+        }
+      }
+
+      const stock = await dynamicCreate("stock", stockData);
 
       if (!stock) {
         throw new Error("Failed to create stock - no valid fields provided");
@@ -319,11 +424,11 @@ export class StockService {
 
       // Update product quantities and platform stock based on the new stock
       // Priority: 1. Use stock.puc, 2. Use linked product, 3. Use legacy productId
-      const productIdentifier = stock.puc || 
-                               linkedProduct?.puc || 
-                               linkedProduct?.id || 
-                               stock.productId || 
-                               stock.product_id;
+      const productIdentifier = stock.puc ||
+        linkedProduct?.puc ||
+        linkedProduct?.id ||
+        stock.productId ||
+        stock.product_id;
 
       if (!options.skipProductUpdate && productIdentifier) {
         try {
@@ -333,17 +438,17 @@ export class StockService {
             stockstatus: stock.stockstatus,
             quantity: stock.quantity || 1 // Default to 1 if not specified
           };
-          
+
           // Update parent product quantities
           const updateResult = await this.productService.updateStockTotals(productIdentifier, insertedStockInfo);
           logger.info(
-            { 
-              stockId: stock.id, 
+            {
+              stockId: stock.id,
               productIdentifier,
               stockstatus: stock.stockstatus,
               ecompublish: stock.ecompublish,
               insertedStockInfo,
-              updateResult 
+              updateResult
             },
             "Successfully updated product quantities after stock creation"
           );
@@ -359,7 +464,7 @@ export class StockService {
             },
             "PlatformStock update check"
           );
-          
+
           if (stock.platform && linkedProduct?.id) {
             try {
               logger.info(
@@ -372,7 +477,7 @@ export class StockService {
                 },
                 "Calling updatePlatformStockQuantities"
               );
-              
+
               await this.platformStockService.updatePlatformStockQuantities(
                 Number(linkedProduct.id),
                 stock.platform,
@@ -383,7 +488,7 @@ export class StockService {
                   operation: 'create'
                 }
               );
-              
+
               logger.info(
                 {
                   stockId: stock.id,
@@ -420,9 +525,9 @@ export class StockService {
           }
         } catch (error: any) {
           logger.error(
-            { 
-              error: error.message, 
-              stockId: stock.id, 
+            {
+              error: error.message,
+              stockId: stock.id,
               productIdentifier,
               stockstatus: stock.stockstatus,
               ecompublish: stock.ecompublish
@@ -449,7 +554,7 @@ export class StockService {
   ): Promise<{ inserted: any[]; failures: { index: number; error: string }[] }> {
     const inserted = [];
     const failures = [];
-  
+
     for (let i = 0; i < dataArray.length; i++) {
       try {
         const stock = await this.create(dataArray[i] as any);
@@ -458,7 +563,7 @@ export class StockService {
         failures.push({ index: i, error: err.message || "Failed to insert stock" });
       }
     }
-  
+
     return { inserted, failures };
   }
 
@@ -471,8 +576,8 @@ export class StockService {
     options: {
       batchSize?: number;
     } = {}
-  ): Promise<{ 
-    inserted: any[]; 
+  ): Promise<{
+    inserted: any[];
     failures: { index: number; error: string }[];
     summary: {
       total: number;
@@ -498,9 +603,9 @@ export class StockService {
     const MAX_BATCH_SIZE = 1000;  // Higher limit for createMany
     const DEFAULT_BATCH_SIZE = 500;  // Optimal for most databases
     const MIN_BATCH_SIZE = 50;   // Minimum for createMany efficiency
-    
+
     let { batchSize = DEFAULT_BATCH_SIZE } = options;
-    
+
     // Enforce batch size limits
     if (batchSize > MAX_BATCH_SIZE) {
       logger.warn({
@@ -510,7 +615,7 @@ export class StockService {
       }, 'Batch size exceeds maximum limit for createMany, applying safe limit');
       batchSize = MAX_BATCH_SIZE;
     }
-    
+
     if (batchSize < MIN_BATCH_SIZE) {
       logger.warn({
         requestedBatchSize: batchSize,
@@ -534,7 +639,7 @@ export class StockService {
     for (let i = 0; i < dataArray.length; i += batchSize) {
       const batch = dataArray.slice(i, i + batchSize);
       const batchNumber = Math.floor(i / batchSize) + 1;
-      
+
       logger.info({
         batchNumber,
         batchSize: batch.length,
@@ -546,11 +651,11 @@ export class StockService {
         // Prepare data for createMany (remove instances field and expand)
         const expandedBatch: any[] = [];
         let currentIndex = i;
-        
+
         for (const item of batch) {
           const { instances, ...stockData } = item;
           const instanceCount = instances || 1;
-          
+
           // Create multiple identical records
           for (let j = 0; j < instanceCount; j++) {
             expandedBatch.push({
@@ -611,17 +716,17 @@ export class StockService {
       failed: number;
       failures: Array<{ productId: number; platform: string; message: string; }>;
     };
-    
+
     if (inserted.length > 0) {
       logger.info({
         successfulInserts: inserted.length
       }, 'Updating product quantities and platform stock for successful inserts');
-      
+
       try {
         const updateResults = await this.updateProductAndPlatformStockForBulkInsert(inserted);
         productUpdates = updateResults.productUpdates;
         platformStockUpdates = updateResults.platformStockUpdates;
-        
+
         logger.info({
           productUpdates: productUpdates,
           platformStockUpdates: platformStockUpdates
@@ -631,7 +736,7 @@ export class StockService {
           error: error.message,
           successfulInserts: inserted.length
         }, 'Failed to update product quantities and platform stock');
-        
+
         productUpdates = {
           attempted: inserted.length,
           succeeded: 0,
@@ -694,8 +799,8 @@ export class StockService {
       batchSize?: number;
       maxConcurrency?: number;
     } = {}
-  ): Promise<{ 
-    inserted: any[]; 
+  ): Promise<{
+    inserted: any[];
     failures: { index: number; error: string }[];
     summary: {
       total: number;
@@ -721,9 +826,9 @@ export class StockService {
     const MAX_BATCH_SIZE = 200;  // Maximum safe batch size
     const DEFAULT_BATCH_SIZE = 100;  // Conservative default for reliability
     const MIN_BATCH_SIZE = 10;   // Minimum batch size
-    
+
     let { batchSize = DEFAULT_BATCH_SIZE, maxConcurrency = 3 } = options;
-    
+
     // Enforce batch size limits
     if (batchSize > MAX_BATCH_SIZE) {
       logger.warn({
@@ -733,7 +838,7 @@ export class StockService {
       }, 'Batch size exceeds maximum limit, applying safe limit');
       batchSize = MAX_BATCH_SIZE;
     }
-    
+
     if (batchSize < MIN_BATCH_SIZE) {
       logger.warn({
         requestedBatchSize: batchSize,
@@ -756,7 +861,7 @@ export class StockService {
     for (let i = 0; i < dataArray.length; i += batchSize) {
       const batch = dataArray.slice(i, i + batchSize);
       const batchNumber = Math.floor(i / batchSize) + 1;
-      
+
       logger.info({
         batchNumber,
         batchSize: batch.length,
@@ -767,7 +872,7 @@ export class StockService {
       try {
         // Process batch with controlled concurrency
         const batchResults = await this.processBatchWithConcurrency(
-          batch, 
+          batch,
           i, // starting index for error reporting
           { maxConcurrency }
         );
@@ -813,17 +918,17 @@ export class StockService {
       failed: number;
       failures: Array<{ productId: number; platform: string; message: string; }>;
     };
-    
+
     if (inserted.length > 0) {
       logger.info({
         successfulInserts: inserted.length
       }, 'Updating product quantities and platform stock for successful inserts (inventory integrity)');
-      
+
       try {
         const updateResults = await this.updateProductAndPlatformStockForBulkInsert(inserted);
         productUpdates = updateResults.productUpdates;
         platformStockUpdates = updateResults.platformStockUpdates;
-        
+
         logger.info({
           productUpdates: productUpdates,
           platformStockUpdates: platformStockUpdates
@@ -833,7 +938,7 @@ export class StockService {
           error: error.message,
           successfulInserts: inserted.length
         }, 'Failed to update product quantities and platform stock - CRITICAL for inventory integrity');
-        
+
         // Don't fail the entire operation, but log as critical error
         productUpdates = {
           attempted: inserted.length,
@@ -928,23 +1033,23 @@ export class StockService {
     // Process records in chunks to control concurrency
     for (let i = 0; i < batch.length; i += maxConcurrency) {
       const chunk = batch.slice(i, i + maxConcurrency);
-      
+
       const chunkPromises = chunk.map(async (record, chunkIndex) => {
         const actualIndex = startIndex + i + chunkIndex;
         try {
           const stock = await this.create(record as any, { skipProductUpdate: true });
           return { success: true, data: stock, index: actualIndex };
         } catch (err: any) {
-          return { 
-            success: false, 
-            error: err.message || "Failed to insert stock", 
-            index: actualIndex 
+          return {
+            success: false,
+            error: err.message || "Failed to insert stock",
+            index: actualIndex
           };
         }
       });
 
       const chunkResults = await Promise.all(chunkPromises);
-      
+
       chunkResults.forEach(result => {
         if (result.success) {
           inserted.push(result.data);
@@ -967,7 +1072,7 @@ export class StockService {
       batchSize?: number;
       maxConcurrency?: number;
     } = {}
-  ): Promise<{ 
+  ): Promise<{
     jobId: string;
     status: 'queued';
     totalRecords: number;
@@ -977,9 +1082,9 @@ export class StockService {
     const MAX_BATCH_SIZE = 200;
     const DEFAULT_BATCH_SIZE = 100;
     const MIN_BATCH_SIZE = 10;
-    
+
     let { batchSize = DEFAULT_BATCH_SIZE } = options;
-    
+
     // Enforce batch size limits
     if (batchSize > MAX_BATCH_SIZE) {
       batchSize = MAX_BATCH_SIZE;
@@ -1038,20 +1143,20 @@ export class StockService {
   }> {
     const productService = new ProductService();
     const platformStockService = new PlatformStockService();
-    
+
     const productUpdateFailures: Array<{ identifier: string; message: string; }> = [];
     const platformStockUpdateFailures: Array<{ productId: number; platform: string; message: string; }> = [];
-    
+
     let productUpdatesSucceeded = 0;
     let platformStockUpdatesSucceeded = 0;
-    
+
     logger.info({
       totalInsertedStocks: insertedStocks.length
     }, 'Starting product and platform stock updates for bulk insert');
 
     // Group stocks by product for efficient updates
     const stocksByProduct = new Map<string, any[]>();
-    
+
     for (const stock of insertedStocks) {
       if (stock.puc) {
         if (!stocksByProduct.has(stock.puc)) {
@@ -1069,16 +1174,16 @@ export class StockService {
           where: { puc: puc },
           take: 1
         });
-        
+
         if (products && products.length > 0) {
           const product = products[0];
-          
+
           // Use the same logic as single stock insert: each stock record counts as 1 unit
           // Call updateStockTotals to recalculate all quantities based on actual stock records
           const updateResult = await productService.updateStockTotals(puc);
-          
+
           productUpdatesSucceeded++;
-          
+
           logger.debug({
             puc,
             productId: product.id,
@@ -1096,7 +1201,7 @@ export class StockService {
           identifier: puc,
           message: error.message || 'Failed to update product quantities'
         });
-        
+
         logger.error({
           puc,
           error: error.message,
@@ -1107,7 +1212,7 @@ export class StockService {
 
     // Update platform stock quantities - GROUPED BY (productId, platform) for efficiency
     const platformStockGroups = new Map<string, any[]>();
-    
+
     // Group stocks by (puc, platform) combination
     for (const stock of insertedStocks) {
       if (stock.puc && stock.platform) {
@@ -1118,29 +1223,29 @@ export class StockService {
         platformStockGroups.get(groupKey)!.push(stock);
       }
     }
-    
+
     // Process each group with a single update
     for (const [groupKey, stocks] of platformStockGroups) {
       try {
         const firstStock = stocks[0];
         const puc = firstStock.puc;
         const platform = firstStock.platform;
-        
+
         // Find the product by PUC
         const products = await dynamicFindMany('product', {
           where: { puc: puc },
           take: 1
         });
-        
+
         if (products && products.length > 0) {
           const product = products[0];
-          
+
           // Calculate aggregated quantities for this group - each stock record counts as 1 unit
           const totalQuantity = stocks.length; // Count of stock records
           const availableQuantity = stocks.filter(s => s.stockstatus === 'available').length;
           const soldQuantity = stocks.filter(s => s.stockstatus === 'sold').length;
           const ecompublishedQuantity = stocks.filter(s => s.ecompublish === true).length;
-          
+
           // Determine the most common status and ecompublish setting
           const statusCounts = stocks.reduce((acc, stock) => {
             acc[stock.stockstatus] = (acc[stock.stockstatus] || 0) + 1;
@@ -1148,7 +1253,7 @@ export class StockService {
           }, {} as Record<string, number>);
           const mostCommonStatus = Object.keys(statusCounts).reduce((a, b) => statusCounts[a] > statusCounts[b] ? a : b);
           const mostCommonEcompublish = stocks.filter(s => s.ecompublish === true).length > stocks.length / 2;
-          
+
           // Update platform stock with aggregated data - each stock record counts as 1 unit
           await platformStockService.updatePlatformStockQuantities(
             product.id,
@@ -1161,9 +1266,9 @@ export class StockService {
               operation: 'create'
             }
           );
-          
+
           platformStockUpdatesSucceeded++;
-          
+
           logger.debug({
             productId: product.id,
             platform: platform,
@@ -1189,7 +1294,7 @@ export class StockService {
           platform: firstStock.platform,
           message: error.message || 'Failed to update platform stock quantities'
         });
-        
+
         logger.error({
           groupKey: groupKey,
           stocksInGroup: stocks.length,
@@ -1230,12 +1335,12 @@ export class StockService {
     options: any
   ): Promise<void> {
     const startTime = Date.now();
-    
+
     try {
       logger.info({ jobId }, 'Starting async bulk insert job');
-      
+
       const result = await this.createBulkDirect(dataArray, options);
-      
+
       const duration = Date.now() - startTime;
       logger.info({
         jobId,
@@ -1255,11 +1360,11 @@ export class StockService {
         duration,
         error: error.message
       }, 'Async bulk insert job failed');
-      
+
       throw error;
     }
   }
-  
+
   async update(id: string, data: UpdateStockInput & Record<string, any>) {
     try {
       // Check if stock exists
@@ -1270,7 +1375,48 @@ export class StockService {
         "Starting dynamic stock update operation"
       );
 
-      const stock = await dynamicUpdate("stock", { id }, data);
+      // Auto-populate order fields when stockstatus changes to 'sold'
+      const updateData = { ...data };
+      const statusChangedToSold =
+        updateData.stockstatus?.toLowerCase() === 'sold' &&
+        existingStock.stockstatus?.toLowerCase() !== 'sold';
+
+      if (statusChangedToSold) {
+        // Auto-set solddate if not provided
+        if (!updateData.solddate) {
+          updateData.solddate = BigInt(Date.now());
+          logger.debug(
+            { solddate: updateData.solddate },
+            "Auto-set solddate for stock status change to 'sold'"
+          );
+        }
+
+        // Log warning if order information is missing
+        if (!updateData.orderid || !updateData.orderlinenumber) {
+          logger.warn(
+            {
+              stockId: id,
+              oldStatus: existingStock.stockstatus,
+              newStatus: updateData.stockstatus,
+              hasOrderId: !!updateData.orderid,
+              hasOrderLineNumber: !!updateData.orderlinenumber
+            },
+            "Stock status changing to 'sold' but order information (orderid/orderlinenumber) not provided in update"
+          );
+        } else {
+          logger.info(
+            {
+              stockId: id,
+              orderid: updateData.orderid,
+              orderlinenumber: updateData.orderlinenumber,
+              solddate: updateData.solddate
+            },
+            "Capturing order information for stock status change to 'sold'"
+          );
+        }
+      }
+
+      const stock = await dynamicUpdate("stock", { id }, updateData);
 
       if (!stock) {
         throw new Error("Failed to update stock - no valid fields provided");
@@ -1311,12 +1457,12 @@ export class StockService {
         }
 
         // Update quantities for current product
-        const productIdentifier = stock.puc || 
-                                 existingStock.puc || 
-                                 stock.productId || 
-                                 stock.product_id ||
-                                 existingStock.productId ||
-                                 existingStock.product_id;
+        const productIdentifier = stock.puc ||
+          existingStock.puc ||
+          stock.productId ||
+          stock.product_id ||
+          existingStock.productId ||
+          existingStock.product_id;
 
         if (productIdentifier) {
           try {
@@ -1328,18 +1474,18 @@ export class StockService {
                 to: stock.stockstatus
               };
             }
-            
+
             const updateResult = await this.productService.updateStockTotals(productIdentifier, undefined, stockStatusChange);
             logger.info(
-              { 
-                stockId: id, 
+              {
+                stockId: id,
                 productIdentifier,
                 oldStockStatus: existingStock.stockstatus,
                 newStockStatus: stock.stockstatus,
                 oldEcomPublish: existingStock.ecompublish,
                 newEcomPublish: stock.ecompublish,
                 stockStatusChange: stockStatusChange || 'no status change',
-                updateResult 
+                updateResult
               },
               "Successfully updated product quantities after stock update"
             );
@@ -1352,63 +1498,63 @@ export class StockService {
                   where: { puc: stock.puc },
                   take: 1
                 });
-                
+
                 if (products && products.length > 0) {
                   const product = products[0];
                   const productId = Number(product.id);
-                
-                // Check if platform changed (transfer scenario)
-                if (existingStock.platform !== stock.platform) {
-                  // Platform transfer
-                  await this.platformStockService.updatePlatformStockQuantities(
-                    productId,
-                    stock.platform,
-                    {
-                      ecompublish: stock.ecompublish,
-                      stockstatus: stock.stockstatus,
-                      operation: 'transfer',
-                      oldPlatform: existingStock.platform
-                    }
-                  );
-                  
-                  logger.info(
-                    {
-                      stockId: id,
-                      productId: productId,
-                      fromPlatform: existingStock.platform,
-                      toPlatform: stock.platform,
-                      stockstatus: stock.stockstatus,
-                      ecompublish: stock.ecompublish,
-                    },
-                    "Successfully transferred platform stock between platforms"
-                  );
-                } else {
-                  // Regular update (status or e-com changes)
-                  await this.platformStockService.updatePlatformStockQuantities(
-                    productId,
-                    stock.platform,
-                    {
-                      ecompublish: stock.ecompublish,
-                      stockstatus: stock.stockstatus,
-                      operation: 'update',
-                      oldEcompublish: existingStock.ecompublish,
-                      oldStockstatus: existingStock.stockstatus
-                    }
-                  );
-                  
-                  logger.info(
-                    {
-                      stockId: id,
-                      productId: productId,
-                      platform: stock.platform,
-                      oldStockstatus: existingStock.stockstatus,
-                      newStockstatus: stock.stockstatus,
-                      oldEcompublish: existingStock.ecompublish,
-                      newEcompublish: stock.ecompublish,
-                    },
-                    "Successfully updated platform stock quantities after stock update"
-                  );
-                }
+
+                  // Check if platform changed (transfer scenario)
+                  if (existingStock.platform !== stock.platform) {
+                    // Platform transfer
+                    await this.platformStockService.updatePlatformStockQuantities(
+                      productId,
+                      stock.platform,
+                      {
+                        ecompublish: stock.ecompublish,
+                        stockstatus: stock.stockstatus,
+                        operation: 'transfer',
+                        oldPlatform: existingStock.platform
+                      }
+                    );
+
+                    logger.info(
+                      {
+                        stockId: id,
+                        productId: productId,
+                        fromPlatform: existingStock.platform,
+                        toPlatform: stock.platform,
+                        stockstatus: stock.stockstatus,
+                        ecompublish: stock.ecompublish,
+                      },
+                      "Successfully transferred platform stock between platforms"
+                    );
+                  } else {
+                    // Regular update (status or e-com changes)
+                    await this.platformStockService.updatePlatformStockQuantities(
+                      productId,
+                      stock.platform,
+                      {
+                        ecompublish: stock.ecompublish,
+                        stockstatus: stock.stockstatus,
+                        operation: 'update',
+                        oldEcompublish: existingStock.ecompublish,
+                        oldStockstatus: existingStock.stockstatus
+                      }
+                    );
+
+                    logger.info(
+                      {
+                        stockId: id,
+                        productId: productId,
+                        platform: stock.platform,
+                        oldStockstatus: existingStock.stockstatus,
+                        newStockstatus: stock.stockstatus,
+                        oldEcompublish: existingStock.ecompublish,
+                        newEcompublish: stock.ecompublish,
+                      },
+                      "Successfully updated platform stock quantities after stock update"
+                    );
+                  }
                 } else {
                   logger.warn(
                     {
@@ -1441,9 +1587,9 @@ export class StockService {
             }
           } catch (error) {
             logger.error(
-              { 
-                error, 
-                stockId: id, 
+              {
+                error,
+                stockId: id,
                 productIdentifier,
                 changes: {
                   stockstatus: { from: existingStock.stockstatus, to: stock.stockstatus },
@@ -1483,7 +1629,7 @@ export class StockService {
         where: { puc },
         take: 1
       });
-      
+
       if (products && products.length > 0) {
         await this.productService.updateStockTotals(products[0].id || puc);
         logger.debug({ puc, reason }, "Updated product by PUC");
@@ -1514,7 +1660,7 @@ export class StockService {
       }
 
       logger.info(
-        { 
+        {
           stockId: id,
           deletedStockPuc: existingStock.puc,
           deletedStockStatus: existingStock.stockstatus,
@@ -1525,21 +1671,21 @@ export class StockService {
 
       // Update product quantities based on the deleted stock
       // Priority: 1. Use stock.puc, 2. Use legacy productId
-      const productIdentifier = existingStock.puc || 
-                               existingStock.productId || 
-                               existingStock.product_id;
+      const productIdentifier = existingStock.puc ||
+        existingStock.productId ||
+        existingStock.product_id;
 
       if (productIdentifier) {
         try {
           // Update parent product quantities
           const updateResult = await this.productService.updateStockTotals(productIdentifier);
           logger.info(
-            { 
-              stockId: id, 
+            {
+              stockId: id,
               productIdentifier,
               deletedStockStatus: existingStock.stockstatus,
               deletedStockEcompublish: existingStock.ecompublish,
-              updateResult 
+              updateResult
             },
             "Successfully updated product quantities after stock deletion"
           );
@@ -1552,10 +1698,10 @@ export class StockService {
                 where: { puc: existingStock.puc },
                 take: 1
               });
-              
+
               if (products && products.length > 0) {
                 const product = products[0];
-                
+
                 await this.platformStockService.updatePlatformStockQuantities(
                   Number(product.id),
                   existingStock.platform,
@@ -1565,7 +1711,7 @@ export class StockService {
                     operation: 'delete'
                   }
                 );
-                
+
                 logger.info(
                   {
                     stockId: id,
@@ -1591,9 +1737,9 @@ export class StockService {
           }
         } catch (error: any) {
           logger.error(
-            { 
-              error: error.message, 
-              stockId: id, 
+            {
+              error: error.message,
+              stockId: id,
               productIdentifier,
               deletedStockStatus: existingStock.stockstatus,
               deletedStockEcompublish: existingStock.ecompublish
@@ -1720,7 +1866,7 @@ export class StockService {
             { data: updateData },
             "Upserting new stock (no existing found)"
           );
-          
+
           // Ensure required fields for creation
           const createData = {
             ...updateData,
@@ -1728,7 +1874,7 @@ export class StockService {
             puc: updateData.puc || updateData.productId || 'TEMP-PUC',
             platform: updateData.platform || 'nivapp', // Default platform
           };
-          
+
           return this.create(createData);
         }
       }
@@ -1882,11 +2028,11 @@ export class StockService {
             from: stock.stockstatus,
             to: "Sold"
           };
-          
+
           await this.productService.updateStockTotals(updatedStock.puc, undefined, stockStatusChange);
           logger.info(
-            { 
-              stockId, 
+            {
+              stockId,
               puc: updatedStock.puc,
               stockStatusChange,
               reason: "RFID stock sale"
@@ -1895,9 +2041,9 @@ export class StockService {
           );
         } catch (error: any) {
           logger.error(
-            { 
-              error: error.message, 
-              stockId, 
+            {
+              error: error.message,
+              stockId,
               puc: updatedStock.puc
             },
             "Failed to update product quantities after RFID sale"
@@ -1942,7 +2088,7 @@ export class StockService {
           );
 
           const updatedStock = await this.updateByRfid(rfid, orderlineid);
-          
+
           results.push({
             index,
             rfid,
@@ -1952,14 +2098,14 @@ export class StockService {
             stockId: updatedStock.id,
             status: updatedStock.stockstatus
           });
-          
+
           successCount++;
-          
+
           logger.debug(
             { index: index + 1, rfid, stockId: updatedStock.id },
             "Individual RFID update successful"
           );
-          
+
         } catch (error: any) {
           const errorResult = {
             index,
@@ -1969,11 +2115,11 @@ export class StockService {
             error: error.message,
             errorDetails: error.stack
           };
-          
+
           results.push(errorResult);
           errors.push(errorResult);
           failureCount++;
-          
+
           logger.warn(
             { index: index + 1, rfid, error: error.message },
             "Individual RFID update failed"
@@ -1989,7 +2135,7 @@ export class StockService {
       };
 
       logger.info(
-        { 
+        {
           summary,
           hasErrors: errors.length > 0
         },
@@ -2001,7 +2147,7 @@ export class StockService {
         results,
         errors: errors.length > 0 ? errors : undefined
       };
-      
+
     } catch (error) {
       logger.error(
         { error, updateCount: updates.length },

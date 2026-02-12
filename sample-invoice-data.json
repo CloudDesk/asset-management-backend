@@ -1,0 +1,156 @@
+{
+    "order": {
+        "id": 123,
+        "orderid": "ORD-1735531200000-123",
+        "createddate": 1735531200000,
+        "modifieddate": 1735617600000,
+        "orderamount": 2360,
+        "orderstatus": "shipped",
+        "delivereddate": null,
+        "cancelleddate": null,
+        "returneddate": null,
+        "quantity": 2,
+        "transactionid": "T12345678901234567890",
+        "productid": [
+            101,
+            102
+        ],
+        "productamount": 2000,
+        "discountamount": 0,
+        "ispaymentsucceed": true,
+        "merchanttransactionid": "MUID123456789012345678901234567890",
+        "paymentfaileddate": null,
+        "mode": "phonepe",
+        "promotion_discount_total": 0,
+        "original_total": 2000,
+        "shipping_cost": 0,
+        "items_total": 2000,
+        "total_taxable_amount": 2000,
+        "total_cgst_amount": 180,
+        "total_sgst_amount": 180,
+        "total_igst_amount": 0,
+        "total_gst_amount": 360,
+        "tax_amount": 360,
+        "tracking_id": "EKART123456789",
+        "vendor": "EKART",
+        "barcodes": {
+            "awb_barcode": "data:image/png;base64,sample",
+            "order_barcode": "data:image/png;base64,sample"
+        },
+        "label_url": "https://storage.googleapis.com/bucket/shipping-labels/EKART123456789.pdf",
+        "public_tracking_link": "https://app.elite.ekartlogistics.in/track/EKART123456789",
+        "shipment_created_at": 1735617500000,
+        "shipdate": 1735617600000,
+        "cod_payment_received_date": null,
+        "cod_transaction_reference": null,
+        "cod_amount": null,
+        "refund_transaction_id": null,
+        "refund_amount": null,
+        "refund_reference": null,
+        "refund_initiated_date": null,
+        "refund_completed_date": null,
+        "status_history": [
+            {
+                "previous_status": "ready_for_dispatch",
+                "new_status": "shipped",
+                "changed_date": 1735617600000,
+                "source": "inventoryuser",
+                "inventory_user_id": 5,
+                "is_active": true
+            },
+            {
+                "previous_status": "payment_success",
+                "new_status": "ready_for_dispatch",
+                "changed_date": 1735617400000,
+                "source": "inventoryuser",
+                "inventory_user_id": 5,
+                "is_active": false
+            }
+        ]
+    },
+    "orderlines": [
+        {
+            "id": 456,
+            "productamount": 1000,
+            "discountamount": 0,
+            "orderamount": 1000,
+            "quantity": 1,
+            "productid": 101,
+            "productname": "Samsung Galaxy S23 Ultra",
+            "productcategory": "Mobiles & Tablets",
+            "hsn_code": "8517",
+            "orderstatus": "shipped",
+            "original_price": 1000,
+            "product_discount_amount": 0,
+            "promotion_discount_amount": 0,
+            "shipping_cost": 0,
+            "gst_rate": 18,
+            "taxable_amount": 847.46,
+            "cgst_amount": 76.27,
+            "sgst_amount": 76.27,
+            "igst_amount": 0,
+            "total_gst_amount": 152.54,
+            "status_history": [
+                {
+                    "previous_status": "ready_for_dispatch",
+                    "new_status": "shipped",
+                    "changed_date": 1735617600000,
+                    "source": "inventoryuser",
+                    "inventory_user_id": 5,
+                    "is_active": true
+                }
+            ]
+        },
+        {
+            "id": 457,
+            "productamount": 1000,
+            "discountamount": 0,
+            "orderamount": 1000,
+            "quantity": 1,
+            "productid": 102,
+            "productname": "Apple iPhone 15 Pro",
+            "productcategory": "Mobiles & Tablets",
+            "hsn_code": "8517",
+            "orderstatus": "shipped",
+            "original_price": 1000,
+            "product_discount_amount": 0,
+            "promotion_discount_amount": 0,
+            "shipping_cost": 0,
+            "gst_rate": 18,
+            "taxable_amount": 847.46,
+            "cgst_amount": 76.27,
+            "sgst_amount": 76.27,
+            "igst_amount": 0,
+            "total_gst_amount": 152.54,
+            "status_history": [
+                {
+                    "previous_status": "ready_for_dispatch",
+                    "new_status": "shipped",
+                    "changed_date": 1735617600000,
+                    "source": "inventoryuser",
+                    "inventory_user_id": 5,
+                    "is_active": true
+                }
+            ]
+        }
+    ],
+    "address": {
+        "name": "John Doe",
+        "mobilenumber": "9876543210",
+        "pincode": "600001",
+        "doornumber": "12/A",
+        "address": "Anna Nagar West, Chennai",
+        "landmark": "Near Anna Arch",
+        "state": "Tamil Nadu",
+        "city": "Chennai"
+    },
+    "seller": {
+        "alias": "VIP98 - SALES OFFICE",
+        "phone": 9003879665,
+        "address_line1": "968, 1ST FLOOR 4TH HOUSE, TNHB 1ST MAIN ROAD, VELACHERY , CHENNAI - 600042 . OPP.TO PURPLE HARMACY",
+        "pincode": 600042,
+        "city": "Chennai",
+        "state": "Tamil Nadu",
+        "country": "India"
+    }
+}

@@ -385,8 +385,11 @@ export class ProductController {
         const { platform } = request.params;
         const allFilters = request.query || {};
         const { page, limit } = getPaginationParams(allFilters);
-        const { page: _, limit: __, ...filters } = allFilters;
-        const result = await this.productService.findManyForPlatform(platform, filters, page, limit);
+        // Extract sorting parameters
+        const sortBy = allFilters.sortBy || 'createddate';
+        const sortOrder = allFilters.sortOrder || 'desc';
+        const { page: _, limit: __, sortBy: _sortBy, sortOrder: _sortOrder, ...filters } = allFilters;
+        const result = await this.productService.findManyForPlatform(platform, filters, page, limit, sortBy, sortOrder);
         const formattedData = formatEntitiesForAPI(result.data, "product");
         // Transform data: remove platformStocks array and add availablequantity from platform stock
         const transformedData = formattedData.map((product) => {
@@ -408,6 +411,8 @@ export class ProductController {
                 filters: Object.keys(filters),
                 total: result.pagination.total,
                 filtered: Object.keys(filters).length > 0,
+                sortBy,
+                sortOrder,
             },
         });
     });
@@ -415,9 +420,14 @@ export class ProductController {
         const { id, platform } = request.params;
         const product = await this.productService.findByIdForPlatform(id, platform);
         const formattedProduct = formatProductForAPI(product);
-        // Remove platformStocks array from response (only keep platformStock in components)
+        // Extract platformStock from platformStocks array and include it in the response
         const { platformStocks, ...transformedProduct } = formattedProduct;
-        const response = createSuccessResponse(`Product ${id} for ${platform} platform retrieved successfully`, transformedProduct);
+        // Add platformStock (singular) - take the first record since we only fetch one per platform
+        const platformStock = platformStocks && platformStocks[0] ? platformStocks[0] : null;
+        const response = createSuccessResponse(`Product ${id} for ${platform} platform retrieved successfully`, {
+            ...transformedProduct,
+            platformStock // Include platform-specific stock data
+        });
         return reply.code(200).send(response);
     });
     getProductCountsByCategory = asyncHandler(async (request, reply) => {

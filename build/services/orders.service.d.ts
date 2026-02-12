@@ -2,6 +2,21 @@ import { CreateOrdersInput, UpdateOrdersInput } from '../schemas/orders.schema.j
 import { PaginationResult } from '../utils/pagination.js';
 import { FilterOptions } from '../utils/filterBuilder.js';
 export declare class OrdersService {
+    /**
+     * Maps EKART webhook status to our system status
+     * Handles various formats: "Shipped", "SHIPPED", "In Transit", "In_Transit", "Pick Up", "Picked Up", etc.
+     *
+     * EKART Status Mapping:
+     * - "Shipped" or "Pick Up" or "Picked Up" → shipped (Picked Up)
+     * - "In Transit" → in_transit
+     * - "Out For Delivery" → out_for_delivery
+     * - "Delivered" → delivered
+     * - "COD Collected" → cod_payment_received
+     *
+     * @param ekartStatus - Status from EKART webhook (e.g., "Shipped", "In Transit", "Pick Up")
+     * @returns Mapped system status (e.g., "shipped", "in_transit") or null if unknown
+     */
+    private mapEkartWebhookStatusToSystemStatus;
     private parseStatusHistory;
     findMany(filters: FilterOptions, page: number, limit: number): Promise<PaginationResult<any>>;
     findById(id: Number): Promise<any>;
@@ -61,9 +76,52 @@ export declare class OrdersService {
         };
     }>): Promise<any>;
     /**
+     * Generate invoice for an order
+     * Fetches seller data from EKART and calls storage backend to generate invoice PDF
+     * @param orderId - Order ID
+     * @returns Invoice URL if successful, null otherwise
+     */
+    generateInvoice(orderId: number): Promise<string | null>;
+    /**
      * Mark order as shipped (after label printed)
+     * NOTE: This endpoint is kept for backward compatibility and manual override.
+     * For EKART orders, the 'shipped' status is now set automatically via webhook.
      */
     markShipped(orderId: number, inventoryUserId: number): Promise<any>;
+    /**
+     * Manually ship order with vendor details
+     * Automatically sets order status to 'shipped'
+     * PATCH /v1/orders/:id/manual-ship
+     *
+     * Note: Allows updating from EKART to another vendor when EKART refuses to collect
+     */
+    updateShipmentDetails(orderIdOrNumber: string | number, trackingId: string, vendor: string, inventoryUserId: number, publicTrackingLink?: string, shipped?: boolean): Promise<any>;
+    /**
+     * Generate tracking link for manual vendors
+     * Private helper method
+     */
+    private generateTrackingLink;
+    /**
+     * Update shipment tracking status manually
+     * Works for ALL vendors (EKART + manual vendors)
+     * PATCH /v1/orders/:id/shipment-status
+     */
+    updateShipmentStatus(orderIdOrNumber: string | number, status: string, inventoryUserId: number, location?: string, description?: string): Promise<any>;
+    /**
+     * Handle EKART webhook status update
+     * Maps EKART webhook status to system status and updates order/orderlines
+     * @param trackingId - EKART tracking ID (wbn from webhook)
+     * @param ekartStatus - Original status from EKART webhook (e.g., "Shipped", "In Transit")
+     * @param webhookData - Additional webhook data (location, description, ctime, etc.)
+     */
+    handleEkartWebhookStatusUpdate(trackingId: string, ekartStatus: string, webhookData: {
+        location?: string;
+        description?: string;
+        ctime?: number;
+        pickupTime?: number;
+        attempts?: string;
+        [key: string]: any;
+    }, fullWebhookPayload?: Record<string, any>): Promise<any>;
     /**
      * Update order status
      */
@@ -90,7 +148,16 @@ export declare class OrdersService {
      * Get orders by userid with orderlines and address data
      * Returns orders with nested orderlines and address information
      */
-    getOrdersByUserIdWithDetails(userId: number, page?: number, limit?: number): Promise<{
+    getOrdersByUserIdWithDetails(userId: number, page?: number, limit?: number, filters?: {
+        orderstatus?: string;
+        date_range?: string;
+        start_date?: string;
+        end_date?: string;
+        mode?: string;
+        amount_range?: string;
+        min_amount?: string;
+        max_amount?: string;
+    }): Promise<{
         orders: Array<{
             id: number;
             orderamount: number | null;

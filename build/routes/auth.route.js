@@ -1,5 +1,4 @@
 import { InventoryUsersService } from '../services/inventoryusers.service.js';
-import { authRateLimit } from '../utils/auth.js';
 import { logger } from '../config/logger.js';
 import { createSuccessResponse, asyncHandler } from '../utils/errorHandler.js';
 import { authSessionService } from '../services/authsession.service.js';
@@ -139,46 +138,20 @@ export async function authRoutes(fastify) {
         },
     }, asyncHandler(async (request, reply) => {
         const { useremail, userpassword } = request.body;
-        // Rate limiting check
-        const identifier = `${request.ip}-${useremail}`;
-        /*if (authRateLimit.isRateLimited(identifier)) {
-          const remainingAttempts = authRateLimit.getRemainingAttempts(identifier);
-          logger.warn({
-            ip: request.ip,
-            email: useremail,
-            remainingAttempts
-          }, 'Sign-in rate limited');
-    
-          return reply.code(429).send({
-            success: false,
-            message: 'Too many sign-in attempts',
-            details: 'Please try again later',
-            statusCode: 429,
-            remainingAttempts,
-          });
-        }
-    */
         try {
             const result = await inventoryUsersService.authenticate(useremail, userpassword);
             if (!result) {
-                // Record failed attempt
-                authRateLimit.recordAttempt(identifier);
-                const remainingAttempts = authRateLimit.getRemainingAttempts(identifier);
                 logger.warn({
                     ip: request.ip,
-                    email: useremail,
-                    remainingAttempts
+                    email: useremail
                 }, 'Sign-in failed: Invalid credentials');
                 return reply.code(401).send({
                     success: false,
                     message: 'Invalid credentials',
                     details: 'The email or password you entered is incorrect',
-                    statusCode: 401,
-                    remainingAttempts,
+                    statusCode: 401
                 });
             }
-            // Clear rate limiting on successful sign-in
-            authRateLimit.clearAttempts(identifier);
             // Create auth session (NEW: Session-based authentication)
             const session = await authSessionService.createSession({
                 userId: result.user.id,
@@ -200,7 +173,6 @@ export async function authRoutes(fastify) {
             return reply.code(200).send(response);
         }
         catch (error) {
-            authRateLimit.recordAttempt(identifier);
             logger.error({ error, email: useremail, ip: request.ip }, 'Error during sign-in');
             throw error;
         }
@@ -334,20 +306,6 @@ export async function authRoutes(fastify) {
         },
     }, asyncHandler(async (request, reply) => {
         const userData = request.body;
-        // Rate limiting for registration
-        const identifier = `register-${request.ip}-${userData.useremail}`;
-        if (authRateLimit.isRateLimited(identifier)) {
-            logger.warn({
-                ip: request.ip,
-                email: userData.useremail
-            }, 'Registration rate limited');
-            return reply.code(429).send({
-                success: false,
-                message: 'Too many registration attempts',
-                details: 'Please try again later',
-                statusCode: 429,
-            });
-        }
         try {
             // Store the original password before it gets hashed
             const originalPassword = userData.userpassword;
@@ -358,7 +316,6 @@ export async function authRoutes(fastify) {
             if (!authResult) {
                 throw new Error('Failed to authenticate user after registration');
             }
-            authRateLimit.recordAttempt(identifier);
             logger.info({
                 userId: newUser.id,
                 email: userData.useremail,
@@ -368,7 +325,6 @@ export async function authRoutes(fastify) {
             return reply.code(201).send(response);
         }
         catch (error) {
-            authRateLimit.recordAttempt(identifier);
             // Handle specific error cases
             if (error instanceof Error) {
                 if (error.message.includes('Email already exists')) {
@@ -430,7 +386,7 @@ export async function authRoutes(fastify) {
         const userId = request.user.id;
         // Revoke all user sessions (logout from all devices)
         const revokedCount = await authSessionService.revokeAllUserSessions(userId, 'inventory');
-        // Also clear old sessiontoken field for backward compatibility
+        // Update modifieddate (sessiontoken field is deprecated - no longer used)
         await inventoryUsersService.signOut(userId);
         logger.info({
             userId,
@@ -498,24 +454,8 @@ export async function authRoutes(fastify) {
         },
     }, asyncHandler(async (request, reply) => {
         const { useremail } = request.body;
-        // Rate limiting for password reset requests
-        const identifier = `reset-${request.ip}-${useremail}`;
-        if (authRateLimit.isRateLimited(identifier)) {
-            logger.warn({
-                ip: request.ip,
-                email: useremail
-            }, 'Password reset rate limited');
-            return reply.code(429).send({
-                success: false,
-                message: 'Too many password reset requests',
-                details: 'Please try again later',
-                statusCode: 429,
-            });
-        }
         try {
             await inventoryUsersService.initiatePasswordReset(useremail);
-            // Record attempt regardless of whether email exists (security)
-            authRateLimit.recordAttempt(identifier);
             logger.info({
                 email: useremail,
                 ip: request.ip
@@ -528,7 +468,6 @@ export async function authRoutes(fastify) {
             });
         }
         catch (error) {
-            authRateLimit.recordAttempt(identifier);
             logger.error({ error, email: useremail, ip: request.ip }, 'Error during password reset initiation');
             throw error;
         }
@@ -798,8 +737,13 @@ export async function authRoutes(fastify) {
             });
         }
         try {
-            // Verify session exists and is valid
-            const session = await authSessionService.verifyRefreshToken(refreshToken, 'inventory');
+            // Step 1: Decode token to extract user type (before verification)
+            const { decodeToken, verifyToken } = await import('../utils/jwt.js');
+            const decodedPreview = decodeToken(refreshToken);
+            // Extract user type with fallback to 'inventory' for backward compatibility
+            const userType = (decodedPreview?.userType || 'inventory');
+            // Step 2: Verify session exists with correct user type
+            const session = await authSessionService.verifyRefreshToken(refreshToken, userType);
             if (!session) {
                 return reply.code(401).send({
                     success: false,
@@ -808,17 +752,23 @@ export async function authRoutes(fastify) {
                     statusCode: 401
                 });
             }
-            // Generate new token pair
-            const { verifyToken } = await import('../utils/jwt.js');
+            // Verify the token itself
             const decoded = verifyToken(refreshToken);
+            // Step 3: Generate new token pair with preserved user type
             const newTokenPair = generateTokenPair({
                 userId: decoded.userId,
                 email: decoded.email,
                 roleId: decoded.roleId,
+                userType: userType,
             });
-            // Rotate refresh token (delete old, create new)
-            const newSession = await authSessionService.rotateRefreshToken(refreshToken, newTokenPair.refreshToken, 'inventory', 7, // 7 days for inventory users
-            request.ip, request.headers['user-agent']);
+            // Step 4: Determine session expiry based on user type
+            const SESSION_EXPIRY_DAYS = {
+                inventory: 7,
+                ecommerce: 90
+            };
+            const expiryDays = SESSION_EXPIRY_DAYS[userType];
+            // Step 5: Rotate refresh token with user-type-specific expiry
+            const newSession = await authSessionService.rotateRefreshToken(refreshToken, newTokenPair.refreshToken, userType, expiryDays, request.ip, request.headers['user-agent']);
             if (!newSession) {
                 return reply.code(401).send({
                     success: false,
@@ -829,9 +779,11 @@ export async function authRoutes(fastify) {
             }
             logger.info({
                 userId: decoded.userId,
+                userType: userType,
                 oldSessionId: session.id,
                 newSessionId: newSession.id,
-            }, 'Access token refreshed with session rotation');
+                expiryDays: expiryDays
+            }, `Access token refreshed for ${userType} user with session rotation`);
             const response = createSuccessResponse('Token refreshed successfully', {
                 token: newTokenPair.accessToken,
                 refreshToken: newTokenPair.refreshToken,

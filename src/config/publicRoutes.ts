@@ -26,8 +26,7 @@ export const ECOMMERCE_PUBLIC_ROUTES = [
 
 
     // 3. Promotions & Deals APIs
-    'GET /v1/promotions/public',
-    'GET /v1/promotions/active',
+    'GET /v1/promotions', // Main promotions route - supports optional userid parameter
 
     // 4. Ratings & Reviews APIs
     'GET /v1/ratings',
@@ -39,6 +38,15 @@ export const ECOMMERCE_PUBLIC_ROUTES = [
     // 6. Health Check APIs
     'GET /v1/health',
     'GET /health',
+
+    // 7. System & Webhook APIs (Internal but public for cloud tasks/webhooks)
+    'POST /v1/phonepe/cleanup-lock',
+    'POST /v1/ekart/webhook/track-status', // Ekart tracking status webhook
+
+    // 8. Payment Callback APIs (PhonePe SDK redirects)
+    'GET /v1/phonepe/callback/:transactionId',
+    'POST /v1/phonepe/callback/:transactionId',
+    'OPTIONS /v1/phonepe/callback/:transactionId',
 ];
 
 // ============================================================================
@@ -59,6 +67,13 @@ export const INVENTORY_PUBLIC_ROUTES = [
     // 4. Health Check APIs
     'GET /v1/health',
     'GET /health',
+
+    // 5. Analytics APIs (Public for testing)
+    'GET /v1/analytics/inventory-health',
+    'GET /v1/analytics/fulfillment-summary',
+    'GET /v1/analytics/sales-velocity',
+    'GET /v1/analytics/supply-chain',
+    'GET /v1/analytics/orders',
 ];
 
 // ============================================================================

@@ -185,7 +185,7 @@ export class EkartService {
     } = {}
   ): Promise<AxiosResponse<T>> {
     const { method = 'GET', data, headers = {}, responseType = 'json' } = options;
-logger.info(data,"data in apiRequest")
+    logger.info(data, "data in apiRequest")
     try {
       // Ensure we have a valid token
       const authHeader = await this.authService.getAuthHeader();
@@ -228,7 +228,7 @@ logger.info(data,"data in apiRequest")
       // Log and rethrow other errors
       const fullUrl = `${this.baseURL}${endpoint}`;
       const errorData = error.response?.data;
-      
+
       // Enhanced error message for 404 errors
       if (error.response?.status === 404) {
         logger.error(
@@ -355,7 +355,7 @@ logger.info(data,"data in apiRequest")
       );
 
       const addresses = await this.getAddresses();
-      
+
       if (addresses.length === 0) {
         logger.warn('❌ [ADDRESS FETCH] No addresses found in EKART');
         return null;
@@ -371,7 +371,7 @@ logger.info(data,"data in apiRequest")
       );
 
       // Find address by alias if provided, otherwise use first address
-      const address = alias 
+      const address = alias
         ? addresses.find(addr => addr.alias.toLowerCase() === alias.toLowerCase())
         : addresses[0];
 
@@ -405,7 +405,7 @@ logger.info(data,"data in apiRequest")
 
       // Map EKART address to seller info format
       const sellerAddress = `${address.address_line1}${address.address_line2 ? ', ' + address.address_line2 : ''}, ${address.city}, ${address.state} ${address.pincode}`;
-      
+
       const sellerInfo = {
         seller_name: address.alias || 'Seller',
         seller_address: sellerAddress
@@ -475,7 +475,7 @@ logger.info(data,"data in apiRequest")
 
     // GST TIN can come from payload or environment variable
     const sellerGstTin = payload.seller_gst_tin || env.SELLER_GST_TIN;
-    
+
     if (!sellerGstTin) {
       logger.error(
         { orderNumber: payload.order_number },
@@ -511,6 +511,13 @@ logger.info(data,"data in apiRequest")
 
     // Use finalPayload directly (no need to remove any fields)
     const ekartPayload = finalPayload;
+
+    logger.info(ekartPayload, "ekartPayload final")
+
+    console.log("ekartPayload final", ekartPayload)
+
+
+    console.log("ekartPayload final", JSON.stringify(ekartPayload))
 
     logger.info(
       {
@@ -576,7 +583,7 @@ logger.info(data,"data in apiRequest")
    * Create Reverse Shipment (Customer → Seller)
    */
   async createReverseShipment(payload: CreateShipmentPayload): Promise<CreateShipmentResponse> {
-    logger.info(payload,"payload createReverseShipment in service")
+    logger.info(payload, "payload createReverseShipment in service")
     if (payload.payment_mode !== 'Pickup') {
       throw new Error('Reverse shipments must have payment_mode = "Pickup"');
     }

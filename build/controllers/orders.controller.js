@@ -45,6 +45,60 @@ export class OrdersController {
         return reply.code(200).send(response);
     });
     /**
+     * Manually ship order with vendor details
+     * Automatically sets order status to 'shipped'
+     * PATCH /v1/orders/:id/manual-ship
+     *
+     * Note: Allows updating from EKART to another vendor when EKART refuses to collect
+     */
+    updateShipmentDetails = asyncHandler(async (request, reply) => {
+        const { id } = request.params;
+        const { tracking_id, vendor, inventory_user_id, public_tracking_link, shipped } = request.body;
+        if (!tracking_id) {
+            return reply.code(400).send({
+                success: false,
+                message: 'tracking_id is required',
+                statusCode: 400
+            });
+        }
+        if (!vendor) {
+            return reply.code(400).send({
+                success: false,
+                message: 'vendor is required',
+                statusCode: 400
+            });
+        }
+        if (!inventory_user_id) {
+            return reply.code(400).send({
+                success: false,
+                message: 'inventory_user_id is required',
+                statusCode: 400
+            });
+        }
+        try {
+            const updatedOrder = await this.ordersService.updateShipmentDetails(id, tracking_id, vendor, inventory_user_id, public_tracking_link, shipped);
+            const response = createSuccessResponse(shipped ? 'Shipment details updated and order marked as shipped' : 'Shipment details updated', formatEntitiesForAPI([updatedOrder], 'orders')[0]);
+            return reply.code(200).send(response);
+        }
+        catch (error) {
+            if (error.message.includes('Order not found')) {
+                return reply.code(404).send({
+                    success: false,
+                    message: error.message,
+                    statusCode: 404
+                });
+            }
+            if (error.message.includes('ready_for_dispatch')) {
+                return reply.code(400).send({
+                    success: false,
+                    message: error.message,
+                    statusCode: 400
+                });
+            }
+            throw error;
+        }
+    });
+    /**
      * Mark order as shipped (after label printed)
      * PATCH /v1/orders/:id/mark-shipped
      */
@@ -65,6 +119,55 @@ export class OrdersController {
         }
         catch (error) {
             if (error.message.includes('Shipment not created')) {
+                return reply.code(400).send({
+                    success: false,
+                    message: error.message,
+                    statusCode: 400
+                });
+            }
+            throw error;
+        }
+    });
+    /**
+     * Update shipment tracking status manually
+     * Works for ALL vendors (EKART + manual vendors)
+     * PATCH /v1/orders/:id/shipment-status
+     */
+    updateShipmentStatus = asyncHandler(async (request, reply) => {
+        const { id } = request.params;
+        const { status, inventory_user_id, location, description } = request.body;
+        if (!status) {
+            return reply.code(400).send({
+                success: false,
+                message: 'status is required',
+                statusCode: 400
+            });
+        }
+        if (!inventory_user_id) {
+            return reply.code(400).send({
+                success: false,
+                message: 'inventory_user_id is required',
+                statusCode: 400
+            });
+        }
+        try {
+            const updatedOrder = await this.ordersService.updateShipmentStatus(id, status, inventory_user_id, location, description);
+            const response = createSuccessResponse('Shipment status updated successfully', formatEntitiesForAPI([updatedOrder], 'orders')[0]);
+            return reply.code(200).send(response);
+        }
+        catch (error) {
+            if (error.message.includes('Order not found')) {
+                return reply.code(404).send({
+                    success: false,
+                    message: error.message,
+                    statusCode: 404
+                });
+            }
+            if (error.message.includes('tracking_id') ||
+                error.message.includes('status') ||
+                error.message.includes('transition') ||
+                error.message.includes('cancelled') ||
+                error.message.includes('returned')) {
                 return reply.code(400).send({
                     success: false,
                     message: error.message,
@@ -197,9 +300,9 @@ export class OrdersController {
      */
     getOrdersByUserIdWithDetails = asyncHandler(async (request, reply) => {
         const { userid } = request.params;
-        const { page: pageStr, limit: limitStr } = request.query;
+        const { page: pageStr, limit: limitStr, orderstatus, date_range, start_date, end_date, mode, amount_range, min_amount, max_amount } = request.query;
         const page = pageStr ? parseInt(pageStr, 10) : 1;
-        const limit = limitStr ? parseInt(limitStr, 10) : 50;
+        const limit = limitStr ? parseInt(limitStr, 10) : 10;
         if (isNaN(Number(userid))) {
             return reply.code(400).send({
                 success: false,
@@ -208,7 +311,25 @@ export class OrdersController {
             });
         }
         const userId = parseInt(userid, 10);
-        const result = await this.ordersService.getOrdersByUserIdWithDetails(userId, page, limit);
+        // Build filters object (only include defined values to satisfy TypeScript strict mode)
+        const filters = {};
+        if (orderstatus)
+            filters.orderstatus = orderstatus;
+        if (date_range)
+            filters.date_range = date_range;
+        if (start_date)
+            filters.start_date = start_date;
+        if (end_date)
+            filters.end_date = end_date;
+        if (mode)
+            filters.mode = mode;
+        if (amount_range)
+            filters.amount_range = amount_range;
+        if (min_amount)
+            filters.min_amount = min_amount;
+        if (max_amount)
+            filters.max_amount = max_amount;
+        const result = await this.ordersService.getOrdersByUserIdWithDetails(userId, page, limit, filters);
         return reply.code(200).send({
             success: true,
             message: 'Orders retrieved successfully',

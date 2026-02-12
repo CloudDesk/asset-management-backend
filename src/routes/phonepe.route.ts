@@ -19,9 +19,9 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
           properties: {
             mode: {
               type: "string",
-              // enum: ['phonepe', 'cod'],
+              enum: ['phonepe'], // COD mode is currently disabled
               description:
-                "Payment mode: phonepe for online payment, cod for cash on delivery",
+                "Payment mode: phonepe for online payment. COD mode is currently disabled.",
             },
             evaluation_ids: {
               type: "array",

@@ -20,6 +20,77 @@ import { logger } from '../config/logger.js';
 import { gstService } from './gst.service.js';
 
 export class OrdersService {
+  /**
+   * Maps EKART webhook status to our system status
+   * Handles various formats: "Shipped", "SHIPPED", "In Transit", "In_Transit", "Pick Up", "Picked Up", etc.
+   * 
+   * EKART Status Mapping:
+   * - "Shipped" or "Pick Up" or "Picked Up" → shipped (Picked Up)
+   * - "In Transit" → in_transit
+   * - "Out For Delivery" → out_for_delivery
+   * - "Delivered" → delivered
+   * - "COD Collected" → cod_payment_received
+   * 
+   * @param ekartStatus - Status from EKART webhook (e.g., "Shipped", "In Transit", "Pick Up")
+   * @returns Mapped system status (e.g., "shipped", "in_transit") or null if unknown
+   */
+  private mapEkartWebhookStatusToSystemStatus(ekartStatus: string): string | null {
+    if (!ekartStatus) return null;
+
+    // Normalize: lowercase, trim, replace spaces/underscores/hyphens with single space
+    const normalized = ekartStatus
+      .toLowerCase()
+      .trim()
+      .replace(/[_\-\s]+/g, ' ')
+      .trim();
+
+    // Status mapping (case-insensitive, handles all variations)
+    const statusMap: Record<string, string> = {
+      // Shipped/Picked Up variations (all map to shipped)
+      'shipped': 'shipped',
+      'pick up': 'shipped',
+      'picked up': 'shipped',
+      'pickedup': 'shipped',
+      'pickup': 'shipped',
+      'pick-up': 'shipped',
+      'picked-up': 'shipped',
+
+      // In Transit variations
+      'in transit': 'in_transit',
+      'intransit': 'in_transit',
+      'in-transit': 'in_transit',
+      'in_transit': 'in_transit',
+
+      // Out For Delivery variations
+      'out for delivery': 'out_for_delivery',
+      'outfordelivery': 'out_for_delivery',
+      'out-for-delivery': 'out_for_delivery',
+      'out_for_delivery': 'out_for_delivery',
+
+      // Delivered
+      'delivered': 'delivered',
+
+      // COD Collected variations
+      'cod collected': 'cod_payment_received',
+      'codcollected': 'cod_payment_received',
+      'cod-collected': 'cod_payment_received',
+      'cod_collected': 'cod_payment_received',
+
+      // RTO variations
+      'rto initiated': 'rto_initiated',
+      'rtoinitiated': 'rto_initiated',
+      'rto-initiated': 'rto_initiated',
+      'rto_initiated': 'rto_initiated',
+
+      'rto delivered': 'rto_delivered',
+      'rtodelivered': 'rto_delivered',
+      'rto-delivered': 'rto_delivered',
+      'rto_delivered': 'rto_delivered',
+    };
+
+    return statusMap[normalized] || null;
+  }
+
   // Helper function to parse status_history
   private parseStatusHistory(statusHistory: any): any[] {
     if (!statusHistory) return [];
@@ -69,22 +140,72 @@ export class OrdersService {
 
       const { skip, take } = getPrismaSkipTake(page, limit);
 
-      // Use the new dynamic filtering system
-      const { data: orders, total } = await dynamicFindManyWithFilters('orders', filters, {
-        skip,
-        take,
-        useAllColumns: true // Get all available columns
+      // Build where clause from filters
+      const whereClause: any = {};
+      for (const [key, value] of Object.entries(filters)) {
+        if (!['page', 'limit'].includes(key)) {
+          // Handle numeric fields
+          if (['userid', 'addressid', 'id', 'quantity'].includes(key)) {
+            whereClause[key] = parseInt(value as string);
+          }
+          // // Handle boolean fields
+          // else if (key === 'ispaymentsucceed') {
+          //   whereClause[key] = value === 'true' || value === true;
+          // }
+          // Handle string fields
+          else {
+            whereClause[key] = value;
+          }
+        }
+      }
+
+      // Fetch orders with user information using Prisma
+      const [orders, total] = await Promise.all([
+        prisma.orders.findMany({
+          where: whereClause,
+          skip,
+          take,
+          include: {
+            users: {
+              select: {
+                id: true,
+                firstname: true,
+                lastname: true,
+                useremail: true,
+                usermobilenumber: true
+              }
+            }
+          },
+          orderBy: {
+            createddate: 'desc'
+          }
+        }),
+        prisma.orders.count({ where: whereClause })
+      ]);
+
+      // Transform the data to include user properties at order level
+      const transformedOrders = orders.map((order: any) => {
+        const { users, ...orderData } = order;
+        return {
+          ...orderData,
+          // Add user information as separate properties
+          username: users ? `${users.firstname || ''} ${users.lastname || ''}`.trim() : null,
+          useremail: users?.useremail || null,
+          usermobilenumber: users?.usermobilenumber || null,
+          user_firstname: users?.firstname || null,
+          user_lastname: users?.lastname || null
+        };
       });
 
       logger.info({
-        orderCount: orders.length,
+        orderCount: transformedOrders.length,
         total,
         filtered: Object.keys(filters).length > 0,
         appliedFilters: Object.keys(filters),
-        availableFields: orders.length > 0 ? Object.keys(orders[0]) : []
-      }, 'Dynamic orders findMany with filters completed');
+        availableFields: transformedOrders.length > 0 ? Object.keys(transformedOrders[0]) : []
+      }, 'Dynamic orders findMany with user data completed');
 
-      return createPaginationResult(orders, total, page, limit);
+      return createPaginationResult(transformedOrders, total, page, limit);
     } catch (error) {
       logger.error({ error, filters, page, limit }, 'Error in dynamic orders findMany operation');
       throw error;
@@ -584,11 +705,18 @@ export class OrdersService {
         const updatedHistory = [...deactivatedHistory, historyEntry];
 
         // Update order with new status and history (JSON.stringify for JSONB column)
-        await dynamicUpdate('orders', { id: orderId }, {
+        const orderUpdateData: Record<string, any> = {
           orderstatus: newOrderStatus,
           status_history: JSON.stringify(updatedHistory),
           modifieddate: Date.now()
-        });
+        };
+
+        // Set readytodispatchdate when status becomes ready_for_dispatch
+        if (newOrderStatus === 'ready_for_dispatch') {
+          orderUpdateData.readytodispatchdate = Date.now();
+        }
+
+        await dynamicUpdate('orders', { id: orderId }, orderUpdateData);
 
         logger.info({
           orderId,
@@ -702,7 +830,8 @@ export class OrdersService {
       const filters: any = {
         puc: product.puc,  // Stock.puc = Product.puc (where Product.id = productId)
         platform: platform,
-        stockstatus: 'available'
+        stockstatus: 'available',
+        ecompublish: true  // Only select e-commerce published stocks
       };
 
       // Apply batch filters if provided
@@ -754,6 +883,13 @@ export class OrdersService {
         if (!stock) {
           throw new Error(`Stock with ID ${stockId} not found`);
         }
+        // Validate: Only allow e-commerce published stocks
+        if (stock.ecompublish !== true) {
+          throw new Error(
+            `Stock with ID ${stockId} is not e-commerce published (ecompublish: ${stock.ecompublish}). ` +
+            `Only stocks with ecompublish=true can be allocated for dispatch.`
+          );
+        }
         stocks.push(stock);
       }
       return stocks;
@@ -770,12 +906,18 @@ export class OrdersService {
     try {
       const stocks: any[] = [];
       for (const sku of skus) {
-        const { data: stockResults } = await dynamicFindManyWithFilters('stock', { sku }, {
+        const { data: stockResults } = await dynamicFindManyWithFilters('stock', { 
+          sku,
+          ecompublish: true  // Only select e-commerce published stocks
+        }, {
           take: 1,
           useAllColumns: true
         });
         if (!stockResults || stockResults.length === 0) {
-          throw new Error(`Stock with SKU ${sku} not found`);
+          throw new Error(
+            `Stock with SKU ${sku} not found or not e-commerce published. ` +
+            `Only stocks with ecompublish=true can be allocated for dispatch.`
+          );
         }
         stocks.push(stockResults[0]);
       }
@@ -817,69 +959,176 @@ export class OrdersService {
         throw new Error('No orderlines found for this order');
       }
 
-      const allocations: Array<{ orderline_id: number; stocks: any[] }> = [];
+      const allocations: Array<{ orderline_id: number; stocks: any[]; is_component?: boolean; combo_product_id?: number; component_product_id?: number }> = [];
 
       for (const orderline of orderlines) {
         const mapping = stockMapping?.find(m => m.orderline_id === orderline.id);
 
-        let stocks: any[];
+        // COMBO PRODUCT SUPPORT: Check if orderline product is a combo
+        // If so, allocate stock for component products instead of combo product itself
+        const orderlineProduct = await dynamicFindUnique('product', { id: orderline.productid });
+        if (!orderlineProduct) {
+          throw new Error(`Product ${orderline.productid} not found for orderline ${orderline.id}`);
+        }
 
-        if (mapping?.stock_ids) {
-          // Manual selection by stock IDs
-          stocks = await this.getStocksByIds(mapping.stock_ids);
-          // Validate quantity matches orderline
-          if (stocks.length !== (orderline.quantity || 0)) {
+        if (orderlineProduct.iscombo === true) {
+          // COMBO PRODUCT: Allocate stock for components
+          logger.info({
+            orderlineId: orderline.id,
+            comboProductId: orderline.productid,
+            comboProductName: orderlineProduct.name,
+            quantity: orderline.quantity
+          }, 'Detected combo product - allocating stock for components');
+
+          // Get component products from productbundlemap
+          const components = await prisma.productBundleMap.findMany({
+            where: {
+              bundleproductid: BigInt(orderline.productid),
+              isactive: true
+            }
+          });
+
+          if (components.length === 0) {
             throw new Error(
-              `Stock count mismatch for orderline ${orderline.id}: ` +
-              `Expected ${orderline.quantity}, got ${stocks.length}`
+              `Combo product ${orderline.productid} has no active components in productbundlemap`
             );
           }
-        } else if (mapping?.skus) {
-          // Manual selection by SKUs
-          stocks = await this.getStocksBySKUs(mapping.skus);
-          // Validate quantity matches orderline
-          if (stocks.length !== (orderline.quantity || 0)) {
-            throw new Error(
-              `Stock count mismatch for orderline ${orderline.id}: ` +
-              `Expected ${orderline.quantity}, got ${stocks.length}`
+
+          // For each component, allocate stock
+          for (const component of components) {
+            const componentProductId = Number(component.componentproductid);
+            const requiredQty = component.requiredqty || 1;
+            const totalNeeded = requiredQty * (orderline.quantity || 1);
+
+            logger.info({
+              orderlineId: orderline.id,
+              comboProductId: orderline.productid,
+              componentProductId,
+              requiredQtyPerCombo: requiredQty,
+              comboQuantity: orderline.quantity,
+              totalNeeded
+            }, 'Allocating stock for combo component');
+
+            // Allocate stock for component product
+            // Note: Manual stock selection is not supported for combo components (auto-select only)
+            const componentStocks = await this.autoSelectStocks(
+              componentProductId,
+              totalNeeded,
+              'nivapp' // Default platform
             );
+
+            // Validate stock status, e-commerce publish status, and product match for component stocks
+            const componentProduct = await dynamicFindUnique('product', { id: componentProductId });
+            for (const stock of componentStocks) {
+              if (stock.stockstatus !== 'available') {
+                throw new Error(
+                  `Component stock ${stock.id} is not available (status: ${stock.stockstatus})`
+                );
+              }
+              // Validate: Only allow e-commerce published stocks for components
+              if (stock.ecompublish !== true) {
+                throw new Error(
+                  `Component stock ${stock.id} is not e-commerce published (ecompublish: ${stock.ecompublish}). ` +
+                  `Only stocks with ecompublish=true can be allocated for dispatch.`
+                );
+              }
+              if (!componentProduct || stock.puc !== componentProduct.puc) {
+                throw new Error(
+                  `Component stock ${stock.id} (puc: ${stock.puc}) does not match component product ` +
+                  `(productid: ${componentProductId}, Product.puc: ${componentProduct?.puc || 'N/A'})`
+                );
+              }
+            }
+
+            allocations.push({
+              orderline_id: orderline.id,
+              stocks: componentStocks,
+              is_component: true, // Flag to identify this is a component allocation
+              combo_product_id: orderline.productid, // Original combo product ID
+              component_product_id: componentProductId // Component product ID
+            });
+
+            logger.info({
+              orderlineId: orderline.id,
+              componentProductId,
+              allocatedStocks: componentStocks.length,
+              totalNeeded
+            }, 'Component stock allocated successfully');
           }
-        } else if (mapping?.batch_filter) {
-          // Auto-select from specific batch/filter
-          stocks = await this.autoSelectStocks(
-            orderline.productid,
-            orderline.quantity || 1,
-            'nivapp', // Default platform, can be enhanced to use order's platform
-            mapping.batch_filter
-          );
+
+          logger.info({
+            orderlineId: orderline.id,
+            comboProductId: orderline.productid,
+            componentsCount: components.length
+          }, 'All component stocks allocated for combo product');
+
         } else {
-          // Auto-select available stocks (FIFO - no filter)
-          stocks = await this.autoSelectStocks(
-            orderline.productid,
-            orderline.quantity || 1,
-            'nivapp' // Default platform
-          );
-        }
+          // REGULAR PRODUCT: Current logic (unchanged)
+          let stocks: any[];
 
-        // Validate stock status and product match
-        for (const stock of stocks) {
-          if (stock.stockstatus !== 'available') {
-            throw new Error(`Stock ${stock.id} is not available (status: ${stock.stockstatus})`);
-          }
-          // Validate: Get Product by id = orderline.productid, then check Stock.puc = Product.puc
-          const orderlineProduct = await dynamicFindUnique('product', { id: orderline.productid });
-          if (!orderlineProduct || stock.puc !== orderlineProduct.puc) {
-            throw new Error(
-              `Stock ${stock.id} (puc: ${stock.puc}) does not match orderline product ` +
-              `(productid: ${orderline.productid}, Product.puc: ${orderlineProduct?.puc || 'N/A'})`
+          if (mapping?.stock_ids) {
+            // Manual selection by stock IDs
+            stocks = await this.getStocksByIds(mapping.stock_ids);
+            // Validate quantity matches orderline
+            if (stocks.length !== (orderline.quantity || 0)) {
+              throw new Error(
+                `Stock count mismatch for orderline ${orderline.id}: ` +
+                `Expected ${orderline.quantity}, got ${stocks.length}`
+              );
+            }
+          } else if (mapping?.skus) {
+            // Manual selection by SKUs
+            stocks = await this.getStocksBySKUs(mapping.skus);
+            // Validate quantity matches orderline
+            if (stocks.length !== (orderline.quantity || 0)) {
+              throw new Error(
+                `Stock count mismatch for orderline ${orderline.id}: ` +
+                `Expected ${orderline.quantity}, got ${stocks.length}`
+              );
+            }
+          } else if (mapping?.batch_filter) {
+            // Auto-select from specific batch/filter
+            stocks = await this.autoSelectStocks(
+              orderline.productid,
+              orderline.quantity || 1,
+              'nivapp', // Default platform, can be enhanced to use order's platform
+              mapping.batch_filter
+            );
+          } else {
+            // Auto-select available stocks (FIFO - no filter)
+            stocks = await this.autoSelectStocks(
+              orderline.productid,
+              orderline.quantity || 1,
+              'nivapp' // Default platform
             );
           }
-        }
 
-        allocations.push({
-          orderline_id: orderline.id,
-          stocks: stocks
-        });
+          // Validate stock status, e-commerce publish status, and product match
+          for (const stock of stocks) {
+            if (stock.stockstatus !== 'available') {
+              throw new Error(`Stock ${stock.id} is not available (status: ${stock.stockstatus})`);
+            }
+            // Validate: Only allow e-commerce published stocks
+            if (stock.ecompublish !== true) {
+              throw new Error(
+                `Stock ${stock.id} is not e-commerce published (ecompublish: ${stock.ecompublish}). ` +
+                `Only stocks with ecompublish=true can be allocated for dispatch.`
+              );
+            }
+            // Validate: Get Product by id = orderline.productid, then check Stock.puc = Product.puc
+            if (!orderlineProduct || stock.puc !== orderlineProduct.puc) {
+              throw new Error(
+                `Stock ${stock.id} (puc: ${stock.puc}) does not match orderline product ` +
+                `(productid: ${orderline.productid}, Product.puc: ${orderlineProduct?.puc || 'N/A'})`
+              );
+            }
+          }
+
+          allocations.push({
+            orderline_id: orderline.id,
+            stocks: stocks
+          });
+        }
       }
 
       return allocations;
@@ -893,7 +1142,7 @@ export class OrdersService {
    * Update stock status and quantities for dispatch
    */
   private async updateStockForDispatch(
-    allocations: Array<{ orderline_id: number; stocks: any[] }>,
+    allocations: Array<{ orderline_id: number; stocks: any[]; is_component?: boolean; combo_product_id?: number; component_product_id?: number }>,
     orderId: number,  // orders.id (Int type)
     order: any         // Full order object to get order.orderid (String)
   ): Promise<void> {
@@ -903,24 +1152,37 @@ export class OrdersService {
       const currentTimestamp = Date.now();
 
       // Track quantity updates per product/platform to avoid duplicate updates
-      // Key: "productId-platform" -> quantity
-      const platformStockUpdates = new Map<string, { productId: number; platform: string; quantity: number }>();
+      // Key: "productId-platform" -> { quantity, ecomQuantity }
+      const platformStockUpdates = new Map<string, { productId: number; platform: string; quantity: number; ecomQuantity: number }>();
       // Key: puc -> quantity
       const productUpdates = new Map<string, number>();
 
       for (const allocation of allocations) {
         const orderline = await orderlineService.findById(allocation.orderline_id.toString());
-        const orderlineQuantity = orderline.quantity || allocation.stocks.length; // Use orderline quantity or stock count
 
-        // Validate stock count matches orderline quantity
-        if (allocation.stocks.length !== orderlineQuantity) {
-          throw new Error(
-            `Stock count mismatch for orderline ${allocation.orderline_id}: ` +
-            `Expected ${orderlineQuantity}, got ${allocation.stocks.length}`
-          );
+        // COMBO COMPONENT HANDLING:
+        // For combo component allocations, stock count is based on component requirements,
+        // not orderline quantity. Skip validation for component allocations.
+        if (!allocation.is_component) {
+          // Regular product: Validate stock count matches orderline quantity
+          const orderlineQuantity = orderline.quantity || allocation.stocks.length;
+          if (allocation.stocks.length !== orderlineQuantity) {
+            throw new Error(
+              `Stock count mismatch for orderline ${allocation.orderline_id}: ` +
+              `Expected ${orderlineQuantity}, got ${allocation.stocks.length}`
+            );
+          }
+        } else {
+          // Combo component: Log allocation details
+          logger.info({
+            orderlineId: allocation.orderline_id,
+            comboProductId: allocation.combo_product_id,
+            componentProductId: allocation.component_product_id,
+            stockCount: allocation.stocks.length
+          }, 'Processing combo component stock allocation');
         }
 
-        // Get product info from first stock (all stocks should have same puc for same orderline)
+        // Get product info from first stock (all stocks should have same puc)
         const firstStock = allocation.stocks[0];
         const product = await dynamicFindUnique('product', { puc: firstStock.puc });
         if (!product || !product.id) {
@@ -929,23 +1191,31 @@ export class OrdersService {
         const productId = Number(product.id);
 
         // Track PlatformStock update (aggregate by productId + platform)
+        // For combo components, this will track the COMPONENT product, not the combo product
         const platformStockKey = `${productId}-${firstStock.platform}`;
         if (!platformStockUpdates.has(platformStockKey)) {
           platformStockUpdates.set(platformStockKey, {
             productId,
             platform: firstStock.platform,
-            quantity: 0
+            quantity: 0,
+            ecomQuantity: 0
           });
         }
-        platformStockUpdates.get(platformStockKey)!.quantity += orderlineQuantity;
+        const update = platformStockUpdates.get(platformStockKey)!;
+        update.quantity += allocation.stocks.length;
+        // Count how many stocks were e-commerce published (before they're marked as sold)
+        const ecomPublishedCount = allocation.stocks.filter(s => s.ecompublish === true).length;
+        update.ecomQuantity += ecomPublishedCount;
 
         // Track Product update (aggregate by puc)
+        // For combo components, this will track the COMPONENT product, not the combo product
         if (!productUpdates.has(firstStock.puc)) {
           productUpdates.set(firstStock.puc, 0);
         }
-        productUpdates.set(firstStock.puc, productUpdates.get(firstStock.puc)! + orderlineQuantity);
+        productUpdates.set(firstStock.puc, productUpdates.get(firstStock.puc)! + allocation.stocks.length);
 
         // Update each Stock record
+        // For combo components, stock records are linked to the combo product's orderline
         for (const stock of allocation.stocks) {
           // 1. Update Stock record
           // Note: Stock.orderid is String (references orders.orderid, not orders.id)
@@ -953,14 +1223,24 @@ export class OrdersService {
           await dynamicUpdate('stock', { id: stock.id }, {
             stockstatus: 'sold',
             orderid: order.orderid || orderId.toString(),  // Use orders.orderid (String) if available
-            orderlinenumber: orderline.orderlinenumber,    // String type
+            orderlinenumber: orderline.orderlinenumber,    // String type (combo product's orderline)
             solddate: currentTimestamp,
             modifieddate: currentTimestamp
           });
+
+          if (allocation.is_component) {
+            logger.info({
+              stockId: stock.id,
+              stockPuc: stock.puc,
+              componentProductId: allocation.component_product_id,
+              comboOrderlineNumber: orderline.orderlinenumber
+            }, 'Component stock marked as sold and linked to combo orderline');
+          }
         }
       }
 
       // 3. Update PlatformStock quantities (once per product/platform combination)
+      // For combo products, this updates COMPONENT platformstock, not combo platformstock
       for (const [key, update] of platformStockUpdates.entries()) {
         const { data: platformStocks } = await dynamicFindManyWithFilters('platformstock', {
           productid: update.productId.toString(),
@@ -970,14 +1250,33 @@ export class OrdersService {
         if (platformStocks && platformStocks.length > 0) {
           const platformStock = platformStocks[0];
 
-          // Update PlatformStock: decrease orderedqty, increase soldqty
-          // Note: availableqty and platformstatus don't change (already done during order creation)
-          const newOrderedQty = Math.max(0, (platformStock.orderedqty || 0) - update.quantity);
-          const newSoldQty = (platformStock.soldqty || 0) + update.quantity;
+          // Get current quantities
+          const currentEcomQty = Number(platformStock.ecomqty || 0);
+          const currentOrderedQty = Number(platformStock.orderedqty || 0);
+          const currentSoldQty = Number(platformStock.soldqty || 0);
+          const currentLockQty = Number(platformStock.lockqty || 0);
+
+          // Update PlatformStock: 
+          // - Decrease orderedqty (stocks were reserved, now sold)
+          // - Increase soldqty (stocks are now sold)
+          // - Decrease ecomqty (if stocks were e-commerce published)
+          // - Recalculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
+          const newOrderedQty = Math.max(0, currentOrderedQty - update.quantity);
+          const newSoldQty = currentSoldQty + update.quantity;
+          const newEcomQty = Math.max(0, currentEcomQty - update.ecomQuantity); // Decrease by e-commerce published count
+          const newAvailableQty = Math.max(0, newEcomQty - newOrderedQty - newSoldQty - currentLockQty);
+
+          // Calculate platform status
+          const { PlatformStockService } = await import('./platformStock.service.js');
+          const platformStockService = new PlatformStockService();
+          const platformStatus = platformStockService['calculatePlatformStatus'](newAvailableQty);
 
           await dynamicUpdate('platformstock', { id: platformStock.id }, {
+            ecomqty: newEcomQty,
             orderedqty: newOrderedQty,
             soldqty: newSoldQty,
+            availableqty: newAvailableQty,
+            platformstatus: platformStatus,
             modifieddate: currentTimestamp
           });
 
@@ -986,15 +1285,24 @@ export class OrdersService {
             productId: update.productId,
             platform: update.platform,
             quantity: update.quantity,
-            oldOrderedQty: platformStock.orderedqty,
+            ecomQuantity: update.ecomQuantity,
+            oldEcomQty: currentEcomQty,
+            newEcomQty,
+            oldOrderedQty: currentOrderedQty,
             newOrderedQty,
-            oldSoldQty: platformStock.soldqty,
-            newSoldQty
-          }, 'PlatformStock quantities updated');
+            oldSoldQty: currentSoldQty,
+            newSoldQty,
+            oldAvailableQty: platformStock.availableqty,
+            newAvailableQty,
+            formula: {
+              availableqty: `${newEcomQty} - ${newOrderedQty} - ${newSoldQty} - ${currentLockQty} = ${newAvailableQty}`
+            }
+          }, 'PlatformStock quantities updated (dispatch)');
         }
       }
 
       // 4. Update Product quantities (once per product)
+      // For combo products, this updates COMPONENT product quantities, not combo product
       for (const [puc, quantity] of productUpdates.entries()) {
         const productForUpdate = await dynamicFindUnique('product', { puc });
         if (productForUpdate) {
@@ -1104,13 +1412,125 @@ export class OrdersService {
   }
 
   /**
+   * Generate invoice for an order
+   * Fetches seller data from EKART and calls storage backend to generate invoice PDF
+   * @param orderId - Order ID
+   * @returns Invoice URL if successful, null otherwise
+   */
+  async generateInvoice(orderId: number): Promise<string | null> {
+    try {
+      logger.info({ orderId }, 'Generating invoice for order');
+
+      // Get complete order details including orderlines and address
+      const orderDetails = await this.getOrderDetails(orderId.toString());
+
+      // Import axios
+      const axios = (await import('axios')).default;
+
+      // Fetch seller data from EKART addresses endpoint
+      let sellerData: any = null;
+      try {
+        const { ekartService } = await import('./ekart.service.js');
+
+        logger.info('Fetching seller addresses from EKART service');
+
+        const addresses = await ekartService.getAddresses();
+
+        // Get the first address from the response (main sales office)
+        if (addresses && addresses.length > 0) {
+          sellerData = addresses[0];
+          logger.info({ seller: sellerData?.alias }, 'Seller data fetched successfully');
+        } else {
+          logger.warn('No seller addresses found in EKART response');
+        }
+      } catch (sellerError: any) {
+        logger.error({
+          error: sellerError.message
+        }, 'Failed to fetch seller data from EKART - continuing without seller info');
+        // Continue without seller data - don't fail invoice generation
+      }
+
+      // Call storage backend to generate invoice
+      const storageBackendUrl = process.env.STORAGE_BACKEND_URL || 'http://localhost:4500';
+      const invoiceEndpoint = `${storageBackendUrl}/order/invoice`;
+
+      logger.info({
+        endpoint: invoiceEndpoint,
+        orderId: orderDetails.order.id,
+        orderNumber: orderDetails.order.orderid,
+        hasSeller: !!sellerData
+      }, 'Calling storage backend to generate invoice');
+
+      const invoiceResponse = await axios.post(invoiceEndpoint, {
+        order: orderDetails.order,
+        orderlines: orderDetails.orderlines,
+        address: orderDetails.address,
+        seller: sellerData
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        timeout: 30000 // 30 second timeout
+      });
+
+      logger.info({
+        orderId,
+        response: invoiceResponse.data,
+        status: invoiceResponse.status
+      }, 'Invoice generated successfully');
+
+      // If the response contains an invoice URL, update the order record
+      if (invoiceResponse.data?.invoiceUrl) {
+        await dynamicUpdate('orders', { id: orderId }, {
+          order_invoice_url: invoiceResponse.data.invoiceUrl,
+          modifieddate: Date.now()
+        });
+        logger.info({
+          orderId,
+          invoiceUrl: invoiceResponse.data.invoiceUrl
+        }, 'Order updated with invoice URL');
+
+        return invoiceResponse.data.invoiceUrl;
+      }
+
+      return null;
+    } catch (invoiceError: any) {
+      // Log the error but don't fail the operation
+      // Invoice generation is a secondary operation
+      logger.error({
+        error: invoiceError.message,
+        response: invoiceError.response?.data,
+        status: invoiceError.response?.status,
+        orderId
+      }, 'Failed to generate invoice - continuing without invoice');
+
+      return null;
+    }
+  }
+
+  /**
    * Mark order as shipped (after label printed)
+   * NOTE: This endpoint is kept for backward compatibility and manual override.
+   * For EKART orders, the 'shipped' status is now set automatically via webhook.
    */
   async markShipped(orderId: number, inventoryUserId: number): Promise<any> {
     try {
       logger.info({ orderId, inventoryUserId }, 'Marking order as shipped');
 
       const order = await this.findById(orderId);
+
+      // Block mark-shipped for cancelled orders (all cancelled-related statuses)
+      const cancelledStatuses = [
+        'cancelled',
+        'cancelled_refund_processing',
+        'cancelled_refunded',
+        'cancelled_completed'
+      ];
+
+      if (cancelledStatuses.includes(order.orderstatus) || order.orderstatus === 'returned') {
+        throw new Error(`Cannot mark order as shipped. Order is in ${order.orderstatus} status`);
+      }
+
       if (!order.tracking_id) {
         throw new Error('Shipment not created yet. Please create EKART shipment first.');
       }
@@ -1164,6 +1584,778 @@ export class OrdersService {
   }
 
   /**
+   * Manually ship order with vendor details
+   * Automatically sets order status to 'shipped'
+   * PATCH /v1/orders/:id/manual-ship
+   * 
+   * Note: Allows updating from EKART to another vendor when EKART refuses to collect
+   */
+  async updateShipmentDetails(
+    orderIdOrNumber: string | number,
+    trackingId: string,
+    vendor: string,
+    inventoryUserId: number,
+    publicTrackingLink?: string,
+    shipped?: boolean
+  ): Promise<any> {
+    try {
+      logger.info(
+        { orderIdOrNumber, trackingId, vendor, inventoryUserId },
+        'Updating shipment details for manual vendor'
+      );
+
+      // Find order by ID or order number
+      let order;
+      if (typeof orderIdOrNumber === 'string' && isNaN(Number(orderIdOrNumber))) {
+        order = await this.findByOrderNumber(orderIdOrNumber);
+      } else {
+        order = await this.findById(Number(orderIdOrNumber));
+      }
+
+      if (!order) {
+        throw new Error('Order not found');
+      }
+
+      // Block shipment updates for cancelled orders (all cancelled-related statuses)
+      const cancelledStatuses = [
+        'cancelled',
+        'cancelled_refund_processing',
+        'cancelled_refunded',
+        'cancelled_completed'
+      ];
+
+      if (cancelledStatuses.includes(order.orderstatus) || order.orderstatus === 'returned') {
+        throw new Error(`Cannot update shipment details for ${order.orderstatus} order`);
+      }
+
+      // Validate order status - allow ready_for_dispatch OR shipped (for EKART to manual vendor switch)
+      if (order.orderstatus !== 'ready_for_dispatch' && order.orderstatus !== 'shipped') {
+        throw new Error(
+          `Order must be in 'ready_for_dispatch' or 'shipped' status. Current status: ${order.orderstatus}`
+        );
+      }
+
+      // Check if switching from EKART to manual vendor
+      const isSwitchingFromEkart = order.vendor === 'EKART' && vendor !== 'EKART';
+      const isAlreadyShipped = order.orderstatus === 'shipped';
+
+      if (isSwitchingFromEkart) {
+        if (isAlreadyShipped) {
+          // Switching from EKART to manual vendor after shipped
+          logger.info(
+            { orderId: order.id, currentVendor: order.vendor, newVendor: vendor },
+            'Switching vendor from EKART to manual vendor for shipped order'
+          );
+        } else {
+          // Switching from EKART to manual vendor before pickup (EKART didn't collect)
+          logger.info(
+            { orderId: order.id, currentVendor: order.vendor, newVendor: vendor },
+            'Switching vendor from EKART to manual vendor - EKART did not collect'
+          );
+        }
+      } else if (isAlreadyShipped && !isSwitchingFromEkart) {
+        // Cannot switch vendor if already shipped with non-EKART vendor
+        throw new Error(
+          `Cannot switch vendor for shipped order. Current vendor: ${order.vendor}. Only EKART orders can be switched to another vendor after shipped status.`
+        );
+      }
+
+      // Note: We allow updating from EKART to another vendor
+      // This is needed when EKART refuses to collect after shipment creation
+      // (e.g., due to low delivery volume in that area)
+      // The new vendor in the request can be any vendor (including switching from EKART to manual vendor)
+
+      // Generate public tracking link if not provided
+      const finalTrackingLink =
+        publicTrackingLink || this.generateTrackingLink(vendor, trackingId);
+
+      const currentTimestamp = Date.now();
+
+      // Update order with shipment details
+      const updateData: Record<string, any> = {
+        tracking_id: trackingId,
+        vendor: vendor,
+        public_tracking_link: finalTrackingLink,
+        modifieddate: currentTimestamp
+      };
+
+      // If switching from EKART to manual vendor, reset EKART-specific fields
+      if (isSwitchingFromEkart) {
+        // Reset EKART-specific fields
+        updateData.label_url = null; // Reset EKART label URL
+        updateData.barcodes = null; // Reset EKART barcodes
+        updateData.shipment_tracking_status = null; // Reset EKART tracking status
+        logger.info(
+          { orderId: order.id },
+          'Resetting EKART-specific fields (label_url, barcodes, shipment_tracking_status)'
+        );
+      }
+
+      // Only update shipment_created_at, shipdate, label_printed_at if:
+      // 1. Order is not already shipped
+      // 2. Payload includes shipped: true (only set shipdate if actually shipping)
+      if (!isAlreadyShipped && shipped === true) {
+        updateData.shipment_created_at = currentTimestamp;
+        updateData.shipdate = currentTimestamp;
+        updateData.label_printed_at = currentTimestamp; // Same as shipdate for manual vendors
+      } else if (!isAlreadyShipped) {
+        // If not shipping yet, only set shipment_created_at
+        updateData.shipment_created_at = currentTimestamp;
+      } else if (isSwitchingFromEkart) {
+        // If switching from EKART after shipped, reset label_printed_at to new timestamp
+        updateData.label_printed_at = currentTimestamp;
+      }
+
+      await dynamicUpdate('orders', { id: order.id }, updateData);
+
+      logger.info(
+        { orderId: order.id, trackingId, vendor, isAlreadyShipped },
+        'Order shipment details updated'
+      );
+
+      // Update all orderlines with tracking_id
+      const { OrderlineService } = await import('./orderline.service.js');
+      const orderlineService = new OrderlineService();
+      const { data: orderlines } = await orderlineService.findMany(
+        { orderid: order.id.toString() },
+        1,
+        1000
+      );
+
+      if (orderlines && orderlines.length > 0) {
+        logger.info(
+          { orderId: order.id, orderlineCount: orderlines.length, isAlreadyShipped },
+          'Updating orderlines with tracking ID'
+        );
+
+        // Update all orderlines with tracking_id
+        for (const orderline of orderlines) {
+          // Only update status and shipdate if:
+          // 1. Order is not already shipped
+          // 2. Payload includes shipped: true
+          if (!isAlreadyShipped && shipped === true) {
+            // Update orderline status to shipped
+            await orderlineService.updateOrderlineStatus(
+              orderline.id.toString(),
+              'shipped',
+              {
+                tracking_id: trackingId,
+                shipdate: currentTimestamp,
+                source: 'inventoryuser',
+                inventory_user_id: inventoryUserId
+              }
+            );
+          } else {
+            // For already shipped orderlines OR if shipped is false/undefined, just update tracking_id
+            // If switching from EKART, we're updating to new manual vendor tracking ID
+            await orderlineService.update(orderline.id.toString(), {
+              tracking_id: trackingId,
+              modifieddate: currentTimestamp
+            });
+          }
+        }
+
+        logger.info(
+          { orderId: order.id, orderlineCount: orderlines.length, isAlreadyShipped },
+          'All orderlines updated'
+        );
+      }
+
+      // Update order status to shipped only if:
+      // 1. Order is not already shipped
+      // 2. Payload includes shipped: true
+      if (!isAlreadyShipped && shipped === true) {
+        // Update order status to shipped (triggers status_history update)
+        await this.updateOrderStatus(order.id.toString(), 'shipped', {
+          source: 'inventoryuser',
+          inventory_user_id: inventoryUserId
+        });
+        logger.info(
+          { orderId: order.id },
+          'Order status updated to shipped (shipped: true in payload)'
+        );
+
+        // Generate invoice for manual vendor orders (same as EKART flow)
+        try {
+          logger.info(
+            { orderId: order.id, vendor },
+            'Generating invoice for manual vendor order'
+          );
+          const invoiceUrl = await this.generateInvoice(order.id);
+          if (invoiceUrl) {
+            logger.info(
+              { orderId: order.id, invoiceUrl, vendor },
+              'Invoice generated successfully for manual vendor order'
+            );
+          } else {
+            logger.warn(
+              { orderId: order.id, vendor },
+              'Invoice generation returned no URL (non-blocking)'
+            );
+          }
+        } catch (invoiceError: any) {
+          // Invoice generation is non-blocking - don't fail the shipment update
+          logger.error(
+            {
+              error: invoiceError.message,
+              orderId: order.id,
+              vendor
+            },
+            'Failed to generate invoice for manual vendor order (non-blocking)'
+          );
+        }
+      } else if (!isAlreadyShipped && shipped === false) {
+        // Explicitly keep status as ready_for_dispatch
+        logger.info(
+          { orderId: order.id },
+          'Order status remains ready_for_dispatch (shipped: false in payload)'
+        );
+      } else if (!isAlreadyShipped && shipped === undefined) {
+        // If shipped not provided, keep status as ready_for_dispatch
+        logger.info(
+          { orderId: order.id },
+          'Order status remains ready_for_dispatch (shipped not provided in payload)'
+        );
+      } else {
+        // Order is already shipped, just log the vendor switch
+        logger.info(
+          { orderId: order.id, oldVendor: order.vendor, newVendor: vendor },
+          'Vendor switched for already shipped order (no status change)'
+        );
+      }
+
+      const updatedOrder = await this.findById(order.id);
+      logger.info(
+        { orderId: order.id, orderStatus: updatedOrder.orderstatus, shipped: shipped },
+        shipped === true ? 'Order shipment details updated and marked as shipped' : 'Order shipment details updated (status unchanged)'
+      );
+
+      return updatedOrder;
+    } catch (error) {
+      logger.error(
+        { error, orderIdOrNumber, trackingId, vendor },
+        'Error updating shipment details'
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Generate tracking link for manual vendors
+   * Private helper method
+   */
+  private generateTrackingLink(vendor: string, trackingId: string): string {
+    // Vendor-specific tracking link generation
+    // IMPORTANT: Use the ACTUAL vendor's tracking URL, not aggregator sites
+    // The vendor field should match the actual logistics provider (e.g., "Delhivery", "Shiprocket", not "Shipway" aggregator)
+
+    const vendorLinks: Record<string, string> = {
+      // Logistics Providers (Direct)
+      Delhivery: `https://www.delhivery.com/track/${trackingId}`,
+      Shiprocket: `https://shiprocket.co/tracking/${trackingId}`,
+      Xpressbees: `https://www.xpressbees.com/track/${trackingId}`,
+      BlueDart: `https://www.bluedart.com/track/${trackingId}`,
+      DTDC: `https://www.dtdc.in/tracking/${trackingId}`,
+      FedEx: `https://www.fedex.com/apps/fedextrack/?tracknumbers=${trackingId}`,
+      Shadowfax: `https://shadowfax.in/track/${trackingId}`,
+      'Ecom Express': `https://ecomexpress.in/track/${trackingId}`,
+
+      // Aggregator Platforms (if vendor field is the aggregator itself)
+      Shipway: `https://shipway.in/track/${trackingId}`, // Only if Shipway is the actual vendor
+      Vamaship: `https://vamaship.com/track/${trackingId}`,
+      IthinkLogistics: `https://ithinklogistics.com/track/${trackingId}`
+
+      // Add more vendors as needed
+    };
+
+    // If vendor not found in map, generate generic URL
+    // Note: This is a fallback - prefer explicit vendor mapping above
+    return (
+      vendorLinks[vendor] ||
+      `https://tracking.${vendor.toLowerCase().replace(/\s+/g, '')}.com/${trackingId}`
+    );
+  }
+
+  /**
+   * Update shipment tracking status manually
+   * Works for ALL vendors (EKART + manual vendors)
+   * PATCH /v1/orders/:id/shipment-status
+   */
+  async updateShipmentStatus(
+    orderIdOrNumber: string | number,
+    status: string,
+    inventoryUserId: number,
+    location?: string,
+    description?: string
+  ): Promise<any> {
+    try {
+      logger.info(
+        { orderIdOrNumber, status, inventoryUserId, location },
+        'Updating shipment tracking status manually'
+      );
+
+      // Find order by ID or order number
+      let order;
+      if (typeof orderIdOrNumber === 'string' && isNaN(Number(orderIdOrNumber))) {
+        order = await this.findByOrderNumber(orderIdOrNumber);
+      } else {
+        order = await this.findById(Number(orderIdOrNumber));
+      }
+
+      if (!order) {
+        throw new Error('Order not found');
+      }
+
+      // Step 1: Prerequisites validation
+      if (!order.tracking_id) {
+        throw new Error('Order must have tracking_id to update shipment status');
+      }
+
+      // Block status updates for cancelled orders (all cancelled-related statuses)
+      const cancelledStatuses = [
+        'cancelled',
+        'cancelled_refund_processing',
+        'cancelled_refunded',
+        'cancelled_completed'
+      ];
+
+      if (cancelledStatuses.includes(order.orderstatus) || order.orderstatus === 'returned') {
+        throw new Error(`Cannot update shipment status for ${order.orderstatus} order`);
+      }
+
+      // Order must be in ready_for_dispatch (with tracking_id) or shipped or later status
+      // Allow ready_for_dispatch if tracking_id and vendor exist (can set shipped status)
+      const validStartingStatuses = [
+        'ready_for_dispatch', // Allowed if tracking_id and vendor exist (can set shipped)
+        'shipped',
+        'in_transit',
+        'out_for_delivery',
+        'delivered',
+        'rto_initiated',
+        'rto_delivered'
+      ];
+
+      // Special case: ready_for_dispatch is only allowed if tracking_id and vendor exist
+      if (order.orderstatus === 'ready_for_dispatch') {
+        if (!order.tracking_id || !order.vendor) {
+          throw new Error(
+            'Order must have tracking_id and vendor to set shipped status from ready_for_dispatch'
+          );
+        }
+        // Only allow 'shipped' status from ready_for_dispatch
+        if (status !== 'shipped') {
+          throw new Error(
+            `Cannot update to ${status} from ready_for_dispatch. Only 'shipped' status is allowed.`
+          );
+        }
+      } else if (!validStartingStatuses.includes(order.orderstatus)) {
+        throw new Error(
+          `Order must be in ready_for_dispatch (with tracking_id), shipped, or later status to update shipment status. Current status: ${order.orderstatus}`
+        );
+      }
+
+      // Step 2: Status value validation
+      const allowedStatuses = [
+        'shipped', // Allowed from ready_for_dispatch (if tracking_id and vendor exist)
+        'in_transit',
+        'out_for_delivery',
+        'delivered',
+        'rto_initiated',
+        'rto_delivered',
+        'cod_payment_received'
+      ];
+
+      if (!allowedStatuses.includes(status)) {
+        throw new Error(
+          `Invalid shipment status: ${status}. Allowed statuses: ${allowedStatuses.join(', ')}`
+        );
+      }
+
+      // Step 3: Idempotency check
+      // For ready_for_dispatch → shipped, check if already shipped (shouldn't happen, but handle gracefully)
+      if (order.orderstatus === 'ready_for_dispatch' && status === 'shipped') {
+        // This is a valid transition, proceed
+      } else if (order.shipment_tracking_status === status && order.orderstatus === status) {
+        // For other statuses, check if status already matches
+        logger.info(
+          { orderId: order.id, status },
+          'Status already set to requested value, no change needed'
+        );
+        return order;
+      }
+
+      // Step 4: Status transition validation
+      const currentStatus = order.orderstatus;
+      const validTransitions: Record<string, string[]> = {
+        ready_for_dispatch: ['shipped'], // Only if tracking_id and vendor exist (already validated above)
+        shipped: ['in_transit', 'out_for_delivery', 'rto_initiated'],
+        in_transit: ['out_for_delivery', 'delivered', 'rto_initiated'],
+        out_for_delivery: ['delivered', 'rto_initiated'],
+        delivered: ['cod_payment_received'],
+        rto_initiated: ['rto_delivered'],
+        rto_delivered: [] // Terminal status
+      };
+
+      // Check if transition is valid (including flexible transitions)
+      const isValidTransition = validTransitions[currentStatus]?.includes(status);
+
+      // Allow some flexible transitions (skipping intermediate stages)
+      const flexibleTransitions: Record<string, string[]> = {
+        shipped: ['out_for_delivery'], // Can skip in_transit
+        in_transit: ['delivered'] // Can skip out_for_delivery
+      };
+      const isFlexibleTransition = flexibleTransitions[currentStatus]?.includes(status);
+
+      if (!isValidTransition && !isFlexibleTransition) {
+        throw new Error(
+          `Invalid status transition from ${currentStatus} to ${status}. Allowed transitions: ${validTransitions[currentStatus]?.join(', ') || 'none (terminal status)'}`
+        );
+      }
+
+      // Step 5: Special case validation
+      if (status === 'cod_payment_received') {
+        if (order.mode !== 'cod') {
+          throw new Error('cod_payment_received status is only allowed for COD orders');
+        }
+        if (currentStatus !== 'delivered') {
+          throw new Error('cod_payment_received can only be set after delivered status');
+        }
+      }
+
+      if (status === 'rto_delivered') {
+        if (currentStatus !== 'rto_initiated') {
+          throw new Error('rto_delivered can only be set from rto_initiated status');
+        }
+      }
+
+      // Terminal status check (already handled in transition validation, but double-check)
+      if (currentStatus === 'rto_delivered' && status !== 'rto_delivered') {
+        throw new Error('rto_delivered is a terminal status and cannot be updated');
+      }
+
+      // Step 6: Warning for EKART orders
+      if (order.vendor === 'EKART') {
+        logger.warn(
+          {
+            orderId: order.id,
+            trackingId: order.tracking_id,
+            status,
+            vendor: order.vendor
+          },
+          'Manual shipment status update for EKART order - may be overwritten by webhook'
+        );
+      }
+
+      // Step 7: Determine new order status based on shipment status
+      let newOrderStatus = status;
+      // Some shipment statuses map directly to order status
+      const statusMapping: Record<string, string> = {
+        shipped: 'shipped', // Maps directly to shipped
+        in_transit: 'in_transit',
+        out_for_delivery: 'out_for_delivery',
+        delivered: 'delivered',
+        rto_initiated: 'rto_initiated',
+        rto_delivered: 'rto_delivered',
+        cod_payment_received: 'delivered' // Keep as delivered, cod_payment_received is just a tracking status
+      };
+      newOrderStatus = statusMapping[status] || status;
+
+      const currentTimestamp = Date.now();
+
+      // Step 8: Update shipment_tracking_status and set shipdate if status is shipped
+      const orderUpdateData: Record<string, any> = {
+        shipment_tracking_status: status,
+        modifieddate: currentTimestamp
+      };
+
+      // If setting to shipped, also set shipdate and label_printed_at
+      if (status === 'shipped' && !order.shipdate) {
+        orderUpdateData.shipdate = currentTimestamp;
+        orderUpdateData.label_printed_at = currentTimestamp;
+      }
+
+      await dynamicUpdate('orders', { id: order.id }, orderUpdateData);
+
+      logger.info(
+        { orderId: order.id, status, vendor: order.vendor },
+        'Shipment tracking status updated'
+      );
+
+      // Step 9: Update all orderlines with same status
+      const { OrderlineService } = await import('./orderline.service.js');
+      const orderlineService = new OrderlineService();
+      const { data: orderlines } = await orderlineService.findMany(
+        { orderid: order.id.toString() },
+        1,
+        1000
+      );
+
+      if (orderlines && orderlines.length > 0) {
+        logger.info(
+          { orderId: order.id, orderlineCount: orderlines.length, status },
+          'Updating orderlines with shipment status'
+        );
+
+        for (const orderline of orderlines) {
+          const orderlineUpdateData: Record<string, any> = {
+            source: 'inventoryuser',
+            inventory_user_id: inventoryUserId,
+            location,
+            description
+          };
+
+          // If setting to shipped, also set shipdate
+          if (status === 'shipped' && !orderline.shipdate) {
+            orderlineUpdateData.shipdate = currentTimestamp;
+          }
+
+          await orderlineService.updateOrderlineStatus(
+            orderline.id.toString(),
+            newOrderStatus,
+            orderlineUpdateData
+          );
+        }
+
+        logger.info(
+          { orderId: order.id, orderlineCount: orderlines.length },
+          'All orderlines updated with shipment status'
+        );
+      }
+
+      // Step 10: Update order status (triggers status_history update)
+      await this.updateOrderStatus(order.id.toString(), newOrderStatus, {
+        source: 'inventoryuser',
+        inventory_user_id: inventoryUserId,
+        location,
+        description
+      });
+
+      const updatedOrder = await this.findById(order.id);
+      logger.info(
+        {
+          orderId: order.id,
+          orderStatus: updatedOrder.orderstatus,
+          shipmentTrackingStatus: updatedOrder.shipment_tracking_status
+        },
+        'Shipment status updated successfully'
+      );
+
+      return updatedOrder;
+    } catch (error) {
+      logger.error(
+        { error, orderIdOrNumber, status },
+        'Error updating shipment status'
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Handle EKART webhook status update
+   * Maps EKART webhook status to system status and updates order/orderlines
+   * @param trackingId - EKART tracking ID (wbn from webhook)
+   * @param ekartStatus - Original status from EKART webhook (e.g., "Shipped", "In Transit")
+   * @param webhookData - Additional webhook data (location, description, ctime, etc.)
+   */
+  async handleEkartWebhookStatusUpdate(
+    trackingId: string,
+    ekartStatus: string,
+    webhookData: {
+      location?: string;
+      description?: string;
+      ctime?: number;
+      pickupTime?: number;
+      attempts?: string;
+      [key: string]: any; // Allow any additional webhook fields
+    },
+    fullWebhookPayload?: Record<string, any> // Full original webhook payload
+  ): Promise<any> {
+    try {
+      logger.info(
+        { trackingId, ekartStatus, webhookData },
+        'Processing EKART webhook status update'
+      );
+
+      // Find order by tracking ID
+      const order = await this.findByTrackingId(trackingId);
+      if (!order) {
+        throw new Error(`Order not found for tracking ID: ${trackingId}`);
+      }
+
+      // Only process EKART orders
+      if (order.vendor !== 'EKART') {
+        logger.info(
+          { orderId: order.id, vendor: order.vendor, trackingId },
+          'Ekart webhook received for non-EKART order - ignoring (manual vendor)'
+        );
+        return order; // Return existing order without changes
+      }
+
+      // Map EKART status to system status
+      const systemStatus = this.mapEkartWebhookStatusToSystemStatus(ekartStatus);
+
+      if (!systemStatus) {
+        logger.warn(
+          { trackingId, ekartStatus, orderId: order.id },
+          'Unknown EKART webhook status - storing in shipment_tracking_status and status_history only (is_active: false)'
+        );
+
+        const currentTimestamp = webhookData.ctime || Date.now();
+        const currentOrderStatus = order.orderstatus;
+
+        // Get existing status history
+        const existingHistory = Array.isArray(order.status_history)
+          ? order.status_history
+          : (typeof order.status_history === 'string' ? JSON.parse(order.status_history) : []);
+
+        // Set all existing entries to is_active: false
+        const deactivatedHistory = existingHistory.map((entry: any) => ({
+          ...entry,
+          is_active: false
+        }));
+
+        // Add new entry for unknown webhook status (is_active: false - does not affect status flow)
+        const unknownStatusEntry: any = {
+          previous_status: currentOrderStatus,
+          new_status: currentOrderStatus, // Keep current status (no change)
+          changed_date: currentTimestamp,
+          source: 'ekart',
+          location: webhookData.location,
+          description: webhookData.description || `Unknown EKART status: ${ekartStatus}`,
+          ekart_original_status: ekartStatus, // Store original unknown status
+          is_active: false, // NOT active - just for tracking/history
+          is_webhook_status: true, // Mark as webhook status
+          webhook_payload: fullWebhookPayload || {} // Store full webhook payload for debugging/auditing
+        };
+
+        const updatedHistory = [...deactivatedHistory, unknownStatusEntry];
+
+        // Store original status in shipment_tracking_status and status_history
+        // BUT do NOT update orderstatus or orderline statuses
+        await dynamicUpdate('orders', { id: order.id }, {
+          shipment_tracking_status: ekartStatus, // Store original unknown status
+          status_history: JSON.stringify(updatedHistory), // Add to history with is_active: false
+          modifieddate: currentTimestamp
+        });
+
+        logger.info(
+          { orderId: order.id, ekartStatus, currentOrderStatus },
+          'Unknown EKART webhook status stored in shipment_tracking_status and status_history (is_active: false) - orderstatus unchanged'
+        );
+
+        return await this.findById(order.id);
+      }
+
+      // Check if status actually changed
+      const currentOrderStatus = order.orderstatus;
+      if (currentOrderStatus === systemStatus && order.shipment_tracking_status === ekartStatus) {
+        logger.debug(
+          { orderId: order.id, trackingId, status: systemStatus },
+          'EKART webhook status unchanged, skipping update'
+        );
+        return order;
+      }
+
+      const currentTimestamp = webhookData.ctime || Date.now();
+
+      // Update shipment_tracking_status (store original EKART status)
+      await dynamicUpdate('orders', { id: order.id }, {
+        shipment_tracking_status: ekartStatus, // Store original EKART status
+        modifieddate: currentTimestamp
+      });
+
+      logger.info(
+        { orderId: order.id, trackingId, ekartStatus, systemStatus },
+        'Order shipment_tracking_status updated from EKART webhook'
+      );
+
+      // Prepare additional data for status update
+      const additionalData: Record<string, any> = {
+        source: 'ekart',
+        location: webhookData.location,
+        description: webhookData.description,
+        ekart_original_status: ekartStatus // Store original in status_history
+      };
+
+      // Set specific date fields based on status
+      if (systemStatus === 'shipped' && !order.shipdate) {
+        // Set shipdate on first shipped status
+        additionalData.shipdate = webhookData.pickupTime || currentTimestamp;
+      }
+      if (systemStatus === 'delivered') {
+        additionalData.delivereddate = currentTimestamp;
+      }
+      if (systemStatus === 'cod_payment_received') {
+        additionalData.cod_payment_received_date = currentTimestamp;
+      }
+
+      // Update all orderlines with same status
+      const { OrderlineService } = await import('./orderline.service.js');
+      const orderlineService = new OrderlineService();
+      const { data: orderlines } = await orderlineService.findMany(
+        { orderid: order.id.toString() },
+        1,
+        1000
+      );
+
+      if (orderlines && orderlines.length > 0) {
+        logger.info(
+          { orderId: order.id, orderlineCount: orderlines.length, systemStatus },
+          'Updating orderlines with EKART webhook status'
+        );
+
+        for (const orderline of orderlines) {
+          await orderlineService.updateOrderlineStatus(
+            orderline.id.toString(),
+            systemStatus,
+            {
+              source: 'ekart',
+              location: webhookData.location,
+              description: webhookData.description,
+              ekart_original_status: ekartStatus,
+              ...(systemStatus === 'shipped' && !orderline.shipdate && {
+                shipdate: webhookData.pickupTime || currentTimestamp
+              }),
+              ...(systemStatus === 'delivered' && {
+                delivereddate: currentTimestamp
+              })
+            }
+          );
+        }
+
+        logger.info(
+          { orderId: order.id, orderlineCount: orderlines.length },
+          'All orderlines updated with EKART webhook status'
+        );
+      }
+
+      // Update order status (triggers status_history update)
+      await this.updateOrderStatus(order.id.toString(), systemStatus, additionalData);
+
+      const updatedOrder = await this.findById(order.id);
+      logger.info(
+        {
+          orderId: order.id,
+          trackingId,
+          ekartStatus,
+          systemStatus,
+          previousStatus: currentOrderStatus,
+          newStatus: updatedOrder.orderstatus
+        },
+        'EKART webhook status update completed successfully'
+      );
+
+      return updatedOrder;
+    } catch (error) {
+      logger.error(
+        { error, trackingId, ekartStatus },
+        'Error processing EKART webhook status update'
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Update order status
    */
   async updateOrderStatus(id: string, status: string, additionalData?: Record<string, any>) {
@@ -1173,6 +2365,25 @@ export class OrdersService {
       // Get current order
       const currentOrder = await this.findById(Number(id));
       const previousStatus = currentOrder.orderstatus;
+
+      // Skip status history update if status hasn't changed
+      if (previousStatus === status) {
+        logger.debug(
+          { orderId: id, status },
+          'Order status unchanged, skipping status history update'
+        );
+        // Still update other fields if provided (like modifieddate, location, description)
+        const updateData: Record<string, any> = {
+          modifieddate: Date.now(),
+          ...additionalData
+        };
+        // Remove orderstatus from additionalData to avoid unnecessary update
+        delete updateData.orderstatus;
+        if (Object.keys(updateData).length > 1) { // More than just modifieddate
+          await dynamicUpdate('orders', { id: parseInt(id) }, updateData);
+        }
+        return currentOrder;
+      }
 
       // Prepare status history entry
       const existingHistory = Array.isArray(currentOrder.status_history)
@@ -1197,6 +2408,14 @@ export class OrdersService {
       // Add inventory_user_id if source is inventoryuser
       if (historyEntry.source === 'inventoryuser' && additionalData?.inventory_user_id) {
         historyEntry.inventory_user_id = additionalData.inventory_user_id;
+      }
+
+      // Add location and description if provided
+      if (additionalData?.location) {
+        historyEntry.location = additionalData.location;
+      }
+      if (additionalData?.description) {
+        historyEntry.description = additionalData.description;
       }
 
       const updatedHistory = [...deactivatedHistory, historyEntry];
@@ -1522,7 +2741,17 @@ export class OrdersService {
   async getOrdersByUserIdWithDetails(
     userId: number,
     page: number = 1,
-    limit: number = 50
+    limit: number = 10,
+    filters?: {
+      orderstatus?: string;
+      date_range?: string;
+      start_date?: string;
+      end_date?: string;
+      mode?: string;
+      amount_range?: string;
+      min_amount?: string;
+      max_amount?: string;
+    }
   ): Promise<{
     orders: Array<{
       id: number;
@@ -1588,11 +2817,139 @@ export class OrdersService {
     };
   }> {
     try {
-      logger.info({ userId, page, limit }, 'Getting orders by userid with orderlines and address');
+      logger.info({ userId, page, limit, filters }, 'Getting orders by userid with orderlines and address');
+
+      // Build filters for database query
+      const dbFilters: Record<string, any> = { userid: userId.toString() };
+
+      // 1. ORDER STATUS FILTER (existing)
+      if (filters?.orderstatus) {
+        dbFilters.orderstatus = filters.orderstatus; // Support comma-separated values
+      }
+
+      // 2. DATE RANGE FILTER
+      if (filters?.date_range || filters?.start_date || filters?.end_date) {
+        const now = Date.now();
+        let startDate: number | undefined;
+        let endDate: number | undefined;
+
+        // Predefined date ranges
+        if (filters.date_range) {
+          const ranges: Record<string, number> = {
+            'last_7_days': now - (7 * 24 * 60 * 60 * 1000),
+            'last_30_days': now - (30 * 24 * 60 * 60 * 1000),
+            'last_3_months': now - (90 * 24 * 60 * 60 * 1000),
+            'last_6_months': now - (180 * 24 * 60 * 60 * 1000),
+            'last_1_year': now - (365 * 24 * 60 * 60 * 1000)
+          };
+
+          startDate = ranges[filters.date_range];
+          endDate = now;
+
+          logger.debug({
+            userId,
+            dateRange: filters.date_range,
+            startDate,
+            endDate,
+            startDateReadable: startDate ? new Date(startDate).toISOString() : null,
+            endDateReadable: endDate ? new Date(endDate).toISOString() : null
+          }, 'Applying predefined date range filter');
+        }
+
+        // Custom date range (overrides predefined if both provided)
+        if (filters.start_date) {
+          startDate = parseInt(filters.start_date, 10);
+        }
+        if (filters.end_date) {
+          endDate = parseInt(filters.end_date, 10);
+        }
+
+        // Apply date filter using >= and <= operators
+        if (startDate) {
+          dbFilters['createddate_gte'] = startDate.toString();
+        }
+        if (endDate) {
+          dbFilters['createddate_lte'] = endDate.toString();
+        }
+
+        logger.debug({
+          userId,
+          appliedStartDate: startDate,
+          appliedEndDate: endDate,
+          startDateReadable: startDate ? new Date(startDate).toISOString() : null,
+          endDateReadable: endDate ? new Date(endDate).toISOString() : null
+        }, 'Date range filter applied');
+      }
+
+      // 3. PAYMENT METHOD FILTER
+      if (filters?.mode) {
+        dbFilters.mode = filters.mode; // Support comma-separated values like "cod,phonepe"
+        logger.debug({ userId, mode: filters.mode }, 'Payment method filter applied');
+      }
+
+      // 4. AMOUNT RANGE FILTER
+      if (filters?.amount_range || filters?.min_amount || filters?.max_amount) {
+        let minAmount: number | undefined;
+        let maxAmount: number | undefined;
+
+        // Predefined amount ranges
+        if (filters.amount_range) {
+          const ranges: Record<string, { min?: number; max?: number }> = {
+            'under_500': { max: 500 },
+            '500_1000': { min: 500, max: 1000 },
+            '1000_2500': { min: 1000, max: 2500 },
+            '2500_5000': { min: 2500, max: 5000 },
+            'above_5000': { min: 5000 }
+          };
+
+          const range = ranges[filters.amount_range];
+          if (range) {
+            minAmount = range.min;
+            maxAmount = range.max;
+          }
+
+          logger.debug({
+            userId,
+            amountRange: filters.amount_range,
+            minAmount,
+            maxAmount
+          }, 'Applying predefined amount range filter');
+        }
+
+        // Custom amount range (overrides predefined if both provided)
+        if (filters.min_amount) {
+          minAmount = parseFloat(filters.min_amount);
+        }
+        if (filters.max_amount) {
+          maxAmount = parseFloat(filters.max_amount);
+        }
+
+        // Apply amount filter using >= and <= operators
+        if (minAmount !== undefined) {
+          dbFilters['orderamount_gte'] = minAmount.toString();
+        }
+        if (maxAmount !== undefined) {
+          dbFilters['orderamount_lte'] = maxAmount.toString();
+        }
+
+        logger.debug({
+          userId,
+          appliedMinAmount: minAmount,
+          appliedMaxAmount: maxAmount
+        }, 'Amount range filter applied');
+      }
+
+      logger.info({
+        userId,
+        page,
+        limit,
+        dbFilters,
+        filterCount: Object.keys(dbFilters).length - 1 // Exclude userid
+      }, 'Final filters prepared for database query');
 
       // Get order IDs for this user (lightweight query for pagination)
       const ordersResult = await this.findMany(
-        { userid: userId.toString() },
+        dbFilters,
         page,
         limit
       );
@@ -2063,6 +3420,64 @@ export class OrdersService {
         }, 'Failed to update transaction record for cancellation');
       }
 
+      // Helper function for async eKart shipment cancellation
+      // This ensures consistent eKart cancellation for both COD and PhonePe orders
+      const cancelEkartShipmentAsync = (orderToCancel: any) => {
+        if (orderToCancel.tracking_id) {
+          logger.info({
+            orderId,
+            orderNumber: orderToCancel.orderid,
+            trackingId: orderToCancel.tracking_id,
+            orderStatus: orderToCancel.orderstatus
+          }, 'Order has eKart shipment - attempting async cancellation');
+
+          // Fire-and-forget async eKart cancellation
+          // Don't await - let it run in background
+          setImmediate(async () => {
+            try {
+              const { ekartService } = await import('./ekart.service.js');
+              await ekartService.cancelShipment(orderToCancel.tracking_id!);
+
+              logger.info({
+                orderId,
+                orderNumber: orderToCancel.orderid,
+                trackingId: orderToCancel.tracking_id
+              }, '✅ eKart shipment cancelled successfully (async)');
+
+              // Optional: Update order record with eKart cancellation status
+              // This is best-effort - if it fails, it won't affect the order cancellation
+              try {
+                await dynamicUpdate('orders', { id: orderId }, {
+                  ekart_cancellation_status: 'cancelled',
+                  ekart_cancellation_date: Date.now(),
+                  modifieddate: Date.now()
+                });
+              } catch (updateError: any) {
+                logger.warn({
+                  error: updateError.message,
+                  orderId
+                }, 'Failed to update eKart cancellation status in order record');
+              }
+            } catch (error: any) {
+              // eKart cancellation may fail if shipment is already picked up or in transit
+              // This is expected and should not affect the order cancellation
+              logger.warn({
+                error: error.message,
+                errorStack: error.stack,
+                orderId,
+                orderNumber: orderToCancel.orderid,
+                trackingId: orderToCancel.tracking_id
+              }, '⚠️ Failed to cancel eKart shipment (async) - shipment may be in transit. eKart will handle RTO automatically.');
+            }
+          });
+        } else {
+          logger.debug({
+            orderId,
+            orderNumber: orderToCancel.orderid
+          }, 'No eKart shipment found - skipping eKart cancellation');
+        }
+      };
+
       // AUTO-COMPLETE COD ORDERS (no refund needed)
       // PhonePe orders remain in 'cancelled' status awaiting manual refund processing
       logger.info({
@@ -2099,6 +3514,9 @@ export class OrdersService {
             finalStatus: finalOrder.orderstatus
           }, 'COD order cancellation completed automatically');
 
+          // ASYNC EKART CANCELLATION - Final step after ALL updates complete (COD path)
+          cancelEkartShipmentAsync(finalOrder);
+
           return finalOrder;
         } catch (autoCompleteError: any) {
           // If auto-complete fails, log but return the cancelled order
@@ -2110,6 +3528,9 @@ export class OrdersService {
             mode: updatedOrder.mode,
             currentStatus: updatedOrder.orderstatus
           }, 'CRITICAL: Failed to auto-complete COD order, remains in cancelled status');
+
+          // ASYNC EKART CANCELLATION - Even if COD auto-complete fails (fallback)
+          cancelEkartShipmentAsync(updatedOrder);
 
           return updatedOrder;
         }
@@ -2130,6 +3551,9 @@ export class OrdersService {
         mode: updatedOrder.mode,
         isPaymentSucceed: updatedOrder.ispaymentsucceed
       }, 'PhonePe order cancelled. Admin must manually process refund via PhonePe portal.');
+
+      // ASYNC EKART CANCELLATION - Final step after ALL updates complete (PhonePe path)
+      cancelEkartShipmentAsync(updatedOrder);
 
       return updatedOrder;
     } catch (error) {
@@ -2621,9 +4045,17 @@ export class OrdersService {
         if (platformStocks && platformStocks.length > 0) {
           const platformStock = platformStocks[0];
 
-          // Restore availableqty, reduce orderedqty
-          const newAvailableQty = (platformStock.availableqty || 0) + update.quantity;
+          // Get current quantities
+          const currentEcomQty = Number(platformStock.ecomqty || 0);
+          const currentSoldQty = Number(platformStock.soldqty || 0);
+          const currentLockQty = Number(platformStock.lockqty || 0);
+
+          // Restore orderedqty → availableqty
           const newOrderedQty = Math.max(0, (platformStock.orderedqty || 0) - update.quantity);
+          
+          // Recalculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
+          // ecomqty doesn't change (stocks still available, just not ordered anymore)
+          const newAvailableQty = Math.max(0, currentEcomQty - newOrderedQty - currentSoldQty - currentLockQty);
 
           await dynamicUpdate('platformstock', { id: platformStock.id }, {
             availableqty: newAvailableQty,
@@ -2690,7 +4122,8 @@ export class OrdersService {
       const currentTimestamp = Date.now();
 
       // Track updates by product to avoid duplicate updates
-      const platformStockUpdates = new Map<string, { productId: number; platform: string; quantity: number }>();
+      // Key: "productId-platform" -> { quantity, ecomQuantity }
+      const platformStockUpdates = new Map<string, { productId: number; platform: string; quantity: number; ecomQuantity: number }>();
       const productUpdates = new Map<number, number>();
 
       // Get order to retrieve orderid string
@@ -2748,20 +4181,26 @@ export class OrdersService {
         // Track updates for product
         const platform = firstStock.platform || 'nivapp';
 
-        // COMBO PRODUCT SUPPORT: Check if this is a combo product
-        if (product.iscombo === true) {
+        // COMBO PRODUCT SUPPORT: Check if the ORDERLINE's product is a combo
+        // Important: We must check orderline.productid, not stock.puc, because:
+        // - For combo orderlines, stocks belong to COMPONENT products (not the combo product itself)
+        // - If we check stock.puc, we'll get the component product which has iscombo=false
+        const orderlineProduct = await dynamicFindUnique('product', { id: orderline.productid });
+
+        if (orderlineProduct && orderlineProduct.iscombo === true) {
           logger.info({
             orderlineId: orderline.id,
-            productId,
-            productName: product.name,
-            quantity: orderline.quantity
-          }, 'Detected combo product, reversing ONLY component stock allocations (not combo itself)');
+            comboProductId: orderline.productid,
+            comboProductName: orderlineProduct.name,
+            quantity: orderline.quantity,
+            allocatedStocks: allocatedStocks.length
+          }, 'Detected combo product orderline - reversing ONLY component stock allocations (not combo itself)');
 
           try {
             // Get component products from productbundlemap
             const components = await prisma.productBundleMap.findMany({
               where: {
-                bundleproductid: BigInt(Number(productId)),
+                bundleproductid: BigInt(orderline.productid),
                 isactive: true
               }
             });
@@ -2769,8 +4208,8 @@ export class OrdersService {
             if (components.length === 0) {
               logger.warn({
                 orderlineId: orderline.id,
-                productId,
-                productName: product.name
+                comboProductId: orderline.productid,
+                comboProductName: orderlineProduct.name
               }, 'Combo product has no active components in productbundlemap');
             }
 
@@ -2785,7 +4224,7 @@ export class OrdersService {
 
               logger.info({
                 orderlineId: orderline.id,
-                comboProductId: productId,
+                comboProductId: orderline.productid,  // ✅ Use orderline's productid (combo product)
                 componentProductId,
                 requiredQtyPerCombo: componentRequiredQty,
                 comboQuantityOrdered: orderline.quantity,
@@ -2798,10 +4237,17 @@ export class OrdersService {
                 platformStockUpdates.set(componentPlatformStockKey, {
                   productId: componentProductId,
                   platform,
-                  quantity: 0
+                  quantity: 0,
+                  ecomQuantity: 0
                 });
               }
-              platformStockUpdates.get(componentPlatformStockKey)!.quantity += componentTotalQty;
+              const componentUpdate = platformStockUpdates.get(componentPlatformStockKey)!;
+              componentUpdate.quantity += componentTotalQty;
+              // For combo components, we need to check if the stocks were e-commerce published
+              // Since we don't have direct access to component stocks here, we'll assume they were e-commerce published
+              // (components of combo products are typically e-commerce published)
+              // Note: In cancellation, we're restoring stocks that were already allocated, so they were e-commerce published
+              componentUpdate.ecomQuantity += componentTotalQty;
 
               // Track component Product update
               if (!productUpdates.has(componentProductId)) {
@@ -2836,10 +4282,16 @@ export class OrdersService {
           platformStockUpdates.set(platformStockKey, {
             productId,
             platform,
-            quantity: 0
+            quantity: 0,
+            ecomQuantity: 0
           });
         }
-        platformStockUpdates.get(platformStockKey)!.quantity += quantity;
+        const update = platformStockUpdates.get(platformStockKey)!;
+        update.quantity += quantity;
+        // Count how many stocks were e-commerce published (before they were marked as sold)
+        // Stocks that were sold were e-commerce published (otherwise they wouldn't be in soldqty)
+        const ecomPublishedCount = allocatedStocks.filter(s => s.ecompublish === true).length;
+        update.ecomQuantity += ecomPublishedCount;
 
         // Track Product update
         if (!productUpdates.has(productId)) {
@@ -2858,11 +4310,25 @@ export class OrdersService {
         if (platformStocks && platformStocks.length > 0) {
           const platformStock = platformStocks[0];
 
-          // Restore availableqty, reduce soldqty
-          const newAvailableQty = (platformStock.availableqty || 0) + update.quantity;
+          // Get current quantities
+          const currentEcomQty = Number(platformStock.ecomqty || 0);
+          const currentOrderedQty = Number(platformStock.orderedqty || 0);
+          const currentLockQty = Number(platformStock.lockqty || 0);
+
+          // Restore soldqty → availableqty
+          // ecomqty increases because stocks are back to 'available' status (if they were e-commerce published)
+          // Note: We need to check if the stocks were e-commerce published
+          // For now, we'll recalculate ecomqty from actual stocks, but for cancellation we increment it
+          // Actually, ecomqty should be recalculated from stocks, but for performance we increment it
+          // The stocks being cancelled were sold, so they were e-commerce published (otherwise they wouldn't be in soldqty)
           const newSoldQty = Math.max(0, (platformStock.soldqty || 0) - update.quantity);
+          const newEcomQty = currentEcomQty + update.ecomQuantity; // Increase by e-commerce published count
+          
+          // Recalculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
+          const newAvailableQty = Math.max(0, newEcomQty - currentOrderedQty - newSoldQty - currentLockQty);
 
           await dynamicUpdate('platformstock', { id: platformStock.id }, {
+            ecomqty: newEcomQty,
             availableqty: newAvailableQty,
             soldqty: newSoldQty,
             modifieddate: currentTimestamp
@@ -2873,10 +4339,16 @@ export class OrdersService {
             productId: update.productId,
             platform: update.platform,
             quantity: update.quantity,
+            ecomQuantity: update.ecomQuantity,
+            oldEcomQty: currentEcomQty,
+            newEcomQty,
             oldAvailableQty: platformStock.availableqty,
             newAvailableQty,
             oldSoldQty: platformStock.soldqty,
-            newSoldQty
+            newSoldQty,
+            formula: {
+              availableqty: `${newEcomQty} - ${currentOrderedQty} - ${newSoldQty} - ${currentLockQty} = ${newAvailableQty}`
+            }
           }, 'PlatformStock quantities restored (post-dispatch cancellation)');
         }
       }

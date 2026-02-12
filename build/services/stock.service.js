@@ -18,6 +18,62 @@ export class StockService {
                 take,
                 useAllColumns: true, // Get all available columns
             });
+            // Fetch product information for all unique PUCs
+            if (stocks.length > 0) {
+                const uniquePucs = [...new Set(stocks.map((stock) => stock.puc).filter(Boolean))];
+                if (uniquePucs.length > 0) {
+                    try {
+                        // Fetch products by PUCs in batch with name, category, subcategory, and subsubcategory
+                        const products = await prisma.product.findMany({
+                            where: {
+                                puc: {
+                                    in: uniquePucs
+                                }
+                            },
+                            select: {
+                                puc: true,
+                                name: true,
+                                category: true,
+                                subcategory: true,
+                                subsubcategory: true
+                            }
+                        });
+                        // Create a map of PUC -> product information
+                        const productInfoMap = new Map();
+                        products.forEach((product) => {
+                            if (product.puc) {
+                                productInfoMap.set(product.puc, {
+                                    name: product.name || null,
+                                    category: product.category || null,
+                                    subcategory: product.subcategory || null,
+                                    subsubcategory: product.subsubcategory || null
+                                });
+                            }
+                        });
+                        // Add product information to each stock object
+                        stocks.forEach((stock) => {
+                            if (stock.puc && productInfoMap.has(stock.puc)) {
+                                const productInfo = productInfoMap.get(stock.puc);
+                                if (productInfo) {
+                                    stock.productname = productInfo.name;
+                                    stock.productcategory = productInfo.category;
+                                    stock.productsubcategory = productInfo.subcategory;
+                                    stock.productsubsubcategory = productInfo.subsubcategory;
+                                }
+                            }
+                        });
+                        logger.debug({
+                            uniquePucsCount: uniquePucs.length,
+                            productsFound: products.length,
+                            stocksWithProductInfo: stocks.filter((s) => s.productname).length
+                        }, "Product information added to stocks");
+                    }
+                    catch (error) {
+                        logger.warn({ error: error.message }, "Failed to fetch product information, continuing without product information");
+                        // Continue without product information if fetch fails
+                    }
+                }
+            }
             logger.info({
                 stockCount: stocks.length,
                 total,
@@ -174,7 +230,31 @@ export class StockService {
                     logger.warn({ error, data }, "Product verification failed, continuing with stock creation");
                 }
             }
-            const stock = await dynamicCreate("stock", data);
+            // Auto-populate order fields when stockstatus is 'sold'
+            const stockData = { ...data };
+            if (stockData.stockstatus?.toLowerCase() === 'sold') {
+                // Auto-set solddate if not provided
+                if (!stockData.solddate) {
+                    stockData.solddate = BigInt(Date.now());
+                    logger.debug({ solddate: stockData.solddate }, "Auto-set solddate for sold stock");
+                }
+                // Log warning if order information is missing
+                if (!stockData.orderid || !stockData.orderlinenumber) {
+                    logger.warn({
+                        stockstatus: stockData.stockstatus,
+                        hasOrderId: !!stockData.orderid,
+                        hasOrderLineNumber: !!stockData.orderlinenumber
+                    }, "Stock marked as 'sold' but order information (orderid/orderlinenumber) not provided");
+                }
+                else {
+                    logger.info({
+                        orderid: stockData.orderid,
+                        orderlinenumber: stockData.orderlinenumber,
+                        solddate: stockData.solddate
+                    }, "Capturing order information for sold stock");
+                }
+            }
+            const stock = await dynamicCreate("stock", stockData);
             if (!stock) {
                 throw new Error("Failed to create stock - no valid fields provided");
             }
@@ -899,7 +979,36 @@ export class StockService {
             // Check if stock exists
             const existingStock = await this.findById(id);
             logger.debug({ originalData: data, stockId: id }, "Starting dynamic stock update operation");
-            const stock = await dynamicUpdate("stock", { id }, data);
+            // Auto-populate order fields when stockstatus changes to 'sold'
+            const updateData = { ...data };
+            const statusChangedToSold = updateData.stockstatus?.toLowerCase() === 'sold' &&
+                existingStock.stockstatus?.toLowerCase() !== 'sold';
+            if (statusChangedToSold) {
+                // Auto-set solddate if not provided
+                if (!updateData.solddate) {
+                    updateData.solddate = BigInt(Date.now());
+                    logger.debug({ solddate: updateData.solddate }, "Auto-set solddate for stock status change to 'sold'");
+                }
+                // Log warning if order information is missing
+                if (!updateData.orderid || !updateData.orderlinenumber) {
+                    logger.warn({
+                        stockId: id,
+                        oldStatus: existingStock.stockstatus,
+                        newStatus: updateData.stockstatus,
+                        hasOrderId: !!updateData.orderid,
+                        hasOrderLineNumber: !!updateData.orderlinenumber
+                    }, "Stock status changing to 'sold' but order information (orderid/orderlinenumber) not provided in update");
+                }
+                else {
+                    logger.info({
+                        stockId: id,
+                        orderid: updateData.orderid,
+                        orderlinenumber: updateData.orderlinenumber,
+                        solddate: updateData.solddate
+                    }, "Capturing order information for stock status change to 'sold'");
+                }
+            }
+            const stock = await dynamicUpdate("stock", { id }, updateData);
             if (!stock) {
                 throw new Error("Failed to update stock - no valid fields provided");
             }

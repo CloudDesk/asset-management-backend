@@ -69,13 +69,13 @@ export async function buildServer() {
       url: request.url,
       userAgent: request.headers['user-agent'],
     }, 'Route not found');
-    
+
     const response = createErrorResponse(
       'Route not found',
       `The endpoint ${request.method} ${request.url} does not exist`,
       404
     );
-    
+
     return reply.code(404).send(response);
   });
 

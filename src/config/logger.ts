@@ -3,7 +3,8 @@ import { env } from './env.js';
 
 // Create logger instance with pretty print for development
 const loggerConfig = {
-  level: env.NODE_ENV === 'development' ? 'debug' : 'info',
+  level: env.NODE_ENV === 'development' ? 'debug' : 'debug',
+  // level: env.NODE_ENV === 'development' ? 'debug' : 'info',
   formatters: {
     level: (label: string) => {
       return { level: label.toUpperCase() };

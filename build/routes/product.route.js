@@ -163,6 +163,10 @@ export async function productRoutes(fastify) {
                         type: "string",
                         description: "Full-text search across product fields (name, description, category, etc.)",
                     },
+                    remarks: {
+                        type: "string",
+                        description: "Filter by remarks",
+                    },
                 },
                 additionalProperties: true, // Allow any query parameters for dynamic filtering
             },
@@ -372,6 +376,11 @@ export async function productRoutes(fastify) {
                                         type: "string",
                                         nullable: true,
                                         description: "Target gender",
+                                    },
+                                    remarks: {
+                                        type: "string",
+                                        nullable: true,
+                                        description: "Product remarks",
                                     },
                                     // Combo Pack Support
                                     iscombo: {
@@ -696,6 +705,11 @@ export async function productRoutes(fastify) {
                                     nullable: true,
                                     description: "Target gender",
                                 },
+                                remarks: {
+                                    type: "string",
+                                    nullable: true,
+                                    description: "Product remarks",
+                                },
                                 // Combo Pack Support
                                 iscombo: {
                                     type: "boolean",
@@ -894,6 +908,16 @@ export async function productRoutes(fastify) {
                         type: "string",
                         enum: ["true", "false"],
                         description: "Filter by deal of the day status (true or false)"
+                    },
+                    sortBy: {
+                        type: "string",
+                        enum: ["price", "createddate", "averagerating", "name"],
+                        description: "Field to sort by (default: createddate)"
+                    },
+                    sortOrder: {
+                        type: "string",
+                        enum: ["asc", "desc"],
+                        description: "Sort order: ascending or descending (default: desc)"
                     },
                 },
             },
@@ -1211,6 +1235,7 @@ export async function productRoutes(fastify) {
                                 price: { type: "number", nullable: true, description: "Product price" },
                                 category: { type: "string", nullable: true, description: "Product category" },
                                 subcategory: { type: "string", nullable: true, description: "Product subcategory" },
+                                remarks: { type: "string", nullable: true, description: "Product remarks" },
                                 // Combo Pack Support
                                 iscombo: {
                                     type: "boolean",
@@ -1292,6 +1317,54 @@ export async function productRoutes(fastify) {
                                         },
                                         required: ["componentproductid", "requiredqty", "isactive", "product"],
                                         additionalProperties: false,
+                                    },
+                                },
+                                platformStock: {
+                                    type: "object",
+                                    nullable: true,
+                                    description: "Platform-specific stock data for this product",
+                                    properties: {
+                                        id: {
+                                            type: "number",
+                                            description: "Platform stock record ID",
+                                        },
+                                        platform: {
+                                            type: "string",
+                                            description: "Platform name",
+                                        },
+                                        availableqty: {
+                                            type: "number",
+                                            description: "Available quantity for this platform",
+                                        },
+                                        platformstatus: {
+                                            type: "string",
+                                            nullable: true,
+                                            description: "Platform stock status",
+                                        },
+                                        soldqty: {
+                                            type: "number",
+                                            description: "Sold quantity for this platform",
+                                        },
+                                        totalqty: {
+                                            type: "number",
+                                            description: "Total quantity for this platform",
+                                        },
+                                        orderedqty: {
+                                            type: "number",
+                                            description: "Ordered quantity for this platform",
+                                        },
+                                        lockqty: {
+                                            type: "number",
+                                            description: "Locked quantity for this platform",
+                                        },
+                                        createddate: {
+                                            type: "number",
+                                            description: "Creation timestamp",
+                                        },
+                                        modifieddate: {
+                                            type: "number",
+                                            description: "Modification timestamp",
+                                        },
                                     },
                                 },
                             },
@@ -1456,6 +1529,11 @@ export async function productRoutes(fastify) {
                         type: "string",
                         maxLength: 50,
                         description: "Target gender",
+                    },
+                    remarks: {
+                        type: "string",
+                        maxLength: 255,
+                        description: "Product remarks",
                     },
                     // Combo Pack Support
                     iscombo: {
@@ -1984,6 +2062,11 @@ export async function productRoutes(fastify) {
                         maxLength: 50,
                         description: "Target gender",
                     },
+                    remarks: {
+                        type: "string",
+                        maxLength: 255,
+                        description: "Product remarks",
+                    },
                     // Note: iscombo, combotype, and components are NOT allowed in update
                     // These fields can only be set during product creation (POST /v1/products)
                 },
@@ -2201,6 +2284,11 @@ export async function productRoutes(fastify) {
                                     type: "string",
                                     nullable: true,
                                     description: "Target gender",
+                                },
+                                remarks: {
+                                    type: "string",
+                                    nullable: true,
+                                    description: "Product remarks",
                                 },
                             },
                             additionalProperties: true, // Allow additional dynamic fields
@@ -2606,6 +2694,11 @@ export async function productRoutes(fastify) {
                         maxLength: 50,
                         description: "Target gender",
                     },
+                    remarks: {
+                        type: "string",
+                        maxLength: 255,
+                        description: "Product remarks",
+                    },
                 },
                 additionalProperties: true, // Allow additional dynamic fields
             },
@@ -2824,6 +2917,11 @@ export async function productRoutes(fastify) {
                                             type: "string",
                                             nullable: true,
                                             description: "Target gender",
+                                        },
+                                        remarks: {
+                                            type: "string",
+                                            nullable: true,
+                                            description: "Product remarks",
                                         },
                                     },
                                     additionalProperties: true,

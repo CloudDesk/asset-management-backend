@@ -22,7 +22,9 @@ export declare class InventoryUsersService {
         expiresIn: number;
     } | null>;
     /**
-     * Sign out user by invalidating session token
+     * Sign out user
+     * NOTE: Session revocation is handled by authSessionService.revokeAllUserSessions()
+     * This method only updates modifieddate for audit purposes
      */
     signOut(userId: number): Promise<void>;
     /**

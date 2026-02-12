@@ -59,6 +59,7 @@ export declare class EnhancedOrderCreationService {
             refund_reference: string | null;
             refund_initiated_date: bigint | null;
             refund_completed_date: bigint | null;
+            order_invoice_url: string | null;
         };
         orderlines: {
             id: number;
@@ -198,6 +199,7 @@ export declare class EnhancedOrderCreationService {
             refund_reference: string | null;
             refund_initiated_date: bigint | null;
             refund_completed_date: bigint | null;
+            order_invoice_url: string | null;
         };
         evaluation: {
             status: string | null;

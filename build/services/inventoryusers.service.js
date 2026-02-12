@@ -1,7 +1,9 @@
 import { createPaginationResult, getPrismaSkipTake } from '../utils/pagination.js';
 import { dynamicFindManyWithFilters, dynamicUpdate, dynamicDelete } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
-import { hashPassword, verifyPassword, validatePassword, generateResetToken, verifyResetToken, sanitizeUserData } from '../utils/auth.js';
+import { hashPassword, verifyPassword, validatePassword, 
+// generateSessionToken - removed, not used (session management in auth_sessions table)
+generateResetToken, verifyResetToken, sanitizeUserData } from '../utils/auth.js';
 import { EmailService } from './email.service.js';
 import { prisma } from '../models/prisma.js';
 export class InventoryUsersService {
@@ -341,8 +343,7 @@ export class InventoryUsersService {
                 roleId: user.roleid || undefined,
                 userType: 'inventory',
             });
-            // NOTE: Session management is now handled by auth_sessions table
-            // The old sessiontoken field in inventoryusers is deprecated
+            // NOTE: Session management is handled by auth_sessions table
             // Sessions are created in the auth route after successful authentication
             logger.info({
                 userId: user.id,
@@ -399,13 +400,16 @@ export class InventoryUsersService {
         }
     }
     /**
-     * Sign out user by invalidating session token
+     * Sign out user
+     * NOTE: Session revocation is handled by authSessionService.revokeAllUserSessions()
+     * This method only updates modifieddate for audit purposes
      */
     async signOut(userId) {
         try {
             logger.debug({ userId }, 'Signing out inventory user');
+            // Session revocation is handled by authSessionService.revokeAllUserSessions()
+            // Only update modifieddate for audit purposes
             await dynamicUpdate('inventoryusers', { id: userId }, {
-                sessiontoken: null,
                 modifieddate: BigInt(Date.now())
             });
             logger.info({ userId }, 'User signed out successfully');
@@ -481,7 +485,6 @@ export class InventoryUsersService {
                 userpassword: hashedPassword,
                 resettoken: null,
                 resettokenexpires: null,
-                sessiontoken: null, // Invalidate any existing sessions
                 modifieddate: BigInt(Date.now())
             });
             logger.info({

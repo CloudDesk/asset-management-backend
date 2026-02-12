@@ -1424,19 +1424,32 @@ export class StockImportService {
                 productid: BigInt(group.productId),
                 platform: group.platform
               }
+            },
+            select: {
+              totalqty: true,
+              soldqty: true,
+              orderedqty: true,
+              lockqty: true,
+              availableqty: true,
             }
-          });
+          }) as any; // Type assertion to include ecomqty - Prisma client may need regeneration
 
           // Calculate new quantities
+          const currentEcomQty = (currentRecord as any)?.ecomqty || 0;
           const currentAvailableQty = currentRecord?.availableqty || 0;
           const currentTotalQty = currentRecord?.totalqty || 0;
           const currentSoldQty = currentRecord?.soldqty || 0;
+          const currentOrderedQty = currentRecord?.orderedqty || 0;
+          const currentLockQty = currentRecord?.lockqty || 0;
 
           // totalQty increases by ALL items (regardless of ecompublish)
           const newTotalQty = currentTotalQty + group.totalQuantity;
           
-          // availableQty increases ONLY by ecompublish=true items
-          const newAvailableQty = currentAvailableQty + group.ecompublishQuantity;
+          // ecomQty increases ONLY by ecompublish=true items
+          const newEcomQty = currentEcomQty + group.ecompublishQuantity;
+          
+          // Calculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
+          const newAvailableQty = Math.max(0, newEcomQty - currentOrderedQty - currentSoldQty - currentLockQty);
           
           // Calculate platform status based on new available quantity
           const newPlatformStatus = this.platformStockService['calculatePlatformStatus'](newAvailableQty);
@@ -1445,17 +1458,25 @@ export class StockImportService {
             productId: group.productId,
             platform: group.platform,
             before: {
+              ecomqty: currentEcomQty,
               availableqty: currentAvailableQty,
-              totalqty: currentTotalQty
+              totalqty: currentTotalQty,
+              orderedqty: currentOrderedQty,
+              soldqty: currentSoldQty,
+              lockqty: currentLockQty
             },
             additions: {
               totalQuantity: group.totalQuantity,
               ecompublishQuantity: group.ecompublishQuantity
             },
             after: {
+              ecomqty: newEcomQty,
               availableqty: newAvailableQty,
               totalqty: newTotalQty,
               platformstatus: newPlatformStatus
+            },
+            formula: {
+              availableqty: `${newEcomQty} - ${currentOrderedQty} - ${currentSoldQty} - ${currentLockQty} = ${newAvailableQty}`
             }
           }, 'Calculating platformstock quantities for bulk update');
 
@@ -1468,15 +1489,21 @@ export class StockImportService {
               }
             },
             update: {
+              // @ts-ignore - ecomqty field exists in schema but Prisma client may need regeneration
+              ecomqty: newEcomQty,
               availableqty: newAvailableQty,
               totalqty: newTotalQty,
               soldqty: currentSoldQty,
+              orderedqty: currentOrderedQty,
+              lockqty: currentLockQty,
               platformstatus: newPlatformStatus,
               modifieddate: BigInt(Date.now())
             },
             create: {
               productid: BigInt(group.productId),
               platform: group.platform,
+              // @ts-ignore - ecomqty field exists in schema but Prisma client may need regeneration
+              ecomqty: newEcomQty,
               availableqty: newAvailableQty,
               totalqty: newTotalQty,
               soldqty: 0,

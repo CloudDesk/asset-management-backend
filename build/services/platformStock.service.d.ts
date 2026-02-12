@@ -49,5 +49,16 @@ export declare class PlatformStockService {
      * Get platform stock for a specific product and platform
      */
     getByProductAndPlatform(productId: number, platform: string): Promise<any>;
+    /**
+     * Recalculate PlatformStock quantities from scratch (similar to Product.updateStockTotals)
+     * Counts actual stocks and recalculates all quantities
+     *
+     * Formula:
+     * - totalqty = Count of ALL stocks for this product+platform
+     * - ecomqty = Count of stocks where stockstatus = 'available' AND ecompublish = true
+     * - soldqty = Count of stocks where stockstatus = 'sold'
+     * - availableqty = ecomqty - orderedqty - soldqty - lockqty
+     */
+    recalculatePlatformStockQuantities(productId: number, platform: string): Promise<any>;
 }
 //# sourceMappingURL=platformStock.service.d.ts.map

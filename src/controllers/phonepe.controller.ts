@@ -54,6 +54,45 @@ export class PhonePeController {
         };
         console.log("test");
         console.log(request.body, "req body");
+        
+        // ⚠️ RESTRICTION: Block COD mode - only PhonePe mode allowed
+        if (requestBody.mode === "cod") {
+          logger.warn(
+            {
+              mode: requestBody.mode,
+              userId: requestBody.transaction?.userId,
+            },
+            "COD mode is currently disabled - only PhonePe mode is allowed"
+          );
+          
+          return reply.code(400).send({
+            success: false,
+            message: "COD (Cash on Delivery) mode is currently disabled. Please use PhonePe payment mode.",
+            error: "COD_MODE_DISABLED",
+            error_code: "COD_MODE_DISABLED",
+            statusCode: 400,
+          });
+        }
+
+        // Validate mode is phonepe
+        if (requestBody.mode !== "phonepe") {
+          logger.warn(
+            {
+              mode: requestBody.mode,
+              userId: requestBody.transaction?.userId,
+            },
+            "Invalid payment mode - only 'phonepe' mode is allowed"
+          );
+          
+          return reply.code(400).send({
+            success: false,
+            message: `Invalid payment mode: ${requestBody.mode}. Only 'phonepe' mode is currently supported.`,
+            error: "INVALID_PAYMENT_MODE",
+            error_code: "INVALID_PAYMENT_MODE",
+            statusCode: 400,
+          });
+        }
+
         logger.info(
           {
             mode: requestBody.mode,
@@ -680,6 +719,60 @@ export class PhonePeController {
             "Product/PlatformStock validation failed - blocking payment"
           );
 
+          // Cancel promotion evaluations if they exist
+          if (requestBody.evaluation_ids && Array.isArray(requestBody.evaluation_ids) && requestBody.evaluation_ids.length > 0) {
+            try {
+              logger.info(
+                {
+                  evaluationIds: requestBody.evaluation_ids,
+                  reason: 'stock_validation_failed'
+                },
+                'Cancelling promotion evaluations due to stock validation failure'
+              );
+
+              // Import and use PromotionEvaluationService
+              const { PromotionEvaluationService } = await import('../services/promotion-evaluation.service.js');
+              const promotionEvaluationService = new PromotionEvaluationService();
+
+              // Cancel each evaluation
+              for (const evaluationId of requestBody.evaluation_ids) {
+                try {
+                  await prisma.promotion_evaluations.update({
+                    where: { evaluation_id: evaluationId },
+                    data: {
+                      status: 'cancelled',
+                      modifieddate: BigInt(Date.now())
+                    }
+                  });
+
+                  logger.info(
+                    {
+                      evaluationId,
+                      reason: 'insufficient_stock'
+                    },
+                    'Promotion evaluation cancelled due to insufficient stock'
+                  );
+                } catch (cancelError: any) {
+                  // Log error but don't fail the entire request
+                  logger.warn(
+                    {
+                      evaluationId,
+                      error: cancelError.message
+                    },
+                    'Failed to cancel promotion evaluation - continuing with stock validation error response'
+                  );
+                }
+              }
+            } catch (importError: any) {
+              logger.error(
+                {
+                  error: importError.message
+                },
+                'Error importing/using promotion evaluation service to cancel evaluations'
+              );
+            }
+          }
+
           return reply.code(400).send({
             success: false,
             message: `Cannot process payment. ${validationErrors.length} product(s) have validation issues`,
@@ -826,6 +919,8 @@ export class PhonePeController {
                     availableqty: number;
                     lockqty: number;
                     orderedqty: number;
+                    soldqty: number;
+                    ecomqty: number;
                     platformstatus: string | null;
                     modifieddate: bigint;
                   }>>`
@@ -890,8 +985,16 @@ export class PhonePeController {
                   }
 
                   // Calculate new quantities
-                  const newAvailableQty = currentAvailableQty - requestedQuantity;
+                  // Calculate new quantities
+                  // ecomqty doesn't change (stocks still available, just locked)
+                  const currentEcomQty = Number(platformStock.ecomqty || 0);
+                  const currentOrderedQty = Number(platformStock.orderedqty || 0);
+                  const currentSoldQty = Number(platformStock.soldqty || 0);
+                  
                   const newLockQty = currentLockQty + requestedQuantity;
+                  
+                  // Recalculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
+                  const newAvailableQty = Math.max(0, currentEcomQty - currentOrderedQty - currentSoldQty - newLockQty);
 
                   // Update platformstock - lock the quantity
                   await tx.platformStock.update({
@@ -1001,6 +1104,55 @@ export class PhonePeController {
             "Stock locking failed - rolling back all locks"
           );
 
+          // Cancel promotion evaluations if they exist (stock locking failure means insufficient stock)
+          if (requestBody.evaluation_ids && Array.isArray(requestBody.evaluation_ids) && requestBody.evaluation_ids.length > 0) {
+            try {
+              logger.info(
+                {
+                  evaluationIds: requestBody.evaluation_ids,
+                  reason: 'stock_locking_failed'
+                },
+                'Cancelling promotion evaluations due to stock locking failure'
+              );
+
+              // Cancel each evaluation
+              for (const evaluationId of requestBody.evaluation_ids) {
+                try {
+                  await prisma.promotion_evaluations.update({
+                    where: { evaluation_id: evaluationId },
+                    data: {
+                      status: 'cancelled',
+                      modifieddate: BigInt(Date.now())
+                    }
+                  });
+
+                  logger.info(
+                    {
+                      evaluationId,
+                      reason: 'stock_locking_failed'
+                    },
+                    'Promotion evaluation cancelled due to stock locking failure'
+                  );
+                } catch (cancelError: any) {
+                  logger.warn(
+                    {
+                      evaluationId,
+                      error: cancelError.message
+                    },
+                    'Failed to cancel promotion evaluation - continuing with stock locking error response'
+                  );
+                }
+              }
+            } catch (evalCancelError: any) {
+              logger.error(
+                {
+                  error: evalCancelError.message
+                },
+                'Error cancelling promotion evaluations after stock locking failure'
+              );
+            }
+          }
+
           // Return error response - stock locking failed
           return reply.code(400).send({
             success: false,
@@ -1071,84 +1223,51 @@ export class PhonePeController {
               "Error creating GCP Cloud Task for lock cleanup (non-critical)"
             );
           }
-        } else if (requestBody.mode === "cod") {
-          logger.info(
-            {
-              merchantTransactionId,
-              mode: "cod",
-            },
-            "Skipping GCP Cloud Task creation - COD mode converts locks immediately"
-          );
         }
+        // COD mode is blocked - this code is unreachable but kept for reference
+        // } else if (requestBody.mode === "cod") {
+        //   logger.info(
+        //     {
+        //       merchantTransactionId,
+        //       mode: "cod",
+        //     },
+        //     "Skipping GCP Cloud Task creation - COD mode converts locks immediately"
+        //   );
+        // }
 
         let result: any;
         let paymentRequest: any;
 
-        if (requestBody.mode === "phonepe") {
-          // Create PhonePe payment request
-          paymentRequest = {
-            merchantTransactionId,
-            amount: requestBody.transaction.amount,
-            name: requestBody.transaction.name,
-            mobileNumber: requestBody.transaction.mobilenumber,
-            userId: requestBody.transaction.userId,
-            productIds: requestBody.transaction.productid,
-            transactionFor: requestBody.transaction.transactionfor,
-          };
+        // Only PhonePe mode is allowed (COD is blocked)
+        // Create PhonePe payment request
+        paymentRequest = {
+          merchantTransactionId,
+          amount: requestBody.transaction.amount,
+          name: requestBody.transaction.name,
+          mobileNumber: requestBody.transaction.mobilenumber,
+          userId: requestBody.transaction.userId,
+          productIds: requestBody.transaction.productid,
+          transactionFor: requestBody.transaction.transactionfor,
+        };
 
-          logger.info(
-            {
-              merchantTransactionId: paymentRequest.merchantTransactionId,
-              amount: paymentRequest.amount,
-              userId: paymentRequest.userId,
-              productIds: paymentRequest.productIds,
-            },
-            "Converted payload to PhonePe payment request"
-          );
+        logger.info(
+          {
+            merchantTransactionId: paymentRequest.merchantTransactionId,
+            amount: paymentRequest.amount,
+            userId: paymentRequest.userId,
+            productIds: paymentRequest.productIds,
+          },
+          "Converted payload to PhonePe payment request"
+        );
 
-          // Call PhonePe service for online payment
-          result = await this.phonePeService.initiatePayment(paymentRequest);
-          console.log(result, "for  phone pe");
-        } else if (requestBody.mode === "cod") {
-          // For COD, create a mock successful result
-          paymentRequest = {
-            merchantTransactionId,
-            amount: requestBody.transaction.amount,
-            name: requestBody.transaction.name,
-            mobileNumber: requestBody.transaction.mobilenumber,
-            userId: requestBody.transaction.userId,
-            productIds: requestBody.transaction.productid,
-            transactionFor: requestBody.transaction.transactionfor,
-          };
-
-          logger.info(
-            {
-              merchantTransactionId: paymentRequest.merchantTransactionId,
-              amount: paymentRequest.amount,
-              userId: paymentRequest.userId,
-              productIds: paymentRequest.productIds,
-            },
-            "COD payment request created"
-          );
-
-          // Mock successful result for COD
-          result = {
-            success: true,
-            message: "COD order created successfully",
-            redirectUrl: null, // No redirect for COD
-            transactionId: merchantTransactionId,
-          };
-        } else {
-          throw new Error(`Invalid payment mode: ${requestBody.mode}`);
-        }
+        // Call PhonePe service for online payment
+        result = await this.phonePeService.initiatePayment(paymentRequest);
+        console.log(result, "for  phone pe");
 
         if (result.success) {
           // Store the complete payload in transaction data for later use in order creation
           const transactionData = {
-            status:
-              requestBody.mode === "phonepe"
-                ? "INITIATED"
-                : "COD_ORDER_CREATED",
+            status: "INITIATED", // Only PhonePe mode is allowed
             mode: requestBody.mode,
             evaluation_ids: validEvaluations, // Only use valid evaluations
             invalid_evaluations: invalidEvaluations, // Track invalid ones for user info
@@ -1156,218 +1275,33 @@ export class PhonePeController {
             originalPayload: requestBody,
             paymentRequest: paymentRequest,
             initiatedAt: new Date().toISOString(),
-            phonePeResponses:
-              requestBody.mode === "phonepe"
-                ? {
-                  initiation: {
-                    timestamp: new Date().toISOString(),
-                    response: result,
-                    status: "INITIATED",
-                    redirectUrl: result.redirectUrl,
-                  },
-                }
-                : null,
-            codData:
-              requestBody.mode === "cod"
-                ? {
-                  timestamp: new Date().toISOString(),
-                  status: "COD_ORDER_CREATED",
-                  message: "Cash on Delivery order created successfully",
-                }
-                : null,
+            phonePeResponses: {
+              initiation: {
+                timestamp: new Date().toISOString(),
+                response: result,
+                status: "INITIATED",
+                redirectUrl: result.redirectUrl,
+              },
+            },
+            codData: null, // COD mode is blocked
           };
 
           console.log(transactionData, "transactionData");
           // Store transaction with complete data (single transaction record) - includes status column
-          // For PhonePe: INITIATED, For COD: COD_INITIATED
-          const initialStatus =
-            requestBody.mode === "cod" ? "COD_INITIATED" : "INITIATED";
+          // For PhonePe: INITIATED (COD mode is blocked)
+          const initialStatus = "INITIATED";
           await this.storeTransactionDataWithStatus(
             paymentRequest,
             transactionData,
             initialStatus
           );
 
-          // For COD, create order and orderlines immediately
+          // COD mode is blocked - removed COD order creation code
           let orderData: any = null;
-          if (requestBody.mode === "cod") {
-            try {
-              logger.info(
-                {
-                  merchantTransactionId: paymentRequest.merchantTransactionId,
-                  mode: "cod",
-                },
-                "Creating COD order and orderlines immediately"
-              );
 
-              // Create order and orderlines for COD
-              // Force mode to "cod" since this is COD order
-              orderData = await this.createOrderAfterPayment(
-                paymentRequest.merchantTransactionId,
-                "cod",
-                evaluationsToProcess
-              );
-
-              logger.info(
-                {
-                  merchantTransactionId: paymentRequest.merchantTransactionId,
-                  orderId: orderData?.id,
-                  mode: "cod",
-                },
-                "COD order and orderlines created successfully"
-              );
-
-              // Update transaction status to COD_SUCCESS after successful order creation
-              try {
-                const transactions = await this.transactionService.findMany(
-                  {
-                    merchanttransactionid: paymentRequest.merchantTransactionId,
-                  },
-                  1,
-                  1
-                );
-
-                if (transactions.data && transactions.data.length > 0) {
-                  const transaction = transactions.data[0];
-                  const transactionId =
-                    typeof transaction.id === "bigint"
-                      ? transaction.id.toString()
-                      : String(transaction.id);
-
-                  await this.transactionService.update(transactionId, {
-                    status: "COD_SUCCESS", // Update status to success
-                    modifieddate: Date.now(),
-                  });
-
-                  logger.info(
-                    {
-                      merchantTransactionId:
-                        paymentRequest.merchantTransactionId,
-                      transactionId,
-                      status: "COD_SUCCESS",
-                    },
-                    "Transaction status updated to COD_SUCCESS"
-                  );
-                }
-              } catch (statusUpdateError: any) {
-                logger.warn(
-                  {
-                    error: statusUpdateError.message,
-                    merchantTransactionId: paymentRequest.merchantTransactionId,
-                  },
-                  "Failed to update transaction status to COD_SUCCESS (non-critical)"
-                );
-              }
-
-              // Update product quantities after successful order creation
-              if (
-                orderData &&
-                requestBody.order &&
-                Array.isArray(requestBody.order)
-              ) {
-                try {
-                  logger.info(
-                    {
-                      merchantTransactionId:
-                        paymentRequest.merchantTransactionId,
-                      orderId: orderData.id,
-                      mode: "cod",
-                      orderItemsCount: requestBody.order.length,
-                      orderItems: requestBody.order.map((item) => ({
-                        productid: item.productid,
-                        quantity: item.quantity,
-                        productname: item.productname,
-                      })),
-                    },
-                    "Starting product quantity updates for COD order"
-                  );
-
-                  const quantityUpdateResult =
-                    await this.updateProductQuantitiesAfterOrder(
-                      orderData,
-                      requestBody.order,
-                      "cod"
-                    );
-
-                  logger.info(
-                    {
-                      merchantTransactionId:
-                        paymentRequest.merchantTransactionId,
-                      orderId: orderData.id,
-                      mode: "cod",
-                      quantityUpdateResult,
-                    },
-                    "Product quantity updates completed for COD order"
-                  );
-
-                  // If quantity update failed, log it as a warning but don't fail the order
-                  if (!quantityUpdateResult.success) {
-                    logger.warn(
-                      {
-                        merchantTransactionId:
-                          paymentRequest.merchantTransactionId,
-                        orderId: orderData.id,
-                        mode: "cod",
-                        quantityUpdateResult,
-                      },
-                      "Product quantity update failed for COD order - order was still created successfully"
-                    );
-                  }
-                } catch (quantityUpdateError: any) {
-                  logger.error(
-                    {
-                      error: quantityUpdateError.message,
-                      stack: quantityUpdateError.stack,
-                      merchantTransactionId:
-                        paymentRequest.merchantTransactionId,
-                      orderId: orderData.id,
-                      mode: "cod",
-                      orderItems: requestBody.order,
-                    },
-                    "Error updating product quantities for COD order"
-                  );
-
-                  // Don't fail the order creation if quantity update fails
-                  // The order is already created successfully
-                }
-              } else {
-                logger.warn(
-                  {
-                    merchantTransactionId: paymentRequest.merchantTransactionId,
-                    orderId: orderData?.id,
-                    mode: "cod",
-                    hasOrderData: !!orderData,
-                    hasRequestBodyOrder: !!requestBody.order,
-                    isRequestBodyOrderArray: Array.isArray(requestBody.order),
-                    requestBodyOrderLength: requestBody.order?.length,
-                  },
-                  "Cannot update product quantities - missing or invalid order data"
-                );
-              }
-            } catch (orderError: any) {
-              logger.error(
-                {
-                  error: orderError.message,
-                  merchantTransactionId: paymentRequest.merchantTransactionId,
-                  mode: "cod",
-                },
-                "Error creating COD order and orderlines"
-              );
-
-              // Even if order creation fails, we still return success for transaction
-              // The order can be created later using the stored transaction data
-            }
-          }
-
-          // Prepare response message based on evaluation status
-          let responseMessage =
-            requestBody.mode === "phonepe"
-              ? "Payment initiated successfully"
-              : "COD order created successfully";
-          let userMessage =
-            requestBody.mode === "phonepe"
-              ? "Redirect to PhonePe for payment"
-              : "Order created for cash on delivery";
+          // Prepare response message (only PhonePe mode is allowed)
+          let responseMessage = "Payment initiated successfully";
+          let userMessage = "Redirect to PhonePe for payment";
 
           // Add information about limit-reached promotions
           if (limitReachedEvaluations.length > 0) {
@@ -1391,10 +1325,7 @@ export class PhonePeController {
             merchantTransactionId: result.transactionId,
             redirectUrl: result.redirectUrl,
             amount: paymentRequest.amount,
-            status:
-              requestBody.mode === "phonepe"
-                ? "INITIATED"
-                : "COD_ORDER_CREATED",
+            status: "INITIATED", // Only PhonePe mode is allowed
             mode: requestBody.mode,
             message: userMessage,
 
@@ -1438,52 +1369,30 @@ export class PhonePeController {
                 },
                 note: "Stock locked and reserved for this order",
               })),
-              message: `${lockResults.length} product(s) locked successfully for ${requestBody.mode} order`,
+              message: `${lockResults.length} product(s) locked successfully for phonepe order`,
             },
 
-            // Order Data (COD only)
-            orderData:
-              requestBody.mode === "cod"
-                ? {
-                  orderId: orderData?.id,
-                  orderid: orderData?.orderid,
-                  status: orderData?.orderstatus,
-                  created_at: orderData?.createddate,
-                  order_created: true,
-                }
-                : null,
+            // Order Data (COD only - currently blocked)
+            orderData: null, // COD mode is blocked
 
             // Next Steps for Frontend
             next_steps: {
-              phonepe:
-                requestBody.mode === "phonepe"
-                  ? {
-                    action: "redirect_to_payment",
-                    redirectUrl: result.redirectUrl,
-                    instructions: "Redirect user to PhonePe payment page",
-                    stock_status: "locked_until_payment_complete",
-                    lock_duration: "Until payment success/failure",
-                  }
-                  : null,
-              cod:
-                requestBody.mode === "cod"
-                  ? {
-                    action: "show_order_confirmation",
-                    order_id: orderData?.id,
-                    instructions: "Show order confirmation to user",
-                    stock_status: "converted_to_order",
-                    lockqty_status: "reset_to_0",
-                  }
-                  : null,
+              phonepe: {
+                action: "redirect_to_payment",
+                redirectUrl: result.redirectUrl,
+                instructions: "Redirect user to PhonePe payment page",
+                stock_status: "locked_until_payment_complete",
+                lock_duration: "Until payment success/failure",
+              },
+              cod: null, // COD mode is blocked
             },
           });
           console.log(response, "response FInal ");
           return reply.code(200).send(response);
         } else {
+          // If result is not successful
           const errorResponse = createErrorResponse(
-            result.message ||
-            `${requestBody.mode === "phonepe" ? "Payment" : "COD order"} ${requestBody.mode === "phonepe" ? "initiation" : "creation"
-            } failed`,
+            result.message || "Payment initiation failed",
             result.error,
             400
           );
@@ -4437,7 +4346,7 @@ export class PhonePeController {
               soldqty: true,
               totalqty: true,
               platformstatus: true,
-            },
+            } as any, // Include ecomqty - Prisma client may need regeneration
           });
 
           // If platformstock doesn't exist, it's an error (should have been validated at initiation)
@@ -4511,9 +4420,11 @@ export class PhonePeController {
             );
           }
 
+          // Get current ecomqty and soldqty for formula calculation
+          const currentEcomQty = Number((platformStock as any).ecomqty || 0);
+          const currentSoldQty = Number(platformStock.soldqty || 0);
+          
           // Ensure no negative values - CRITICAL for data integrity
-          // availableqty: NO CHANGE (already reduced during locking)
-          const newPlatformAvailableQty = Math.max(0, currentAvailableQty);
           // lockqty: DECREASE to 0 (unlock - convert to order)
           const newPlatformLockQty = Math.max(
             0,
@@ -4521,6 +4432,10 @@ export class PhonePeController {
           ); // Unlock, NEVER negative
           // orderedqty: INCREASE (confirm order)
           const newPlatformOrderedQty = currentOrderedQty + quantityToConvert;
+          
+          // Recalculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
+          // ecomqty doesn't change (stocks still available, just ordered now)
+          const newPlatformAvailableQty = Math.max(0, currentEcomQty - newPlatformOrderedQty - currentSoldQty - newPlatformLockQty);
 
           // Determine platform status based on available quantity
           let newPlatformStatus: string;
@@ -4541,20 +4456,27 @@ export class PhonePeController {
               productId: productId,
               platform: PLATFORM_NAME,
               beforePlatformUpdate: {
+                ecomqty: currentEcomQty,
                 availableqty: currentAvailableQty,
                 lockqty: currentLockQty,
                 orderedqty: currentOrderedQty,
+                soldqty: currentSoldQty,
                 platformstatus: platformStock.platformstatus,
               },
               afterPlatformUpdate: {
+                ecomqty: currentEcomQty,
                 availableqty: newPlatformAvailableQty,
                 lockqty: newPlatformLockQty,
                 orderedqty: newPlatformOrderedQty,
+                soldqty: currentSoldQty,
                 platformstatus: newPlatformStatus,
               },
               requestedQuantity: requestedQuantity,
               quantityToConvert: quantityToConvert,
               operation: "CONVERT_LOCK_TO_ORDER",
+              formula: {
+                availableqty: `${currentEcomQty} - ${newPlatformOrderedQty} - ${currentSoldQty} - ${newPlatformLockQty} = ${newPlatformAvailableQty}`
+              },
               note: "lockqty will be reset to 0 or reduced, never negative",
             },
             "About to convert locked quantity to ordered quantity (lockqty → orderedqty)"
@@ -4569,6 +4491,8 @@ export class PhonePeController {
               },
             },
             data: {
+              // @ts-ignore - ecomqty field exists in schema but Prisma client may need regeneration
+              ecomqty: currentEcomQty, // No change (stocks still available, just ordered)
               availableqty: newPlatformAvailableQty,
               lockqty: newPlatformLockQty,
               orderedqty: newPlatformOrderedQty,
@@ -5039,6 +4963,15 @@ export class PhonePeController {
                       platform: PLATFORM_NAME,
                     },
                   },
+                  select: {
+                    id: true,
+                    availableqty: true,
+                    lockqty: true,
+                    orderedqty: true,
+                    soldqty: true,
+                    totalqty: true,
+                    platformstatus: true,
+                  } as any, // Include ecomqty - Prisma client may need regeneration
                 });
 
                 if (!platformStock) {
@@ -5087,13 +5020,21 @@ export class PhonePeController {
                   continue;
                 }
 
+                // Get current ecomqty and other quantities for formula calculation
+                // @ts-ignore - ecomqty field exists in schema but Prisma client may need regeneration
+                const currentEcomQty = Number((platformStock as any).ecomqty || 0);
+                const currentOrderedQty = Number(platformStock.orderedqty || 0);
+                const currentSoldQty = Number(platformStock.soldqty || 0);
+                
                 // Calculate new quantities
-                const newAvailableQty =
-                  platformStock.availableqty + quantityToRelease;
                 const newLockQty = Math.max(
                   0,
                   currentLockQty - quantityToRelease
                 );
+                
+                // Recalculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
+                // ecomqty doesn't change (stocks still available, just unlocked)
+                const newAvailableQty = Math.max(0, currentEcomQty - currentOrderedQty - currentSoldQty - newLockQty);
 
                 // Update platformstock - release lock back to available
                 await tx.platformStock.update({
@@ -5957,6 +5898,8 @@ export class PhonePeController {
         availableqty: number;
         lockqty: number;
         orderedqty: number;
+        soldqty: number;
+        ecomqty: number;
       }>>`
         SELECT * FROM "platformstock"
         WHERE "productid" = ${BigInt(componentProductId)}
@@ -6050,9 +5993,17 @@ export class PhonePeController {
       const currentAvailableQty = Number(platformStock.availableqty) || 0;
       const currentLockQty = Number(platformStock.lockqty) || 0;
 
+      // Get current ecomqty and other quantities for formula calculation
+      const currentEcomQty = Number(platformStock.ecomqty || 0);
+      const currentOrderedQty = Number(platformStock.orderedqty || 0);
+      const currentSoldQty = Number(platformStock.soldqty || 0);
+      
       // Calculate new quantities
-      const newAvailableQty = Math.max(0, currentAvailableQty - totalNeeded);
       const newLockQty = currentLockQty + totalNeeded;
+      
+      // Recalculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
+      // ecomqty doesn't change (stocks still available, just locked)
+      const newAvailableQty = Math.max(0, currentEcomQty - currentOrderedQty - currentSoldQty - newLockQty);
 
       // Update platformstock
       await tx.platformStock.update({

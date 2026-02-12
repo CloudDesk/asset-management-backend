@@ -452,20 +452,32 @@ This document provides a single source of truth for the PhonePe payment integrat
 │  FINAL CALCULATION:                                                     │
 │  ┌────────────────────────────────────────────────────────────────────┐ │
 │  │  discountamount = productDiscountTotal + promotionDiscountTotal    │ │
-│  │  orderamount = transaction.amount (from PhonePe)                   │ │
+│  │  items_total = productAmount - promotionDiscountTotal              │ │
+│  │  orderamount = items_total + shipping_cost                         │ │
 │  │                                                                    │ │
-│  │  EXAMPLE:                                                          │ │
+│  │  ⚠️ HANDLES ALL COMBINATIONS:                                      │ │
+│  │  - Free shipping (shipping_cost = 0)                              │ │
+│  │  - Shipping fee (shipping_cost > 0)                               │ │
+│  │  - Product discount (may or may not exist)                        │ │
+│  │  - Promotion discount (may or may not exist)                       │ │
+│  │                                                                    │ │
+│  │  EXAMPLE (All discounts + shipping):                               │ │
 │  │  ─────────────────────────────────────────────────────────────     │ │
 │  │  base_price:       ₹1000 × 2 = ₹2000                              │ │
 │  │  product_discount: ₹100 × 2  = ₹200                               │ │
 │  │  promotion:                    ₹150 (15% off coupon)              │ │
+│  │  shipping:                     ₹150                                │ │
 │  │  ─────────────────────────────────────────────────────────────     │ │
 │  │  originalTotal:        ₹2000                                       │ │
 │  │  productDiscountTotal: ₹200                                        │ │
+│  │  productAmount:        ₹1800                                       │ │
 │  │  promotionDiscountTotal: ₹150                                      │ │
 │  │  discountamount:       ₹350                                        │ │
-│  │  orderamount:          ₹1650                                       │ │
+│  │  items_total:          ₹1650 (1800 - 150)                         │ │
+│  │  orderamount:          ₹1800 (1650 + 150)                         │ │
 │  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│  📚 See ORDER_AMOUNT_CALCULATION_COMPLETE_GUIDE.md for all 8 scenarios │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
@@ -850,6 +862,9 @@ This document provides a single source of truth for the PhonePe payment integrat
 
 ## 💰 AMOUNT FIELDS SUMMARY
 
+**📚 For complete calculation guide covering ALL combinations (free shipping, shipping fee, product discounts, promotional discounts), see:**
+**[ORDER_AMOUNT_CALCULATION_COMPLETE_GUIDE.md](./ORDER_AMOUNT_CALCULATION_COMPLETE_GUIDE.md)**
+
 ### Order Table (orders)
 
 | Field | Description | Calculation |
@@ -858,10 +873,21 @@ This document provides a single source of truth for the PhonePe payment integrat
 | `productamount` | After product discounts, before promos | original_total - productDiscountTotal |
 | `discountamount` | Total discounts (product + promotion) | productDiscountTotal + promotionDiscountTotal |
 | `promotion_discount_total` | Coupon/promotion discounts only | Σ(applied_promotions.discount_amount) |
-| `orderamount` | Final amount paid by customer | productamount - promotionDiscountTotal + shipping_cost |
-| `shipping_cost` | Shipping charges | From originalPayload |
+| `orderamount` | Final amount paid by customer | **(productamount - promotionDiscountTotal) + shipping_cost** |
+| `shipping_cost` | Shipping charges (0 if free shipping) | From originalPayload (may be 0) |
 | `tax_amount` | Tax amount | From originalPayload |
-| `items_total` ⭐ | Product-only total (GST base) | orderamount - shipping_cost |
+| `items_total` ⭐ | Product-only total (GST base, excludes shipping) | orderamount - shipping_cost |
+
+**⚠️ CRITICAL FORMULA:**
+```
+orderamount = (productamount - promotion_discount_total) + shipping_cost
+
+Where:
+- productamount = original_total - product_discount_total
+- shipping_cost = 0 (free shipping) OR > 0 (shipping fee)
+- promotion_discount_total = 0 (no promotion) OR > 0 (has promotion)
+- product_discount_total = 0 (no product discount) OR > 0 (has product discount)
+```
 | `total_taxable_amount` | Sum of base amounts | Σ(orderline.taxable_amount) |
 | `total_cgst_amount` | Sum of CGST | Σ(orderline.cgst_amount) |
 | `total_sgst_amount` | Sum of SGST | Σ(orderline.sgst_amount) |
@@ -1820,44 +1846,279 @@ After CALLBACK:
 
 ---
 
-*Last Updated: 20 December 2024*
+*Last Updated: January 2026*
 
-1. initiate phonepe
+## 📊 Complete Quantity Flow - All Scenarios
 
-platform stock => availableqty ↓  and lockqty ↑
-product. => no change 
+### **Scenario 1: Add New Stock (Available, E-commerce Published)**
 
-2. after callback 
+**When:** New stock created with `stockstatus = 'available'` AND `ecompublish = true`
 
-platform stock => availableqty (no change)  and lockqty ↓ and  orderedqty ↑
-product. => orderedquantity ↑, availablequantity ↓
+**PlatformStock:**
+- `totalqty` ↑ +1 (ALL stocks)
+- `ecomqty` ↑ +1 (only e-commerce published)
+- `availableqty` ↑ +1 (recalculated: `ecomqty - orderedqty - soldqty - lockqty`)
+- `orderedqty` ➡️ No change
+- `soldqty` ➡️ No change
+- `lockqty` ➡️ No change
 
-3. clean up task (when payment is not successful)
+**Product:**
+- `quantity` ↑ +1
+- `ecompublishedquantity` ↑ +1
+- `availablequantity` ↑ +1 (recalculated: `ecompublishedquantity - orderedquantity - soldquantity`)
+- `orderedquantity` ➡️ No change
+- `soldquantity` ➡️ No change
 
-PlatformStock
-availableqty ↑ (adds back the released quantity)
-lockqty ↓ (subtracts released quantity, floored at 0)
-orderedqty unchanged
+---
 
+### **Scenario 2: Add New Stock (Available, NOT E-commerce Published)**
 
-4. after order ready for dispatch
+**When:** New stock created with `stockstatus = 'available'` AND `ecompublish = false`
 
-stock 
-  - stockstatus ='sold',update orderlid and orderlinenumber and solddate 
+**PlatformStock:**
+- `totalqty` ↑ +1 (ALL stocks)
+- `ecomqty` ➡️ No change (not e-commerce published)
+- `availableqty` ➡️ No change (recalculated: `ecomqty - orderedqty - soldqty - lockqty` - unchanged)
+- `orderedqty` ➡️ No change
+- `soldqty` ➡️ No change
+- `lockqty` ➡️ No change
 
-platformstcok
-  -orderedqty ↓ ,soldqty ↑, availableqty (no change)
+**Product:**
+- `quantity` ↑ +1
+- `ecompublishedquantity` ➡️ No change (not e-commerce published)
+- `availablequantity` ➡️ No change (formula unchanged)
+- `orderedquantity` ➡️ No change
+- `soldquantity` ➡️ No change
 
-product
-  -orderedquantity ↓,soldquantity ↑, availablequantity (no change)
+---
 
-5. after order mark shipped 
+### **Scenario 3: PhonePe Payment Initiate**
 
-orderline 
-  -shipdate :current timestamp,ordersttaus:shipped
+**When:** User initiates payment (PhonePe or COD), stock is locked
 
-order
-  -shipdate :current timestamp,ordersttaus:shipped,label_printed_at:current timestamp
+**PlatformStock:**
+- `availableqty` ↓ -qty (decreased by order quantity)
+- `lockqty` ↑ +qty (increased by order quantity)
+- `ecomqty` ➡️ No change (stocks still available, just locked)
+- `totalqty` ➡️ No change
+- `orderedqty` ➡️ No change
+- `soldqty` ➡️ No change
+
+**Product:**
+- `availablequantity` ➡️ No change (updated during callback)
+- `orderedquantity` ➡️ No change
+- `soldquantity` ➡️ No change
+- `ecompublishedquantity` ➡️ No change
+
+**Note:** `availableqty` is recalculated: `ecomqty - orderedqty - soldqty - lockqty` (lockqty increased, so availableqty decreases)
+
+---
+
+### **Scenario 4: PhonePe Payment Callback (Success)**
+
+**When:** Payment succeeds, order confirmed
+
+**PlatformStock:**
+- `availableqty` ➡️ No change (already reduced during initiate)
+- `lockqty` ↓ -qty (decreased, converted to order)
+- `orderedqty` ↑ +qty (increased, confirmed order)
+- `ecomqty` ➡️ No change (stocks still available, just ordered)
+- `totalqty` ➡️ No change
+- `soldqty` ➡️ No change
+
+**Product:**
+- `orderedquantity` ↑ +qty (increased)
+- `availablequantity` ↓ -qty (decreased)
+- `soldquantity` ➡️ No change
+- `ecompublishedquantity` ➡️ No change
+- `quantity` ➡️ No change
+
+**Note:** `availableqty` is recalculated: `ecomqty - orderedqty - soldqty - lockqty` (lockqty decreased, orderedqty increased, net effect: availableqty unchanged)
+
+---
+
+### **Scenario 5: Cleanup Task (Payment Failed/Expired)**
+
+**When:** Payment not successful, GCP cleanup task releases locks
+
+**PlatformStock:**
+- `availableqty` ↑ +qty (restored, adds back released quantity)
+- `lockqty` ↓ -qty (decreased, releases lock)
+- `orderedqty` ➡️ No change
+- `ecomqty` ➡️ No change (stocks still available)
+- `totalqty` ➡️ No change
+- `soldqty` ➡️ No change
+
+**Product:**
+- `availablequantity` ➡️ No change (was never updated during initiate)
+- `orderedquantity` ➡️ No change
+- `soldquantity` ➡️ No change
+
+**Note:** `availableqty` is recalculated: `ecomqty - orderedqty - soldqty - lockqty` (lockqty decreased, so availableqty increases)
+
+---
+
+### **Scenario 6: Order Ready for Dispatch**
+
+**When:** Inventory user marks order as ready for dispatch, stocks allocated
+
+**Stock Selection:**
+- **IMPORTANT:** Only stocks with `ecompublish = true` are selected/allocated
+- System filters stocks by: `stockstatus = 'available'` AND `ecompublish = true`
+- Manual selection by `stock_ids` or `skus` validates e-commerce publish status
+- Auto-selection (FIFO) filters by `ecompublish = true`
+
+**Stock:**
+- `stockstatus` = 'sold' (changed from 'available')
+- `orderid` = Order ID (set)
+- `orderlinenumber` = Orderline number (set)
+- `solddate` = Current timestamp (set)
+
+**PlatformStock:**
+- `orderedqty` ↓ -qty (decreased)
+- `soldqty` ↑ +qty (increased)
+- `ecomqty` ↓ -qty (decreased, only if stocks were e-commerce published)
+- `availableqty` ➡️ Recalculated (formula: `ecomqty - orderedqty - soldqty - lockqty`)
+- `totalqty` ➡️ No change
+- `lockqty` ➡️ No change
+
+**Product:**
+- `orderedquantity` ↓ -qty (decreased)
+- `soldquantity` ↑ +qty (increased)
+- `availablequantity` ➡️ Recalculated (formula: `ecompublishedquantity - orderedquantity - soldquantity`)
+- `ecompublishedquantity` ➡️ No change (stocks were already counted)
+- `quantity` ➡️ No change
+
+**Note:** `ecomqty` decreases because sold stocks are no longer "available" for e-commerce
+
+---
+
+### **Scenario 7: Order Cancellation (Before Ready-for-Dispatch)**
+
+**When:** Order cancelled before dispatch, stock not yet allocated
+
+**PlatformStock:**
+- `availableqty` ↑ +qty (restored)
+- `orderedqty` ↓ -qty (decreased)
+- `lockqty` ➡️ No change (should be 0)
+- `ecomqty` ➡️ No change (stocks still available)
+- `totalqty` ➡️ No change
+- `soldqty` ➡️ No change
+
+**Product:**
+- `availablequantity` ↑ +qty (restored)
+- `orderedquantity` ↓ -qty (decreased)
+- `soldquantity` ➡️ No change
+- `ecompublishedquantity` ➡️ No change
+
+**Stock:**
+- `stockstatus` ➡️ No change (still 'available', not allocated)
+- `orderid` ➡️ No change (still NULL)
+- `orderlinenumber` ➡️ No change (still NULL)
+
+---
+
+### **Scenario 8: Order Cancellation (After Ready-for-Dispatch)**
+
+**When:** Order cancelled after dispatch, stocks already allocated
+
+**Stock:**
+- `stockstatus` = 'available' (changed from 'sold')
+- `orderid` = NULL (cleared)
+- `orderlinenumber` = NULL (cleared)
+- `solddate` = NULL (cleared)
+
+**PlatformStock:**
+- `availableqty` ↑ +qty (restored, recalculated: `ecomqty - orderedqty - soldqty - lockqty`)
+- `soldqty` ↓ -qty (decreased)
+- `ecomqty` ↑ +qty (increased, only if stocks were e-commerce published)
+- `orderedqty` ➡️ No change (was already 0, converted to soldqty)
+- `totalqty` ➡️ No change
+- `lockqty` ➡️ No change
+
+**Product:**
+- `availablequantity` ↑ +qty (restored)
+- `soldquantity` ↓ -qty (decreased)
+- `orderedquantity` ➡️ No change (was already 0)
+- `ecompublishedquantity` ➡️ No change
+
+**Note:** `ecomqty` increases because stocks are back to 'available' status
+
+---
+
+### **Scenario 9: Order Marked as Shipped**
+
+**When:** Order status updated to 'shipped'
+
+**Orderline:**
+- `shipdate` = Current timestamp
+- `orderstatus` = 'shipped'
+
+**Order:**
+- `shipdate` = Current timestamp
+- `orderstatus` = 'shipped'
+- `label_printed_at` = Current timestamp
+
+**PlatformStock:**
+- ➡️ **NO QUANTITY CHANGES** (already allocated during dispatch)
+
+**Product:**
+- ➡️ **NO QUANTITY CHANGES** (already allocated during dispatch)
+
+---
+
+---
+
+## 📐 Key Formulas
+
+### PlatformStock Available Quantity
+```
+availableqty = ecomqty - orderedqty - soldqty - lockqty
+```
+
+**Where:**
+- `ecomqty` = Count of stocks where `stockstatus = 'available'` AND `ecompublish = true`
+- `orderedqty` = Sum of orderline quantities (before dispatch)
+- `soldqty` = Count of allocated stocks (after dispatch)
+- `lockqty` = Temporary cart lock (NIVAPP only)
+
+### Product Available Quantity
+```
+availablequantity = ecompublishedquantity - orderedquantity - soldquantity
+```
+
+**Where:**
+- `ecompublishedquantity` = Count of stocks where `stockstatus = 'available'` AND `ecompublish = true`
+- `orderedquantity` = Sum of orderline quantities (before dispatch)
+- `soldquantity` = Count of stocks where `stockstatus = 'sold'`
+
+---
+
+## 📋 Complete Flow Summary Table
+
+| Scenario | PlatformStock Changes | Product Changes | Stock Changes |
+|----------|----------------------|-----------------|---------------|
+| **1. Add Stock (ecom=true)** | `totalqty`↑, `ecomqty`↑, `availableqty`↑ | `quantity`↑, `ecompublishedquantity`↑, `availablequantity`↑ | `stockstatus='available'` |
+| **2. Add Stock (ecom=false)** | `totalqty`↑, `ecomqty`➡️, `availableqty`➡️ | `quantity`↑, `ecompublishedquantity`➡️, `availablequantity`➡️ | `stockstatus='available'` |
+| **3. PhonePe Initiate** | `availableqty`↓, `lockqty`↑, `ecomqty`➡️ | ➡️ No change | ➡️ No change |
+| **4. PhonePe Callback** | `lockqty`↓, `orderedqty`↑, `ecomqty`➡️, `availableqty`➡️ | `orderedquantity`↑, `availablequantity`↓ | ➡️ No change |
+| **5. Cleanup (Failed)** | `availableqty`↑, `lockqty`↓, `ecomqty`➡️ | ➡️ No change | ➡️ No change |
+| **6. Ready-for-Dispatch** | `orderedqty`↓, `soldqty`↑, `ecomqty`↓, `availableqty`➡️ | `orderedquantity`↓, `soldquantity`↑, `availablequantity`➡️ | `stockstatus='sold'` (only `ecompublish=true` stocks) |
+| **7. Cancel (Before Dispatch)** | `availableqty`↑, `orderedqty`↓, `ecomqty`➡️ | `availablequantity`↑, `orderedquantity`↓ | ➡️ No change |
+| **8. Cancel (After Dispatch)** | `availableqty`↑, `soldqty`↓, `ecomqty`↑ | `availablequantity`↑, `soldquantity`↓ | `stockstatus='available'` |
+| **9. Shipped** | ➡️ No quantity changes | ➡️ No quantity changes | ➡️ No change |
+
+---
+
+## 🔑 Important Notes
+
+1. **`ecomqty`** = Count of stocks where `stockstatus = 'available'` AND `ecompublish = true`
+2. **`totalqty`** = Count of ALL stocks (regardless of status or ecompublish)
+3. **`availableqty`** is always **recalculated** using formula: `ecomqty - orderedqty - soldqty - lockqty`
+4. **During dispatch:** `ecomqty` decreases because stocks move from 'available' to 'sold' (if e-commerce published)
+5. **During cancel (after dispatch):** `ecomqty` increases because stocks move from 'sold' back to 'available' (if e-commerce published)
+6. **During initiate/callback/cleanup:** `ecomqty` doesn't change (stocks still available, just locked/ordered)
+7. **Formula consistency:** All `availableqty` updates use formula-based recalculation to maintain data integrity
 
 
 ### 2.1 Orderline Statuses (Actual Item Lifecycle)

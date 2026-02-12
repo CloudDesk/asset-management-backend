@@ -509,10 +509,28 @@ async function buildDynamicWhereClause(tableName, filters) {
             if (searchQuery && typeof searchQuery === 'string' && searchQuery.trim()) {
                 const trimmedQuery = searchQuery.trim().toLowerCase();
                 if (tableName === 'product') {
-                    // Use PostgreSQL full-text search with plainto_tsquery for product
-                    conditions.push(`searchtext @@ plainto_tsquery('english', $${paramIndex})`);
-                    values.push(trimmedQuery);
-                    paramIndex++;
+                    // HYBRID SEARCH STRATEGY:
+                    // - Short queries (< 3 chars): Use ILIKE pattern matching to avoid stop words
+                    // - Long queries (>= 3 chars): Use full-text search for better performance
+                    if (trimmedQuery.length < 3) {
+                        // Short query: Use ILIKE on key product fields
+                        // This prevents PostgreSQL from filtering out short words as stop words
+                        conditions.push(`(
+              LOWER(name) LIKE $${paramIndex} OR
+              LOWER(COALESCE(brand, '')) LIKE $${paramIndex} OR
+              LOWER(COALESCE(category, '')) LIKE $${paramIndex} OR
+              LOWER(COALESCE(subcategory, '')) LIKE $${paramIndex} OR
+              LOWER(COALESCE(fragnancetype, '')) LIKE $${paramIndex}
+            )`);
+                        values.push(`%${trimmedQuery}%`);
+                        paramIndex++;
+                    }
+                    else {
+                        // Long query: Use PostgreSQL full-text search with plainto_tsquery
+                        conditions.push(`searchtext @@ plainto_tsquery('english', $${paramIndex})`);
+                        values.push(trimmedQuery);
+                        paramIndex++;
+                    }
                 }
                 else if (tableName === 'picklist') {
                     // For picklist, search across multiple fields with case-insensitive matching
@@ -1118,11 +1136,11 @@ export async function dynamicFindUnique(modelName, where, include) {
                 });
             }
             if (result) {
-                logger.debug({
-                    modelName,
-                    foundId: result.id,
-                    availableFields: Object.keys(result)
-                }, 'Prisma findUnique completed successfully');
+                // logger.debug({
+                //   modelName,
+                //   foundId: result.id,
+                //   availableFields: Object.keys(result)
+                // }, 'Prisma findUnique completed successfully');
                 return convertBigIntToNumber(result);
             }
             // For models without proper Prisma schema or when Prisma fails, use raw SQL

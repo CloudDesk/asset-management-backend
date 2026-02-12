@@ -26,6 +26,7 @@ import { promotionsRoutes } from './promotions.route.js';
 import { ratingRoutes } from './rating.route.js';
 import { smsRoutes } from './sms.route.js';
 import { ekartRoutes } from './ekart.route.js';
+import { analyticsRoutes } from './analytics.route.js';
 import { smartAuthentication } from '../middleware/smartAuth.middleware.js';
 import { createSuccessResponse } from '../utils/errorHandler.js';
 import { permissionRoutes } from './permission.route.js';
@@ -113,6 +114,7 @@ export async function routes(fastify: FastifyInstance) {
     await fastify.register(ratingRoutes, { prefix: '/ratings' });
     await fastify.register(smsRoutes, { prefix: '/sms' });
     await fastify.register(ekartRoutes, { prefix: '/ekart' });
+    await fastify.register(analyticsRoutes, { prefix: '/analytics' });
 
     // -------------------------------------------------------------------------
     // SMART AUTHENTICATION - Applied to ALL /v1 routes

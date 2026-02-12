@@ -537,13 +537,19 @@ export class ProductController {
       const allFilters: Record<string, any> = request.query || {};
       const { page, limit } = getPaginationParams(allFilters);
 
-      const { page: _, limit: __, ...filters } = allFilters;
+      // Extract sorting parameters
+      const sortBy = allFilters.sortBy || 'createddate';
+      const sortOrder = allFilters.sortOrder || 'desc';
+
+      const { page: _, limit: __, sortBy: _sortBy, sortOrder: _sortOrder, ...filters } = allFilters;
 
       const result = await this.productService.findManyForPlatform(
         platform,
         filters,
         page,
-        limit
+        limit,
+        sortBy,
+        sortOrder
       );
 
       const formattedData = formatEntitiesForAPI(result.data, "product");
@@ -575,6 +581,8 @@ export class ProductController {
           filters: Object.keys(filters),
           total: result.pagination.total,
           filtered: Object.keys(filters).length > 0,
+          sortBy,
+          sortOrder,
         },
       });
     }
@@ -593,12 +601,18 @@ export class ProductController {
 
       const formattedProduct = formatProductForAPI(product);
 
-      // Remove platformStocks array from response (only keep platformStock in components)
+      // Extract platformStock from platformStocks array and include it in the response
       const { platformStocks, ...transformedProduct } = formattedProduct;
+
+      // Add platformStock (singular) - take the first record since we only fetch one per platform
+      const platformStock = platformStocks && platformStocks[0] ? platformStocks[0] : null;
 
       const response = createSuccessResponse(
         `Product ${id} for ${platform} platform retrieved successfully`,
-        transformedProduct
+        {
+          ...transformedProduct,
+          platformStock // Include platform-specific stock data
+        }
       );
 
       return reply.code(200).send(response);

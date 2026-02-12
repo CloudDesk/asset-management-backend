@@ -255,10 +255,23 @@ export class ProductService {
     platform: string,
     filters: Record<string, any> = {},
     page: number = 1,
-    limit: number = 10
+    limit: number = 10,
+    sortBy: string = 'createddate',
+    sortOrder: 'asc' | 'desc' = 'desc'
   ): Promise<{ data: any[]; pagination: any }> {
     try {
       const offset = (page - 1) * limit;
+
+      // Map sortBy parameter to actual database field name
+      const sortFieldMap: Record<string, string> = {
+        'price': 'price',
+        'createddate': 'createddate',
+        'averagerating': 'averagerating',
+        'name': 'name'
+      };
+
+      // Get the actual field name (default to createddate if invalid)
+      const orderByField = sortFieldMap[sortBy] || 'createddate';
 
       // Build base query with platform stock join
       const whereClause = this.buildPlatformWhereClause(platform, filters);
@@ -284,10 +297,7 @@ export class ProductService {
           },
           skip: offset,
           take: limit,
-          orderBy: [
-            { modifieddate: 'desc' },
-            { createddate: 'desc' }
-          ],
+          orderBy: { [orderByField]: sortOrder },
         }),
         prisma.product.count({ where: whereClause }),
       ]);
@@ -791,25 +801,27 @@ export class ProductService {
       // Check if product exists
       const existingProduct = await this.findById(id);
 
+
+
       logger.debug({ originalData: data, productId: id }, 'Starting dynamic product update operation');
 
-      // Extract and validate: combo-related fields are NOT allowed in update
+      // Silently extract and ignore combo-related fields from payload
+      // These fields cannot be updated after product creation
       const { components, iscombo, combotype, ...updateData } = data;
 
-      // Reject components field entirely (combo components are fixed after creation)
-      if (components !== undefined) {
-        throw new Error('Components cannot be updated. Combo components are fixed after creation. To change components, delete and recreate the combo product.');
+      if (components || iscombo || combotype) {
+        logger.debug({
+          productId: id,
+          skippedFields: {
+            components: components,
+            iscombo: iscombo,
+            combotype: combotype
+          }
+        }, 'Silently skipping combo-related fields from update payload');
       }
 
-      // Reject iscombo field entirely (product type cannot be changed after creation)
-      if (iscombo !== undefined) {
-        throw new Error('iscombo field cannot be updated. Product type (combo/single) cannot be changed after creation.');
-      }
-
-      // Reject combotype field entirely (combo type cannot be changed after creation)
-      if (combotype !== undefined) {
-        throw new Error('combotype field cannot be updated. Combo type cannot be changed after creation.');
-      }
+      // Auto-set modified date
+      updateData.modifieddate = updateData.modifieddate || Date.now();
 
 
       const product = await dynamicUpdate('product', { id }, updateData);
@@ -820,12 +832,23 @@ export class ProductService {
 
       logger.info({
         productId: id,
-        availableFields: Object.keys(product)
-      }, 'Dynamic product update completed');
+        productName: product.name,
+        updatedFields: Object.keys(updateData)
+      }, 'Dynamic product update completed successfully');
 
       return product;
-    } catch (error) {
-      logger.error({ error, data, productId: id }, 'Error in product update operation');
+    } catch (error: any) {
+      logger.error({
+        error: {
+          message: error?.message || 'Unknown error',
+          stack: error?.stack,
+          code: error?.code,
+          name: error?.name,
+          fullError: error
+        },
+        data,
+        productId: id
+      }, 'Error in product update operation');
       throw error;
     }
   }
@@ -959,20 +982,25 @@ export class ProductService {
       let totalEcomPublished = 0;
 
       stocks.forEach(stock => {
-        // Count each stock record as 1 unit (not using stock.quantity field)
-        totalQuantity += 1;
+        const stockStatus = stock.stockstatus?.toLowerCase();
 
-        if (stock.stockstatus?.toLowerCase() === 'available') {
+        // ✅ FIX: Exclude sold stocks from totalQuantity
+        // Total quantity = stocks physically in warehouse (exclude sold)
+        if (stockStatus !== 'sold') {
+          totalQuantity += 1;
+        }
+
+        if (stockStatus === 'available') {
           // Only count e-commerce published if stock is available AND ecompublish is true
           if (stock.ecompublish === true) {
             totalEcomPublished += 1;
             totalAvailable += 1; // Available quantity = stocks that are Available AND ecompublish=true
           }
           // Note: Available stocks with ecompublish=false are NOT counted in availablequantity
-        } else if (stock.stockstatus?.toLowerCase() === 'sold') {
+        } else if (stockStatus === 'sold') {
           totalSold += 1;
         }
-        // Note: Damaged stocks are not counted in available or sold
+        // Note: Damaged stocks are not counted in available or sold, but ARE counted in totalQuantity
       });
 
       const totals = {

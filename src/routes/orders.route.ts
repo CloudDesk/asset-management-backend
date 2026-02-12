@@ -64,6 +64,12 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                   paymentfaileddate: { type: 'number', nullable: true, description: 'Payment failed date' },
                   createddate: { type: 'number', nullable: true, description: 'Created date' },
                   modifieddate: { type: 'number', nullable: true, description: 'Modified date' },
+                  // User-related fields
+                  username: { type: 'string', nullable: true, description: 'User full name (firstname + lastname)' },
+                  useremail: { type: 'string', nullable: true, description: 'User email' },
+                  usermobilenumber: { type: 'number', nullable: true, description: 'User mobile number' },
+                  user_firstname: { type: 'string', nullable: true, description: 'User first name' },
+                  user_lastname: { type: 'string', nullable: true, description: 'User last name' },
                 },
                 additionalProperties: true // Allow any additional fields
               }
@@ -177,10 +183,120 @@ export async function ordersRoutes(fastify: FastifyInstance) {
     }
   }, ordersController.markReadyForDispatch.bind(ordersController));
 
-  // PATCH /v1/orders/:id/mark-shipped - Mark order as shipped (after label printed)
+  // PATCH /v1/orders/:id/manual-ship - Manually ship order with vendor details (auto-sets shipped status)
+  fastify.patch('/:id/manual-ship', {
+    schema: {
+      description: 'Update shipment details for manual vendors (tracking_id, vendor, public_tracking_link). If payload includes shipped: true, sets order status to shipped. If shipped: false or not provided, status remains ready_for_dispatch. Allows updating from EKART to another vendor when EKART refuses to collect (works for both ready_for_dispatch and shipped orders).',
+      tags: ['Orders'],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'Order ID (database ID) or order number (orderid)' }
+        },
+        required: ['id']
+      },
+      body: {
+        type: 'object',
+        required: ['tracking_id', 'vendor', 'inventory_user_id'],
+        properties: {
+          tracking_id: { type: 'string', description: 'Tracking ID (AWB) from manual vendor' },
+          vendor: { type: 'string', description: 'Vendor name (e.g., "Delhivery", "Shiprocket"). Can be used to switch from EKART to another vendor.' },
+          inventory_user_id: { type: 'number', description: 'Inventory user ID who performed the action' },
+          public_tracking_link: { type: 'string', description: 'Optional: Public tracking URL (auto-generated if not provided)' },
+          shipped: { type: 'boolean', description: 'Optional: If true, sets order status to shipped. If false or not provided, status remains ready_for_dispatch.' }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            data: { type: 'object', additionalProperties: true },
+            message: { type: 'string' }
+          }
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            statusCode: { type: 'number' }
+          }
+        },
+        404: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            statusCode: { type: 'number' }
+          }
+        }
+      }
+    }
+  }, ordersController.updateShipmentDetails.bind(ordersController));
+
+  // PATCH /v1/orders/:id/shipment-status - Manually update shipment tracking status (works for ALL vendors)
+  fastify.patch('/:id/shipment-status', {
+    schema: {
+      description: 'Manually update shipment tracking status. Works for ALL vendors (EKART + manual vendors). Allows setting shipped status from ready_for_dispatch (if tracking_id and vendor exist). Warning logged for EKART orders as webhook may overwrite.',
+      tags: ['Orders'],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'Order ID (database ID) or order number (orderid)' }
+        },
+        required: ['id']
+      },
+      body: {
+        type: 'object',
+        required: ['status', 'inventory_user_id'],
+        properties: {
+          status: {
+            type: 'string',
+            enum: ['shipped', 'in_transit', 'out_for_delivery', 'delivered', 'rto_initiated', 'rto_delivered', 'cod_payment_received'],
+            description: 'Shipment tracking status. Allowed values: shipped (from ready_for_dispatch with tracking_id), in_transit, out_for_delivery, delivered, rto_initiated, rto_delivered, cod_payment_received'
+          },
+          inventory_user_id: { type: 'number', description: 'Inventory user ID who performed the action' },
+          location: { type: 'string', description: 'Optional: Current location of shipment' },
+          description: { type: 'string', description: 'Optional: Status description or notes' }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            data: { type: 'object', additionalProperties: true },
+            message: { type: 'string' }
+          }
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            statusCode: { type: 'number' }
+          }
+        },
+        404: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            statusCode: { type: 'number' }
+          }
+        }
+      }
+    }
+  }, ordersController.updateShipmentStatus.bind(ordersController));
+
+  // PATCH /v1/orders/:id/mark-shipped - Mark order as shipped (backward compatibility / manual override)
+  // NOTE: For EKART orders, this endpoint is NOT called in normal flow.
+  // EKART webhook automatically sets 'shipped' status when pickup is confirmed.
+  // This endpoint is kept for backward compatibility and manual override scenarios.
   fastify.patch('/:id/mark-shipped', {
     schema: {
-      description: 'Mark order as shipped (label printed and stuck on box)',
+      description: 'Mark order as shipped (backward compatibility / manual override). NOTE: For EKART orders, shipped status is automatically set by webhook - this endpoint is NOT called in normal flow.',
       tags: ['Orders'],
       params: {
         type: 'object',
@@ -489,7 +605,29 @@ export async function ordersRoutes(fastify: FastifyInstance) {
         type: 'object',
         properties: {
           page: { type: 'string', description: 'Page number (default: 1)' },
-          limit: { type: 'string', description: 'Items per page (default: 50)' }
+          limit: { type: 'string', description: 'Items per page (default: 10)' },
+          orderstatus: { type: 'string', description: 'Filter by order status (comma-separated for multiple statuses, e.g., "order_placed,payment_completed")' },
+
+          // Date range filters
+          date_range: {
+            type: 'string',
+            enum: ['last_7_days', 'last_30_days', 'last_3_months', 'last_6_months', 'last_1_year'],
+            description: 'Predefined date range filter'
+          },
+          start_date: { type: 'string', description: 'Custom start date (Unix timestamp in milliseconds)' },
+          end_date: { type: 'string', description: 'Custom end date (Unix timestamp in milliseconds)' },
+
+          // Payment method filter
+          mode: { type: 'string', description: 'Filter by payment method: "cod", "phonepe", or comma-separated "cod,phonepe"' },
+
+          // Amount range filters
+          amount_range: {
+            type: 'string',
+            enum: ['under_500', '500_1000', '1000_2500', '2500_5000', 'above_5000'],
+            description: 'Predefined amount range filter'
+          },
+          min_amount: { type: 'string', description: 'Custom minimum order amount' },
+          max_amount: { type: 'string', description: 'Custom maximum order amount' }
         }
       },
       response: {
