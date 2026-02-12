@@ -256,7 +256,7 @@ export class ProductService {
     filters: Record<string, any> = {},
     page: number = 1,
     limit: number = 10,
-    sortBy: string = 'createddate',
+    sortBy: string = 'modifieddate',
     sortOrder: 'asc' | 'desc' = 'desc'
   ): Promise<{ data: any[]; pagination: any }> {
     try {
@@ -266,12 +266,13 @@ export class ProductService {
       const sortFieldMap: Record<string, string> = {
         'price': 'price',
         'createddate': 'createddate',
+        'modifieddate': 'modifieddate',
         'averagerating': 'averagerating',
         'name': 'name'
       };
 
-      // Get the actual field name (default to createddate if invalid)
-      const orderByField = sortFieldMap[sortBy] || 'createddate';
+      // Get the actual field name (default to modifieddate if invalid)
+      const orderByField = sortFieldMap[sortBy] || 'modifieddate';
 
       // Build base query with platform stock join
       const whereClause = this.buildPlatformWhereClause(platform, filters);
@@ -297,7 +298,12 @@ export class ProductService {
           },
           skip: offset,
           take: limit,
-          orderBy: { [orderByField]: sortOrder },
+          orderBy: orderByField === 'modifieddate'
+            ? [
+              { modifieddate: sortOrder },
+              { createddate: sortOrder }
+            ]
+            : { [orderByField]: sortOrder },
         }),
         prisma.product.count({ where: whereClause }),
       ]);
