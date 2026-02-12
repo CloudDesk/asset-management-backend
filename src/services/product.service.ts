@@ -284,7 +284,10 @@ export class ProductService {
           },
           skip: offset,
           take: limit,
-          orderBy: { createddate: 'desc' },
+          orderBy: [
+            { modifieddate: 'desc' },
+            { createddate: 'desc' }
+          ],
         }),
         prisma.product.count({ where: whereClause }),
       ]);
@@ -807,6 +810,7 @@ export class ProductService {
       if (combotype !== undefined) {
         throw new Error('combotype field cannot be updated. Combo type cannot be changed after creation.');
       }
+
 
       const product = await dynamicUpdate('product', { id }, updateData);
 
