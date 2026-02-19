@@ -54,7 +54,7 @@ export class PhonePeController {
         };
         console.log("test");
         console.log(request.body, "req body");
-        
+
         // ⚠️ RESTRICTION: Block COD mode - only PhonePe mode allowed
         if (requestBody.mode === "cod") {
           logger.warn(
@@ -64,7 +64,7 @@ export class PhonePeController {
             },
             "COD mode is currently disabled - only PhonePe mode is allowed"
           );
-          
+
           return reply.code(400).send({
             success: false,
             message: "COD (Cash on Delivery) mode is currently disabled. Please use PhonePe payment mode.",
@@ -83,7 +83,7 @@ export class PhonePeController {
             },
             "Invalid payment mode - only 'phonepe' mode is allowed"
           );
-          
+
           return reply.code(400).send({
             success: false,
             message: `Invalid payment mode: ${requestBody.mode}. Only 'phonepe' mode is currently supported.`,
@@ -990,9 +990,9 @@ export class PhonePeController {
                   const currentEcomQty = Number(platformStock.ecomqty || 0);
                   const currentOrderedQty = Number(platformStock.orderedqty || 0);
                   const currentSoldQty = Number(platformStock.soldqty || 0);
-                  
+
                   const newLockQty = currentLockQty + requestedQuantity;
-                  
+
                   // Recalculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
                   const newAvailableQty = Math.max(0, currentEcomQty - currentOrderedQty - currentSoldQty - newLockQty);
 
@@ -4346,7 +4346,8 @@ export class PhonePeController {
               soldqty: true,
               totalqty: true,
               platformstatus: true,
-            } as any, // Include ecomqty - Prisma client may need regeneration
+              ecomqty: true, // ✅ FIX: Must be selected so currentEcomQty reads the real value, not undefined → 0
+            } as any,
           });
 
           // If platformstock doesn't exist, it's an error (should have been validated at initiation)
@@ -4423,7 +4424,7 @@ export class PhonePeController {
           // Get current ecomqty and soldqty for formula calculation
           const currentEcomQty = Number((platformStock as any).ecomqty || 0);
           const currentSoldQty = Number(platformStock.soldqty || 0);
-          
+
           // Ensure no negative values - CRITICAL for data integrity
           // lockqty: DECREASE to 0 (unlock - convert to order)
           const newPlatformLockQty = Math.max(
@@ -4432,7 +4433,7 @@ export class PhonePeController {
           ); // Unlock, NEVER negative
           // orderedqty: INCREASE (confirm order)
           const newPlatformOrderedQty = currentOrderedQty + quantityToConvert;
-          
+
           // Recalculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
           // ecomqty doesn't change (stocks still available, just ordered now)
           const newPlatformAvailableQty = Math.max(0, currentEcomQty - newPlatformOrderedQty - currentSoldQty - newPlatformLockQty);
@@ -5025,13 +5026,13 @@ export class PhonePeController {
                 const currentEcomQty = Number((platformStock as any).ecomqty || 0);
                 const currentOrderedQty = Number(platformStock.orderedqty || 0);
                 const currentSoldQty = Number(platformStock.soldqty || 0);
-                
+
                 // Calculate new quantities
                 const newLockQty = Math.max(
                   0,
                   currentLockQty - quantityToRelease
                 );
-                
+
                 // Recalculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
                 // ecomqty doesn't change (stocks still available, just unlocked)
                 const newAvailableQty = Math.max(0, currentEcomQty - currentOrderedQty - currentSoldQty - newLockQty);
@@ -5997,10 +5998,10 @@ export class PhonePeController {
       const currentEcomQty = Number(platformStock.ecomqty || 0);
       const currentOrderedQty = Number(platformStock.orderedqty || 0);
       const currentSoldQty = Number(platformStock.soldqty || 0);
-      
+
       // Calculate new quantities
       const newLockQty = currentLockQty + totalNeeded;
-      
+
       // Recalculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
       // ecomqty doesn't change (stocks still available, just locked)
       const newAvailableQty = Math.max(0, currentEcomQty - currentOrderedQty - currentSoldQty - newLockQty);

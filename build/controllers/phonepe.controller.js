@@ -3070,7 +3070,8 @@ export class PhonePeController {
                             soldqty: true,
                             totalqty: true,
                             platformstatus: true,
-                        }, // Include ecomqty - Prisma client may need regeneration
+                            ecomqty: true, // ✅ FIX: Must be selected so currentEcomQty reads the real value, not undefined → 0
+                        },
                     });
                     // If platformstock doesn't exist, it's an error (should have been validated at initiation)
                     if (!platformStock) {
