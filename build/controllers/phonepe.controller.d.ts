@@ -289,5 +289,6 @@ export declare class PhonePeController {
      * @returns Array of lock results for each component
      */
     private lockComboComponents;
+    private releaseComboComponentLocks;
 }
 //# sourceMappingURL=phonepe.controller.d.ts.map
