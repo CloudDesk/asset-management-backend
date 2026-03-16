@@ -19,6 +19,13 @@ import {
 import { logger } from '../config/logger.js';
 
 export class OrderlineService {
+  private normalizeStatusHistorySource(source?: string): string {
+    if (!source) return 'system';
+    return source === 'inventoryuser' || source === 'inventory_user'
+      ? 'inventory_user'
+      : source;
+  }
+
   async findMany(
     filters: FilterOptions,
     page: number,
@@ -168,8 +175,8 @@ export class OrderlineService {
    * @param id - Orderline ID
    * @param status - New status (e.g., 'cancelled', 'delivered', 'shipped')
    * @param additionalData - Additional data including:
-   *   - source: 'customer' | 'inventoryuser' | 'ekart' | 'phonepe' | 'system'
-   *   - inventory_user_id: Required when source is 'inventoryuser'
+   *   - source: 'customer' | 'inventory_user' | 'inventoryuser' | 'ekart' | 'phonepe' | 'system'
+   *   - inventory_user_id: Required when source is 'inventory_user'
    *   - cancellation_reason: Reason for cancellation
    */
   async updateOrderlineStatus(id: string, status: string, additionalData?: Record<string, any>) {
@@ -184,7 +191,9 @@ export class OrderlineService {
 
       const previousStatus = currentOrderline.orderstatus;
       // Default source to 'customer' for cancellation (as per plan), otherwise 'system'
-      const source = additionalData?.source || (status.toLowerCase() === 'cancelled' ? 'customer' : 'system');
+      const source = this.normalizeStatusHistorySource(
+        additionalData?.source || (status.toLowerCase() === 'cancelled' ? 'customer' : 'system')
+      );
       const inventoryUserId = additionalData?.inventory_user_id;
 
       // ✅ CANCELLATION FLOW: Handle EKART shipment cancellation before updating status
@@ -256,12 +265,15 @@ export class OrderlineService {
         is_active: true
       };
       
-      // Add inventory_user_id if source is inventoryuser (REQUIRED)
-      if (source === 'inventoryuser') {
+      // Add inventory_user_id if source is inventory_user (REQUIRED)
+      if (source === 'inventory_user') {
         if (!inventoryUserId) {
-          throw new Error('inventory_user_id is required when source is inventoryuser');
+          throw new Error('inventory_user_id is required when source is inventory_user');
         }
         historyEntry.inventory_user_id = inventoryUserId;
+      }
+      if (additionalData?.username) {
+        historyEntry.username = additionalData.username;
       }
       
       // Add location and description if provided
@@ -319,7 +331,16 @@ export class OrderlineService {
         try {
           const { OrdersService } = await import('./orders.service.js');
           const ordersService = new OrdersService();
-          await ordersService.recalculateOrderStatus(parseInt(orderline.orderid.toString()));
+          await ordersService.recalculateOrderStatus(
+            parseInt(orderline.orderid.toString()),
+            source === 'inventory_user'
+              ? {
+                source,
+                inventory_user_id: inventoryUserId,
+                ...(additionalData?.username ? { username: additionalData.username } : {})
+              }
+              : undefined
+          );
           
           logger.debug({ 
             orderlineId: id, 

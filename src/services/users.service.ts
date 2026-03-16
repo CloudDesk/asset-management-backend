@@ -372,7 +372,6 @@ export class UsersService {
         try {
           const newUserData = {
             usermobilenumber: mobileNumber,
-            firstname: `User`, // Default first name
             createddate: Date.now(),
             modifieddate: Date.now()
           };
