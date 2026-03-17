@@ -394,7 +394,6 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
         try {
           const newUserData = {
             usermobilenumber: usermobilenumber,
-            firstname: `User`,
             createddate: Date.now(),
             modifieddate: Date.now()
           };
@@ -845,7 +844,6 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
         try {
           const newUserData = {
             usermobilenumber: usermobilenumber,
-            firstname: `User`,
             createddate: Date.now(),
             modifieddate: Date.now()
           };

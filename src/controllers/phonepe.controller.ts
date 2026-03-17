@@ -4956,6 +4956,55 @@ export class PhonePeController {
           await prisma.$transaction(async (tx) => {
             for (const item of orderItems) {
               try {
+                const product = await tx.product.findUnique({
+                  where: { id: BigInt(item.productid) },
+                  select: {
+                    id: true,
+                    name: true,
+                    iscombo: true,
+                  },
+                });
+
+                if (!product) {
+                  logger.warn(
+                    {
+                      productId: item.productid,
+                      merchantTransactionId,
+                    },
+                    "Product not found during cleanup - skipping"
+                  );
+
+                  releaseResults.push({
+                    productId: item.productid,
+                    productName: item.productname || "Unknown",
+                    status: "skipped",
+                    reason: "product_not_found",
+                  });
+                  continue;
+                }
+
+                if (product.iscombo) {
+                  const comboReleaseResults =
+                    await this.releaseComboComponentLocks(
+                      tx,
+                      item.productid,
+                      item.quantity,
+                      PLATFORM_NAME,
+                      merchantTransactionId
+                    );
+
+                  releaseResults.push({
+                    productId: item.productid,
+                    productName: product.name,
+                    productType: "combo",
+                    status: "released",
+                    quantityReleased: item.quantity,
+                    componentsReleased: comboReleaseResults.length,
+                    componentDetails: comboReleaseResults,
+                  });
+                  continue;
+                }
+
                 // Get current platformstock state
                 const platformStock = await tx.platformStock.findUnique({
                   where: {
@@ -4972,6 +5021,7 @@ export class PhonePeController {
                     soldqty: true,
                     totalqty: true,
                     platformstatus: true,
+                    ecomqty: true,
                   } as any, // Include ecomqty - Prisma client may need regeneration
                 });
 
@@ -6068,5 +6118,142 @@ export class PhonePeController {
     );
 
     return lockResults;
+  }
+
+  private async releaseComboComponentLocks(
+    tx: any,
+    comboProductId: number,
+    comboQuantity: number,
+    platformName: string,
+    merchantTransactionId: string
+  ): Promise<Array<{
+    componentproductid: number;
+    productname: string;
+    requiredqty: number;
+    totalReleased: number;
+    before: { availableqty: number; lockqty: number };
+    after: { availableqty: number; lockqty: number };
+  }>> {
+    const components = await tx.productBundleMap.findMany({
+      where: {
+        bundleproductid: BigInt(comboProductId),
+        isactive: true,
+      },
+      include: {
+        componentproduct: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (!components || components.length === 0) {
+      throw new Error(
+        `No active components found for combo product ${comboProductId}`
+      );
+    }
+
+    const releaseResults: Array<{
+      componentproductid: number;
+      productname: string;
+      requiredqty: number;
+      totalReleased: number;
+      before: { availableqty: number; lockqty: number };
+      after: { availableqty: number; lockqty: number };
+    }> = [];
+
+    for (const component of components) {
+      const componentProductId = Number(component.componentproductid);
+      const requiredQty = component.requiredqty || 1;
+      const totalNeeded = requiredQty * comboQuantity;
+
+      const platformStockResult = await tx.$queryRaw<Array<{
+        id: bigint;
+        productid: bigint;
+        platform: string;
+        availableqty: number;
+        lockqty: number;
+        orderedqty: number;
+        soldqty: number;
+        ecomqty: number;
+      }>>`
+        SELECT * FROM "platformstock"
+        WHERE "productid" = ${BigInt(componentProductId)}
+          AND "platform" = ${platformName}
+        FOR UPDATE
+      `;
+
+      if (!platformStockResult || platformStockResult.length === 0) {
+        throw new Error(
+          `PlatformStock not found for combo component ${componentProductId}`
+        );
+      }
+
+      const platformStock = platformStockResult[0];
+      const currentAvailableQty = Number(platformStock.availableqty) || 0;
+      const currentLockQty = Number(platformStock.lockqty) || 0;
+      const currentOrderedQty = Number(platformStock.orderedqty) || 0;
+      const currentSoldQty = Number(platformStock.soldqty) || 0;
+      const currentEcomQty = Number(platformStock.ecomqty) || 0;
+
+      const quantityToRelease = Math.min(totalNeeded, currentLockQty);
+      const newLockQty = Math.max(0, currentLockQty - quantityToRelease);
+      const newAvailableQty = Math.max(
+        0,
+        currentEcomQty - currentOrderedQty - currentSoldQty - newLockQty
+      );
+
+      await tx.platformStock.update({
+        where: {
+          productid_platform: {
+            productid: BigInt(componentProductId),
+            platform: platformName,
+          },
+        },
+        data: {
+          availableqty: newAvailableQty,
+          lockqty: newLockQty,
+          modifieddate: BigInt(Date.now()),
+        },
+      });
+
+      releaseResults.push({
+        componentproductid: componentProductId,
+        productname: component.componentproduct?.name || "Unknown",
+        requiredqty: requiredQty,
+        totalReleased: quantityToRelease,
+        before: {
+          availableqty: currentAvailableQty,
+          lockqty: currentLockQty,
+        },
+        after: {
+          availableqty: newAvailableQty,
+          lockqty: newLockQty,
+        },
+      });
+
+      logger.info(
+        {
+          comboProductId,
+          componentProductId,
+          componentName: component.componentproduct?.name,
+          merchantTransactionId,
+          quantityToRelease,
+          before: {
+            availableqty: currentAvailableQty,
+            lockqty: currentLockQty,
+          },
+          after: {
+            availableqty: newAvailableQty,
+            lockqty: newLockQty,
+          },
+        },
+        "Lock released successfully for combo component"
+      );
+    }
+
+    return releaseResults;
   }
 }

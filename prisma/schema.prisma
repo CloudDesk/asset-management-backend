@@ -134,7 +134,8 @@ model Stock {
   orderid              String?     @db.VarChar(500)
   platformhistory      Json?
   rfid                 String?     @db.VarChar(500)
-  rfidscannedtime      BigInt?  
+  rfidscannedtime      BigInt?
+  description          String?  // Added via: ALTER TABLE stock ADD COLUMN description TEXT;
 
   // Relations
   product              Product?    @relation(fields: [puc], references: [puc], onDelete: Cascade, onUpdate: NoAction, map: "fk_puc")

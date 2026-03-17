@@ -1,0 +1,33 @@
+
+════════════════════════════════════════════════════════════════════════════════
+  External Sold Update  |  🧪 DRY RUN  — read-only, zero DB writes
+  DB Host              :  monorail.proxy.rlwy.net   <- confirm this is the right DB!
+  Entries to process   :  1
+════════════════════════════════════════════════════════════════════════════════
+
+📋  Fetching current values from DB...
+
+┌─ [1/1]  productId=40  |  platform='amazon'  |  qty=2
+│
+│  📦 PRODUCT  (id=40, puc='NIV-0040')
+│    availablequantity :  471  →  469
+│    soldquantity      :  16  →  18
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=40, platform='amazon')
+│    availableqty      :  148  →  146
+│    soldqty           :  2  →  4
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (2 unit(s) → 'sold')
+│    stock ids         :  [3919, 3918]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '2/7/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Sat, 07 Feb 2026 10:00:00 GMT
+│    solddate (epoch)  :  1770458400000  ms (13-digit)
+│    description       :  'Manually updated on Mar 4 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+📊  Preview Summary
+    ✅  Will process :  1 row(s)
+    ❌  Will skip    :  0 row(s)

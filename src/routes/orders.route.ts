@@ -469,6 +469,7 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                           changed_date: { type: 'number' },
                           source: { type: 'string' },
                           inventory_user_id: { type: 'number', nullable: true },
+                          username: { type: 'string', nullable: true },
                           is_active: { type: 'boolean' }
                         }
                       }
@@ -551,6 +552,7 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                             changed_date: { type: 'number' },
                             source: { type: 'string' },
                             inventory_user_id: { type: 'number', nullable: true },
+                            username: { type: 'string', nullable: true },
                             is_active: { type: 'boolean' }
                           }
                         }
@@ -677,6 +679,7 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                         changed_date: { type: 'number' },
                         source: { type: 'string' },
                         inventory_user_id: { type: 'number', nullable: true },
+                        username: { type: 'string', nullable: true },
                         is_active: { type: 'boolean' }
                       }
                     }
@@ -717,6 +720,7 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                               changed_date: { type: 'number' },
                               source: { type: 'string' },
                               inventory_user_id: { type: 'number', nullable: true },
+                              username: { type: 'string', nullable: true },
                               is_active: { type: 'boolean' }
                             }
                           }

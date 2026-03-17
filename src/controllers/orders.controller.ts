@@ -14,9 +14,49 @@ import {
 } from '../utils/errorHandler.js';
 import { formatEntitiesForAPI } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
+import { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 
 export class OrdersController {
   public ordersService = new OrdersService();
+
+  private resolveInventoryActor(
+    request: FastifyRequest,
+    fallbackInventoryUserId?: number
+  ): { id: number; username: string } | null {
+    const authRequest = request as AuthenticatedRequest;
+    const authUser = authRequest.user;
+
+    if (authUser?.userType === 'inventory' && authUser.id) {
+      const fullName = `${authUser.firstname || ''} ${authUser.lastname || ''}`.trim();
+      const username = fullName || authUser.useremail || `inventory_user_${authUser.id}`;
+
+      if (fallbackInventoryUserId && fallbackInventoryUserId !== authUser.id) {
+        logger.warn({
+          tokenInventoryUserId: authUser.id,
+          payloadInventoryUserId: fallbackInventoryUserId,
+          endpoint: request.url
+        }, 'inventory_user_id in payload does not match authenticated user; using token identity');
+      }
+
+      return {
+        id: authUser.id,
+        username
+      };
+    }
+
+    if (fallbackInventoryUserId) {
+      logger.warn({
+        fallbackInventoryUserId,
+        endpoint: request.url
+      }, 'Authenticated inventory user context missing; falling back to payload inventory_user_id');
+      return {
+        id: fallbackInventoryUserId,
+        username: `inventory_user_${fallbackInventoryUserId}`
+      };
+    }
+
+    return null;
+  }
 
   getOrders = asyncHandler(async (request: FastifyRequest<{ Querystring: Record<string, any> }>, reply: FastifyReply) => {
     // Get all query parameters as filters (not just schema-validated ones)
@@ -77,10 +117,20 @@ export class OrdersController {
       });
     }
 
+    const actor = this.resolveInventoryActor(request, inventory_user_id);
+    if (!actor) {
+      return reply.code(401).send({
+        success: false,
+        message: 'Authenticated inventory user is required',
+        statusCode: 401
+      });
+    }
+
     const order = await this.ordersService.markReadyForDispatch(
       parseInt(id),
-      inventory_user_id,
-      stock_mapping
+      actor.id,
+      stock_mapping,
+      actor.username
     );
 
     const response = createSuccessResponse(
@@ -137,14 +187,24 @@ export class OrdersController {
       });
     }
 
+    const actor = this.resolveInventoryActor(request, inventory_user_id);
+    if (!actor) {
+      return reply.code(401).send({
+        success: false,
+        message: 'Authenticated inventory user is required',
+        statusCode: 401
+      });
+    }
+
     try {
       const updatedOrder = await this.ordersService.updateShipmentDetails(
         id,
         tracking_id,
         vendor,
-        inventory_user_id,
+        actor.id,
         public_tracking_link,
-        shipped
+        shipped,
+        actor.username
       );
 
       const response = createSuccessResponse(
@@ -190,8 +250,17 @@ export class OrdersController {
       });
     }
 
+    const actor = this.resolveInventoryActor(request, inventory_user_id);
+    if (!actor) {
+      return reply.code(401).send({
+        success: false,
+        message: 'Authenticated inventory user is required',
+        statusCode: 401
+      });
+    }
+
     try {
-      const order = await this.ordersService.markShipped(parseInt(id), inventory_user_id);
+      const order = await this.ordersService.markShipped(parseInt(id), actor.id, actor.username);
 
       const response = createSuccessResponse(
         'Order marked as shipped',
@@ -246,13 +315,23 @@ export class OrdersController {
       });
     }
 
+    const actor = this.resolveInventoryActor(request, inventory_user_id);
+    if (!actor) {
+      return reply.code(401).send({
+        success: false,
+        message: 'Authenticated inventory user is required',
+        statusCode: 401
+      });
+    }
+
     try {
       const updatedOrder = await this.ordersService.updateShipmentStatus(
         id,
         status,
-        inventory_user_id,
+        actor.id,
         location,
-        description
+        description,
+        actor.username
       );
 
       const response = createSuccessResponse(
@@ -537,7 +616,18 @@ export class OrdersController {
     }
 
     // Determine source
-    const source = userid ? 'customer' : 'inventoryuser';
+    const source: 'customer' | 'inventory_user' = userid ? 'customer' : 'inventory_user';
+    const actor = source === 'inventory_user'
+      ? this.resolveInventoryActor(request, inventory_user_id)
+      : null;
+
+    if (source === 'inventory_user' && !actor) {
+      return reply.code(401).send({
+        success: false,
+        message: 'Authenticated inventory user is required',
+        statusCode: 401
+      });
+    }
 
     try {
       // Parse order ID
@@ -561,9 +651,10 @@ export class OrdersController {
       const cancelledOrder = await this.ordersService.cancelOrder(
         orderId,
         userid,
-        inventory_user_id,
+        actor?.id || inventory_user_id,
         cancellation_reason,
-        source
+        source,
+        actor?.username
       );
 
       const response = createSuccessResponse(
@@ -648,6 +739,15 @@ export class OrdersController {
       });
     }
 
+    const actor = this.resolveInventoryActor(request, admin_user_id);
+    if (!actor) {
+      return reply.code(401).send({
+        success: false,
+        message: 'Authenticated inventory user is required',
+        statusCode: 401
+      });
+    }
+
     // Validate status value
     const validStatuses = ['cancelled_refund_processing', 'cancelled_refunded', 'cancelled_completed'];
     if (!validStatuses.includes(status)) {
@@ -680,11 +780,12 @@ export class OrdersController {
       const updatedOrder = await this.ordersService.updateRefundStatus(
         orderId,
         status,
-        admin_user_id,
+        actor.id,
         notes,
         refund_transaction_id,
         refund_amount,
-        refund_reference
+        refund_reference,
+        actor.username
       );
 
       const response = createSuccessResponse(

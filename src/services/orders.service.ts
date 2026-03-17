@@ -20,6 +20,13 @@ import { logger } from '../config/logger.js';
 import { gstService } from './gst.service.js';
 
 export class OrdersService {
+  private normalizeStatusHistorySource(source?: string): string {
+    if (!source) return 'system';
+    return source === 'inventoryuser' || source === 'inventory_user'
+      ? 'inventory_user'
+      : source;
+  }
+
   /**
    * Maps EKART webhook status to our system status
    * Handles various formats: "Shipped", "SHIPPED", "In Transit", "In_Transit", "Pick Up", "Picked Up", etc.
@@ -605,7 +612,14 @@ export class OrdersService {
    * Recalculate order status based on all orderline statuses
    * This automatically updates order status history
    */
-  async recalculateOrderStatus(orderId: number): Promise<void> {
+  async recalculateOrderStatus(
+    orderId: number,
+    actorContext?: {
+      source?: string;
+      inventory_user_id?: number;
+      username?: string;
+    }
+  ): Promise<void> {
     try {
       logger.debug({ orderId }, 'Starting order status recalculation');
 
@@ -694,14 +708,23 @@ export class OrdersService {
           is_active: false
         }));
 
+        const normalizedSource = this.normalizeStatusHistorySource(actorContext?.source);
+
         // New entry with is_active: true
         const historyEntry: any = {
           previous_status: previousStatus,
           new_status: newOrderStatus,
           changed_date: Date.now(),
-          source: 'system', // Auto-calculated from orderlines
+          source: normalizedSource,
           is_active: true
         };
+
+        if (normalizedSource === 'inventory_user' && actorContext?.inventory_user_id) {
+          historyEntry.inventory_user_id = actorContext.inventory_user_id;
+        }
+        if (actorContext?.username) {
+          historyEntry.username = actorContext.username;
+        }
         const updatedHistory = [...deactivatedHistory, historyEntry];
 
         // Update order with new status and history (JSON.stringify for JSONB column)
@@ -1349,7 +1372,8 @@ export class OrdersService {
         supplierid?: number;
         poid?: number;
       };
-    }>
+    }>,
+    inventoryUsername?: string
   ): Promise<any> {
     try {
       logger.info({ orderId, inventoryUserId, hasStockMapping: !!stockMapping }, 'Marking order as ready for dispatch');
@@ -1387,14 +1411,19 @@ export class OrdersService {
             orderline.id.toString(),
             'ready_for_dispatch',
             {
-              source: 'inventoryuser',
-              inventory_user_id: inventoryUserId
+              source: 'inventory_user',
+              inventory_user_id: inventoryUserId,
+              username: inventoryUsername
             }
           );
         }
 
         // 5. Recalculate order status (should become ready_for_dispatch)
-        await this.recalculateOrderStatus(orderId);
+        await this.recalculateOrderStatus(orderId, {
+          source: 'inventory_user',
+          inventory_user_id: inventoryUserId,
+          ...(inventoryUsername ? { username: inventoryUsername } : {})
+        });
 
         const updatedOrder = await this.findById(orderId);
         logger.info({
@@ -1513,7 +1542,7 @@ export class OrdersService {
    * NOTE: This endpoint is kept for backward compatibility and manual override.
    * For EKART orders, the 'shipped' status is now set automatically via webhook.
    */
-  async markShipped(orderId: number, inventoryUserId: number): Promise<any> {
+  async markShipped(orderId: number, inventoryUserId: number, inventoryUsername?: string): Promise<any> {
     try {
       logger.info({ orderId, inventoryUserId }, 'Marking order as shipped');
 
@@ -1557,8 +1586,9 @@ export class OrdersService {
           'shipped',
           {
             shipdate: currentTimestamp,
-            source: 'inventoryuser',
-            inventory_user_id: inventoryUserId
+            source: 'inventory_user',
+            inventory_user_id: inventoryUserId,
+            username: inventoryUsername
           }
         );
       }
@@ -1571,7 +1601,11 @@ export class OrdersService {
       });
 
       // Recalculate order status (should become shipped)
-      await this.recalculateOrderStatus(orderId);
+      await this.recalculateOrderStatus(orderId, {
+        source: 'inventory_user',
+        inventory_user_id: inventoryUserId,
+        ...(inventoryUsername ? { username: inventoryUsername } : {})
+      });
 
       const updatedOrder = await this.findById(orderId);
       logger.info({ orderId, orderStatus: updatedOrder.orderstatus }, 'Order marked as shipped');
@@ -1596,7 +1630,8 @@ export class OrdersService {
     vendor: string,
     inventoryUserId: number,
     publicTrackingLink?: string,
-    shipped?: boolean
+    shipped?: boolean,
+    inventoryUsername?: string
   ): Promise<any> {
     try {
       logger.info(
@@ -1741,8 +1776,9 @@ export class OrdersService {
               {
                 tracking_id: trackingId,
                 shipdate: currentTimestamp,
-                source: 'inventoryuser',
-                inventory_user_id: inventoryUserId
+                source: 'inventory_user',
+                inventory_user_id: inventoryUserId,
+                username: inventoryUsername
               }
             );
           } else {
@@ -1767,8 +1803,9 @@ export class OrdersService {
       if (!isAlreadyShipped && shipped === true) {
         // Update order status to shipped (triggers status_history update)
         await this.updateOrderStatus(order.id.toString(), 'shipped', {
-          source: 'inventoryuser',
-          inventory_user_id: inventoryUserId
+          source: 'inventory_user',
+          inventory_user_id: inventoryUserId,
+          username: inventoryUsername
         });
         logger.info(
           { orderId: order.id },
@@ -1886,7 +1923,8 @@ export class OrdersService {
     status: string,
     inventoryUserId: number,
     location?: string,
-    description?: string
+    description?: string,
+    inventoryUsername?: string
   ): Promise<any> {
     try {
       logger.info(
@@ -2098,8 +2136,9 @@ export class OrdersService {
 
         for (const orderline of orderlines) {
           const orderlineUpdateData: Record<string, any> = {
-            source: 'inventoryuser',
+            source: 'inventory_user',
             inventory_user_id: inventoryUserId,
+            username: inventoryUsername,
             location,
             description
           };
@@ -2124,8 +2163,9 @@ export class OrdersService {
 
       // Step 10: Update order status (triggers status_history update)
       await this.updateOrderStatus(order.id.toString(), newOrderStatus, {
-        source: 'inventoryuser',
+        source: 'inventory_user',
         inventory_user_id: inventoryUserId,
+        username: inventoryUsername,
         location,
         description
       });
@@ -2396,18 +2436,23 @@ export class OrdersService {
         is_active: false
       }));
 
+      const normalizedSource = this.normalizeStatusHistorySource(additionalData?.source);
+
       // New entry with is_active: true
       const historyEntry: any = {
         previous_status: previousStatus,
         new_status: status,
         changed_date: Date.now(),
-        source: additionalData?.source || 'system',
+        source: normalizedSource,
         is_active: true
       };
 
-      // Add inventory_user_id if source is inventoryuser
-      if (historyEntry.source === 'inventoryuser' && additionalData?.inventory_user_id) {
+      // Add inventory_user_id if source is inventory_user
+      if (historyEntry.source === 'inventory_user' && additionalData?.inventory_user_id) {
         historyEntry.inventory_user_id = additionalData.inventory_user_id;
+      }
+      if (additionalData?.username) {
+        historyEntry.username = additionalData.username;
       }
 
       // Add location and description if provided
@@ -3134,14 +3179,17 @@ export class OrdersService {
     userId?: number,
     inventoryUserId?: number,
     cancellationReason?: string,
-    source: 'customer' | 'inventoryuser' = 'customer'
+    source: 'customer' | 'inventoryuser' | 'inventory_user' = 'customer',
+    inventoryUsername?: string
   ): Promise<any> {
     try {
+      const normalizedSource = this.normalizeStatusHistorySource(source);
       logger.info({
         orderId,
         userId,
         inventoryUserId,
-        source,
+        source: normalizedSource,
+        inventoryUsername,
         cancellationReason
       }, 'Starting order cancellation');
 
@@ -3177,7 +3225,11 @@ export class OrdersService {
               orderId,
               'cancelled_completed',
               adminUserIdForRefund,
-              `COD order - automatically completed (no refund required). Cancelled by: ${source}`
+              `COD order - automatically completed (no refund required). Cancelled by: ${normalizedSource}`,
+              undefined,
+              undefined,
+              undefined,
+              inventoryUsername
             );
 
             logger.info({
@@ -3218,7 +3270,7 @@ export class OrdersService {
       }
 
       // Verify userid matches order owner if customer cancellation
-      if (source === 'customer' && userId && order.userid !== userId) {
+      if (normalizedSource === 'customer' && userId && order.userid !== userId) {
         throw new Error('Unauthorized: userid does not match order owner');
       }
 
@@ -3272,7 +3324,7 @@ export class OrdersService {
         }
 
         // STEP 4: Verify user authorization
-        if (source === 'customer' && userId && order.userid !== userId) {
+        if (normalizedSource === 'customer' && userId && order.userid !== userId) {
           throw new Error('Unauthorized: userid does not match order owner');
         }
 
@@ -3298,9 +3350,10 @@ export class OrdersService {
             previous_status: previousStatus,
             new_status: 'cancelled',
             changed_date: currentTimestamp,
-            source,
+            source: normalizedSource,
             userid: userId,
             inventory_user_id: inventoryUserId,
+            username: inventoryUsername,
             cancellation_reason: cancellationReason,
             is_active: true
           };
@@ -3333,9 +3386,10 @@ export class OrdersService {
           previous_status: order.orderstatus || 'unknown',
           new_status: 'cancelled',
           changed_date: currentTimestamp,
-          source,
+          source: normalizedSource,
           userid: userId,
           inventory_user_id: inventoryUserId,
+          username: inventoryUsername,
           cancellation_reason: cancellationReason,
           is_active: true
         };
@@ -3375,7 +3429,7 @@ export class OrdersService {
         orderId,
         previousStatus: order.orderstatus,
         newStatus: 'cancelled',
-        source,
+        source: normalizedSource,
         userId,
         inventoryUserId
       }, 'Order cancelled successfully');
@@ -3394,7 +3448,7 @@ export class OrdersService {
               ...existingData,
               order_cancelled: true,
               cancelled_date: currentTimestamp,
-              cancellation_source: source,
+              cancellation_source: normalizedSource,
               cancellation_reason: cancellationReason,
               order_status: updatedOrder.mode === 'cod' ? 'ORDER_CANCELLED' : 'CANCELLED_AWAITING_REFUND'
             };
@@ -3505,7 +3559,11 @@ export class OrdersService {
             orderId,
             'cancelled_completed',
             adminUserIdForRefund,
-            `COD order - automatically completed (no refund required). Cancelled by: ${source}`
+            `COD order - automatically completed (no refund required). Cancelled by: ${normalizedSource}`,
+            undefined,
+            undefined,
+            undefined,
+            inventoryUsername
           );
 
           logger.info({
@@ -3697,7 +3755,8 @@ export class OrdersService {
     // NEW: Optional structured refund fields
     refundTransactionId?: string,
     refundAmount?: number,
-    refundReference?: string
+    refundReference?: string,
+    inventoryUsername?: string
   ): Promise<any> {
     try {
       logger.info({
@@ -3707,7 +3766,8 @@ export class OrdersService {
         notes,
         refundTransactionId,
         refundAmount,
-        refundReference
+        refundReference,
+        inventoryUsername
       }, 'Updating refund status with structured data');
 
       // Get order
@@ -3765,8 +3825,9 @@ export class OrdersService {
 
       // Build status_history entry with structured refund data
       const statusHistoryData: any = {
-        source: 'inventoryuser',
-        inventory_user_id: adminUserId
+        source: 'inventory_user',
+        inventory_user_id: adminUserId,
+        username: inventoryUsername
       };
 
       // Add refund fields to status_history
@@ -3799,8 +3860,9 @@ export class OrdersService {
 
       // Prepare order update data
       const orderUpdateData: any = {
-        source: 'inventoryuser',
+        source: 'inventory_user',
         inventory_user_id: adminUserId,
+        username: inventoryUsername,
         refund_status_updated_date: currentTimestamp
       };
 
