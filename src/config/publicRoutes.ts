@@ -57,6 +57,7 @@ export const INVENTORY_PUBLIC_ROUTES = [
     // 1. Authentication APIs
     'POST /v1/auth/signin',
     'POST /v1/auth/forgot-password',
+    'POST /v1/auth/reset-password',
 
     // 2. User Management APIs
     'POST /v1/inventoryusers',

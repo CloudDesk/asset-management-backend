@@ -24,9 +24,33 @@ import {
 } from '../utils/auth.js';
 import { EmailService } from './email.service.js';
 import { prisma } from '../models/prisma.js';
+import crypto from 'crypto';
 
 export class InventoryUsersService {
   private emailService = new EmailService();
+
+  private async sendPasswordSetLink(user: { id: number; useremail?: string | null; firstname?: string | null }): Promise<void> {
+    if (!user.useremail) {
+      logger.warn({ userId: user.id }, 'Skipping password set email because useremail is missing');
+      return;
+    }
+
+    const { token, hashedToken, expiresAt } = generateResetToken();
+
+    await dynamicUpdate('inventoryusers', { id: user.id }, {
+      resettoken: hashedToken,
+      resettokenexpires: BigInt(expiresAt.getTime()),
+      modifieddate: BigInt(Date.now())
+    });
+
+    const userName = user.firstname || user.useremail.split('@')[0] || 'User';
+    await this.emailService.sendPasswordResetEmail(user.useremail, token, userName);
+
+    logger.info({
+      userId: user.id,
+      email: user.useremail
+    }, 'Password set email sent successfully');
+  }
 
   async findMany(
     filters: FilterOptions,
@@ -235,6 +259,16 @@ export class InventoryUsersService {
 
       if (!inventoryUser) {
         throw new Error('Failed to create inventory user - no valid fields provided');
+      }
+
+      try {
+        await this.sendPasswordSetLink(inventoryUser);
+      } catch (emailError) {
+        logger.error({
+          error: emailError,
+          userId: inventoryUser.id,
+          email: inventoryUser.useremail
+        }, 'Failed to send password set email for newly created inventory user');
       }
 
       logger.info({
@@ -504,18 +538,7 @@ export class InventoryUsersService {
         return;
       }
 
-      const { token, hashedToken, expiresAt } = generateResetToken();
-
-      // Store reset token in database
-      await dynamicUpdate('inventoryusers', { id: user.id }, {
-        resettoken: hashedToken,
-        resettokenexpires: BigInt(expiresAt.getTime()),
-        modifieddate: BigInt(Date.now())
-      });
-
-      // Send reset email
-      const userName = user.firstname || user.useremail?.split('@')[0] || 'User';
-      await this.emailService.sendPasswordResetEmail(email, token, userName);
+      await this.sendPasswordSetLink(user);
 
       logger.info({
         userId: user.id,
@@ -541,7 +564,7 @@ export class InventoryUsersService {
       }
 
       // Find user with reset token
-      const hashedToken = require('crypto').createHash('sha256').update(token).digest('hex');
+      const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
       const users = await dynamicFindManyWithFilters('inventoryusers', { resettoken: hashedToken }, {
         skip: 0,
         take: 1,
