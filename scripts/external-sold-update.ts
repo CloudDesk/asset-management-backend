@@ -33,13 +33,14 @@ import * as path from 'path';
 //   Option B — falls back to DATABASE_URL in .env (dev default)
 //
 //   The script builds the URL internally — you never type a raw postgres:// string.
+
 // ============================================================
 function resolveDbUrl(): string {
-    const host = "monorail.proxy.rlwy.net";
-    const port = "16601";
+    const host = "centerbeam.proxy.rlwy.net";
+    const port = "34305";
     const user = "postgres";
-    const password = "sKYxITEORpgqlalQbnQXbAGjIfRWNBoW";
-    const dbName = "assetmanagement_prod";
+    const password = "zPjXkWvnHzvaVonPhQRYQitsWXpITBbp";
+    const dbName = "railway";
 
     if (host && user && password && dbName) {
         // Encode password in case it has special characters
@@ -90,8 +91,9 @@ const SOLD_UPDATES: Array<{
     solddate: string;   // 'MM/DD/YYYY'
 }> =
     [
-        { id: 1000000000, quantity: 0, platform: '*****', solddate: '2/22/2026' }
+        // { id: ****, quantity: 2, platform: 'Amazon', solddate: '3/3/2026' }, 
     ]
+
 
 // ============================================================
 // DATE CONVERTER

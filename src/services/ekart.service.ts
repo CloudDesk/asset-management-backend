@@ -2,6 +2,7 @@ import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { logger } from '../config/logger.js';
 import { env } from '../config/env.js';
 import { ekartAuthService } from './ekart-auth.service.js';
+import { dynamicFindManyWithFilters } from '../utils/dynamicDbOperations.js';
 
 export interface CreateShipmentPayload {
   seller_name: string;
@@ -163,6 +164,8 @@ export interface ShippingRatesResponse {
 export class EkartService {
   private baseURL: string;
   private authService: typeof ekartAuthService;
+  private readonly DEFAULT_EKART_HSN_CODE = '33074100';
+  private readonly DEFAULT_EKART_CATEGORY_OF_GOODS = 'premium_incense_sticks';
 
   constructor() {
     this.baseURL = env.EKART_BASE_URL || 'https://app.elite.ekartlogistics.in/api';
@@ -493,10 +496,76 @@ export class EkartService {
       '✅ [SHIPMENT CREATE] Step 2 SUCCESS: GST TIN obtained'
     );
 
+    let derivedHsnCode = payload.hsn_code;
+    let derivedCategoryOfGoods = payload.category_of_goods;
+
+    if (!derivedHsnCode || !derivedCategoryOfGoods) {
+      try {
+        const { OrdersService } = await import('./orders.service.js');
+        const ordersService = new OrdersService();
+        const order = await ordersService.findByOrderIdString(payload.order_number);
+
+        if (order?.id) {
+          const { data: orderlines } = await dynamicFindManyWithFilters(
+            'orderline',
+            { orderid: order.id.toString() },
+            {
+              take: 1,
+              useAllColumns: true,
+              orderBy: 'id',
+              orderDirection: 'ASC'
+            }
+          );
+
+          const firstOrderline = orderlines?.[0];
+
+          if (firstOrderline) {
+            derivedHsnCode = derivedHsnCode || firstOrderline.hsn_code || this.DEFAULT_EKART_HSN_CODE;
+            derivedCategoryOfGoods =
+              derivedCategoryOfGoods ||
+              firstOrderline.productcategory ||
+              this.DEFAULT_EKART_CATEGORY_OF_GOODS;
+
+            logger.info(
+              {
+                orderNumber: payload.order_number,
+                firstOrderlineId: firstOrderline.id,
+                hsnCodeSource: payload.hsn_code
+                  ? 'payload'
+                  : firstOrderline.hsn_code
+                    ? 'first_orderline'
+                    : 'default',
+                categoryOfGoodsSource: payload.category_of_goods
+                  ? 'payload'
+                  : firstOrderline.productcategory
+                    ? 'first_orderline'
+                    : 'default'
+              },
+              '✅ [SHIPMENT CREATE] Derived HSN code and category of goods for EKART payload'
+            );
+          }
+        }
+      } catch (error: any) {
+        logger.warn(
+          {
+            orderNumber: payload.order_number,
+            error: error.message
+          },
+          '⚠️ [SHIPMENT CREATE] Failed to derive HSN code/category from first orderline, falling back to defaults'
+        );
+      }
+    }
+
+    derivedHsnCode = derivedHsnCode || this.DEFAULT_EKART_HSN_CODE;
+    derivedCategoryOfGoods =
+      derivedCategoryOfGoods || this.DEFAULT_EKART_CATEGORY_OF_GOODS;
+
     // Prepare final payload with GST TIN
     const finalPayload: CreateShipmentPayload = {
       ...payload,
-      seller_gst_tin: sellerGstTin
+      seller_gst_tin: sellerGstTin,
+      hsn_code: derivedHsnCode,
+      category_of_goods: derivedCategoryOfGoods
     };
 
     logger.info(
@@ -732,4 +801,3 @@ export class EkartService {
 
 // Export singleton instance
 export const ekartService = new EkartService();
-
