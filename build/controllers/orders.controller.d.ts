@@ -2,6 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { OrdersService } from '../services/orders.service.js';
 export declare class OrdersController {
     ordersService: OrdersService;
+    private resolveInventoryActor;
     getOrders: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     /**
      * Mark order as ready for dispatch

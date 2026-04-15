@@ -2,6 +2,7 @@ import { CreateOrdersInput, UpdateOrdersInput } from '../schemas/orders.schema.j
 import { PaginationResult } from '../utils/pagination.js';
 import { FilterOptions } from '../utils/filterBuilder.js';
 export declare class OrdersService {
+    private normalizeStatusHistorySource;
     /**
      * Maps EKART webhook status to our system status
      * Handles various formats: "Shipped", "SHIPPED", "In Transit", "In_Transit", "Pick Up", "Picked Up", etc.
@@ -27,7 +28,11 @@ export declare class OrdersService {
      * Recalculate order status based on all orderline statuses
      * This automatically updates order status history
      */
-    recalculateOrderStatus(orderId: number): Promise<void>;
+    recalculateOrderStatus(orderId: number, actorContext?: {
+        source?: string;
+        inventory_user_id?: number;
+        username?: string;
+    }): Promise<void>;
     /**
      * Find order by tracking ID
      */
@@ -74,7 +79,7 @@ export declare class OrdersService {
             supplierid?: number;
             poid?: number;
         };
-    }>): Promise<any>;
+    }>, inventoryUsername?: string): Promise<any>;
     /**
      * Generate invoice for an order
      * Fetches seller data from EKART and calls storage backend to generate invoice PDF
@@ -87,7 +92,7 @@ export declare class OrdersService {
      * NOTE: This endpoint is kept for backward compatibility and manual override.
      * For EKART orders, the 'shipped' status is now set automatically via webhook.
      */
-    markShipped(orderId: number, inventoryUserId: number): Promise<any>;
+    markShipped(orderId: number, inventoryUserId: number, inventoryUsername?: string): Promise<any>;
     /**
      * Manually ship order with vendor details
      * Automatically sets order status to 'shipped'
@@ -95,7 +100,7 @@ export declare class OrdersService {
      *
      * Note: Allows updating from EKART to another vendor when EKART refuses to collect
      */
-    updateShipmentDetails(orderIdOrNumber: string | number, trackingId: string, vendor: string, inventoryUserId: number, publicTrackingLink?: string, shipped?: boolean): Promise<any>;
+    updateShipmentDetails(orderIdOrNumber: string | number, trackingId: string, vendor: string, inventoryUserId: number, publicTrackingLink?: string, shipped?: boolean, inventoryUsername?: string): Promise<any>;
     /**
      * Generate tracking link for manual vendors
      * Private helper method
@@ -106,7 +111,7 @@ export declare class OrdersService {
      * Works for ALL vendors (EKART + manual vendors)
      * PATCH /v1/orders/:id/shipment-status
      */
-    updateShipmentStatus(orderIdOrNumber: string | number, status: string, inventoryUserId: number, location?: string, description?: string): Promise<any>;
+    updateShipmentStatus(orderIdOrNumber: string | number, status: string, inventoryUserId: number, location?: string, description?: string, inventoryUsername?: string): Promise<any>;
     /**
      * Handle EKART webhook status update
      * Maps EKART webhook status to system status and updates order/orderlines
@@ -225,7 +230,7 @@ export declare class OrdersService {
      * Cancel order (customer or admin initiated)
      * Handles stock reversal based on order status
      */
-    cancelOrder(orderId: number, userId?: number, inventoryUserId?: number, cancellationReason?: string, source?: 'customer' | 'inventoryuser'): Promise<any>;
+    cancelOrder(orderId: number, userId?: number, inventoryUserId?: number, cancellationReason?: string, source?: 'customer' | 'inventoryuser' | 'inventory_user', inventoryUsername?: string): Promise<any>;
     /**
      * DEPRECATED: Manual refund process is now used
      *
@@ -241,7 +246,7 @@ export declare class OrdersService {
      * Transitions: cancelled → cancelled_refund_processing → cancelled_refunded
      * Or: cancelled → cancelled_completed (for COD orders)
      */
-    updateRefundStatus(orderId: number | string, newStatus: 'cancelled_refund_processing' | 'cancelled_refunded' | 'cancelled_completed', adminUserId: number, notes?: string, refundTransactionId?: string, refundAmount?: number, refundReference?: string): Promise<any>;
+    updateRefundStatus(orderId: number | string, newStatus: 'cancelled_refund_processing' | 'cancelled_refunded' | 'cancelled_completed', adminUserId: number, notes?: string, refundTransactionId?: string, refundAmount?: number, refundReference?: string, inventoryUsername?: string): Promise<any>;
     /**
      * Cancel order before ready_for_dispatch
      * Reverses orderedqty → availableqty
