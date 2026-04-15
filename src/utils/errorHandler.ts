@@ -8,6 +8,11 @@ export interface ErrorResponse {
   message: string;
   details?: string;
   statusCode: number;
+  errorCode?: string;
+  severity?: string;
+  upstreamStatusCode?: number;
+  upstreamMessage?: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface SuccessResponse<T = unknown> {
@@ -32,7 +37,8 @@ export function createSuccessResponse<T>(
 export function createErrorResponse(
   message: string,
   details?: string,
-  statusCode: number = 400
+  statusCode: number = 400,
+  extras: Partial<Omit<ErrorResponse, 'success' | 'message' | 'details' | 'statusCode'>> = {}
 ): ErrorResponse {
   const response: ErrorResponse = {
     success: false,
@@ -43,6 +49,8 @@ export function createErrorResponse(
   if (details !== undefined && details !== null && details !== '') {
     response.details = details;
   }
+
+  Object.assign(response, extras);
 
   return response;
 }
@@ -415,6 +423,7 @@ export function processError(
   let statusCode = 500;
   let message = 'Internal server error';
   let details: string | undefined;
+  let extras: Partial<Omit<ErrorResponse, 'success' | 'message' | 'details' | 'statusCode'>> = {};
 
   // DEBUG: Add logging to see which condition is matched
   console.log('=== ERROR DEBUG ===');
@@ -523,6 +532,31 @@ export function processError(
     message = error.message || 'An error occurred';
     details = error.message;
   }
+  // Handle upstream HTTP client errors such as Axios responses
+  else if (error.response?.status && typeof error.response.status === 'number') {
+    console.log('=== MATCHED: Upstream HTTP client error');
+    const upstreamStatus = error.response.status;
+    const upstreamData = error.response.data;
+
+    statusCode = upstreamStatus;
+    message =
+      upstreamData?.message ||
+      error.message ||
+      'Upstream service request failed';
+    details =
+      upstreamData?.description ||
+      upstreamData?.details ||
+      error.message;
+    extras = {
+      upstreamStatusCode: upstreamStatus,
+      upstreamMessage: upstreamData?.message || error.message,
+      errorCode: upstreamData?.code,
+      severity: upstreamData?.severity,
+      metadata: upstreamData && typeof upstreamData === 'object'
+        ? { upstream: upstreamData }
+        : undefined,
+    };
+  }
   // Handle generic errors
   else {
     console.log('=== MATCHED: Generic error');
@@ -541,7 +575,7 @@ export function processError(
   console.log('Final message:', message);
   console.log('Final details:', details);
 
-  return createErrorResponse(message, details, statusCode);
+  return createErrorResponse(message, details, statusCode, extras);
 }
 
 // Custom async handler that catches all errors and processes them consistently
