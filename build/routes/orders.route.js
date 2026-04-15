@@ -282,6 +282,61 @@ export async function ordersRoutes(fastify) {
             }
         }
     }, ordersController.updateShipmentStatus.bind(ordersController));
+    // POST /v1/orders/:id/generate-invoice - Manually generate order invoice
+    fastify.post('/:id/generate-invoice', {
+        schema: {
+            description: 'Generate or regenerate order invoice manually for an order. Keeps existing automatic invoice generation flows unchanged.',
+            tags: ['Orders'],
+            params: {
+                type: 'object',
+                properties: {
+                    id: { type: 'string', description: 'Order ID (database ID) or order number (orderid)' }
+                },
+                required: ['id']
+            },
+            body: {
+                type: 'object',
+                required: ['inventory_user_id'],
+                properties: {
+                    inventory_user_id: { type: 'number', description: 'Inventory user ID who triggered invoice generation' }
+                }
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        data: { type: 'object', additionalProperties: true },
+                        message: { type: 'string' }
+                    }
+                },
+                400: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        statusCode: { type: 'number' }
+                    }
+                },
+                401: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        statusCode: { type: 'number' }
+                    }
+                },
+                404: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        statusCode: { type: 'number' }
+                    }
+                }
+            }
+        }
+    }, ordersController.generateOrderInvoice.bind(ordersController));
     // PATCH /v1/orders/:id/mark-shipped - Mark order as shipped (backward compatibility / manual override)
     // NOTE: For EKART orders, this endpoint is NOT called in normal flow.
     // EKART webhook automatically sets 'shipped' status when pickup is confirmed.
@@ -437,6 +492,7 @@ export async function ordersRoutes(fastify) {
                                         vendor: { type: 'string', nullable: true },
                                         barcodes: { type: 'object', nullable: true },
                                         label_url: { type: 'string', nullable: true },
+                                        order_invoice_url: { type: 'string', nullable: true },
                                         public_tracking_link: { type: 'string', nullable: true },
                                         shipment_created_at: { type: 'number', nullable: true },
                                         shipdate: { type: 'number', nullable: true },

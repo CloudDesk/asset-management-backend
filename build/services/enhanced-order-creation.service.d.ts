@@ -49,6 +49,7 @@ export declare class EnhancedOrderCreationService {
             shipment_created_at: bigint | null;
             label_downloaded_at: bigint | null;
             label_printed_at: bigint | null;
+            shipment_tracking_status: string | null;
             items_total: import("@prisma/client/runtime/library").Decimal | null;
             total_taxable_amount: import("@prisma/client/runtime/library").Decimal | null;
             total_cgst_amount: import("@prisma/client/runtime/library").Decimal | null;
@@ -189,6 +190,7 @@ export declare class EnhancedOrderCreationService {
             shipment_created_at: bigint | null;
             label_downloaded_at: bigint | null;
             label_printed_at: bigint | null;
+            shipment_tracking_status: string | null;
             items_total: import("@prisma/client/runtime/library").Decimal | null;
             total_taxable_amount: import("@prisma/client/runtime/library").Decimal | null;
             total_cgst_amount: import("@prisma/client/runtime/library").Decimal | null;

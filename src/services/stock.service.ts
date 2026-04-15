@@ -61,7 +61,7 @@ export class StockService {
       // Fetch product information for all unique PUCs
       if (stocks.length > 0) {
         const uniquePucs = [...new Set(stocks.map((stock: any) => stock.puc).filter(Boolean))];
-        
+
         if (uniquePucs.length > 0) {
           try {
             // Fetch products by PUCs in batch with name, category, subcategory, and subsubcategory
@@ -198,6 +198,7 @@ export class StockService {
       availableqty: number;
       orderedqty: number;
       soldqty: number;
+      ecomqty: number;
       lockqty: number;
     }>;
     locations: Array<{
@@ -267,6 +268,7 @@ export class StockService {
         availableqty: number;
         orderedqty: number;
         soldqty: number;
+        ecomqty: number;
         lockqty: number;
       }> = [];
 
@@ -287,6 +289,7 @@ export class StockService {
             availableqty: Number(record.availableqty ?? 0),
             orderedqty: Number(record.orderedqty ?? 0),
             soldqty: Number(record.soldqty ?? 0),
+            ecomqty: Number(record.ecomqty ?? 0),
             lockqty: Number(record.lockqty ?? 0),
           }));
         } catch (error) {
@@ -301,18 +304,90 @@ export class StockService {
         }
       }
 
+      const locationSummaries = new Map<string, {
+        location: string;
+        quantity: number;
+        availablequantity: number;
+        orderedquantity: number;
+        soldquantity: number;
+        ecompublishedquantity: number;
+      }>();
+
+      for (const platformSummary of platforms) {
+        const location = platformSummary.platform;
+        locationSummaries.set(location, {
+          location,
+          quantity: platformSummary.quantity,
+          availablequantity: Math.max(
+            0,
+            platformSummary.ecompublishedquantity -
+            platformSummary.orderedquantity -
+            platformSummary.soldquantity
+          ),
+          orderedquantity: platformSummary.orderedquantity,
+          soldquantity: platformSummary.soldquantity,
+          ecompublishedquantity: platformSummary.ecompublishedquantity,
+        });
+      }
+
+      for (const platformStock of platformStocks) {
+        const location = platformStock.platform ?? '';
+        const existing = locationSummaries.get(location);
+
+        if (existing) {
+          const orderedquantity = platformStock.orderedqty;
+          const soldquantity = platformStock.soldqty;
+          const ecompublishedquantity = existing.ecompublishedquantity;
+
+          locationSummaries.set(location, {
+            ...existing,
+            orderedquantity,
+            soldquantity,
+            availablequantity: Math.max(
+              0,
+              ecompublishedquantity - orderedquantity - soldquantity
+            ),
+          });
+          continue;
+        }
+
+        const ecompublishedquantity = platformStock.ecomqty;
+        const orderedquantity = platformStock.orderedqty;
+        const soldquantity = platformStock.soldqty;
+
+        locationSummaries.set(location, {
+          location,
+          quantity: platformStock.totalqty,
+          availablequantity: Math.max(
+            0,
+            ecompublishedquantity - orderedquantity - soldquantity
+          ),
+          orderedquantity,
+          soldquantity,
+          ecompublishedquantity,
+        });
+      }
+
+      const locations = Array.from(locationSummaries.values()).sort((a, b) =>
+        a.location.localeCompare(b.location)
+      );
+
+      if (locations.length === 1 && locations[0]) {
+        locations[0] = {
+          location: locations[0].location || '',
+          quantity: summaryTotals.quantity,
+          availablequantity: summaryTotals.availablequantity,
+          orderedquantity: summaryTotals.orderedquantity,
+          soldquantity: summaryTotals.soldquantity,
+          ecompublishedquantity: summaryTotals.ecompublishedquantity,
+        };
+      }
+
       return {
         ...summaryTotals,
         platforms,
         platformStocks,
-        locations: platforms.map((platformSummary) => ({
-          location: platformSummary.platform,
-          quantity: platformSummary.quantity,
-          availablequantity: platformSummary.availablequantity,
-          orderedquantity: platformSummary.orderedquantity,
-          soldquantity: platformSummary.soldquantity,
-          ecompublishedquantity: platformSummary.ecompublishedquantity,
-        })),
+        locations,
       };
     } catch (error: any) {
       logger.error({ error: error.message, puc }, 'Failed to build stock summary by PUC');

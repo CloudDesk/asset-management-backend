@@ -239,6 +239,51 @@ export class OrdersController {
             throw error;
         }
     });
+    generateOrderInvoice = asyncHandler(async (request, reply) => {
+        const { id } = request.params;
+        const { inventory_user_id } = request.body;
+        if (!inventory_user_id) {
+            return reply.code(400).send({
+                success: false,
+                message: 'inventory_user_id is required',
+                statusCode: 400
+            });
+        }
+        const actor = this.resolveInventoryActor(request, inventory_user_id);
+        if (!actor) {
+            return reply.code(401).send({
+                success: false,
+                message: 'Authenticated inventory user is required',
+                statusCode: 401
+            });
+        }
+        try {
+            const result = await this.ordersService.generateOrderInvoice(id);
+            const response = createSuccessResponse('Order invoice generated successfully', {
+                ...formatEntitiesForAPI([result.order], 'orders')[0],
+                invoiceUrl: result.invoiceUrl,
+                generated_by_inventory_user_id: actor.id
+            });
+            return reply.code(200).send(response);
+        }
+        catch (error) {
+            if (error.message.includes('Order not found')) {
+                return reply.code(404).send({
+                    success: false,
+                    message: error.message,
+                    statusCode: 404
+                });
+            }
+            if (error.message.includes('Invoice generation failed')) {
+                return reply.code(400).send({
+                    success: false,
+                    message: error.message,
+                    statusCode: 400
+                });
+            }
+            throw error;
+        }
+    });
     updateOrderStatus = asyncHandler(async (request, reply) => {
         const { id } = ordersParamsSchema.parse(request.params);
         const { status, additionalData } = request.body;
