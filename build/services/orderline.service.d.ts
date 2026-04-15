@@ -2,6 +2,7 @@ import { CreateOrderlineInput, UpdateOrderlineInput } from '../schemas/orderline
 import { PaginationResult } from '../utils/pagination.js';
 import { FilterOptions } from '../utils/filterBuilder.js';
 export declare class OrderlineService {
+    private normalizeStatusHistorySource;
     findMany(filters: FilterOptions, page: number, limit: number): Promise<PaginationResult<any>>;
     findById(id: string): Promise<any>;
     create(data: CreateOrderlineInput & Record<string, any>): Promise<any>;
@@ -30,8 +31,8 @@ export declare class OrderlineService {
      * @param id - Orderline ID
      * @param status - New status (e.g., 'cancelled', 'delivered', 'shipped')
      * @param additionalData - Additional data including:
-     *   - source: 'customer' | 'inventoryuser' | 'ekart' | 'phonepe' | 'system'
-     *   - inventory_user_id: Required when source is 'inventoryuser'
+     *   - source: 'customer' | 'inventory_user' | 'inventoryuser' | 'ekart' | 'phonepe' | 'system'
+     *   - inventory_user_id: Required when source is 'inventory_user'
      *   - cancellation_reason: Reason for cancellation
      */
     updateOrderlineStatus(id: string, status: string, additionalData?: Record<string, any>): Promise<any>;

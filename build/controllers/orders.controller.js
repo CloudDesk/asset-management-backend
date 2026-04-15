@@ -6,6 +6,36 @@ import { formatEntitiesForAPI } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
 export class OrdersController {
     ordersService = new OrdersService();
+    resolveInventoryActor(request, fallbackInventoryUserId) {
+        const authRequest = request;
+        const authUser = authRequest.user;
+        if (authUser?.userType === 'inventory' && authUser.id) {
+            const fullName = `${authUser.firstname || ''} ${authUser.lastname || ''}`.trim();
+            const username = fullName || authUser.useremail || `inventory_user_${authUser.id}`;
+            if (fallbackInventoryUserId && fallbackInventoryUserId !== authUser.id) {
+                logger.warn({
+                    tokenInventoryUserId: authUser.id,
+                    payloadInventoryUserId: fallbackInventoryUserId,
+                    endpoint: request.url
+                }, 'inventory_user_id in payload does not match authenticated user; using token identity');
+            }
+            return {
+                id: authUser.id,
+                username
+            };
+        }
+        if (fallbackInventoryUserId) {
+            logger.warn({
+                fallbackInventoryUserId,
+                endpoint: request.url
+            }, 'Authenticated inventory user context missing; falling back to payload inventory_user_id');
+            return {
+                id: fallbackInventoryUserId,
+                username: `inventory_user_${fallbackInventoryUserId}`
+            };
+        }
+        return null;
+    }
     getOrders = asyncHandler(async (request, reply) => {
         // Get all query parameters as filters (not just schema-validated ones)
         const allFilters = request.query || {};
@@ -40,7 +70,15 @@ export class OrdersController {
                 statusCode: 400
             });
         }
-        const order = await this.ordersService.markReadyForDispatch(parseInt(id), inventory_user_id, stock_mapping);
+        const actor = this.resolveInventoryActor(request, inventory_user_id);
+        if (!actor) {
+            return reply.code(401).send({
+                success: false,
+                message: 'Authenticated inventory user is required',
+                statusCode: 401
+            });
+        }
+        const order = await this.ordersService.markReadyForDispatch(parseInt(id), actor.id, stock_mapping, actor.username);
         const response = createSuccessResponse('Order marked as ready for dispatch', formatEntitiesForAPI([order], 'orders')[0]);
         return reply.code(200).send(response);
     });
@@ -75,8 +113,16 @@ export class OrdersController {
                 statusCode: 400
             });
         }
+        const actor = this.resolveInventoryActor(request, inventory_user_id);
+        if (!actor) {
+            return reply.code(401).send({
+                success: false,
+                message: 'Authenticated inventory user is required',
+                statusCode: 401
+            });
+        }
         try {
-            const updatedOrder = await this.ordersService.updateShipmentDetails(id, tracking_id, vendor, inventory_user_id, public_tracking_link, shipped);
+            const updatedOrder = await this.ordersService.updateShipmentDetails(id, tracking_id, vendor, actor.id, public_tracking_link, shipped, actor.username);
             const response = createSuccessResponse(shipped ? 'Shipment details updated and order marked as shipped' : 'Shipment details updated', formatEntitiesForAPI([updatedOrder], 'orders')[0]);
             return reply.code(200).send(response);
         }
@@ -112,8 +158,16 @@ export class OrdersController {
                 statusCode: 400
             });
         }
+        const actor = this.resolveInventoryActor(request, inventory_user_id);
+        if (!actor) {
+            return reply.code(401).send({
+                success: false,
+                message: 'Authenticated inventory user is required',
+                statusCode: 401
+            });
+        }
         try {
-            const order = await this.ordersService.markShipped(parseInt(id), inventory_user_id);
+            const order = await this.ordersService.markShipped(parseInt(id), actor.id, actor.username);
             const response = createSuccessResponse('Order marked as shipped', formatEntitiesForAPI([order], 'orders')[0]);
             return reply.code(200).send(response);
         }
@@ -150,8 +204,16 @@ export class OrdersController {
                 statusCode: 400
             });
         }
+        const actor = this.resolveInventoryActor(request, inventory_user_id);
+        if (!actor) {
+            return reply.code(401).send({
+                success: false,
+                message: 'Authenticated inventory user is required',
+                statusCode: 401
+            });
+        }
         try {
-            const updatedOrder = await this.ordersService.updateShipmentStatus(id, status, inventory_user_id, location, description);
+            const updatedOrder = await this.ordersService.updateShipmentStatus(id, status, actor.id, location, description, actor.username);
             const response = createSuccessResponse('Shipment status updated successfully', formatEntitiesForAPI([updatedOrder], 'orders')[0]);
             return reply.code(200).send(response);
         }
@@ -361,7 +423,17 @@ export class OrdersController {
             });
         }
         // Determine source
-        const source = userid ? 'customer' : 'inventoryuser';
+        const source = userid ? 'customer' : 'inventory_user';
+        const actor = source === 'inventory_user'
+            ? this.resolveInventoryActor(request, inventory_user_id)
+            : null;
+        if (source === 'inventory_user' && !actor) {
+            return reply.code(401).send({
+                success: false,
+                message: 'Authenticated inventory user is required',
+                statusCode: 401
+            });
+        }
         try {
             // Parse order ID
             let orderId;
@@ -381,7 +453,7 @@ export class OrdersController {
                 orderId = Number(id);
             }
             // Call service to cancel order
-            const cancelledOrder = await this.ordersService.cancelOrder(orderId, userid, inventory_user_id, cancellation_reason, source);
+            const cancelledOrder = await this.ordersService.cancelOrder(orderId, userid, actor?.id || inventory_user_id, cancellation_reason, source, actor?.username);
             const response = createSuccessResponse('Order cancelled successfully', formatEntitiesForAPI([cancelledOrder], 'orders')[0]);
             return reply.code(200).send(response);
         }
@@ -434,6 +506,14 @@ export class OrdersController {
                 statusCode: 400
             });
         }
+        const actor = this.resolveInventoryActor(request, admin_user_id);
+        if (!actor) {
+            return reply.code(401).send({
+                success: false,
+                message: 'Authenticated inventory user is required',
+                statusCode: 401
+            });
+        }
         // Validate status value
         const validStatuses = ['cancelled_refund_processing', 'cancelled_refunded', 'cancelled_completed'];
         if (!validStatuses.includes(status)) {
@@ -462,7 +542,7 @@ export class OrdersController {
                 orderId = Number(id);
             }
             // Call service to update refund status with new fields
-            const updatedOrder = await this.ordersService.updateRefundStatus(orderId, status, admin_user_id, notes, refund_transaction_id, refund_amount, refund_reference);
+            const updatedOrder = await this.ordersService.updateRefundStatus(orderId, status, actor.id, notes, refund_transaction_id, refund_amount, refund_reference, actor.username);
             const response = createSuccessResponse('Refund status updated successfully', formatEntitiesForAPI([updatedOrder], 'orders')[0]);
             return reply.code(200).send(response);
         }

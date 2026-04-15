@@ -1,0 +1,1545 @@
+
+════════════════════════════════════════════════════════════════════════════════
+  External Sold Update  |  🧪 DRY RUN  — read-only, zero DB writes
+  DB Host              :  centerbeam.proxy.rlwy.net   <- confirm this is the right DB!
+  Entries to process   :  73
+════════════════════════════════════════════════════════════════════════════════
+
+📋  Fetching current values from DB...
+
+┌─ [1/73]  productId=19  |  platform='amazon'  |  qty=2
+│
+│  📦 PRODUCT  (id=19, puc='AUO-0019')
+│    availablequantity :  424  →  422
+│    soldquantity      :  6  →  8
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=19, platform='amazon')
+│    availableqty      :  98  →  96
+│    soldqty           :  2  →  4
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (2 unit(s) → 'sold')
+│    stock ids         :  [13537, 13536]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/3/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Tue, 03 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1772532000000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [2/73]  productId=21  |  platform='amazon'  |  qty=2
+│
+│  📦 PRODUCT  (id=21, puc='AUO-0021')
+│    availablequantity :  376  →  374
+│    soldquantity      :  17  →  19
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=21, platform='amazon')
+│    availableqty      :  92  →  90
+│    soldqty           :  8  →  10
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (2 unit(s) → 'sold')
+│    stock ids         :  [14363, 14362]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/4/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Wed, 04 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1772618400000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [3/73]  productId=12  |  platform='amazon'  |  qty=1
+│
+│  📦 PRODUCT  (id=12, puc='NIV-0012')
+│    availablequantity :  277  →  276
+│    soldquantity      :  8  →  9
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=12, platform='amazon')
+│    availableqty      :  49  →  48
+│    soldqty           :  1  →  2
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [9941]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/4/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Wed, 04 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1772618400000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [4/73]  productId=15  |  platform='amazon'  |  qty=1
+│
+│  📦 PRODUCT  (id=15, puc='NIV-0015')
+│    availablequantity :  240  →  239
+│    soldquantity      :  3  →  4
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=15, platform='amazon')
+│    availableqty      :  49  →  48
+│    soldqty           :  1  →  2
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [15128]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/4/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Wed, 04 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1772618400000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [5/73]  productId=31  |  platform='amazon'  |  qty=1
+│
+│  📦 PRODUCT  (id=31, puc='NIV-0031')
+│    availablequantity :  281  →  280
+│    soldquantity      :  13  →  14
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=31, platform='amazon')
+│    availableqty      :  95  →  94
+│    soldqty           :  5  →  6
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [9162]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/4/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Wed, 04 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1772618400000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [6/73]  productId=18  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=18, puc='AUO-0018')
+│    availablequantity :  362  →  361
+│    soldquantity      :  28  →  29
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=18, platform='flipkart')
+│    availableqty      :  77  →  76
+│    soldqty           :  23  →  24
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [14087]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/5/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Thu, 05 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1772704800000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [7/73]  productId=20  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=20, puc='AUO-0020')
+│    availablequantity :  401  →  400
+│    soldquantity      :  28  →  29
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=20, platform='flipkart')
+│    availableqty      :  74  →  73
+│    soldqty           :  26  →  27
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [12591]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/5/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Thu, 05 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1772704800000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [8/73]  productId=33  |  platform='amazon'  |  qty=2
+│
+│  📦 PRODUCT  (id=33, puc='NIV-0033')
+│    availablequantity :  452  →  450
+│    soldquantity      :  33  →  35
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=33, platform='amazon')
+│    availableqty      :  138  →  136
+│    soldqty           :  12  →  14
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (2 unit(s) → 'sold')
+│    stock ids         :  [6626, 6625]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/6/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Fri, 06 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1772791200000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [9/73]  productId=33  |  platform='amazon'  |  qty=2
+│
+│  📦 PRODUCT  (id=33, puc='NIV-0033')
+│    availablequantity :  450  →  448
+│    soldquantity      :  35  →  37
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=33, platform='amazon')
+│    availableqty      :  136  →  134
+│    soldqty           :  14  →  16
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (2 unit(s) → 'sold')
+│    stock ids         :  [6628, 6627]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/6/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Fri, 06 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1772791200000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [10/73]  productId=33  |  platform='amazon'  |  qty=2
+│
+│  📦 PRODUCT  (id=33, puc='NIV-0033')
+│    availablequantity :  448  →  446
+│    soldquantity      :  37  →  39
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=33, platform='amazon')
+│    availableqty      :  134  →  132
+│    soldqty           :  16  →  18
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (2 unit(s) → 'sold')
+│    stock ids         :  [6630, 6629]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/6/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Fri, 06 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1772791200000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [11/73]  productId=18  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=18, puc='AUO-0018')
+│    availablequantity :  361  →  360
+│    soldquantity      :  29  →  30
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=18, platform='flipkart')
+│    availableqty      :  76  →  75
+│    soldqty           :  24  →  25
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [14088]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/7/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Sat, 07 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1772877600000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [12/73]  productId=19  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=19, puc='AUO-0019')
+│    availablequantity :  422  →  421
+│    soldquantity      :  8  →  9
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=19, platform='flipkart')
+│    availableqty      :  97  →  96
+│    soldqty           :  3  →  4
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [13637]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/7/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Sat, 07 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1772877600000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [13/73]  productId=21  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=21, puc='AUO-0021')
+│    availablequantity :  374  →  373
+│    soldquantity      :  19  →  20
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=21, platform='flipkart')
+│    availableqty      :  91  →  90
+│    soldqty           :  9  →  10
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [14463]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/7/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Sat, 07 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1772877600000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [14/73]  productId=18  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=18, puc='AUO-0018')
+│    availablequantity :  360  →  359
+│    soldquantity      :  30  →  31
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=18, platform='flipkart')
+│    availableqty      :  75  →  74
+│    soldqty           :  25  →  26
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [14089]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/7/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Sat, 07 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1772877600000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [15/73]  productId=20  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=20, puc='AUO-0020')
+│    availablequantity :  400  →  399
+│    soldquantity      :  29  →  30
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=20, platform='flipkart')
+│    availableqty      :  73  →  72
+│    soldqty           :  27  →  28
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [12592]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/7/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Sat, 07 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1772877600000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [16/73]  productId=33  |  platform='flipkart'  |  qty=2
+│
+│  📦 PRODUCT  (id=33, puc='NIV-0033')
+│    availablequantity :  446  →  444
+│    soldquantity      :  39  →  41
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=33, platform='flipkart')
+│    availableqty      :  144  →  142
+│    soldqty           :  6  →  8
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (2 unit(s) → 'sold')
+│    stock ids         :  [6770, 6769]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/9/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Mon, 09 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773050400000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [17/73]  productId=31  |  platform='amazon'  |  qty=1
+│
+│  📦 PRODUCT  (id=31, puc='NIV-0031')
+│    availablequantity :  280  →  279
+│    soldquantity      :  14  →  15
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=31, platform='amazon')
+│    availableqty      :  94  →  93
+│    soldqty           :  6  →  7
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [9163]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/9/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Mon, 09 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773050400000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [18/73]  productId=61  |  platform='amazon'  |  qty=1
+│
+│  📦 PRODUCT  (id=61, puc='KRA-0061')
+│    availablequantity :  127  →  126
+│    soldquantity      :  0  →  1
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=61, platform='amazon')
+│    availableqty      :  50  →  49
+│    soldqty           :  0  →  1
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [17007]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/10/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Tue, 10 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773136800000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [19/73]  productId=60  |  platform='amazon'  |  qty=1
+│
+│  📦 PRODUCT  (id=60, puc='KRA-0060')
+│    availablequantity :  127  →  126
+│    soldquantity      :  3  →  4
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=60, platform='amazon')
+│    availableqty      :  48  →  47
+│    soldqty           :  2  →  3
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [16909]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/10/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Tue, 10 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773136800000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [20/73]  productId=22  |  platform='amazon'  |  qty=1
+│
+│  📦 PRODUCT  (id=22, puc='AUO-0022')
+│    availablequantity :  366  →  365
+│    soldquantity      :  14  →  15
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=22, platform='amazon')
+│    availableqty      :  93  →  92
+│    soldqty           :  7  →  8
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [14754]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/10/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Tue, 10 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773136800000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [21/73]  productId=21  |  platform='amazon'  |  qty=1
+│
+│  📦 PRODUCT  (id=21, puc='AUO-0021')
+│    availablequantity :  373  →  372
+│    soldquantity      :  20  →  21
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=21, platform='amazon')
+│    availableqty      :  90  →  89
+│    soldqty           :  10  →  11
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [14364]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/10/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Tue, 10 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773136800000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [22/73]  productId=23  |  platform='amazon'  |  qty=1
+│
+│  📦 PRODUCT  (id=23, puc='AUO-0023')
+│    availablequantity :  381  →  380
+│    soldquantity      :  11  →  12
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=23, platform='amazon')
+│    availableqty      :  94  →  93
+│    soldqty           :  6  →  7
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [12900]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/10/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Tue, 10 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773136800000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [23/73]  productId=18  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=18, puc='AUO-0018')
+│    availablequantity :  359  →  358
+│    soldquantity      :  31  →  32
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=18, platform='flipkart')
+│    availableqty      :  74  →  73
+│    soldqty           :  26  →  27
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [14090]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/10/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Tue, 10 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773136800000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [24/73]  productId=20  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=20, puc='AUO-0020')
+│    availablequantity :  399  →  398
+│    soldquantity      :  30  →  31
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=20, platform='flipkart')
+│    availableqty      :  72  →  71
+│    soldqty           :  28  →  29
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [12593]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/10/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Tue, 10 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773136800000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [25/73]  productId=18  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=18, puc='AUO-0018')
+│    availablequantity :  358  →  357
+│    soldquantity      :  32  →  33
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=18, platform='flipkart')
+│    availableqty      :  73  →  72
+│    soldqty           :  27  →  28
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [14091]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/11/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Wed, 11 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773223200000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [26/73]  productId=18  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=18, puc='AUO-0018')
+│    availablequantity :  357  →  356
+│    soldquantity      :  33  →  34
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=18, platform='flipkart')
+│    availableqty      :  72  →  71
+│    soldqty           :  28  →  29
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [14092]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/11/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Wed, 11 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773223200000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [27/73]  productId=19  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=19, puc='AUO-0019')
+│    availablequantity :  421  →  420
+│    soldquantity      :  9  →  10
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=19, platform='flipkart')
+│    availableqty      :  96  →  95
+│    soldqty           :  4  →  5
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [13638]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/11/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Wed, 11 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773223200000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [28/73]  productId=20  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=20, puc='AUO-0020')
+│    availablequantity :  398  →  397
+│    soldquantity      :  31  →  32
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=20, platform='flipkart')
+│    availableqty      :  71  →  70
+│    soldqty           :  29  →  30
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [12594]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/11/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Wed, 11 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773223200000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [29/73]  productId=18  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=18, puc='AUO-0018')
+│    availablequantity :  356  →  355
+│    soldquantity      :  34  →  35
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=18, platform='flipkart')
+│    availableqty      :  71  →  70
+│    soldqty           :  29  →  30
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [14093]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/11/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Wed, 11 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773223200000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [30/73]  productId=22  |  platform='amazon'  |  qty=1
+│
+│  📦 PRODUCT  (id=22, puc='AUO-0022')
+│    availablequantity :  365  →  364
+│    soldquantity      :  15  →  16
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=22, platform='amazon')
+│    availableqty      :  92  →  91
+│    soldqty           :  8  →  9
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [14755]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/11/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Wed, 11 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773223200000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [31/73]  productId=21  |  platform='amazon'  |  qty=1
+│
+│  📦 PRODUCT  (id=21, puc='AUO-0021')
+│    availablequantity :  372  →  371
+│    soldquantity      :  21  →  22
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=21, platform='amazon')
+│    availableqty      :  89  →  88
+│    soldqty           :  11  →  12
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [14365]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/11/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Wed, 11 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773223200000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [32/73]  productId=23  |  platform='amazon'  |  qty=1
+│
+│  📦 PRODUCT  (id=23, puc='AUO-0023')
+│    availablequantity :  380  →  379
+│    soldquantity      :  12  →  13
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=23, platform='amazon')
+│    availableqty      :  93  →  92
+│    soldqty           :  7  →  8
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [12901]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/11/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Wed, 11 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773223200000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [33/73]  productId=20  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=20, puc='AUO-0020')
+│    availablequantity :  397  →  396
+│    soldquantity      :  32  →  33
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=20, platform='flipkart')
+│    availableqty      :  70  →  69
+│    soldqty           :  30  →  31
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [12595]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/12/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Thu, 12 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773309600000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [34/73]  productId=18  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=18, puc='AUO-0018')
+│    availablequantity :  355  →  354
+│    soldquantity      :  35  →  36
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=18, platform='flipkart')
+│    availableqty      :  70  →  69
+│    soldqty           :  30  →  31
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [14094]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/12/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Thu, 12 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773309600000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [35/73]  productId=19  |  platform='amazon'  |  qty=2
+│
+│  📦 PRODUCT  (id=19, puc='AUO-0019')
+│    availablequantity :  420  →  418
+│    soldquantity      :  10  →  12
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=19, platform='amazon')
+│    availableqty      :  96  →  94
+│    soldqty           :  4  →  6
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (2 unit(s) → 'sold')
+│    stock ids         :  [13539, 13538]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/12/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Thu, 12 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773309600000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [36/73]  productId=20  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=20, puc='AUO-0020')
+│    availablequantity :  396  →  395
+│    soldquantity      :  33  →  34
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=20, platform='flipkart')
+│    availableqty      :  69  →  68
+│    soldqty           :  31  →  32
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [12596]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/13/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Fri, 13 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773396000000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [37/73]  productId=18  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=18, puc='AUO-0018')
+│    availablequantity :  354  →  353
+│    soldquantity      :  36  →  37
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=18, platform='flipkart')
+│    availableqty      :  69  →  68
+│    soldqty           :  31  →  32
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [14095]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/13/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Fri, 13 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773396000000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [38/73]  productId=31  |  platform='amazon'  |  qty=1
+│
+│  📦 PRODUCT  (id=31, puc='NIV-0031')
+│    availablequantity :  279  →  278
+│    soldquantity      :  15  →  16
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=31, platform='amazon')
+│    availableqty      :  93  →  92
+│    soldqty           :  7  →  8
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [9164]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/14/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Sat, 14 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773482400000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [39/73]  productId=22  |  platform='flipkart'  |  qty=2
+│
+│  📦 PRODUCT  (id=22, puc='AUO-0022')
+│    availablequantity :  364  →  362
+│    soldquantity      :  16  →  18
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=22, platform='flipkart')
+│    availableqty      :  93  →  91
+│    soldqty           :  7  →  9
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (2 unit(s) → 'sold')
+│    stock ids         :  [14855, 14854]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/14/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Sat, 14 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773482400000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [40/73]  productId=21  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=21, puc='AUO-0021')
+│    availablequantity :  371  →  370
+│    soldquantity      :  22  →  23
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=21, platform='flipkart')
+│    availableqty      :  90  →  89
+│    soldqty           :  10  →  11
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [14464]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/17/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Tue, 17 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773741600000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [41/73]  productId=21  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=21, puc='AUO-0021')
+│    availablequantity :  370  →  369
+│    soldquantity      :  23  →  24
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=21, platform='flipkart')
+│    availableqty      :  89  →  88
+│    soldqty           :  11  →  12
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [14465]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/17/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Tue, 17 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773741600000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [42/73]  productId=20  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=20, puc='AUO-0020')
+│    availablequantity :  395  →  394
+│    soldquantity      :  34  →  35
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=20, platform='flipkart')
+│    availableqty      :  68  →  67
+│    soldqty           :  32  →  33
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [12597]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/17/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Tue, 17 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773741600000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [43/73]  productId=13  |  platform='amazon'  |  qty=1
+│
+│  📦 PRODUCT  (id=13, puc='NIV-0013')
+│    availablequantity :  170  →  169
+│    soldquantity      :  9  →  10
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=13, platform='amazon')
+│    availableqty      :  41  →  40
+│    soldqty           :  9  →  10
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [10834]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/17/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Tue, 17 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773741600000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [44/73]  productId=15  |  platform='amazon'  |  qty=1
+│
+│  📦 PRODUCT  (id=15, puc='NIV-0015')
+│    availablequantity :  239  →  238
+│    soldquantity      :  4  →  5
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=15, platform='amazon')
+│    availableqty      :  48  →  47
+│    soldqty           :  2  →  3
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [15129]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/17/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Tue, 17 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773741600000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [45/73]  productId=18  |  platform='flipkart'  |  qty=2
+│
+│  📦 PRODUCT  (id=18, puc='AUO-0018')
+│    availablequantity :  353  →  351
+│    soldquantity      :  37  →  39
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=18, platform='flipkart')
+│    availableqty      :  68  →  66
+│    soldqty           :  32  →  34
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (2 unit(s) → 'sold')
+│    stock ids         :  [14097, 14096]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/18/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Wed, 18 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773828000000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [46/73]  productId=18  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=18, puc='AUO-0018')
+│    availablequantity :  351  →  350
+│    soldquantity      :  39  →  40
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=18, platform='flipkart')
+│    availableqty      :  66  →  65
+│    soldqty           :  34  →  35
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [14098]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/18/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Wed, 18 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773828000000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [47/73]  productId=20  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=20, puc='AUO-0020')
+│    availablequantity :  394  →  393
+│    soldquantity      :  35  →  36
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=20, platform='flipkart')
+│    availableqty      :  67  →  66
+│    soldqty           :  33  →  34
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [12598]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/18/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Wed, 18 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773828000000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [48/73]  productId=4  |  platform='amazon'  |  qty=1
+│
+│  📦 PRODUCT  (id=4, puc='NIV-0004')
+│    availablequantity :  70  →  69
+│    soldquantity      :  4  →  5
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=4, platform='amazon')
+│    availableqty      :  28  →  27
+│    soldqty           :  2  →  3
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [15372]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/18/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Wed, 18 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773828000000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [49/73]  productId=14  |  platform='amazon'  |  qty=1
+│
+│  📦 PRODUCT  (id=14, puc='NIV-0014')
+│    availablequantity :  226  →  225
+│    soldquantity      :  6  →  7
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=14, platform='amazon')
+│    availableqty      :  48  →  47
+│    soldqty           :  2  →  3
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [9459]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/18/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Wed, 18 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773828000000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [50/73]  productId=31  |  platform='amazon'  |  qty=1
+│
+│  📦 PRODUCT  (id=31, puc='NIV-0031')
+│    availablequantity :  278  →  277
+│    soldquantity      :  16  →  17
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=31, platform='amazon')
+│    availableqty      :  92  →  91
+│    soldqty           :  8  →  9
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [9165]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/19/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Thu, 19 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773914400000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [51/73]  productId=18  |  platform='flipkart'  |  qty=4
+│
+│  📦 PRODUCT  (id=18, puc='AUO-0018')
+│    availablequantity :  350  →  346
+│    soldquantity      :  40  →  44
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=18, platform='flipkart')
+│    availableqty      :  65  →  61
+│    soldqty           :  35  →  39
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (4 unit(s) → 'sold')
+│    stock ids         :  [14100, 14101, 14102, 14099]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/19/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Thu, 19 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773914400000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [52/73]  productId=33  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=33, puc='NIV-0033')
+│    availablequantity :  444  →  443
+│    soldquantity      :  41  →  42
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=33, platform='flipkart')
+│    availableqty      :  142  →  141
+│    soldqty           :  8  →  9
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [6771]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/19/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Thu, 19 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773914400000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [53/73]  productId=39  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=39, puc='NIV-0039')
+│    availablequantity :  473  →  472
+│    soldquantity      :  14  →  15
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=39, platform='flipkart')
+│    availableqty      :  149  →  148
+│    soldqty           :  1  →  2
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [7564]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/19/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Thu, 19 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773914400000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [54/73]  productId=19  |  platform='amazon'  |  qty=2
+│
+│  📦 PRODUCT  (id=19, puc='AUO-0019')
+│    availablequantity :  418  →  416
+│    soldquantity      :  12  →  14
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=19, platform='amazon')
+│    availableqty      :  94  →  92
+│    soldqty           :  6  →  8
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (2 unit(s) → 'sold')
+│    stock ids         :  [13541, 13540]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/19/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Thu, 19 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773914400000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [55/73]  productId=20  |  platform='amazon'  |  qty=2
+│
+│  📦 PRODUCT  (id=20, puc='AUO-0020')
+│    availablequantity :  393  →  391
+│    soldquantity      :  36  →  38
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=20, platform='amazon')
+│    availableqty      :  99  →  97
+│    soldqty           :  1  →  3
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (2 unit(s) → 'sold')
+│    stock ids         :  [12467, 12466]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/19/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Thu, 19 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773914400000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [56/73]  productId=18  |  platform='flipkart'  |  qty=2
+│
+│  📦 PRODUCT  (id=18, puc='AUO-0018')
+│    availablequantity :  346  →  344
+│    soldquantity      :  44  →  46
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=18, platform='flipkart')
+│    availableqty      :  61  →  59
+│    soldqty           :  39  →  41
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (2 unit(s) → 'sold')
+│    stock ids         :  [14104, 14103]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/20/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Fri, 20 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1774000800000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [57/73]  productId=18  |  platform='flipkart'  |  qty=2
+│
+│  📦 PRODUCT  (id=18, puc='AUO-0018')
+│    availablequantity :  344  →  342
+│    soldquantity      :  46  →  48
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=18, platform='flipkart')
+│    availableqty      :  59  →  57
+│    soldqty           :  41  →  43
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (2 unit(s) → 'sold')
+│    stock ids         :  [14106, 14105]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/21/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Sat, 21 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1774087200000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [58/73]  productId=22  |  platform='flipkart'  |  qty=2
+│
+│  📦 PRODUCT  (id=22, puc='AUO-0022')
+│    availablequantity :  362  →  360
+│    soldquantity      :  18  →  20
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=22, platform='flipkart')
+│    availableqty      :  91  →  89
+│    soldqty           :  9  →  11
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (2 unit(s) → 'sold')
+│    stock ids         :  [14857, 14856]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/21/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Sat, 21 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1774087200000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [59/73]  productId=20  |  platform='flipkart'  |  qty=2
+│
+│  📦 PRODUCT  (id=20, puc='AUO-0020')
+│    availablequantity :  391  →  389
+│    soldquantity      :  38  →  40
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=20, platform='flipkart')
+│    availableqty      :  66  →  64
+│    soldqty           :  34  →  36
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (2 unit(s) → 'sold')
+│    stock ids         :  [12600, 12599]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/21/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Sat, 21 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1774087200000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [60/73]  productId=20  |  platform='flipkart'  |  qty=2
+│
+│  📦 PRODUCT  (id=20, puc='AUO-0020')
+│    availablequantity :  389  →  387
+│    soldquantity      :  40  →  42
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=20, platform='flipkart')
+│    availableqty      :  64  →  62
+│    soldqty           :  36  →  38
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (2 unit(s) → 'sold')
+│    stock ids         :  [12602, 12601]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/22/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Sun, 22 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1774173600000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [61/73]  productId=20  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=20, puc='AUO-0020')
+│    availablequantity :  387  →  386
+│    soldquantity      :  42  →  43
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=20, platform='flipkart')
+│    availableqty      :  62  →  61
+│    soldqty           :  38  →  39
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [12603]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/24/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Tue, 24 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1774346400000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [62/73]  productId=18  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=18, puc='AUO-0018')
+│    availablequantity :  342  →  341
+│    soldquantity      :  48  →  49
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=18, platform='flipkart')
+│    availableqty      :  57  →  56
+│    soldqty           :  43  →  44
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [14107]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/24/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Tue, 24 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1774346400000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [63/73]  productId=10  |  platform='flipkart'  |  qty=4
+│
+│  📦 PRODUCT  (id=10, puc='NIV-0010')
+│    availablequantity :  322  →  318
+│    soldquantity      :  4  →  8
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=10, platform='flipkart')
+│    availableqty      :  46  →  42
+│    soldqty           :  4  →  8
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (4 unit(s) → 'sold')
+│    stock ids         :  [11729, 11730, 11731, 11728]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/24/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Tue, 24 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1774346400000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [64/73]  productId=21  |  platform='flipkart'  |  qty=2
+│
+│  📦 PRODUCT  (id=21, puc='AUO-0021')
+│    availablequantity :  369  →  367
+│    soldquantity      :  24  →  26
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=21, platform='flipkart')
+│    availableqty      :  88  →  86
+│    soldqty           :  12  →  14
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (2 unit(s) → 'sold')
+│    stock ids         :  [14467, 14466]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/24/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Tue, 24 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1774346400000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [65/73]  productId=18  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=18, puc='AUO-0018')
+│    availablequantity :  341  →  340
+│    soldquantity      :  49  →  50
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=18, platform='flipkart')
+│    availableqty      :  56  →  55
+│    soldqty           :  44  →  45
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [14108]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/25/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Wed, 25 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1774432800000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [66/73]  productId=20  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=20, puc='AUO-0020')
+│    availablequantity :  386  →  385
+│    soldquantity      :  43  →  44
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=20, platform='flipkart')
+│    availableqty      :  61  →  60
+│    soldqty           :  39  →  40
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [12604]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/25/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Wed, 25 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1774432800000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [67/73]  productId=23  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=23, puc='AUO-0023')
+│    availablequantity :  379  →  378
+│    soldquantity      :  13  →  14
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=23, platform='flipkart')
+│    availableqty      :  95  →  94
+│    soldqty           :  5  →  6
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [12999]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/30/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Mon, 30 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1774864800000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [68/73]  productId=21  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=21, puc='AUO-0021')
+│    availablequantity :  367  →  366
+│    soldquantity      :  26  →  27
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=21, platform='flipkart')
+│    availableqty      :  86  →  85
+│    soldqty           :  14  →  15
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [14468]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/30/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Mon, 30 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1774864800000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [69/73]  productId=22  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=22, puc='AUO-0022')
+│    availablequantity :  360  →  359
+│    soldquantity      :  20  →  21
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=22, platform='flipkart')
+│    availableqty      :  89  →  88
+│    soldqty           :  11  →  12
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [14858]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/30/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Mon, 30 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1774864800000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [70/73]  productId=18  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=18, puc='AUO-0018')
+│    availablequantity :  340  →  339
+│    soldquantity      :  50  →  51
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=18, platform='flipkart')
+│    availableqty      :  55  →  54
+│    soldqty           :  45  →  46
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [14109]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/30/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Mon, 30 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1774864800000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [71/73]  productId=21  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=21, puc='AUO-0021')
+│    availablequantity :  366  →  365
+│    soldquantity      :  27  →  28
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=21, platform='flipkart')
+│    availableqty      :  85  →  84
+│    soldqty           :  15  →  16
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [14469]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/30/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Mon, 30 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1774864800000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [72/73]  productId=31  |  platform='flipkart'  |  qty=1
+│
+│  📦 PRODUCT  (id=31, puc='NIV-0031')
+│    availablequantity :  277  →  276
+│    soldquantity      :  17  →  18
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=31, platform='flipkart')
+│    availableqty      :  99  →  98
+│    soldqty           :  1  →  2
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [9258]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/30/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Mon, 30 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1774864800000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [73/73]  productId=14  |  platform='amazon'  |  qty=2
+│
+│  📦 PRODUCT  (id=14, puc='NIV-0014')
+│    availablequantity :  225  →  223
+│    soldquantity      :  7  →  9
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=14, platform='amazon')
+│    availableqty      :  47  →  45
+│    soldqty           :  3  →  5
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (2 unit(s) → 'sold')
+│    stock ids         :  [9461, 9460]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/31/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Tue, 31 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1774951200000  ms (13-digit)
+│    description       :  'Manually updated on Apr 3 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+📊  Preview Summary
+    ✅  Will process :  73 row(s)
+    ❌  Will skip    :  0 row(s)

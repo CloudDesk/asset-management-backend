@@ -4,6 +4,13 @@ import { dynamicFindUnique, dynamicCreate, dynamicUpdate, dynamicFindManyWithFil
 import { logger } from '../config/logger.js';
 import { gstService } from './gst.service.js';
 export class OrdersService {
+    normalizeStatusHistorySource(source) {
+        if (!source)
+            return 'system';
+        return source === 'inventoryuser' || source === 'inventory_user'
+            ? 'inventory_user'
+            : source;
+    }
     /**
      * Maps EKART webhook status to our system status
      * Handles various formats: "Shipped", "SHIPPED", "In Transit", "In_Transit", "Pick Up", "Picked Up", etc.
@@ -504,7 +511,7 @@ export class OrdersService {
      * Recalculate order status based on all orderline statuses
      * This automatically updates order status history
      */
-    async recalculateOrderStatus(orderId) {
+    async recalculateOrderStatus(orderId, actorContext) {
         try {
             logger.debug({ orderId }, 'Starting order status recalculation');
             // Get all orderlines for this order
@@ -581,14 +588,21 @@ export class OrdersService {
                     ...entry,
                     is_active: false
                 }));
+                const normalizedSource = this.normalizeStatusHistorySource(actorContext?.source);
                 // New entry with is_active: true
                 const historyEntry = {
                     previous_status: previousStatus,
                     new_status: newOrderStatus,
                     changed_date: Date.now(),
-                    source: 'system', // Auto-calculated from orderlines
+                    source: normalizedSource,
                     is_active: true
                 };
+                if (normalizedSource === 'inventory_user' && actorContext?.inventory_user_id) {
+                    historyEntry.inventory_user_id = actorContext.inventory_user_id;
+                }
+                if (actorContext?.username) {
+                    historyEntry.username = actorContext.username;
+                }
                 const updatedHistory = [...deactivatedHistory, historyEntry];
                 // Update order with new status and history (JSON.stringify for JSONB column)
                 const orderUpdateData = {
@@ -1109,7 +1123,7 @@ export class OrdersService {
     /**
      * Mark order as ready for dispatch
      */
-    async markReadyForDispatch(orderId, inventoryUserId, stockMapping) {
+    async markReadyForDispatch(orderId, inventoryUserId, stockMapping, inventoryUsername) {
         try {
             logger.info({ orderId, inventoryUserId, hasStockMapping: !!stockMapping }, 'Marking order as ready for dispatch');
             // Use transaction for all updates
@@ -1132,12 +1146,17 @@ export class OrdersService {
                 }
                 for (const orderline of orderlines) {
                     await orderlineService.updateOrderlineStatus(orderline.id.toString(), 'ready_for_dispatch', {
-                        source: 'inventoryuser',
-                        inventory_user_id: inventoryUserId
+                        source: 'inventory_user',
+                        inventory_user_id: inventoryUserId,
+                        username: inventoryUsername
                     });
                 }
                 // 5. Recalculate order status (should become ready_for_dispatch)
-                await this.recalculateOrderStatus(orderId);
+                await this.recalculateOrderStatus(orderId, {
+                    source: 'inventory_user',
+                    inventory_user_id: inventoryUserId,
+                    ...(inventoryUsername ? { username: inventoryUsername } : {})
+                });
                 const updatedOrder = await this.findById(orderId);
                 logger.info({
                     orderId,
@@ -1242,7 +1261,7 @@ export class OrdersService {
      * NOTE: This endpoint is kept for backward compatibility and manual override.
      * For EKART orders, the 'shipped' status is now set automatically via webhook.
      */
-    async markShipped(orderId, inventoryUserId) {
+    async markShipped(orderId, inventoryUserId, inventoryUsername) {
         try {
             logger.info({ orderId, inventoryUserId }, 'Marking order as shipped');
             const order = await this.findById(orderId);
@@ -1271,8 +1290,9 @@ export class OrdersService {
             for (const orderline of orderlines) {
                 await orderlineService.updateOrderlineStatus(orderline.id.toString(), 'shipped', {
                     shipdate: currentTimestamp,
-                    source: 'inventoryuser',
-                    inventory_user_id: inventoryUserId
+                    source: 'inventory_user',
+                    inventory_user_id: inventoryUserId,
+                    username: inventoryUsername
                 });
             }
             // Update order
@@ -1282,7 +1302,11 @@ export class OrdersService {
                 modifieddate: Date.now()
             });
             // Recalculate order status (should become shipped)
-            await this.recalculateOrderStatus(orderId);
+            await this.recalculateOrderStatus(orderId, {
+                source: 'inventory_user',
+                inventory_user_id: inventoryUserId,
+                ...(inventoryUsername ? { username: inventoryUsername } : {})
+            });
             const updatedOrder = await this.findById(orderId);
             logger.info({ orderId, orderStatus: updatedOrder.orderstatus }, 'Order marked as shipped');
             return updatedOrder;
@@ -1299,7 +1323,7 @@ export class OrdersService {
      *
      * Note: Allows updating from EKART to another vendor when EKART refuses to collect
      */
-    async updateShipmentDetails(orderIdOrNumber, trackingId, vendor, inventoryUserId, publicTrackingLink, shipped) {
+    async updateShipmentDetails(orderIdOrNumber, trackingId, vendor, inventoryUserId, publicTrackingLink, shipped, inventoryUsername) {
         try {
             logger.info({ orderIdOrNumber, trackingId, vendor, inventoryUserId }, 'Updating shipment details for manual vendor');
             // Find order by ID or order number
@@ -1400,8 +1424,9 @@ export class OrdersService {
                         await orderlineService.updateOrderlineStatus(orderline.id.toString(), 'shipped', {
                             tracking_id: trackingId,
                             shipdate: currentTimestamp,
-                            source: 'inventoryuser',
-                            inventory_user_id: inventoryUserId
+                            source: 'inventory_user',
+                            inventory_user_id: inventoryUserId,
+                            username: inventoryUsername
                         });
                     }
                     else {
@@ -1421,8 +1446,9 @@ export class OrdersService {
             if (!isAlreadyShipped && shipped === true) {
                 // Update order status to shipped (triggers status_history update)
                 await this.updateOrderStatus(order.id.toString(), 'shipped', {
-                    source: 'inventoryuser',
-                    inventory_user_id: inventoryUserId
+                    source: 'inventory_user',
+                    inventory_user_id: inventoryUserId,
+                    username: inventoryUsername
                 });
                 logger.info({ orderId: order.id }, 'Order status updated to shipped (shipped: true in payload)');
                 // Generate invoice for manual vendor orders (same as EKART flow)
@@ -1500,7 +1526,7 @@ export class OrdersService {
      * Works for ALL vendors (EKART + manual vendors)
      * PATCH /v1/orders/:id/shipment-status
      */
-    async updateShipmentStatus(orderIdOrNumber, status, inventoryUserId, location, description) {
+    async updateShipmentStatus(orderIdOrNumber, status, inventoryUserId, location, description, inventoryUsername) {
         try {
             logger.info({ orderIdOrNumber, status, inventoryUserId, location }, 'Updating shipment tracking status manually');
             // Find order by ID or order number
@@ -1658,8 +1684,9 @@ export class OrdersService {
                 logger.info({ orderId: order.id, orderlineCount: orderlines.length, status }, 'Updating orderlines with shipment status');
                 for (const orderline of orderlines) {
                     const orderlineUpdateData = {
-                        source: 'inventoryuser',
+                        source: 'inventory_user',
                         inventory_user_id: inventoryUserId,
+                        username: inventoryUsername,
                         location,
                         description
                     };
@@ -1673,8 +1700,9 @@ export class OrdersService {
             }
             // Step 10: Update order status (triggers status_history update)
             await this.updateOrderStatus(order.id.toString(), newOrderStatus, {
-                source: 'inventoryuser',
+                source: 'inventory_user',
                 inventory_user_id: inventoryUserId,
+                username: inventoryUsername,
                 location,
                 description
             });
@@ -1855,17 +1883,21 @@ export class OrdersService {
                 ...entry,
                 is_active: false
             }));
+            const normalizedSource = this.normalizeStatusHistorySource(additionalData?.source);
             // New entry with is_active: true
             const historyEntry = {
                 previous_status: previousStatus,
                 new_status: status,
                 changed_date: Date.now(),
-                source: additionalData?.source || 'system',
+                source: normalizedSource,
                 is_active: true
             };
-            // Add inventory_user_id if source is inventoryuser
-            if (historyEntry.source === 'inventoryuser' && additionalData?.inventory_user_id) {
+            // Add inventory_user_id if source is inventory_user
+            if (historyEntry.source === 'inventory_user' && additionalData?.inventory_user_id) {
                 historyEntry.inventory_user_id = additionalData.inventory_user_id;
+            }
+            if (additionalData?.username) {
+                historyEntry.username = additionalData.username;
             }
             // Add location and description if provided
             if (additionalData?.location) {
@@ -2431,13 +2463,15 @@ export class OrdersService {
      * Cancel order (customer or admin initiated)
      * Handles stock reversal based on order status
      */
-    async cancelOrder(orderId, userId, inventoryUserId, cancellationReason, source = 'customer') {
+    async cancelOrder(orderId, userId, inventoryUserId, cancellationReason, source = 'customer', inventoryUsername) {
         try {
+            const normalizedSource = this.normalizeStatusHistorySource(source);
             logger.info({
                 orderId,
                 userId,
                 inventoryUserId,
-                source,
+                source: normalizedSource,
+                inventoryUsername,
                 cancellationReason
             }, 'Starting order cancellation');
             // Get order
@@ -2464,7 +2498,7 @@ export class OrdersService {
                     try {
                         // Use proper user ID: inventoryUserId for admin, userId for customer, -1 for system
                         const adminUserIdForRefund = inventoryUserId || userId || -1;
-                        const finalOrder = await this.updateRefundStatus(orderId, 'cancelled_completed', adminUserIdForRefund, `COD order - automatically completed (no refund required). Cancelled by: ${source}`);
+                        const finalOrder = await this.updateRefundStatus(orderId, 'cancelled_completed', adminUserIdForRefund, `COD order - automatically completed (no refund required). Cancelled by: ${normalizedSource}`, undefined, undefined, undefined, inventoryUsername);
                         logger.info({
                             orderId,
                             orderNumber: finalOrder.orderid,
@@ -2498,7 +2532,7 @@ export class OrdersService {
                 throw new Error(`Order cannot be cancelled. Current status: ${order.orderstatus}`);
             }
             // Verify userid matches order owner if customer cancellation
-            if (source === 'customer' && userId && order.userid !== userId) {
+            if (normalizedSource === 'customer' && userId && order.userid !== userId) {
                 throw new Error('Unauthorized: userid does not match order owner');
             }
             // Get all orderlines for this order
@@ -2538,7 +2572,7 @@ export class OrdersService {
                     throw new Error(`Order cannot be cancelled. Current status: ${order.orderstatus || 'unknown'}`);
                 }
                 // STEP 4: Verify user authorization
-                if (source === 'customer' && userId && order.userid !== userId) {
+                if (normalizedSource === 'customer' && userId && order.userid !== userId) {
                     throw new Error('Unauthorized: userid does not match order owner');
                 }
                 // STEP 5: Determine cancellation path and reverse stock
@@ -2561,9 +2595,10 @@ export class OrdersService {
                         previous_status: previousStatus,
                         new_status: 'cancelled',
                         changed_date: currentTimestamp,
-                        source,
+                        source: normalizedSource,
                         userid: userId,
                         inventory_user_id: inventoryUserId,
+                        username: inventoryUsername,
                         cancellation_reason: cancellationReason,
                         is_active: true
                     };
@@ -2592,9 +2627,10 @@ export class OrdersService {
                     previous_status: order.orderstatus || 'unknown',
                     new_status: 'cancelled',
                     changed_date: currentTimestamp,
-                    source,
+                    source: normalizedSource,
                     userid: userId,
                     inventory_user_id: inventoryUserId,
+                    username: inventoryUsername,
                     cancellation_reason: cancellationReason,
                     is_active: true
                 };
@@ -2627,7 +2663,7 @@ export class OrdersService {
                 orderId,
                 previousStatus: order.orderstatus,
                 newStatus: 'cancelled',
-                source,
+                source: normalizedSource,
                 userId,
                 inventoryUserId
             }, 'Order cancelled successfully');
@@ -2644,7 +2680,7 @@ export class OrdersService {
                             ...existingData,
                             order_cancelled: true,
                             cancelled_date: currentTimestamp,
-                            cancellation_source: source,
+                            cancellation_source: normalizedSource,
                             cancellation_reason: cancellationReason,
                             order_status: updatedOrder.mode === 'cod' ? 'ORDER_CANCELLED' : 'CANCELLED_AWAITING_REFUND'
                         };
@@ -2745,7 +2781,7 @@ export class OrdersService {
                     // Auto-update to cancelled_completed for COD orders
                     // Use proper user ID: inventoryUserId for admin, userId for customer, -1 for system
                     const adminUserIdForRefund = inventoryUserId || userId || -1;
-                    const finalOrder = await this.updateRefundStatus(orderId, 'cancelled_completed', adminUserIdForRefund, `COD order - automatically completed (no refund required). Cancelled by: ${source}`);
+                    const finalOrder = await this.updateRefundStatus(orderId, 'cancelled_completed', adminUserIdForRefund, `COD order - automatically completed (no refund required). Cancelled by: ${normalizedSource}`, undefined, undefined, undefined, inventoryUsername);
                     logger.info({
                         orderId,
                         orderNumber: finalOrder.orderid,
@@ -2909,7 +2945,7 @@ export class OrdersService {
      */
     async updateRefundStatus(orderId, newStatus, adminUserId, notes, 
     // NEW: Optional structured refund fields
-    refundTransactionId, refundAmount, refundReference) {
+    refundTransactionId, refundAmount, refundReference, inventoryUsername) {
         try {
             logger.info({
                 orderId,
@@ -2918,7 +2954,8 @@ export class OrdersService {
                 notes,
                 refundTransactionId,
                 refundAmount,
-                refundReference
+                refundReference,
+                inventoryUsername
             }, 'Updating refund status with structured data');
             // Get order
             const order = await this.findById(typeof orderId === 'string' ? parseInt(orderId) : orderId);
@@ -2958,8 +2995,9 @@ export class OrdersService {
             const currentTimestamp = Date.now();
             // Build status_history entry with structured refund data
             const statusHistoryData = {
-                source: 'inventoryuser',
-                inventory_user_id: adminUserId
+                source: 'inventory_user',
+                inventory_user_id: adminUserId,
+                username: inventoryUsername
             };
             // Add refund fields to status_history
             if (refundTransactionId)
@@ -2988,8 +3026,9 @@ export class OrdersService {
             }
             // Prepare order update data
             const orderUpdateData = {
-                source: 'inventoryuser',
+                source: 'inventory_user',
                 inventory_user_id: adminUserId,
+                username: inventoryUsername,
                 refund_status_updated_date: currentTimestamp
             };
             // Add refund fields to order update

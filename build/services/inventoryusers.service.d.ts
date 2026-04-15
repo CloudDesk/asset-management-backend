@@ -3,6 +3,7 @@ import { PaginationResult } from '../utils/pagination.js';
 import { FilterOptions } from '../utils/filterBuilder.js';
 export declare class InventoryUsersService {
     private emailService;
+    private sendPasswordSetLink;
     findMany(filters: FilterOptions, page: number, limit: number): Promise<PaginationResult<any>>;
     findById(id: string): Promise<any>;
     findByEmail(email: string): Promise<any>;
