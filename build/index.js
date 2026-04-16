@@ -8,6 +8,24 @@ BigInt.prototype.toJSON = function () {
 };
 async function start() {
     try {
+        // Initialize Redis connection
+        console.log('🔌 Connecting to Redis...');
+        await redisClient.connect();
+        console.log('✅ Redis connected successfully');
+        // Initialize Ekart auth (optional - will auto-connect on first API call if credentials are set)
+        if (env.EKART_CLIENT_ID && env.EKART_USERNAME && env.EKART_PASSWORD) {
+            try {
+                console.log('🔌 Connecting to Ekart API...');
+                await ekartAuthService.connect();
+                console.log('✅ Ekart API connected successfully');
+            }
+            catch (error) {
+                console.warn('⚠️  Ekart API connection failed (will retry on first API call):', error.message);
+            }
+        }
+        else {
+            console.log('ℹ️  Ekart credentials not configured - skipping initial connection');
+        }
         const fastify = await buildServer();
         const port = process.env.PORT || env.PORT || 5600;
         await fastify.listen({
@@ -21,31 +39,6 @@ async function start() {
         //});
         fastify.log.info(`🚀 Server running at http://localhost:${env.PORT}`);
         fastify.log.info(`📚 API Documentation available at http://localhost:${env.PORT}/docs`);
-        // Warm up external dependencies after the HTTP server is already listening.
-        // This prevents Cloud Run startup failures when Redis or Ekart is slow/unavailable.
-        void (async () => {
-            try {
-                console.log('🔌 Connecting to Redis...');
-                await redisClient.connect();
-                console.log('✅ Redis connected successfully');
-            }
-            catch (error) {
-                fastify.log.warn({ error: error?.message }, 'Redis warmup failed; retrying lazily on demand');
-            }
-            if (env.EKART_CLIENT_ID && env.EKART_USERNAME && env.EKART_PASSWORD) {
-                try {
-                    console.log('🔌 Connecting to Ekart API...');
-                    await ekartAuthService.connect();
-                    console.log('✅ Ekart API connected successfully');
-                }
-                catch (error) {
-                    console.warn('⚠️  Ekart API connection failed (will retry on first API call):', error.message);
-                }
-            }
-            else {
-                console.log('ℹ️  Ekart credentials not configured - skipping initial connection');
-            }
-        })();
         // Graceful shutdown
         const signals = ['SIGINT', 'SIGTERM'];
         signals.forEach((signal) => {

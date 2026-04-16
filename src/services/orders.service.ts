@@ -929,7 +929,7 @@ export class OrdersService {
     try {
       const stocks: any[] = [];
       for (const sku of skus) {
-        const { data: stockResults } = await dynamicFindManyWithFilters('stock', { 
+        const { data: stockResults } = await dynamicFindManyWithFilters('stock', {
           sku,
           ecompublish: true  // Only select e-commerce published stocks
         }, {
@@ -1499,7 +1499,7 @@ export class OrdersService {
         headers: {
           'Content-Type': 'application/json'
         },
-        timeout: 30000 // 30 second timeout
+        timeout: 60000 // 60 second timeout
       });
 
       logger.info({
@@ -4163,7 +4163,7 @@ export class OrdersService {
 
           // Restore orderedqty → availableqty
           const newOrderedQty = Math.max(0, (platformStock.orderedqty || 0) - update.quantity);
-          
+
           // Recalculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
           // ecomqty doesn't change (stocks still available, just not ordered anymore)
           const newAvailableQty = Math.max(0, currentEcomQty - newOrderedQty - currentSoldQty - currentLockQty);
@@ -4434,7 +4434,7 @@ export class OrdersService {
           // The stocks being cancelled were sold, so they were e-commerce published (otherwise they wouldn't be in soldqty)
           const newSoldQty = Math.max(0, (platformStock.soldqty || 0) - update.quantity);
           const newEcomQty = currentEcomQty + update.ecomQuantity; // Increase by e-commerce published count
-          
+
           // Recalculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
           const newAvailableQty = Math.max(0, newEcomQty - currentOrderedQty - newSoldQty - currentLockQty);
 
