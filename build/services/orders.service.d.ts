@@ -186,6 +186,16 @@ export declare class OrdersService {
             total_sgst_amount: number | null;
             total_igst_amount: number | null;
             total_gst_amount: number | null;
+            tracking_id: string | null;
+            vendor: string | null;
+            label_url: string | null;
+            order_invoice_url: string | null;
+            public_tracking_link: string | null;
+            shipment_created_at: number | null;
+            shipdate: number | null;
+            cod_payment_received_date: number | null;
+            cod_transaction_reference: string | null;
+            cod_amount: number | null;
             createddate: number | null;
             modifieddate: number | null;
             refund_transaction_id: string | null;

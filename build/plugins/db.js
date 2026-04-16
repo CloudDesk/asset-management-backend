@@ -21,8 +21,8 @@ async function dbPlugin(fastify) {
     catch (error) {
         logger.error({ error }, '❌ Failed to connect to database');
         fastify.log.error('Failed to connect to database:', error);
-        // Keep the process alive so Cloud Run can finish startup and surface the real DB error in logs.
-        // Prisma will reconnect when requests hit the database again.
+        // Exit process if database connection fails
+        process.exit(1);
     }
 }
 export default fp(dbPlugin, {

@@ -15,25 +15,25 @@ export declare const createPicklistSchema: z.ZodObject<{
     value: string;
     label: string;
     object?: string | undefined;
-    description?: string | undefined;
     isactive?: boolean | null | undefined;
     controlledvalue?: string | undefined;
     fieldname?: string | undefined;
     controlledlabel?: string | undefined;
     controlledfieldname?: string | undefined;
     parent?: string | undefined;
+    description?: string | undefined;
     sortorder?: number | undefined;
 }, {
     value: string;
     label: string;
     object?: string | undefined;
-    description?: string | undefined;
     isactive?: boolean | null | undefined;
     controlledvalue?: string | undefined;
     fieldname?: string | undefined;
     controlledlabel?: string | undefined;
     controlledfieldname?: string | undefined;
     parent?: string | undefined;
+    description?: string | undefined;
     sortorder?: number | undefined;
 }>;
 export declare const updatePicklistSchema: z.ZodObject<{
@@ -51,7 +51,6 @@ export declare const updatePicklistSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     object?: string | undefined;
     value?: string | undefined;
-    description?: string | undefined;
     isactive?: boolean | null | undefined;
     label?: string | undefined;
     controlledvalue?: string | undefined;
@@ -59,11 +58,11 @@ export declare const updatePicklistSchema: z.ZodObject<{
     controlledlabel?: string | undefined;
     controlledfieldname?: string | undefined;
     parent?: string | undefined;
+    description?: string | undefined;
     sortorder?: number | undefined;
 }, {
     object?: string | undefined;
     value?: string | undefined;
-    description?: string | undefined;
     isactive?: boolean | null | undefined;
     label?: string | undefined;
     controlledvalue?: string | undefined;
@@ -71,6 +70,7 @@ export declare const updatePicklistSchema: z.ZodObject<{
     controlledlabel?: string | undefined;
     controlledfieldname?: string | undefined;
     parent?: string | undefined;
+    description?: string | undefined;
     sortorder?: number | undefined;
 }>;
 export declare const picklistParamsSchema: z.ZodObject<{
