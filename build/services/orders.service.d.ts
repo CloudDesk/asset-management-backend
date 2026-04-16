@@ -93,6 +93,10 @@ export declare class OrdersService {
      * For EKART orders, the 'shipped' status is now set automatically via webhook.
      */
     markShipped(orderId: number, inventoryUserId: number, inventoryUsername?: string): Promise<any>;
+    generateOrderInvoice(orderIdOrNumber: string | number): Promise<{
+        order: any;
+        invoiceUrl: string;
+    }>;
     /**
      * Manually ship order with vendor details
      * Automatically sets order status to 'shipped'

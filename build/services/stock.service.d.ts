@@ -29,6 +29,7 @@ export declare class StockService {
             availableqty: number;
             orderedqty: number;
             soldqty: number;
+            ecomqty: number;
             lockqty: number;
         }>;
         locations: Array<{

@@ -197145,3 +197145,136 @@ Filtered data result: {
   ],
   "modifieddate": 1767957786670
 }
+Filtered data result: {
+  "stockstatus": "sold",
+  "orderid": "NIVAANA-0000000224",
+  "orderlinenumber": "ordline-0000000296",
+  "solddate": 1776253007149,
+  "modifieddate": 1776253007149
+}
+Filtered data result: {
+  "stockstatus": "sold",
+  "orderid": "NIVAANA-0000000224",
+  "orderlinenumber": "ordline-0000000297",
+  "solddate": 1776253007149,
+  "modifieddate": 1776253007149
+}
+Filtered data result: {
+  "ecomqty": 29,
+  "orderedqty": 16,
+  "soldqty": 1,
+  "availableqty": 12,
+  "platformstatus": "in_stock",
+  "modifieddate": 1776253007149
+}
+Filtered data result: {
+  "ecomqty": 411,
+  "orderedqty": 38,
+  "soldqty": 3,
+  "availableqty": 368,
+  "platformstatus": "in_stock",
+  "modifieddate": 1776253007149
+}
+Filtered data result: {
+  "orderedquantity": 16,
+  "soldquantity": 1,
+  "modifieddate": 1776253007149
+}
+Filtered data result: {
+  "orderedquantity": 38,
+  "soldquantity": 3,
+  "modifieddate": 1776253007149
+}
+Filtered data result: {
+  "orderstatus": "ready_for_dispatch",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1774334138413,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1776253008475,\"source\":\"inventory_user\",\"is_active\":true,\"inventory_user_id\":8,\"username\":\"SURESH KUMAR\"}]",
+  "modifieddate": 1776253008475,
+  "readytodispatchdate": 1776253008475
+}
+Filtered data result: {
+  "orderstatus": "ready_for_dispatch",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1774334138413,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1776253008819,\"source\":\"inventory_user\",\"is_active\":true,\"inventory_user_id\":8,\"username\":\"SURESH KUMAR\"}]",
+  "modifieddate": 1776253008819,
+  "readytodispatchdate": 1776253008819
+}
+Filtered data result: {
+  "orderstatus": "ready_for_dispatch",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1774334138411,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1776253008988,\"source\":\"inventory_user\",\"is_active\":true,\"inventory_user_id\":8,\"username\":\"SURESH KUMAR\"}]",
+  "modifieddate": 1776253008988,
+  "readytodispatchdate": 1776253008988
+}
+Filtered data result: {
+  "tracking_id": "43231543215",
+  "vendor": "Delhivery",
+  "public_tracking_link": "https://www.delhivery.com/track/43231543215",
+  "modifieddate": 1776253149077,
+  "label_url": null,
+  "barcodes": null,
+  "shipment_tracking_status": null,
+  "shipment_created_at": 1776253149077,
+  "shipdate": 1776253149077,
+  "label_printed_at": 1776253149077
+}
+Filtered data result: {
+  "orderstatus": "shipped",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1774334138413,\"previous_status\":\"order_placed\"},{\"source\":\"inventory_user\",\"username\":\"SURESH KUMAR\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1776253008475,\"previous_status\":\"payment_completed\",\"inventory_user_id\":8},{\"previous_status\":\"ready_for_dispatch\",\"new_status\":\"shipped\",\"changed_date\":1776253149424,\"source\":\"inventory_user\",\"is_active\":true,\"inventory_user_id\":8,\"username\":\"SURESH KUMAR\"}]",
+  "modifieddate": 1776253149424,
+  "tracking_id": "43231543215",
+  "shipdate": 1776253149077
+}
+Filtered data result: {
+  "orderstatus": "shipped",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1774334138413,\"previous_status\":\"order_placed\"},{\"source\":\"inventory_user\",\"username\":\"SURESH KUMAR\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1776253008819,\"previous_status\":\"payment_completed\",\"inventory_user_id\":8},{\"previous_status\":\"ready_for_dispatch\",\"new_status\":\"shipped\",\"changed_date\":1776253149835,\"source\":\"inventory_user\",\"is_active\":true,\"inventory_user_id\":8,\"username\":\"SURESH KUMAR\"}]",
+  "modifieddate": 1776253149835,
+  "tracking_id": "43231543215",
+  "shipdate": 1776253149077
+}
+Filtered data result: {
+  "orderstatus": "shipped",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1774334138411,\"previous_status\":\"order_placed\"},{\"source\":\"inventory_user\",\"username\":\"SURESH KUMAR\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1776253008988,\"previous_status\":\"payment_completed\",\"inventory_user_id\":8},{\"previous_status\":\"ready_for_dispatch\",\"new_status\":\"shipped\",\"changed_date\":1776253150064,\"source\":\"inventory_user\",\"is_active\":true,\"inventory_user_id\":8,\"username\":\"SURESH KUMAR\"}]",
+  "modifieddate": 1776253150064
+}
+Filtered data result: {
+  "modifieddate": 1776253150238
+}
+Filtered data result: {
+  "order_invoice_url": "https://storage.googleapis.com/niv_order_invoice/NIVAANA-0000000224/NIVAANA-0000000224.pdf",
+  "modifieddate": 1776253155600
+}
+Filtered data result: {
+  "shipment_tracking_status": "in_transit",
+  "modifieddate": 1776253286217
+}
+Filtered data result: {
+  "orderstatus": "in_transit",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1774334138413,\"previous_status\":\"order_placed\"},{\"source\":\"inventory_user\",\"username\":\"SURESH KUMAR\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1776253008819,\"previous_status\":\"payment_completed\",\"inventory_user_id\":8},{\"source\":\"inventory_user\",\"username\":\"SURESH KUMAR\",\"is_active\":false,\"new_status\":\"shipped\",\"changed_date\":1776253149835,\"previous_status\":\"ready_for_dispatch\",\"inventory_user_id\":8},{\"previous_status\":\"shipped\",\"new_status\":\"in_transit\",\"changed_date\":1776253286638,\"source\":\"inventory_user\",\"is_active\":true,\"inventory_user_id\":8,\"username\":\"SURESH KUMAR\"}]",
+  "modifieddate": 1776253286638,
+  "location": ""
+}
+Filtered data result: {
+  "orderstatus": "in_transit",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1774334138413,\"previous_status\":\"order_placed\"},{\"source\":\"inventory_user\",\"username\":\"SURESH KUMAR\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1776253008475,\"previous_status\":\"payment_completed\",\"inventory_user_id\":8},{\"source\":\"inventory_user\",\"username\":\"SURESH KUMAR\",\"is_active\":false,\"new_status\":\"shipped\",\"changed_date\":1776253149424,\"previous_status\":\"ready_for_dispatch\",\"inventory_user_id\":8},{\"previous_status\":\"shipped\",\"new_status\":\"in_transit\",\"changed_date\":1776253287045,\"source\":\"inventory_user\",\"is_active\":true,\"inventory_user_id\":8,\"username\":\"SURESH KUMAR\"}]",
+  "modifieddate": 1776253287045,
+  "location": ""
+}
+Filtered data result: {
+  "orderstatus": "in_transit",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1774334138411,\"previous_status\":\"order_placed\"},{\"source\":\"inventory_user\",\"username\":\"SURESH KUMAR\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1776253008988,\"previous_status\":\"payment_completed\",\"inventory_user_id\":8},{\"source\":\"inventory_user\",\"username\":\"SURESH KUMAR\",\"is_active\":false,\"new_status\":\"shipped\",\"changed_date\":1776253150064,\"previous_status\":\"ready_for_dispatch\",\"inventory_user_id\":8},{\"previous_status\":\"shipped\",\"new_status\":\"in_transit\",\"changed_date\":1776253287303,\"source\":\"inventory_user\",\"is_active\":true,\"inventory_user_id\":8,\"username\":\"SURESH KUMAR\"}]",
+  "modifieddate": 1776253287303
+}
+Filtered data result: {
+  "modifieddate": 1776253287418
+}
+Filtered data result: {
+  "order_invoice_url": "https://storage.googleapis.com/niv_order_invoice/NIVAANA-0000000224/NIVAANA-0000000224.pdf",
+  "modifieddate": 1776256117897
+}
+Filtered data result: {
+  "order_invoice_url": "https://storage.googleapis.com/niv_order_invoice/NIVAANA-0000000224/NIVAANA-0000000224.pdf",
+  "modifieddate": 1776256299559
+}
+Filtered data result: {
+  "status": "negotiation",
+  "prnumber": "KS-001-NIVAANA-PR-00017",
+  "modifieddate": 1776258500789
+}

@@ -1316,6 +1316,27 @@ export class OrdersService {
             throw error;
         }
     }
+    async generateOrderInvoice(orderIdOrNumber) {
+        let order;
+        if (typeof orderIdOrNumber === 'string' && isNaN(Number(orderIdOrNumber))) {
+            order = await this.findByOrderNumber(orderIdOrNumber);
+        }
+        else {
+            order = await this.findById(Number(orderIdOrNumber));
+        }
+        if (!order) {
+            throw new Error('Order not found');
+        }
+        const invoiceUrl = await this.generateInvoice(order.id);
+        if (!invoiceUrl) {
+            throw new Error('Invoice generation failed');
+        }
+        const updatedOrder = await this.findById(order.id);
+        return {
+            order: updatedOrder,
+            invoiceUrl
+        };
+    }
     /**
      * Manually ship order with vendor details
      * Automatically sets order status to 'shipped'
@@ -2041,6 +2062,7 @@ export class OrdersService {
                 vendor: fullOrder.vendor,
                 barcodes: fullOrder.barcodes,
                 label_url: fullOrder.label_url,
+                order_invoice_url: fullOrder.order_invoice_url,
                 public_tracking_link: fullOrder.public_tracking_link,
                 shipment_created_at: fullOrder.shipment_created_at,
                 shipdate: fullOrder.shipdate,

@@ -451,6 +451,21 @@ export function processError(error, request) {
         message = error.message || 'An error occurred';
         details = error.message;
     }
+    // Handle upstream HTTP client errors such as Axios responses
+    else if (error.response?.status && typeof error.response.status === 'number') {
+        console.log('=== MATCHED: Upstream HTTP client error');
+        const upstreamStatus = error.response.status;
+        const upstreamData = error.response.data;
+        statusCode = upstreamStatus;
+        message =
+            upstreamData?.message ||
+                error.message ||
+                'Upstream service request failed';
+        details =
+            upstreamData?.description ||
+                upstreamData?.details ||
+                error.message;
+    }
     // Handle generic errors
     else {
         console.log('=== MATCHED: Generic error');

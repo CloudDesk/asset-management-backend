@@ -28,6 +28,7 @@ export declare class OrdersController {
      * PATCH /v1/orders/:id/shipment-status
      */
     updateShipmentStatus: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
+    generateOrderInvoice: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     updateOrderStatus: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     /**
      * Track order by order ID (customer-facing)

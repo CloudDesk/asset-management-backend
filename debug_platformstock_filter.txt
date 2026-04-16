@@ -7485,3 +7485,69 @@ Filtered data: {
 }
 Ignored fields: []
 
+PlatformStock filter debug:
+Input data: {
+  "ecomqty": 29,
+  "orderedqty": 16,
+  "soldqty": 1,
+  "availableqty": 12,
+  "platformstatus": "in_stock",
+  "modifieddate": 1776253007149
+}
+Available columns: [
+  "id",
+  "productid",
+  "platform",
+  "availableqty",
+  "orderedqty",
+  "soldqty",
+  "totalqty",
+  "lockqty",
+  "createddate",
+  "modifieddate",
+  "platformstatus",
+  "ecomqty"
+]
+Filtered data: {
+  "ecomqty": 29,
+  "orderedqty": 16,
+  "soldqty": 1,
+  "availableqty": 12,
+  "platformstatus": "in_stock",
+  "modifieddate": 1776253007149
+}
+Ignored fields: []
+
+PlatformStock filter debug:
+Input data: {
+  "ecomqty": 411,
+  "orderedqty": 38,
+  "soldqty": 3,
+  "availableqty": 368,
+  "platformstatus": "in_stock",
+  "modifieddate": 1776253007149
+}
+Available columns: [
+  "id",
+  "productid",
+  "platform",
+  "availableqty",
+  "orderedqty",
+  "soldqty",
+  "totalqty",
+  "lockqty",
+  "createddate",
+  "modifieddate",
+  "platformstatus",
+  "ecomqty"
+]
+Filtered data: {
+  "ecomqty": 411,
+  "orderedqty": 38,
+  "soldqty": 3,
+  "availableqty": 368,
+  "platformstatus": "in_stock",
+  "modifieddate": 1776253007149
+}
+Ignored fields: []
+
