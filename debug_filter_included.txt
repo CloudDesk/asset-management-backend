@@ -175619,3 +175619,6 @@ Included field: order_invoice_url = "https://storage.googleapis.com/niv_order_in
 Included field: modifieddate = 1776256117897
 Included field: order_invoice_url = "https://storage.googleapis.com/niv_order_invoice/NIVAANA-0000000224/NIVAANA-0000000224.pdf"
 Included field: modifieddate = 1776256299559
+Included field: status = "negotiation"
+Included field: prnumber = "KS-001-NIVAANA-PR-00017"
+Included field: modifieddate = 1776258500789

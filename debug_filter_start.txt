@@ -198412,3 +198412,8 @@ Filtering data for orders (orders): {
   "order_invoice_url": "https://storage.googleapis.com/niv_order_invoice/NIVAANA-0000000224/NIVAANA-0000000224.pdf",
   "modifieddate": 1776256299559
 }
+Filtering data for quotes (quotes): {
+  "status": "negotiation",
+  "prnumber": "KS-001-NIVAANA-PR-00017",
+  "modifieddate": 1776258500789
+}

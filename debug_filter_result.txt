@@ -197392,3 +197392,8 @@ Filtered data result: {
   "order_invoice_url": "https://storage.googleapis.com/niv_order_invoice/NIVAANA-0000000224/NIVAANA-0000000224.pdf",
   "modifieddate": 1776256299559
 }
+Filtered data result: {
+  "status": "negotiation",
+  "prnumber": "KS-001-NIVAANA-PR-00017",
+  "modifieddate": 1776258500789
+}

@@ -1708,3 +1708,9 @@ Update query:
         WHERE "id" = $1 
         RETURNING id, userid, addressid, createddate, modifieddate, orderamount, orderid, orderstatus, delivereddate, cancelleddate, returneddate, quantity, transactionid, readytodispatchdate, dispatcheddate, productamount, discountamount, deliveryfrom, orderprocessingtime, ispaymentsucceed, merchanttransactionid, productid, paymentfaileddate, mode, evaluation_id, promotion_discount_total, original_total, shipping_cost, tax_amount, tracking_id, vendor, barcodes, label_url, public_tracking_link, shipment_created_at, label_downloaded_at, label_printed_at, shipdate, cod_payment_received_date, cod_transaction_reference, cod_amount, status_history, items_total, total_taxable_amount, total_cgst_amount, total_sgst_amount, total_igst_amount, total_gst_amount, refund_transaction_id, refund_amount, refund_reference, refund_initiated_date, refund_completed_date, order_invoice_url, shipment_tracking_status
       
+Update query: 
+        UPDATE "quotes" 
+        SET "status" = $2, "prnumber" = $3, "modifieddate" = $4 
+        WHERE "id" = $1 
+        RETURNING id, createddate, modifieddate, status, prnumber, quoteurl, quotenumber
+      
