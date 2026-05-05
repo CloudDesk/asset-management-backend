@@ -92,6 +92,14 @@ const SOLD_UPDATES: Array<{
 }> =
     [
         // { id: ****, quantity: 2, platform: 'Amazon', solddate: '3/3/2026' }, 
+        { id: 6, quantity: 1, platform: 'Nivapp', solddate: '3/10/2026' },
+        { id: 14, quantity: 1, platform: 'Nivapp', solddate: '3/10/2026' },
+        { id: 63, quantity: 1, platform: 'Nivapp', solddate: '3/10/2026' },
+        { id: 62, quantity: 1, platform: 'Nivapp', solddate: '3/10/2026' },
+        { id: 37, quantity: 1, platform: 'Nivapp', solddate: '3/10/2026' },
+        { id: 38, quantity: 1, platform: 'Nivapp', solddate: '3/10/2026' },
+        { id: 40, quantity: 1, platform: 'Nivapp', solddate: '3/10/2026' },
+        { id: 15, quantity: 1, platform: 'Nivapp', solddate: '3/10/2026' },
     ]
 
 
