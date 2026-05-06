@@ -184,23 +184,6 @@ export class StockService {
     orderedquantity: number;
     soldquantity: number;
     ecompublishedquantity: number;
-    platforms: Array<{
-      platform: string;
-      quantity: number;
-      availablequantity: number;
-      orderedquantity: number;
-      soldquantity: number;
-      ecompublishedquantity: number;
-    }>;
-    platformStocks: Array<{
-      platform: string;
-      totalqty: number;
-      availableqty: number;
-      orderedqty: number;
-      soldqty: number;
-      ecomqty: number;
-      lockqty: number;
-    }>;
     locations: Array<{
       location: string;
       quantity: number;
@@ -225,42 +208,6 @@ export class StockService {
         soldquantity: productRecord?.soldquantity !== undefined ? Number(productRecord.soldquantity) : 0,
         ecompublishedquantity: productRecord?.ecompublishedquantity !== undefined ? Number(productRecord.ecompublishedquantity) : 0
       };
-
-      const platformSummaryRaw = await prisma.$queryRaw<Array<{
-        platform: string | null;
-        quantity: bigint | number | null;
-        availablequantity: bigint | number | null;
-        orderedquantity: bigint | number | null;
-        soldquantity: bigint | number | null;
-        ecompublishedquantity: bigint | number | null;
-      }>>`
-        SELECT
-          NULLIF(TRIM(platform), '') AS platform,
-          COUNT(*) AS quantity,
-          SUM(CASE WHEN stockstatus = 'Available' AND ecompublish = true THEN 1 ELSE 0 END) AS availablequantity,
-          SUM(CASE WHEN stockstatus = 'Ordered' THEN 1 ELSE 0 END) AS orderedquantity,
-          SUM(CASE WHEN stockstatus = 'Sold' THEN 1 ELSE 0 END) AS soldquantity,
-          SUM(CASE WHEN ecompublish = true THEN 1 ELSE 0 END) AS ecompublishedquantity
-        FROM stock
-        WHERE puc = ${puc}
-          AND (isdeleted IS NULL OR isdeleted = false)
-          AND (isarchive IS NULL OR isarchive = false)
-        GROUP BY NULLIF(TRIM(platform), '')
-        ORDER BY platform
-      `;
-
-      const platforms = (platformSummaryRaw || []).map((row) => {
-        const platform = row.platform && row.platform.trim().length > 0 ? row.platform : '';
-
-        return {
-          platform,
-          quantity: Number(row.quantity ?? 0),
-          availablequantity: Number(row.availablequantity ?? 0),
-          orderedquantity: Number(row.orderedquantity ?? 0),
-          soldquantity: Number(row.soldquantity ?? 0),
-          ecompublishedquantity: Number(row.ecompublishedquantity ?? 0)
-        };
-      });
 
       let platformStocks: Array<{
         platform: string;
@@ -304,89 +251,28 @@ export class StockService {
         }
       }
 
-      const locationSummaries = new Map<string, {
+      let locations: Array<{
         location: string;
         quantity: number;
         availablequantity: number;
         orderedquantity: number;
         soldquantity: number;
         ecompublishedquantity: number;
-      }>();
+      }> = [];
 
-      for (const platformSummary of platforms) {
-        const location = platformSummary.platform;
-        locationSummaries.set(location, {
-          location,
-          quantity: platformSummary.quantity,
-          availablequantity: Math.max(
-            0,
-            platformSummary.ecompublishedquantity -
-            platformSummary.orderedquantity -
-            platformSummary.soldquantity
-          ),
-          orderedquantity: platformSummary.orderedquantity,
-          soldquantity: platformSummary.soldquantity,
-          ecompublishedquantity: platformSummary.ecompublishedquantity,
-        });
-      }
+      locations = platformStocks.map((platformStock) => ({
+        location: platformStock.platform ?? '',
+        quantity: platformStock.totalqty,
+        availablequantity: platformStock.availableqty,
+        orderedquantity: platformStock.orderedqty,
+        soldquantity: platformStock.soldqty,
+        ecompublishedquantity: platformStock.ecomqty,
+      }));
 
-      for (const platformStock of platformStocks) {
-        const location = platformStock.platform ?? '';
-        const existing = locationSummaries.get(location);
-
-        if (existing) {
-          const orderedquantity = platformStock.orderedqty;
-          const soldquantity = platformStock.soldqty;
-          const ecompublishedquantity = existing.ecompublishedquantity;
-
-          locationSummaries.set(location, {
-            ...existing,
-            orderedquantity,
-            soldquantity,
-            availablequantity: Math.max(
-              0,
-              ecompublishedquantity - orderedquantity - soldquantity
-            ),
-          });
-          continue;
-        }
-
-        const ecompublishedquantity = platformStock.ecomqty;
-        const orderedquantity = platformStock.orderedqty;
-        const soldquantity = platformStock.soldqty;
-
-        locationSummaries.set(location, {
-          location,
-          quantity: platformStock.totalqty,
-          availablequantity: Math.max(
-            0,
-            ecompublishedquantity - orderedquantity - soldquantity
-          ),
-          orderedquantity,
-          soldquantity,
-          ecompublishedquantity,
-        });
-      }
-
-      const locations = Array.from(locationSummaries.values()).sort((a, b) =>
-        a.location.localeCompare(b.location)
-      );
-
-      if (locations.length === 1 && locations[0]) {
-        locations[0] = {
-          location: locations[0].location || '',
-          quantity: summaryTotals.quantity,
-          availablequantity: summaryTotals.availablequantity,
-          orderedquantity: summaryTotals.orderedquantity,
-          soldquantity: summaryTotals.soldquantity,
-          ecompublishedquantity: summaryTotals.ecompublishedquantity,
-        };
-      }
+      locations.sort((a, b) => a.location.localeCompare(b.location));
 
       return {
         ...summaryTotals,
-        platforms,
-        platformStocks,
         locations,
       };
     } catch (error: any) {

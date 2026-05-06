@@ -25,6 +25,7 @@ export class StockController {
         if (typeof pucFilter === 'string' && pucFilter.trim().length > 0) {
             summary = await this.stockService.getSummaryByPuc(pucFilter.trim());
         }
+        console.log(formattedData?.summary, "formattedData");
         const response = createSuccessResponse('Stocks retrieved successfully', formattedData);
         const payload = {
             ...response,

@@ -1223,7 +1223,7 @@ export class OrdersService {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                timeout: 30000 // 30 second timeout
+                timeout: 60000 // 60 second timeout
             });
             logger.info({
                 orderId,
@@ -2452,6 +2452,16 @@ export class OrdersService {
                     total_sgst_amount: order.total_sgst_amount ? Number(order.total_sgst_amount) : null,
                     total_igst_amount: order.total_igst_amount ? Number(order.total_igst_amount) : null,
                     total_gst_amount: order.total_gst_amount ? Number(order.total_gst_amount) : null,
+                    tracking_id: order.tracking_id,
+                    vendor: order.vendor,
+                    label_url: order.label_url,
+                    order_invoice_url: order.order_invoice_url,
+                    public_tracking_link: order.public_tracking_link,
+                    shipment_created_at: order.shipment_created_at,
+                    shipdate: order.shipdate,
+                    cod_payment_received_date: order.cod_payment_received_date,
+                    cod_transaction_reference: order.cod_transaction_reference,
+                    cod_amount: order.cod_amount ? Number(order.cod_amount) : null,
                     createddate: order.createddate ? Number(order.createddate) : null,
                     modifieddate: order.modifieddate ? Number(order.modifieddate) : null,
                     refund_transaction_id: order.refund_transaction_id,
