@@ -3,9 +3,9 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { StockService } from '../services/stock.service.js';
 import { ExcelService } from '../services/excel.service.js';
 import { StockImportService } from '../services/stockImport.service.js';
-import { 
-  createStockSchema, 
-  updateStockSchema, 
+import {
+  createStockSchema,
+  updateStockSchema,
   upsertStockSchema,
   stockParamsSchema,
   rfidUpdateStockSchema,
@@ -16,7 +16,7 @@ import {
   CreateStockInput
 } from '../schemas/stock.schema.js';
 import { getPaginationParams } from '../utils/pagination.js';
-import { 
+import {
   createSuccessResponse,
   asyncHandler,
   ValidationError
@@ -34,14 +34,14 @@ export class StockController {
     // Get all query parameters as filters (not just schema-validated ones)
     const allFilters: Record<string, any> = request.query || {};
     const { page, limit } = getPaginationParams(allFilters);
-    
+
     // Remove pagination params from filters
     const { page: _, limit: __, ...filters } = allFilters;
-    
+
     const result = await this.stockService.findMany(filters, page, limit);
-    
+
     // Format all stocks in the result
-    const formattedData = formatEntitiesForAPI(result.data, 'stock');
+    const formattedData: any = formatEntitiesForAPI(result.data, 'stock');
 
     let summary: any = null;
     const pucFilterRaw = filters?.puc;
@@ -50,7 +50,7 @@ export class StockController {
     if (typeof pucFilter === 'string' && pucFilter.trim().length > 0) {
       summary = await this.stockService.getSummaryByPuc(pucFilter.trim());
     }
-    
+    console.log(formattedData?.summary, "formattedData")
     const response = createSuccessResponse('Stocks retrieved successfully', formattedData);
 
     const payload: Record<string, any> = {
@@ -72,18 +72,18 @@ export class StockController {
 
   getStock = asyncHandler(async (request: FastifyRequest<{ Params: StockParams }>, reply: FastifyReply) => {
     const { id } = stockParamsSchema.parse(request.params);
-    
+
     const stock = await this.stockService.findById(id);
-    
+
     const response = createSuccessResponse('Stock retrieved successfully', formatStockForAPI(stock));
     return reply.code(200).send(response);
   });
 
   createStock = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const data = createStockSchema.parse(request.body);
-    
+
     const stock = await this.stockService.create(data);
-    
+
     const response = createSuccessResponse('Stock created successfully', formatStockForAPI(stock));
     return reply.code(201).send(response);
   });
@@ -94,16 +94,16 @@ export class StockController {
    */
   createBulkStocksLegacy = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const stockArray = request.body as (CreateStockInput & Record<string, any>)[];
-  
+
     if (!Array.isArray(stockArray) || stockArray.length === 0) {
       throw new Error("Request body must be a non-empty array");
     }
-  
+
     const result = await this.stockService.createBulk(stockArray);
-  
+
     const success = result.failures.length === 0;
     const code = success ? 201 : 207;
-  
+
     return reply.code(code).send({
       success,
       insertedCount: result.inserted.length,
@@ -118,28 +118,28 @@ export class StockController {
    */
   private expandRecordsWithInstances(stockArray: (CreateStockInput & Record<string, any>)[]): (CreateStockInput & Record<string, any>)[] {
     const expandedArray: (CreateStockInput & Record<string, any>)[] = [];
-    
+
     for (const stockRecord of stockArray) {
       const { instances, ...stockData } = stockRecord;
-      
+
       // instances is now mandatory, validate it
       if (typeof instances !== 'number' || instances < 1) {
         throw new Error(`instances field is mandatory and must be a positive number (received: ${instances})`);
       }
-      
+
       // Validate instances limits
       const instanceCount = Math.min(Math.max(instances, 1), 10000);
-      
+
       if (instanceCount !== instances) {
         console.warn(`instances ${instances} was clamped to ${instanceCount} (min: 1, max: 10000)`);
       }
-      
+
       // Create multiple identical records
       for (let i = 0; i < instanceCount; i++) {
         expandedArray.push({ ...stockData });
       }
     }
-    
+
     return expandedArray;
   }
 
@@ -149,10 +149,10 @@ export class StockController {
    */
   createBulkStocks = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const stockArray = request.body as (CreateStockInput & Record<string, any>)[];
-    const query = request.query as { 
-      batchSize?: string; 
+    const query = request.query as {
+      batchSize?: string;
     };
-  
+
     if (!Array.isArray(stockArray) || stockArray.length === 0) {
       throw new Error("Request body must be a non-empty array");
     }
@@ -166,21 +166,21 @@ export class StockController {
 
     if (query.batchSize) {
       const requestedBatchSize = parseInt(query.batchSize, 10);
-      
+
       // Validate batch size limits
       if (isNaN(requestedBatchSize) || requestedBatchSize <= 0) {
         throw new Error("Invalid batchSize parameter. Must be a positive number.");
       }
-      
+
       options.batchSize = requestedBatchSize;
     }
 
-        // Always use synchronous direct DB processing for immediate results
-        const result = await this.stockService.createBulkDirect(expandedStockArray, options);
-  
+    // Always use synchronous direct DB processing for immediate results
+    const result = await this.stockService.createBulkDirect(expandedStockArray, options);
+
     const success = result.failures.length === 0;
     const code = success ? 201 : 207;
-  
+
     return reply.code(code).send({
       success,
       insertedCount: result.inserted.length,
@@ -189,32 +189,32 @@ export class StockController {
       productUpdates: result.productUpdates,
       platformStockUpdates: result.platformStockUpdates,
     });
-  });  
+  });
 
   updateStock = asyncHandler(async (request: FastifyRequest<{ Params: StockParams }>, reply: FastifyReply) => {
     const { id } = stockParamsSchema.parse(request.params);
     const data = updateStockSchema.parse(request.body);
-    
+
     const stock = await this.stockService.update(id, data);
-    
+
     const response = createSuccessResponse('Stock updated successfully', formatStockForAPI(stock));
     return reply.code(200).send(response);
   });
 
   deleteStock = asyncHandler(async (request: FastifyRequest<{ Params: StockParams }>, reply: FastifyReply) => {
     const { id } = stockParamsSchema.parse(request.params);
-    
+
     await this.stockService.delete(id);
-    
+
     const response = createSuccessResponse('Stock deleted successfully', null);
     return reply.code(200).send(response);
   });
 
   upsertStock = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const data = upsertStockSchema.parse(request.body);
-    
+
     const stock = await this.stockService.upsert(data);
-    
+
     const message = data.id ? 'Stock updated successfully' : 'Stock created successfully';
     const response = createSuccessResponse(message, formatStockForAPI(stock));
     return reply.code(200).send(response);
@@ -227,9 +227,9 @@ export class StockController {
       availableQuantity?: number;
       soldQuantity?: number;
     };
-    
+
     const stock = await this.stockService.updateQuantities(id, quantities);
-    
+
     const response = createSuccessResponse('Stock quantities updated successfully', formatStockForAPI(stock));
     return reply.code(200).send(response);
   });
@@ -238,11 +238,11 @@ export class StockController {
     Body: RfidUpdateStockInput
   }>, reply: FastifyReply) => {
     const { rfid, orderlineid } = rfidUpdateStockSchema.parse(request.body);
-    
+
     const stock = await this.stockService.updateByRfid(rfid, orderlineid);
-    
+
     const response = createSuccessResponse(
-      'Stock updated successfully via RFID scan', 
+      'Stock updated successfully via RFID scan',
       formatStockForAPI(stock)
     );
     return reply.code(200).send(response);
@@ -252,9 +252,9 @@ export class StockController {
     Body: BulkRfidUpdateStockInput
   }>, reply: FastifyReply) => {
     const updates = bulkRfidUpdateStockSchema.parse(request.body);
-    
+
     const result = await this.stockService.bulkUpdateByRfid(updates);
-    
+
     // Format the successful stock results
     const formattedResults = result.results.map(item => {
       if (item.success && 'data' in item) {
@@ -265,19 +265,19 @@ export class StockController {
       }
       return item;
     });
-    
+
     const responseData = {
       ...result,
       results: formattedResults
     };
-    
+
     // Determine response code based on results
     const responseCode = result.summary.failed === 0 ? 200 : 207; // 207 = Multi-Status
-    
-    const message = result.summary.failed === 0 
+
+    const message = result.summary.failed === 0
       ? `All ${result.summary.successful} stocks updated successfully via RFID scan`
       : `Bulk RFID update completed: ${result.summary.successful} successful, ${result.summary.failed} failed`;
-    
+
     const response = createSuccessResponse(message, responseData);
     return reply.code(responseCode).send(response);
   });
@@ -288,19 +288,19 @@ export class StockController {
   exportStocks = asyncHandler(async (request: FastifyRequest<{ Querystring: Record<string, any> }>, reply: FastifyReply) => {
     // Get all query parameters as filters
     const allFilters: Record<string, any> = request.query || {};
-    
+
     // Generate Excel buffer
     const excelBuffer = await this.excelService.generateStockExcel(allFilters);
-    
+
     // Generate filename with timestamp
     const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
     const filename = `stock_export_${timestamp}.xlsx`;
-    
+
     // Set response headers for file download
     reply.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     reply.header('Content-Disposition', `attachment; filename="${filename}"`);
     reply.header('Content-Length', excelBuffer.length.toString());
-    
+
     return reply.send(excelBuffer);
   });
 
@@ -403,10 +403,10 @@ export class StockController {
       console.log('importBulkPreview started');
       console.log('Request body:', request.body);
       console.log('Request headers:', request.headers);
-      
+
       // Handle Fastify multipart file upload (with attachFieldsToBody: true)
       const body = request.body as any;
-      
+
       if (!body || !body.file) {
         return reply.code(400).send({
           success: false,
@@ -432,7 +432,7 @@ export class StockController {
       // Get file buffer from Fastify multipart
       const fileBuffer = await uploadedFile.toBuffer();
       console.log('File buffer size:', fileBuffer.length);
-      
+
       if (fileBuffer.length === 0) {
         return reply.code(400).send({
           success: false,

@@ -1,0 +1,180 @@
+
+════════════════════════════════════════════════════════════════════════════════
+  External Sold Update  |  🧪 DRY RUN  — read-only, zero DB writes
+  DB Host              :  centerbeam.proxy.rlwy.net   <- confirm this is the right DB!
+  Entries to process   :  8
+════════════════════════════════════════════════════════════════════════════════
+
+📋  Fetching current values from DB...
+
+┌─ [1/8]  productId=6  |  platform='nivapp'  |  qty=1
+│
+│  📦 PRODUCT  (id=6, puc='NIV-0006')
+│    availablequantity :  236  →  235
+│    soldquantity      :  1  →  2
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=6, platform='nivapp')
+│    availableqty      :  135  →  134
+│    soldqty           :  1  →  2
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [11405]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/10/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Tue, 10 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773136800000  ms (13-digit)
+│    description       :  'Manually updated on May 5 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [2/8]  productId=14  |  platform='nivapp'  |  qty=1
+│
+│  📦 PRODUCT  (id=14, puc='NIV-0014')
+│    availablequantity :  223  →  222
+│    soldquantity      :  9  →  10
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=14, platform='nivapp')
+│    availableqty      :  129  →  128
+│    soldqty           :  1  →  2
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [9558]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/10/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Tue, 10 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773136800000  ms (13-digit)
+│    description       :  'Manually updated on May 5 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [3/8]  productId=63  |  platform='nivapp'  |  qty=1
+│
+│  📦 PRODUCT  (id=63, puc='KRA-0063')
+│    availablequantity :  127  →  126
+│    soldquantity      :  0  →  1
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=63, platform='nivapp')
+│    availableqty      :  30  →  29
+│    soldqty           :  0  →  1
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [17321]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/10/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Tue, 10 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773136800000  ms (13-digit)
+│    description       :  'Manually updated on May 5 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [4/8]  productId=62  |  platform='nivapp'  |  qty=1
+│
+│  📦 PRODUCT  (id=62, puc='KRA-0062')
+│    availablequantity :  129  →  128
+│    soldquantity      :  1  →  2
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=62, platform='nivapp')
+│    availableqty      :  30  →  29
+│    soldqty           :  0  →  1
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [17331]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/10/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Tue, 10 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773136800000  ms (13-digit)
+│    description       :  'Manually updated on May 5 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [5/8]  productId=37  |  platform='nivapp'  |  qty=1
+│
+│  📦 PRODUCT  (id=37, puc='NIV-0037')
+│    availablequantity :  472  →  471
+│    soldquantity      :  15  →  16
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=37, platform='nivapp')
+│    availableqty      :  187  →  186
+│    soldqty           :  0  →  1
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [8713]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/10/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Tue, 10 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773136800000  ms (13-digit)
+│    description       :  'Manually updated on May 5 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [6/8]  productId=38  |  platform='nivapp'  |  qty=1
+│
+│  📦 PRODUCT  (id=38, puc='NIV-0038')
+│    availablequantity :  474  →  473
+│    soldquantity      :  13  →  14
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=38, platform='nivapp')
+│    availableqty      :  187  →  186
+│    soldqty           :  0  →  1
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [7213]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/10/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Tue, 10 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773136800000  ms (13-digit)
+│    description       :  'Manually updated on May 5 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [7/8]  productId=40  |  platform='nivapp'  |  qty=1
+│
+│  📦 PRODUCT  (id=40, puc='NIV-0040')
+│    availablequantity :  471  →  470
+│    soldquantity      :  16  →  17
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=40, platform='nivapp')
+│    availableqty      :  186  →  185
+│    soldqty           :  1  →  2
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [4217]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/10/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Tue, 10 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773136800000  ms (13-digit)
+│    description       :  'Manually updated on May 5 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+┌─ [8/8]  productId=15  |  platform='nivapp'  |  qty=1
+│
+│  📦 PRODUCT  (id=15, puc='NIV-0015')
+│    availablequantity :  238  →  237
+│    soldquantity      :  5  →  6
+│    productstatus     :  'in_stock'  →  'in_stock'
+│
+│  🏪 PLATFORMSTOCK  (productid=15, platform='nivapp')
+│    availableqty      :  142  →  141
+│    soldqty           :  1  →  2
+│    platformstatus    :  'in_stock'  →  'in_stock'
+│
+│  📋 STOCK  (1 unit(s) → 'sold')
+│    stock ids         :  [15228]
+│    stockstatus       :  current value  →  'sold'
+│    solddate input    :  '3/10/2026'  (MM/DD/YYYY)
+│    solddate (UTC)    :  Tue, 10 Mar 2026 10:00:00 GMT
+│    solddate (epoch)  :  1773136800000  ms (13-digit)
+│    description       :  'Manually updated on May 5 based on Excel sheet shared'
+└────────────────────────────────────────────────────────────────────────────
+
+📊  Preview Summary
+    ✅  Will process :  8 row(s)
+    ❌  Will skip    :  0 row(s)
