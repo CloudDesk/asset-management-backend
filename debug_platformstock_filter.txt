@@ -7551,3 +7551,36 @@ Filtered data: {
 }
 Ignored fields: []
 
+PlatformStock filter debug:
+Input data: {
+  "ecomqty": 410,
+  "orderedqty": 38,
+  "soldqty": 4,
+  "availableqty": 366,
+  "platformstatus": "in_stock",
+  "modifieddate": 1777984285769
+}
+Available columns: [
+  "id",
+  "productid",
+  "platform",
+  "availableqty",
+  "orderedqty",
+  "soldqty",
+  "totalqty",
+  "lockqty",
+  "createddate",
+  "modifieddate",
+  "platformstatus",
+  "ecomqty"
+]
+Filtered data: {
+  "ecomqty": 410,
+  "orderedqty": 38,
+  "soldqty": 4,
+  "availableqty": 366,
+  "platformstatus": "in_stock",
+  "modifieddate": 1777984285769
+}
+Ignored fields: []
+

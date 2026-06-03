@@ -7776,3 +7776,185 @@ Final rawData: {
   "prnumber": "KS-001-NIVAANA-PR-00017",
   "modifieddate": 1776258500789
 }
+Final rawData: {
+  "orderstatus": "ready_for_dispatch",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1777895223689,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1777984290162,\"source\":\"inventory_user\",\"is_active\":true,\"inventory_user_id\":6,\"username\":\"Harish Raja\"}]",
+  "modifieddate": 1777984290163,
+  "readytodispatchdate": 1777984290163
+}
+Final rawData: {
+  "orderstatus": "ready_for_dispatch",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1777895223687,\"previous_status\":\"order_placed\"},{\"previous_status\":\"payment_completed\",\"new_status\":\"ready_for_dispatch\",\"changed_date\":1777984291707,\"source\":\"inventory_user\",\"is_active\":true,\"inventory_user_id\":6,\"username\":\"Harish Raja\"}]",
+  "modifieddate": 1777984291707,
+  "readytodispatchdate": 1777984291707
+}
+Final rawData: {
+  "tracking_id": "AW23451678",
+  "vendor": "BlueDart",
+  "public_tracking_link": "https://www.bluedart.com/track/AW23451678",
+  "modifieddate": 1777984675963,
+  "label_url": null,
+  "barcodes": null,
+  "shipment_tracking_status": null,
+  "shipment_created_at": 1777984675963,
+  "shipdate": 1777984675963,
+  "label_printed_at": 1777984675963
+}
+Final rawData: {
+  "orderstatus": "shipped",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1777895223689,\"previous_status\":\"order_placed\"},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1777984290162,\"previous_status\":\"payment_completed\",\"inventory_user_id\":6},{\"previous_status\":\"ready_for_dispatch\",\"new_status\":\"shipped\",\"changed_date\":1777984678809,\"source\":\"inventory_user\",\"is_active\":true,\"inventory_user_id\":6,\"username\":\"Harish Raja\"}]",
+  "modifieddate": 1777984678809,
+  "tracking_id": "AW23451678",
+  "shipdate": 1777984675963
+}
+Final rawData: {
+  "orderstatus": "shipped",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1777895223687,\"previous_status\":\"order_placed\"},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1777984291707,\"previous_status\":\"payment_completed\",\"inventory_user_id\":6},{\"previous_status\":\"ready_for_dispatch\",\"new_status\":\"shipped\",\"changed_date\":1777984680486,\"source\":\"inventory_user\",\"is_active\":true,\"inventory_user_id\":6,\"username\":\"Harish Raja\"}]",
+  "modifieddate": 1777984680486
+}
+Final rawData: {
+  "modifieddate": 1777984681262
+}
+Final rawData: {
+  "order_invoice_url": "https://storage.googleapis.com/niv_order_invoice/NIVAANA-0000000226/NIVAANA-0000000226.pdf",
+  "modifieddate": 1777984704753
+}
+Final rawData: {
+  "tracking_id": "AS12309876",
+  "vendor": "DTDC",
+  "public_tracking_link": "https://www.dtdc.in/tracking/AS12309876",
+  "modifieddate": 1777987222141,
+  "label_url": null,
+  "barcodes": null,
+  "shipment_tracking_status": null,
+  "shipment_created_at": 1777987222141,
+  "shipdate": 1777987222141,
+  "label_printed_at": 1777987222141
+}
+Final rawData: {
+  "orderstatus": "shipped",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1777897220977,\"previous_status\":\"order_placed\"},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1777983852208,\"previous_status\":\"payment_completed\",\"inventory_user_id\":6},{\"previous_status\":\"ready_for_dispatch\",\"new_status\":\"shipped\",\"changed_date\":1777987222440,\"source\":\"inventory_user\",\"is_active\":true,\"inventory_user_id\":6,\"username\":\"Harish Raja\"}]",
+  "modifieddate": 1777987222440,
+  "tracking_id": "AS12309876",
+  "shipdate": 1777987222141
+}
+Final rawData: {
+  "orderstatus": "shipped",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1777897220976,\"previous_status\":\"order_placed\"},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1777983852661,\"previous_status\":\"payment_completed\",\"inventory_user_id\":6},{\"previous_status\":\"ready_for_dispatch\",\"new_status\":\"shipped\",\"changed_date\":1777987222692,\"source\":\"inventory_user\",\"is_active\":true,\"inventory_user_id\":6,\"username\":\"Harish Raja\"}]",
+  "modifieddate": 1777987222692
+}
+Final rawData: {
+  "modifieddate": 1777987222837
+}
+Final rawData: {
+  "order_invoice_url": "https://storage.googleapis.com/niv_order_invoice/NIVAANA-0000000227/NIVAANA-0000000227.pdf",
+  "modifieddate": 1777987236531
+}
+Final rawData: {
+  "shipment_tracking_status": "in_transit",
+  "modifieddate": 1777987273628
+}
+Final rawData: {
+  "orderstatus": "in_transit",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1777897220977,\"previous_status\":\"order_placed\"},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1777983852208,\"previous_status\":\"payment_completed\",\"inventory_user_id\":6},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"shipped\",\"changed_date\":1777987222440,\"previous_status\":\"ready_for_dispatch\",\"inventory_user_id\":6},{\"previous_status\":\"shipped\",\"new_status\":\"in_transit\",\"changed_date\":1777987275143,\"source\":\"inventory_user\",\"is_active\":true,\"inventory_user_id\":6,\"username\":\"Harish Raja\"}]",
+  "modifieddate": 1777987275144,
+  "location": ""
+}
+Final rawData: {
+  "orderstatus": "in_transit",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1777897220976,\"previous_status\":\"order_placed\"},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1777983852661,\"previous_status\":\"payment_completed\",\"inventory_user_id\":6},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"shipped\",\"changed_date\":1777987222692,\"previous_status\":\"ready_for_dispatch\",\"inventory_user_id\":6},{\"previous_status\":\"shipped\",\"new_status\":\"in_transit\",\"changed_date\":1777987276649,\"source\":\"inventory_user\",\"is_active\":true,\"inventory_user_id\":6,\"username\":\"Harish Raja\"}]",
+  "modifieddate": 1777987276649
+}
+Final rawData: {
+  "modifieddate": 1777987277433
+}
+Final rawData: {
+  "shipment_tracking_status": "in_transit",
+  "modifieddate": 1777987333992
+}
+Final rawData: {
+  "orderstatus": "in_transit",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1777895223689,\"previous_status\":\"order_placed\"},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1777984290162,\"previous_status\":\"payment_completed\",\"inventory_user_id\":6},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"shipped\",\"changed_date\":1777984678809,\"previous_status\":\"ready_for_dispatch\",\"inventory_user_id\":6},{\"previous_status\":\"shipped\",\"new_status\":\"in_transit\",\"changed_date\":1777987335756,\"source\":\"inventory_user\",\"is_active\":true,\"inventory_user_id\":6,\"username\":\"Harish Raja\"}]",
+  "modifieddate": 1777987335756,
+  "location": ""
+}
+Final rawData: {
+  "orderstatus": "in_transit",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1777895223687,\"previous_status\":\"order_placed\"},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1777984291707,\"previous_status\":\"payment_completed\",\"inventory_user_id\":6},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"shipped\",\"changed_date\":1777984680486,\"previous_status\":\"ready_for_dispatch\",\"inventory_user_id\":6},{\"previous_status\":\"shipped\",\"new_status\":\"in_transit\",\"changed_date\":1777987337224,\"source\":\"inventory_user\",\"is_active\":true,\"inventory_user_id\":6,\"username\":\"Harish Raja\"}]",
+  "modifieddate": 1777987337224
+}
+Final rawData: {
+  "modifieddate": 1777987338113
+}
+Final rawData: {
+  "shipment_tracking_status": "rto_initiated",
+  "modifieddate": 1777987844626
+}
+Final rawData: {
+  "orderstatus": "rto_initiated",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1777895223689,\"previous_status\":\"order_placed\"},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1777984290162,\"previous_status\":\"payment_completed\",\"inventory_user_id\":6},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"shipped\",\"changed_date\":1777984678809,\"previous_status\":\"ready_for_dispatch\",\"inventory_user_id\":6},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"in_transit\",\"changed_date\":1777987335756,\"previous_status\":\"shipped\",\"inventory_user_id\":6},{\"previous_status\":\"in_transit\",\"new_status\":\"rto_initiated\",\"changed_date\":1777987848907,\"source\":\"inventory_user\",\"is_active\":true,\"inventory_user_id\":6,\"username\":\"Harish Raja\"}]",
+  "modifieddate": 1777987848907,
+  "location": ""
+}
+Final rawData: {
+  "orderstatus": "rto_initiated",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1777895223687,\"previous_status\":\"order_placed\"},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1777984291707,\"previous_status\":\"payment_completed\",\"inventory_user_id\":6},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"shipped\",\"changed_date\":1777984680486,\"previous_status\":\"ready_for_dispatch\",\"inventory_user_id\":6},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"in_transit\",\"changed_date\":1777987337224,\"previous_status\":\"shipped\",\"inventory_user_id\":6},{\"previous_status\":\"in_transit\",\"new_status\":\"rto_initiated\",\"changed_date\":1777987850632,\"source\":\"inventory_user\",\"is_active\":true,\"inventory_user_id\":6,\"username\":\"Harish Raja\"}]",
+  "modifieddate": 1777987850632
+}
+Final rawData: {
+  "modifieddate": 1777987851457
+}
+Final rawData: {
+  "shipment_tracking_status": "out_for_delivery",
+  "modifieddate": 1777988597382
+}
+Final rawData: {
+  "orderstatus": "out_for_delivery",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1777897220977,\"previous_status\":\"order_placed\"},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1777983852208,\"previous_status\":\"payment_completed\",\"inventory_user_id\":6},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"shipped\",\"changed_date\":1777987222440,\"previous_status\":\"ready_for_dispatch\",\"inventory_user_id\":6},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"in_transit\",\"changed_date\":1777987275143,\"previous_status\":\"shipped\",\"inventory_user_id\":6},{\"previous_status\":\"in_transit\",\"new_status\":\"out_for_delivery\",\"changed_date\":1777988599313,\"source\":\"inventory_user\",\"is_active\":true,\"inventory_user_id\":6,\"username\":\"Harish Raja\"}]",
+  "modifieddate": 1777988599313,
+  "location": ""
+}
+Final rawData: {
+  "orderstatus": "out_for_delivery",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1777897220976,\"previous_status\":\"order_placed\"},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1777983852661,\"previous_status\":\"payment_completed\",\"inventory_user_id\":6},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"shipped\",\"changed_date\":1777987222692,\"previous_status\":\"ready_for_dispatch\",\"inventory_user_id\":6},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"in_transit\",\"changed_date\":1777987276649,\"previous_status\":\"shipped\",\"inventory_user_id\":6},{\"previous_status\":\"in_transit\",\"new_status\":\"out_for_delivery\",\"changed_date\":1777988600899,\"source\":\"inventory_user\",\"is_active\":true,\"inventory_user_id\":6,\"username\":\"Harish Raja\"}]",
+  "modifieddate": 1777988600899
+}
+Final rawData: {
+  "modifieddate": 1777988601724
+}
+Final rawData: {
+  "shipment_tracking_status": "rto_initiated",
+  "modifieddate": 1777988626944
+}
+Final rawData: {
+  "orderstatus": "rto_initiated",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1777897220977,\"previous_status\":\"order_placed\"},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1777983852208,\"previous_status\":\"payment_completed\",\"inventory_user_id\":6},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"shipped\",\"changed_date\":1777987222440,\"previous_status\":\"ready_for_dispatch\",\"inventory_user_id\":6},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"in_transit\",\"changed_date\":1777987275143,\"previous_status\":\"shipped\",\"inventory_user_id\":6},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"out_for_delivery\",\"changed_date\":1777988599313,\"previous_status\":\"in_transit\",\"inventory_user_id\":6},{\"previous_status\":\"out_for_delivery\",\"new_status\":\"rto_initiated\",\"changed_date\":1777988628583,\"source\":\"inventory_user\",\"is_active\":true,\"inventory_user_id\":6,\"username\":\"Harish Raja\"}]",
+  "modifieddate": 1777988628583,
+  "location": ""
+}
+Final rawData: {
+  "orderstatus": "rto_initiated",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1777897220976,\"previous_status\":\"order_placed\"},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1777983852661,\"previous_status\":\"payment_completed\",\"inventory_user_id\":6},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"shipped\",\"changed_date\":1777987222692,\"previous_status\":\"ready_for_dispatch\",\"inventory_user_id\":6},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"in_transit\",\"changed_date\":1777987276649,\"previous_status\":\"shipped\",\"inventory_user_id\":6},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"out_for_delivery\",\"changed_date\":1777988600899,\"previous_status\":\"in_transit\",\"inventory_user_id\":6},{\"previous_status\":\"out_for_delivery\",\"new_status\":\"rto_initiated\",\"changed_date\":1777988630117,\"source\":\"inventory_user\",\"is_active\":true,\"inventory_user_id\":6,\"username\":\"Harish Raja\"}]",
+  "modifieddate": 1777988630117
+}
+Final rawData: {
+  "modifieddate": 1777988630839
+}
+Final rawData: {
+  "shipment_tracking_status": "rto_delivered",
+  "modifieddate": 1777988980856
+}
+Final rawData: {
+  "orderstatus": "rto_delivered",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1777897220977,\"previous_status\":\"order_placed\"},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1777983852208,\"previous_status\":\"payment_completed\",\"inventory_user_id\":6},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"shipped\",\"changed_date\":1777987222440,\"previous_status\":\"ready_for_dispatch\",\"inventory_user_id\":6},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"in_transit\",\"changed_date\":1777987275143,\"previous_status\":\"shipped\",\"inventory_user_id\":6},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"out_for_delivery\",\"changed_date\":1777988599313,\"previous_status\":\"in_transit\",\"inventory_user_id\":6},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"rto_initiated\",\"changed_date\":1777988628583,\"previous_status\":\"out_for_delivery\",\"inventory_user_id\":6},{\"previous_status\":\"rto_initiated\",\"new_status\":\"rto_delivered\",\"changed_date\":1777988983321,\"source\":\"inventory_user\",\"is_active\":true,\"inventory_user_id\":6,\"username\":\"Harish Raja\"}]",
+  "modifieddate": 1777988983321,
+  "location": ""
+}
+Final rawData: {
+  "orderstatus": "rto_delivered",
+  "status_history": "[{\"source\":\"phonepe\",\"is_active\":false,\"new_status\":\"payment_completed\",\"changed_date\":1777897220976,\"previous_status\":\"order_placed\"},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"ready_for_dispatch\",\"changed_date\":1777983852661,\"previous_status\":\"payment_completed\",\"inventory_user_id\":6},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"shipped\",\"changed_date\":1777987222692,\"previous_status\":\"ready_for_dispatch\",\"inventory_user_id\":6},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"in_transit\",\"changed_date\":1777987276649,\"previous_status\":\"shipped\",\"inventory_user_id\":6},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"out_for_delivery\",\"changed_date\":1777988600899,\"previous_status\":\"in_transit\",\"inventory_user_id\":6},{\"source\":\"inventory_user\",\"username\":\"Harish Raja\",\"is_active\":false,\"new_status\":\"rto_initiated\",\"changed_date\":1777988630117,\"previous_status\":\"out_for_delivery\",\"inventory_user_id\":6},{\"previous_status\":\"rto_initiated\",\"new_status\":\"rto_delivered\",\"changed_date\":1777988984859,\"source\":\"inventory_user\",\"is_active\":true,\"inventory_user_id\":6,\"username\":\"Harish Raja\"}]",
+  "modifieddate": 1777988984859
+}
+Final rawData: {
+  "modifieddate": 1777988985564
+}
