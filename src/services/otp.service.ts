@@ -300,7 +300,7 @@ export class OtpService {
    * @param phoneNumber - Phone number in E.164 format
    * @param provider - Provider type ('twilio' or 'exotel'), defaults to 'twilio'
    */
-  async generateAndStoreOtp(phoneNumber: string, provider: OtpProvider = 'twilio'): Promise<OtpGenerateResult> {
+  async generateAndStoreOtp(phoneNumber: string, provider: OtpProvider = 'twilio', otpOverride?: string): Promise<OtpGenerateResult> {
     try {
       // 1. Check if phone is blocked
       const blockStatus = await this.isBlocked(phoneNumber);
@@ -347,8 +347,15 @@ export class OtpService {
       // 4. Get provider-specific configuration
       const config = PROVIDER_CONFIGS[provider];
 
-      // 5. Generate OTP with provider-specific settings
-      const otp = this.generateSecureOtp(provider);
+      if (otpOverride && !new RegExp(`^\\d{${config.otpLength}}$`).test(otpOverride)) {
+        return {
+          success: false,
+          error: `Configured OTP must be exactly ${config.otpLength} digits.`
+        };
+      }
+
+      // 5. Generate OTP with provider-specific settings, or use the configured SIT OTP.
+      const otp = otpOverride || this.generateSecureOtp(provider);
       const now = Date.now();
       const expiresAt = now + (config.expirySeconds * 1000);
 
@@ -375,6 +382,7 @@ export class OtpService {
       logger.info({
         phoneNumber: phoneNumber.replace(/(\d{2})(\d+)(\d{4})/, '$1****$3'), // Mask phone number in logs
         provider,
+        source: otpOverride ? 'env' : 'generated',
         otpLength: config.otpLength,
         expiresIn: config.expirySeconds
       }, 'OTP generated and stored');
@@ -599,4 +607,3 @@ export class OtpService {
 }
 
 export const otpService = new OtpService();
-

@@ -39,6 +39,17 @@ const envSchema = z.object({
     GCP_TASK_URL: z.string().optional(),
     GCP_STORAGE_BUCKET: z.string().optional(),
     SHIPPING_BUCKET: z.string().optional(),
+    FIREBASE_PROJECT_ID: z.string().optional(),
+    FIREBASE_CLIENT_EMAIL: z.string().optional(),
+    FIREBASE_PRIVATE_KEY: z.string().optional(),
+    FIREBASE_SERVICE_ACCOUNT_JSON: z.string().optional(),
+    FIREBASE_SERVICE_ACCOUNT_PATH: z.string().optional(),
+    APNS_AUTH_KEY: z.string().optional(),
+    APNS_AUTH_KEY_PATH: z.string().optional(),
+    APNS_KEY_ID: z.string().optional(),
+    APNS_TEAM_ID: z.string().optional(),
+    APNS_BUNDLE_ID: z.string().optional(),
+    GOOGLE_APPLICATION_CREDENTIALS: z.string().optional(),
     // GCP Storage Backend (server 4500) - for file uploads
     STORAGE_BACKEND_URL: z.string().optional().default('http://localhost:4500'),
     // Email Configuration

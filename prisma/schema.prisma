@@ -873,6 +873,33 @@ model users {
   @@map("users")
 }
 
+model pushdevice {
+  id               Int      @id @default(autoincrement())
+  userid           Int?
+  inventoryuserid  Int?
+  usertype         String   @db.VarChar(30)
+  token            String   @unique @db.VarChar(2048)
+  platform         String   @db.VarChar(30)
+  provider         String   @db.VarChar(30)
+  deviceid         String?  @db.VarChar(255)
+  appversion       String?  @db.VarChar(100)
+  buildnumber      String?  @db.VarChar(100)
+  permissionstatus String?  @db.VarChar(50)
+  isactive         Boolean  @default(true)
+  failurecount     Int      @default(0)
+  createddate      BigInt?
+  modifieddate     BigInt?
+  lastseenat       BigInt?
+  disabledat       BigInt?
+
+  @@index([userid])
+  @@index([inventoryuserid])
+  @@index([usertype])
+  @@index([platform])
+  @@index([isactive])
+  @@map("push_devices")
+}
+
 
 
 
@@ -996,4 +1023,3 @@ model AuthSession {
   @@index([ipAddress, createddate])
   @@map("auth_sessions")
 }
-

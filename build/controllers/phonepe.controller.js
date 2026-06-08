@@ -2,6 +2,7 @@ import { PhonePeService, } from "../services/phonepe.service.js";
 import { TransactionService } from "../services/transaction.service.js";
 import { OrdersService } from "../services/orders.service.js";
 import { OrderlineService } from "../services/orderline.service.js";
+import { CustomerNotificationService } from "../services/customer-notification.service.js";
 import { prisma } from "../models/prisma.js";
 import { createSuccessResponse, createErrorResponse, asyncHandler, ValidationError, DatabaseError, } from "../utils/errorHandler.js";
 import { logger } from "../config/logger.js";
@@ -10,6 +11,7 @@ export class PhonePeController {
     transactionService = new TransactionService();
     ordersService = new OrdersService();
     orderlineService = new OrderlineService();
+    customerNotificationService = new CustomerNotificationService();
     /**
      * Initiate payment with PhonePe
      */
@@ -1106,6 +1108,16 @@ export class PhonePeController {
                         orderid: orderData?.orderid,
                         mode: "phonepe",
                     }, "Order and orderlines created successfully for PhonePe payment");
+                    try {
+                        await this.customerNotificationService.notifyPaymentSuccess(orderData);
+                    }
+                    catch (notificationError) {
+                        logger.warn({
+                            merchantTransactionId,
+                            orderId: orderData?.id,
+                            error: notificationError?.message || "Unknown error",
+                        }, "Failed to send payment success push notification");
+                    }
                     // Update product quantities after successful order creation for PhonePe
                     try {
                         // Get the original order data from transaction
@@ -1151,6 +1163,21 @@ export class PhonePeController {
                 }
             }
             else {
+                try {
+                    const transactions = await this.transactionService.findMany({ merchanttransactionid: merchantTransactionId }, 1, 1);
+                    const transaction = transactions.data?.[0];
+                    await this.customerNotificationService.notifyPaymentFailed({
+                        userId: transaction?.userid,
+                        merchantTransactionId,
+                        amount: transaction?.amount,
+                    });
+                }
+                catch (notificationError) {
+                    logger.warn({
+                        merchantTransactionId,
+                        error: notificationError?.message || "Unknown error",
+                    }, "Failed to send payment failure push notification");
+                }
                 logger.warn({
                     merchantTransactionId,
                     message: result.message,

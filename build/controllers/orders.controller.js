@@ -4,8 +4,22 @@ import { getPaginationParams } from '../utils/pagination.js';
 import { createSuccessResponse, asyncHandler } from '../utils/errorHandler.js';
 import { formatEntitiesForAPI } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
+import { CustomerNotificationService } from '../services/customer-notification.service.js';
 export class OrdersController {
     ordersService = new OrdersService();
+    customerNotificationService = new CustomerNotificationService();
+    async sendOrderNotification(order, status) {
+        try {
+            await this.customerNotificationService.notifyOrderStatus(order, status);
+        }
+        catch (error) {
+            logger.warn({
+                orderId: order?.id,
+                status: status || order?.orderstatus,
+                error: error?.message || 'Unknown error',
+            }, 'Failed to send order push notification');
+        }
+    }
     resolveInventoryActor(request, fallbackInventoryUserId) {
         const authRequest = request;
         const authUser = authRequest.user;
@@ -79,6 +93,7 @@ export class OrdersController {
             });
         }
         const order = await this.ordersService.markReadyForDispatch(parseInt(id), actor.id, stock_mapping, actor.username);
+        await this.sendOrderNotification(order, order.orderstatus || 'ready_for_dispatch');
         const response = createSuccessResponse('Order marked as ready for dispatch', formatEntitiesForAPI([order], 'orders')[0]);
         return reply.code(200).send(response);
     });
@@ -123,6 +138,9 @@ export class OrdersController {
         }
         try {
             const updatedOrder = await this.ordersService.updateShipmentDetails(id, tracking_id, vendor, actor.id, public_tracking_link, shipped, actor.username);
+            if (shipped && updatedOrder?.orderstatus === 'shipped') {
+                await this.sendOrderNotification(updatedOrder, 'shipped');
+            }
             const response = createSuccessResponse(shipped ? 'Shipment details updated and order marked as shipped' : 'Shipment details updated', formatEntitiesForAPI([updatedOrder], 'orders')[0]);
             return reply.code(200).send(response);
         }
@@ -168,6 +186,7 @@ export class OrdersController {
         }
         try {
             const order = await this.ordersService.markShipped(parseInt(id), actor.id, actor.username);
+            await this.sendOrderNotification(order, 'shipped');
             const response = createSuccessResponse('Order marked as shipped', formatEntitiesForAPI([order], 'orders')[0]);
             return reply.code(200).send(response);
         }
@@ -214,6 +233,7 @@ export class OrdersController {
         }
         try {
             const updatedOrder = await this.ordersService.updateShipmentStatus(id, status, actor.id, location, description, actor.username);
+            await this.sendOrderNotification(updatedOrder, status);
             const response = createSuccessResponse('Shipment status updated successfully', formatEntitiesForAPI([updatedOrder], 'orders')[0]);
             return reply.code(200).send(response);
         }
@@ -296,6 +316,7 @@ export class OrdersController {
             });
         }
         const order = await this.ordersService.updateOrderStatus(id, status, additionalData);
+        await this.sendOrderNotification(order, status);
         const response = createSuccessResponse('Order status updated successfully', formatEntitiesForAPI([order], 'orders')[0]);
         return reply.code(200).send(response);
     });
@@ -499,6 +520,7 @@ export class OrdersController {
             }
             // Call service to cancel order
             const cancelledOrder = await this.ordersService.cancelOrder(orderId, userid, actor?.id || inventory_user_id, cancellation_reason, source, actor?.username);
+            await this.sendOrderNotification(cancelledOrder, 'cancelled');
             const response = createSuccessResponse('Order cancelled successfully', formatEntitiesForAPI([cancelledOrder], 'orders')[0]);
             return reply.code(200).send(response);
         }
@@ -588,6 +610,7 @@ export class OrdersController {
             }
             // Call service to update refund status with new fields
             const updatedOrder = await this.ordersService.updateRefundStatus(orderId, status, actor.id, notes, refund_transaction_id, refund_amount, refund_reference, actor.username);
+            await this.sendOrderNotification(updatedOrder, status);
             const response = createSuccessResponse('Refund status updated successfully', formatEntitiesForAPI([updatedOrder], 'orders')[0]);
             return reply.code(200).send(response);
         }

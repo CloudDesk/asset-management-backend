@@ -24,12 +24,14 @@ import FormData from 'form-data';
 import crypto from 'crypto';
 import { OrdersService } from '../services/orders.service.js';
 import { OrderlineService } from '../services/orderline.service.js';
+import { CustomerNotificationService } from '../services/customer-notification.service.js';
 import { json } from 'stream/consumers';
 
 export class EkartController {
   // Static service instances (stateless, reusable)
   private readonly ordersService = new OrdersService();
   private readonly orderlineService = new OrderlineService();
+  private readonly customerNotificationService = new CustomerNotificationService();
 
   // Webhook secret (constant, no need to recreate on each request)
   private static readonly WEBHOOK_SECRET = 'Nivaana-Ekart-Track-Status';
@@ -814,6 +816,22 @@ export class EkartController {
           webhookPayload // Pass full webhook payload for unknown statuses
         );
 
+        try {
+          await this.customerNotificationService.notifyOrderStatus(
+            updatedOrder,
+            updatedOrder?.orderstatus
+          );
+        } catch (notificationError: any) {
+          logger.warn(
+            {
+              orderId: updatedOrder?.id,
+              trackingId,
+              error: notificationError?.message || 'Unknown error',
+            },
+            'Failed to send EKART order push notification'
+          );
+        }
+
         return reply.code(200).send(
           createSuccessResponse(
             'Tracking status updated successfully',
@@ -847,4 +865,3 @@ export class EkartController {
     }
   );
 }
-

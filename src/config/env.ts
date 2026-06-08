@@ -1,10 +1,83 @@
 import 'dotenv/config';
 import { z } from 'zod';
 
+const STATIC_OTP_ENVIRONMENT_MARKERS = ['sit', 'dev', 'development', 'test', 'staging', 'sandbox'];
+const REQUIRED_EXOTEL_ENV_VARS = [
+  'EXOTEL_ACCOUNT_SID',
+  'EXOTEL_API_KEY',
+  'EXOTEL_API_TOKEN',
+  'EXOTEL_SENDER_ID'
+] as const;
+
+type StaticOtpEnvironmentConfig = {
+  USER_OTP?: string | undefined;
+  NODE_ENV?: string | undefined;
+  APP_ENV?: string | undefined;
+  ENVIRONMENT?: string | undefined;
+  DEPLOY_ENV?: string | undefined;
+  STAGE?: string | undefined;
+  K_SERVICE?: string | undefined;
+  API_BASE_URL?: string | undefined;
+  REDIRECT_INVENTORY_URL?: string | undefined;
+  GCP_TASK_URL?: string | undefined;
+  GCP_PROJECT_QUEUE?: string | undefined;
+  STORAGE_BACKEND_URL?: string | undefined;
+};
+
+type ExotelEnvironmentConfig = Partial<Record<typeof REQUIRED_EXOTEL_ENV_VARS[number], string | undefined>>;
+
+function isStaticOtpEnvironment(data: StaticOtpEnvironmentConfig) {
+  if (!data.USER_OTP) {
+    return false;
+  }
+
+  const environmentSignals = [
+    data.NODE_ENV,
+    data.APP_ENV,
+    data.ENVIRONMENT,
+    data.DEPLOY_ENV,
+    data.STAGE,
+    data.K_SERVICE,
+    data.API_BASE_URL,
+    data.REDIRECT_INVENTORY_URL,
+    data.GCP_TASK_URL,
+    data.GCP_PROJECT_QUEUE,
+    data.STORAGE_BACKEND_URL
+  ]
+    .filter((value): value is string => Boolean(value))
+    .join(' ')
+    .toLowerCase();
+
+  return (
+    data.NODE_ENV !== 'production' ||
+    STATIC_OTP_ENVIRONMENT_MARKERS.some(marker => environmentSignals.includes(marker))
+  );
+}
+
+function validateExotelConfig(data: StaticOtpEnvironmentConfig & ExotelEnvironmentConfig) {
+  if (isStaticOtpEnvironment(data)) {
+    return;
+  }
+
+  const missingVars = REQUIRED_EXOTEL_ENV_VARS.filter((key) => !data[key]);
+
+  if (missingVars.length > 0) {
+    throw new Error(
+      `Missing required Exotel environment variables: ${missingVars.join(', ')}. ` +
+      'Set them, or configure USER_OTP for a non-production environment.'
+    );
+  }
+}
+
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   PORT: z.string().transform((val) => parseInt(val, 10)).default('8080'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  APP_ENV: z.string().optional(),
+  ENVIRONMENT: z.string().optional(),
+  DEPLOY_ENV: z.string().optional(),
+  STAGE: z.string().optional(),
+  K_SERVICE: z.string().optional(),
   
 
   // JWT Secret for app sessions
@@ -20,12 +93,12 @@ const envSchema = z.object({
   TWILIO_PHONE_NUMBER: z.string().min(1, 'TWILIO_PHONE_NUMBER is required'),
   TWILIO_MESSAGING_SERVICE_SID: z.string().optional(),
 
-  // Exotel Configuration (required for OTP SMS migration)
-  EXOTEL_ACCOUNT_SID: z.string().min(1, 'EXOTEL_ACCOUNT_SID is required'),
-  EXOTEL_API_KEY: z.string().min(1, 'EXOTEL_API_KEY is required'),
-  EXOTEL_API_TOKEN: z.string().min(1, 'EXOTEL_API_TOKEN is required'),
+  // Exotel Configuration (required unless SIT/static USER_OTP is enabled)
+  EXOTEL_ACCOUNT_SID: z.string().optional(),
+  EXOTEL_API_KEY: z.string().optional(),
+  EXOTEL_API_TOKEN: z.string().optional(),
   EXOTEL_SUBDOMAIN: z.string().optional().default('api'),
-  EXOTEL_SENDER_ID: z.string().min(1, 'EXOTEL_SENDER_ID is required'),
+  EXOTEL_SENDER_ID: z.string().optional(),
   EXOTEL_DLT_TEMPLATE_ID: z.string().optional(),
   EXOTEL_ENTITY_ID: z.string().optional(),
 
@@ -46,6 +119,17 @@ const envSchema = z.object({
   GCP_TASK_URL: z.string().optional(),
   GCP_STORAGE_BUCKET: z.string().optional(),
   SHIPPING_BUCKET: z.string().optional(),
+  FIREBASE_PROJECT_ID: z.string().optional(),
+  FIREBASE_CLIENT_EMAIL: z.string().optional(),
+  FIREBASE_PRIVATE_KEY: z.string().optional(),
+  FIREBASE_SERVICE_ACCOUNT_JSON: z.string().optional(),
+  FIREBASE_SERVICE_ACCOUNT_PATH: z.string().optional(),
+  APNS_AUTH_KEY: z.string().optional(),
+  APNS_AUTH_KEY_PATH: z.string().optional(),
+  APNS_KEY_ID: z.string().optional(),
+  APNS_TEAM_ID: z.string().optional(),
+  APNS_BUNDLE_ID: z.string().optional(),
+  GOOGLE_APPLICATION_CREDENTIALS: z.string().optional(),
   // GCP Storage Backend (server 4500) - for file uploads
   STORAGE_BACKEND_URL: z.string().optional().default('http://localhost:4500'),
   
@@ -86,6 +170,10 @@ const envSchema = z.object({
   RATE_LIMIT_VERIFY_MAX: z.string().optional().default('5'),
   RATE_LIMIT_VERIFY_WINDOW: z.string().optional().default('3600'),
   BLOCK_DURATION: z.string().optional().default('3600'),
+  USER_OTP: z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z.string().trim().regex(/^\d{4}$/, 'USER_OTP must be exactly 4 digits').optional()
+  ),
   
   // Amazon SP-API Configuration (Global keys - change values for sandbox/production)
   AMAZON_CLIENT_ID: z.string().optional(),
@@ -115,6 +203,9 @@ const envSchema = z.object({
   
 });
 
-export const env = envSchema.parse(process.env);
+const parsedEnv = envSchema.parse(process.env);
+validateExotelConfig(parsedEnv);
 
-export type Env = z.infer<typeof envSchema>; 
+export const env = parsedEnv;
+
+export type Env = z.infer<typeof envSchema>;

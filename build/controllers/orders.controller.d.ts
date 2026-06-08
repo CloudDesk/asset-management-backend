@@ -2,6 +2,8 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { OrdersService } from '../services/orders.service.js';
 export declare class OrdersController {
     ordersService: OrdersService;
+    private customerNotificationService;
+    private sendOrderNotification;
     private resolveInventoryActor;
     getOrders: (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
     /**
