@@ -68,9 +68,8 @@ const prisma = new PrismaClient({
 //    true  (default) → reads DB, prints preview, NO writes
 //    false           → reads DB, prints preview, asks "yes/no", then writes
 // ============================================================
-const DRY_RUN = process.env.DRY_RUN !== 'false'; // default: true (dry run). Set DRY_RUN=false for live run.
-console.log(`DRY_RUN mode: ${DRY_RUN ? 'ON (no DB writes)' : 'OFF (will write to DB)'}`);
-console.log("object");
+const DRY_RUN = process.env.DRY_RUN !== 'false'; // default: true (dry run). Set DRY_RUN=false for live run. // for window powershel use $env:DRY_RUN="false"; npm run sold:update
+
 // ============================================================
 // FIXED DESCRIPTION — applied to every stock row in this batch
 // ============================================================
