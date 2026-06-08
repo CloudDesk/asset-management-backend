@@ -40,7 +40,7 @@ function resolveDbUrl(): string {
     const port = "34305";
     const user = "postgres";
     const password = "zPjXkWvnHzvaVonPhQRYQitsWXpITBbp";
-    const dbName = "railway";
+    const dbName = "assetmanagement_prod";
 
     if (host && user && password && dbName) {
         // Encode password in case it has special characters
