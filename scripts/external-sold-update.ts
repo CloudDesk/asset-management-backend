@@ -40,7 +40,7 @@ function resolveDbUrl(): string {
     const port = "34305";
     const user = "postgres";
     const password = "zPjXkWvnHzvaVonPhQRYQitsWXpITBbp";
-    const dbName = "assetmanagement_prod";
+    const dbName = "railway";
 
     if (host && user && password && dbName) {
         // Encode password in case it has special characters
@@ -69,7 +69,8 @@ const prisma = new PrismaClient({
 //    false           → reads DB, prints preview, asks "yes/no", then writes
 // ============================================================
 const DRY_RUN = process.env.DRY_RUN !== 'false'; // default: true (dry run). Set DRY_RUN=false for live run.
-
+console.log(`DRY_RUN mode: ${DRY_RUN ? 'ON (no DB writes)' : 'OFF (will write to DB)'}`);
+console.log("object");
 // ============================================================
 // FIXED DESCRIPTION — applied to every stock row in this batch
 // ============================================================
