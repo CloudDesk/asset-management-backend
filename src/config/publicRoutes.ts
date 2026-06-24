@@ -35,15 +35,18 @@ export const ECOMMERCE_PUBLIC_ROUTES = [
     // 5. Picklists APIs
     'GET /v1/picklists',
 
-    // 6. Health Check APIs
+    // 6. Storefront page configuration APIs
+    'GET /v1/storefront-page-sections/homepage-config',
+
+    // 7. Health Check APIs
     'GET /v1/health',
     'GET /health',
 
-    // 7. System & Webhook APIs (Internal but public for cloud tasks/webhooks)
+    // 8. System & Webhook APIs (Internal but public for cloud tasks/webhooks)
     'POST /v1/phonepe/cleanup-lock',
     'POST /v1/ekart/webhook/track-status', // Ekart tracking status webhook
 
-    // 8. Payment Callback APIs (PhonePe SDK redirects)
+    // 9. Payment Callback APIs (PhonePe SDK redirects)
     'GET /v1/phonepe/callback/:transactionId',
     'POST /v1/phonepe/callback/:transactionId',
     'OPTIONS /v1/phonepe/callback/:transactionId',
