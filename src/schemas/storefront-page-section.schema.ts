@@ -29,6 +29,8 @@ const showcaseItemSchema = z.object({
   sort_order: z.number().int().min(0).default(0),
   eyebrow: z.string().max(255).optional(),
   title: z.string().min(1).max(255),
+  button: buttonSchema.optional(),
+  buttons: z.array(buttonSchema).optional(),
   media: mediaSchema,
 }).passthrough();
 
