@@ -7,7 +7,7 @@ import { env } from './config/env.js';
 import { logger } from './config/logger.js';
 import loggerPlugin from './plugins/logger.js';
 import dbPlugin from './plugins/db.js';
-// import firebasePlugin from './plugins/firebase.js';
+import firebasePlugin from './plugins/firebase.js';
 import swaggerPlugin from './plugins/swagger.js';
 import { routes } from './routes/index.js';
 import { errorHandler, createErrorResponse } from './utils/errorHandler.js';
@@ -39,6 +39,12 @@ export async function buildServer() {
   // Register multipart support and expose files/fields on request.body for schema validation
   await fastify.register(multipart, {
     attachFieldsToBody: true,
+    limits: {
+      fileSize: 60 * 1024 * 1024,
+      files: 1,
+      fields: 10,
+      parts: 20,
+    },
   });
 
   // Register cookie support for session management
@@ -49,7 +55,7 @@ export async function buildServer() {
   await fastify.register(dbPlugin);
 
   // Register Firebase Admin plugin
-  // await fastify.register(firebasePlugin);
+  await fastify.register(firebasePlugin);
 
   // Register Swagger documentation (development and production)
   if (env.NODE_ENV === 'development' || env.NODE_ENV === 'production') {

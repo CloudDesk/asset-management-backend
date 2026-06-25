@@ -1,73 +1,111 @@
-// import { FastifyInstance, FastifyPluginOptions } from 'fastify';
-// import fp from 'fastify-plugin';
-// import admin from 'firebase-admin';
-// import { env } from '../config/env.js';
-// import { logger } from '../config/logger.js';
+import { FastifyInstance, FastifyPluginOptions } from 'fastify';
+import fp from 'fastify-plugin';
+import { getApps, initializeApp, applicationDefault, cert, App } from 'firebase-admin/app';
+import { getMessaging, Messaging } from 'firebase-admin/messaging';
+import fs from 'node:fs';
+import { env } from '../config/env.js';
+import { logger } from '../config/logger.js';
 
-// /**
-//  * Firebase Admin SDK plugin for Fastify
-//  * Initializes Firebase Admin and decorates Fastify with the admin instance
-//  */
-// async function firebasePlugin(
-//   fastify: FastifyInstance,
-//   options: FastifyPluginOptions
-// ): Promise<void> {
-//   try {
-//     // Check if Firebase is already initialized
-//     if (admin.apps.length > 0) {
-//       logger.info('Firebase Admin already initialized');
-//       fastify.decorate('firebase', admin);
-//       return;
-//     }
+export type FirebaseAdminContext = {
+  app: App;
+  messaging: Messaging;
+};
 
-//     // Check if Firebase credentials are provided
-//     if (!env.FIREBASE_PROJECT_ID || !env.FIREBASE_CLIENT_EMAIL || !env.FIREBASE_PRIVATE_KEY) {
-//       logger.warn('Firebase credentials not provided. Firebase authentication will not be available.');
-//       fastify.decorate('firebase', null);
-//       return;
-//     }
+function parseServiceAccountFromJson(rawJson: string) {
+  const serviceAccount = JSON.parse(rawJson);
+  return {
+    projectId: serviceAccount.project_id || serviceAccount.projectId,
+    clientEmail: serviceAccount.client_email || serviceAccount.clientEmail,
+    privateKey: serviceAccount.private_key || serviceAccount.privateKey,
+  };
+}
 
-//     // Initialize Firebase Admin
-//     const privateKey = env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n');
+function buildServiceAccountCredential(
+  clientEmail: string,
+  privateKey: string,
+  projectId?: string
+) {
+  return cert({
+    ...(projectId ? { projectId } : {}),
+    clientEmail,
+    privateKey: privateKey.replace(/\\n/g, '\n'),
+  });
+}
 
-//     admin.initializeApp({
-//       credential: admin.credential.cert({
-//         projectId: env.FIREBASE_PROJECT_ID,
-//         clientEmail: env.FIREBASE_CLIENT_EMAIL,
-//         privateKey: privateKey,
-//       }),
-//     });
+export function initializeFirebaseAdmin(): FirebaseAdminContext | null {
+  if (getApps().length > 0) {
+    const app = getApps()[0];
+    if (!app) {
+      return null;
+    }
+    return { app, messaging: getMessaging(app) };
+  }
 
-//     logger.info('Firebase Admin initialized successfully');
+  try {
+    let credential;
+    let projectId = env.FIREBASE_PROJECT_ID;
 
-//     // Decorate Fastify instance with Firebase Admin
-//     fastify.decorate('firebase', admin);
+    if (env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+      const serviceAccount = parseServiceAccountFromJson(env.FIREBASE_SERVICE_ACCOUNT_JSON);
+      credential = buildServiceAccountCredential(
+        serviceAccount.clientEmail,
+        serviceAccount.privateKey,
+        serviceAccount.projectId
+      );
+      projectId = projectId || serviceAccount.projectId;
+    } else if (env.FIREBASE_SERVICE_ACCOUNT_PATH) {
+      const serviceAccount = parseServiceAccountFromJson(
+        fs.readFileSync(env.FIREBASE_SERVICE_ACCOUNT_PATH, 'utf8')
+      );
+      credential = buildServiceAccountCredential(
+        serviceAccount.clientEmail,
+        serviceAccount.privateKey,
+        serviceAccount.projectId
+      );
+      projectId = projectId || serviceAccount.projectId;
+    } else if (env.FIREBASE_CLIENT_EMAIL && env.FIREBASE_PRIVATE_KEY) {
+      credential = buildServiceAccountCredential(
+        env.FIREBASE_CLIENT_EMAIL,
+        env.FIREBASE_PRIVATE_KEY,
+        projectId
+      );
+    } else if (env.GOOGLE_APPLICATION_CREDENTIALS || env.GCP_PROJECT_ID) {
+      credential = applicationDefault();
+      projectId = projectId || env.GCP_PROJECT_ID;
+    }
 
-//     // Clean up on server close
-//     fastify.addHook('onClose', async () => {
-//       try {
-//         await admin.app().delete();
-//         logger.info('Firebase Admin closed');
-//       } catch (error) {
-//         logger.error({ error }, 'Error closing Firebase Admin');
-//       }
-//     });
-//   } catch (error) {
-//     logger.error({ error }, 'Error initializing Firebase Admin');
-//     fastify.decorate('firebase', null);
-//   }
-// }
+    if (!credential) {
+      logger.warn('Firebase Admin credentials are not configured; push sends will be disabled.');
+      return null;
+    }
 
-// export default fp(firebasePlugin, {
-//   name: 'firebase-admin',
-// });
+    const app = initializeApp({
+      credential,
+      ...(projectId ? { projectId } : {}),
+    });
 
-// // Extend Fastify type definitions
-// declare module 'fastify' {
-//   interface FastifyInstance {
-//     firebase: typeof admin | null;
-//   }
-// }
+    logger.info({ projectId }, 'Firebase Admin initialized for push notifications');
+    return { app, messaging: getMessaging(app) };
+  } catch (error) {
+    logger.error({ error }, 'Failed to initialize Firebase Admin');
+    return null;
+  }
+}
 
+async function firebasePlugin(
+  fastify: FastifyInstance,
+  _options: FastifyPluginOptions
+): Promise<void> {
+  const firebase = initializeFirebaseAdmin();
+  fastify.decorate('firebase', firebase);
+}
 
+export default fp(firebasePlugin, {
+  name: 'firebase-admin',
+});
 
+declare module 'fastify' {
+  interface FastifyInstance {
+    firebase: FirebaseAdminContext | null;
+  }
+}

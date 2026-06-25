@@ -873,6 +873,56 @@ model users {
   @@map("users")
 }
 
+model pushdevice {
+  id               Int      @id @default(autoincrement())
+  userid           Int?
+  inventoryuserid  Int?
+  usertype         String   @db.VarChar(30)
+  token            String   @unique @db.VarChar(2048)
+  platform         String   @db.VarChar(30)
+  provider         String   @db.VarChar(30)
+  deviceid         String?  @db.VarChar(255)
+  appversion       String?  @db.VarChar(100)
+  buildnumber      String?  @db.VarChar(100)
+  permissionstatus String?  @db.VarChar(50)
+  isactive         Boolean  @default(true)
+  failurecount     Int      @default(0)
+  createddate      BigInt?
+  modifieddate     BigInt?
+  lastseenat       BigInt?
+  disabledat       BigInt?
+
+  @@index([userid])
+  @@index([inventoryuserid])
+  @@index([usertype])
+  @@index([platform])
+  @@index([isactive])
+  @@map("push_devices")
+}
+
+model StorefrontPageSection {
+  id             BigInt   @id @default(autoincrement()) @db.BigInt
+  page_key       String   @default("home") @db.VarChar(80)
+  section_key    String   @db.VarChar(120)
+  section_type   String   @db.VarChar(80)
+  name           String   @db.VarChar(255)
+  attributes     Json     @default("{}")
+  sort_order     Int      @default(0)
+  is_active      Boolean  @default(true)
+  schedule_start DateTime? @db.Timestamptz(6)
+  schedule_end   DateTime? @db.Timestamptz(6)
+  version        Int      @default(1)
+  createdby      Int?
+  modifiedby     Int?
+  createddate    BigInt?
+  modifieddate   BigInt?
+
+  @@index([page_key, section_key], map: "idx_storefront_page_sections_page_section")
+  @@index([page_key, section_key, is_active, sort_order], map: "idx_storefront_page_sections_active_order")
+  @@index([section_type], map: "idx_storefront_page_sections_type")
+  @@map("storefront_page_sections")
+}
+
 
 
 
@@ -996,4 +1046,3 @@ model AuthSession {
   @@index([ipAddress, createddate])
   @@map("auth_sessions")
 }
-

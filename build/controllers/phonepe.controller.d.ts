@@ -3,11 +3,13 @@ import { PhonePeService } from "../services/phonepe.service.js";
 import { TransactionService } from "../services/transaction.service.js";
 import { OrdersService } from "../services/orders.service.js";
 import { OrderlineService } from "../services/orderline.service.js";
+import { CustomerNotificationService } from "../services/customer-notification.service.js";
 export declare class PhonePeController {
     phonePeService: PhonePeService;
     transactionService: TransactionService;
     ordersService: OrdersService;
     orderlineService: OrderlineService;
+    customerNotificationService: CustomerNotificationService;
     /**
      * Initiate payment with PhonePe
      */

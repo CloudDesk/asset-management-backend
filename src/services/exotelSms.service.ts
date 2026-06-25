@@ -500,6 +500,16 @@ export const getExotelSmsService = (): ExotelSmsService => {
   return exotelSmsServiceInstance;
 };
 
-// Export for convenience, but use getExotelSmsService() if you need error handling
-export const exotelSmsService = getExotelSmsService();
+// Export for convenience while preserving lazy initialization.
+export const exotelSmsService = new Proxy({} as ExotelSmsService, {
+  get(_target, property) {
+    const service = getExotelSmsService();
+    const value = service[property as keyof ExotelSmsService];
 
+    if (typeof value === 'function') {
+      return value.bind(service);
+    }
+
+    return value;
+  }
+});
