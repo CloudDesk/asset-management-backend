@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { z } from 'zod';
+import { validatePemPrivateKey } from '../utils/privateKey.js';
 
 const STATIC_OTP_ENVIRONMENT_MARKERS = ['sit', 'dev', 'development', 'test', 'staging', 'sandbox'];
 const REQUIRED_EXOTEL_ENV_VARS = [
@@ -94,28 +95,6 @@ function getEnvConfigValue(data: object, key: string) {
   return trimmedValue.length > 0 ? trimmedValue : undefined;
 }
 
-function validatePrivateKeyEnvValue(key: string, value: string) {
-  const errors: string[] = [];
-  const normalizedValue = value.replace(/\\n/g, '\n').trim();
-
-  if (value.includes('/n')) {
-    errors.push(`${key} contains /n; use escaped newlines as \\n`);
-  }
-
-  if (!normalizedValue.includes('\n')) {
-    errors.push(`${key} must contain escaped newlines as \\n`);
-  }
-
-  if (
-    !normalizedValue.startsWith('-----BEGIN PRIVATE KEY-----') ||
-    !normalizedValue.endsWith('-----END PRIVATE KEY-----')
-  ) {
-    errors.push(`${key} must be a PEM private key`);
-  }
-
-  return errors;
-}
-
 function validatePushNotificationConfig(data: object) {
   const isProduction = getEnvConfigValue(data, 'NODE_ENV') === 'production';
   const hasFirebaseDirectConfig = REQUIRED_FIREBASE_PUSH_ENV_VARS.some((key) =>
@@ -154,12 +133,12 @@ function validatePushNotificationConfig(data: object) {
 
   const firebasePrivateKey = getEnvConfigValue(data, 'FIREBASE_PRIVATE_KEY');
   if (firebasePrivateKey) {
-    validationErrors.push(...validatePrivateKeyEnvValue('FIREBASE_PRIVATE_KEY', firebasePrivateKey));
+    validationErrors.push(...validatePemPrivateKey('FIREBASE_PRIVATE_KEY', firebasePrivateKey));
   }
 
   const apnsAuthKey = getEnvConfigValue(data, 'APNS_AUTH_KEY');
   if (apnsAuthKey) {
-    validationErrors.push(...validatePrivateKeyEnvValue('APNS_AUTH_KEY', apnsAuthKey));
+    validationErrors.push(...validatePemPrivateKey('APNS_AUTH_KEY', apnsAuthKey));
   }
 
   if (missingVars.length > 0) {

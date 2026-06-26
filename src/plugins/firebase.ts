@@ -5,6 +5,7 @@ import { getMessaging, Messaging } from 'firebase-admin/messaging';
 import fs from 'node:fs';
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
+import { normalizePemPrivateKey } from '../utils/privateKey.js';
 
 export type FirebaseAdminContext = {
   app: App;
@@ -28,7 +29,7 @@ function buildServiceAccountCredential(
   return cert({
     ...(projectId ? { projectId } : {}),
     clientEmail,
-    privateKey: privateKey.replace(/\\n/g, '\n'),
+    privateKey: normalizePemPrivateKey(privateKey),
   });
 }
 

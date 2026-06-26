@@ -4,6 +4,7 @@ import path from 'node:path';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
+import { normalizePemPrivateKey } from '../utils/privateKey.js';
 
 type ApnsPushPayload = {
   title: string;
@@ -117,12 +118,14 @@ export class ApnsService {
       throw new Error('Missing APNs authentication credentials');
     }
     const privateKey = authKey
-      ? authKey.replace(/\\n/g, '\n')
-      : fs.readFileSync(
-          path.isAbsolute(authKeyPath as string)
-            ? (authKeyPath as string)
-            : path.resolve(process.cwd(), authKeyPath as string),
-          'utf8'
+      ? normalizePemPrivateKey(authKey)
+      : normalizePemPrivateKey(
+          fs.readFileSync(
+            path.isAbsolute(authKeyPath as string)
+              ? (authKeyPath as string)
+              : path.resolve(process.cwd(), authKeyPath as string),
+            'utf8'
+          )
         );
     const token = jwt.sign(
       {},
