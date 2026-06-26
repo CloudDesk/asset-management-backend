@@ -53,6 +53,12 @@ export function initializeFirebaseAdmin(): FirebaseAdminContext | null {
         serviceAccount.projectId
       );
       projectId = projectId || serviceAccount.projectId;
+    } else if (env.FIREBASE_CLIENT_EMAIL && env.FIREBASE_PRIVATE_KEY) {
+      credential = buildServiceAccountCredential(
+        env.FIREBASE_CLIENT_EMAIL,
+        env.FIREBASE_PRIVATE_KEY,
+        projectId
+      );
     } else if (env.FIREBASE_SERVICE_ACCOUNT_PATH) {
       const serviceAccount = parseServiceAccountFromJson(
         fs.readFileSync(env.FIREBASE_SERVICE_ACCOUNT_PATH, 'utf8')
@@ -63,12 +69,6 @@ export function initializeFirebaseAdmin(): FirebaseAdminContext | null {
         serviceAccount.projectId
       );
       projectId = projectId || serviceAccount.projectId;
-    } else if (env.FIREBASE_CLIENT_EMAIL && env.FIREBASE_PRIVATE_KEY) {
-      credential = buildServiceAccountCredential(
-        env.FIREBASE_CLIENT_EMAIL,
-        env.FIREBASE_PRIVATE_KEY,
-        projectId
-      );
     } else if (env.GOOGLE_APPLICATION_CREDENTIALS || env.GCP_PROJECT_ID) {
       credential = applicationDefault();
       projectId = projectId || env.GCP_PROJECT_ID;
@@ -87,8 +87,9 @@ export function initializeFirebaseAdmin(): FirebaseAdminContext | null {
     logger.info({ projectId }, 'Firebase Admin initialized for push notifications');
     return { app, messaging: getMessaging(app) };
   } catch (error) {
-    logger.error({ error }, 'Failed to initialize Firebase Admin');
-    return null;
+    const message = error instanceof Error ? error.message : 'Unknown Firebase Admin initialization error';
+    logger.error({ message }, 'Failed to initialize Firebase Admin');
+    throw error;
   }
 }
 
