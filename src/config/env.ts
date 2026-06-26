@@ -8,6 +8,21 @@ const REQUIRED_EXOTEL_ENV_VARS = [
   'EXOTEL_API_TOKEN',
   'EXOTEL_SENDER_ID'
 ] as const;
+const REQUIRED_FIREBASE_PUSH_ENV_VARS = [
+  'FIREBASE_PROJECT_ID',
+  'FIREBASE_CLIENT_EMAIL',
+  'FIREBASE_PRIVATE_KEY'
+] as const;
+const REQUIRED_APNS_PUSH_ENV_VARS = [
+  'APNS_AUTH_KEY',
+  'APNS_KEY_ID',
+  'APNS_TEAM_ID',
+  'APNS_BUNDLE_ID'
+] as const;
+const DISALLOWED_PRODUCTION_PUSH_PATH_ENV_VARS = [
+  'FIREBASE_SERVICE_ACCOUNT_PATH',
+  'APNS_AUTH_KEY_PATH'
+] as const;
 
 type StaticOtpEnvironmentConfig = {
   USER_OTP?: string | undefined;
@@ -66,6 +81,95 @@ function validateExotelConfig(data: StaticOtpEnvironmentConfig & ExotelEnvironme
       `Missing required Exotel environment variables: ${missingVars.join(', ')}. ` +
       'Set them, or configure USER_OTP for a non-production environment.'
     );
+  }
+}
+
+function getEnvConfigValue(data: object, key: string) {
+  const value = (data as Record<string, unknown>)[key];
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const trimmedValue = value.trim();
+  return trimmedValue.length > 0 ? trimmedValue : undefined;
+}
+
+function validatePrivateKeyEnvValue(key: string, value: string) {
+  const errors: string[] = [];
+  const normalizedValue = value.replace(/\\n/g, '\n').trim();
+
+  if (value.includes('/n')) {
+    errors.push(`${key} contains /n; use escaped newlines as \\n`);
+  }
+
+  if (!normalizedValue.includes('\n')) {
+    errors.push(`${key} must contain escaped newlines as \\n`);
+  }
+
+  if (
+    !normalizedValue.startsWith('-----BEGIN PRIVATE KEY-----') ||
+    !normalizedValue.endsWith('-----END PRIVATE KEY-----')
+  ) {
+    errors.push(`${key} must be a PEM private key`);
+  }
+
+  return errors;
+}
+
+function validatePushNotificationConfig(data: object) {
+  const isProduction = getEnvConfigValue(data, 'NODE_ENV') === 'production';
+  const hasFirebaseDirectConfig = REQUIRED_FIREBASE_PUSH_ENV_VARS.some((key) =>
+    Boolean(getEnvConfigValue(data, key))
+  );
+  const hasApnsConfig = REQUIRED_APNS_PUSH_ENV_VARS.some((key) =>
+    Boolean(getEnvConfigValue(data, key))
+  );
+
+  const missingVars: string[] = [];
+  const validationErrors: string[] = [];
+
+  if (isProduction || hasFirebaseDirectConfig) {
+    missingVars.push(
+      ...REQUIRED_FIREBASE_PUSH_ENV_VARS.filter((key) => !getEnvConfigValue(data, key))
+    );
+  }
+
+  if (isProduction || hasApnsConfig) {
+    missingVars.push(
+      ...REQUIRED_APNS_PUSH_ENV_VARS.filter((key) => !getEnvConfigValue(data, key))
+    );
+  }
+
+  if (isProduction) {
+    const pathVars = DISALLOWED_PRODUCTION_PUSH_PATH_ENV_VARS.filter((key) =>
+      Boolean(getEnvConfigValue(data, key))
+    );
+    if (pathVars.length > 0) {
+      validationErrors.push(
+        `Do not use path-based push credential variables in production: ${pathVars.join(', ')}. ` +
+        'Use backend-only environment variables or Secret Manager values instead.'
+      );
+    }
+  }
+
+  const firebasePrivateKey = getEnvConfigValue(data, 'FIREBASE_PRIVATE_KEY');
+  if (firebasePrivateKey) {
+    validationErrors.push(...validatePrivateKeyEnvValue('FIREBASE_PRIVATE_KEY', firebasePrivateKey));
+  }
+
+  const apnsAuthKey = getEnvConfigValue(data, 'APNS_AUTH_KEY');
+  if (apnsAuthKey) {
+    validationErrors.push(...validatePrivateKeyEnvValue('APNS_AUTH_KEY', apnsAuthKey));
+  }
+
+  if (missingVars.length > 0) {
+    validationErrors.unshift(
+      `Missing required push notification environment variables: ${missingVars.join(', ')}`
+    );
+  }
+
+  if (validationErrors.length > 0) {
+    throw new Error(validationErrors.join('; '));
   }
 }
 
@@ -205,6 +309,7 @@ const envSchema = z.object({
 
 const parsedEnv = envSchema.parse(process.env);
 validateExotelConfig(parsedEnv);
+validatePushNotificationConfig(parsedEnv);
 
 export const env = parsedEnv;
 
