@@ -166,6 +166,10 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
               default: 0,
               description: "Tax amount in INR (optional, defaults to 0)",
             },
+            returnUrl: {
+              type: "string",
+              description: "Web app page to return to after payment status handling",
+            },
           },
           required: ["mode", "order", "transaction"],
           additionalProperties: false,
@@ -530,7 +534,7 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
               `Transaction already ${existingStatus} - rejecting callback, redirecting to failure page`
             );
 
-            const failureUrl = process.env.REDIRECT_URL_FAILURE || "com.Nivaana.app://profile/orders";
+            const failureUrl = process.env.REDIRECT_URL_FAILURE || "https://nivaana.in/payments?payment=failure";
             return reply.redirect(failureUrl);
           }
 
@@ -552,7 +556,7 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
                 "Transaction already SUCCESS and order exists - redirecting to success page (idempotent)"
               );
 
-              const successUrl = process.env.REDIRECT_URL_SUCCESS || "com.Nivaana.app://profile/orders";
+              const successUrl = process.env.REDIRECT_URL_SUCCESS || "https://nivaana.in/payments?payment=success";
               return reply.redirect(successUrl);
             }
           }
@@ -828,7 +832,7 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
 
           // Redirect to success page regardless of order creation status
           // Payment was successful, order creation is secondary
-          const successUrl = process.env.REDIRECT_URL_SUCCESS || "com.Nivaana.app://profile/orders";
+          const successUrl = process.env.REDIRECT_URL_SUCCESS || "https://nivaana.in/payments?payment=success";
           return reply.redirect(successUrl);
         } else if (paymentStatus.code === "TRANSACTION_NOT_FOUND") {
           fastify.log.warn(
@@ -844,7 +848,7 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
           );
 
           // Redirect to failure page with appropriate message
-          const failureUrl = process.env.REDIRECT_URL_FAILURE || "com.Nivaana.app://profile/orders";
+          const failureUrl = process.env.REDIRECT_URL_FAILURE || "https://nivaana.in/payments?payment=failure";
           return reply.redirect(failureUrl);
         } else {
           fastify.log.warn(
@@ -860,7 +864,7 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
           );
 
           // Redirect to failure page
-          const failureUrl = process.env.REDIRECT_URL_FAILURE || "com.Nivaana.app://profile/orders";
+          const failureUrl = process.env.REDIRECT_URL_FAILURE || "https://nivaana.in/payments?payment=failure";
           return reply.redirect(failureUrl);
         }
       } catch (error: any) {
@@ -895,7 +899,7 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
         }
 
         // Redirect to failure page
-        const failureUrl = process.env.REDIRECT_URL_FAILURE || "com.Nivaana.app://profile/orders";
+        const failureUrl = process.env.REDIRECT_URL_FAILURE || "https://nivaana.in/payments?payment=failure";
         return reply.redirect(failureUrl);
       }
     }
