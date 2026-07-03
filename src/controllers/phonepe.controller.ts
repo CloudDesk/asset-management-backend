@@ -53,6 +53,7 @@ export class PhonePeController {
             transactionfor: string;
             userId: number;
           };
+          returnUrl?: string;
         };
         console.log("test");
         console.log(request.body, "req body");
@@ -1683,7 +1684,7 @@ export class PhonePeController {
         // Redirect to failure page on error
         const failureUrl =
           process.env.REDIRECT_URL_FAILURE ||
-          "com.Nivaana.app://profile/orders";
+          "https://nivaana.in/payments?payment=failure";
         return reply.redirect(failureUrl);
       }
     }
