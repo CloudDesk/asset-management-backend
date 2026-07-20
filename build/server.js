@@ -34,6 +34,12 @@ export async function buildServer() {
     // Register multipart support and expose files/fields on request.body for schema validation
     await fastify.register(multipart, {
         attachFieldsToBody: true,
+        limits: {
+            fileSize: 60 * 1024 * 1024,
+            files: 1,
+            fields: 10,
+            parts: 20,
+        },
     });
     // Register cookie support for session management
     // @ts-expect-error - fastify-cookie type definitions mismatch with Fastify v5

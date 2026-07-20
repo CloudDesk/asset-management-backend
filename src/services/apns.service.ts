@@ -117,7 +117,10 @@ export class ApnsService {
       throw new Error('Missing APNs authentication credentials');
     }
     const privateKey = authKey
-      ? authKey.replace(/\\n/g, '\n')
+      ? authKey
+          .replace(/\\\r?\n/g, '\n')
+          .replace(/\\n/g, '\n')
+          .trim()
       : fs.readFileSync(
           path.isAbsolute(authKeyPath as string)
             ? (authKeyPath as string)

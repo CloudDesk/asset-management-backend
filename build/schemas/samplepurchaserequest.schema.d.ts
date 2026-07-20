@@ -263,10 +263,10 @@ export declare const samplePurchaseRequestQuerySchema: z.ZodObject<{
     contactname?: string | undefined;
     phonenumber?: string | undefined;
     companymail?: string | undefined;
-    page?: string | undefined;
-    limit?: string | undefined;
     createdby?: string | undefined;
     modifiedby?: string | undefined;
+    page?: string | undefined;
+    limit?: string | undefined;
 }, {
     id?: string | undefined;
     createddate?: string | undefined;
@@ -278,10 +278,10 @@ export declare const samplePurchaseRequestQuerySchema: z.ZodObject<{
     contactname?: string | undefined;
     phonenumber?: string | undefined;
     companymail?: string | undefined;
-    page?: string | undefined;
-    limit?: string | undefined;
     createdby?: string | undefined;
     modifiedby?: string | undefined;
+    page?: string | undefined;
+    limit?: string | undefined;
 }>;
 export type CreateSamplePurchaseRequestInput = z.infer<typeof createSamplePurchaseRequestSchema>;
 export type UpdateSamplePurchaseRequestInput = z.infer<typeof updateSamplePurchaseRequestSchema>;

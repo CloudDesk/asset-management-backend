@@ -96,7 +96,10 @@ function getEnvConfigValue(data: object, key: string) {
 
 function validatePrivateKeyEnvValue(key: string, value: string) {
   const errors: string[] = [];
-  const normalizedValue = value.replace(/\\n/g, '\n').trim();
+  const normalizedValue = value
+    .replace(/\\\r?\n/g, '\n')
+    .replace(/\\n/g, '\n')
+    .trim();
 
   if (value.includes('/n')) {
     errors.push(`${key} contains /n; use escaped newlines as \\n`);

@@ -68,9 +68,9 @@ export declare const createPromotionsSchema: z.ZodObject<{
         type: "BOGO" | "FREE_SHIPPING" | "FREE_PRODUCT" | "PERCENT_OFF" | "FIXED_AMOUNT_OFF";
     }>, "many">>;
 }, "strict", z.ZodTypeAny, {
+    status?: "active" | "inactive" | undefined;
     code?: string | undefined;
     type?: "PERCENT_OFF_ITEM" | "FIXED_AMOUNT_OFF_ITEM" | "BOGO" | "PERCENT_OFF_CART" | "FIXED_AMOUNT_OFF_CART" | "FREE_SHIPPING" | "FREE_PRODUCT" | undefined;
-    status?: "active" | "inactive" | undefined;
     name?: string | undefined;
     description?: string | undefined;
     auto_apply?: boolean | undefined;
@@ -96,9 +96,9 @@ export declare const createPromotionsSchema: z.ZodObject<{
         type: "BOGO" | "FREE_SHIPPING" | "FREE_PRODUCT" | "PERCENT_OFF" | "FIXED_AMOUNT_OFF";
     }[] | undefined;
 }, {
+    status?: "active" | "inactive" | undefined;
     code?: string | undefined;
     type?: "PERCENT_OFF_ITEM" | "FIXED_AMOUNT_OFF_ITEM" | "BOGO" | "PERCENT_OFF_CART" | "FIXED_AMOUNT_OFF_CART" | "FREE_SHIPPING" | "FREE_PRODUCT" | undefined;
-    status?: "active" | "inactive" | undefined;
     name?: string | undefined;
     description?: string | undefined;
     auto_apply?: boolean | undefined;
@@ -167,9 +167,9 @@ export declare const updatePromotionsSchema: z.ZodObject<{
         type: "BOGO" | "FREE_SHIPPING" | "FREE_PRODUCT" | "PERCENT_OFF" | "FIXED_AMOUNT_OFF";
     }>, "many">>;
 }, "strict", z.ZodTypeAny, {
+    status?: "active" | "inactive" | undefined;
     code?: string | undefined;
     type?: "PERCENT_OFF_ITEM" | "FIXED_AMOUNT_OFF_ITEM" | "BOGO" | "PERCENT_OFF_CART" | "FIXED_AMOUNT_OFF_CART" | "FREE_SHIPPING" | "FREE_PRODUCT" | undefined;
-    status?: "active" | "inactive" | undefined;
     name?: string | undefined;
     description?: string | undefined;
     auto_apply?: boolean | undefined;
@@ -195,9 +195,9 @@ export declare const updatePromotionsSchema: z.ZodObject<{
         type: "BOGO" | "FREE_SHIPPING" | "FREE_PRODUCT" | "PERCENT_OFF" | "FIXED_AMOUNT_OFF";
     }[] | undefined;
 }, {
+    status?: "active" | "inactive" | undefined;
     code?: string | undefined;
     type?: "PERCENT_OFF_ITEM" | "FIXED_AMOUNT_OFF_ITEM" | "BOGO" | "PERCENT_OFF_CART" | "FIXED_AMOUNT_OFF_CART" | "FREE_SHIPPING" | "FREE_PRODUCT" | undefined;
-    status?: "active" | "inactive" | undefined;
     name?: string | undefined;
     description?: string | undefined;
     auto_apply?: boolean | undefined;
@@ -267,9 +267,9 @@ export declare const upsertPromotionsSchema: z.ZodObject<{
         type: "BOGO" | "FREE_SHIPPING" | "FREE_PRODUCT" | "PERCENT_OFF" | "FIXED_AMOUNT_OFF";
     }>, "many">>;
 }, "strict", z.ZodTypeAny, {
+    status?: "active" | "inactive" | undefined;
     code?: string | undefined;
     type?: "PERCENT_OFF_ITEM" | "FIXED_AMOUNT_OFF_ITEM" | "BOGO" | "PERCENT_OFF_CART" | "FIXED_AMOUNT_OFF_CART" | "FREE_SHIPPING" | "FREE_PRODUCT" | undefined;
-    status?: "active" | "inactive" | undefined;
     name?: string | undefined;
     id?: number | undefined;
     description?: string | undefined;
@@ -296,9 +296,9 @@ export declare const upsertPromotionsSchema: z.ZodObject<{
         type: "BOGO" | "FREE_SHIPPING" | "FREE_PRODUCT" | "PERCENT_OFF" | "FIXED_AMOUNT_OFF";
     }[] | undefined;
 }, {
+    status?: "active" | "inactive" | undefined;
     code?: string | undefined;
     type?: "PERCENT_OFF_ITEM" | "FIXED_AMOUNT_OFF_ITEM" | "BOGO" | "PERCENT_OFF_CART" | "FIXED_AMOUNT_OFF_CART" | "FREE_SHIPPING" | "FREE_PRODUCT" | undefined;
-    status?: "active" | "inactive" | undefined;
     name?: string | undefined;
     id?: number | undefined;
     description?: string | undefined;
@@ -354,9 +354,9 @@ export declare const promotionsQuerySchema: z.ZodObject<{
     end_date_after: z.ZodOptional<z.ZodString>;
     end_date_before: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
+    status?: string | undefined;
     code?: string | undefined;
     type?: string | undefined;
-    status?: string | undefined;
     name?: string | undefined;
     auto_apply?: string | undefined;
     priority?: string | undefined;
@@ -375,9 +375,9 @@ export declare const promotionsQuerySchema: z.ZodObject<{
     end_date_after?: string | undefined;
     end_date_before?: string | undefined;
 }, {
+    status?: string | undefined;
     code?: string | undefined;
     type?: string | undefined;
-    status?: string | undefined;
     name?: string | undefined;
     auto_apply?: string | undefined;
     priority?: string | undefined;

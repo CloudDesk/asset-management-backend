@@ -28,7 +28,10 @@ function buildServiceAccountCredential(
   return cert({
     ...(projectId ? { projectId } : {}),
     clientEmail,
-    privateKey: privateKey.replace(/\\n/g, '\n'),
+    privateKey: privateKey
+      .replace(/\\\r?\n/g, '\n')
+      .replace(/\\n/g, '\n')
+      .trim(),
   });
 }
 
