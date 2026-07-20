@@ -197599,3 +197599,337 @@ Filtered data result: {
 Filtered data result: {
   "modifieddate": 1777988985564
 }
+Filtered data result: {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "quantity": 20,
+  "availablequantity": 20,
+  "soldquantity": 0,
+  "ecompublishedquantity": 20,
+  "productstatus": "in_stock",
+  "modifieddate": 1784279985364
+}
+Filtered data result: {
+  "ecomqty": 20,
+  "availableqty": 20,
+  "soldqty": 0,
+  "totalqty": 20,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Filtered data result: {
+  "availableqty": 21,
+  "platformstatus": "in_stock"
+}
+Filtered data result: {
+  "availableqty": 20,
+  "platformstatus": "in_stock"
+}
+Filtered data result: {
+  "availableqty": 21,
+  "platformstatus": "in_stock"
+}
+Filtered data result: {
+  "availableqty": 20,
+  "platformstatus": "in_stock"
+}
+Filtered data result: {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "serialnumber": "",
+  "batchno": "01/0002",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtered data result: {
+  "quantity": 21,
+  "availablequantity": 21,
+  "soldquantity": 0,
+  "ecompublishedquantity": 21,
+  "productstatus": "in_stock",
+  "modifieddate": 1784285974608
+}
+Filtered data result: {
+  "ecomqty": 21,
+  "availableqty": 21,
+  "soldqty": 0,
+  "totalqty": 21,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Filtered data result: {
+  "puc": "OTH-0098",
+  "platform": "flipkart",
+  "batchno": "1",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "OTH-0098",
+  "platform": "flipkart",
+  "batchno": "1",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "OTH-0098",
+  "platform": "flipkart",
+  "batchno": "1",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "OTH-0098",
+  "platform": "flipkart",
+  "batchno": "1",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "OTH-0098",
+  "platform": "flipkart",
+  "batchno": "1",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "puc": "OTH-0098",
+  "platform": "flipkart",
+  "batchno": "1",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtered data result: {
+  "quantity": 26,
+  "availablequantity": 26,
+  "soldquantity": 0,
+  "ecompublishedquantity": 26,
+  "productstatus": "in_stock",
+  "modifieddate": 1784286772889
+}
+Filtered data result: {
+  "ecomqty": 5,
+  "availableqty": 5,
+  "soldqty": 0,
+  "totalqty": 5,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "low_stock"
+}
+Filtered data result: {
+  "availableqty": 20,
+  "platformstatus": "in_stock"
+}
+Filtered data result: {
+  "availableqty": 21,
+  "platformstatus": "in_stock"
+}
+Filtered data result: {
+  "availableqty": 20,
+  "platformstatus": "in_stock"
+}

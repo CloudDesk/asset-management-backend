@@ -118,6 +118,12 @@ function validatePrivateKeyEnvValue(key: string, value: string) {
 
 function validatePushNotificationConfig(data: object) {
   const isProduction = getEnvConfigValue(data, 'NODE_ENV') === 'production';
+  const hasFirebasePathConfig = Boolean(
+    getEnvConfigValue(data, 'FIREBASE_SERVICE_ACCOUNT_PATH')
+  );
+  const hasApnsPathConfig = Boolean(
+    getEnvConfigValue(data, 'APNS_AUTH_KEY_PATH')
+  );
   const hasFirebaseDirectConfig = REQUIRED_FIREBASE_PUSH_ENV_VARS.some((key) =>
     Boolean(getEnvConfigValue(data, key))
   );
@@ -128,13 +134,13 @@ function validatePushNotificationConfig(data: object) {
   const missingVars: string[] = [];
   const validationErrors: string[] = [];
 
-  if (isProduction || hasFirebaseDirectConfig) {
+  if (isProduction || (hasFirebaseDirectConfig && !hasFirebasePathConfig)) {
     missingVars.push(
       ...REQUIRED_FIREBASE_PUSH_ENV_VARS.filter((key) => !getEnvConfigValue(data, key))
     );
   }
 
-  if (isProduction || hasApnsConfig) {
+  if (isProduction || (hasApnsConfig && !hasApnsPathConfig)) {
     missingVars.push(
       ...REQUIRED_APNS_PUSH_ENV_VARS.filter((key) => !getEnvConfigValue(data, key))
     );
@@ -283,9 +289,27 @@ const envSchema = z.object({
   AMAZON_CLIENT_ID: z.string().optional(),
   AMAZON_CLIENT_SECRET: z.string().optional(),
   AMAZON_REFRESH_TOKEN: z.string().optional(),
+  AMAZON_SELLER_ID: z.string().optional(),
   AMAZON_ENVIRONMENT: z.enum(['SANDBOX', 'PRODUCTION']).optional().default('SANDBOX'),
+  AMAZON_AUTO_SYNC_ENABLED: z.enum(['true', 'false']).optional().default('false').transform((value) => value === 'true'),
+  AMAZON_LISTING_IMPORT_ENABLED: z.enum(['true', 'false']).optional().default('false').transform((value) => value === 'true'),
+  AMAZON_PRODUCTION_WRITES_ENABLED: z.enum(['true', 'false']).optional().default('false').transform((value) => value === 'true'),
+  AMAZON_PRODUCTION_SP_API_BASE_URL: z.string().optional().default('https://sellingpartnerapi-eu.amazon.com'),
+  AMAZON_LISTING_IMPORT_PAGE_SIZE: z.string().optional().default('20').transform((value) => {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) ? Math.min(20, Math.max(1, parsed)) : 20;
+  }),
+  AMAZON_LISTING_IMPORT_MAX_RETRIES: z.string().optional().default('3').transform((value) => {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) ? Math.min(5, Math.max(0, parsed)) : 3;
+  }),
+  AMAZON_SANDBOX_CREDENTIAL_SOURCE: z.enum(['SANDBOX', 'PRODUCTION']).optional().default('SANDBOX'),
   AMAZON_MARKETPLACE_ID: z.string().optional().default('A21TJRUUN4KGV'), // Fixed for India
   AMAZON_SP_API_BASE_URL: z.string().optional(),
+  AMAZON_SANDBOX_CLIENT_ID: z.string().optional(),
+  AMAZON_SANDBOX_CLIENT_SECRET: z.string().optional(),
+  AMAZON_SANDBOX_REFRESH_TOKEN: z.string().optional(),
+  AMAZON_SANDBOX_SP_API_BASE_URL: z.string().optional().default('https://sandbox.sellingpartnerapi-eu.amazon.com'),
   AMAZON_AWS_IAM_ROLE_ARN: z.string().optional(),
   AMAZON_REGION: z.string().optional().default('eu-west-1'),
   AMAZON_SELLER_CENTRAL_URL: z.string().optional().default('https://sellercentral.amazon.in'),

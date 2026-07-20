@@ -29,6 +29,8 @@ import { ekartRoutes } from './ekart.route.js';
 import { analyticsRoutes } from './analytics.route.js';
 import { pushNotificationRoutes } from './push-notification.route.js';
 import { storefrontPageSectionRoutes } from './storefront-page-section.route.js';
+import { amazonRoutes } from './amazon.route.js';
+import { amazonChannelRoutes } from './amazon-channel.route.js';
 import { smartAuthentication } from '../middleware/smartAuth.middleware.js';
 import { createSuccessResponse } from '../utils/errorHandler.js';
 import { permissionRoutes } from './permission.route.js';
@@ -119,6 +121,7 @@ export async function routes(fastify: FastifyInstance) {
     await fastify.register(analyticsRoutes, { prefix: '/analytics' });
     await fastify.register(pushNotificationRoutes, { prefix: '/push-notifications' });
     await fastify.register(storefrontPageSectionRoutes, { prefix: '/storefront-page-sections' });
+    await fastify.register(amazonRoutes, { prefix: '/amazon' });
 
     // -------------------------------------------------------------------------
     // SMART AUTHENTICATION - Applied to ALL /v1 routes
@@ -135,6 +138,11 @@ export async function routes(fastify: FastifyInstance) {
     fastify.addHook('preHandler', smartAuthentication);
 
   }, { prefix: '/v1' });
+
+  // Production Amazon listing import is intentionally exposed under the
+  // channel API namespace requested by the integration contract. Each route
+  // has an explicit authentication pre-handler and the Amazon client is GET-only.
+  await fastify.register(amazonChannelRoutes, { prefix: '/api/channels/amazon' });
 
   // API v2 routes
   await fastify.register(async function (fastify) {

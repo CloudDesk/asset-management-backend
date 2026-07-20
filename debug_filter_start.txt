@@ -198688,3 +198688,352 @@ Filtering data for orders (orders): {
   "location": "",
   "description": ""
 }
+Filtering data for stock (stock): {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "batchno": "01",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for product (product): {
+  "quantity": 20,
+  "availablequantity": 20,
+  "soldquantity": 0,
+  "ecompublishedquantity": 20,
+  "productstatus": "in_stock",
+  "modifieddate": 1784279985364
+}
+Filtering data for platformstock (platformstock): {
+  "ecomqty": 20,
+  "availableqty": 20,
+  "soldqty": 0,
+  "totalqty": 20,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Filtering data for platformstock (platformstock): {
+  "availableqty": 21,
+  "platformstatus": "in_stock"
+}
+Filtering data for platformstock (platformstock): {
+  "availableqty": 20,
+  "platformstatus": "in_stock"
+}
+Filtering data for platformstock (platformstock): {
+  "availableqty": 21,
+  "platformstatus": "in_stock"
+}
+Filtering data for platformstock (platformstock): {
+  "availableqty": 20,
+  "platformstatus": "in_stock"
+}
+Filtering data for stock (stock): {
+  "puc": "OTH-0098",
+  "platform": "amazon",
+  "serialnumber": "",
+  "batchno": "01/0002",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "isdeleted": false,
+  "isarchive": false,
+  "removefromrecyclebin": false,
+  "rfid": ""
+}
+Filtering data for product (product): {
+  "quantity": 21,
+  "availablequantity": 21,
+  "soldquantity": 0,
+  "ecompublishedquantity": 21,
+  "productstatus": "in_stock",
+  "modifieddate": 1784285974608
+}
+Filtering data for platformstock (platformstock): {
+  "ecomqty": 21,
+  "availableqty": 21,
+  "soldqty": 0,
+  "totalqty": 21,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Filtering data for stock (stock): {
+  "puc": "OTH-0098",
+  "platform": "flipkart",
+  "batchno": "1",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "OTH-0098",
+  "platform": "flipkart",
+  "batchno": "1",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "OTH-0098",
+  "platform": "flipkart",
+  "batchno": "1",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "OTH-0098",
+  "platform": "flipkart",
+  "batchno": "1",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "OTH-0098",
+  "platform": "flipkart",
+  "batchno": "1",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "OTH-0098",
+  "platform": "flipkart",
+  "batchno": "1",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for product (product): {
+  "quantity": 26,
+  "availablequantity": 26,
+  "soldquantity": 0,
+  "ecompublishedquantity": 26,
+  "productstatus": "in_stock",
+  "modifieddate": 1784286772889
+}
+Filtering data for platformstock (platformstock): {
+  "ecomqty": 5,
+  "availableqty": 5,
+  "soldqty": 0,
+  "totalqty": 5,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "low_stock"
+}
+Filtering data for platformstock (platformstock): {
+  "availableqty": 20,
+  "availableQty": 0,
+  "orderedQty": 0,
+  "soldQty": 0,
+  "totalQty": 0,
+  "lockQty": 0,
+  "platformstatus": "in_stock"
+}
+Filtering data for platformstock (platformstock): {
+  "availableqty": 21,
+  "availableQty": 0,
+  "orderedQty": 0,
+  "soldQty": 0,
+  "totalQty": 0,
+  "lockQty": 0,
+  "platformstatus": "in_stock"
+}
+Filtering data for platformstock (platformstock): {
+  "availableqty": 20,
+  "availableQty": 0,
+  "orderedQty": 0,
+  "soldQty": 0,
+  "totalQty": 0,
+  "lockQty": 0,
+  "platformstatus": "in_stock"
+}

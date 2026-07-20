@@ -21,6 +21,7 @@ import {
   dynamicFindManyWithFilters,
 } from "../utils/dynamicDbOperations.js";
 import { logger } from "../config/logger.js";
+import { amazonInventorySyncService } from "./amazon-inventory-sync.service.js";
 
 export class PlatformStockService {
   /**
@@ -150,6 +151,8 @@ export class PlatformStockService {
         "Dynamic platformStock create completed with calculated status"
       );
 
+      await amazonInventorySyncService.syncAfterPlatformStockChange(platformStock);
+
       return platformStock;
     } catch (error: any) {
       logger.error(
@@ -217,6 +220,8 @@ export class PlatformStockService {
         },
         "Dynamic platformStock update completed with calculated status"
       );
+
+      await amazonInventorySyncService.syncAfterPlatformStockChange(platformStock);
 
       return platformStock;
     } catch (error: any) {
@@ -738,6 +743,11 @@ export class PlatformStockService {
         },
         "Platform stock transfer completed successfully"
       );
+
+      await Promise.all([
+        amazonInventorySyncService.syncAfterPlatformStockChange(fromPlatformStock),
+        amazonInventorySyncService.syncAfterPlatformStockChange(toPlatformStock),
+      ]);
 
       return { fromPlatformStock, toPlatformStock };
     } catch (error: any) {

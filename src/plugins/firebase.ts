@@ -60,6 +60,16 @@ export function initializeFirebaseAdmin(): FirebaseAdminContext | null {
         projectId
       );
     } else if (env.FIREBASE_SERVICE_ACCOUNT_PATH) {
+      if (!fs.existsSync(env.FIREBASE_SERVICE_ACCOUNT_PATH)) {
+        const message = `Firebase service account file was not found at ${env.FIREBASE_SERVICE_ACCOUNT_PATH}`;
+        if (env.NODE_ENV === 'production') {
+          throw new Error(message);
+        }
+
+        logger.warn({ path: env.FIREBASE_SERVICE_ACCOUNT_PATH }, `${message}; push sends will be disabled.`);
+        return null;
+      }
+
       const serviceAccount = parseServiceAccountFromJson(
         fs.readFileSync(env.FIREBASE_SERVICE_ACCOUNT_PATH, 'utf8')
       );
