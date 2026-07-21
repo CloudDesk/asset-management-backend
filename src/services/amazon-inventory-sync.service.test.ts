@@ -4,8 +4,21 @@ import {
   AmazonInventorySyncContext,
   AmazonInventorySyncService,
   AmazonSandboxInventoryClient,
+  selectMappedAmazonSellerSku,
 } from './amazon-inventory-sync.service.js';
 import { SandboxInventoryResult } from './amazon-sandbox-inventory.service.js';
+
+test('uses an explicit mapped Amazon seller SKU', () => {
+  assert.equal(selectMappedAmazonSellerSku([{ sellerSku: 'AMZ-SKU-1' }]), 'AMZ-SKU-1');
+});
+
+test('refuses missing or ambiguous Amazon listing mappings', () => {
+  assert.throws(() => selectMappedAmazonSellerSku([]), /No mapped Amazon listing/);
+  assert.throws(
+    () => selectMappedAmazonSellerSku([{ sellerSku: 'AMZ-1' }, { sellerSku: 'AMZ-2' }]),
+    /Multiple Amazon listings/
+  );
+});
 
 const context = (targetQuantity: number): AmazonInventorySyncContext => ({
   platformStockId: '1',

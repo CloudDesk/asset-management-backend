@@ -31,6 +31,9 @@ export class AmazonListingImportDisabledError extends Error {
 type ImportRequestContext = {
   requestedByUserId?: number;
   requestedByUserType?: string;
+  sellerId?: string;
+  marketplaceId?: string;
+  client?: AmazonListingsReadClient;
 };
 
 type AmazonListingImportServiceOptions = {
@@ -88,7 +91,7 @@ export class AmazonListingImportService {
   private readonly client: AmazonListingsReadClient;
   private readonly repository: AmazonListingPersistence;
   private readonly enabled: boolean;
-  private runningImport: Promise<AmazonImportSummary> | null = null;
+  private readonly runningImports = new Map<string, Promise<AmazonImportSummary>>();
 
   constructor(options: AmazonListingImportServiceOptions = {}) {
     this.client = options.client ?? amazonProductionListingsClient;
@@ -101,26 +104,37 @@ export class AmazonListingImportService {
       throw new AmazonListingImportDisabledError();
     }
 
-    if (!this.runningImport) {
-      this.runningImport = this.runImport(context).finally(() => {
-        this.runningImport = null;
+    const client = context.client ?? this.client;
+    const sellerId = context.sellerId ?? client.getSellerId();
+    const marketplaceId = context.marketplaceId ?? client.getMarketplaceId();
+    const key = `${sellerId}|${marketplaceId}`;
+    let runningImport = this.runningImports.get(key);
+    if (!runningImport) {
+      runningImport = this.runImport(context, client, sellerId, marketplaceId).finally(() => {
+        this.runningImports.delete(key);
       });
+      this.runningImports.set(key, runningImport);
     }
-
-    return this.runningImport;
+    return runningImport;
   }
 
-  async listListings(filters: Omit<AmazonListingQuery, 'sellerId' | 'marketplaceId'>) {
+  async listListings(
+    filters: Omit<AmazonListingQuery, 'sellerId' | 'marketplaceId'>,
+    scope?: Pick<AmazonListingQuery, 'sellerId' | 'marketplaceId'>
+  ) {
     return this.repository.listListings({
       ...filters,
-      sellerId: this.client.getSellerId(),
-      marketplaceId: this.client.getMarketplaceId(),
+      sellerId: scope?.sellerId ?? this.client.getSellerId(),
+      marketplaceId: scope?.marketplaceId ?? this.client.getMarketplaceId(),
     });
   }
 
-  private async runImport(context: ImportRequestContext): Promise<AmazonImportSummary> {
-    const sellerId = this.client.getSellerId();
-    const marketplaceId = this.client.getMarketplaceId();
+  private async runImport(
+    context: ImportRequestContext,
+    client: AmazonListingsReadClient,
+    sellerId: string,
+    marketplaceId: string
+  ): Promise<AmazonImportSummary> {
     const summary = emptySummary();
     const syncLogId = await this.repository.startSyncLog({
       sellerId,
@@ -134,13 +148,13 @@ export class AmazonListingImportService {
     });
 
     try {
-      const fbaInventoryBySku = await this.fetchFbaInventoryBySku();
+      const fbaInventoryBySku = await this.fetchFbaInventoryBySku(client);
       const seenListings = new Map<string, string>();
       const seenPageTokens = new Set<string>();
       let pageToken: string | undefined;
 
       do {
-        const page = await this.client.fetchListingsPage(pageToken);
+        const page = await client.fetchListingsPage(pageToken);
         summary.totalFetched += page.items.length;
 
         for (const rawListing of page.items) {
@@ -226,13 +240,13 @@ export class AmazonListingImportService {
     }
   }
 
-  private async fetchFbaInventoryBySku() {
+  private async fetchFbaInventoryBySku(client: AmazonListingsReadClient) {
     const inventory = new Map<string, Awaited<ReturnType<AmazonListingsReadClient['fetchFbaInventoryPage']>>['items'][number]>();
     const seenTokens = new Set<string>();
     let nextToken: string | undefined;
 
     do {
-      const page = await this.client.fetchFbaInventoryPage(nextToken);
+      const page = await client.fetchFbaInventoryPage(nextToken);
       for (const item of page.items) {
         const sellerSku = item.sellerSku?.trim();
         if (sellerSku) inventory.set(sellerSku, item);

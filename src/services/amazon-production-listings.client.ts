@@ -65,6 +65,34 @@ export type AmazonFbaInventoryPage = {
   nextToken: string | null;
 };
 
+export type AmazonRawOrder = {
+  orderId?: string;
+  createdTime?: string;
+  lastUpdatedTime?: string;
+  programs?: string[];
+  salesChannel?: { marketplaceId?: string };
+  fulfillment?: { fulfillmentStatus?: string; fulfilledBy?: string };
+  orderItems?: Array<{
+    orderItemId?: string;
+    quantityOrdered?: number;
+    quantityShipped?: number;
+    product?: {
+      sellerSku?: string;
+      asin?: string;
+      title?: string;
+      price?: {
+        unitPrice?: {
+          amount?: string;
+          currencyCode?: string;
+        };
+      };
+    };
+    cancellation?: unknown;
+  }>;
+};
+
+export type AmazonOrdersPage = { orders: AmazonRawOrder[]; nextToken: string | null };
+
 type SearchListingsResponse = {
   items?: AmazonRawListing[];
   pagination?: {
@@ -98,6 +126,17 @@ export interface AmazonListingsReadClient {
   getMarketplaceId(): string;
   fetchListingsPage(pageToken?: string): Promise<AmazonListingsPage>;
   fetchFbaInventoryPage(nextToken?: string): Promise<AmazonFbaInventoryPage>;
+  fetchListing?(sellerSku: string): Promise<AmazonRawListing>;
+  patchMfnQuantity?(input: {
+    sellerSku: string;
+    productType: string;
+    quantity: number;
+  }): Promise<{ submissionId: string | null; status: string; issues: unknown[] }>;
+  searchOrders?(input: {
+    lastUpdatedAfter?: string;
+    createdAfter?: string;
+    paginationToken?: string;
+  }): Promise<AmazonOrdersPage>;
 }
 
 type AmazonProductionListingsClientOptions = {
@@ -181,6 +220,72 @@ export class AmazonProductionListingsClient implements AmazonListingsReadClient 
     };
   }
 
+  async fetchListing(sellerSku: string): Promise<AmazonRawListing> {
+    return this.getJson<AmazonRawListing>(
+      `/listings/2021-08-01/items/${encodeURIComponent(this.getSellerId())}/${encodeURIComponent(sellerSku)}`,
+      {
+        marketplaceIds: this.getMarketplaceId(),
+        includedData: 'summaries,offers,fulfillmentAvailability,productTypes,attributes',
+      }
+    );
+  }
+
+  async patchMfnQuantity(input: {
+    sellerSku: string;
+    productType: string;
+    quantity: number;
+  }): Promise<{ submissionId: string | null; status: string; issues: unknown[] }> {
+    const response = await this.requestJson<{
+      submissionId?: string;
+      status?: string;
+      issues?: unknown[];
+    }>(
+      'PATCH',
+      `/listings/2021-08-01/items/${encodeURIComponent(this.getSellerId())}/${encodeURIComponent(input.sellerSku)}`,
+      { marketplaceIds: this.getMarketplaceId(), includedData: 'issues' },
+      {
+        productType: input.productType,
+        patches: [{
+          op: 'merge',
+          path: '/attributes/fulfillment_availability',
+          value: [{ fulfillment_channel_code: 'DEFAULT', quantity: input.quantity }],
+        }],
+      }
+    );
+    return {
+      submissionId: response.submissionId ?? null,
+      status: response.status ?? 'UNKNOWN',
+      issues: response.issues ?? [],
+    };
+  }
+
+  async searchOrders(input: {
+    lastUpdatedAfter?: string;
+    createdAfter?: string;
+    paginationToken?: string;
+  }): Promise<AmazonOrdersPage> {
+    if (!input.lastUpdatedAfter && !input.createdAfter) {
+      throw new AmazonSpApiError(
+        'An Amazon order search start date is required',
+        400,
+        'AMAZON_ORDER_SEARCH_DATE_REQUIRED'
+      );
+    }
+    const response = await this.getJson<{
+      orders?: AmazonRawOrder[];
+      pagination?: { nextToken?: string };
+    }>('/orders/2026-01-01/orders', {
+      marketplaceIds: this.getMarketplaceId(),
+      ...(input.createdAfter
+        ? { createdAfter: input.createdAfter }
+        : { lastUpdatedAfter: input.lastUpdatedAfter! }),
+      maxResultsPerPage: '100',
+      includedData: 'FULFILLMENT,CANCELLATION',
+      ...(input.paginationToken ? { paginationToken: input.paginationToken } : {}),
+    });
+    return { orders: response.orders ?? [], nextToken: response.pagination?.nextToken ?? null };
+  }
+
   private requiredConfig(name: string, value?: string): string {
     const normalized = value?.trim();
     if (!normalized) {
@@ -208,6 +313,15 @@ export class AmazonProductionListingsClient implements AmazonListingsReadClient 
   }
 
   private async getJson<T>(path: string, query: Record<string, string>): Promise<T> {
+    return this.requestJson<T>('GET', path, query);
+  }
+
+  private async requestJson<T>(
+    method: 'GET' | 'PATCH',
+    path: string,
+    query: Record<string, string>,
+    body?: Record<string, unknown>
+  ): Promise<T> {
     const url = new URL(`${this.getProductionBaseUrl()}${path}`);
     for (const [key, value] of Object.entries(query)) {
       url.searchParams.set(key, value);
@@ -220,11 +334,13 @@ export class AmazonProductionListingsClient implements AmazonListingsReadClient 
       try {
         const accessToken = await this.accessTokenProvider.getAccessToken();
         const response = await this.fetchImpl(url, {
-          method: 'GET',
+          method,
           headers: {
             Accept: 'application/json',
+            ...(body ? { 'Content-Type': 'application/json' } : {}),
             'x-amz-access-token': accessToken,
           },
+          ...(body ? { body: JSON.stringify(body) } : {}),
         });
 
         if (response.ok) {

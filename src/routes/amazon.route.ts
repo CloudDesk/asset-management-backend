@@ -1,14 +1,17 @@
 import { FastifyInstance } from 'fastify';
 import axios from 'axios';
 import { amazonSandboxInventoryService } from '../services/amazon-sandbox-inventory.service.js';
+import { requireAuthentication, AuthenticatedRequest } from '../middleware/auth.middleware.js';
+import { requireAmazonChannelPermission } from '../middleware/amazon-channel-permission.middleware.js';
+import {
+  AmazonConnectionError,
+  amazonConnectionService,
+  AmazonUserType,
+} from '../services/amazon-connection.service.js';
 
 type SandboxInventoryQuery = {
   nextToken?: string;
   sellerSku?: string;
-};
-
-type InitializeAmazonBody = {
-  refreshToken?: string;
 };
 
 type CreateSandboxInventoryItemBody = {
@@ -41,53 +44,132 @@ function getAmazonError(error: unknown, fallbackMessage: string) {
   };
 }
 
+const amazonUser = (request: AuthenticatedRequest): { userId: number; userType: AmazonUserType } => {
+  if (!request.user?.id) throw new AmazonConnectionError('Authentication required', 401, 'AUTHENTICATION_REQUIRED');
+  return {
+    userId: request.user.id,
+    userType: request.user.userType === 'ecommerce' ? 'users' : 'inventoryusers',
+  };
+};
+
+const sendConnectionError = (reply: import('fastify').FastifyReply, error: unknown) => {
+  const connectionError = error instanceof AmazonConnectionError
+    ? error
+    : new AmazonConnectionError('Amazon connection request failed', 500, 'AMAZON_CONNECTION_FAILED');
+  return reply.code(connectionError.statusCode).send({
+    success: false,
+    message: connectionError.message,
+    details: connectionError.message,
+    statusCode: connectionError.statusCode,
+    code: connectionError.code,
+  });
+};
+
 export async function amazonRoutes(fastify: FastifyInstance) {
-  fastify.post<{ Body: InitializeAmazonBody }>('/auth/initialize', {
+  fastify.post('/auth/initiate', {
+    preHandler: [requireAuthentication, requireAmazonChannelPermission(['create', 'edit', 'modifyall'])],
     schema: {
-      description: 'Validate Amazon sandbox LWA credentials and initialize the frontend connection',
-      tags: ['Amazon SP-API'],
+      description: 'Start the Amazon OAuth connection flow',
+      tags: ['Amazon Connection'],
+      security: [{ bearerAuth: [] }],
+    },
+  }, async (request, reply) => {
+    try {
+      const user = amazonUser(request as AuthenticatedRequest);
+      const data = amazonConnectionService.initiateOAuth(user.userId, user.userType);
+      return reply.code(200).send({
+        success: true,
+        message: 'Amazon authorization started',
+        data,
+      });
+    } catch (error) {
+      return sendConnectionError(reply, error);
+    }
+  });
+
+  fastify.post<{
+    Body: { code: string; sellingPartnerId: string; state: string };
+  }>('/auth/callback', {
+    preHandler: [requireAuthentication, requireAmazonChannelPermission(['create', 'edit', 'modifyall'])],
+    schema: {
+      description: 'Complete Amazon OAuth and store the refresh token encrypted',
+      tags: ['Amazon Connection'],
+      security: [{ bearerAuth: [] }],
       body: {
         type: 'object',
+        required: ['code', 'sellingPartnerId', 'state'],
         properties: {
-          refreshToken: { type: 'string', minLength: 1 },
+          code: { type: 'string', minLength: 1 },
+          sellingPartnerId: { type: 'string', minLength: 1 },
+          state: { type: 'string', minLength: 1 },
         },
         additionalProperties: false,
       },
     },
   }, async (request, reply) => {
     try {
-      const data = await amazonSandboxInventoryService.validateConnection(request.body.refreshToken);
-
-      return reply.code(200).send({
-        success: true,
-        message: 'Amazon sandbox authentication initialized successfully',
-        data,
+      const user = amazonUser(request as AuthenticatedRequest);
+      const data = await amazonConnectionService.completeOAuth({
+        ...user,
+        code: request.body.code.trim(),
+        sellingPartnerId: request.body.sellingPartnerId.trim(),
+        state: request.body.state,
       });
+      return reply.code(200).send({ success: true, message: 'Amazon account connected successfully', data });
     } catch (error) {
-      const { statusCode, message } = getAmazonError(error, 'Unable to initialize Amazon sandbox authentication');
-      request.log.error({ err: error }, 'Amazon sandbox authentication failed');
-
-      return reply.code(statusCode).send({
-        success: false,
-        message,
-        details: message,
-      });
+      return sendConnectionError(reply, error);
     }
   });
 
-  fastify.delete('/auth/disconnect', {
+  fastify.get('/connection', {
+    preHandler: [requireAuthentication, requireAmazonChannelPermission(['read'])],
     schema: {
-      description: 'Clear the frontend Amazon sandbox connection state',
-      tags: ['Amazon SP-API'],
+      description: 'Get Amazon OAuth connection and token health',
+      tags: ['Amazon Connection'],
+      security: [{ bearerAuth: [] }],
     },
-  }, async (_request, reply) => {
-    return reply.code(200).send({
-      success: true,
-      message: 'Amazon sandbox connection cleared',
-    });
+  }, async (request, reply) => {
+    try {
+      const user = amazonUser(request as AuthenticatedRequest);
+      const data = await amazonConnectionService.getConnectionStatus(user.userId, user.userType);
+      if (!data) return reply.code(404).send({ success: false, message: 'Amazon account is not connected' });
+      return reply.code(200).send({ success: true, message: 'Amazon connection retrieved successfully', data });
+    } catch (error) {
+      return sendConnectionError(reply, error);
+    }
+  });
+
+  fastify.post('/auth/initialize', {
+    preHandler: [requireAuthentication, requireAmazonChannelPermission(['create'])],
+    schema: {
+      description: 'Manual browser refresh-token setup is disabled; use Amazon OAuth',
+      tags: ['Amazon Connection'],
+      security: [{ bearerAuth: [] }],
+    },
+  }, async (_request, reply) => reply.code(410).send({
+    success: false,
+    message: 'Manual refresh-token setup has been removed. Connect through Amazon OAuth.',
+    code: 'AMAZON_MANUAL_TOKEN_SETUP_REMOVED',
+  }));
+
+  fastify.delete('/auth/disconnect', {
+    preHandler: [requireAuthentication, requireAmazonChannelPermission(['delete', 'edit', 'modifyall'])],
+    schema: {
+      description: 'Remove the stored Amazon OAuth connection and stop connection-based sync',
+      tags: ['Amazon Connection'],
+    },
+  }, async (request, reply) => {
+    try {
+      const user = amazonUser(request as AuthenticatedRequest);
+      await amazonConnectionService.disconnect(user.userId, user.userType);
+      return reply.code(200).send({ success: true, message: 'Amazon account disconnected successfully' });
+    } catch (error) {
+      return sendConnectionError(reply, error);
+    }
   });
 
   fastify.post<{ Body: CreateSandboxInventoryItemBody }>('/sandbox/inventory/items', {
+    preHandler: [requireAuthentication, requireAmazonChannelPermission(['create', 'edit', 'modifyall'])],
     schema: {
       description: 'Create a virtual inventory item in the Amazon FBA dynamic sandbox',
       tags: ['Amazon SP-API'],
@@ -128,6 +210,7 @@ export async function amazonRoutes(fastify: FastifyInstance) {
     Params: SandboxInventoryItemParams;
     Body: AddSandboxInventoryBody;
   }>('/sandbox/inventory/items/:sellerSku/quantity', {
+    preHandler: [requireAuthentication, requireAmazonChannelPermission(['edit', 'modifyall'])],
     schema: {
       description: 'Add quantity to a virtual inventory item in the Amazon FBA dynamic sandbox',
       tags: ['Amazon SP-API'],
@@ -172,6 +255,7 @@ export async function amazonRoutes(fastify: FastifyInstance) {
   });
 
   fastify.delete<{ Params: SandboxInventoryItemParams }>('/sandbox/inventory/items/:sellerSku', {
+    preHandler: [requireAuthentication, requireAmazonChannelPermission(['delete', 'edit', 'modifyall'])],
     schema: {
       description: 'Delete a zero-quantity virtual inventory item from the Amazon FBA dynamic sandbox',
       tags: ['Amazon SP-API'],
@@ -207,6 +291,7 @@ export async function amazonRoutes(fastify: FastifyInstance) {
   });
 
   fastify.get<{ Querystring: SandboxInventoryQuery }>('/sandbox/inventory', {
+    preHandler: [requireAuthentication, requireAmazonChannelPermission(['read'])],
     schema: {
       description: 'Get virtual FBA inventory summaries from the Amazon SP-API dynamic sandbox',
       tags: ['Amazon SP-API'],

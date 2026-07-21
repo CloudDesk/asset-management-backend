@@ -288,6 +288,8 @@ const envSchema = z.object({
   // Amazon SP-API Configuration (Global keys - change values for sandbox/production)
   AMAZON_CLIENT_ID: z.string().optional(),
   AMAZON_CLIENT_SECRET: z.string().optional(),
+  AMAZON_SP_API_APP_ID: z.string().optional(),
+  AMAZON_OAUTH_VERSION: z.enum(['beta']).optional(),
   AMAZON_REFRESH_TOKEN: z.string().optional(),
   AMAZON_SELLER_ID: z.string().optional(),
   AMAZON_ENVIRONMENT: z.enum(['SANDBOX', 'PRODUCTION']).optional().default('SANDBOX'),
@@ -314,6 +316,11 @@ const envSchema = z.object({
   AMAZON_REGION: z.string().optional().default('eu-west-1'),
   AMAZON_SELLER_CENTRAL_URL: z.string().optional().default('https://sellercentral.amazon.in'),
   AMAZON_REDIRECT_URI: z.string().optional(),
+  AMAZON_TOKEN_ENCRYPTION_KEY: z.string().optional(),
+  AMAZON_OAUTH_STATE_TTL_SECONDS: z.string().optional().default('600').transform((value) => {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) ? Math.min(900, Math.max(300, parsed)) : 600;
+  }),
   AWS_ACCESS_KEY_ID: z.string().optional(),
   AWS_SECRET_ACCESS_KEY: z.string().optional(),
 

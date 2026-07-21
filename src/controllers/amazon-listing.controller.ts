@@ -4,6 +4,12 @@ import { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import {
   amazonListingParamsSchema,
   amazonListingQuerySchema,
+  amazonInventorySyncModeSchema,
+  amazonInventoryBulkPreviewSchema,
+  amazonInventoryBulkSyncSchema,
+  amazonInventoryRetrySchema,
+  amazonInventorySyncSchema,
+  bulkMapAmazonListingsSchema,
   mapAmazonListingSchema,
 } from '../schemas/amazon-listing.schema.js';
 import {
@@ -15,6 +21,12 @@ import {
   AmazonListingMappingError,
   amazonListingMappingService,
 } from '../services/amazon-listing-mapping.service.js';
+import { amazonListingScopeService } from '../services/amazon-listing-scope.service.js';
+import { amazonListingWorkspaceService } from '../services/amazon-listing-workspace.service.js';
+import {
+  AmazonProductionInventoryError,
+  amazonProductionInventoryService,
+} from '../services/amazon-production-inventory.service.js';
 
 const validationErrorResponse = (reply: FastifyReply, error: ZodError) => reply.code(400).send({
   success: false,
@@ -45,11 +57,40 @@ const mappingErrorResponse = (reply: FastifyReply, error: unknown) => {
   });
 };
 
+const inventoryErrorResponse = (reply: FastifyReply, error: unknown) => {
+  if (error instanceof ZodError) return validationErrorResponse(reply, error);
+  if (error instanceof AmazonProductionInventoryError) {
+    return reply.code(error.statusCode).send({
+      success: false,
+      message: error.message,
+      details: error.message,
+      statusCode: error.statusCode,
+      code: error.code,
+    });
+  }
+  return reply.code(500).send({
+    success: false,
+    message: 'Amazon inventory operation failed',
+    details: 'Amazon inventory operation failed',
+    statusCode: 500,
+    code: 'AMAZON_INVENTORY_OPERATION_FAILED',
+  });
+};
+
 export class AmazonListingController {
+  private resolveScope(request: FastifyRequest) {
+    const user = (request as AuthenticatedRequest).user;
+    return amazonListingScopeService.resolve(user?.id, user?.userType);
+  }
+
   importListings = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const user = (request as AuthenticatedRequest).user;
+      const scope = await this.resolveScope(request);
       const summary = await amazonListingImportService.importListings({
+        sellerId: scope.sellerId,
+        marketplaceId: scope.marketplaceId,
+        client: scope.client,
         ...(user?.id !== undefined ? { requestedByUserId: user.id } : {}),
         ...(user?.userType !== undefined ? { requestedByUserType: user.userType } : {}),
       });
@@ -74,7 +115,8 @@ export class AmazonListingController {
       const query = amazonListingQuerySchema.parse(
         (request.query ?? {}) as Record<string, unknown>
       );
-      const result = await amazonListingImportService.listListings(query);
+      const scope = await this.resolveScope(request);
+      const result = await amazonListingImportService.listListings(query, scope);
 
       return reply.code(200).send({
         ...createSuccessResponse('Amazon production listings retrieved successfully', result.data),
@@ -100,11 +142,14 @@ export class AmazonListingController {
       const { listingId } = amazonListingParamsSchema.parse(request.params);
       const body = mapAmazonListingSchema.parse(request.body);
       const user = (request as AuthenticatedRequest).user;
+      const scope = await this.resolveScope(request);
       const listing = await amazonListingMappingService.mapListing({
         listingId,
         productId: body.productId,
         unitsPerListing: body.unitsPerListing,
         allowRemap: body.allowRemap,
+        sellerId: scope.sellerId,
+        marketplaceId: scope.marketplaceId,
         ...(user?.id !== undefined ? { requestedByUserId: user.id } : {}),
         ...(user?.userType !== undefined ? { requestedByUserType: user.userType } : {}),
       });
@@ -121,7 +166,10 @@ export class AmazonListingController {
     try {
       const { listingId } = amazonListingParamsSchema.parse(request.params);
       const user = (request as AuthenticatedRequest).user;
+      const scope = await this.resolveScope(request);
       const listing = await amazonListingMappingService.unmapListing(listingId, {
+        sellerId: scope.sellerId,
+        marketplaceId: scope.marketplaceId,
         ...(user?.id !== undefined ? { requestedByUserId: user.id } : {}),
         ...(user?.userType !== undefined ? { requestedByUserType: user.userType } : {}),
       });
@@ -131,6 +179,143 @@ export class AmazonListingController {
       );
     } catch (error) {
       return mappingErrorResponse(reply, error);
+    }
+  };
+
+  getListingDetails = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { listingId } = amazonListingParamsSchema.parse(request.params);
+      const data = await amazonListingWorkspaceService.getDetails(listingId, await this.resolveScope(request));
+      return reply.code(200).send(createSuccessResponse('Amazon listing details retrieved successfully', data));
+    } catch (error) {
+      return mappingErrorResponse(reply, error);
+    }
+  };
+
+  getSuggestions = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { listingId } = amazonListingParamsSchema.parse(request.params);
+      const data = await amazonListingWorkspaceService.getSuggestions(listingId, await this.resolveScope(request));
+      return reply.code(200).send(createSuccessResponse('Amazon product suggestions retrieved successfully', data));
+    } catch (error) {
+      return mappingErrorResponse(reply, error);
+    }
+  };
+
+  getMappingAudits = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { listingId } = amazonListingParamsSchema.parse(request.params);
+      const data = await amazonListingWorkspaceService.getAudits(listingId, await this.resolveScope(request));
+      return reply.code(200).send(createSuccessResponse('Amazon mapping audit retrieved successfully', data));
+    } catch (error) {
+      return mappingErrorResponse(reply, error);
+    }
+  };
+
+  bulkMapListings = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const body = bulkMapAmazonListingsSchema.parse(request.body);
+      const user = (request as AuthenticatedRequest).user;
+      const data = await amazonListingWorkspaceService.bulkMap(body.items, await this.resolveScope(request), {
+        ...(user?.id !== undefined ? { requestedByUserId: user.id } : {}),
+        ...(user?.userType !== undefined ? { requestedByUserType: user.userType } : {}),
+      });
+      return reply.code(200).send(createSuccessResponse('Amazon bulk mapping completed', data));
+    } catch (error) {
+      return mappingErrorResponse(reply, error);
+    }
+  };
+
+  previewInventorySync = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { listingId } = amazonListingParamsSchema.parse(request.params);
+      const user = (request as AuthenticatedRequest).user;
+      const data = await amazonProductionInventoryService.preview(listingId, await this.resolveScope(request), {
+        ...(user?.id !== undefined ? { requestedByUserId: user.id } : {}),
+        ...(user?.userType !== undefined ? { requestedByUserType: user.userType } : {}),
+      });
+      return reply.code(200).send(createSuccessResponse('Amazon stock sync preview created', data));
+    } catch (error) {
+      return inventoryErrorResponse(reply, error);
+    }
+  };
+
+  syncInventoryNow = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { listingId } = amazonListingParamsSchema.parse(request.params);
+      const { previewId } = amazonInventorySyncSchema.parse(request.body);
+      const user = (request as AuthenticatedRequest).user;
+      const data = await amazonProductionInventoryService.sync(listingId, previewId, await this.resolveScope(request), {
+        ...(user?.id !== undefined ? { requestedByUserId: user.id } : {}),
+        ...(user?.userType !== undefined ? { requestedByUserType: user.userType } : {}),
+      });
+      return reply.code(200).send(createSuccessResponse('Amazon MFN stock synchronized successfully', data));
+    } catch (error) {
+      return inventoryErrorResponse(reply, error);
+    }
+  };
+
+  setInventorySyncMode = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { listingId } = amazonListingParamsSchema.parse(request.params);
+      const { mode } = amazonInventorySyncModeSchema.parse(request.body);
+      const data = await amazonProductionInventoryService.setMode(listingId, mode, await this.resolveScope(request));
+      return reply.code(200).send(createSuccessResponse('Amazon inventory sync mode updated', data));
+    } catch (error) {
+      return inventoryErrorResponse(reply, error);
+    }
+  };
+
+  getInventorySyncHistory = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { listingId } = amazonListingParamsSchema.parse(request.params);
+      const data = await amazonProductionInventoryService.history(listingId, await this.resolveScope(request));
+      return reply.code(200).send(createSuccessResponse('Amazon inventory sync history retrieved', data));
+    } catch (error) {
+      return inventoryErrorResponse(reply, error);
+    }
+  };
+
+  bulkPreviewInventorySync = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { listingIds } = amazonInventoryBulkPreviewSchema.parse(request.body);
+      const user = (request as AuthenticatedRequest).user;
+      const data = await amazonProductionInventoryService.bulkPreview(listingIds, await this.resolveScope(request), {
+        ...(user?.id !== undefined ? { requestedByUserId: user.id } : {}),
+        ...(user?.userType !== undefined ? { requestedByUserType: user.userType } : {}),
+      });
+      return reply.code(200).send(createSuccessResponse('Amazon bulk stock preview completed', data));
+    } catch (error) {
+      return inventoryErrorResponse(reply, error);
+    }
+  };
+
+  bulkSyncInventoryNow = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { items } = amazonInventoryBulkSyncSchema.parse(request.body);
+      const user = (request as AuthenticatedRequest).user;
+      const data = await amazonProductionInventoryService.bulkSync(items, await this.resolveScope(request), {
+        ...(user?.id !== undefined ? { requestedByUserId: user.id } : {}),
+        ...(user?.userType !== undefined ? { requestedByUserType: user.userType } : {}),
+      });
+      return reply.code(200).send(createSuccessResponse('Amazon bulk MFN stock synchronization completed', data));
+    } catch (error) {
+      return inventoryErrorResponse(reply, error);
+    }
+  };
+
+  retryInventorySync = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { listingId } = amazonListingParamsSchema.parse(request.params);
+      const { attemptId } = amazonInventoryRetrySchema.parse(request.body);
+      const user = (request as AuthenticatedRequest).user;
+      const data = await amazonProductionInventoryService.retry(listingId, attemptId, await this.resolveScope(request), {
+        ...(user?.id !== undefined ? { requestedByUserId: user.id } : {}),
+        ...(user?.userType !== undefined ? { requestedByUserType: user.userType } : {}),
+      });
+      return reply.code(200).send(createSuccessResponse('Amazon inventory synchronization retried successfully', data));
+    } catch (error) {
+      return inventoryErrorResponse(reply, error);
     }
   };
 }

@@ -4,7 +4,7 @@ import {
   AmazonListingMappingPersistence,
   AmazonListingMappingRepositoryResult,
 } from '../repositories/amazon-listing.repository.js';
-import { mapAmazonListingSchema } from '../schemas/amazon-listing.schema.js';
+import { bulkMapAmazonListingsSchema, mapAmazonListingSchema } from '../schemas/amazon-listing.schema.js';
 import {
   AmazonListingMappingError,
   AmazonListingMappingService,
@@ -205,4 +205,16 @@ test('validates mapping identifiers and units before persistence', () => {
   });
   assert.throws(() => mapAmazonListingSchema.parse({ productId: '0' }));
   assert.throws(() => mapAmazonListingSchema.parse({ productId: '98', unitsPerListing: 0 }));
+});
+
+test('validates a bounded bulk mapping request', () => {
+  assert.deepEqual(bulkMapAmazonListingsSchema.parse({
+    items: [{ listingId: '101', productId: '98' }],
+  }), {
+    items: [{ listingId: '101', productId: '98', unitsPerListing: 1, allowRemap: false }],
+  });
+  assert.throws(() => bulkMapAmazonListingsSchema.parse({ items: [] }));
+  assert.throws(() => bulkMapAmazonListingsSchema.parse({
+    items: Array.from({ length: 101 }, (_, index) => ({ listingId: String(index + 1), productId: '98' })),
+  }));
 });

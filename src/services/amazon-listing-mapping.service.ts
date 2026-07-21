@@ -41,11 +41,13 @@ export class AmazonListingMappingService {
     allowRemap: boolean;
     requestedByUserId?: number;
     requestedByUserType?: string;
+    sellerId?: string;
+    marketplaceId?: string;
   }) {
     const result = await this.repository.mapListing({
       ...input,
-      sellerId: this.connection.getSellerId(),
-      marketplaceId: this.connection.getMarketplaceId(),
+      sellerId: input.sellerId ?? this.connection.getSellerId(),
+      marketplaceId: input.marketplaceId ?? this.connection.getMarketplaceId(),
     });
 
     if (result.status === 'LISTING_NOT_FOUND') {
@@ -84,12 +86,17 @@ export class AmazonListingMappingService {
 
   async unmapListing(
     listingId: string,
-    context: { requestedByUserId?: number; requestedByUserType?: string } = {}
+    context: {
+      requestedByUserId?: number;
+      requestedByUserType?: string;
+      sellerId?: string;
+      marketplaceId?: string;
+    } = {}
   ) {
     const listing = await this.repository.unmapListing({
       listingId,
-      sellerId: this.connection.getSellerId(),
-      marketplaceId: this.connection.getMarketplaceId(),
+      sellerId: context.sellerId ?? this.connection.getSellerId(),
+      marketplaceId: context.marketplaceId ?? this.connection.getMarketplaceId(),
       ...context,
     });
     if (!listing) {

@@ -7,6 +7,7 @@ import {
   AmazonSandboxInventoryService,
   SandboxInventoryResult,
 } from './amazon-sandbox-inventory.service.js';
+import { amazonProductionInventoryService } from './amazon-production-inventory.service.js';
 
 export type AmazonInventorySyncAction =
   | 'CREATED'
@@ -52,6 +53,23 @@ const normalizeQuantity = (quantity: number): number => {
   }
 
   return Math.max(0, Math.trunc(quantity));
+};
+
+export const selectMappedAmazonSellerSku = (
+  mappings: Array<{ sellerSku: string }>
+): string => {
+  if (mappings.length === 0) {
+    throw new Error('No mapped Amazon listing exists for this Nivaana product');
+  }
+  if (mappings.length > 1) {
+    throw new Error('Multiple Amazon listings are mapped to this product; select a listing explicitly before syncing');
+  }
+
+  const sellerSku = mappings[0]?.sellerSku.trim();
+  if (!sellerSku) {
+    throw new Error('The mapped Amazon listing has no seller SKU');
+  }
+  return sellerSku;
 };
 
 export class AmazonInventorySyncService {
@@ -106,11 +124,8 @@ export class AmazonInventorySyncService {
       return { status: 'SKIPPED', reason: 'Amazon automatic inventory sync is disabled' };
     }
 
-    if (this.environment !== 'SANDBOX') {
-      return {
-        status: 'SKIPPED',
-        reason: 'Production inventory publishing requires the production MFN adapter',
-      };
+    if (this.environment === 'PRODUCTION') {
+      return amazonProductionInventoryService.syncAutomaticPlatformStock(String(platformStockId));
     }
 
     const context = await this.loadContext(String(platformStockId));
@@ -135,7 +150,6 @@ export class AmazonInventorySyncService {
         availableqty: true,
         product: {
           select: {
-            puc: true,
             name: true,
           },
         },
@@ -146,10 +160,20 @@ export class AmazonInventorySyncService {
       return null;
     }
 
-    const sellerSku = platformStock.product.puc.trim();
-    if (!sellerSku) {
-      throw new Error(`Product ${platformStock.productid} has no seller SKU/PUC`);
-    }
+    const mappings = await prisma.marketplaceListing.findMany({
+      where: {
+        marketplace: 'AMAZON',
+        environment: 'PRODUCTION',
+        mappingStatus: 'MAPPED',
+        productId: platformStock.productid,
+        marketplaceId: env.AMAZON_MARKETPLACE_ID,
+        ...(env.AMAZON_SELLER_ID ? { sellerId: env.AMAZON_SELLER_ID } : {}),
+      },
+      select: { sellerSku: true },
+      orderBy: { id: 'asc' },
+      take: 2,
+    });
+    const sellerSku = selectMappedAmazonSellerSku(mappings);
 
     return {
       platformStockId: String(platformStock.id),

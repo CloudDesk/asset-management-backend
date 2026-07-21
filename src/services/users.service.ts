@@ -17,6 +17,7 @@ import { logger } from '../config/logger.js';
 import { hashPassword, verifyPassword, sanitizeUserData } from '../utils/auth.js';
 import { prisma } from '../models/prisma.js';
 import type { Prisma } from '@prisma/client';
+import { amazonTokenCryptoService } from './amazon-token-crypto.service.js';
 
 export class UsersService {
   async findMany(
@@ -677,11 +678,11 @@ export class UsersService {
   /**
    * Store Amazon refresh token and seller ID for a user
    * @param userId - User ID
-   * @param refreshToken - Refresh token from Amazon (will be encrypted in Step 8)
+   * @param refreshToken - Refresh token from Amazon (encrypted before storage)
    * @param sellerId - Seller ID from Amazon
    * @param userType - User type: "inventoryusers" or "users" (default: "inventoryusers")
    * @param marketplaceId - Marketplace ID (default: "A21TJRUUN4KGV" for India)
-   * @returns Amazon connection record
+   * @returns Amazon connection metadata; token material is never returned
    */
   async storeAmazonRefreshToken(
     userId: number,
@@ -693,9 +694,7 @@ export class UsersService {
     try {
       logger.info({ userId, sellerId, userType }, 'Storing Amazon refresh token');
 
-      // TODO: Step 8 - Encrypt refresh token before storing
-      // const encryptedToken = this.encrypt(refreshToken);
-      const encryptedToken = refreshToken; // Temporary: store as-is until encryption is implemented
+      const encryptedToken = amazonTokenCryptoService.encrypt(refreshToken);
 
       const now = Date.now();
 
@@ -739,7 +738,8 @@ export class UsersService {
 
       logger.info({ userId, sellerId, connectionId: connection.id }, 'Amazon refresh token stored successfully');
 
-      return connection;
+      const { refreshToken: _storedToken, ...connectionMetadata } = connection;
+      return connectionMetadata;
     } catch (error) {
       logger.error({ error, userId, sellerId }, 'Error storing Amazon refresh token');
       throw error;
@@ -769,9 +769,7 @@ export class UsersService {
         return null;
       }
 
-      // TODO: Step 8 - Decrypt refresh token
-      // const decryptedToken = this.decrypt(connection.refreshToken);
-      const decryptedToken = connection.refreshToken; // Temporary: return as-is until encryption is implemented
+      const decryptedToken = amazonTokenCryptoService.decrypt(connection.refreshToken);
 
       logger.debug({ userId, userType }, 'Amazon refresh token retrieved successfully');
 
@@ -797,6 +795,15 @@ export class UsersService {
         where: {
           userId,
           userType,
+        },
+        select: {
+          id: true,
+          userId: true,
+          userType: true,
+          sellerId: true,
+          marketplaceId: true,
+          createdAt: true,
+          updatedAt: true,
         },
       });
 

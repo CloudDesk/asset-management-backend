@@ -42,5 +42,38 @@ export const mapAmazonListingSchema = z.object({
   ),
 }).strict();
 
+export const bulkMapAmazonListingsSchema = z.object({
+  items: z.array(z.object({
+    listingId: positiveBigIntId,
+    productId: positiveBigIntId,
+    unitsPerListing: z.coerce.number().int().min(1).max(10_000).default(1),
+    allowRemap: z.boolean().default(false),
+  }).strict()).min(1).max(100),
+}).strict();
+
+export const amazonInventorySyncSchema = z.object({
+  previewId: positiveBigIntId,
+}).strict();
+
+export const amazonInventorySyncModeSchema = z.object({
+  mode: z.enum(['DISABLED', 'MANUAL', 'AUTOMATIC']),
+}).strict();
+
+export const amazonInventoryRetrySchema = z.object({
+  attemptId: positiveBigIntId,
+}).strict();
+
+export const amazonInventoryBulkPreviewSchema = z.object({
+  listingIds: z.array(positiveBigIntId).min(1).max(25),
+}).strict();
+
+export const amazonInventoryBulkSyncSchema = z.object({
+  items: z.array(z.object({
+    listingId: positiveBigIntId,
+    previewId: positiveBigIntId,
+  }).strict()).min(1).max(25),
+}).strict();
+
 export type AmazonListingQueryInput = z.infer<typeof amazonListingQuerySchema>;
 export type MapAmazonListingInput = z.infer<typeof mapAmazonListingSchema>;
+export type BulkMapAmazonListingsInput = z.infer<typeof bulkMapAmazonListingsSchema>;

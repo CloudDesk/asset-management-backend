@@ -174,6 +174,10 @@ const serializeListing = (listing: any): Record<string, unknown> => ({
   mappingStatus: listing.mappingStatus,
   unitsPerListing: listing.unitsPerListing,
   mappedAt: listing.mappedAt?.toISOString() ?? null,
+  inventorySyncMode: listing.inventorySyncMode,
+  lastInventorySyncAt: listing.lastInventorySyncAt?.toISOString() ?? null,
+  lastInventorySyncStatus: listing.lastInventorySyncStatus,
+  lastSyncedQuantity: listing.lastSyncedQuantity,
   lastImportedAt: listing.lastImportedAt.toISOString(),
   createdAt: listing.createdAt.toISOString(),
   updatedAt: listing.updatedAt.toISOString(),
@@ -183,6 +187,32 @@ const serializeListing = (listing: any): Record<string, unknown> => ({
     name: listing.product.name,
   } : null,
 });
+
+const listingIssues = (listing: any) => {
+  const issues: Array<{ code: string; severity: 'INFO' | 'WARNING' | 'ERROR'; message: string }> = [];
+  if (listing.mappingStatus === 'UNMAPPED') {
+    issues.push({ code: 'UNMAPPED_PRODUCT', severity: 'WARNING', message: 'No Nivaana product is mapped.' });
+  }
+  if (listing.mappingStatus === 'CONFLICT') {
+    issues.push({ code: 'MAPPING_CONFLICT', severity: 'ERROR', message: 'This listing has conflicting imported data or mapping state.' });
+  }
+  if (!listing.asin) issues.push({ code: 'MISSING_ASIN', severity: 'WARNING', message: 'Amazon did not provide an ASIN.' });
+  if (!listing.title) issues.push({ code: 'MISSING_TITLE', severity: 'INFO', message: 'Amazon did not provide a listing title.' });
+  if (listing.publishedQuantity === null) {
+    issues.push({ code: 'QUANTITY_UNAVAILABLE', severity: 'INFO', message: 'Published quantity is unavailable.' });
+  }
+  if (listing.fulfilmentChannel === 'UNKNOWN') {
+    issues.push({ code: 'UNKNOWN_FULFILMENT', severity: 'WARNING', message: 'Fulfilment type could not be classified.' });
+  }
+  if (/(inactive|deleted|blocked|suppressed)/i.test(listing.listingStatus)) {
+    issues.push({ code: 'INACTIVE_LISTING', severity: 'WARNING', message: `Amazon listing status is ${listing.listingStatus}.` });
+  }
+  return issues;
+};
+
+const normalizedWords = (value?: string | null) => new Set(
+  (value ?? '').toLowerCase().split(/[^a-z0-9]+/).filter((word) => word.length >= 3)
+);
 
 export class AmazonListingRepository implements AmazonListingPersistence, AmazonListingMappingPersistence {
   async startSyncLog(input: {
@@ -364,6 +394,138 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
         hasPrev: query.page > 1,
       },
     };
+  }
+
+  async getListingDetails(input: { listingId: string; sellerId: string; marketplaceId: string }) {
+    const listing = await prisma.marketplaceListing.findFirst({
+      where: {
+        id: BigInt(input.listingId),
+        marketplace: 'AMAZON',
+        environment: 'PRODUCTION',
+        sellerId: input.sellerId,
+        marketplaceId: input.marketplaceId,
+      },
+      include: { product: { select: { id: true, puc: true, name: true } } },
+    });
+    if (!listing) return null;
+    return { ...serializeListing(listing), issues: listingIssues(listing) };
+  }
+
+  async suggestProducts(input: { listingId: string; sellerId: string; marketplaceId: string }) {
+    const listing = await prisma.marketplaceListing.findFirst({
+      where: {
+        id: BigInt(input.listingId),
+        marketplace: 'AMAZON',
+        environment: 'PRODUCTION',
+        sellerId: input.sellerId,
+        marketplaceId: input.marketplaceId,
+      },
+      select: { sellerSku: true, asin: true, title: true, productId: true },
+    });
+    if (!listing) return null;
+
+    const titleWords = [...normalizedWords(listing.title)].slice(0, 6);
+    const relatedMappings = await prisma.marketplaceListing.findMany({
+      where: {
+        marketplace: 'AMAZON',
+        productId: { not: null },
+        OR: [
+          ...(listing.asin ? [{ asin: listing.asin }] : []),
+          { sellerSku: { equals: listing.sellerSku, mode: 'insensitive' as const } },
+        ],
+      },
+      select: { productId: true },
+      take: 20,
+    });
+    const historicalIds = [...new Set(
+      relatedMappings.flatMap((item) => item.productId === null ? [] : [item.productId])
+    )];
+    const candidateFilters: Prisma.ProductWhereInput[] = [
+      { puc: { equals: listing.sellerSku, mode: 'insensitive' } },
+      { puc: { contains: listing.sellerSku, mode: 'insensitive' } },
+      ...titleWords.map((word): Prisma.ProductWhereInput => ({ name: { contains: word, mode: 'insensitive' } })),
+      ...(historicalIds.length > 0 ? [{ id: { in: historicalIds } }] : []),
+      ...(listing.productId ? [{ id: listing.productId }] : []),
+    ];
+    const products = await prisma.product.findMany({
+      where: { OR: candidateFilters },
+      select: { id: true, puc: true, name: true, productstatus: true },
+      take: 30,
+    });
+    const listingWords = normalizedWords(`${listing.sellerSku} ${listing.title ?? ''}`);
+
+    return products
+      .map((product) => {
+        const reasons: string[] = [];
+        let score = 0;
+        if (product.id === listing.productId) {
+          score += 100;
+          reasons.push('Current mapping');
+        }
+        if (product.puc.toLowerCase() === listing.sellerSku.toLowerCase()) {
+          score += 80;
+          reasons.push('Exact SKU and PUC match');
+        } else if (
+          product.puc.toLowerCase().includes(listing.sellerSku.toLowerCase())
+          || listing.sellerSku.toLowerCase().includes(product.puc.toLowerCase())
+        ) {
+          score += 45;
+          reasons.push('Similar SKU and PUC');
+        }
+        if (historicalIds.some((id) => id === product.id)) {
+          score += 35;
+          reasons.push('Previously mapped signal');
+        }
+        const productWords = normalizedWords(product.name);
+        const overlap = [...productWords].filter((word) => listingWords.has(word)).length;
+        if (overlap > 0) {
+          score += Math.min(40, overlap * 10);
+          reasons.push(`${overlap} title word${overlap === 1 ? '' : 's'} matched`);
+        }
+        return {
+          product: { id: String(product.id), puc: product.puc, name: product.name, status: product.productstatus },
+          score: Math.min(score, 100),
+          confidence: score >= 80 ? 'HIGH' : score >= 45 ? 'MEDIUM' : 'LOW',
+          reasons,
+        };
+      })
+      .filter((suggestion) => suggestion.score > 0)
+      .sort((left, right) => right.score - left.score || left.product.name.localeCompare(right.product.name))
+      .slice(0, 8);
+  }
+
+  async listMappingAudits(input: { listingId: string; sellerId: string; marketplaceId: string }) {
+    const listing = await prisma.marketplaceListing.findFirst({
+      where: {
+        id: BigInt(input.listingId),
+        marketplace: 'AMAZON',
+        environment: 'PRODUCTION',
+        sellerId: input.sellerId,
+        marketplaceId: input.marketplaceId,
+      },
+      select: { id: true },
+    });
+    if (!listing) return null;
+    const audits = await prisma.marketplaceListingAudit.findMany({
+      where: {
+        listingId: listing.id,
+        operation: { in: ['MAPPED', 'REMAPPED', 'MAPPING_UPDATED', 'UNMAPPED'] },
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: 100,
+    });
+    return audits.map((audit) => ({
+      id: String(audit.id),
+      operation: audit.operation,
+      changedFields: audit.changedFields,
+      beforeValues: audit.beforeValues,
+      afterValues: audit.afterValues,
+      previousProductId: audit.previousProductId === null ? null : String(audit.previousProductId),
+      productId: audit.productId === null ? null : String(audit.productId),
+      requestedByUserId: audit.requestedByUserId,
+      requestedByUserType: audit.requestedByUserType,
+      createdAt: audit.createdAt.toISOString(),
+    }));
   }
 
   async mapListing(input: {
