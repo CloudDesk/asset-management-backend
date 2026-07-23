@@ -3,6 +3,7 @@ import { env } from '../config/env.js';
 import { prisma } from '../models/prisma.js';
 import { AmazonListingScope } from './amazon-listing-scope.service.js';
 import { amazonListingScopeService } from './amazon-listing-scope.service.js';
+import { amazonProductionWriteGuardService } from './amazon-production-write-guard.service.js';
 
 export type AmazonInventoryActor = {
   requestedByUserId?: number;
@@ -159,7 +160,8 @@ export class AmazonProductionInventoryService {
     actor: AmazonInventoryActor = {},
     operation: 'MANUAL' | 'BULK' | 'RETRY' | 'AUTOMATIC' = 'MANUAL'
   ) {
-    if (!env.AMAZON_PRODUCTION_WRITES_ENABLED) {
+    const writeStatus = await amazonProductionWriteGuardService.status(scope.sellerId, scope.marketplaceId);
+    if (!writeStatus.effectiveEnabled) {
       throw new AmazonProductionInventoryError('Amazon production writes are disabled by the global kill switch', 409, 'AMAZON_PRODUCTION_WRITES_DISABLED');
     }
     const context = await this.loadContext(listingId, scope);
@@ -405,6 +407,7 @@ export class AmazonProductionInventoryService {
     const results: Array<Record<string, unknown>> = [];
     for (const listing of listings) {
       try {
+        await amazonProductionWriteGuardService.assertEnabled(listing.sellerId, listing.marketplaceId);
         const scope = await amazonListingScopeService.resolveForSeller(listing.sellerId, listing.marketplaceId);
         const attempt = await this.enqueueBySku(listing.sellerSku, async () => {
           const preview = await this.preview(String(listing.id), scope);

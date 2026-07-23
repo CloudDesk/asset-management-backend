@@ -31,6 +31,7 @@ import { pushNotificationRoutes } from './push-notification.route.js';
 import { storefrontPageSectionRoutes } from './storefront-page-section.route.js';
 import { amazonRoutes } from './amazon.route.js';
 import { amazonChannelRoutes } from './amazon-channel.route.js';
+import { amazonOperationsRoutes } from './amazon-operations.route.js';
 import { smartAuthentication } from '../middleware/smartAuth.middleware.js';
 import { createSuccessResponse } from '../utils/errorHandler.js';
 import { permissionRoutes } from './permission.route.js';
@@ -143,6 +144,7 @@ export async function routes(fastify: FastifyInstance) {
   // channel API namespace requested by the integration contract. Each route
   // has an explicit authentication pre-handler and the Amazon client is GET-only.
   await fastify.register(amazonChannelRoutes, { prefix: '/api/channels/amazon' });
+  await fastify.register(amazonOperationsRoutes, { prefix: '/api/channels/amazon/operations' });
 
   // API v2 routes
   await fastify.register(async function (fastify) {

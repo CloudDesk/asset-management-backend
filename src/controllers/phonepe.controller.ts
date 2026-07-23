@@ -4415,9 +4415,9 @@ export class PhonePeController {
           // STEP 2: Get current platformstock quantities
           // NOTE: NO availability check here - stock was already validated and locked during initiation
           // This is a CONVERSION step (lockqty → orderedqty), not a new lock
-          const currentAvailableQty = platformStock.availableqty || 0;
-          const currentLockQty = platformStock.lockqty || 0;
-          const currentOrderedQty = platformStock.orderedqty || 0;
+          const currentAvailableQty = Number(platformStock.availableqty || 0);
+          const currentLockQty = Number(platformStock.lockqty || 0);
+          const currentOrderedQty = Number(platformStock.orderedqty || 0);
 
           logger.info(
             {
@@ -5082,7 +5082,7 @@ export class PhonePeController {
                 }
 
                 // Calculate quantity to release
-                const currentLockQty = platformStock.lockqty || 0;
+                const currentLockQty = Number(platformStock.lockqty || 0);
                 const requestedQty = item.quantity;
                 const quantityToRelease = Math.min(
                   requestedQty,

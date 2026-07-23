@@ -4,6 +4,7 @@ import {
   AmazonAuthorizationError,
   amazonLwaTokenService,
 } from './amazon-lwa-token.service.js';
+import { AmazonApiTelemetryRecorder, amazonApiTelemetryService } from './amazon-api-telemetry.service.js';
 
 type FetchLike = typeof fetch;
 
@@ -71,11 +72,16 @@ export type AmazonRawOrder = {
   lastUpdatedTime?: string;
   programs?: string[];
   salesChannel?: { marketplaceId?: string };
-  fulfillment?: { fulfillmentStatus?: string; fulfilledBy?: string };
+  fulfillment?: {
+    fulfillmentStatus?: string;
+    fulfilledBy?: string;
+    shipByWindow?: { earliestDateTime?: string; latestDateTime?: string };
+  };
   orderItems?: Array<{
     orderItemId?: string;
     quantityOrdered?: number;
     quantityShipped?: number;
+    fulfillment?: { quantityFulfilled?: number };
     product?: {
       sellerSku?: string;
       asin?: string;
@@ -87,11 +93,40 @@ export type AmazonRawOrder = {
         };
       };
     };
-    cancellation?: unknown;
+    cancellation?: {
+      requester?: string;
+      cancelReason?: string;
+      cancellationRequest?: { requester?: string; cancelReason?: string };
+    };
   }>;
 };
 
 export type AmazonOrdersPage = { orders: AmazonRawOrder[]; nextToken: string | null };
+
+export type AmazonPackageDimensions = { length: number; width: number; height: number; unit: 'cm' };
+export type AmazonPackageWeight = { value: number; unit: 'grams' | 'g' };
+export type AmazonEasyShipTimeSlot = {
+  slotId: string;
+  startTime?: string | undefined;
+  endTime?: string | undefined;
+  handoverMethod?: 'PICKUP' | 'DROPOFF' | undefined;
+};
+export type AmazonEasyShipPackage = {
+  scheduledPackageId?: { amazonOrderId?: string; packageId?: string };
+  packageDimensions?: AmazonPackageDimensions;
+  packageWeight?: AmazonPackageWeight;
+  packageTimeSlot?: AmazonEasyShipTimeSlot;
+  packageIdentifier?: string;
+  packageStatus?: string;
+  trackingDetails?: { trackingId?: string };
+  invoice?: { invoiceNumber?: string; invoiceDate?: string };
+};
+
+export type AmazonNotificationSubscription = {
+  subscriptionId: string;
+  destinationId: string;
+  payloadVersion: string;
+};
 
 type SearchListingsResponse = {
   items?: AmazonRawListing[];
@@ -132,11 +167,52 @@ export interface AmazonListingsReadClient {
     productType: string;
     quantity: number;
   }): Promise<{ submissionId: string | null; status: string; issues: unknown[] }>;
+  patchListingOffer?(input: {
+    sellerSku: string;
+    productType: string;
+    patches: Array<{ op: 'replace' | 'merge'; path: string; value: Array<Record<string, unknown>> }>;
+    validationPreview?: boolean;
+  }): Promise<{ submissionId: string | null; status: string; issues: unknown[] }>;
   searchOrders?(input: {
     lastUpdatedAfter?: string;
     createdAfter?: string;
     paginationToken?: string;
   }): Promise<AmazonOrdersPage>;
+  confirmShipment?(input: {
+    orderId: string;
+    marketplaceId: string;
+    packageReferenceId: string;
+    carrierCode: string;
+    carrierName?: string;
+    shippingMethod?: string;
+    trackingNumber: string;
+    shipDate: string;
+    orderItems: Array<{ orderItemId: string; quantity: number }>;
+  }): Promise<void>;
+  listEasyShipHandoverSlots?(input: {
+    orderId: string;
+    marketplaceId: string;
+    dimensions: AmazonPackageDimensions;
+    weight: AmazonPackageWeight;
+  }): Promise<AmazonEasyShipTimeSlot[]>;
+  createEasyShipScheduledPackage?(input: {
+    orderId: string;
+    marketplaceId: string;
+    dimensions: AmazonPackageDimensions;
+    weight: AmazonPackageWeight;
+    timeSlot: AmazonEasyShipTimeSlot;
+    packageIdentifier?: string;
+    orderItems: Array<{ orderItemId: string; serialNumbers?: string[] }>;
+  }): Promise<AmazonEasyShipPackage>;
+  getEasyShipScheduledPackage?(orderId: string): Promise<AmazonEasyShipPackage>;
+  updateEasyShipScheduledPackage?(input: {
+    orderId: string;
+    marketplaceId: string;
+    packageId: string;
+    timeSlot: AmazonEasyShipTimeSlot;
+  }): Promise<AmazonEasyShipPackage[]>;
+  getNotificationSubscription?(notificationType: string, payloadVersion: string): Promise<AmazonNotificationSubscription | null>;
+  createNotificationSubscription?(notificationType: string, payloadVersion: string, destinationId: string): Promise<AmazonNotificationSubscription>;
 }
 
 type AmazonProductionListingsClientOptions = {
@@ -148,6 +224,8 @@ type AmazonProductionListingsClientOptions = {
   marketplaceId?: string;
   pageSize?: number;
   maxRetries?: number;
+  requestTimeoutMs?: number;
+  telemetryRecorder?: AmazonApiTelemetryRecorder | null;
 };
 
 export class AmazonProductionListingsClient implements AmazonListingsReadClient {
@@ -159,6 +237,8 @@ export class AmazonProductionListingsClient implements AmazonListingsReadClient 
   private readonly configuredMarketplaceId: string | undefined;
   private readonly configuredPageSize: number | undefined;
   private readonly configuredMaxRetries: number | undefined;
+  private readonly requestTimeoutMs: number;
+  private readonly telemetryRecorder: AmazonApiTelemetryRecorder | null;
 
   constructor(options: AmazonProductionListingsClientOptions = {}) {
     this.accessTokenProvider = options.accessTokenProvider ?? amazonLwaTokenService;
@@ -169,6 +249,10 @@ export class AmazonProductionListingsClient implements AmazonListingsReadClient 
     this.configuredMarketplaceId = options.marketplaceId;
     this.configuredPageSize = options.pageSize;
     this.configuredMaxRetries = options.maxRetries;
+    this.requestTimeoutMs = options.requestTimeoutMs ?? 30_000;
+    this.telemetryRecorder = options.telemetryRecorder === undefined
+      ? (options.fetchImpl ? null : amazonApiTelemetryService)
+      : options.telemetryRecorder;
   }
 
   getSellerId(): string {
@@ -235,6 +319,21 @@ export class AmazonProductionListingsClient implements AmazonListingsReadClient 
     productType: string;
     quantity: number;
   }): Promise<{ submissionId: string | null; status: string; issues: unknown[] }> {
+    return this.patchListingOffer({
+      sellerSku: input.sellerSku, productType: input.productType,
+      patches: [{
+        op: 'merge', path: '/attributes/fulfillment_availability',
+        value: [{ fulfillment_channel_code: 'DEFAULT', quantity: input.quantity }],
+      }],
+    });
+  }
+
+  async patchListingOffer(input: {
+    sellerSku: string;
+    productType: string;
+    patches: Array<{ op: 'replace' | 'merge'; path: string; value: Array<Record<string, unknown>> }>;
+    validationPreview?: boolean;
+  }): Promise<{ submissionId: string | null; status: string; issues: unknown[] }> {
     const response = await this.requestJson<{
       submissionId?: string;
       status?: string;
@@ -242,14 +341,13 @@ export class AmazonProductionListingsClient implements AmazonListingsReadClient 
     }>(
       'PATCH',
       `/listings/2021-08-01/items/${encodeURIComponent(this.getSellerId())}/${encodeURIComponent(input.sellerSku)}`,
-      { marketplaceIds: this.getMarketplaceId(), includedData: 'issues' },
+      {
+        marketplaceIds: this.getMarketplaceId(), includedData: 'issues', issueLocale: 'en_IN',
+        ...(input.validationPreview ? { mode: 'VALIDATION_PREVIEW' } : {}),
+      },
       {
         productType: input.productType,
-        patches: [{
-          op: 'merge',
-          path: '/attributes/fulfillment_availability',
-          value: [{ fulfillment_channel_code: 'DEFAULT', quantity: input.quantity }],
-        }],
+        patches: input.patches,
       }
     );
     return {
@@ -286,6 +384,131 @@ export class AmazonProductionListingsClient implements AmazonListingsReadClient 
     return { orders: response.orders ?? [], nextToken: response.pagination?.nextToken ?? null };
   }
 
+  async confirmShipment(input: {
+    orderId: string;
+    marketplaceId: string;
+    packageReferenceId: string;
+    carrierCode: string;
+    carrierName?: string;
+    shippingMethod?: string;
+    trackingNumber: string;
+    shipDate: string;
+    orderItems: Array<{ orderItemId: string; quantity: number }>;
+  }): Promise<void> {
+    await this.requestJson<void>('POST', `/orders/v0/orders/${encodeURIComponent(input.orderId)}/shipmentConfirmation`, {}, {
+      marketplaceId: input.marketplaceId,
+      packageDetail: {
+        packageReferenceId: input.packageReferenceId,
+        carrierCode: input.carrierCode,
+        ...(input.carrierName ? { carrierName: input.carrierName } : {}),
+        ...(input.shippingMethod ? { shippingMethod: input.shippingMethod } : {}),
+        trackingNumber: input.trackingNumber,
+        shipDate: input.shipDate,
+        orderItems: input.orderItems,
+      },
+    });
+  }
+
+  async listEasyShipHandoverSlots(input: {
+    orderId: string;
+    marketplaceId: string;
+    dimensions: AmazonPackageDimensions;
+    weight: AmazonPackageWeight;
+  }): Promise<AmazonEasyShipTimeSlot[]> {
+    const response = await this.requestJson<{ timeSlots?: AmazonEasyShipTimeSlot[] }>('POST', '/easyShip/2022-03-23/timeSlot', {}, {
+      amazonOrderId: input.orderId,
+      marketplaceId: input.marketplaceId,
+      packageDimensions: input.dimensions,
+      packageWeight: input.weight,
+    });
+    return response.timeSlots ?? [];
+  }
+
+  async createEasyShipScheduledPackage(input: {
+    orderId: string;
+    marketplaceId: string;
+    dimensions: AmazonPackageDimensions;
+    weight: AmazonPackageWeight;
+    timeSlot: AmazonEasyShipTimeSlot;
+    packageIdentifier?: string;
+    orderItems: Array<{ orderItemId: string; serialNumbers?: string[] }>;
+  }): Promise<AmazonEasyShipPackage> {
+    return this.requestJson<AmazonEasyShipPackage>('POST', '/easyShip/2022-03-23/package', {}, {
+      amazonOrderId: input.orderId,
+      marketplaceId: input.marketplaceId,
+      packageDetails: {
+        packageDimensions: input.dimensions,
+        packageWeight: input.weight,
+        packageTimeSlot: input.timeSlot,
+        packageItems: input.orderItems.map((item) => ({
+          orderItemId: item.orderItemId,
+          ...(item.serialNumbers?.length ? { orderItemSerialNumbers: item.serialNumbers } : {}),
+        })),
+        ...(input.packageIdentifier ? { packageIdentifier: input.packageIdentifier } : {}),
+      },
+    });
+  }
+
+  async getEasyShipScheduledPackage(orderId: string): Promise<AmazonEasyShipPackage> {
+    return this.getJson<AmazonEasyShipPackage>('/easyShip/2022-03-23/package', {
+      amazonOrderId: orderId,
+      marketplaceId: this.getMarketplaceId(),
+    });
+  }
+
+  async updateEasyShipScheduledPackage(input: {
+    orderId: string;
+    marketplaceId: string;
+    packageId: string;
+    timeSlot: AmazonEasyShipTimeSlot;
+  }): Promise<AmazonEasyShipPackage[]> {
+    const response = await this.requestJson<{ packages?: AmazonEasyShipPackage[] }>('PATCH', '/easyShip/2022-03-23/package', {}, {
+      marketplaceId: input.marketplaceId,
+      updatePackageDetailsList: [{
+        scheduledPackageId: { amazonOrderId: input.orderId, packageId: input.packageId },
+        packageTimeSlot: input.timeSlot,
+      }],
+    });
+    return response.packages ?? [];
+  }
+
+  async getNotificationSubscription(notificationType: string, payloadVersion: string): Promise<AmazonNotificationSubscription | null> {
+    try {
+      const response = await this.getJson<any>(
+        `/notifications/v1/subscriptions/${encodeURIComponent(notificationType)}`,
+        { payloadVersion }
+      );
+      const payload = response?.payload ?? response;
+      if (!payload?.subscriptionId) return null;
+      return {
+        subscriptionId: String(payload.subscriptionId),
+        destinationId: String(payload.destinationId ?? ''),
+        payloadVersion: String(payload.payloadVersion ?? payloadVersion),
+      };
+    } catch (error) {
+      if (error instanceof AmazonSpApiError && error.statusCode === 404) return null;
+      throw error;
+    }
+  }
+
+  async createNotificationSubscription(notificationType: string, payloadVersion: string, destinationId: string): Promise<AmazonNotificationSubscription> {
+    const response = await this.requestJson<any>(
+      'POST',
+      `/notifications/v1/subscriptions/${encodeURIComponent(notificationType)}`,
+      {},
+      { payloadVersion, destinationId }
+    );
+    const payload = response?.payload ?? response;
+    if (!payload?.subscriptionId) {
+      throw new AmazonSpApiError('Amazon did not return a notification subscription ID', 502, 'AMAZON_NOTIFICATION_SUBSCRIPTION_INVALID');
+    }
+    return {
+      subscriptionId: String(payload.subscriptionId),
+      destinationId: String(payload.destinationId ?? destinationId),
+      payloadVersion: String(payload.payloadVersion ?? payloadVersion),
+    };
+  }
+
   private requiredConfig(name: string, value?: string): string {
     const normalized = value?.trim();
     if (!normalized) {
@@ -317,7 +540,7 @@ export class AmazonProductionListingsClient implements AmazonListingsReadClient 
   }
 
   private async requestJson<T>(
-    method: 'GET' | 'PATCH',
+    method: 'GET' | 'POST' | 'PATCH' | 'PUT',
     path: string,
     query: Record<string, string>,
     body?: Record<string, unknown>
@@ -335,6 +558,7 @@ export class AmazonProductionListingsClient implements AmazonListingsReadClient 
         const accessToken = await this.accessTokenProvider.getAccessToken();
         const response = await this.fetchImpl(url, {
           method,
+          signal: AbortSignal.timeout(this.requestTimeoutMs),
           headers: {
             Accept: 'application/json',
             ...(body ? { 'Content-Type': 'application/json' } : {}),
@@ -343,7 +567,21 @@ export class AmazonProductionListingsClient implements AmazonListingsReadClient 
           ...(body ? { body: JSON.stringify(body) } : {}),
         });
 
+        if (this.telemetryRecorder) {
+          await this.telemetryRecorder.record({
+            sellerId: this.getSellerId(),
+            marketplaceId: this.getMarketplaceId(),
+            method,
+            path,
+            statusCode: response.status,
+            rateLimit: response.headers.get('x-amzn-ratelimit-limit'),
+            requestId: response.headers.get('x-amzn-requestid'),
+            retryAfter: response.headers.get('retry-after'),
+          }).catch(() => undefined);
+        }
+
         if (response.ok) {
+          if (response.status === 204) return undefined as T;
           return await response.json() as T;
         }
 

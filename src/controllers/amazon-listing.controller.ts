@@ -27,6 +27,10 @@ import {
   AmazonProductionInventoryError,
   amazonProductionInventoryService,
 } from '../services/amazon-production-inventory.service.js';
+import { amazonOfferApplySchema, amazonOfferUpdateSchema } from '../schemas/amazon-offer.schema.js';
+import { AmazonOfferUpdateError, amazonOfferUpdateService } from '../services/amazon-offer-update.service.js';
+import { AmazonSpApiError } from '../services/amazon-production-listings.client.js';
+import { AmazonAuthorizationError } from '../services/amazon-lwa-token.service.js';
 
 const validationErrorResponse = (reply: FastifyReply, error: ZodError) => reply.code(400).send({
   success: false,
@@ -77,10 +81,26 @@ const inventoryErrorResponse = (reply: FastifyReply, error: unknown) => {
   });
 };
 
+const offerErrorResponse = (reply: FastifyReply, error: unknown) => {
+  if (error instanceof ZodError) return validationErrorResponse(reply, error);
+  if (error instanceof AmazonOfferUpdateError || error instanceof AmazonSpApiError || error instanceof AmazonAuthorizationError) return reply.code(error.statusCode).send({
+    success: false, message: error.message, details: error.message, statusCode: error.statusCode, code: error.code,
+  });
+  return reply.code(500).send({ success: false, message: 'Amazon offer operation failed', details: 'Amazon offer operation failed', statusCode: 500, code: 'AMAZON_OFFER_OPERATION_FAILED' });
+};
+
 export class AmazonListingController {
   private resolveScope(request: FastifyRequest) {
     const user = (request as AuthenticatedRequest).user;
     return amazonListingScopeService.resolve(user?.id, user?.userType);
+  }
+
+  private actor(request: FastifyRequest) {
+    const user = (request as AuthenticatedRequest).user;
+    return {
+      ...(user?.id !== undefined ? { requestedByUserId: user.id } : {}),
+      ...(user?.userType ? { requestedByUserType: user.userType } : {}),
+    };
   }
 
   importListings = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -210,6 +230,24 @@ export class AmazonListingController {
     } catch (error) {
       return mappingErrorResponse(reply, error);
     }
+  };
+
+  previewOfferUpdate = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { listingId } = amazonListingParamsSchema.parse(request.params);
+      const changes = amazonOfferUpdateSchema.parse(request.body);
+      const data = await amazonOfferUpdateService.preview(listingId, changes, await this.resolveScope(request), this.actor(request));
+      return reply.code(200).send(createSuccessResponse('Amazon offer update validated', data));
+    } catch (error) { return offerErrorResponse(reply, error); }
+  };
+
+  applyOfferUpdate = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { listingId } = amazonListingParamsSchema.parse(request.params);
+      const input = amazonOfferApplySchema.parse(request.body);
+      const data = await amazonOfferUpdateService.apply(listingId, input.previewId, await this.resolveScope(request), this.actor(request));
+      return reply.code(200).send(createSuccessResponse('Amazon offer update submitted', data));
+    } catch (error) { return offerErrorResponse(reply, error); }
   };
 
   bulkMapListings = async (request: FastifyRequest, reply: FastifyReply) => {

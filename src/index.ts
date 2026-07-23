@@ -3,6 +3,9 @@ import { env } from './config/env.js';
 import { redisClient } from './config/redis.js';
 import { ekartAuthService } from './services/ekart-auth.service.js';
 import { prisma } from './models/prisma.js';
+import { startAmazonOrderScheduler, stopAmazonOrderScheduler } from './services/amazon-order-scheduler.service.js';
+import { startAmazonListingScheduler, stopAmazonListingScheduler } from './services/amazon-listing-scheduler.service.js';
+import { startAmazonRetryScheduler, stopAmazonRetryScheduler } from './services/amazon-retry-scheduler.service.js';
 
 // Global BigInt serialization fix
 (BigInt.prototype as any).toJSON = function () {
@@ -36,6 +39,9 @@ async function start() {
       port: Number(port),
       host: '0.0.0.0',
     });
+    await startAmazonOrderScheduler();
+    startAmazonListingScheduler();
+    startAmazonRetryScheduler();
     // Start the server
     // await fastify.listen({
     //  port: env.PORT,
@@ -57,6 +63,9 @@ async function start() {
         await redisClient.disconnect();
 
         await fastify.close();
+        stopAmazonOrderScheduler();
+        stopAmazonListingScheduler();
+        stopAmazonRetryScheduler();
         process.exit(0);
       });
     });
@@ -75,4 +84,4 @@ async function start() {
   }
 }
 
-start(); 
+start();
