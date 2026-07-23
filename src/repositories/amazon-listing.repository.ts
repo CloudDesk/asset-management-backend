@@ -100,6 +100,10 @@ const importedFieldValues = (listing: NormalizedAmazonListing & { sellerSku: str
   originalFulfilmentValue: listing.originalFulfilmentValue,
   fulfilmentChannel: listing.fulfilmentChannel,
   publishedQuantity: listing.publishedQuantity,
+  fbaFulfillableQuantity: listing.fbaFulfillableQuantity,
+  fbaReservedQuantity: listing.fbaReservedQuantity,
+  fbaPendingOrderQuantity: listing.fbaPendingOrderQuantity,
+  fbaTotalQuantity: listing.fbaTotalQuantity,
   price: listing.price,
   currency: listing.currency,
   amazonLastUpdatedAt: listing.amazonLastUpdatedAt,
@@ -115,6 +119,10 @@ const importedSnapshot = (listing: {
   originalFulfilmentValue: string | null;
   fulfilmentChannel: string;
   publishedQuantity: number | null;
+  fbaFulfillableQuantity: number | null;
+  fbaReservedQuantity: number | null;
+  fbaPendingOrderQuantity: number | null;
+  fbaTotalQuantity: number | null;
   price: Prisma.Decimal | string | null;
   currency: string | null;
   amazonLastUpdatedAt: Date | null;
@@ -128,6 +136,10 @@ const importedSnapshot = (listing: {
   originalFulfilmentValue: listing.originalFulfilmentValue,
   fulfilmentChannel: listing.fulfilmentChannel,
   publishedQuantity: listing.publishedQuantity,
+  fbaFulfillableQuantity: listing.fbaFulfillableQuantity,
+  fbaReservedQuantity: listing.fbaReservedQuantity,
+  fbaPendingOrderQuantity: listing.fbaPendingOrderQuantity,
+  fbaTotalQuantity: listing.fbaTotalQuantity,
   price: listing.price === null ? null : listing.price.toString(),
   currency: listing.currency,
   amazonLastUpdatedAt: listing.amazonLastUpdatedAt?.toISOString() ?? null,
@@ -152,7 +164,12 @@ const actorData = (context: AmazonListingAuditContext = {}) => ({
     : {}),
 });
 
-const serializeListing = (listing: any): Record<string, unknown> => ({
+type FbaOrderAccounting = { ordered: number; sold: number };
+
+const serializeListing = (
+  listing: any,
+  fbaOrderAccounting: FbaOrderAccounting = { ordered: 0, sold: 0 }
+): Record<string, unknown> => ({
   id: String(listing.id),
   marketplace: listing.marketplace,
   environment: listing.environment,
@@ -167,6 +184,15 @@ const serializeListing = (listing: any): Record<string, unknown> => ({
   originalFulfilmentValue: listing.originalFulfilmentValue,
   fulfilmentChannel: listing.fulfilmentChannel,
   publishedQuantity: listing.publishedQuantity,
+  fbaInventory: listing.fulfilmentChannel === 'FBA' ? {
+    available: listing.fbaFulfillableQuantity,
+    reserved: listing.fbaReservedQuantity,
+    pendingCustomerOrders: listing.fbaPendingOrderQuantity,
+    total: listing.fbaTotalQuantity,
+    trackedOrdered: fbaOrderAccounting.ordered,
+    trackedSold: fbaOrderAccounting.sold,
+    source: 'AMAZON_READ_ONLY',
+  } : null,
   price: listing.price?.toString() ?? null,
   currency: listing.currency,
   amazonLastUpdatedAt: listing.amazonLastUpdatedAt?.toISOString() ?? null,
@@ -193,6 +219,30 @@ const serializeListing = (listing: any): Record<string, unknown> => ({
     name: listing.product.name,
   } : null,
 });
+
+const getFbaOrderAccounting = async (listingIds: bigint[]) => {
+  if (listingIds.length === 0) return new Map<string, FbaOrderAccounting>();
+  const grouped = await prisma.amazonOrderStockReservation.groupBy({
+    by: ['listingId', 'status'],
+    where: {
+      listingId: { in: listingIds },
+      inventoryOwnership: 'AMAZON_FBA',
+      status: { in: ['RESERVED', 'SOLD'] },
+    },
+    _sum: { quantity: true },
+  });
+  const accounting = new Map<string, FbaOrderAccounting>();
+  for (const row of grouped) {
+    if (row.listingId === null) continue;
+    const key = String(row.listingId);
+    const current = accounting.get(key) ?? { ordered: 0, sold: 0 };
+    const quantity = row._sum.quantity ?? 0;
+    if (row.status === 'RESERVED') current.ordered += quantity;
+    if (row.status === 'SOLD') current.sold += quantity;
+    accounting.set(key, current);
+  }
+  return accounting;
+};
 
 const listingIssues = (listing: any) => {
   const issues: Array<{ code: string; severity: 'INFO' | 'WARNING' | 'ERROR'; message: string }> = [];
@@ -387,10 +437,13 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
       }),
       prisma.marketplaceListing.count({ where }),
     ]);
+    const fbaAccounting = await getFbaOrderAccounting(
+      items.filter((item) => item.fulfilmentChannel === 'FBA').map((item) => item.id)
+    );
     const totalPages = Math.ceil(total / query.limit);
 
     return {
-      data: items.map(serializeListing),
+      data: items.map((item) => serializeListing(item, fbaAccounting.get(String(item.id)))),
       pagination: {
         page: query.page,
         limit: query.limit,
@@ -414,7 +467,13 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
       include: { product: { select: { id: true, puc: true, name: true } } },
     });
     if (!listing) return null;
-    return { ...serializeListing(listing), issues: listingIssues(listing) };
+    const fbaAccounting = listing.fulfilmentChannel === 'FBA'
+      ? await getFbaOrderAccounting([listing.id])
+      : new Map<string, FbaOrderAccounting>();
+    return {
+      ...serializeListing(listing, fbaAccounting.get(String(listing.id))),
+      issues: listingIssues(listing),
+    };
   }
 
   async suggestProducts(input: { listingId: string; sellerId: string; marketplaceId: string }) {

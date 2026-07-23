@@ -8,6 +8,7 @@ import {
 } from '../repositories/amazon-listing.repository.js';
 import {
   classifyAmazonFulfilment,
+  normalizeAmazonListing,
   NormalizedAmazonListing,
 } from './amazon-listing-normalizer.js';
 import { AmazonListingImportService } from './amazon-listing-import.service.js';
@@ -192,6 +193,30 @@ test('classifies Amazon fulfilment values without relying on the Nivaana PUC', (
   assert.equal(classifyAmazonFulfilment('merchant_shipping_group=Easy Ship', false), 'EASY_SHIP');
   assert.equal(classifyAmazonFulfilment('DEFAULT', false), 'MFN');
   assert.equal(classifyAmazonFulfilment('unrecognized-channel', false), 'UNKNOWN');
+});
+
+test('normalizes Amazon-managed FBA quantities without treating them as publishable seller stock', () => {
+  const listing = normalizeAmazonListing(rawListing('FBA-SKU'), {
+    sellerId: SELLER_ID,
+    marketplaceId: MARKETPLACE_ID,
+    fbaInventory: {
+      sellerSku: 'FBA-SKU',
+      totalQuantity: 31,
+      inventoryDetails: {
+        fulfillableQuantity: 20,
+        reservedQuantity: {
+          totalReservedQuantity: 11,
+          pendingCustomerOrderQuantity: 4,
+        },
+      },
+    },
+  });
+
+  assert.equal(listing.fulfilmentChannel, 'FBA');
+  assert.equal(listing.fbaFulfillableQuantity, 20);
+  assert.equal(listing.fbaReservedQuantity, 11);
+  assert.equal(listing.fbaPendingOrderQuantity, 4);
+  assert.equal(listing.fbaTotalQuantity, 31);
 });
 
 test('counts a listing with no seller SKU as failed and does not persist it', async () => {

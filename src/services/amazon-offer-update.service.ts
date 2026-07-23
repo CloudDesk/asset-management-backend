@@ -56,15 +56,15 @@ export class AmazonOfferUpdateService {
         our_price: [{ schedule: [{ value_with_tax: changes.price }] }],
       }] });
     }
-    const changesMfnAvailability = changes.quantity !== undefined || changes.handlingTimeDays !== undefined || changes.available !== undefined;
-    if (changesMfnAvailability) {
-      if (listing.fulfilmentChannel !== 'MFN') {
-        this.fail('Quantity, availability, and handling time can be updated only for MFN listings');
+    const changesSellerAvailability = changes.quantity !== undefined || changes.handlingTimeDays !== undefined || changes.available !== undefined;
+    if (changesSellerAvailability) {
+      if (!['MFN', 'EASY_SHIP'].includes(listing.fulfilmentChannel)) {
+        this.fail('Quantity, availability, and handling time can be updated only for seller-fulfilled listings');
       }
       let quantity = changes.quantity ?? listing.publishedQuantity;
       if (changes.available === false) quantity = 0;
       if (quantity === null || quantity === undefined) {
-        this.fail('A quantity is required when updating MFN availability or handling time');
+        this.fail('A quantity is required when updating seller-fulfilled availability or handling time');
       }
       if (changes.available === true && quantity === 0) {
         this.fail('Set a quantity greater than zero to make the listing available');

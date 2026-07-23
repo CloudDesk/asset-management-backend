@@ -4,7 +4,7 @@ import { amazonInventorySyncService } from './amazon-inventory-sync.service.js';
 
 export type AmazonOrderRoutingDecision = {
   route: 'FBA_RECONCILIATION' | 'EASY_SHIP_HANDLING' | 'NIVAANA_SHIPPING' | 'BLOCKED';
-  status: 'READY_READ_ONLY' | 'READY_AMAZON' | 'RESERVE_STOCK' | 'BLOCKED_UNMAPPED' | 'BLOCKED_ROUTE' | 'CANCELLED';
+  status: 'TRACK_FBA_STOCK' | 'RESERVE_STOCK' | 'BLOCKED_UNMAPPED' | 'BLOCKED_ROUTE' | 'CANCELLED';
   syncState: string;
   blockedReason: string | null;
 };
@@ -21,10 +21,10 @@ export const deriveAmazonOrderRoutingDecision = (input: {
     return { route: 'BLOCKED', status: 'BLOCKED_UNMAPPED', syncState: 'BLOCKED_UNMAPPED', blockedReason: 'At least one Amazon SKU is not mapped to a Nivaana product' };
   }
   if (input.fulfilmentType === 'FBA') {
-    return { route: 'FBA_RECONCILIATION', status: 'READY_READ_ONLY', syncState: 'READ_ONLY_RECONCILIATION', blockedReason: null };
+    return { route: 'FBA_RECONCILIATION', status: 'TRACK_FBA_STOCK', syncState: 'READ_ONLY_RECONCILIATION', blockedReason: null };
   }
   if (input.fulfilmentType === 'EASY_SHIP') {
-    return { route: 'EASY_SHIP_HANDLING', status: 'READY_AMAZON', syncState: 'EASY_SHIP_READY', blockedReason: null };
+    return { route: 'EASY_SHIP_HANDLING', status: 'RESERVE_STOCK', syncState: 'EASY_SHIP_READY', blockedReason: null };
   }
   if (input.fulfilmentType === 'MFN') {
     return { route: 'NIVAANA_SHIPPING', status: 'RESERVE_STOCK', syncState: 'READY_FOR_NIVAANA', blockedReason: null };
@@ -80,10 +80,11 @@ export class AmazonOrderRoutingService {
     return stockIds;
   }
 
-  private async reserveMfnStock(order: {
+  private async reserveSellerStock(order: {
     id: bigint;
     items: Array<{
       amazonOrderItemId: string;
+      listingId: bigint | null;
       productId: bigint | null;
       quantityOrdered: number;
       unitsPerListing: number;
@@ -91,12 +92,13 @@ export class AmazonOrderRoutingService {
   }) {
     const desired = order.items.map((item) => ({
       amazonOrderItemId: item.amazonOrderItemId,
+      listingId: item.listingId,
       productId: item.productId!,
       quantity: item.quantityOrdered * Math.max(1, item.unitsPerListing),
     })).filter((item) => item.quantity > 0);
 
     const existing = await prisma.amazonOrderStockReservation.findMany({
-      where: { orderId: order.id, status: 'RESERVED' },
+      where: { orderId: order.id, status: 'RESERVED', inventoryOwnership: 'SELLER' },
     });
     const alreadyReserved = desired.length === existing.length && desired.every((item) => existing.some((reservation) =>
       reservation.amazonOrderItemId === item.amazonOrderItemId
@@ -140,15 +142,19 @@ export class AmazonOrderRoutingService {
               orderId: order.id,
               amazonOrderItemId: item.amazonOrderItemId,
               productId: item.productId,
+              listingId: item.listingId,
               platformStockId: stock.id,
               quantity: item.quantity,
+              inventoryOwnership: 'SELLER',
               status: 'RESERVED',
               reservedAt: new Date(),
             },
             update: {
               productId: item.productId,
+              listingId: item.listingId,
               platformStockId: stock.id,
               quantity: item.quantity,
+              inventoryOwnership: 'SELLER',
               status: 'RESERVED',
               errorMessage: null,
               reservedAt: new Date(),
@@ -163,7 +169,7 @@ export class AmazonOrderRoutingService {
       await this.reconcilePlatformStocks(stockIds);
       return { success: true, reason: null, stockIds };
     } catch (error) {
-      const reason = error instanceof Error ? error.message : 'Amazon MFN stock reservation failed';
+      const reason = error instanceof Error ? error.message : 'Amazon seller stock reservation failed';
       for (const item of desired) {
         await prisma.amazonOrderStockReservation.upsert({
           where: { orderId_amazonOrderItemId: { orderId: order.id, amazonOrderItemId: item.amazonOrderItemId } },
@@ -171,14 +177,18 @@ export class AmazonOrderRoutingService {
             orderId: order.id,
             amazonOrderItemId: item.amazonOrderItemId,
             productId: item.productId,
+            listingId: item.listingId,
             quantity: item.quantity,
+            inventoryOwnership: 'SELLER',
             status: 'FAILED',
             errorMessage: reason,
           },
           update: {
             productId: item.productId,
+            listingId: item.listingId,
             platformStockId: null,
             quantity: item.quantity,
+            inventoryOwnership: 'SELLER',
             status: 'FAILED',
             errorMessage: reason,
             reservedAt: null,
@@ -190,6 +200,80 @@ export class AmazonOrderRoutingService {
       await this.reconcilePlatformStocks(releasedStockIds);
       return { success: false, reason, stockIds: releasedStockIds };
     }
+  }
+
+  private async trackFbaStock(order: {
+    id: bigint;
+    items: Array<{
+      amazonOrderItemId: string;
+      listingId: bigint | null;
+      productId: bigint | null;
+      quantityOrdered: number;
+      unitsPerListing: number;
+    }>;
+  }, sold: boolean) {
+    const desired = order.items.map((item) => ({
+      amazonOrderItemId: item.amazonOrderItemId,
+      listingId: item.listingId,
+      productId: item.productId!,
+      quantity: item.quantityOrdered * Math.max(1, item.unitsPerListing),
+    })).filter((item) => item.quantity > 0 && item.listingId !== null);
+    const desiredItemIds = desired.map((item) => item.amazonOrderItemId);
+
+    await prisma.$transaction(async (transaction) => {
+      await transaction.amazonOrderStockReservation.updateMany({
+        where: {
+          orderId: order.id,
+          inventoryOwnership: 'AMAZON_FBA',
+          status: 'RESERVED',
+          ...(desiredItemIds.length > 0
+            ? { amazonOrderItemId: { notIn: desiredItemIds } }
+            : {}),
+        },
+        data: {
+          status: 'RELEASED',
+          releasedAt: new Date(),
+          errorMessage: 'FBA order items or mappings changed',
+        },
+      });
+
+      for (const item of desired) {
+        await transaction.amazonOrderStockReservation.upsert({
+          where: {
+            orderId_amazonOrderItemId: {
+              orderId: order.id,
+              amazonOrderItemId: item.amazonOrderItemId,
+            },
+          },
+          create: {
+            orderId: order.id,
+            amazonOrderItemId: item.amazonOrderItemId,
+            productId: item.productId,
+            listingId: item.listingId,
+            platformStockId: null,
+            quantity: item.quantity,
+            inventoryOwnership: 'AMAZON_FBA',
+            status: sold ? 'SOLD' : 'RESERVED',
+            reservedAt: sold ? null : new Date(),
+            soldAt: sold ? new Date() : null,
+          },
+          update: {
+            productId: item.productId,
+            listingId: item.listingId,
+            platformStockId: null,
+            quantity: item.quantity,
+            inventoryOwnership: 'AMAZON_FBA',
+            status: sold ? 'SOLD' : 'RESERVED',
+            reservedAt: sold ? null : new Date(),
+            releasedAt: null,
+            soldAt: sold ? new Date() : null,
+            errorMessage: null,
+          },
+        });
+      }
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+    return { tracked: desired.length, sold };
   }
 
   async assertStockReservationReadyForShipment(orderId: bigint) {
@@ -270,7 +354,15 @@ export class AmazonOrderRoutingService {
     let syncState = decision.syncState;
     let blockedReason = decision.blockedReason;
 
-    if (decision.status !== 'RESERVE_STOCK') {
+    if (decision.status === 'TRACK_FBA_STOCK') {
+      const final = isAmazonOrderFinalStatus(order.orderStatus);
+      const tracked = await this.trackFbaStock(order, final);
+      handoffStatus = final ? 'STOCK_SOLD_READ_ONLY' : 'READY_READ_ONLY';
+      syncState = final ? 'SHIPPED' : 'READ_ONLY_RECONCILIATION';
+      blockedReason = tracked.tracked > 0
+        ? null
+        : 'FBA inventory is read-only; no mapped FBA order items were available to track';
+    } else if (decision.status !== 'RESERVE_STOCK') {
       await this.releaseReservations(order.id, decision.status);
     } else if (isAmazonOrderFinalStatus(order.orderStatus)) {
       const sold = await this.finalizeReservationsAsSold(order.id, false);
@@ -281,9 +373,11 @@ export class AmazonOrderRoutingService {
         ? null
         : 'Imported after shipment; Nivaana stock was not changed because no prior reservation exists';
     } else {
-      const reservation = await this.reserveMfnStock(order);
+      const reservation = await this.reserveSellerStock(order);
       handoffStatus = reservation.success ? 'STOCK_RESERVED' : 'BLOCKED_STOCK';
-      syncState = reservation.success ? 'READY_FOR_NIVAANA' : 'BLOCKED_STOCK';
+      syncState = reservation.success
+        ? order.fulfilmentType === 'EASY_SHIP' ? 'EASY_SHIP_READY' : 'READY_FOR_NIVAANA'
+        : 'BLOCKED_STOCK';
       blockedReason = reservation.reason;
     }
 

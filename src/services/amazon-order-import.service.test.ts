@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { classifyAmazonOrder } from './amazon-order-import.service.js';
+import { amazonOrderQuerySchema } from '../schemas/amazon-order.schema.js';
 import { AmazonProductionListingsClient } from './amazon-production-listings.client.js';
 import { deriveAmazonOrderRoutingDecision, isAmazonOrderFinalStatus } from './amazon-order-routing.service.js';
 
@@ -9,6 +10,13 @@ test('classifies FBA, Easy Ship, and merchant-fulfilled orders', () => {
   assert.equal(classifyAmazonOrder({ programs: ['AMAZON_EASY_SHIP'], fulfillment: { fulfilledBy: 'MERCHANT' } }).fulfilmentType, 'EASY_SHIP');
   assert.equal(classifyAmazonOrder({ fulfillment: { fulfilledBy: 'MERCHANT', fulfillmentStatus: 'UNSHIPPED' } }).fulfilmentRoute, 'NIVAANA_SHIPPING');
   assert.equal(classifyAmazonOrder({ fulfillment: { fulfilledBy: 'MERCHANT', fulfillmentStatus: 'CANCELLED' } }).isCancelled, true);
+});
+
+test('accepts an Amazon order-status query filter', () => {
+  assert.deepEqual(
+    amazonOrderQuerySchema.parse({ orderStatus: 'SHIPPED', page: '1', limit: '20' }),
+    { orderStatus: 'SHIPPED', page: 1, limit: 20 }
+  );
 });
 
 test('requests Orders API v2026-01-01 without buyer or recipient PII datasets', async () => {
@@ -48,11 +56,11 @@ test('supports a createdAfter search for full order history backfill', async () 
 test('routes mapped orders without exposing invalid fulfillment actions', () => {
   assert.deepEqual(
     deriveAmazonOrderRoutingDecision({ isCancelled: false, hasUnmappedItems: false, fulfilmentType: 'FBA' }),
-    { route: 'FBA_RECONCILIATION', status: 'READY_READ_ONLY', syncState: 'READ_ONLY_RECONCILIATION', blockedReason: null }
+    { route: 'FBA_RECONCILIATION', status: 'TRACK_FBA_STOCK', syncState: 'READ_ONLY_RECONCILIATION', blockedReason: null }
   );
   assert.equal(
     deriveAmazonOrderRoutingDecision({ isCancelled: false, hasUnmappedItems: false, fulfilmentType: 'EASY_SHIP' }).status,
-    'READY_AMAZON'
+    'RESERVE_STOCK'
   );
   assert.equal(
     deriveAmazonOrderRoutingDecision({ isCancelled: false, hasUnmappedItems: false, fulfilmentType: 'MFN' }).status,

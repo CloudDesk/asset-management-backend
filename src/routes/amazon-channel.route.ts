@@ -127,6 +127,7 @@ export async function amazonChannelRoutes(fastify: FastifyInstance) {
           page: { type: 'integer', minimum: 1, default: 1 },
           limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
           search: { type: 'string', minLength: 1, maxLength: 255 },
+          orderStatus: { type: 'string', minLength: 1, maxLength: 50 },
           syncState: { type: 'string', minLength: 1, maxLength: 255 },
           fulfilmentType: { type: 'string', enum: ['FBA', 'EASY_SHIP', 'MFN', 'UNKNOWN'] },
         },

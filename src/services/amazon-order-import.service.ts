@@ -85,6 +85,8 @@ const serializeOrder = (order: any) => ({
     id: String(reservation.id),
     amazonOrderItemId: reservation.amazonOrderItemId,
     productId: String(reservation.productId),
+    listingId: reservation.listingId === null ? null : String(reservation.listingId),
+    inventoryOwnership: reservation.inventoryOwnership,
     quantity: reservation.quantity,
     status: reservation.status,
     errorMessage: reservation.errorMessage,
@@ -287,6 +289,7 @@ export class AmazonOrderImportService {
   async listOrders(scope: AmazonListingScope, input: {
     page: number;
     limit: number;
+    orderStatus?: string | undefined;
     syncState?: string | undefined;
     fulfilmentType?: string | undefined;
     search?: string | undefined;
@@ -294,6 +297,7 @@ export class AmazonOrderImportService {
     const where: Prisma.AmazonMarketplaceOrderWhereInput = {
       sellerId: scope.sellerId,
       marketplaceId: scope.marketplaceId,
+      ...(input.orderStatus ? { orderStatus: { equals: input.orderStatus, mode: 'insensitive' } } : {}),
       ...(input.syncState ? { syncState: input.syncState } : {}),
       ...(input.fulfilmentType ? { fulfilmentType: input.fulfilmentType } : {}),
       ...(input.search ? { OR: [

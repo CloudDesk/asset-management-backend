@@ -53,6 +53,10 @@ export type AmazonFbaInventorySummary = {
   totalQuantity?: number;
   inventoryDetails?: {
     fulfillableQuantity?: number;
+    reservedQuantity?: {
+      totalReservedQuantity?: number;
+      pendingCustomerOrderQuantity?: number;
+    };
   };
 };
 

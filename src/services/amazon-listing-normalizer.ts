@@ -19,6 +19,10 @@ export type NormalizedAmazonListing = {
   originalFulfilmentValue: string | null;
   fulfilmentChannel: AmazonFulfilmentChannel;
   publishedQuantity: number | null;
+  fbaFulfillableQuantity: number | null;
+  fbaReservedQuantity: number | null;
+  fbaPendingOrderQuantity: number | null;
+  fbaTotalQuantity: number | null;
   price: string | null;
   currency: string | null;
   amazonLastUpdatedAt: Date | null;
@@ -39,6 +43,9 @@ const normalizedPrice = (value?: string | number): string | null => {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed.toFixed(2) : null;
 };
+
+const normalizedQuantity = (value?: number): number | null =>
+  typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : null;
 
 const extractRelevantAttributeValues = (attributes?: Record<string, unknown>): string[] => {
   if (!attributes) return [];
@@ -153,6 +160,10 @@ export const normalizeAmazonListing = (
     originalFulfilmentValue,
     fulfilmentChannel: classifyAmazonFulfilment(originalFulfilmentValue, Boolean(fbaInventory)),
     publishedQuantity,
+    fbaFulfillableQuantity: normalizedQuantity(fbaInventory?.inventoryDetails?.fulfillableQuantity),
+    fbaReservedQuantity: normalizedQuantity(fbaInventory?.inventoryDetails?.reservedQuantity?.totalReservedQuantity),
+    fbaPendingOrderQuantity: normalizedQuantity(fbaInventory?.inventoryDetails?.reservedQuantity?.pendingCustomerOrderQuantity),
+    fbaTotalQuantity: normalizedQuantity(fbaInventory?.totalQuantity),
     price: normalizedPrice(offer?.price?.amount),
     currency: offer?.price?.currencyCode?.trim() || null,
     amazonLastUpdatedAt: normalizedDate(summary?.lastUpdatedDate)

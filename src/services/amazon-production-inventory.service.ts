@@ -88,11 +88,11 @@ export class AmazonProductionInventoryService {
     if (listing.mappingStatus !== 'MAPPED' || listing.productId === null) {
       throw new AmazonProductionInventoryError('Map this Amazon listing before synchronizing stock', 409, 'AMAZON_LISTING_NOT_MAPPED');
     }
-    if (listing.fulfilmentChannel !== 'MFN') {
+    if (!['MFN', 'EASY_SHIP'].includes(listing.fulfilmentChannel)) {
       throw new AmazonProductionInventoryError(
         listing.fulfilmentChannel === 'FBA'
           ? 'FBA inventory is read-only and cannot be published by Nivaana'
-          : 'Phase 4 manual publishing is limited to MFN listings',
+          : 'Inventory publishing is limited to seller-fulfilled listings',
         409,
         'AMAZON_INVENTORY_NOT_MFN'
       );
@@ -395,13 +395,13 @@ export class AmazonProductionInventoryService {
         environment: 'PRODUCTION',
         productId: platformStock.productid,
         mappingStatus: 'MAPPED',
-        fulfilmentChannel: 'MFN',
+        fulfilmentChannel: { in: ['MFN', 'EASY_SHIP'] },
         inventorySyncMode: 'AUTOMATIC',
       },
       select: { id: true, sellerId: true, marketplaceId: true, sellerSku: true },
     });
     if (listings.length === 0) {
-      return { status: 'SKIPPED' as const, reason: 'No automatic MFN listing is mapped to this stock' };
+      return { status: 'SKIPPED' as const, reason: 'No automatic seller-fulfilled listing is mapped to this stock' };
     }
 
     const results: Array<Record<string, unknown>> = [];
