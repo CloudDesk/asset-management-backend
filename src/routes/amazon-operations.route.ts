@@ -27,6 +27,7 @@ export async function amazonOperationsRoutes(fastify: FastifyInstance) {
 
   fastify.get('/', { preHandler: read, schema: { tags: ['Amazon Operations'], security: [{ bearerAuth: [] }] } }, async (request, reply) => {
     try {
+      reply.header('Cache-Control', 'no-store');
       const scope = await scopeFor(request);
       return reply.send(createSuccessResponse('Amazon operations dashboard retrieved', await amazonOperationsService.dashboard(scope, (request as AuthenticatedRequest).user?.id)));
     } catch (error) { return fail(reply, error); }

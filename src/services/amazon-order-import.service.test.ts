@@ -19,7 +19,7 @@ test('accepts an Amazon order-status query filter', () => {
   );
 });
 
-test('requests Orders API v2026-01-01 without buyer or recipient PII datasets', async () => {
+test('requests buyer information without recipient address data', async () => {
   let requestedUrl = '';
   const client = new AmazonProductionListingsClient({
     sellerId: 'SELLER-1', marketplaceId: 'A21TJRUUN4KGV',
@@ -32,9 +32,27 @@ test('requests Orders API v2026-01-01 without buyer or recipient PII datasets', 
   await client.searchOrders({ lastUpdatedAfter: '2026-07-01T00:00:00.000Z' });
   const parsed = new URL(requestedUrl);
   assert.equal(parsed.pathname, '/orders/2026-01-01/orders');
-  assert.equal(parsed.searchParams.get('includedData'), 'FULFILLMENT,CANCELLATION');
-  assert.equal(parsed.searchParams.has('BUYER'), false);
-  assert.equal(parsed.searchParams.has('RECIPIENT'), false);
+  assert.equal(parsed.searchParams.get('includedData'), 'BUYER,FULFILLMENT,CANCELLATION');
+  assert.equal(parsed.searchParams.get('includedData')?.includes('BUYER'), true);
+  assert.equal(parsed.searchParams.get('includedData')?.includes('RECIPIENT'), false);
+});
+
+test('continues importing without buyer data when the restricted role is unavailable', async () => {
+  const requestedData: string[] = [];
+  const client = new AmazonProductionListingsClient({
+    sellerId: 'SELLER-1', marketplaceId: 'A21TJRUUN4KGV',
+    accessTokenProvider: { getAccessToken: async () => 'token', invalidate: () => undefined },
+    fetchImpl: async (input) => {
+      const includedData = new URL(String(input)).searchParams.get('includedData') ?? '';
+      requestedData.push(includedData);
+      if (includedData.includes('BUYER')) {
+        return new Response(JSON.stringify({ errors: [{ code: 'Unauthorized' }] }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+      }
+      return new Response(JSON.stringify({ orders: [], pagination: {} }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    },
+  });
+  await client.searchOrders({ lastUpdatedAfter: '2026-07-01T00:00:00.000Z' });
+  assert.deepEqual(requestedData, ['BUYER,FULFILLMENT,CANCELLATION', 'FULFILLMENT,CANCELLATION']);
 });
 
 test('supports a createdAfter search for full order history backfill', async () => {

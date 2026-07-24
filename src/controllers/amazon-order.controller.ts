@@ -54,6 +54,7 @@ export class AmazonOrderController {
 
   getImportJob = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
+      reply.header('Cache-Control', 'no-store');
       const scope = await this.resolveScope(request);
       const jobId = (request.params as { jobId?: string }).jobId ?? '';
       const job = await amazonOrderJobService.getJob(jobId, scope.sellerId, scope.marketplaceId);
@@ -64,6 +65,7 @@ export class AmazonOrderController {
 
   getLatestImportJob = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
+      reply.header('Cache-Control', 'no-store');
       const scope = await this.resolveScope(request);
       const job = await amazonOrderJobService.getLatestJob(scope.sellerId, scope.marketplaceId);
       return reply.code(200).send(createSuccessResponse('Latest Amazon order import job retrieved', job));

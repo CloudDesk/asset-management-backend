@@ -76,6 +76,10 @@ export type AmazonRawOrder = {
   lastUpdatedTime?: string;
   programs?: string[];
   salesChannel?: { marketplaceId?: string };
+  buyer?: {
+    buyerName?: string;
+    buyerEmail?: string;
+  };
   fulfillment?: {
     fulfillmentStatus?: string;
     fulfilledBy?: string;
@@ -373,18 +377,31 @@ export class AmazonProductionListingsClient implements AmazonListingsReadClient 
         'AMAZON_ORDER_SEARCH_DATE_REQUIRED'
       );
     }
-    const response = await this.getJson<{
+    type SearchOrdersResponse = {
       orders?: AmazonRawOrder[];
       pagination?: { nextToken?: string };
-    }>('/orders/2026-01-01/orders', {
+    };
+    const baseQuery = {
       marketplaceIds: this.getMarketplaceId(),
       ...(input.createdAfter
         ? { createdAfter: input.createdAfter }
         : { lastUpdatedAfter: input.lastUpdatedAfter! }),
       maxResultsPerPage: '100',
-      includedData: 'FULFILLMENT,CANCELLATION',
       ...(input.paginationToken ? { paginationToken: input.paginationToken } : {}),
-    });
+    };
+    let response: SearchOrdersResponse;
+    try {
+      response = await this.getJson<SearchOrdersResponse>('/orders/2026-01-01/orders', {
+        ...baseQuery,
+        includedData: 'BUYER,FULFILLMENT,CANCELLATION',
+      });
+    } catch (error) {
+      if (!(error instanceof AmazonAuthorizationError)) throw error;
+      response = await this.getJson<SearchOrdersResponse>('/orders/2026-01-01/orders', {
+        ...baseQuery,
+        includedData: 'FULFILLMENT,CANCELLATION',
+      });
+    }
     return { orders: response.orders ?? [], nextToken: response.pagination?.nextToken ?? null };
   }
 

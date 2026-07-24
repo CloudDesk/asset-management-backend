@@ -1117,6 +1117,8 @@ model AmazonMarketplaceOrder {
   purchaseDate               DateTime  @db.Timestamptz(3)
   lastUpdateDate             DateTime  @db.Timestamptz(3)
   orderStatus                String    @db.VarChar(50)
+  buyerName                  String?   @db.VarChar(255)
+  buyerEmail                 String?   @db.VarChar(320)
   fulfilmentType             String    @db.VarChar(30)
   fulfilmentRoute            String    @db.VarChar(40)
   syncState                  String    @db.VarChar(30)

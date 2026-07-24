@@ -15,6 +15,85 @@ const stringify = (value: unknown) => typeof value === 'string' ? value : JSON.s
 const csvCell = (value: unknown) => `"${stringify(value).replace(/"/g, '""')}"`;
 const csv = (headers: string[], rows: unknown[][]) => [headers, ...rows].map((row) => row.map(csvCell).join(',')).join('\r\n');
 
+export type AmazonOperationsErrorSummary = {
+  errorCode: string;
+  userMessage: string;
+  recommendedAction: string;
+  retryable: boolean;
+};
+
+export const summarizeAmazonOperationsError = (
+  error: string | null | undefined,
+  operation: string,
+): AmazonOperationsErrorSummary => {
+  const raw = (error ?? '').replace(/\u001B\[[0-?]*[ -/]*[@-~]/g, ' ').replace(/\s+/g, ' ').trim();
+  const normalized = raw.toLowerCase();
+
+  if (
+    normalized.includes('does not exist in the current database')
+    || normalized.includes('unknown column')
+    || normalized.includes('column') && normalized.includes('does not exist')
+    || normalized.includes('p2022')
+  ) {
+    return {
+      errorCode: 'DATABASE_UPDATE_REQUIRED',
+      userMessage: 'A required database update was missing when this operation ran.',
+      recommendedAction: 'Ask an administrator to verify database updates, then run the sync again.',
+      retryable: false,
+    };
+  }
+  if (normalized.includes('unauthorized') || normalized.includes('access token') || normalized.includes('authorization')) {
+    return {
+      errorCode: 'AMAZON_CONNECTION_REQUIRED',
+      userMessage: 'The Amazon account connection could not be verified.',
+      recommendedAction: 'Reconnect the Amazon account in Settings, then try again.',
+      retryable: false,
+    };
+  }
+  if (normalized.includes('429') || normalized.includes('throttl') || normalized.includes('rate limit')) {
+    return {
+      errorCode: 'AMAZON_BUSY',
+      userMessage: 'Amazon temporarily limited the number of requests.',
+      recommendedAction: 'Wait a few minutes and retry the operation.',
+      retryable: true,
+    };
+  }
+  if (normalized.includes('timeout') || normalized.includes('timed out') || normalized.includes('econnreset')) {
+    return {
+      errorCode: 'TEMPORARY_CONNECTION_ISSUE',
+      userMessage: 'The operation did not finish because the connection was interrupted.',
+      recommendedAction: 'Retry the operation.',
+      retryable: true,
+    };
+  }
+  if (normalized.includes('prisma') || normalized.includes('invalid invocation') || normalized.includes('validation')) {
+    return {
+      errorCode: 'DATA_SAVE_FAILED',
+      userMessage: 'The imported Amazon data could not be saved.',
+      recommendedAction: 'Ask an administrator to review the data setup before retrying.',
+      retryable: false,
+    };
+  }
+
+  const fallback = operation === 'ORDER_IMPORT'
+    ? 'Amazon order synchronization did not complete.'
+    : operation === 'LISTING_IMPORT'
+      ? 'Amazon listing synchronization did not complete.'
+      : operation === 'INVENTORY_SYNC'
+        ? 'Amazon stock synchronization did not complete.'
+        : operation === 'FULFILLMENT_EXCEPTION'
+          ? 'The Amazon fulfillment update did not complete.'
+          : operation === 'OFFER_UPDATE'
+            ? 'The Amazon offer update did not complete.'
+            : 'The Amazon operation did not complete.';
+  return {
+    errorCode: 'OPERATION_FAILED',
+    userMessage: fallback,
+    recommendedAction: 'Review the affected item and retry the operation.',
+    retryable: ['ORDER_IMPORT', 'INVENTORY_SYNC', 'FULFILLMENT_EXCEPTION'].includes(operation),
+  };
+};
+
 export class AmazonOperationsService {
   async dashboard(scope: AmazonListingScope, userId?: number) {
     const [writeStatus, setting, latestListing, latestOrder, latestNotification, counts, activities, failures, retries, rateLimit, subscriptions] = await Promise.all([
@@ -63,7 +142,16 @@ export class AmazonOperationsService {
       permissions: userId ? await this.permissions(userId) : null,
       activities,
       failures,
-      retries: retries.map((job) => ({ ...job, id: String(job.id), createdAt: job.createdAt.toISOString(), updatedAt: job.updatedAt.toISOString(), nextAttemptAt: job.nextAttemptAt.toISOString(), startedAt: iso(job.startedAt), finishedAt: iso(job.finishedAt) })),
+      retries: retries.map((job) => ({
+        ...job,
+        id: String(job.id),
+        lastError: job.lastError ? summarizeAmazonOperationsError(job.lastError, job.operation).userMessage : null,
+        createdAt: job.createdAt.toISOString(),
+        updatedAt: job.updatedAt.toISOString(),
+        nextAttemptAt: job.nextAttemptAt.toISOString(),
+        startedAt: iso(job.startedAt),
+        finishedAt: iso(job.finishedAt),
+      })),
     };
   }
 
@@ -108,8 +196,8 @@ export class AmazonOperationsService {
     ]);
     return [
       ...ops.map((item) => ({ id: `operation-${item.id}`, category: 'OPERATIONS', action: item.action, status: item.outcome, message: item.details, occurredAt: item.createdAt.toISOString() })),
-      ...syncs.map((item) => ({ id: `listing-sync-${item.id}`, category: 'LISTINGS', action: item.operation, status: item.status, message: item.errorMessage || `${item.totalFetched} fetched`, occurredAt: item.startedAt.toISOString() })),
-      ...imports.map((item) => ({ id: `order-import-${item.id}`, category: 'ORDERS', action: `${item.trigger}_${item.mode}`, status: item.status, message: item.errorMessage || `${item.fetched} fetched`, occurredAt: item.createdAt.toISOString() })),
+      ...syncs.map((item) => ({ id: `listing-sync-${item.id}`, category: 'LISTINGS', action: item.operation, status: item.status, message: item.errorMessage ? summarizeAmazonOperationsError(item.errorMessage, 'LISTING_IMPORT').userMessage : `${item.totalFetched} fetched`, occurredAt: item.startedAt.toISOString() })),
+      ...imports.map((item) => ({ id: `order-import-${item.id}`, category: 'ORDERS', action: `${item.trigger}_${item.mode}`, status: item.status, message: item.errorMessage ? summarizeAmazonOperationsError(item.errorMessage, 'ORDER_IMPORT').userMessage : `${item.fetched} fetched`, occurredAt: item.createdAt.toISOString() })),
       ...audits.map((item) => ({ id: `listing-audit-${item.id}`, category: 'LISTINGS', action: item.operation, status: item.operation.includes('FAILED') ? 'FAILED' : 'SUCCESS', message: item.sellerSku, occurredAt: item.createdAt.toISOString() })),
     ].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)).slice(0, limit);
   }
@@ -122,12 +210,25 @@ export class AmazonOperationsService {
       prisma.amazonOrderFulfillmentException.findMany({ where: { status: 'OPEN', order: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId } }, include: { order: { select: { amazonOrderId: true } } }, orderBy: { createdAt: 'desc' }, take: limit }),
       prisma.marketplaceListingAudit.findMany({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, operation: { contains: 'FAILED' } }, orderBy: { createdAt: 'desc' }, take: limit }),
     ]);
+    const failure = (
+      base: { id: string; type: string; resourceId: string; label: string; occurredAt: string; listingId?: string; orderId?: string },
+      error: string | null | undefined,
+    ) => {
+      const summary = summarizeAmazonOperationsError(error, base.type);
+      return {
+        ...base,
+        error: summary.userMessage,
+        errorCode: summary.errorCode,
+        recommendedAction: summary.recommendedAction,
+        retryable: summary.retryable,
+      };
+    };
     return [
-      ...syncs.map((x) => ({ id: `listing-sync:${x.id}`, type: 'LISTING_IMPORT', resourceId: String(x.id), label: x.operation, error: x.errorMessage || `${x.failed} listing(s) failed`, occurredAt: x.startedAt.toISOString(), retryable: true })),
-      ...imports.map((x) => ({ id: `order-import:${x.id}`, type: 'ORDER_IMPORT', resourceId: String(x.id), label: x.mode, error: x.errorMessage, occurredAt: x.createdAt.toISOString(), retryable: true })),
-      ...inventory.map((x) => ({ id: `inventory:${x.id}`, type: 'INVENTORY_SYNC', resourceId: String(x.id), listingId: String(x.listingId), label: x.listing.sellerSku, error: x.errorMessage, occurredAt: x.createdAt.toISOString(), retryable: true })),
-      ...exceptions.map((x) => ({ id: `fulfillment:${x.id}`, type: 'FULFILLMENT_EXCEPTION', resourceId: String(x.id), orderId: String(x.orderId), label: x.order.amazonOrderId, error: x.message, occurredAt: x.createdAt.toISOString(), retryable: true })),
-      ...audits.map((x) => ({ id: `offer:${x.id}`, type: 'OFFER_UPDATE', resourceId: String(x.id), label: x.sellerSku, error: 'Offer update failed; create a new preview before retrying.', occurredAt: x.createdAt.toISOString(), retryable: false })),
+      ...syncs.map((x) => failure({ id: `listing-sync:${x.id}`, type: 'LISTING_IMPORT', resourceId: String(x.id), label: x.operation, occurredAt: x.startedAt.toISOString() }, x.errorMessage || `${x.failed} listing(s) failed`)),
+      ...imports.map((x) => failure({ id: `order-import:${x.id}`, type: 'ORDER_IMPORT', resourceId: String(x.id), label: x.mode, occurredAt: x.createdAt.toISOString() }, x.errorMessage)),
+      ...inventory.map((x) => failure({ id: `inventory:${x.id}`, type: 'INVENTORY_SYNC', resourceId: String(x.id), listingId: String(x.listingId), label: x.listing.sellerSku, occurredAt: x.createdAt.toISOString() }, x.errorMessage)),
+      ...exceptions.map((x) => failure({ id: `fulfillment:${x.id}`, type: 'FULFILLMENT_EXCEPTION', resourceId: String(x.id), orderId: String(x.orderId), label: x.order.amazonOrderId, occurredAt: x.createdAt.toISOString() }, x.message)),
+      ...audits.map((x) => failure({ id: `offer:${x.id}`, type: 'OFFER_UPDATE', resourceId: String(x.id), label: x.sellerSku, occurredAt: x.createdAt.toISOString() }, null)),
     ].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)).slice(0, limit);
   }
 
