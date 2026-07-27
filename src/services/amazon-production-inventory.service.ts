@@ -3,6 +3,10 @@ import { env } from '../config/env.js';
 import { prisma } from '../models/prisma.js';
 import { AmazonListingScope } from './amazon-listing-scope.service.js';
 import { amazonListingScopeService } from './amazon-listing-scope.service.js';
+import {
+  isInactiveAmazonListing,
+  normalizeAmazonListingStatus,
+} from './amazon-listing-normalizer.js';
 import { amazonProductionWriteGuardService } from './amazon-production-write-guard.service.js';
 
 export type AmazonInventoryActor = {
@@ -23,6 +27,47 @@ export class AmazonProductionInventoryError extends Error {
 
 export const calculateAmazonTargetQuantity = (availableQuantity: number, unitsPerListing: number) =>
   Math.floor(Math.max(0, Math.trunc(availableQuantity)) / Math.max(1, Math.trunc(unitsPerListing)));
+
+type AmazonInventoryEligibleListing = {
+  listingStatus: string;
+  mappingStatus: string;
+  productId: bigint | number | string | null;
+  fulfilmentChannel: string;
+  productType: string | null;
+};
+
+export const assertAmazonInventoryListingEligible = (listing: AmazonInventoryEligibleListing): void => {
+  if (listing.mappingStatus !== 'MAPPED' || listing.productId === null) {
+    throw new AmazonProductionInventoryError(
+      'Map this Amazon listing before synchronizing stock',
+      409,
+      'AMAZON_LISTING_NOT_MAPPED'
+    );
+  }
+  if (isInactiveAmazonListing(listing.listingStatus)) {
+    throw new AmazonProductionInventoryError(
+      `Amazon listing must be active before synchronizing stock; current status is ${listing.listingStatus}`,
+      409,
+      'AMAZON_LISTING_NOT_ACTIVE'
+    );
+  }
+  if (!['MFN', 'EASY_SHIP'].includes(listing.fulfilmentChannel)) {
+    throw new AmazonProductionInventoryError(
+      listing.fulfilmentChannel === 'FBA'
+        ? 'FBA inventory is read-only and cannot be published by Nivaana'
+        : 'Inventory publishing is limited to seller-fulfilled listings',
+      409,
+      'AMAZON_INVENTORY_NOT_MFN'
+    );
+  }
+  if (!listing.productType) {
+    throw new AmazonProductionInventoryError(
+      'Amazon product type is required before publishing inventory',
+      409,
+      'AMAZON_PRODUCT_TYPE_MISSING'
+    );
+  }
+};
 
 const serializeAttempt = (attempt: any) => ({
   id: String(attempt.id),
@@ -74,6 +119,7 @@ export class AmazonProductionInventoryService {
         id: true,
         sellerSku: true,
         productType: true,
+        listingStatus: true,
         fulfilmentChannel: true,
         mappingStatus: true,
         productId: true,
@@ -85,24 +131,10 @@ export class AmazonProductionInventoryService {
       },
     });
     if (!listing) throw new AmazonProductionInventoryError('Amazon listing was not found', 404, 'AMAZON_LISTING_NOT_FOUND');
-    if (listing.mappingStatus !== 'MAPPED' || listing.productId === null) {
-      throw new AmazonProductionInventoryError('Map this Amazon listing before synchronizing stock', 409, 'AMAZON_LISTING_NOT_MAPPED');
-    }
-    if (!['MFN', 'EASY_SHIP'].includes(listing.fulfilmentChannel)) {
-      throw new AmazonProductionInventoryError(
-        listing.fulfilmentChannel === 'FBA'
-          ? 'FBA inventory is read-only and cannot be published by Nivaana'
-          : 'Inventory publishing is limited to seller-fulfilled listings',
-        409,
-        'AMAZON_INVENTORY_NOT_MFN'
-      );
-    }
-    if (!listing.productType) {
-      throw new AmazonProductionInventoryError('Amazon product type is required before publishing inventory', 409, 'AMAZON_PRODUCT_TYPE_MISSING');
-    }
+    assertAmazonInventoryListingEligible(listing);
 
     const platformStock = await prisma.platformStock.findFirst({
-      where: { productid: listing.productId, platform: { equals: 'amazon', mode: 'insensitive' } },
+      where: { productid: listing.productId!, platform: { equals: 'amazon', mode: 'insensitive' } },
       select: { availableqty: true },
     });
     if (!platformStock) {
@@ -118,6 +150,14 @@ export class AmazonProductionInventoryService {
       throw new AmazonProductionInventoryError('Amazon production inventory reader is unavailable', 503, 'AMAZON_INVENTORY_CLIENT_UNAVAILABLE');
     }
     const remote = await scope.client.fetchListing(sellerSku);
+    const remoteStatus = normalizeAmazonListingStatus(remote.summaries);
+    if (isInactiveAmazonListing(remoteStatus)) {
+      throw new AmazonProductionInventoryError(
+        `Amazon listing is no longer active; current Amazon status is ${remoteStatus}`,
+        409,
+        'AMAZON_LISTING_NOT_ACTIVE'
+      );
+    }
     const availability = remote.fulfillmentAvailability?.find((item) =>
       !item.fulfillmentChannelCode || item.fulfillmentChannelCode.toUpperCase() === 'DEFAULT'
     );

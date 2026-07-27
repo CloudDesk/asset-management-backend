@@ -17,6 +17,8 @@ export type AmazonOperationalCapability =
   | 'amazon_order_sync'
   | 'amazon_shipment_confirmation'
   | 'amazon_product_update'
+  | 'amazon_listing_draft'
+  | 'amazon_listing_publish'
   | 'amazon_operations_admin'
   | 'amazon_retry_failures'
   | 'amazon_export';
@@ -62,6 +64,8 @@ const capabilityFallback: Record<AmazonOperationalCapability, AmazonChannelPermi
   amazon_order_sync: ['import', 'create'],
   amazon_shipment_confirmation: ['edit', 'modifyall'],
   amazon_product_update: ['edit', 'modifyall'],
+  amazon_listing_draft: ['create', 'edit', 'modifyall'],
+  amazon_listing_publish: ['create', 'edit', 'modifyall'],
   amazon_operations_admin: ['modifyall'],
   amazon_retry_failures: ['edit', 'modifyall'],
   amazon_export: ['read'],

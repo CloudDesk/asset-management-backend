@@ -306,6 +306,10 @@ const envSchema = z.object({
   AMAZON_NOTIFICATION_EVENTBRIDGE_DESTINATION_ID: z.string().trim().optional(),
   AMAZON_LISTING_IMPORT_ENABLED: z.enum(['true', 'false']).optional().default('false').transform((value) => value === 'true'),
   AMAZON_PRODUCTION_WRITES_ENABLED: z.enum(['true', 'false']).optional().default('false').transform((value) => value === 'true'),
+  // Listing creation remains independently controllable even when other Amazon writes are enabled.
+  AMAZON_LISTING_CREATION_ENABLED: z.enum(['true', 'false']).optional().default('false').transform((value) => value === 'true'),
+  AMAZON_FULL_CATALOG_CREATION_ENABLED: z.enum(['true', 'false']).optional().default('false').transform((value) => value === 'true'),
+  AMAZON_LISTING_EDIT_ENABLED: z.enum(['true', 'false']).optional().default('false').transform((value) => value === 'true'),
   AMAZON_PRODUCTION_SP_API_BASE_URL: z.string().optional().default('https://sellingpartnerapi-eu.amazon.com'),
   AMAZON_LISTING_IMPORT_PAGE_SIZE: z.string().optional().default('20').transform((value) => {
     const parsed = Number.parseInt(value, 10);

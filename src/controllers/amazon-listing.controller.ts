@@ -27,10 +27,17 @@ import {
   AmazonProductionInventoryError,
   amazonProductionInventoryService,
 } from '../services/amazon-production-inventory.service.js';
-import { amazonOfferApplySchema, amazonOfferUpdateSchema } from '../schemas/amazon-offer.schema.js';
+import {
+  amazonListingEditApplySchema,
+  amazonListingEditPreviewSchema,
+  amazonOfferApplySchema,
+  amazonOfferUpdateSchema,
+} from '../schemas/amazon-offer.schema.js';
 import { AmazonOfferUpdateError, amazonOfferUpdateService } from '../services/amazon-offer-update.service.js';
+import { AmazonListingEditError, amazonListingEditService } from '../services/amazon-listing-edit.service.js';
 import { AmazonSpApiError } from '../services/amazon-production-listings.client.js';
 import { AmazonAuthorizationError } from '../services/amazon-lwa-token.service.js';
+import { AmazonProductionWriteDisabledError } from '../services/amazon-production-write-guard.service.js';
 
 const validationErrorResponse = (reply: FastifyReply, error: ZodError) => reply.code(400).send({
   success: false,
@@ -83,7 +90,9 @@ const inventoryErrorResponse = (reply: FastifyReply, error: unknown) => {
 
 const offerErrorResponse = (reply: FastifyReply, error: unknown) => {
   if (error instanceof ZodError) return validationErrorResponse(reply, error);
-  if (error instanceof AmazonOfferUpdateError || error instanceof AmazonSpApiError || error instanceof AmazonAuthorizationError) return reply.code(error.statusCode).send({
+  if (error instanceof AmazonOfferUpdateError || error instanceof AmazonListingEditError
+    || error instanceof AmazonSpApiError || error instanceof AmazonAuthorizationError
+    || error instanceof AmazonProductionWriteDisabledError) return reply.code(error.statusCode).send({
     success: false, message: error.message, details: error.message, statusCode: error.statusCode, code: error.code,
   });
   return reply.code(500).send({ success: false, message: 'Amazon offer operation failed', details: 'Amazon offer operation failed', statusCode: 500, code: 'AMAZON_OFFER_OPERATION_FAILED' });
@@ -247,6 +256,49 @@ export class AmazonListingController {
       const input = amazonOfferApplySchema.parse(request.body);
       const data = await amazonOfferUpdateService.apply(listingId, input.previewId, await this.resolveScope(request), this.actor(request));
       return reply.code(200).send(createSuccessResponse('Amazon offer update submitted', data));
+    } catch (error) { return offerErrorResponse(reply, error); }
+  };
+
+  bootstrapListingEdit = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { listingId } = amazonListingParamsSchema.parse(request.params);
+      const data = await amazonListingEditService.bootstrap(listingId, await this.resolveScope(request));
+      return reply.code(200).send(createSuccessResponse('Latest Amazon listing baseline retrieved', data));
+    } catch (error) { return offerErrorResponse(reply, error); }
+  };
+
+  previewListingEdit = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { listingId } = amazonListingParamsSchema.parse(request.params);
+      const input = amazonListingEditPreviewSchema.parse(request.body);
+      const data = await amazonListingEditService.preview(
+        listingId, input, await this.resolveScope(request), this.actor(request)
+      );
+      return reply.code(200).send(createSuccessResponse('Amazon listing changes validated', data));
+    } catch (error) { return offerErrorResponse(reply, error); }
+  };
+
+  applyListingEdit = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { listingId } = amazonListingParamsSchema.parse(request.params);
+      const input = amazonListingEditApplySchema.parse(request.body);
+      const data = await amazonListingEditService.apply(
+        listingId,
+        { previewId: input.previewId, baselineHash: input.baselineHash },
+        await this.resolveScope(request),
+        this.actor(request)
+      );
+      return reply.code(200).send(createSuccessResponse('Amazon listing edit submitted', data));
+    } catch (error) { return offerErrorResponse(reply, error); }
+  };
+
+  reconcileListingEdit = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { listingId } = amazonListingParamsSchema.parse(request.params);
+      const data = await amazonListingEditService.reconcile(
+        listingId, await this.resolveScope(request), this.actor(request)
+      );
+      return reply.code(200).send(createSuccessResponse('Amazon listing edit reconciled', data));
     } catch (error) { return offerErrorResponse(reply, error); }
   };
 

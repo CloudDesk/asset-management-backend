@@ -1,5 +1,6 @@
 import {
   AmazonFbaInventorySummary,
+  AmazonListingSummary,
   AmazonRawListing,
 } from './amazon-production-listings.client.js';
 
@@ -101,6 +102,19 @@ export const isInactiveAmazonListing = (listingStatus: string): boolean => {
   return !statuses.some((status) => status === 'BUYABLE' || status === 'DISCOVERABLE' || status === 'ACTIVE');
 };
 
+export const normalizeAmazonListingStatus = (summaries?: AmazonListingSummary[]): string => {
+  const summaryStatuses = (summaries ?? []).flatMap((summary) => (
+    Array.isArray(summary.statuses)
+      ? summary.statuses
+      : Array.isArray(summary.status)
+        ? summary.status
+        : typeof summary.status === 'string'
+          ? [summary.status]
+          : []
+  ));
+  return uniqueStrings(summaryStatuses.map((status) => status.toUpperCase())).join(',') || 'UNKNOWN';
+};
+
 export const normalizeAmazonListing = (
   raw: AmazonRawListing,
   context: {
@@ -117,14 +131,7 @@ export const normalizeAmazonListing = (
     ?? raw.productTypes?.[0];
   const fbaInventory = context.fbaInventory;
 
-  const summaryStatuses = Array.isArray(summary?.statuses)
-    ? summary.statuses
-    : Array.isArray(summary?.status)
-      ? summary.status
-      : typeof summary?.status === 'string'
-        ? [summary.status]
-        : [];
-  const listingStatus = uniqueStrings(summaryStatuses.map((status) => status.toUpperCase())).join(',') || 'UNKNOWN';
+  const listingStatus = normalizeAmazonListingStatus(raw.summaries);
 
   const fulfilmentCodes = raw.fulfillmentAvailability?.map((item) => item.fulfillmentChannelCode) ?? [];
   const attributeValues = extractRelevantAttributeValues(raw.attributes);

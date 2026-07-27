@@ -91,6 +91,7 @@ export class AmazonOfferUpdateService {
     });
     const preview = await prisma.amazonOfferUpdatePreview.create({ data: {
       listingId: listing.id, sourceUpdatedAt: listing.updatedAt,
+      operationType: 'OFFER',
       requestedChanges: changes as Prisma.InputJsonValue, amazonIssues: issues, canApply,
       expiresAt: new Date(Date.now() + 15 * 60_000), ...actor,
     } });
@@ -110,7 +111,7 @@ export class AmazonOfferUpdateService {
     if (!writeStatus.effectiveEnabled) this.fail('Amazon production writes are disabled by the global kill switch', 409, 'AMAZON_PRODUCTION_WRITES_DISABLED');
     const listing = await this.listing(listingId, scope);
     const preview = await prisma.amazonOfferUpdatePreview.findFirst({ where: {
-      id: BigInt(previewId), listingId: listing.id,
+      id: BigInt(previewId), listingId: listing.id, operationType: 'OFFER',
     } });
     if (!preview) this.fail('Offer update preview not found', 404, 'AMAZON_OFFER_PREVIEW_NOT_FOUND');
     if (preview.status !== 'PENDING' || preview.expiresAt <= new Date()) this.fail('Offer update preview has expired; create a new preview');

@@ -8,7 +8,9 @@ import {
 } from '../repositories/amazon-listing.repository.js';
 import {
   classifyAmazonFulfilment,
+  isInactiveAmazonListing,
   normalizeAmazonListing,
+  normalizeAmazonListingStatus,
   NormalizedAmazonListing,
 } from './amazon-listing-normalizer.js';
 import { AmazonListingImportService } from './amazon-listing-import.service.js';
@@ -23,6 +25,16 @@ import {
 
 const MARKETPLACE_ID = 'A21TJRUUN4KGV';
 const SELLER_ID = 'TEST_SELLER';
+
+test('normalizes Amazon listing statuses and recognizes active inventory targets', () => {
+  assert.equal(normalizeAmazonListingStatus([{ statuses: ['buyable', 'DISCOVERABLE'] }]), 'BUYABLE,DISCOVERABLE');
+  assert.equal(normalizeAmazonListingStatus([{ status: 'active' }]), 'ACTIVE');
+  assert.equal(normalizeAmazonListingStatus([]), 'UNKNOWN');
+  assert.equal(isInactiveAmazonListing('BUYABLE'), false);
+  assert.equal(isInactiveAmazonListing('DISCOVERABLE,SUPPRESSED'), false);
+  assert.equal(isInactiveAmazonListing('SUPPRESSED'), true);
+  assert.equal(isInactiveAmazonListing('UNKNOWN'), true);
+});
 
 const rawListing = (
   sku: string | undefined,

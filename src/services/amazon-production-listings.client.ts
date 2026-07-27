@@ -42,6 +42,14 @@ export type AmazonRawListing = {
     productType?: string;
   }>;
   attributes?: Record<string, unknown>;
+  issues?: Array<{
+    code?: string;
+    message?: string;
+    severity?: 'ERROR' | 'WARNING' | 'INFO' | string;
+    attributeNames?: string[];
+    categories?: string[];
+    enforcements?: unknown;
+  }>;
 };
 
 export type AmazonFbaInventorySummary = {
@@ -68,6 +76,55 @@ export type AmazonListingsPage = {
 export type AmazonFbaInventoryPage = {
   items: AmazonFbaInventorySummary[];
   nextToken: string | null;
+};
+
+export type AmazonCatalogItem = {
+  asin?: string;
+  identifiers?: Array<{
+    marketplaceId?: string;
+    identifiers?: Array<{ identifierType?: string; identifier?: string }>;
+  }>;
+  images?: Array<{
+    marketplaceId?: string;
+    images?: Array<{ link?: string; height?: number; width?: number; variant?: string }>;
+  }>;
+  productTypes?: Array<{ marketplaceId?: string; productType?: string }>;
+  summaries?: Array<{
+    marketplaceId?: string;
+    itemName?: string;
+    brand?: string;
+    manufacturer?: string;
+  }>;
+};
+
+export type AmazonProductTypeRecommendation = {
+  name: string;
+  displayName: string;
+  marketplaceIds: string[];
+};
+
+export type AmazonProductTypeDefinition = {
+  metaSchema?: { link?: { resource?: string; verb?: 'GET' }; checksum?: string };
+  schema: { link: { resource: string; verb: 'GET' }; checksum: string };
+  requirements: string;
+  requirementsEnforced: string;
+  propertyGroups?: Record<string, unknown>;
+  productTypeVersion?: { version?: string; latest?: boolean; releaseCandidate?: boolean };
+};
+
+export type AmazonListingRestriction = {
+  marketplaceId: string;
+  conditionType?: string;
+  reasons?: Array<{
+    message: string;
+    reasonCode?: 'APPROVAL_REQUIRED' | 'ASIN_NOT_FOUND' | 'NOT_ELIGIBLE';
+    links?: Array<{
+      resource: string;
+      verb: string;
+      title?: string;
+      type?: string;
+    }>;
+  }>;
 };
 
 export type AmazonRawOrder = {
@@ -170,6 +227,28 @@ export interface AmazonListingsReadClient {
   fetchListingsPage(pageToken?: string): Promise<AmazonListingsPage>;
   fetchFbaInventoryPage(nextToken?: string): Promise<AmazonFbaInventoryPage>;
   fetchListing?(sellerSku: string): Promise<AmazonRawListing>;
+  searchCatalogItems?(input: {
+    identifiers?: string[];
+    identifiersType?: 'ASIN' | 'EAN' | 'GTIN' | 'ISBN' | 'JAN' | 'MINSAN' | 'SKU' | 'UPC';
+    keywords?: string[];
+    brandNames?: string[];
+    pageSize?: number;
+  }): Promise<AmazonCatalogItem[]>;
+  searchProductTypes?(input: {
+    itemName?: string;
+    keywords?: string[];
+  }): Promise<{ productTypes: AmazonProductTypeRecommendation[]; productTypeVersion: string | null }>;
+  getProductTypeDefinition?(input: {
+    productType: string;
+    requirements: 'LISTING' | 'LISTING_PRODUCT_ONLY' | 'LISTING_OFFER_ONLY';
+  }): Promise<AmazonProductTypeDefinition & { definitionSchema: Record<string, unknown> }>;
+  getListingsRestrictions?(input: {
+    asin: string;
+    conditionType?: 'new_new' | 'new_open_box' | 'new_oem' | 'refurbished_refurbished'
+      | 'used_like_new' | 'used_very_good' | 'used_good' | 'used_acceptable'
+      | 'collectible_like_new' | 'collectible_very_good' | 'collectible_good'
+      | 'collectible_acceptable' | 'club_club';
+  }): Promise<AmazonListingRestriction[]>;
   patchMfnQuantity?(input: {
     sellerSku: string;
     productType: string;
@@ -181,6 +260,27 @@ export interface AmazonListingsReadClient {
     patches: Array<{ op: 'replace' | 'merge'; path: string; value: Array<Record<string, unknown>> }>;
     validationPreview?: boolean;
   }): Promise<{ submissionId: string | null; status: string; issues: unknown[] }>;
+  previewListingItem?(input: {
+    sellerSku: string;
+    productType: string;
+    requirements: 'LISTING' | 'LISTING_PRODUCT_ONLY' | 'LISTING_OFFER_ONLY';
+    attributes: Record<string, unknown>;
+  }): Promise<{
+    submissionId: string | null;
+    status: string;
+    issues: unknown[];
+    identifiers: unknown[];
+  }>;
+  submitListingItem?(input: {
+    sellerSku: string;
+    productType: string;
+    requirements: 'LISTING' | 'LISTING_PRODUCT_ONLY' | 'LISTING_OFFER_ONLY';
+    attributes: Record<string, unknown>;
+  }): Promise<{
+    submissionId: string | null;
+    status: string;
+    issues: unknown[];
+  }>;
   searchOrders?(input: {
     lastUpdatedAfter?: string;
     createdAfter?: string;
@@ -317,9 +417,128 @@ export class AmazonProductionListingsClient implements AmazonListingsReadClient 
       `/listings/2021-08-01/items/${encodeURIComponent(this.getSellerId())}/${encodeURIComponent(sellerSku)}`,
       {
         marketplaceIds: this.getMarketplaceId(),
-        includedData: 'summaries,offers,fulfillmentAvailability,productTypes,attributes',
+        includedData: 'summaries,offers,fulfillmentAvailability,productTypes,attributes,issues',
       }
     );
+  }
+
+  async searchCatalogItems(input: {
+    identifiers?: string[];
+    identifiersType?: 'ASIN' | 'EAN' | 'GTIN' | 'ISBN' | 'JAN' | 'MINSAN' | 'SKU' | 'UPC';
+    keywords?: string[];
+    brandNames?: string[];
+    pageSize?: number;
+  }): Promise<AmazonCatalogItem[]> {
+    const identifiers = input.identifiers?.filter(Boolean);
+    const keywords = input.keywords?.filter(Boolean);
+    if (identifiers?.length && keywords?.length) {
+      throw new AmazonSpApiError('Catalog search cannot combine identifiers and keywords', 400, 'AMAZON_CATALOG_SEARCH_CONFLICT');
+    }
+    if (!identifiers?.length && !keywords?.length) {
+      throw new AmazonSpApiError('Catalog search requires identifiers or keywords', 400, 'AMAZON_CATALOG_SEARCH_REQUIRED');
+    }
+    if (identifiers?.length && !input.identifiersType) {
+      throw new AmazonSpApiError('Identifier type is required for identifier search', 400, 'AMAZON_IDENTIFIER_TYPE_REQUIRED');
+    }
+    const response = await this.getJson<{ items?: AmazonCatalogItem[] }>(
+      '/catalog/2022-04-01/items',
+      {
+        marketplaceIds: this.getMarketplaceId(),
+        includedData: 'identifiers,images,productTypes,summaries',
+        pageSize: String(Math.min(Math.max(input.pageSize ?? 10, 1), 20)),
+        ...(identifiers?.length ? {
+          identifiers: identifiers.join(','),
+          identifiersType: input.identifiersType!,
+          ...(input.identifiersType === 'SKU' ? { sellerId: this.getSellerId() } : {}),
+        } : {}),
+        ...(keywords?.length ? { keywords: keywords.join(',') } : {}),
+        ...(input.brandNames?.length ? { brandNames: input.brandNames.join(',') } : {}),
+      }
+    );
+    return response.items ?? [];
+  }
+
+  async searchProductTypes(input: {
+    itemName?: string;
+    keywords?: string[];
+  }): Promise<{ productTypes: AmazonProductTypeRecommendation[]; productTypeVersion: string | null }> {
+    if (input.itemName && input.keywords?.length) {
+      throw new AmazonSpApiError('Product type search cannot combine itemName and keywords', 400, 'AMAZON_PRODUCT_TYPE_SEARCH_CONFLICT');
+    }
+    const response = await this.getJson<{
+      productTypes?: AmazonProductTypeRecommendation[];
+      productTypeVersion?: string;
+    }>('/definitions/2020-09-01/productTypes', {
+      marketplaceIds: this.getMarketplaceId(),
+      ...(input.itemName ? { itemName: input.itemName } : {}),
+      ...(input.keywords?.length ? { keywords: input.keywords.join(',') } : {}),
+    });
+    return {
+      productTypes: response.productTypes ?? [],
+      productTypeVersion: response.productTypeVersion ?? null,
+    };
+  }
+
+  async getProductTypeDefinition(input: {
+    productType: string;
+    requirements: 'LISTING' | 'LISTING_PRODUCT_ONLY' | 'LISTING_OFFER_ONLY';
+  }): Promise<AmazonProductTypeDefinition & { definitionSchema: Record<string, unknown> }> {
+    const definition = await this.getJson<AmazonProductTypeDefinition>(
+      `/definitions/2020-09-01/productTypes/${encodeURIComponent(input.productType)}`,
+      {
+        sellerId: this.getSellerId(),
+        marketplaceIds: this.getMarketplaceId(),
+        productTypeVersion: 'LATEST',
+        requirements: input.requirements,
+        requirementsEnforced: 'ENFORCED',
+        locale: 'en_IN',
+      }
+    );
+    if (!definition.schema?.link?.resource) {
+      throw new AmazonSpApiError('Amazon Product Type Definition did not include a schema link', 502, 'AMAZON_PRODUCT_TYPE_SCHEMA_LINK_MISSING');
+    }
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), this.requestTimeoutMs);
+    try {
+      const response = await this.fetchImpl(definition.schema.link.resource, {
+        method: 'GET',
+        headers: { accept: 'application/json' },
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        throw new AmazonSpApiError(
+          `Amazon product type schema download failed with HTTP ${response.status}`,
+          response.status,
+          'AMAZON_PRODUCT_TYPE_SCHEMA_DOWNLOAD_FAILED'
+        );
+      }
+      return {
+        ...definition,
+        definitionSchema: await response.json() as Record<string, unknown>,
+      };
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  async getListingsRestrictions(input: {
+    asin: string;
+    conditionType?: 'new_new' | 'new_open_box' | 'new_oem' | 'refurbished_refurbished'
+      | 'used_like_new' | 'used_very_good' | 'used_good' | 'used_acceptable'
+      | 'collectible_like_new' | 'collectible_very_good' | 'collectible_good'
+      | 'collectible_acceptable' | 'club_club';
+  }): Promise<AmazonListingRestriction[]> {
+    const response = await this.getJson<{ restrictions?: AmazonListingRestriction[] }>(
+      '/listings/2021-08-01/restrictions',
+      {
+        asin: input.asin,
+        sellerId: this.getSellerId(),
+        marketplaceIds: this.getMarketplaceId(),
+        reasonLocale: 'en_IN',
+        ...(input.conditionType ? { conditionType: input.conditionType } : {}),
+      }
+    );
+    return response.restrictions ?? [];
   }
 
   async patchMfnQuantity(input: {
@@ -403,6 +622,80 @@ export class AmazonProductionListingsClient implements AmazonListingsReadClient 
       });
     }
     return { orders: response.orders ?? [], nextToken: response.pagination?.nextToken ?? null };
+  }
+
+  async previewListingItem(input: {
+    sellerSku: string;
+    productType: string;
+    requirements: 'LISTING' | 'LISTING_PRODUCT_ONLY' | 'LISTING_OFFER_ONLY';
+    attributes: Record<string, unknown>;
+  }): Promise<{
+    submissionId: string | null;
+    status: string;
+    issues: unknown[];
+    identifiers: unknown[];
+  }> {
+    const response = await this.requestJson<{
+      submissionId?: string;
+      status?: string;
+      issues?: unknown[];
+      identifiers?: unknown[];
+    }>(
+      'PUT',
+      `/listings/2021-08-01/items/${encodeURIComponent(this.getSellerId())}/${encodeURIComponent(input.sellerSku)}`,
+      {
+        marketplaceIds: this.getMarketplaceId(),
+        includedData: 'issues,identifiers',
+        issueLocale: 'en_IN',
+        mode: 'VALIDATION_PREVIEW',
+      },
+      {
+        productType: input.productType,
+        requirements: input.requirements,
+        attributes: input.attributes,
+      }
+    );
+    return {
+      submissionId: response.submissionId ?? null,
+      status: response.status ?? 'UNKNOWN',
+      issues: response.issues ?? [],
+      identifiers: response.identifiers ?? [],
+    };
+  }
+
+  async submitListingItem(input: {
+    sellerSku: string;
+    productType: string;
+    requirements: 'LISTING' | 'LISTING_PRODUCT_ONLY' | 'LISTING_OFFER_ONLY';
+    attributes: Record<string, unknown>;
+  }): Promise<{
+    submissionId: string | null;
+    status: string;
+    issues: unknown[];
+  }> {
+    const response = await this.requestJson<{
+      submissionId?: string;
+      status?: string;
+      issues?: unknown[];
+    }>(
+      'PUT',
+      `/listings/2021-08-01/items/${encodeURIComponent(this.getSellerId())}/${encodeURIComponent(input.sellerSku)}`,
+      {
+        marketplaceIds: this.getMarketplaceId(),
+        includedData: 'issues',
+        issueLocale: 'en_IN',
+      },
+      {
+        productType: input.productType,
+        requirements: input.requirements,
+        attributes: input.attributes,
+      }
+    );
+    return {
+      submissionId: response.submissionId ?? null,
+      status: response.status ?? 'UNKNOWN',
+      issues: response.issues ?? [],
+    };
   }
 
   async confirmShipment(input: {

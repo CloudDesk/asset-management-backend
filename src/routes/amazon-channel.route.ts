@@ -361,6 +361,63 @@ export async function amazonChannelRoutes(fastify: FastifyInstance) {
     },
   }, controller.applyOfferUpdate);
 
+  fastify.get('/listings/:listingId/edit/bootstrap', {
+    preHandler: [requireAuthentication, requireAmazonChannelPermission(['read'])],
+    schema: {
+      description: 'Load the latest Amazon attribute baseline and product-type field contract for controlled listing editing',
+      tags: ['Amazon Listing Edits'], security: [{ bearerAuth: [] }],
+      params: { type: 'object', required: ['listingId'], properties: { listingId: { type: 'string', pattern: '^[1-9]\\d*$' } }, additionalProperties: false },
+    },
+  }, controller.bootstrapListingEdit);
+
+  fastify.post('/listings/:listingId/edit/preview', {
+    preHandler: [requireAuthentication, requireAmazonChannelPermission(['edit', 'modifyall'])],
+    schema: {
+      description: 'Validate only intentionally changed Amazon attribute groups without changing the live listing',
+      tags: ['Amazon Listing Edits'], security: [{ bearerAuth: [] }],
+      params: { type: 'object', required: ['listingId'], properties: { listingId: { type: 'string', pattern: '^[1-9]\\d*$' } }, additionalProperties: false },
+      body: {
+        type: 'object', required: ['baselineHash', 'changedAttributes'],
+        properties: {
+          baselineHash: { type: 'string', pattern: '^[a-f0-9]{64}$' },
+          changedAttributes: {
+            type: 'object', minProperties: 1, maxProperties: 50,
+            propertyNames: { pattern: '^[a-z0-9_]+$' },
+            additionalProperties: { type: 'array', maxItems: 100, items: { type: 'object', additionalProperties: true } },
+          },
+        },
+        additionalProperties: false,
+      },
+    },
+  }, controller.previewListingEdit);
+
+  fastify.post('/listings/:listingId/edit/apply', {
+    preHandler: [requireAuthentication, requireAmazonChannelPermission(['edit', 'modifyall'])],
+    schema: {
+      description: 'Apply a fresh validated Amazon listing edit preview after explicit confirmation',
+      tags: ['Amazon Listing Edits'], security: [{ bearerAuth: [] }],
+      params: { type: 'object', required: ['listingId'], properties: { listingId: { type: 'string', pattern: '^[1-9]\\d*$' } }, additionalProperties: false },
+      body: {
+        type: 'object', required: ['previewId', 'baselineHash', 'confirmed'],
+        properties: {
+          previewId: { anyOf: [{ type: 'string', pattern: '^[1-9]\\d*$' }, { type: 'integer', minimum: 1 }] },
+          baselineHash: { type: 'string', pattern: '^[a-f0-9]{64}$' },
+          confirmed: { type: 'boolean', const: true },
+        },
+        additionalProperties: false,
+      },
+    },
+  }, controller.applyListingEdit);
+
+  fastify.post('/listings/:listingId/edit/reconcile', {
+    preHandler: [requireAuthentication, requireAmazonChannelPermission(['read'])],
+    schema: {
+      description: 'Reload Amazon after a listing edit and record its asynchronous status and issues',
+      tags: ['Amazon Listing Edits'], security: [{ bearerAuth: [] }],
+      params: { type: 'object', required: ['listingId'], properties: { listingId: { type: 'string', pattern: '^[1-9]\\d*$' } }, additionalProperties: false },
+    },
+  }, controller.reconcileListingEdit);
+
   fastify.post('/listings/bulk-map', {
     preHandler: [requireAuthentication, requireAmazonChannelPermission(['create', 'edit', 'modifyall'])],
     schema: {
@@ -396,7 +453,7 @@ export async function amazonChannelRoutes(fastify: FastifyInstance) {
   fastify.post('/listings/inventory/bulk-preview', {
     preHandler: [requireAuthentication, requireAmazonChannelPermission(['read'])],
     schema: {
-      description: 'Preview MFN inventory changes for up to 25 listings without modifying Amazon',
+      description: 'Preview inventory changes for up to 25 active mapped MFN/Easy Ship listings without modifying Amazon',
       tags: ['Amazon Production Inventory'],
       security: [{ bearerAuth: [] }],
       body: {
@@ -413,7 +470,7 @@ export async function amazonChannelRoutes(fastify: FastifyInstance) {
   fastify.post('/listings/inventory/bulk-sync', {
     preHandler: [requireAuthentication, requireAmazonChannelPermission(['edit', 'modifyall'])],
     schema: {
-      description: 'Publish up to 25 explicitly previewed MFN inventory updates',
+      description: 'Publish up to 25 explicitly previewed active MFN/Easy Ship inventory updates',
       tags: ['Amazon Production Inventory'],
       security: [{ bearerAuth: [] }],
       body: {
@@ -440,7 +497,7 @@ export async function amazonChannelRoutes(fastify: FastifyInstance) {
   fastify.post('/listings/:listingId/inventory/preview', {
     preHandler: [requireAuthentication, requireAmazonChannelPermission(['read'])],
     schema: {
-      description: 'Preview the exact MFN inventory change without modifying Amazon',
+      description: 'Preview the exact inventory change for an active mapped MFN/Easy Ship listing without modifying Amazon',
       tags: ['Amazon Production Inventory'],
       security: [{ bearerAuth: [] }],
       params: {
@@ -455,7 +512,7 @@ export async function amazonChannelRoutes(fastify: FastifyInstance) {
   fastify.post('/listings/:listingId/inventory/sync', {
     preHandler: [requireAuthentication, requireAmazonChannelPermission(['edit', 'modifyall'])],
     schema: {
-      description: 'Publish one previously previewed MFN inventory quantity to Amazon',
+      description: 'Publish one previously previewed active MFN/Easy Ship inventory quantity to Amazon',
       tags: ['Amazon Production Inventory'],
       security: [{ bearerAuth: [] }],
       params: {

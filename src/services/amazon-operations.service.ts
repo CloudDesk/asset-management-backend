@@ -167,6 +167,8 @@ export class AmazonOperationsService {
       orderSync: custom.amazon_order_sync ?? fallback(['import', 'create']),
       shipmentConfirmation: custom.amazon_shipment_confirmation ?? fallback(['edit', 'modifyall']),
       productUpdate: custom.amazon_product_update ?? fallback(['edit', 'modifyall']),
+      listingDraft: custom.amazon_listing_draft ?? fallback(['create', 'edit', 'modifyall']),
+      listingPublish: custom.amazon_listing_publish ?? fallback(['create', 'edit', 'modifyall']),
       operationsAdmin: custom.amazon_operations_admin ?? fallback(['modifyall']),
       retryFailures: custom.amazon_retry_failures ?? fallback(['edit', 'modifyall']),
       export: custom.amazon_export ?? fallback(['read']),
