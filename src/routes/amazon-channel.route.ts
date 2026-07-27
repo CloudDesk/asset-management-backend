@@ -8,6 +8,8 @@ import { timingSafeEqual } from 'node:crypto';
 import { env } from '../config/env.js';
 import { amazonOrderNotificationSchema } from '../schemas/amazon-order.schema.js';
 import { amazonOrderNotificationService } from '../services/amazon-order-notification.service.js';
+import { amazonReturnService } from '../services/amazon-return.service.js';
+import { amazonListingScopeService } from '../services/amazon-listing-scope.service.js';
 import { createSuccessResponse } from '../utils/errorHandler.js';
 
 const requireAmazonNotificationSecret = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -64,6 +66,155 @@ export async function amazonChannelRoutes(fastify: FastifyInstance) {
     },
   }, orderController.importOrders);
 
+  if (env.NODE_ENV !== 'production') {
+    fastify.post('/orders/test', {
+      preHandler: [requireAuthentication, requireAmazonChannelPermission(['create'])],
+      schema: {
+        description: 'Create a local development-only Amazon FBM test order without contacting Amazon',
+        tags: ['Amazon Order Hub'],
+        security: [{ bearerAuth: [] }],
+        body: {
+          type: 'object',
+          required: ['listingId', 'quantity', 'buyerName'],
+          properties: {
+            listingId: { type: 'string', pattern: '^\\d+$' },
+            quantity: { type: 'integer', minimum: 1, maximum: 100 },
+            buyerName: { type: 'string', minLength: 1, maxLength: 255 },
+          },
+          additionalProperties: false,
+        },
+      },
+    }, orderController.createTestOrder);
+
+    fastify.post('/orders/test/:orderId/status', {
+      preHandler: [requireAuthentication, requireAmazonChannelPermission(['create'])],
+      schema: {
+        description: 'Advance a local development-only Amazon test order without contacting Amazon',
+        tags: ['Amazon Order Hub'],
+        security: [{ bearerAuth: [] }],
+        params: {
+          type: 'object',
+          required: ['orderId'],
+          properties: { orderId: { type: 'string', pattern: '^\\d+$' } },
+        },
+        body: {
+          type: 'object',
+          required: ['status'],
+          properties: { status: { type: 'string', enum: ['SHIPPED', 'CANCELLED'] } },
+          additionalProperties: false,
+        },
+      },
+    }, orderController.updateTestOrderStatus);
+  }
+
+  fastify.post('/returns/import', {
+    preHandler: [requireAuthentication, requireAmazonChannelPermission(['import', 'create'])],
+    schema: {
+      description: 'Queue an Amazon FBA or FBM returns report import',
+      tags: ['Amazon Returns'],
+      security: [{ bearerAuth: [] }],
+      body: {
+        type: 'object',
+        required: ['fulfilmentType'],
+        properties: { fulfilmentType: { type: 'string', enum: ['FBA', 'FBM'] } },
+        additionalProperties: false,
+      },
+    },
+  }, async (request, reply) => {
+    const user = (request as any).user;
+    const scope = await amazonListingScopeService.resolve(user?.id, user?.userType);
+    const input = request.body as { fulfilmentType: 'FBA' | 'FBM' };
+    const result = await amazonReturnService.enqueue(scope, input.fulfilmentType, {
+      ...(user?.id !== undefined ? { requestedByUserId: user.id } : {}),
+      ...(user?.userType ? { requestedByUserType: user.userType } : {}),
+    });
+    return reply.code(result.existing ? 200 : 202).send(createSuccessResponse(
+      result.existing ? 'Amazon return import is already running' : 'Amazon return import queued',
+      result.job
+    ));
+  });
+
+  fastify.get('/returns/import-jobs/latest', {
+    preHandler: [requireAuthentication, requireAmazonChannelPermission(['read'])],
+    schema: {
+      tags: ['Amazon Returns'],
+      security: [{ bearerAuth: [] }],
+      querystring: {
+        type: 'object',
+        properties: { fulfilmentType: { type: 'string', enum: ['FBA', 'FBM'] } },
+        additionalProperties: false,
+      },
+    },
+  }, async (request, reply) => {
+    const user = (request as any).user;
+    const scope = await amazonListingScopeService.resolve(user?.id, user?.userType);
+    const query = request.query as { fulfilmentType?: string };
+    return reply.code(200).send(createSuccessResponse(
+      'Latest Amazon return import retrieved',
+      await amazonReturnService.latestJob(scope, query.fulfilmentType)
+    ));
+  });
+
+  fastify.get('/returns', {
+    preHandler: [requireAuthentication, requireAmazonChannelPermission(['read'])],
+    schema: {
+      tags: ['Amazon Returns'],
+      security: [{ bearerAuth: [] }],
+      querystring: {
+        type: 'object',
+        properties: {
+          page: { type: 'integer', minimum: 1, default: 1 },
+          limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
+          fulfilmentType: { type: 'string', enum: ['FBA', 'FBM'] },
+          inventoryAction: { type: 'string', maxLength: 30 },
+          search: { type: 'string', maxLength: 255 },
+        },
+        additionalProperties: false,
+      },
+    },
+  }, async (request, reply) => {
+    const user = (request as any).user;
+    const scope = await amazonListingScopeService.resolve(user?.id, user?.userType);
+    const query = request.query as { page?: number; limit?: number; fulfilmentType?: string; inventoryAction?: string; search?: string };
+    const data = await amazonReturnService.list(scope, {
+      page: query.page ?? 1, limit: query.limit ?? 20,
+      ...(query.fulfilmentType ? { fulfilmentType: query.fulfilmentType } : {}),
+      ...(query.inventoryAction ? { inventoryAction: query.inventoryAction } : {}),
+      ...(query.search ? { search: query.search } : {}),
+    });
+    return reply.code(200).send(createSuccessResponse('Amazon returns retrieved', data));
+  });
+
+  fastify.post<{ Params: { returnId: string } }>('/returns/:returnId/receive', {
+    preHandler: [requireAuthentication, requireAmazonChannelPermission(['edit', 'modifyall'])],
+    schema: {
+      description: 'Receive and quality-check an FBM return; only restockable units update Nivaana inventory',
+      tags: ['Amazon Returns'],
+      security: [{ bearerAuth: [] }],
+      params: {
+        type: 'object', required: ['returnId'],
+        properties: { returnId: { type: 'string', pattern: '^[1-9]\\d*$' } },
+      },
+      body: {
+        type: 'object', required: ['quantityReceived', 'qcDisposition'],
+        properties: {
+          quantityReceived: { type: 'integer', minimum: 1 },
+          qcDisposition: { type: 'string', enum: ['RESTOCKABLE', 'DAMAGED', 'UNSELLABLE'] },
+        },
+        additionalProperties: false,
+      },
+    },
+  }, async (request, reply) => {
+    const user = (request as any).user;
+    const scope = await amazonListingScopeService.resolve(user?.id, user?.userType);
+    const input = request.body as { quantityReceived: number; qcDisposition: 'RESTOCKABLE' | 'DAMAGED' | 'UNSELLABLE' };
+    const data = await amazonReturnService.receive(request.params.returnId, scope, input, {
+      ...(user?.id !== undefined ? { requestedByUserId: user.id } : {}),
+      ...(user?.userType ? { requestedByUserType: user.userType } : {}),
+    });
+    return reply.code(200).send(createSuccessResponse('Amazon FBM return received', data));
+  });
+
   fastify.get('/orders/import-jobs/latest', {
     preHandler: [requireAuthentication, requireAmazonChannelPermission(['read'])],
     schema: { tags: ['Amazon Order Hub'], security: [{ bearerAuth: [] }] },
@@ -81,8 +232,8 @@ export async function amazonChannelRoutes(fastify: FastifyInstance) {
   fastify.post('/orders/notifications', {
     preHandler: [requireAmazonNotificationSecret],
     schema: {
-      description: 'Receive a normalized Amazon order notification from the configured secure notification relay',
-      tags: ['Amazon Order Hub'],
+      description: 'Receive normalized Amazon order or FBA inventory notifications from the configured secure SQS relay',
+      tags: ['Amazon Notifications'],
       headers: {
         type: 'object',
         required: ['x-amazon-notification-secret'],
@@ -112,7 +263,13 @@ export async function amazonChannelRoutes(fastify: FastifyInstance) {
       eventTime: string;
       payload: unknown;
     });
-    return reply.code(data.duplicate ? 200 : 202).send(createSuccessResponse(data.duplicate ? 'Amazon order notification already received' : 'Amazon order notification queued', data));
+    return reply.code(data.duplicate || data.status === 'PROCESSED' || data.status === 'IGNORED' ? 200 : 202).send(createSuccessResponse(
+      data.duplicate ? 'Amazon notification already received'
+        : data.status === 'PROCESSED' ? 'Amazon FBA inventory notification processed'
+          : data.status === 'IGNORED' ? 'Amazon notification ignored'
+            : 'Amazon order notification queued',
+      data
+    ));
   });
 
   fastify.get('/orders', {

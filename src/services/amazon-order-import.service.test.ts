@@ -3,7 +3,11 @@ import test from 'node:test';
 import { classifyAmazonOrder } from './amazon-order-import.service.js';
 import { amazonOrderQuerySchema } from '../schemas/amazon-order.schema.js';
 import { AmazonProductionListingsClient } from './amazon-production-listings.client.js';
-import { deriveAmazonOrderRoutingDecision, isAmazonOrderFinalStatus } from './amazon-order-routing.service.js';
+import {
+  calculateFbaSoldDelta,
+  deriveAmazonOrderRoutingDecision,
+  isAmazonOrderFinalStatus,
+} from './amazon-order-routing.service.js';
 
 test('classifies FBA, Easy Ship, and merchant-fulfilled orders', () => {
   assert.equal(classifyAmazonOrder({ fulfillment: { fulfilledBy: 'AMAZON', fulfillmentStatus: 'SHIPPED' } }).fulfilmentType, 'FBA');
@@ -103,6 +107,14 @@ test('treats only completed shipment states as final stock-sale states', () => {
   assert.equal(isAmazonOrderFinalStatus('COMPLETED'), true);
   assert.equal(isAmazonOrderFinalStatus('UNSHIPPED'), false);
   assert.equal(isAmazonOrderFinalStatus('CANCELLED'), false);
+});
+
+test('updates FBA sold accounting idempotently and reverses it on cancellation', () => {
+  assert.equal(calculateFbaSoldDelta(null, 2, true), 2);
+  assert.equal(calculateFbaSoldDelta({ status: 'RESERVED', quantity: 2 }, 2, true), 2);
+  assert.equal(calculateFbaSoldDelta({ status: 'SOLD', quantity: 2 }, 2, true), 0);
+  assert.equal(calculateFbaSoldDelta({ status: 'SOLD', quantity: 2 }, 3, true), 1);
+  assert.equal(calculateFbaSoldDelta({ status: 'SOLD', quantity: 2 }, 2, false), -2);
 });
 
 test('confirms an MFN shipment with the Amazon-required package and tracking fields', async () => {

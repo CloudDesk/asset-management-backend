@@ -296,6 +296,8 @@ const envSchema = z.object({
   AMAZON_AUTO_SYNC_ENABLED: z.enum(['true', 'false']).optional().default('false').transform((value) => value === 'true'),
   AMAZON_ORDER_AUTO_SYNC_ENABLED: z.enum(['true', 'false']).optional().default('false').transform((value) => value === 'true'),
   AMAZON_ORDER_SYNC_CRON: z.string().optional().default('*/15 * * * *'),
+  AMAZON_RETURN_AUTO_SYNC_ENABLED: z.enum(['true', 'false']).optional().default('false').transform((value) => value === 'true'),
+  AMAZON_RETURN_SYNC_CRON: z.string().optional().default('30 2 * * *'),
   AMAZON_LISTING_AUTO_SYNC_ENABLED: z.enum(['true', 'false']).optional().default('false').transform((value) => value === 'true'),
   AMAZON_LISTING_SYNC_CRON: z.string().optional().default('0 */6 * * *'),
   AMAZON_RETRY_WORKER_ENABLED: z.enum(['true', 'false']).optional().default('false').transform((value) => value === 'true'),

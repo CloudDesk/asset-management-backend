@@ -67,6 +67,7 @@ model Product {
   amazonOrderItems        AmazonMarketplaceOrderItem[]
   amazonOrderReservations AmazonOrderStockReservation[]
   amazonPublishDrafts     AmazonListingPublishDraft[]
+  amazonReturns           AmazonReturnEvent[]
 
   @@map("product")
 }
@@ -1055,6 +1056,7 @@ model MarketplaceListing {
   amazonOrderItems             AmazonMarketplaceOrderItem[]
   amazonOrderStockReservations AmazonOrderStockReservation[]
   offerUpdatePreviews          AmazonOfferUpdatePreview[]
+  amazonReturns                AmazonReturnEvent[]
 
   @@unique([marketplace, marketplaceId, sellerId, sellerSku], map: "marketplace_listing_seller_sku_key")
   @@index([productId], map: "marketplace_listings_product_id_idx")
@@ -1132,26 +1134,26 @@ model AmazonListingPublishDraft {
 }
 
 model AmazonListingPublishImage {
-  id                        BigInt    @id @default(autoincrement()) @db.BigInt
-  draftId                   BigInt    @db.BigInt
-  sourceType                String    @db.VarChar(30)
-  sourceProductUrl          String?   @db.Text
-  url                       String    @db.Text
-  originalFileName          String?   @db.VarChar(500)
-  contentType               String?   @db.VarChar(100)
-  sizeBytes                 Int?
-  width                     Int?
-  height                    Int?
-  sortOrder                 Int
-  status                    String    @default("ACTIVE") @db.VarChar(20)
-  accessibilityStatus       String    @default("PENDING") @db.VarChar(20)
-  accessibilityError        String?   @db.Text
-  accessibilityCheckedAt    DateTime? @db.Timestamptz(3)
-  validationErrors          Json
-  createdByUserId           Int?
-  createdByUserType         String?   @db.VarChar(30)
-  createdAt                 DateTime  @default(now()) @db.Timestamptz(3)
-  updatedAt                 DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+  id                     BigInt    @id @default(autoincrement()) @db.BigInt
+  draftId                BigInt    @db.BigInt
+  sourceType             String    @db.VarChar(30)
+  sourceProductUrl       String?   @db.Text
+  url                    String    @db.Text
+  originalFileName       String?   @db.VarChar(500)
+  contentType            String?   @db.VarChar(100)
+  sizeBytes              Int?
+  width                  Int?
+  height                 Int?
+  sortOrder              Int
+  status                 String    @default("ACTIVE") @db.VarChar(20)
+  accessibilityStatus    String    @default("PENDING") @db.VarChar(20)
+  accessibilityError     String?   @db.Text
+  accessibilityCheckedAt DateTime? @db.Timestamptz(3)
+  validationErrors       Json
+  createdByUserId        Int?
+  createdByUserType      String?   @db.VarChar(30)
+  createdAt              DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
 
   draft AmazonListingPublishDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
 
@@ -1289,6 +1291,7 @@ model AmazonMarketplaceOrder {
   fulfillment           AmazonOrderFulfillment?
   fulfillmentAudits     AmazonOrderFulfillmentAudit[]
   fulfillmentExceptions AmazonOrderFulfillmentException[]
+  returns               AmazonReturnEvent[]
 
   @@unique([sellerId, marketplaceId, amazonOrderId], map: "amazon_marketplace_orders_unique")
   @@index([sellerId, marketplaceId, purchaseDate], map: "amazon_marketplace_orders_purchase_idx")
@@ -1421,6 +1424,76 @@ model AmazonOrderNotification {
   @@index([sellerId, marketplaceId, eventTime], map: "amazon_order_notifications_scope_event_idx")
   @@index([status, createdAt], map: "amazon_order_notifications_status_created_idx")
   @@map("amazon_order_notifications")
+}
+
+model AmazonReturnImportJob {
+  id                  BigInt    @id @default(autoincrement()) @db.BigInt
+  sellerId            String    @db.VarChar(255)
+  marketplaceId       String    @db.VarChar(50)
+  fulfilmentType      String    @db.VarChar(10)
+  reportType          String    @db.VarChar(100)
+  amazonReportId      String?   @db.VarChar(255)
+  status              String    @default("QUEUED") @db.VarChar(20)
+  activeKey           String?   @unique @db.VarChar(350)
+  fetched             Int       @default(0)
+  created             Int       @default(0)
+  updated             Int       @default(0)
+  unmapped            Int       @default(0)
+  errorMessage        String?   @db.Text
+  requestedByUserId   Int?
+  requestedByUserType String?   @db.VarChar(30)
+  startedAt           DateTime? @db.Timestamptz(3)
+  finishedAt          DateTime? @db.Timestamptz(3)
+  createdAt           DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  @@index([sellerId, marketplaceId, createdAt], map: "amazon_return_import_jobs_scope_created_idx")
+  @@index([status, createdAt], map: "amazon_return_import_jobs_status_created_idx")
+  @@map("amazon_return_import_jobs")
+}
+
+model AmazonReturnEvent {
+  id                  BigInt    @id @default(autoincrement()) @db.BigInt
+  fingerprint         String    @unique @db.VarChar(64)
+  sellerId            String    @db.VarChar(255)
+  marketplaceId       String    @db.VarChar(50)
+  fulfilmentType      String    @db.VarChar(10)
+  reportType          String    @db.VarChar(100)
+  amazonOrderId       String    @db.VarChar(255)
+  amazonRmaId         String?   @db.VarChar(255)
+  returnDate          DateTime  @db.Timestamptz(3)
+  sellerSku           String?   @db.VarChar(255)
+  asin                String?   @db.VarChar(20)
+  fnSku               String?   @db.VarChar(255)
+  quantity            Int
+  amazonStatus        String?   @db.VarChar(100)
+  disposition         String?   @db.VarChar(100)
+  reason              String?   @db.Text
+  fulfillmentCenterId String?   @db.VarChar(100)
+  licensePlateNumber  String?   @db.VarChar(255)
+  customerComments    String?   @db.Text
+  orderId             BigInt?   @db.BigInt
+  listingId           BigInt?   @db.BigInt
+  productId           BigInt?   @db.BigInt
+  inventoryAction     String    @default("REMOTE_ONLY") @db.VarChar(30)
+  quantityReceived    Int?
+  qcDisposition       String?   @db.VarChar(30)
+  receivedAt          DateTime? @db.Timestamptz(3)
+  processedAt         DateTime? @db.Timestamptz(3)
+  processedByUserId   Int?
+  processedByUserType String?   @db.VarChar(30)
+  rawData             Json?
+  createdAt           DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  order   AmazonMarketplaceOrder? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  listing MarketplaceListing?     @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  product Product?                @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([sellerId, marketplaceId, returnDate], map: "amazon_return_events_scope_date_idx")
+  @@index([amazonOrderId], map: "amazon_return_events_order_id_idx")
+  @@index([productId, fulfilmentType, inventoryAction], map: "amazon_return_events_product_action_idx")
+  @@map("amazon_return_events")
 }
 
 model AmazonOrderFulfillment {

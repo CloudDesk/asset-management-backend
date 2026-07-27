@@ -20,6 +20,7 @@ export type AmazonListingQuery = {
   mappingStatus?: string | undefined;
   fulfilmentChannel?: string | undefined;
   listingStatus?: string | undefined;
+  activeOnly?: boolean | undefined;
   page: number;
   limit: number;
 };
@@ -77,6 +78,12 @@ export interface AmazonListingPersistence {
     listing: NormalizedAmazonListing & { sellerSku: string },
     auditContext?: AmazonListingAuditContext
   ): Promise<AmazonListingUpsertResult>;
+  markListingsMissingFromImport(input: {
+    sellerId: string;
+    marketplaceId: string;
+    seenSellerSkus: string[];
+    auditContext?: AmazonListingAuditContext;
+  }): Promise<number>;
   listListings(query: AmazonListingQuery): Promise<{
     data: Array<Record<string, unknown>>;
     pagination: {
@@ -163,6 +170,62 @@ const actorData = (context: AmazonListingAuditContext = {}) => ({
     ? { requestedByUserType: context.requestedByUserType }
     : {}),
 });
+
+const mirrorFbaPlatformStock = async (
+  transaction: Prisma.TransactionClient,
+  listing: {
+    fulfilmentChannel: string;
+    productId: bigint | null;
+    mappingStatus: string;
+    publishedQuantity: number | null;
+    fbaFulfillableQuantity: number | null;
+    fbaPendingOrderQuantity: number | null;
+    fbaReservedQuantity: number | null;
+    fbaTotalQuantity: number | null;
+  }
+) => {
+  if (
+    listing.fulfilmentChannel !== 'FBA'
+    || listing.productId === null
+    || listing.mappingStatus !== 'MAPPED'
+  ) return;
+
+  const available = listing.fbaFulfillableQuantity ?? listing.publishedQuantity ?? 0;
+  const ordered = listing.fbaPendingOrderQuantity ?? 0;
+  const total = listing.fbaTotalQuantity
+    ?? available + (listing.fbaReservedQuantity ?? 0);
+  const stockData = {
+    availableqty: available,
+    orderedqty: ordered,
+    totalqty: total,
+    ecomqty: available,
+    platformstatus: available > 5 ? 'in_stock' : available > 0 ? 'low_stock' : 'out_of_stock',
+    modifieddate: BigInt(Date.now()),
+  };
+  const existingStock = await transaction.platformStock.findFirst({
+    where: {
+      productid: listing.productId,
+      platform: { equals: 'amazon', mode: 'insensitive' },
+    },
+  });
+  if (existingStock) {
+    await transaction.platformStock.update({
+      where: { id: existingStock.id },
+      data: stockData,
+    });
+  } else {
+    await transaction.platformStock.create({
+      data: {
+        productid: listing.productId,
+        platform: 'amazon',
+        soldqty: 0,
+        lockqty: 0,
+        createddate: BigInt(Date.now()),
+        ...stockData,
+      },
+    });
+  }
+};
 
 type FbaOrderAccounting = { ordered: number; sold: number };
 
@@ -368,13 +431,15 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
     const changed = changedFields.length > 0;
 
     await prisma.$transaction(async (transaction) => {
-      await transaction.marketplaceListing.update({
+      const updated = await transaction.marketplaceListing.update({
         where,
         data: {
           ...(changed ? importedValues : {}),
+          ...(listing.fulfilmentChannel === 'FBA' ? { inventorySyncMode: 'DISABLED' } : {}),
           lastImportedAt: new Date(),
         },
       });
+      await mirrorFbaPlatformStock(transaction, updated);
       if (changed) {
         await transaction.marketplaceListingAudit.create({
           data: {
@@ -400,6 +465,92 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
     };
   }
 
+  async markListingsMissingFromImport(input: {
+    sellerId: string;
+    marketplaceId: string;
+    seenSellerSkus: string[];
+    auditContext?: AmazonListingAuditContext;
+  }): Promise<number> {
+    const missing = await prisma.marketplaceListing.findMany({
+      where: {
+        marketplace: 'AMAZON',
+        environment: 'PRODUCTION',
+        marketplaceId: input.marketplaceId,
+        sellerId: input.sellerId,
+        NOT: { listingStatus: { equals: 'DELETED', mode: 'insensitive' } },
+        ...(input.seenSellerSkus.length > 0
+          ? { sellerSku: { notIn: input.seenSellerSkus } }
+          : {}),
+      },
+    });
+    if (missing.length === 0) return 0;
+
+    await prisma.$transaction(async (transaction) => {
+      for (const listing of missing) {
+        const changedFields = [
+          'listingStatus',
+          'publishedQuantity',
+          'fbaFulfillableQuantity',
+          'fbaReservedQuantity',
+          'fbaPendingOrderQuantity',
+          'fbaTotalQuantity',
+          'inventorySyncMode',
+        ];
+        await transaction.marketplaceListing.update({
+          where: { id: listing.id },
+          data: {
+            listingStatus: 'DELETED',
+            publishedQuantity: 0,
+            fbaFulfillableQuantity: listing.fulfilmentChannel === 'FBA' ? 0 : null,
+            fbaReservedQuantity: listing.fulfilmentChannel === 'FBA' ? 0 : null,
+            fbaPendingOrderQuantity: listing.fulfilmentChannel === 'FBA' ? 0 : null,
+            fbaTotalQuantity: listing.fulfilmentChannel === 'FBA' ? 0 : null,
+            inventorySyncMode: 'DISABLED',
+            lastImportedAt: new Date(),
+          },
+        });
+        await transaction.marketplaceListingAudit.create({
+          data: {
+            listingId: listing.id,
+            ...(input.auditContext?.syncLogId
+              ? { syncLogId: BigInt(input.auditContext.syncLogId) }
+              : {}),
+            marketplace: listing.marketplace,
+            environment: listing.environment,
+            marketplaceId: listing.marketplaceId,
+            sellerId: listing.sellerId,
+            sellerSku: listing.sellerSku,
+            operation: 'IMPORT_DELETED',
+            changedFields,
+            beforeValues: {
+              listingStatus: listing.listingStatus,
+              publishedQuantity: listing.publishedQuantity,
+              fbaFulfillableQuantity: listing.fbaFulfillableQuantity,
+              fbaReservedQuantity: listing.fbaReservedQuantity,
+              fbaPendingOrderQuantity: listing.fbaPendingOrderQuantity,
+              fbaTotalQuantity: listing.fbaTotalQuantity,
+              inventorySyncMode: listing.inventorySyncMode,
+            },
+            afterValues: {
+              listingStatus: 'DELETED',
+              publishedQuantity: 0,
+              fbaFulfillableQuantity: listing.fulfilmentChannel === 'FBA' ? 0 : null,
+              fbaReservedQuantity: listing.fulfilmentChannel === 'FBA' ? 0 : null,
+              fbaPendingOrderQuantity: listing.fulfilmentChannel === 'FBA' ? 0 : null,
+              fbaTotalQuantity: listing.fulfilmentChannel === 'FBA' ? 0 : null,
+              inventorySyncMode: 'DISABLED',
+            },
+            previousProductId: listing.productId,
+            productId: listing.productId,
+            ...actorData(input.auditContext),
+          },
+        });
+      }
+    });
+
+    return missing.length;
+  }
+
   async listListings(query: AmazonListingQuery) {
     const where: Prisma.MarketplaceListingWhereInput = {
       marketplace: 'AMAZON',
@@ -412,6 +563,11 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
     if (query.fulfilmentChannel) where.fulfilmentChannel = query.fulfilmentChannel;
     if (query.listingStatus) {
       where.listingStatus = { contains: query.listingStatus, mode: 'insensitive' };
+    }
+    if (query.activeOnly) {
+      where.NOT = {
+        listingStatus: { contains: 'DELETED', mode: 'insensitive' },
+      };
     }
     if (query.search) {
       where.OR = [
@@ -659,6 +815,7 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
           },
         },
       });
+      await mirrorFbaPlatformStock(transaction, mapped);
 
       const before = {
         productId: listing.productId === null ? null : String(listing.productId),

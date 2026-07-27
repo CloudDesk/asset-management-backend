@@ -4,6 +4,7 @@ import {
   AmazonProductionInventoryError,
   assertAmazonInventoryListingEligible,
   calculateAmazonTargetQuantity,
+  resolveAmazonInventoryConfirmation,
 } from './amazon-production-inventory.service.js';
 import { AmazonProductionListingsClient } from './amazon-production-listings.client.js';
 import {
@@ -19,6 +20,22 @@ test('calculates Amazon listing quantity from Nivaana units per listing', () => 
   assert.equal(calculateAmazonTargetQuantity(11, 2), 5);
   assert.equal(calculateAmazonTargetQuantity(-4, 1), 0);
   assert.equal(calculateAmazonTargetQuantity(7.9, 0), 7);
+});
+
+test('waits for Amazon live quantity before marking an accepted submission successful', () => {
+  const submittedAt = new Date('2026-07-27T09:00:00.000Z');
+  assert.equal(
+    resolveAmazonInventoryConfirmation(31, 30, submittedAt, new Date('2026-07-27T09:05:00.000Z')),
+    'PENDING'
+  );
+  assert.equal(
+    resolveAmazonInventoryConfirmation(31, 31, submittedAt, new Date('2026-07-27T09:05:00.000Z')),
+    'CONFIRMED'
+  );
+  assert.equal(
+    resolveAmazonInventoryConfirmation(31, 30, submittedAt, new Date('2026-07-27T09:15:00.000Z')),
+    'TIMED_OUT'
+  );
 });
 
 test('allows stock handoff only for active mapped seller-fulfilled listings', () => {
@@ -241,7 +258,7 @@ test('gets and creates Amazon notification subscriptions through Notifications A
   const requests: Array<{ url: string; method: string; body?: string }> = [];
   const responses = [
     new Response(JSON.stringify({ payload: { subscriptionId: 'sub-existing', destinationId: 'dest-sqs', payloadVersion: '1.0' } }), { status: 200, headers: { 'Content-Type': 'application/json' } }),
-    new Response(JSON.stringify({ payload: { subscriptionId: 'sub-created', destinationId: 'dest-events', payloadVersion: '2023-12-13' } }), { status: 200, headers: { 'Content-Type': 'application/json' } }),
+    new Response(JSON.stringify({ payload: { subscriptionId: 'sub-created', destinationId: 'dest-sqs', payloadVersion: '1.0' } }), { status: 200, headers: { 'Content-Type': 'application/json' } }),
   ];
   const client = new AmazonProductionListingsClient({
     sellerId: 'SELLER-1', marketplaceId: 'A21TJRUUN4KGV',
@@ -252,9 +269,18 @@ test('gets and creates Amazon notification subscriptions through Notifications A
     },
   });
   const existing = await client.getNotificationSubscription('ORDER_CHANGE', '1.0');
-  const created = await client.createNotificationSubscription('LISTINGS_ITEM_ISSUES_CHANGE', '2023-12-13', 'dest-events');
+  const created = await client.createNotificationSubscription('ORDER_CHANGE', '1.0', 'dest-sqs');
   assert.equal(existing?.subscriptionId, 'sub-existing');
   assert.equal(created.subscriptionId, 'sub-created');
   assert.match(requests[0].url, /notifications\/v1\/subscriptions\/ORDER_CHANGE\?payloadVersion=1.0/);
-  assert.deepEqual(JSON.parse(requests[1].body!), { payloadVersion: '2023-12-13', destinationId: 'dest-events' });
+  assert.deepEqual(JSON.parse(requests[1].body!), {
+    payloadVersion: '1.0',
+    destinationId: 'dest-sqs',
+    processingDirective: {
+      eventFilter: {
+        eventFilterType: 'ORDER_CHANGE',
+        orderChangeTypes: ['OrderStatusChange', 'BuyerRequestedChange'],
+      },
+    },
+  });
 });

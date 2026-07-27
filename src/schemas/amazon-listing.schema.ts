@@ -15,11 +15,17 @@ const positiveInteger = (defaultValue: number, maximum: number) => z.preprocess(
   z.coerce.number().int().min(1).max(maximum)
 );
 
+const optionalBoolean = z.preprocess(
+  (value) => value === 'true' ? true : value === 'false' ? false : value,
+  z.boolean().optional()
+);
+
 export const amazonListingQuerySchema = z.object({
   search: optionalTrimmed(255),
   mappingStatus: optionalUppercaseEnum(['UNMAPPED', 'MAPPED', 'CONFLICT']),
   fulfilmentChannel: optionalUppercaseEnum(['MFN', 'EASY_SHIP', 'FBA', 'UNKNOWN']),
   listingStatus: optionalTrimmed(255),
+  activeOnly: optionalBoolean,
   page: positiveInteger(1, 1_000_000),
   limit: positiveInteger(20, 100),
 }).strict();

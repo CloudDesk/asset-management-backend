@@ -1,4 +1,5 @@
 import { env } from '../config/env.js';
+import { gunzipSync } from 'node:zlib';
 import {
   AmazonAccessTokenProvider,
   AmazonAuthorizationError,
@@ -167,6 +168,11 @@ export type AmazonRawOrder = {
 };
 
 export type AmazonOrdersPage = { orders: AmazonRawOrder[]; nextToken: string | null };
+export type AmazonReportStatus = {
+  reportId: string;
+  processingStatus: 'IN_QUEUE' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED' | 'FATAL';
+  reportDocumentId?: string;
+};
 
 export type AmazonPackageDimensions = { length: number; width: number; height: number; unit: 'cm' };
 export type AmazonPackageWeight = { value: number; unit: 'grams' | 'g' };
@@ -321,6 +327,9 @@ export interface AmazonListingsReadClient {
   }): Promise<AmazonEasyShipPackage[]>;
   getNotificationSubscription?(notificationType: string, payloadVersion: string): Promise<AmazonNotificationSubscription | null>;
   createNotificationSubscription?(notificationType: string, payloadVersion: string, destinationId: string): Promise<AmazonNotificationSubscription>;
+  createReport?(input: { reportType: string; dataStartTime: string; dataEndTime: string }): Promise<{ reportId: string }>;
+  getReport?(reportId: string): Promise<AmazonReportStatus>;
+  downloadReportDocument?(reportDocumentId: string): Promise<string>;
 }
 
 type AmazonProductionListingsClientOptions = {
@@ -624,6 +633,58 @@ export class AmazonProductionListingsClient implements AmazonListingsReadClient 
     return { orders: response.orders ?? [], nextToken: response.pagination?.nextToken ?? null };
   }
 
+  async createReport(input: {
+    reportType: string;
+    dataStartTime: string;
+    dataEndTime: string;
+  }): Promise<{ reportId: string }> {
+    const response = await this.requestJson<{ reportId?: string }>(
+      'POST',
+      '/reports/2021-06-30/reports',
+      {},
+      {
+        reportType: input.reportType,
+        marketplaceIds: [this.getMarketplaceId()],
+        dataStartTime: input.dataStartTime,
+        dataEndTime: input.dataEndTime,
+      }
+    );
+    if (!response.reportId) {
+      throw new AmazonSpApiError('Amazon did not return a report ID', 502, 'AMAZON_REPORT_ID_MISSING');
+    }
+    return { reportId: response.reportId };
+  }
+
+  async getReport(reportId: string): Promise<AmazonReportStatus> {
+    const response = await this.getJson<{
+      reportId?: string;
+      processingStatus?: AmazonReportStatus['processingStatus'];
+      reportDocumentId?: string;
+    }>(`/reports/2021-06-30/reports/${encodeURIComponent(reportId)}`, {});
+    return {
+      reportId: response.reportId ?? reportId,
+      processingStatus: response.processingStatus ?? 'IN_QUEUE',
+      ...(response.reportDocumentId ? { reportDocumentId: response.reportDocumentId } : {}),
+    };
+  }
+
+  async downloadReportDocument(reportDocumentId: string): Promise<string> {
+    const document = await this.getJson<{ url?: string; compressionAlgorithm?: string }>(
+      `/reports/2021-06-30/documents/${encodeURIComponent(reportDocumentId)}`,
+      {}
+    );
+    if (!document.url) {
+      throw new AmazonSpApiError('Amazon did not return a report download URL', 502, 'AMAZON_REPORT_URL_MISSING');
+    }
+    const response = await this.fetchImpl(document.url, { signal: AbortSignal.timeout(this.requestTimeoutMs) });
+    if (!response.ok) {
+      throw new AmazonSpApiError('Amazon report download failed', response.status || 502, 'AMAZON_REPORT_DOWNLOAD_FAILED');
+    }
+    const bytes = Buffer.from(await response.arrayBuffer());
+    const content = document.compressionAlgorithm === 'GZIP' ? gunzipSync(bytes) : bytes;
+    return content.toString('utf8').replace(/^\uFEFF/, '');
+  }
+
   async previewListingItem(input: {
     sellerSku: string;
     productType: string;
@@ -806,11 +867,21 @@ export class AmazonProductionListingsClient implements AmazonListingsReadClient 
   }
 
   async createNotificationSubscription(notificationType: string, payloadVersion: string, destinationId: string): Promise<AmazonNotificationSubscription> {
+    const processingDirective = notificationType === 'ORDER_CHANGE'
+      ? {
+          processingDirective: {
+            eventFilter: {
+              eventFilterType: 'ORDER_CHANGE',
+              orderChangeTypes: ['OrderStatusChange', 'BuyerRequestedChange'],
+            },
+          },
+        }
+      : {};
     const response = await this.requestJson<any>(
       'POST',
       `/notifications/v1/subscriptions/${encodeURIComponent(notificationType)}`,
       {},
-      { payloadVersion, destinationId }
+      { payloadVersion, destinationId, ...processingDirective }
     );
     const payload = response?.payload ?? response;
     if (!payload?.subscriptionId) {

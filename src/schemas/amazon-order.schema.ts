@@ -21,6 +21,16 @@ export const amazonOrderImportSchema = z.object({
   fullHistory: z.boolean().default(false),
 }).strict();
 
+export const amazonTestOrderCreateSchema = z.object({
+  listingId: z.coerce.string().regex(/^\d+$/),
+  quantity: z.coerce.number().int().min(1).max(100),
+  buyerName: z.string().trim().min(1).max(255).default('Test Customer'),
+}).strict();
+
+export const amazonTestOrderStatusSchema = z.object({
+  status: z.enum(['SHIPPED', 'CANCELLED']),
+}).strict();
+
 export const amazonOrderNotificationSchema = z.object({
   notificationId: z.string().trim().min(1).max(255),
   notificationType: z.string().trim().min(1).max(100),

@@ -4,6 +4,8 @@ import { prisma } from '../models/prisma.js';
 import { AmazonListingScope } from './amazon-listing-scope.service.js';
 import { amazonListingScopeService } from './amazon-listing-scope.service.js';
 import {
+  classifyAmazonFulfilment,
+  extractAmazonSellerQuantity,
   isInactiveAmazonListing,
   normalizeAmazonListingStatus,
 } from './amazon-listing-normalizer.js';
@@ -27,6 +29,21 @@ export class AmazonProductionInventoryError extends Error {
 
 export const calculateAmazonTargetQuantity = (availableQuantity: number, unitsPerListing: number) =>
   Math.floor(Math.max(0, Math.trunc(availableQuantity)) / Math.max(1, Math.trunc(unitsPerListing)));
+
+const AMAZON_CONFIRMATION_TIMEOUT_MS = 15 * 60 * 1000;
+
+export const resolveAmazonInventoryConfirmation = (
+  targetQuantity: number,
+  remoteQuantity: number,
+  submittedAt: Date,
+  now = new Date()
+) => {
+  if (targetQuantity === remoteQuantity) return 'CONFIRMED' as const;
+  if (now.getTime() - submittedAt.getTime() >= AMAZON_CONFIRMATION_TIMEOUT_MS) {
+    return 'TIMED_OUT' as const;
+  }
+  return 'PENDING' as const;
+};
 
 type AmazonInventoryEligibleListing = {
   listingStatus: string;
@@ -158,15 +175,110 @@ export class AmazonProductionInventoryService {
         'AMAZON_LISTING_NOT_ACTIVE'
       );
     }
-    const availability = remote.fulfillmentAvailability?.find((item) =>
-      !item.fulfillmentChannelCode || item.fulfillmentChannelCode.toUpperCase() === 'DEFAULT'
+    const remoteFulfilment = classifyAmazonFulfilment(
+      (remote.fulfillmentAvailability ?? [])
+        .map((item) => item.fulfillmentChannelCode)
+        .filter((channel): channel is string => Boolean(channel))
+        .join('|') || null,
+      false
     );
-    return Math.max(0, Math.trunc(availability?.quantity ?? 0));
+    if (remoteFulfilment === 'FBA') {
+      throw new AmazonProductionInventoryError(
+        'Amazon currently fulfills this listing. FBA inventory must be replenished in Seller Central and cannot be published from Nivaana',
+        409,
+        'AMAZON_INVENTORY_NOT_MFN'
+      );
+    }
+    const quantity = extractAmazonSellerQuantity(remote);
+    if (quantity === null) {
+      throw new AmazonProductionInventoryError(
+        'Amazon did not return a seller-fulfilled quantity for this listing',
+        409,
+        'AMAZON_SELLER_QUANTITY_UNAVAILABLE'
+      );
+    }
+    return quantity;
+  }
+
+  private async reconcileSubmittedAttempt(listingId: bigint, amazonQuantity: number) {
+    const submitted = await prisma.amazonInventorySyncAttempt.findFirst({
+      where: { listingId, status: 'SUBMITTED' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    });
+    if (!submitted) {
+      await prisma.marketplaceListing.update({
+        where: { id: listingId },
+        data: { publishedQuantity: amazonQuantity },
+      });
+      return;
+    }
+
+    const confirmation = resolveAmazonInventoryConfirmation(
+      submitted.targetQuantity,
+      amazonQuantity,
+      submitted.startedAt
+    );
+    const checkedAt = new Date();
+    if (confirmation === 'CONFIRMED') {
+      await prisma.$transaction([
+        prisma.amazonInventorySyncAttempt.update({
+          where: { id: submitted.id },
+          data: {
+            status: 'SUCCEEDED',
+            errorCode: null,
+            errorMessage: null,
+            finishedAt: checkedAt,
+          },
+        }),
+        prisma.marketplaceListing.update({
+          where: { id: listingId },
+          data: {
+            publishedQuantity: amazonQuantity,
+            lastInventorySyncAt: checkedAt,
+            lastInventorySyncStatus: 'SUCCEEDED',
+            lastSyncedQuantity: amazonQuantity,
+          },
+        }),
+      ]);
+      return;
+    }
+
+    if (confirmation === 'TIMED_OUT') {
+      await prisma.$transaction([
+        prisma.amazonInventorySyncAttempt.update({
+          where: { id: submitted.id },
+          data: {
+            status: 'FAILED',
+            errorCode: 'AMAZON_CONFIRMATION_TIMEOUT',
+            errorMessage: `Amazon accepted submission ${submitted.amazonSubmissionId ?? ''} but still reports quantity ${amazonQuantity}.`,
+            finishedAt: checkedAt,
+          },
+        }),
+        prisma.marketplaceListing.update({
+          where: { id: listingId },
+          data: {
+            publishedQuantity: amazonQuantity,
+            lastInventorySyncAt: checkedAt,
+            lastInventorySyncStatus: 'FAILED',
+          },
+        }),
+      ]);
+      return;
+    }
+
+    await prisma.marketplaceListing.update({
+      where: { id: listingId },
+      data: {
+        publishedQuantity: amazonQuantity,
+        lastInventorySyncStatus: 'SUBMITTED',
+      },
+    });
   }
 
   async preview(listingId: string, scope: AmazonListingScope, actor: AmazonInventoryActor = {}) {
     const context = await this.loadContext(listingId, scope);
     const amazonQuantity = await this.getRemoteQuantity(scope, context.listing.sellerSku);
+    await this.reconcileSubmittedAttempt(context.listing.id, amazonQuantity);
     const attempt = await prisma.amazonInventorySyncAttempt.create({
       data: {
         listingId: context.listing.id,
@@ -267,19 +379,25 @@ export class AmazonProductionInventoryService {
       if (result.status !== 'ACCEPTED') {
         throw new AmazonProductionInventoryError('Amazon did not accept the inventory update', 502, 'AMAZON_INVENTORY_REJECTED');
       }
-      const finishedAt = new Date();
+      const submittedAt = new Date();
+      const issueSummary = result.issues.length > 0
+        ? ` Amazon issues: ${JSON.stringify(result.issues).slice(0, 1500)}`
+        : '';
       const [updatedAttempt] = await prisma.$transaction([
         prisma.amazonInventorySyncAttempt.update({
           where: { id: attempt.id },
-          data: { status: 'SUCCEEDED', amazonSubmissionId: result.submissionId, finishedAt },
+          data: {
+            status: 'SUBMITTED',
+            amazonSubmissionId: result.submissionId,
+            errorCode: 'AMAZON_ACCEPTED_PENDING',
+            errorMessage: `Amazon accepted the submission and has not yet confirmed the quantity.${issueSummary}`,
+          },
         }),
         prisma.marketplaceListing.update({
           where: { id: context.listing.id },
           data: {
-            publishedQuantity: context.targetQuantity,
-            lastInventorySyncAt: finishedAt,
-            lastInventorySyncStatus: 'SUCCEEDED',
-            lastSyncedQuantity: context.targetQuantity,
+            lastInventorySyncAt: submittedAt,
+            lastInventorySyncStatus: 'SUBMITTED',
           },
         }),
       ]);

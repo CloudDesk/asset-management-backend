@@ -132,8 +132,13 @@ const serializeOrder = (order: any) => ({
     title: item.title,
     quantityOrdered: item.quantityOrdered,
     quantityShipped: item.quantityShipped,
-    unitPrice: item.unitPrice == null ? null : item.unitPrice.toString(),
-    currency: item.currency,
+    unitPrice: item.unitPrice != null
+      ? item.unitPrice.toString()
+      : item.listing?.price != null
+        ? item.listing.price.toString()
+        : null,
+    currency: item.currency ?? item.listing?.currency ?? null,
+    priceSource: item.unitPrice != null ? 'ORDER' : item.listing?.price != null ? 'LISTING' : 'UNAVAILABLE',
     listingId: item.listingId === null ? null : String(item.listingId),
     productId: item.productId === null ? null : String(item.productId),
     unitsPerListing: item.unitsPerListing,
@@ -315,12 +320,17 @@ export class AmazonOrderImportService {
       sellerId: scope.sellerId,
       marketplaceId: scope.marketplaceId,
     };
-    const [orders, total, totalOrders, returned, cancelled, completed, delivered, shipped] = await Promise.all([
+    const [orders, total, totalOrders, returnedOrders, cancelled, completed, delivered, shipped] = await Promise.all([
       prisma.amazonMarketplaceOrder.findMany({
         where, skip: (input.page - 1) * input.limit, take: input.limit,
         orderBy: [{ purchaseDate: 'desc' }, { id: 'desc' }],
         include: {
-          items: { include: { product: { select: { id: true, puc: true, name: true } } } },
+          items: {
+            include: {
+              product: { select: { id: true, puc: true, name: true } },
+              listing: { select: { price: true, currency: true } },
+            },
+          },
           routeHandoff: true,
           stockReservations: true,
           fulfillment: true,
@@ -328,8 +338,10 @@ export class AmazonOrderImportService {
       }),
       prisma.amazonMarketplaceOrder.count({ where }),
       prisma.amazonMarketplaceOrder.count({ where: scopeWhere }),
-      prisma.amazonMarketplaceOrder.count({
-        where: { ...scopeWhere, orderStatus: { contains: 'RETURN', mode: 'insensitive' } },
+      prisma.amazonReturnEvent.findMany({
+        where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId },
+        distinct: ['amazonOrderId'],
+        select: { amazonOrderId: true },
       }),
       prisma.amazonMarketplaceOrder.count({ where: { ...scopeWhere, isCancelled: true } }),
       prisma.amazonMarketplaceOrder.count({
@@ -345,7 +357,7 @@ export class AmazonOrderImportService {
     const totalPages = Math.ceil(total / input.limit);
     return {
       data: orders.map(serializeOrder),
-      summary: { total: totalOrders, returned, cancelled, completed, delivered, shipped },
+      summary: { total: totalOrders, returned: returnedOrders.length, cancelled, completed, delivered, shipped },
       pagination: { page: input.page, limit: input.limit, total, totalPages, hasNext: input.page < totalPages, hasPrev: input.page > 1 },
     };
   }

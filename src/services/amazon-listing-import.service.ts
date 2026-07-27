@@ -17,6 +17,7 @@ import {
   amazonProductionListingsClient,
 } from './amazon-production-listings.client.js';
 import { AmazonAuthorizationError } from './amazon-lwa-token.service.js';
+import { mirrorStoredAmazonFbaInventory } from './amazon-fba-inventory-notification.service.js';
 
 export class AmazonListingImportDisabledError extends Error {
   readonly statusCode = 503;
@@ -91,12 +92,14 @@ export class AmazonListingImportService {
   private readonly client: AmazonListingsReadClient;
   private readonly repository: AmazonListingPersistence;
   private readonly enabled: boolean;
+  private readonly mirrorFbaStock: boolean;
   private readonly runningImports = new Map<string, Promise<AmazonImportSummary>>();
 
   constructor(options: AmazonListingImportServiceOptions = {}) {
     this.client = options.client ?? amazonProductionListingsClient;
     this.repository = options.repository ?? amazonListingRepository;
     this.enabled = options.enabled ?? env.AMAZON_LISTING_IMPORT_ENABLED;
+    this.mirrorFbaStock = options.repository === undefined;
   }
 
   importListings(context: ImportRequestContext = {}): Promise<AmazonImportSummary> {
@@ -150,6 +153,7 @@ export class AmazonListingImportService {
     try {
       const fbaInventoryBySku = await this.fetchFbaInventoryBySku(client);
       const seenListings = new Map<string, string>();
+      const seenSellerSkus = new Set<string>();
       const seenPageTokens = new Set<string>();
       let pageToken: string | undefined;
 
@@ -180,6 +184,7 @@ export class AmazonListingImportService {
             continue;
           }
           seenListings.set(key, signature);
+          seenSellerSkus.add(normalized.sellerSku);
 
           try {
             const result = await this.repository.upsertImportedListing({
@@ -218,7 +223,26 @@ export class AmazonListingImportService {
         }
       } while (pageToken);
 
+      const missingCount = await this.repository.markListingsMissingFromImport({
+        sellerId,
+        marketplaceId,
+        seenSellerSkus: [...seenSellerSkus],
+        auditContext: {
+          syncLogId,
+          ...(context.requestedByUserId !== undefined
+            ? { requestedByUserId: context.requestedByUserId }
+            : {}),
+          ...(context.requestedByUserType !== undefined
+            ? { requestedByUserType: context.requestedByUserType }
+            : {}),
+        },
+      });
+      summary.inactive += missingCount;
+
       const status = summary.failed > 0 || summary.conflicts > 0 ? 'PARTIAL' : 'SUCCESS';
+      if (this.mirrorFbaStock) {
+        await mirrorStoredAmazonFbaInventory({ sellerId, marketplaceId });
+      }
       await this.repository.finishSyncLog(syncLogId, status, summary);
       logger.info(
         { sellerId, marketplaceId, status, ...summary },

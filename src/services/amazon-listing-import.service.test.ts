@@ -8,6 +8,7 @@ import {
 } from '../repositories/amazon-listing.repository.js';
 import {
   classifyAmazonFulfilment,
+  extractAmazonSellerQuantity,
   isInactiveAmazonListing,
   normalizeAmazonListing,
   normalizeAmazonListingStatus,
@@ -130,6 +131,34 @@ class FakeListingRepository implements AmazonListingPersistence {
     return { outcome: 'UPDATED', isMapped: false };
   }
 
+  async markListingsMissingFromImport(input: {
+    sellerId: string;
+    marketplaceId: string;
+    seenSellerSkus: string[];
+  }): Promise<number> {
+    const seen = new Set(input.seenSellerSkus);
+    let deleted = 0;
+    for (const [key, listing] of this.records) {
+      if (
+        listing.sellerId !== input.sellerId
+        || listing.marketplaceId !== input.marketplaceId
+        || seen.has(listing.sellerSku)
+        || listing.listingStatus === 'DELETED'
+      ) continue;
+      this.records.set(key, {
+        ...listing,
+        listingStatus: 'DELETED',
+        publishedQuantity: 0,
+        fbaFulfillableQuantity: listing.fulfilmentChannel === 'FBA' ? 0 : null,
+        fbaReservedQuantity: listing.fulfilmentChannel === 'FBA' ? 0 : null,
+        fbaPendingOrderQuantity: listing.fulfilmentChannel === 'FBA' ? 0 : null,
+        fbaTotalQuantity: listing.fulfilmentChannel === 'FBA' ? 0 : null,
+      });
+      deleted += 1;
+    }
+    return deleted;
+  }
+
   async listListings(_query: AmazonListingQuery) {
     return {
       data: [],
@@ -200,11 +229,91 @@ test('updates an existing imported listing without creating a duplicate', async 
   assert.equal(repository.records.size, 1);
 });
 
+test('marks a previously imported listing deleted when a complete refresh no longer returns it', async () => {
+  const repository = new FakeListingRepository();
+  await new AmazonListingImportService({
+    client: new FakeListingsClient([{ items: [rawListing('SKU-DELETED')], nextToken: null }]),
+    repository,
+    enabled: true,
+  }).importListings();
+
+  const summary = await new AmazonListingImportService({
+    client: new FakeListingsClient([{ items: [], nextToken: null }]),
+    repository,
+    enabled: true,
+  }).importListings();
+
+  const deleted = [...repository.records.values()][0];
+  assert.equal(summary.inactive, 1);
+  assert.equal(deleted?.listingStatus, 'DELETED');
+  assert.equal(deleted?.publishedQuantity, 0);
+});
+
 test('classifies Amazon fulfilment values without relying on the Nivaana PUC', () => {
   assert.equal(classifyAmazonFulfilment('AMAZON_EU', false), 'FBA');
+  assert.equal(classifyAmazonFulfilment('AMAZON_IN|fulfillment_channel_code=DEFAULT', false), 'FBA');
   assert.equal(classifyAmazonFulfilment('merchant_shipping_group=Easy Ship', false), 'EASY_SHIP');
   assert.equal(classifyAmazonFulfilment('DEFAULT', false), 'MFN');
+  assert.equal(
+    classifyAmazonFulfilment('DEFAULT|fulfillment_availability=DEFAULT|fulfillment_availability=30', false),
+    'MFN'
+  );
+  assert.equal(classifyAmazonFulfilment(null, false, true), 'MFN');
   assert.equal(classifyAmazonFulfilment('unrecognized-channel', false), 'UNKNOWN');
+});
+
+test('classifies a listing with seller-managed quantity but no fulfillment code as MFN', () => {
+  const listing = normalizeAmazonListing({
+    sku: 'SELLER-QUANTITY-WITHOUT-CHANNEL',
+    summaries: [{
+      marketplaceId: MARKETPLACE_ID,
+      statuses: ['BUYABLE', 'DISCOVERABLE'],
+    }],
+    fulfillmentAvailability: [{ quantity: 4 }],
+  }, {
+    sellerId: SELLER_ID,
+    marketplaceId: MARKETPLACE_ID,
+  });
+
+  assert.equal(listing.fulfilmentChannel, 'MFN');
+  assert.equal(listing.publishedQuantity, 4);
+});
+
+test('reads seller quantity from listing attributes when top-level availability omits it', () => {
+  const listing: AmazonRawListing = {
+    sku: 'SKU-ATTRIBUTE-QUANTITY',
+    fulfillmentAvailability: [{ fulfillmentChannelCode: 'DEFAULT' }],
+    attributes: {
+      fulfillment_availability: [
+        { fulfillment_channel_code: 'DEFAULT', quantity: 9 },
+      ],
+    },
+  };
+
+  assert.equal(extractAmazonSellerQuantity(listing), 9);
+  assert.equal(normalizeAmazonListing(listing, {
+    sellerId: SELLER_ID,
+    marketplaceId: MARKETPLACE_ID,
+  }).publishedQuantity, 9);
+});
+
+test('does not treat a DEFAULT attribute quantity as FBA sellable inventory', () => {
+  const listing = normalizeAmazonListing({
+    sku: 'FBA-OUT-OF-STOCK',
+    fulfillmentAvailability: [{ fulfillmentChannelCode: 'AMAZON_IN' }],
+    attributes: {
+      fulfillment_availability: [
+        { fulfillment_channel_code: 'AMAZON_IN' },
+        { fulfillment_channel_code: 'DEFAULT', quantity: 9 },
+      ],
+    },
+  }, {
+    sellerId: SELLER_ID,
+    marketplaceId: MARKETPLACE_ID,
+  });
+
+  assert.equal(listing.fulfilmentChannel, 'FBA');
+  assert.equal(listing.publishedQuantity, 0);
 });
 
 test('normalizes Amazon-managed FBA quantities without treating them as publishable seller stock', () => {

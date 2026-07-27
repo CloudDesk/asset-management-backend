@@ -4,7 +4,8 @@ import { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import {
   amazonEasyShipPackageSchema, amazonEasyShipRescheduleSchema, amazonEasyShipScheduleSchema,
   amazonOrderDocumentsSchema, amazonOrderImportSchema, amazonOrderPackSchema, amazonOrderQuerySchema,
-  amazonOrderShippingMethodSchema, amazonOrderTrackingSchema,
+  amazonOrderShippingMethodSchema, amazonOrderTrackingSchema, amazonTestOrderCreateSchema,
+  amazonTestOrderStatusSchema,
   amazonFulfillmentExceptionResolutionSchema,
 } from '../schemas/amazon-order.schema.js';
 import { amazonListingScopeService } from '../services/amazon-listing-scope.service.js';
@@ -12,6 +13,7 @@ import { AmazonOrderImportError, amazonOrderImportService } from '../services/am
 import { amazonOrderJobService } from '../services/amazon-order-job.service.js';
 import { AmazonFulfillmentError, amazonOrderFulfillmentService } from '../services/amazon-order-fulfillment.service.js';
 import { createSuccessResponse } from '../utils/errorHandler.js';
+import { amazonTestOrderService } from '../services/amazon-test-order.service.js';
 
 const sendError = (reply: FastifyReply, error: unknown) => {
   if (error instanceof ZodError) return reply.code(400).send({ success: false, message: 'Invalid Amazon order request', code: 'VALIDATION_ERROR' });
@@ -81,6 +83,22 @@ export class AmazonOrderController {
         summary: result.summary,
         pagination: result.pagination,
       });
+    } catch (error) { return sendError(reply, error); }
+  };
+
+  createTestOrder = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const input = amazonTestOrderCreateSchema.parse(request.body);
+      const data = await amazonTestOrderService.create(await this.resolveScope(request), input);
+      return reply.code(201).send(createSuccessResponse('Amazon test order created', data));
+    } catch (error) { return sendError(reply, error); }
+  };
+
+  updateTestOrderStatus = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const input = amazonTestOrderStatusSchema.parse(request.body);
+      const data = await amazonTestOrderService.updateStatus(this.orderId(request), await this.resolveScope(request), input.status);
+      return reply.code(200).send(createSuccessResponse(`Amazon test order marked ${input.status.toLowerCase()}`, data));
     } catch (error) { return sendError(reply, error); }
   };
 

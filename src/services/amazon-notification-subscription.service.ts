@@ -7,6 +7,7 @@ type DestinationKind = 'SQS' | 'EVENTBRIDGE';
 
 export const AMAZON_NOTIFICATION_DEFINITIONS = [
   { notificationType: 'ORDER_CHANGE', payloadVersion: '1.0', destinationKind: 'SQS' as DestinationKind },
+  { notificationType: 'FBA_INVENTORY_AVAILABILITY_CHANGES', payloadVersion: '1.0', destinationKind: 'SQS' as DestinationKind },
   { notificationType: 'LISTINGS_ITEM_STATUS_CHANGE', payloadVersion: '1.0', destinationKind: 'EVENTBRIDGE' as DestinationKind },
   { notificationType: 'LISTINGS_ITEM_ISSUES_CHANGE', payloadVersion: '2023-12-13', destinationKind: 'EVENTBRIDGE' as DestinationKind },
   { notificationType: 'LISTINGS_ITEM_MFN_QUANTITY_CHANGE', payloadVersion: '1.0', destinationKind: 'EVENTBRIDGE' as DestinationKind },

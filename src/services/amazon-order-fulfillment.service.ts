@@ -223,6 +223,10 @@ export class AmazonOrderFulfillmentService {
   }
 
   async shipAndConfirmToAmazon(orderId: string, scope: AmazonListingScope, actor: AmazonFulfillmentActor) {
+    const order = await this.scopedOrder(orderId, scope);
+    if (order.amazonOrderId.startsWith('TEST-AMZ-')) {
+      this.fail('Test orders never contact Amazon. Use the test-order status controls.', 409, 'AMAZON_TEST_ORDER_EXTERNAL_WRITE_BLOCKED');
+    }
     const writeStatus = await amazonProductionWriteGuardService.status(scope.sellerId, scope.marketplaceId);
     if (!writeStatus.effectiveEnabled) {
       this.fail('Amazon production writes are disabled by the global kill switch', 409, 'AMAZON_PRODUCTION_WRITES_DISABLED');
@@ -232,9 +236,12 @@ export class AmazonOrderFulfillmentService {
   }
 
   async confirmToAmazon(orderId: string, scope: AmazonListingScope, actor: AmazonFulfillmentActor) {
+    const order = await this.scopedOrder(orderId, scope);
+    if (order.amazonOrderId.startsWith('TEST-AMZ-')) {
+      this.fail('Test orders never contact Amazon. Use the test-order status controls.', 409, 'AMAZON_TEST_ORDER_EXTERNAL_WRITE_BLOCKED');
+    }
     const writeStatus = await amazonProductionWriteGuardService.status(scope.sellerId, scope.marketplaceId);
     if (!writeStatus.effectiveEnabled) this.fail('Amazon production writes are disabled by the global kill switch', 409, 'AMAZON_PRODUCTION_WRITES_DISABLED');
-    const order = await this.scopedOrder(orderId, scope);
     const current = order.fulfillment;
     if (order.fulfilmentType !== 'MFN' || !current || !['SHIPPED_INTERNAL', 'AMAZON_CONFIRMATION_FAILED'].includes(current.workflowStatus)) {
       this.fail('Amazon shipment confirmation is available only after an MFN order is shipped internally');

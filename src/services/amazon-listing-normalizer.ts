@@ -48,6 +48,46 @@ const normalizedPrice = (value?: string | number): string | null => {
 const normalizedQuantity = (value?: number): number | null =>
   typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : null;
 
+type AmazonAvailabilityValue = {
+  fulfillmentChannelCode?: unknown;
+  fulfillment_channel_code?: unknown;
+  quantity?: unknown;
+};
+
+const availabilityQuantity = (availability: AmazonAvailabilityValue): number | null => {
+  const channel = String(
+    availability.fulfillmentChannelCode
+      ?? availability.fulfillment_channel_code
+      ?? ''
+  ).trim().toUpperCase();
+  const isSellerFulfilled = !channel
+    || channel === 'DEFAULT'
+    || channel === 'MFN'
+    || channel === 'FBM'
+    || channel.includes('EASY_SHIP');
+  return isSellerFulfilled && typeof availability.quantity === 'number'
+    ? normalizedQuantity(availability.quantity)
+    : null;
+};
+
+export const extractAmazonSellerQuantity = (raw: AmazonRawListing): number | null => {
+  for (const availability of raw.fulfillmentAvailability ?? []) {
+    const quantity = availabilityQuantity(availability);
+    if (quantity !== null) return quantity;
+  }
+
+  const attributeAvailability = raw.attributes?.fulfillment_availability;
+  if (Array.isArray(attributeAvailability)) {
+    for (const availability of attributeAvailability) {
+      if (!availability || typeof availability !== 'object') continue;
+      const quantity = availabilityQuantity(availability as AmazonAvailabilityValue);
+      if (quantity !== null) return quantity;
+    }
+  }
+
+  return null;
+};
+
 const extractRelevantAttributeValues = (attributes?: Record<string, unknown>): string[] => {
   if (!attributes) return [];
   const results: string[] = [];
@@ -77,11 +117,12 @@ const extractRelevantAttributeValues = (attributes?: Record<string, unknown>): s
 
 export const classifyAmazonFulfilment = (
   originalValue: string | null,
-  hasFbaInventory: boolean
+  hasFbaInventory: boolean,
+  hasSellerManagedQuantity = false
 ): AmazonFulfilmentChannel => {
   const normalized = originalValue?.toUpperCase().replace(/[\s-]+/g, '_') ?? '';
 
-  if (hasFbaInventory || /(^|[^A-Z])(FBA|AFN|AMAZON_(NA|EU|FE))([^A-Z]|$)/.test(normalized)) {
+  if (hasFbaInventory || /(^|[^A-Z])(FBA|AFN|AMAZON_(NA|EU|FE|IN))([^A-Z]|$)/.test(normalized)) {
     return 'FBA';
   }
   if (normalized.includes('EASY_SHIP') || normalized.includes('EASYSHIP')) {
@@ -89,8 +130,9 @@ export const classifyAmazonFulfilment = (
   }
   if (
     /(^|[^A-Z])(MFN|FBM|MERCHANT_FULFILLED|MERCHANT)([^A-Z]|$)/.test(normalized)
-    || normalized.includes('FULFILLMENTCHANNELCODE=DEFAULT')
+    || /FULFILLMENT(?:CHANNELCODE|_CHANNEL_CODE|_AVAILABILITY)=DEFAULT/.test(normalized)
     || normalized === 'DEFAULT'
+    || hasSellerManagedQuantity
   ) {
     return 'MFN';
   }
@@ -141,16 +183,26 @@ export const normalizeAmazonListing = (
     ...(fbaInventory ? ['FBA_INVENTORY'] : []),
   ]);
   const originalFulfilmentValue = originalValues.join('|') || null;
-
+  const sellerQuantity = extractAmazonSellerQuantity(raw);
+  const fulfilmentChannel = classifyAmazonFulfilment(
+    originalFulfilmentValue,
+    Boolean(fbaInventory),
+    sellerQuantity !== null
+  );
   const listingQuantities = (raw.fulfillmentAvailability ?? [])
     .map((item) => item.quantity)
     .filter((quantity): quantity is number => typeof quantity === 'number' && Number.isFinite(quantity));
-  const publishedQuantity = listingQuantities.length > 0
-    ? listingQuantities.reduce((total, quantity) => total + Math.max(0, Math.trunc(quantity)), 0)
-    : typeof fbaInventory?.inventoryDetails?.fulfillableQuantity === 'number'
-      ? Math.max(0, Math.trunc(fbaInventory.inventoryDetails.fulfillableQuantity))
-      : typeof fbaInventory?.totalQuantity === 'number'
-        ? Math.max(0, Math.trunc(fbaInventory.totalQuantity))
+  const fbaPublishedQuantity = normalizedQuantity(fbaInventory?.inventoryDetails?.fulfillableQuantity)
+    ?? (listingQuantities.length > 0
+      ? listingQuantities.reduce((total, quantity) => total + Math.max(0, Math.trunc(quantity)), 0)
+      : normalizedQuantity(fbaInventory?.totalQuantity))
+    ?? (fulfilmentCodes.some((code) => code?.toUpperCase().startsWith('AMAZON_')) ? 0 : null);
+  const publishedQuantity = fulfilmentChannel === 'FBA'
+    ? fbaPublishedQuantity
+    : sellerQuantity !== null
+      ? sellerQuantity
+      : listingQuantities.length > 0
+        ? listingQuantities.reduce((total, quantity) => total + Math.max(0, Math.trunc(quantity)), 0)
         : null;
 
   return {
@@ -165,7 +217,7 @@ export const normalizeAmazonListing = (
     productType: productType?.productType?.trim() || summary?.productType?.trim() || null,
     listingStatus,
     originalFulfilmentValue,
-    fulfilmentChannel: classifyAmazonFulfilment(originalFulfilmentValue, Boolean(fbaInventory)),
+    fulfilmentChannel,
     publishedQuantity,
     fbaFulfillableQuantity: normalizedQuantity(fbaInventory?.inventoryDetails?.fulfillableQuantity),
     fbaReservedQuantity: normalizedQuantity(fbaInventory?.inventoryDetails?.reservedQuantity?.totalReservedQuantity),

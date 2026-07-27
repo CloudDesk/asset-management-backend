@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../models/prisma.js';
 import { amazonOrderJobService } from './amazon-order-job.service.js';
+import { amazonFbaInventoryNotificationService } from './amazon-fba-inventory-notification.service.js';
 
 export class AmazonOrderNotificationService {
   async ingest(input: {
@@ -26,6 +27,36 @@ export class AmazonOrderNotificationService {
       },
     });
     try {
+      if (input.notificationType === 'FBA_INVENTORY_AVAILABILITY_CHANGES') {
+        const result = await amazonFbaInventoryNotificationService.reconcile(input);
+        await prisma.amazonOrderNotification.update({
+          where: { id: notification.id },
+          data: { status: 'PROCESSED', processedAt: new Date() },
+        });
+        return {
+          notificationId: notification.notificationId,
+          status: 'PROCESSED',
+          duplicate: false,
+          jobId: null,
+          result,
+        };
+      }
+      if (input.notificationType !== 'ORDER_CHANGE') {
+        await prisma.amazonOrderNotification.update({
+          where: { id: notification.id },
+          data: {
+            status: 'IGNORED',
+            processedAt: new Date(),
+            errorMessage: `Unsupported notification type: ${input.notificationType}`,
+          },
+        });
+        return {
+          notificationId: notification.notificationId,
+          status: 'IGNORED',
+          duplicate: false,
+          jobId: null,
+        };
+      }
       const queued = await amazonOrderJobService.enqueue({
         sellerId: input.sellerId,
         marketplaceId: input.marketplaceId,
