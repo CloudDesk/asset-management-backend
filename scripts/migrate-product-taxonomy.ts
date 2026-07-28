@@ -291,24 +291,32 @@ const main = async () => {
       });
     }
 
-    const dynamicParents: Array<[number[], string]> = [
-      [[3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 'incense_sticks'],
-      [[98, 99, 100, 101, 102], 'fragrance_oils'],
-      [[65, 69, 64, 66, 68, 67], 'wardrobe_fragrance'],
-      [[96, 97, 63], 'air_fresheners'],
-      [[45, 46, 47], 'wardrobe_fragrance'],
+    const dynamicParents = [
+      { fieldname: 'fragnancetype', oldParent: 'premium_incense_sticks', newParent: 'incense_sticks', minimum: 13 },
+      { fieldname: 'fragnancetype', oldParent: 'fragrance_blends', newParent: 'fragrance_oils', minimum: 5 },
+      { fieldname: 'fragnancetype', oldParent: 'fragrance_sachets', newParent: 'wardrobe_fragrance', minimum: 6 },
+      { fieldname: 'fragnancetype', oldParent: 'room_fresheners', newParent: 'air_fresheners', minimum: 3 },
+      { fieldname: 'gender', oldParent: 'fragrance_sachets', newParent: 'wardrobe_fragrance', minimum: 3 },
     ];
-    for (const [ids, parent] of dynamicParents) {
+    for (const mapping of dynamicParents) {
       const result = await tx.picklist.updateMany({
-        where: { id: { in: ids } },
-        data: { parent, isactive: true, modifieddate: BigInt(Date.now()) },
+        where: {
+          object: 'product',
+          fieldname: mapping.fieldname,
+          parent: { in: [mapping.oldParent, mapping.newParent] },
+        },
+        data: { parent: mapping.newParent, isactive: true, modifieddate: BigInt(Date.now()) },
       });
-      if (result.count !== ids.length) {
-        throw new Error(`Picklist parent update for ${parent} expected ${ids.length} rows, found ${result.count}.`);
+      if (result.count < mapping.minimum) {
+        throw new Error(
+          `Picklist parent update for ${mapping.newParent} expected at least ${mapping.minimum} rows, found ${result.count}.`,
+        );
       }
     }
 
-    const powerOptions = await tx.picklist.findMany({ where: { id: { in: [42, 43, 44] } } });
+    const powerOptions = await tx.picklist.findMany({
+      where: { object: 'product', fieldname: 'power', parent: 'diffusers', isactive: true },
+    });
     if (powerOptions.length !== 3) {
       throw new Error(`Power option duplication expected 3 source rows, found ${powerOptions.length}.`);
     }
