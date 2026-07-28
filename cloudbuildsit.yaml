@@ -1,0 +1,46 @@
+steps:
+  # Step 1: Set GCP project
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: "gcloud"
+    args:
+      - "config"
+      - "set"
+      - "project"
+      - "nivaana"
+
+  # Step 2: Build the Docker image
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - "build"
+      - "-t"
+      - "gcr.io/nivaana/nivaana-sit:latest"
+      - "."
+
+  # Step 3: Push the Docker image to Google Container Registry
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - "push"
+      - "gcr.io/nivaana/nivaana-sit:latest"
+
+  # Step 4: Deploy the image to Cloud Run SIT.
+  # Existing Cloud Run environment variables on nivaana-dev are retained.
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: "gcloud"
+    args:
+      - "run"
+      - "deploy"
+      - "nivaana-dev"
+      - "--image"
+      - "gcr.io/nivaana/nivaana-sit:latest"
+      - "--region"
+      - "asia-south1"
+      - "--platform"
+      - "managed"
+      - "--allow-unauthenticated"
+      - "--service-account"
+      - "nivaana-dev@nivaana.iam.gserviceaccount.com"
+      - "--port"
+      - "5600"
+
+options:
+  logging: CLOUD_LOGGING_ONLY
