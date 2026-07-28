@@ -106,7 +106,7 @@ Order Item
   -> Return / Replacement eligibility
 ```
 
-Policy should control eligibility only. It should not store operational inspection reasons/statuses.
+Policy should control category-level eligibility only. Reason-specific validation should be handled through the reason-rule master, not inside the category policy itself.
 
 ## Part 2 - Return Sources
 
@@ -119,9 +119,12 @@ Customer selects an order item and raises return/replacement request.
 Example reasons:
 
 ```text
-Wrongly Ordered       -> Return
-Wrong Item Received   -> Return / Replacement
-Damaged Product       -> Return / Replacement
+Wrong Product
+Damaged Product
+Missing Product
+Defective Product
+Leakage / Broken Bottle
+Changed Mind
 ```
 
 Recommended approach:
@@ -129,9 +132,134 @@ Recommended approach:
 - keep a master reason list.
 - map each reason to allowed resolution.
 - use category policy to decide whether return/replacement is generally allowed.
-- do not over-configure every reason by every category in phase 1.
+- apply reason-level evidence and validation rules before request approval.
 
 Customer request should be item-level/orderline-level, not only full order-level.
+
+### Reason-Based Rules
+
+The customer-facing request flow must change based on the selected reason.
+
+Common rule:
+
+```text
+All replacement, return, and refund requests require at least one photo.
+```
+
+Reason rules:
+
+```text
+Wrong Product
+  -> Customer can request replacement or refund.
+  -> Nivaana raises pickup request.
+  -> Customer must keep product intact as received.
+  -> Authorized Admin/Inventory user verifies returned product.
+  -> After approval, replacement order/shipment is created or refund is issued.
+
+Damaged Product
+  -> Issue must be raised within 48 hours of delivery.
+  -> Customer must upload damaged product photos.
+  -> Package photos are optional.
+  -> Unboxing video is optional.
+  -> If approved, replacement order/shipment is created.
+  -> If replacement stock is unavailable, refund is processed.
+  -> Return pickup is initiated where physical return is required.
+
+Missing Product
+  -> Customer must upload photos.
+  -> Team verifies missing item claim.
+  -> Customer can request ship missing item, partial refund, or complete return.
+  -> If approved, replacement/missing-item shipment is created or partial refund is issued.
+  -> Return pickup is initiated only if complete return is required.
+
+Defective Product
+  -> Customer must upload photo.
+  -> Customer must upload video.
+  -> If approved, replacement order/shipment is created or refund is issued.
+  -> Return pickup is initiated where physical return is required.
+
+Leakage / Broken Bottle
+  -> Customer must upload photo.
+  -> Customer must upload video.
+  -> After verification, replacement order/shipment is created or refund is issued.
+  -> Return pickup is initiated where physical return is required.
+
+Changed Mind
+  -> No return/refund if package is opened.
+  -> If unopened, customer must upload packaged product photos.
+  -> After approval, return and refund can be issued.
+  -> Return pickup is initiated.
+```
+
+Opened product restriction:
+
+```text
+For opened products, especially liquids and personal care items, no return/refund/replacement is allowed unless the approved reason is a Nivaana-side issue such as damaged, defective, leakage, broken bottle, wrong product, or missing product.
+```
+
+### Evidence Requirements
+
+Store evidence rules against the reason master/configuration.
+
+Recommended fields per reason:
+
+```text
+reason_code
+allowed_resolutions        // replacement, refund, partial_refund, ship_missing_item, complete_return
+minimum_raise_window_hours // e.g. damaged product = 48
+photo_required
+video_required
+package_photo_required
+package_photo_optional
+unboxing_video_required
+unboxing_video_optional
+opened_package_allowed
+pickup_required
+evidence_first_approval
+```
+
+Evidence files should be stored as request attachments linked to the return/replacement request.
+
+### Pickup and Verification Patterns
+
+There are two operational patterns.
+
+Pickup-first verification:
+
+```text
+Customer raises request
+  -> Basic eligibility and evidence checked
+  -> Pickup request created
+  -> Product received
+  -> Authorized Admin/Inventory user verifies product
+  -> Replacement/refund decision completed
+```
+
+Use for:
+
+```text
+Wrong Product
+Changed Mind, when unopened and accepted
+```
+
+Evidence-first approval:
+
+```text
+Customer raises request
+  -> Required photo/video evidence uploaded
+  -> Team reviews evidence
+  -> If approved, replacement/refund/missing-item action is selected
+  -> Pickup is initiated only where physical return is required
+```
+
+Use for:
+
+```text
+Damaged Product
+Missing Product
+Defective Product
+Leakage / Broken Bottle
+```
 
 ### Delivery-Partner Initiated Return
 
@@ -553,7 +681,7 @@ Returned item received
 Replacement closure:
 
 ```text
-Create replacement shipment/orderline
+Create replacement order/shipment
   -> allocate replacement stock
   -> dispatch replacement
   -> close replacement request
@@ -562,7 +690,9 @@ Create replacement shipment/orderline
 Implementation assumption:
 
 - create a dedicated replacement request/shipment linked to original orderline.
+- use customer-facing wording `Replacement order placed`.
 - do not mutate original orderline amount.
+- if approved replacement stock is unavailable, convert to refund processing based on customer/admin approval.
 
 ## Partial Cancellation vs Return
 
@@ -635,7 +765,51 @@ customer_id
 request_type             // return, replacement
 source                   // customer, delivery_partner, admin
 reason
+reason_code
 requested_quantity
+requested_resolution     // replacement, refund, partial_refund, ship_missing_item, complete_return
+is_package_opened
+evidence_review_status   // not_required, pending, approved, rejected
+pickup_flow              // pickup_first, evidence_first
+status
+createddate
+modifieddate
+```
+
+### return_request_attachments
+
+Required for customer evidence uploads.
+
+```text
+id
+return_request_id
+attachment_type          // product_photo, package_photo, unboxing_video, defect_video, other
+file_url
+is_required
+uploaded_by_customer_id
+uploadeddate
+status                  // active, removed
+```
+
+### return_reason_rules
+
+Reason-level rules used by eligibility and request validation.
+
+```text
+id
+reason_code
+reason_name
+allowed_resolutions      // JSON: replacement, refund, partial_refund, ship_missing_item, complete_return
+minimum_raise_window_hours
+photo_required
+video_required
+package_photo_required
+package_photo_optional
+unboxing_video_required
+unboxing_video_optional
+opened_package_allowed
+pickup_required
+evidence_first_approval
 status
 createddate
 modifieddate
@@ -645,6 +819,9 @@ Recommended statuses:
 
 ```text
 requested
+evidence_pending
+evidence_approved
+evidence_rejected
 approved
 rejected
 pickup_created
@@ -657,6 +834,8 @@ refund_pending
 refund_completed
 replacement_pending
 replacement_shipped
+missing_item_shipped
+partial_refund_pending
 completed
 cancelled
 ```
@@ -753,6 +932,9 @@ GET /v1/return-policies
 POST /v1/return-policies
 PUT /v1/return-policies/:id
 DELETE /v1/return-policies/:id
+GET /v1/return-reason-rules
+POST /v1/return-reason-rules
+PUT /v1/return-reason-rules/:id
 ```
 
 ### Customer Return/Replacement
@@ -761,6 +943,7 @@ DELETE /v1/return-policies/:id
 POST /v1/returns
 GET /v1/returns/:id
 GET /v1/orders/:id/return-eligibility
+POST /v1/returns/:id/attachments
 ```
 
 ### Inventory/Admin
@@ -768,6 +951,7 @@ GET /v1/orders/:id/return-eligibility
 ```http
 PATCH /v1/returns/:id/approve
 PATCH /v1/returns/:id/reject
+PATCH /v1/returns/:id/evidence-review
 PATCH /v1/returns/:id/received
 PATCH /v1/returns/:id/inspection
 PATCH /v1/returns/:id/financial-closure
@@ -795,6 +979,8 @@ Prisma:
 
 - add return/replacement policy table.
 - add return request table.
+- add return request attachment table.
+- add return reason rules table.
 - add return inspection table.
 - add financial closure table.
 - add return credit note table.
@@ -823,6 +1009,7 @@ Add:
 - Return Requests list.
 - Return Request detail.
 - Authorized inspection form.
+- Evidence review form.
 - Financial closure form.
 - GST reversal Yes/No calculated display.
 - Credit note/reversal document status.
@@ -835,6 +1022,20 @@ Condition
 Approved Quantity
 Restock Action
 Notes
+```
+
+Evidence review form should include:
+
+```text
+Reason
+Requested Resolution
+Opened Package: Yes/No
+Required Photos
+Required Videos
+Optional Package Photos
+Optional Unboxing Video
+Evidence Approval: Approved/Rejected
+Evidence Rejection Reason
 ```
 
 Finance/Admin closure form should include:
@@ -876,6 +1077,9 @@ Customer should be able to:
 - raise return request.
 - raise replacement request.
 - select reason.
+- upload required photo/video evidence based on reason.
+- indicate whether package is opened where required.
+- choose requested resolution where reason allows multiple outcomes.
 - view request status.
 
 Do not expose GST reversal choices to customer.
@@ -928,6 +1132,14 @@ refund should not proceed unless admin override exists.
 - customer cannot return after window.
 - customer can request replacement where allowed.
 - duplicate return request for same quantity is prevented.
+- request without required photo is rejected.
+- damaged product request after 48 hours from delivery is rejected.
+- defective product request without mandatory video is rejected.
+- leakage/broken bottle request without photo and video is rejected.
+- changed mind request is rejected when package is opened.
+- changed mind request requires packaged product photos when package is unopened.
+- missing product request supports ship missing item, partial refund, or complete return.
+- opened liquid/personal care product is not eligible for customer changed-mind return/refund.
 
 ### Authorized Inspection
 
@@ -960,8 +1172,9 @@ refund should not proceed unless admin override exists.
 
 ### Replacement
 
-- replacement request creates replacement shipment/order process.
+- replacement request creates replacement order/shipment process after approval.
 - replacement consumes new stock.
+- stock-unavailable replacement falls back to refund processing.
 - original orderline remains audit-safe.
 
 ### Partial Cancellation
@@ -982,21 +1195,29 @@ refund should not proceed unless admin override exists.
 7. Refund methods supported for this CR are wallet and original/external payment.
 8. Item-level cancellation route should be re-enabled/fixed if partial cancellation is included in this CR.
 9. Partial return invoice adjustment uses the Revised/Override Invoice approach.
+10. Reason-level evidence rules are included in this CR.
+11. Damaged product requests must be raised within 48 hours of delivery.
+12. All replacement, return, and refund requests require at least one photo.
+13. Opened products, especially liquids and personal care items, are not eligible for changed-mind return/refund.
 
 ## Recommended Implementation Sequence
 
 1. Add return/replacement policy model and APIs.
-2. Add return eligibility API.
-3. Add return request model and customer/admin creation API.
-4. Add received and authorized inspection flow.
-5. Add stock update logic only after manual inspection approval.
-6. Add financial closure with refund method and calculated GST reversal Yes/No.
-7. Integrate Wallet refund credit.
-8. Integrate Revised/Override Invoice flow for partial returns.
-9. Integrate system-generated Credit Note/GST Adjustment records.
-10. Add Finance Credit Note Excel export.
-11. Add dedicated replacement request/shipment handling.
-12. Re-enable/fix item-level cancellation if partial cancellation is included.
-13. Build Inventory UI.
-14. Build Ecom customer return/replacement UI.
-15. Add tests for policy, request, inspection, stock, refund, GST, replacement, and partial cancellation.
+2. Add return reason rules and evidence requirement configuration.
+3. Add return eligibility API.
+4. Add return request model and customer/admin creation API.
+5. Add customer attachment upload APIs.
+6. Add evidence review flow.
+7. Add received and authorized inspection flow.
+8. Add stock update logic only after manual inspection approval.
+9. Add financial closure with refund method and calculated GST reversal Yes/No.
+10. Integrate Wallet refund credit.
+11. Integrate Revised/Override Invoice flow for partial returns.
+12. Integrate system-generated Credit Note/GST Adjustment records.
+13. Add Finance Credit Note Excel export.
+14. Add dedicated replacement request/shipment handling.
+15. Add missing-item shipment and partial-refund handling.
+16. Re-enable/fix item-level cancellation if partial cancellation is included.
+17. Build Inventory UI.
+18. Build Ecom customer return/replacement UI with reason-based evidence upload.
+19. Add tests for policy, reason validation, evidence upload, request, inspection, stock, refund, GST, replacement, missing item, and partial cancellation.
