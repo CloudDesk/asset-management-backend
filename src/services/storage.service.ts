@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
+import FormData from 'form-data';
 import { logger } from '../config/logger.js';
 import { env } from '../config/env.js';
 
@@ -118,6 +119,113 @@ export class StorageService {
     targetBucketName?: string
   ): Promise<string> {
     return this.uploadFile(fileBuffer, fileName, targetBucketName, contentType, true);
+  }
+
+  async uploadCategoryImageVariants(
+    fileBuffer: Buffer,
+    fileName: string,
+    contentType: string,
+    basePath: string
+  ): Promise<{
+    source: { width: number; height: number; mimetype: string; size: number };
+    mobile: {
+      url: string;
+      objectKey: string;
+      bucket: string;
+      size: number;
+      width: number;
+      height: number;
+      mimetype: string;
+    };
+    thumbnail: {
+      url: string;
+      objectKey: string;
+      bucket: string;
+      size: number;
+      width: number;
+      height: number;
+      mimetype: string;
+    };
+  }> {
+    const storageBackendUrl = process.env.STORAGE_BACKEND_URL || 'http://localhost:4500';
+    const formData = new FormData();
+    formData.append('file', fileBuffer, {
+      filename: fileName,
+      contentType,
+    });
+
+    let response;
+    try {
+      response = await axios.post(
+        `${storageBackendUrl}/category-images/upload`,
+        formData,
+        {
+          params: { basePath },
+          headers: {
+            ...formData.getHeaders(),
+            ...(process.env.STORAGE_API_KEY
+              ? { 'X-Storage-Api-Key': process.env.STORAGE_API_KEY }
+              : {}),
+          },
+          timeout: 90000,
+          maxBodyLength: 6 * 1024 * 1024,
+        }
+      );
+    } catch (error: any) {
+      const storageError: any = new Error(
+        error.response?.status === 401 || error.response?.status === 403
+          ? 'File-Upload service credentials are not configured correctly'
+          : 'File-Upload service failed to process the category image'
+      );
+      storageError.statusCode = 502;
+      throw storageError;
+    }
+
+    if (!response.data?.success || !response.data?.data?.mobile?.url) {
+      throw new Error(
+        response.data?.message || 'Storage backend did not return category image variants'
+      );
+    }
+
+    return response.data.data;
+  }
+
+  async deleteCategoryImageObjects(
+    bucket: string,
+    objectKeys: string[]
+  ): Promise<void> {
+    if (objectKeys.length === 0) return;
+
+    const storageBackendUrl = process.env.STORAGE_BACKEND_URL || 'http://localhost:4500';
+    let response;
+    try {
+      response = await axios.delete(
+        `${storageBackendUrl}/category-images/objects`,
+        {
+          data: { bucket, objectKeys },
+          headers: {
+            ...(process.env.STORAGE_API_KEY
+              ? { 'X-Storage-Api-Key': process.env.STORAGE_API_KEY }
+              : {}),
+          },
+          timeout: 30000,
+        }
+      );
+    } catch (error: any) {
+      const storageError: any = new Error(
+        error.response?.status === 401 || error.response?.status === 403
+          ? 'File-Upload service credentials are not configured correctly'
+          : 'File-Upload service failed to delete category image objects'
+      );
+      storageError.statusCode = 502;
+      throw storageError;
+    }
+
+    if (!response.data?.success) {
+      throw new Error(
+        response.data?.message || 'Storage backend failed to delete category image objects'
+      );
+    }
   }
 
   /**

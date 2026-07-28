@@ -174,8 +174,36 @@ model Picklist {
 
   gstHsnMappingsAsSubcategory    GstHsnMapping[] @relation("SubcategoryMapping")
   gstHsnMappingsAsSubsubcategory GstHsnMapping[] @relation("SubsubcategoryMapping")
+  categoryImage                  CategoryImage?
   
   @@map("picklist")
+}
+
+
+
+model CategoryImage {
+  id           Int      @id @default(autoincrement())
+  picklistid   Int      @unique
+  imageurl     String   @db.Text
+  objectkey    String   @db.Text
+  thumbnailurl String?  @db.Text
+  thumbnailkey String?  @db.Text
+  bucket       String   @db.VarChar(255)
+  alttext      String?  @db.VarChar(255)
+  width        Int?
+  height       Int?
+  filesize     Int?
+  mimetype     String?  @db.VarChar(100)
+  isactive     Boolean  @default(true)
+  createdby    Int?
+  modifiedby   Int?
+  createddate  BigInt?
+  modifieddate BigInt?
+
+  picklist Picklist @relation(fields: [picklistid], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([isactive], map: "idx_category_images_isactive")
+  @@map("category_images")
 }
 
 

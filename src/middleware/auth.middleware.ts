@@ -53,7 +53,6 @@ export async function requireAuthentication(
     } else if (tokenFromQuery) {
       token = tokenFromQuery;
     }
-    console.log(token);
     if (!token) {
       logger.warn({
         ip: request.ip,
@@ -330,4 +329,4 @@ export async function requireSelfOrAdmin(
     isAdmin,
     isSelf
   }, 'Self or admin authorization successful');
-} 
+}
