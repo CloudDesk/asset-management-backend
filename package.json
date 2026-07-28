@@ -29,7 +29,9 @@
     "taxonomy:dry-run:lower": "npx tsx scripts/migrate-product-taxonomy.ts --profile=lower",
     "taxonomy:apply:lower": "npx tsx scripts/migrate-product-taxonomy.ts --profile=lower --apply --confirm=NIVAANA_TWO_LEVEL_TAXONOMY",
     "taxonomy:gst:dry-run": "npx tsx scripts/migrate-gst-taxonomy.ts",
-    "taxonomy:gst:apply": "npx tsx scripts/migrate-gst-taxonomy.ts --apply --confirm=NIVAANA_GST_TAXONOMY"
+    "taxonomy:gst:apply": "npx tsx scripts/migrate-gst-taxonomy.ts --apply --confirm=NIVAANA_GST_TAXONOMY",
+    "taxonomy:names:dry-run": "npx tsx scripts/migrate-product-names.ts",
+    "taxonomy:names:apply": "npx tsx scripts/migrate-product-names.ts --apply --confirm=NIVAANA_PRODUCT_NAMES"
   },
   "repository": {
     "type": "git",
