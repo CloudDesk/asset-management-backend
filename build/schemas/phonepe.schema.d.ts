@@ -209,8 +209,8 @@ export declare const paymentStatusResponseSchema: z.ZodObject<{
             };
         }>>;
     }, "strip", z.ZodTypeAny, {
-        message: string;
         status: string;
+        message: string;
         success: boolean;
         merchantTransactionId: string;
         paymentData?: {
@@ -232,8 +232,8 @@ export declare const paymentStatusResponseSchema: z.ZodObject<{
             };
         } | undefined;
     }, {
-        message: string;
         status: string;
+        message: string;
         success: boolean;
         merchantTransactionId: string;
         paymentData?: {
@@ -261,8 +261,8 @@ export declare const paymentStatusResponseSchema: z.ZodObject<{
     success: boolean;
     errors: null;
     data?: {
-        message: string;
         status: string;
+        message: string;
         success: boolean;
         merchantTransactionId: string;
         paymentData?: {
@@ -289,8 +289,8 @@ export declare const paymentStatusResponseSchema: z.ZodObject<{
     success: boolean;
     errors: null;
     data?: {
-        message: string;
         status: string;
+        message: string;
         success: boolean;
         merchantTransactionId: string;
         paymentData?: {

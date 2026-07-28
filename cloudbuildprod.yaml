@@ -38,6 +38,8 @@ steps:
       - "--allow-unauthenticated"
       - "--service-account"
       - "nivaana-prod@nivaana.iam.gserviceaccount.com"
+      - "--port"
+      - "5600"
       - "--set-env-vars"
       - |
         GCP_PROJECT_ID=${_GCP_PROJECT_ID},

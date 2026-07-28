@@ -19,8 +19,8 @@ const PHONEPE_CONFIG = {
     USE_SDK: process.env.PHONEPE_USE_SDK === "true" || true, // Default to SDK if credentials present
     ENVIRONMENT: (process.env.PHONEPE_ENVIRONMENT || "PRODUCTION"),
     // Redirect URLs
-    REDIRECT_SUCCESS: process.env.REDIRECT_URL_SUCCESS || "com.Nivaana.app://profile/orders",
-    REDIRECT_FAILURE: process.env.REDIRECT_URL_FAILURE || "com.Nivaana.app://profile/orders",
+    REDIRECT_SUCCESS: process.env.REDIRECT_URL_SUCCESS || "https://nivaana.in/payments?payment=success",
+    REDIRECT_FAILURE: process.env.REDIRECT_URL_FAILURE || "https://nivaana.in/payments?payment=failure",
     REDIRECT_STATUS: process.env.REDIRECT_URL_PAYMENT_STATUS || "https://nivaana-715569764663.asia-south1.run.app",
 };
 export class PhonePeService {

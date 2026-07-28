@@ -29,10 +29,10 @@ COPY tsconfig.json ./
 RUN npm run build
 
 # Expose the port that your application will run on
-EXPOSE 8080
+EXPOSE 5600
 
-# Set PORT environment variable for Cloud Run
-ENV PORT=8080
+# Set the default PORT environment variable
+ENV PORT=5600
 
 # Start the application
 CMD ["node", "build/index.js"]

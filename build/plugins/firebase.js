@@ -16,7 +16,10 @@ function buildServiceAccountCredential(clientEmail, privateKey, projectId) {
     return cert({
         ...(projectId ? { projectId } : {}),
         clientEmail,
-        privateKey: privateKey.replace(/\\n/g, '\n'),
+        privateKey: privateKey
+            .replace(/\\\r?\n/g, '\n')
+            .replace(/\\n/g, '\n')
+            .trim(),
     });
 }
 export function initializeFirebaseAdmin() {
@@ -35,13 +38,13 @@ export function initializeFirebaseAdmin() {
             credential = buildServiceAccountCredential(serviceAccount.clientEmail, serviceAccount.privateKey, serviceAccount.projectId);
             projectId = projectId || serviceAccount.projectId;
         }
+        else if (env.FIREBASE_CLIENT_EMAIL && env.FIREBASE_PRIVATE_KEY) {
+            credential = buildServiceAccountCredential(env.FIREBASE_CLIENT_EMAIL, env.FIREBASE_PRIVATE_KEY, projectId);
+        }
         else if (env.FIREBASE_SERVICE_ACCOUNT_PATH) {
             const serviceAccount = parseServiceAccountFromJson(fs.readFileSync(env.FIREBASE_SERVICE_ACCOUNT_PATH, 'utf8'));
             credential = buildServiceAccountCredential(serviceAccount.clientEmail, serviceAccount.privateKey, serviceAccount.projectId);
             projectId = projectId || serviceAccount.projectId;
-        }
-        else if (env.FIREBASE_CLIENT_EMAIL && env.FIREBASE_PRIVATE_KEY) {
-            credential = buildServiceAccountCredential(env.FIREBASE_CLIENT_EMAIL, env.FIREBASE_PRIVATE_KEY, projectId);
         }
         else if (env.GOOGLE_APPLICATION_CREDENTIALS || env.GCP_PROJECT_ID) {
             credential = applicationDefault();
@@ -59,8 +62,9 @@ export function initializeFirebaseAdmin() {
         return { app, messaging: getMessaging(app) };
     }
     catch (error) {
-        logger.error({ error }, 'Failed to initialize Firebase Admin');
-        return null;
+        const message = error instanceof Error ? error.message : 'Unknown Firebase Admin initialization error';
+        logger.error({ message }, 'Failed to initialize Firebase Admin');
+        throw error;
     }
 }
 async function firebasePlugin(fastify, _options) {

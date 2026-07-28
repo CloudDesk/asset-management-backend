@@ -1194,7 +1194,7 @@ export class PhonePeController {
             }, "Error in payment callback");
             // Redirect to failure page on error
             const failureUrl = process.env.REDIRECT_URL_FAILURE ||
-                "com.Nivaana.app://profile/orders";
+                "https://nivaana.in/payments?payment=failure";
             return reply.redirect(failureUrl);
         }
     });

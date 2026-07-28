@@ -3,12 +3,37 @@ import { OrdersService } from '../services/orders.service.js';
 import { OrderlineService } from '../services/orderline.service.js';
 import { EmailService } from '../services/email.service.js';
 import { TwilioSmsService } from '../services/twilioSms.service.js';
-import { exotelSmsService } from '../services/exotelSms.service.js';
+import { getExotelSmsService } from '../services/exotelSms.service.js';
 import { otpService } from '../services/otp.service.js';
 import { authSessionService } from '../services/authsession.service.js';
 import { sanitizeUserData } from '../utils/auth.js';
 import { logger } from '../config/logger.js';
+import { env } from '../config/env.js';
 import { createSuccessResponse, asyncHandler } from '../utils/errorHandler.js';
+function getStaticUserOtp() {
+    if (!env.USER_OTP) {
+        return undefined;
+    }
+    const environmentSignals = [
+        env.NODE_ENV,
+        process.env.APP_ENV,
+        process.env.ENVIRONMENT,
+        process.env.DEPLOY_ENV,
+        process.env.STAGE,
+        process.env.K_SERVICE,
+        env.API_BASE_URL,
+        env.REDIRECT_INVENTORY_URL,
+        env.GCP_TASK_URL,
+        env.GCP_PROJECT_QUEUE,
+        env.STORAGE_BACKEND_URL
+    ]
+        .filter((value) => Boolean(value))
+        .join(' ')
+        .toLowerCase();
+    const isNonProductionEnvironment = env.NODE_ENV !== 'production' ||
+        ['sit', 'dev', 'development', 'test', 'staging', 'sandbox'].some(marker => environmentSignals.includes(marker));
+    return isNonProductionEnvironment ? env.USER_OTP : undefined;
+}
 export async function mobileAuthRoutes(fastify) {
     const usersService = new UsersService();
     const ordersService = new OrdersService();
@@ -117,15 +142,17 @@ export async function mobileAuthRoutes(fastify) {
             // Step 3: For normal flow, we DON'T create user yet
             // User will be created AFTER OTP verification
             const isNewUser = !user; // Track if this will be a new user
+            const staticUserOtp = getStaticUserOtp();
+            const otpProvider = staticUserOtp ? 'static-env' : 'exotel';
             logger.info({
                 mobileNumber: usermobilenumber,
                 userExists: !!user,
                 verifyOnly,
-                provider: 'exotel'
-            }, `OTP requested for ${user ? 'existing user' : 'new registration'} (Exotel)`);
+                provider: otpProvider
+            }, `OTP requested for ${user ? 'existing user' : 'new registration'} (${otpProvider})`);
             // Step 4: Generate OTP using Redis service (Exotel: 4-digit, 5 min expiry, 1 min cooldown)
             const phoneNumberString = `+91${usermobilenumber}`; // Convert to string with country code
-            const otpResult = await otpService.generateAndStoreOtp(phoneNumberString, 'exotel');
+            const otpResult = await otpService.generateAndStoreOtp(phoneNumberString, 'exotel', staticUserOtp);
             if (!otpResult.success) {
                 // Handle rate limiting or other errors from OTP service
                 const statusCode = otpResult.retryAfter ? 429 : 400;
@@ -143,32 +170,42 @@ export async function mobileAuthRoutes(fastify) {
                     statusCode
                 });
             }
-            // Step 5: Send SMS via Exotel
-            // Get OTP message template from config (OTP will be bound into the message)
-            const otpMessage = otpService.getOtpMessage('exotel', otpResult.otp);
-            const smsResult = await exotelSmsService.sendOtp(phoneNumberString, otpMessage, otpResult.otp);
-            if (!smsResult.success) {
-                // SMS sending failed - delete OTP from Redis
-                await otpService.deleteOtp(phoneNumberString);
-                logger.error({
+            let messageId;
+            if (staticUserOtp) {
+                logger.info({
                     mobileNumber: usermobilenumber,
-                    error: smsResult.errorMessage
-                }, 'Failed to send OTP SMS via Exotel');
-                return reply.code(500).send({
-                    success: false,
-                    message: 'Failed to send OTP',
-                    details: smsResult.errorMessage || 'Could not send SMS',
-                    statusCode: 500
-                });
+                    provider: otpProvider
+                }, 'USER_OTP stored for SIT login; skipping Exotel SMS');
+            }
+            else {
+                // Step 5: Send SMS via Exotel
+                // Get OTP message template from config (OTP will be bound into the message)
+                const otpMessage = otpService.getOtpMessage('exotel', otpResult.otp);
+                const smsResult = await getExotelSmsService().sendOtp(phoneNumberString, otpMessage, otpResult.otp);
+                messageId = smsResult.messageId;
+                if (!smsResult.success) {
+                    // SMS sending failed - delete OTP from Redis
+                    await otpService.deleteOtp(phoneNumberString);
+                    logger.error({
+                        mobileNumber: usermobilenumber,
+                        error: smsResult.errorMessage
+                    }, 'Failed to send OTP SMS via Exotel');
+                    return reply.code(500).send({
+                        success: false,
+                        message: 'Failed to send OTP',
+                        details: smsResult.errorMessage || 'Could not send SMS',
+                        statusCode: 500
+                    });
+                }
             }
             logger.info({
                 mobileNumber: usermobilenumber,
                 ip: request.ip,
                 isNewUser,
                 verifyOnly,
-                messageId: smsResult.messageId,
-                provider: 'exotel'
-            }, `OTP sent successfully via Exotel for mobile number ${isNewUser ? '(new user created)' : '(existing user)'}${verifyOnly ? ' [verify mode]' : ''}`);
+                messageId,
+                provider: otpProvider
+            }, `OTP ready successfully via ${otpProvider} for mobile number ${isNewUser ? '(new user created)' : '(existing user)'}${verifyOnly ? ' [verify mode]' : ''}`);
             const responseMessage = verifyOnly
                 ? 'OTP sent successfully for verification'
                 : (isNewUser
@@ -322,14 +359,16 @@ export async function mobileAuthRoutes(fastify) {
         try {
             // Step 1: Verify OTP using Redis service FIRST
             const phoneNumberString = `+91${usermobilenumber}`;
+            const otpProvider = getStaticUserOtp() ? 'static-env' : 'exotel';
             const verifyResult = await otpService.verifyOtp(phoneNumberString, otpString);
             console.log('OTP verification result:', verifyResult);
             if (!verifyResult.success || !verifyResult.verified) {
                 logger.warn({
                     ip: request.ip,
                     mobileNumber: usermobilenumber,
-                    error: verifyResult.error
-                }, 'OTP verification failed (Exotel)');
+                    error: verifyResult.error,
+                    provider: otpProvider
+                }, `OTP verification failed (${otpProvider})`);
                 const statusCode = verifyResult.canResend === false ? 429 : 401;
                 return reply.code(statusCode).send({
                     success: false,
@@ -395,8 +434,8 @@ export async function mobileAuthRoutes(fastify) {
                 isNewUser,
                 ip: request.ip,
                 sessionId: session.id,
-                provider: 'exotel'
-            }, `User authenticated successfully via Exotel OTP ${isNewUser ? '(new account created)' : '(existing account)'}`);
+                provider: otpProvider
+            }, `User authenticated successfully via ${otpProvider} OTP ${isNewUser ? '(new account created)' : '(existing account)'}`);
             const result = {
                 user: sanitizedUser,
                 token: tokenPair.accessToken, // JWT access token
@@ -411,7 +450,7 @@ export async function mobileAuthRoutes(fastify) {
             return reply.code(200).send(response);
         }
         catch (error) {
-            logger.error({ error, mobileNumber: usermobilenumber, ip: request.ip, provider: 'exotel' }, 'Error during OTP verification (Exotel)');
+            logger.error({ error, mobileNumber: usermobilenumber, ip: request.ip, provider: getStaticUserOtp() ? 'static-env' : 'exotel' }, 'Error during OTP verification');
             throw error;
         }
     }));

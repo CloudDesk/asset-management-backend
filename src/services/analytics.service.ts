@@ -1,4 +1,5 @@
 import { prisma } from '../models/prisma.js';
+import { buildProductTaxonomyWhere } from '../utils/productTaxonomy.js';
 
 export class AnalyticsService {
     /**
@@ -19,10 +20,10 @@ export class AnalyticsService {
         // ===================================================================
         if (filters?.platform) {
             // Build category filters for product (exclude combo products)
-            const productWhere: any = { iscombo: false };
-            if (filters.category) productWhere.category = filters.category;
-            if (filters.subcategory) productWhere.subcategory = filters.subcategory;
-            if (filters.subsubcategory) productWhere.subsubcategory = filters.subsubcategory;
+            const productWhere: any = {
+                iscombo: false,
+                ...buildProductTaxonomyWhere(filters),
+            };
 
             // Query platformStock table directly for platform-specific data
             const [lowStockItems, outOfStockItems, allPlatformStocks, platformDistribution, stockItemCount] = await Promise.all([
@@ -168,17 +169,8 @@ export class AnalyticsService {
         const whereClause: any = {
             availablequantity: { lt: lowStockThreshold, gt: 0 },
             iscombo: false,
+            ...buildProductTaxonomyWhere(filters || {}),
         };
-
-        if (filters?.category) {
-            whereClause.category = filters.category;
-        }
-        if (filters?.subcategory) {
-            whereClause.subcategory = filters.subcategory;
-        }
-        if (filters?.subsubcategory) {
-            whereClause.subsubcategory = filters.subsubcategory;
-        }
 
         // Out of stock where clause
         // Include products with availablequantity = 0 OR NULL (products with no stock added yet)
@@ -187,17 +179,15 @@ export class AnalyticsService {
                 { availablequantity: 0 },
                 { availablequantity: null }
             ],
-            iscombo: false
+            iscombo: false,
+            ...buildProductTaxonomyWhere(filters || {}),
         };
-        if (filters?.category) outOfStockWhere.category = filters.category;
-        if (filters?.subcategory) outOfStockWhere.subcategory = filters.subcategory;
-        if (filters?.subsubcategory) outOfStockWhere.subsubcategory = filters.subsubcategory;
 
         // Total SKU where clause (optional filters)
-        const totalSkuWhere: any = { iscombo: false };
-        if (filters?.category) totalSkuWhere.category = filters.category;
-        if (filters?.subcategory) totalSkuWhere.subcategory = filters.subcategory;
-        if (filters?.subsubcategory) totalSkuWhere.subsubcategory = filters.subsubcategory;
+        const totalSkuWhere: any = {
+            iscombo: false,
+            ...buildProductTaxonomyWhere(filters || {}),
+        };
 
         // Run parallel queries for performance
         const [lowStockCount, outOfStockCount, totalProducts, platformDistribution, lowStockProducts, outOfStockProducts, totalStockItems] = await Promise.all([

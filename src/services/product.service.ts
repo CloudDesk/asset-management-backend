@@ -24,6 +24,8 @@ import {
   dynamicFindManyWithFilters
 } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
+import { buildProductTaxonomyWhere } from '../utils/productTaxonomy.js';
+import { buildProductNaming } from '../utils/productNaming.js';
 
 const DEFAULT_PLATFORM_STOCK_PLATFORMS = ['amazon', 'flipkart', 'nivapp'] as const;
 const DEFAULT_PLATFORM_STATUS = 'outofstock';
@@ -576,12 +578,9 @@ export class ProductService {
     };
 
     // Apply other filters
-    if (filters.category) {
-      where.category = filters.category;
-    }
-
-    if (filters.subcategory) {
-      where.subcategory = filters.subcategory;
+    const taxonomyWhere = buildProductTaxonomyWhere(filters);
+    if (taxonomyWhere.AND) {
+      where.AND = taxonomyWhere.AND;
     }
 
     if (filters.brand) {
@@ -615,10 +614,6 @@ export class ProductService {
       ];
     }
 
-    if (filters.subsubcategory) {
-      where.subsubcategory = filters.subsubcategory;
-    }
-
     if (filters.isdealoftheday) {
       where.isdealoftheday = filters.isdealoftheday === 'true';
     }
@@ -634,6 +629,27 @@ export class ProductService {
       // Extract combo-related fields (components is only for create, not a product table field)
       const { components, ...productData } = data;
       const isCombo = productData.iscombo === true;
+
+      const namingPicklists = await prisma.picklist.findMany({
+        where: {
+          object: 'product',
+          fieldname: { in: ['brand', 'subcategory'] },
+          isactive: true,
+        },
+        select: {
+          fieldname: true,
+          value: true,
+          label: true,
+          parent: true,
+        },
+      });
+      Object.assign(
+        productData,
+        buildProductNaming({
+          product: productData,
+          picklists: namingPicklists,
+        }),
+      );
 
       // Validate: components should only be provided for combo products
       if (components && !isCombo) {
@@ -824,6 +840,40 @@ export class ProductService {
             combotype: combotype
           }
         }, 'Silently skipping combo-related fields from update payload');
+      }
+
+      const namingFields = [
+        'name',
+        'brand',
+        'subcategory',
+        'remarks',
+      ];
+      if (namingFields.some((field) => field in updateData)) {
+        const namingPicklists = await prisma.picklist.findMany({
+          where: {
+            object: 'product',
+            fieldname: { in: ['brand', 'subcategory'] },
+            isactive: true,
+          },
+          select: {
+            fieldname: true,
+            value: true,
+            label: true,
+            parent: true,
+          },
+        });
+        const effectiveProduct = {
+          brand: updateData.brand ?? existingProduct.brand,
+          subcategory: updateData.subcategory ?? existingProduct.subcategory,
+          remarks: updateData.remarks ?? existingProduct.remarks,
+        };
+        Object.assign(
+          updateData,
+          buildProductNaming({
+            product: effectiveProduct,
+            picklists: namingPicklists,
+          }),
+        );
       }
 
       // Auto-set modified date
@@ -1693,7 +1743,8 @@ export class ProductService {
         select: {
           value: true,
           label: true,
-          controlledvalue: true, // This is the parent category
+          controlledvalue: true,
+          parent: true,
         },
       });
 
@@ -1706,7 +1757,8 @@ export class ProductService {
         select: {
           value: true,
           label: true,
-          controlledvalue: true, // This is the parent subcategory
+          controlledvalue: true,
+          parent: true,
         },
       });
 
@@ -1767,9 +1819,8 @@ export class ProductService {
       // Add all subcategories to their parent categories
       for (const subcat of subcategories) {
         // Skip if essential fields are null
-        if (!subcat.value || !subcat.label || !subcat.controlledvalue) continue;
-
-        const parentCategory = subcat.controlledvalue; // This is the parent category value
+        const parentCategory = subcat.controlledvalue || subcat.parent;
+        if (!subcat.value || !subcat.label || !parentCategory) continue;
 
         if (categoryMap.has(parentCategory)) {
           const categoryEntry = categoryMap.get(parentCategory)!;
@@ -1786,9 +1837,8 @@ export class ProductService {
       // Add all subsubcategories to their parent subcategories
       for (const subsubcat of subsubcategories) {
         // Skip if essential fields are null
-        if (!subsubcat.value || !subsubcat.label || !subsubcat.controlledvalue) continue;
-
-        const parentSubcategory = subsubcat.controlledvalue; // This is the parent subcategory value
+        const parentSubcategory = subsubcat.controlledvalue || subsubcat.parent;
+        if (!subsubcat.value || !subsubcat.label || !parentSubcategory) continue;
 
         // Find which category contains this subcategory
         for (const categoryEntry of categoryMap.values()) {
@@ -1813,24 +1863,62 @@ export class ProductService {
         const subsubcategory = row.subsubcategory || '';
         const count = Number(row._count.id);
 
-        if (categoryMap.has(category)) {
-          const categoryEntry = categoryMap.get(category)!;
+        if (!category) continue;
 
-          if (categoryEntry.subcategories.has(subcategory)) {
-            const subcategoryEntry = categoryEntry.subcategories.get(subcategory)!;
+        // Product data is the source of truth for counts. Picklist parent
+        // relationships can become stale after a taxonomy migration, so do not
+        // discard a valid product count when its category/subcategory is not
+        // currently attached in the picklist hierarchy.
+        if (!categoryMap.has(category)) {
+          categoryMap.set(category, {
+            id: category,
+            label: this.formatLabel(category),
+            count: 0,
+            subcategories: new Map(),
+          });
+        }
 
-            // If there's a subsubcategory, update its count
-            if (subsubcategory) {
-              const subsubcatEntry = subcategoryEntry.subsubcategories.find(s => s.id === subsubcategory);
-              if (subsubcatEntry) {
-                subsubcatEntry.count += count;
-              }
-            }
+        const categoryEntry = categoryMap.get(category)!;
+        categoryEntry.count += count;
 
-            // Always update subcategory and category counts
-            subcategoryEntry.count += count;
-            categoryEntry.count += count;
+        if (!subcategory) continue;
+
+        if (!categoryEntry.subcategories.has(subcategory)) {
+          const picklistSubcategory = subcategories.find(
+            item => item.value === subcategory
+          );
+
+          categoryEntry.subcategories.set(subcategory, {
+            id: subcategory,
+            label: picklistSubcategory?.label || this.formatLabel(subcategory),
+            count: 0,
+            subsubcategories: [],
+          });
+        }
+
+        const subcategoryEntry = categoryEntry.subcategories.get(subcategory)!;
+        subcategoryEntry.count += count;
+
+        if (subsubcategory) {
+          let subsubcatEntry = subcategoryEntry.subsubcategories.find(
+            item => item.id === subsubcategory
+          );
+
+          if (!subsubcatEntry) {
+            const picklistSubsubcategory = subsubcategories.find(
+              item => item.value === subsubcategory
+            );
+            subsubcatEntry = {
+              id: subsubcategory,
+              label:
+                picklistSubsubcategory?.label ||
+                this.formatLabel(subsubcategory),
+              count: 0,
+            };
+            subcategoryEntry.subsubcategories.push(subsubcatEntry);
           }
+
+          subsubcatEntry.count += count;
         }
       }
 

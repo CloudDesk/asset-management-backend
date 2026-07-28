@@ -5,3 +5,5 @@ node_modules
 build
 /node_modules
 /build
+scripts/dryrun-logs/product-name-backup-*.json
+scripts/dryrun-logs/production-taxonomy-backup-*.json
