@@ -24,6 +24,7 @@ import {
   dynamicFindManyWithFilters
 } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
+import { buildProductTaxonomyWhere } from '../utils/productTaxonomy.js';
 
 const DEFAULT_PLATFORM_STOCK_PLATFORMS = ['amazon', 'flipkart', 'nivapp'] as const;
 const DEFAULT_PLATFORM_STATUS = 'outofstock';
@@ -576,12 +577,9 @@ export class ProductService {
     };
 
     // Apply other filters
-    if (filters.category) {
-      where.category = filters.category;
-    }
-
-    if (filters.subcategory) {
-      where.subcategory = filters.subcategory;
+    const taxonomyWhere = buildProductTaxonomyWhere(filters);
+    if (taxonomyWhere.AND) {
+      where.AND = taxonomyWhere.AND;
     }
 
     if (filters.brand) {
@@ -613,10 +611,6 @@ export class ProductService {
         { shortdescription: { contains: filters.search, mode: 'insensitive' } },
         { fulldescription: { contains: filters.search, mode: 'insensitive' } },
       ];
-    }
-
-    if (filters.subsubcategory) {
-      where.subsubcategory = filters.subsubcategory;
     }
 
     if (filters.isdealoftheday) {
