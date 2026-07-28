@@ -5,6 +5,7 @@ const prisma = new PrismaClient();
 const APPLY_CONFIRMATION = 'NIVAANA_TWO_LEVEL_TAXONOMY';
 const applyRequested = process.argv.includes('--apply');
 const confirmation = process.argv.find((arg) => arg.startsWith('--confirm='))?.split('=')[1];
+const profile = process.argv.find((arg) => arg.startsWith('--profile='))?.split('=')[1] || 'production';
 
 type TaxonomyTarget = {
   category: string;
@@ -68,7 +69,7 @@ const dailyRitualByPuc: Record<string, string> = {
   'NIV-0059': 'fresh_mornings',
 };
 
-const approvedDistribution: Record<string, number> = {
+const productionDistribution: Record<string, number> = {
   'incense_rituals/incense_sticks': 26,
   'home_car_fragrance/wardrobe_fragrance': 6,
   'home_car_fragrance/fragrance_oils': 5,
@@ -77,6 +78,24 @@ const approvedDistribution: Record<string, number> = {
   'daily_rituals/relaxation_calm': 1,
   'daily_rituals/peaceful_nights': 1,
   'daily_rituals/fresh_mornings': 1,
+};
+
+const lowerEnvironmentDistribution: Record<string, number> = {
+  'incense_rituals/incense_sticks': 42,
+  'home_car_fragrance/wardrobe_fragrance': 10,
+  'home_car_fragrance/fragrance_oils': 6,
+  'home_car_fragrance/air_fresheners': 7,
+  'personal_care/aromatherapy': 1,
+  'personal_care/bath_body': 1,
+  'gift_collections/decor': 12,
+  'daily_rituals/relaxation_calm': 1,
+  'daily_rituals/peaceful_nights': 1,
+  'daily_rituals/fresh_mornings': 1,
+};
+
+const approvedDistributions: Record<string, Record<string, number>> = {
+  production: productionDistribution,
+  lower: lowerEnvironmentDistribution,
 };
 
 const classifyProduct = (product: {
@@ -102,9 +121,16 @@ const classifyProduct = (product: {
   }
   if (
     product.subsubcategory === 'room_fresheners' ||
-    product.subsubcategory === 'premium_room_mist'
+    product.subsubcategory === 'premium_room_mist' ||
+    product.subsubcategory === 'car_fresheners'
   ) {
     return { category: 'home_car_fragrance', subcategory: 'air_fresheners' };
+  }
+  if (product.subcategory === 'essential_oils') {
+    return { category: 'personal_care', subcategory: 'aromatherapy' };
+  }
+  if (product.subcategory === 'bath') {
+    return { category: 'personal_care', subcategory: 'bath_body' };
   }
   if (
     product.subcategory === 'incense' ||
@@ -178,6 +204,10 @@ const ensurePicklist = async (
 };
 
 const main = async () => {
+  const approvedDistribution = approvedDistributions[profile];
+  if (!approvedDistribution) {
+    throw new Error(`Unknown migration profile "${profile}". Use production or lower.`);
+  }
   if (applyRequested && confirmation !== APPLY_CONFIRMATION) {
     throw new Error(`Apply blocked. Pass --confirm=${APPLY_CONFIRMATION} with --apply.`);
   }
@@ -203,6 +233,7 @@ const main = async () => {
 
   console.log(JSON.stringify({
     mode: applyRequested ? 'APPLY' : 'DRY_RUN',
+    profile,
     products: products.length,
     distribution,
     unclassified: unclassified.map(({ product }) => ({

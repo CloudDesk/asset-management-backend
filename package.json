@@ -25,7 +25,9 @@
     "full-deploy": "npm run set-project && npm run in-build && npm run in-tag && npm run in-push && npm run in-deploy",
     "sold:update": "npx tsx scripts/external-sold-update.ts",
     "taxonomy:dry-run": "npx tsx scripts/migrate-product-taxonomy.ts",
-    "taxonomy:apply": "npx tsx scripts/migrate-product-taxonomy.ts --apply --confirm=NIVAANA_TWO_LEVEL_TAXONOMY"
+    "taxonomy:apply": "npx tsx scripts/migrate-product-taxonomy.ts --apply --confirm=NIVAANA_TWO_LEVEL_TAXONOMY",
+    "taxonomy:dry-run:lower": "npx tsx scripts/migrate-product-taxonomy.ts --profile=lower",
+    "taxonomy:apply:lower": "npx tsx scripts/migrate-product-taxonomy.ts --profile=lower --apply --confirm=NIVAANA_TWO_LEVEL_TAXONOMY"
   },
   "repository": {
     "type": "git",
