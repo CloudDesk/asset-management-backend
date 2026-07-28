@@ -1863,24 +1863,62 @@ export class ProductService {
         const subsubcategory = row.subsubcategory || '';
         const count = Number(row._count.id);
 
-        if (categoryMap.has(category)) {
-          const categoryEntry = categoryMap.get(category)!;
+        if (!category) continue;
 
-          if (categoryEntry.subcategories.has(subcategory)) {
-            const subcategoryEntry = categoryEntry.subcategories.get(subcategory)!;
+        // Product data is the source of truth for counts. Picklist parent
+        // relationships can become stale after a taxonomy migration, so do not
+        // discard a valid product count when its category/subcategory is not
+        // currently attached in the picklist hierarchy.
+        if (!categoryMap.has(category)) {
+          categoryMap.set(category, {
+            id: category,
+            label: this.formatLabel(category),
+            count: 0,
+            subcategories: new Map(),
+          });
+        }
 
-            // If there's a subsubcategory, update its count
-            if (subsubcategory) {
-              const subsubcatEntry = subcategoryEntry.subsubcategories.find(s => s.id === subsubcategory);
-              if (subsubcatEntry) {
-                subsubcatEntry.count += count;
-              }
-            }
+        const categoryEntry = categoryMap.get(category)!;
+        categoryEntry.count += count;
 
-            // Always update subcategory and category counts
-            subcategoryEntry.count += count;
-            categoryEntry.count += count;
+        if (!subcategory) continue;
+
+        if (!categoryEntry.subcategories.has(subcategory)) {
+          const picklistSubcategory = subcategories.find(
+            item => item.value === subcategory
+          );
+
+          categoryEntry.subcategories.set(subcategory, {
+            id: subcategory,
+            label: picklistSubcategory?.label || this.formatLabel(subcategory),
+            count: 0,
+            subsubcategories: [],
+          });
+        }
+
+        const subcategoryEntry = categoryEntry.subcategories.get(subcategory)!;
+        subcategoryEntry.count += count;
+
+        if (subsubcategory) {
+          let subsubcatEntry = subcategoryEntry.subsubcategories.find(
+            item => item.id === subsubcategory
+          );
+
+          if (!subsubcatEntry) {
+            const picklistSubsubcategory = subsubcategories.find(
+              item => item.value === subsubcategory
+            );
+            subsubcatEntry = {
+              id: subsubcategory,
+              label:
+                picklistSubsubcategory?.label ||
+                this.formatLabel(subsubcategory),
+              count: 0,
+            };
+            subcategoryEntry.subsubcategories.push(subsubcatEntry);
           }
+
+          subsubcatEntry.count += count;
         }
       }
 
