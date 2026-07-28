@@ -13,6 +13,7 @@ export const FRONTEND_TO_DB_TABLE_MAP: Record<string, string> = {
   'purchase_orders': 'purchaseorder',
   'promotions': 'promotions',
   'picklist': 'picklist',
+  'category_images': 'category_images',
   'transactions': 'transaction',
   'users': 'users',
   'roles': 'roles',
@@ -86,4 +87,3 @@ export function convertPermissionsToFrontend(permissions: Array<{ object: string
     object: getFrontendName(permission.object)
   }));
 }
-
