@@ -7,24 +7,24 @@ const applyRequested = process.argv.includes('--apply');
 const confirmation = process.argv.find((arg) => arg.startsWith('--confirm='))?.split('=')[1];
 
 type LegacyMapping = {
-  sourceValue: string;
+  sourceValues: readonly string[];
   hsnCode?: string;
   targetValue: string;
 };
 
 const legacyMappings: LegacyMapping[] = [
-  { sourceValue: 'incense_sticks', targetValue: 'incense_sticks' },
-  { sourceValue: 'dhoop_sticks', targetValue: 'dhoop_sticks' },
-  { sourceValue: 'havan_cups', targetValue: 'havan_cups' },
-  { sourceValue: 'car_fresheners', targetValue: 'air_fresheners' },
-  { sourceValue: 'room_fresheners', targetValue: 'air_fresheners' },
-  { sourceValue: 'fragrance_sachets', targetValue: 'wardrobe_fragrance' },
-  { sourceValue: 'essential_oils', targetValue: 'aromatherapy' },
-  { sourceValue: 'fragrance_blends', targetValue: 'fragrance_oils' },
-  { sourceValue: 'diffusers', hsnCode: '85167990', targetValue: 'home_diffusers' },
-  { sourceValue: 'diffusers', hsnCode: '70200090', targetValue: 'reed_diffusers' },
-  { sourceValue: 'bath', targetValue: 'bath_body' },
-  { sourceValue: 'body', targetValue: 'skincare' },
+  { sourceValues: ['incense_sticks', 'premium_incense_sticks'], targetValue: 'incense_sticks' },
+  { sourceValues: ['dhoop_sticks', 'premium_dhoop_sticks'], targetValue: 'dhoop_sticks' },
+  { sourceValues: ['havan_cups', 'premium_havan_cups'], targetValue: 'havan_cups' },
+  { sourceValues: ['car_fresheners'], targetValue: 'air_fresheners' },
+  { sourceValues: ['room_fresheners'], targetValue: 'air_fresheners' },
+  { sourceValues: ['fragrance_sachets'], targetValue: 'wardrobe_fragrance' },
+  { sourceValues: ['essential_oils'], targetValue: 'aromatherapy' },
+  { sourceValues: ['fragrance_blends'], targetValue: 'fragrance_oils' },
+  { sourceValues: ['diffusers'], hsnCode: '85167990', targetValue: 'home_diffusers' },
+  { sourceValues: ['diffusers'], hsnCode: '70200090', targetValue: 'reed_diffusers' },
+  { sourceValues: ['bath'], targetValue: 'bath_body' },
+  { sourceValues: ['body'], targetValue: 'skincare' },
 ];
 
 const clonedMappings = [
@@ -89,7 +89,7 @@ const main = async () => {
     );
     const source = activeMappings.find(
       (mapping) =>
-        mappingSourceValue(mapping) === rule.sourceValue &&
+        rule.sourceValues.includes(mappingSourceValue(mapping) || '') &&
         (!rule.hsnCode || mapping.hsn_code === rule.hsnCode),
     );
     const target = targetByValue.get(rule.targetValue);
@@ -133,7 +133,7 @@ const main = async () => {
     mode: applyRequested ? 'APPLY' : 'DRY_RUN',
     legacyMappings: transformations.map(({ rule, mapping, target }) => ({
       mappingId: mapping?.id || null,
-      from: rule.sourceValue,
+      from: rule.sourceValues.join(' | '),
       hsnCode: mapping?.hsn_code || rule.hsnCode || null,
       gstRate: mapping?.gst_rate?.toString() || null,
       to: rule.targetValue,
