@@ -1,7 +1,6 @@
 type NamingProduct = {
   brand?: string | null | undefined;
   subcategory?: string | null | undefined;
-  fragnancetype?: string | null | undefined;
   remarks?: string | null | undefined;
 };
 
@@ -28,12 +27,6 @@ export const toProductNameTitleCase = (value: string) =>
     .split(' ')
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ');
-
-const values = (value?: string | null) =>
-  clean(value)
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
 
 const labelFor = (
   picklists: NamingPicklist[],
@@ -67,29 +60,11 @@ const labelFor = (
   );
 };
 
-const removeLeadingPrefix = (remarks: string, prefix: string) => {
-  if (!prefix) return remarks;
-  const normalizedRemarks = normalize(remarks);
-  const normalizedPrefix = normalize(prefix);
-  if (normalizedRemarks === normalizedPrefix) return '';
-
-  const delimiterIndex = remarks.indexOf(' - ');
-  if (
-    delimiterIndex < 0 ||
-    normalize(remarks.slice(0, delimiterIndex)) !== normalizedPrefix
-  ) {
-    return remarks;
-  }
-  return remarks.slice(delimiterIndex + 3).trim();
-};
-
 export const buildProductNaming = ({
   product,
-  previousProduct,
   picklists,
 }: {
   product: NamingProduct;
-  previousProduct?: NamingProduct;
   picklists: NamingPicklist[];
 }) => {
   const brandValue = clean(product.brand);
@@ -104,25 +79,7 @@ export const buildProductNaming = ({
     'subcategory',
     subcategoryValue,
   );
-  const fragranceLabels = values(product.fragnancetype).map((value) =>
-    labelFor(picklists, 'fragnancetype', value, subcategoryValue),
-  );
-  const previousFragranceLabels = values(previousProduct?.fragnancetype).map(
-    (value) =>
-      labelFor(
-        picklists,
-        'fragnancetype',
-        value,
-        clean(previousProduct?.subcategory),
-      ),
-  );
-  const fragrancePrefix = fragranceLabels.join(', ');
-  const previousFragrancePrefix = previousFragranceLabels.join(', ');
-
-  let descriptor = clean(product.remarks);
-  descriptor = removeLeadingPrefix(descriptor, fragrancePrefix);
-  descriptor = removeLeadingPrefix(descriptor, previousFragrancePrefix);
-  const remarks = [fragrancePrefix, descriptor].filter(Boolean).join(' - ');
+  const remarks = clean(product.remarks);
   if (!remarks) {
     throw new Error('Remarks are required to generate the product name.');
   }

@@ -633,7 +633,7 @@ export class ProductService {
       const namingPicklists = await prisma.picklist.findMany({
         where: {
           object: 'product',
-          fieldname: { in: ['brand', 'subcategory', 'fragnancetype'] },
+          fieldname: { in: ['brand', 'subcategory'] },
           isactive: true,
         },
         select: {
@@ -846,14 +846,13 @@ export class ProductService {
         'name',
         'brand',
         'subcategory',
-        'fragnancetype',
         'remarks',
       ];
       if (namingFields.some((field) => field in updateData)) {
         const namingPicklists = await prisma.picklist.findMany({
           where: {
             object: 'product',
-            fieldname: { in: ['brand', 'subcategory', 'fragnancetype'] },
+            fieldname: { in: ['brand', 'subcategory'] },
             isactive: true,
           },
           select: {
@@ -866,15 +865,12 @@ export class ProductService {
         const effectiveProduct = {
           brand: updateData.brand ?? existingProduct.brand,
           subcategory: updateData.subcategory ?? existingProduct.subcategory,
-          fragnancetype:
-            updateData.fragnancetype ?? existingProduct.fragnancetype,
           remarks: updateData.remarks ?? existingProduct.remarks,
         };
         Object.assign(
           updateData,
           buildProductNaming({
             product: effectiveProduct,
-            previousProduct: existingProduct,
             picklists: namingPicklists,
           }),
         );

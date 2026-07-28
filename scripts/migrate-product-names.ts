@@ -84,12 +84,26 @@ const main = async () => {
         ? remainingNameParts.join(' - ') ||
           (!fragranceLabels.length ? currentNameParts.slice(1).join(' - ') : '')
         : '';
+    const fragrancePrefix = fragranceLabels.join(', ');
+    let descriptor = storedRemarks || derivedRemarks;
+    const delimiterIndex = descriptor.indexOf(' - ');
+    const firstSegment =
+      delimiterIndex >= 0 ? descriptor.slice(0, delimiterIndex) : descriptor;
+    if (
+      fragrancePrefix &&
+      normalize(firstSegment) === normalize(fragrancePrefix)
+    ) {
+      descriptor =
+        delimiterIndex >= 0 ? descriptor.slice(delimiterIndex + 3).trim() : '';
+    }
+    const migratedRemarks = [fragrancePrefix, descriptor]
+      .filter(Boolean)
+      .join(' - ');
     const { name: proposedName, remarks: proposedRemarks } = buildProductNaming({
       product: {
         brand: product.brand,
         subcategory: product.subcategory,
-        fragnancetype: product.fragnancetype,
-        remarks: storedRemarks || derivedRemarks,
+        remarks: migratedRemarks,
       },
       picklists,
     });
