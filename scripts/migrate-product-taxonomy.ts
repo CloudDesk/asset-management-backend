@@ -336,7 +336,7 @@ const main = async () => {
       where: {
         object: 'product',
         fieldname: 'category',
-        value: { in: ['home_fragrance', 'aromatherapy_&_wellness', 'home_decor'] },
+        value: { in: ['home_fragrance', 'aromatherapy_&_wellness', 'home_decor', 'incense'] },
       },
       data: { isactive: false, modifieddate: BigInt(Date.now()) },
     });
@@ -345,7 +345,7 @@ const main = async () => {
         object: 'product',
         fieldname: 'subcategory',
         OR: [
-          { parent: { in: ['home_fragrance', 'aromatherapy_&_wellness', 'home_decor'] } },
+          { parent: { in: ['home_fragrance', 'aromatherapy_&_wellness', 'home_decor', 'incense'] } },
           {
             parent: 'personal_care',
             value: { notIn: subcategories.personal_care.map(([, value]) => value) },
