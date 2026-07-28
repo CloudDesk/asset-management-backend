@@ -97,6 +97,30 @@ const main = async () => {
   });
 
   const missing = transformations.filter(({ mapping, target }) => !mapping || !target);
+  const uniqueTransformations = [
+    ...new Map(
+      transformations
+        .filter(({ mapping }) => mapping)
+        .map((transformation) => [transformation.mapping!.id, transformation]),
+    ).values(),
+  ];
+  const canonicalByTargetAndHsn = new Map<string, (typeof uniqueTransformations)[number]>();
+  const duplicateTransformations: typeof uniqueTransformations = [];
+  for (const transformation of uniqueTransformations) {
+    const key = `${transformation.target?.id}:${transformation.mapping?.hsn_code}`;
+    const canonical = canonicalByTargetAndHsn.get(key);
+    if (!canonical) {
+      canonicalByTargetAndHsn.set(key, transformation);
+      continue;
+    }
+    if (canonical.mapping?.gst_rate.toString() !== transformation.mapping?.gst_rate.toString()) {
+      throw new Error(`Conflicting GST rates found while consolidating ${transformation.rule.targetValue}.`);
+    }
+    duplicateTransformations.push(transformation);
+  }
+  const canonicalTransformations = uniqueTransformations.filter(
+    ({ mapping }) => !duplicateTransformations.some((duplicate) => duplicate.mapping?.id === mapping?.id),
+  );
   const clonePlan = clonedMappings.map((clone) => ({
     ...clone,
     source: transformations.find(({ rule }) => rule.targetValue === clone.sourceTarget)?.mapping,
@@ -121,6 +145,12 @@ const main = async () => {
       sourceMappingId: source?.id || null,
       targetPicklistId: target?.id || null,
       existingMappingId: existing?.id || null,
+    })),
+    duplicateMappingsToConsolidate: duplicateTransformations.map(({ mapping, rule }) => ({
+      mappingId: mapping?.id,
+      target: rule.targetValue,
+      hsnCode: mapping?.hsn_code,
+      gstRate: mapping?.gst_rate.toString(),
     })),
     inactivePicklistsToBackupAndDelete: inactivePicklists.length,
     missing: missing.length + missingClones.length,
@@ -150,7 +180,13 @@ const main = async () => {
       orderBy: { platform: 'asc' },
     });
 
-    for (const { mapping, target } of transformations) {
+    if (duplicateTransformations.length) {
+      await tx.gstHsnMapping.deleteMany({
+        where: { id: { in: duplicateTransformations.map(({ mapping }) => mapping!.id) } },
+      });
+    }
+
+    for (const { mapping, target } of canonicalTransformations) {
       await tx.gstHsnMapping.update({
         where: { id: mapping!.id },
         data: {
