@@ -25,6 +25,7 @@ import {
 } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
 import { buildProductTaxonomyWhere } from '../utils/productTaxonomy.js';
+import { buildProductNaming } from '../utils/productNaming.js';
 
 const DEFAULT_PLATFORM_STOCK_PLATFORMS = ['amazon', 'flipkart', 'nivapp'] as const;
 const DEFAULT_PLATFORM_STATUS = 'outofstock';
@@ -629,6 +630,27 @@ export class ProductService {
       const { components, ...productData } = data;
       const isCombo = productData.iscombo === true;
 
+      const namingPicklists = await prisma.picklist.findMany({
+        where: {
+          object: 'product',
+          fieldname: { in: ['brand', 'subcategory', 'fragnancetype'] },
+          isactive: true,
+        },
+        select: {
+          fieldname: true,
+          value: true,
+          label: true,
+          parent: true,
+        },
+      });
+      Object.assign(
+        productData,
+        buildProductNaming({
+          product: productData,
+          picklists: namingPicklists,
+        }),
+      );
+
       // Validate: components should only be provided for combo products
       if (components && !isCombo) {
         throw new Error('Components can only be provided when iscombo is true. Remove components or set iscombo to true.');
@@ -818,6 +840,44 @@ export class ProductService {
             combotype: combotype
           }
         }, 'Silently skipping combo-related fields from update payload');
+      }
+
+      const namingFields = [
+        'name',
+        'brand',
+        'subcategory',
+        'fragnancetype',
+        'remarks',
+      ];
+      if (namingFields.some((field) => field in updateData)) {
+        const namingPicklists = await prisma.picklist.findMany({
+          where: {
+            object: 'product',
+            fieldname: { in: ['brand', 'subcategory', 'fragnancetype'] },
+            isactive: true,
+          },
+          select: {
+            fieldname: true,
+            value: true,
+            label: true,
+            parent: true,
+          },
+        });
+        const effectiveProduct = {
+          brand: updateData.brand ?? existingProduct.brand,
+          subcategory: updateData.subcategory ?? existingProduct.subcategory,
+          fragnancetype:
+            updateData.fragnancetype ?? existingProduct.fragnancetype,
+          remarks: updateData.remarks ?? existingProduct.remarks,
+        };
+        Object.assign(
+          updateData,
+          buildProductNaming({
+            product: effectiveProduct,
+            previousProduct: existingProduct,
+            picklists: namingPicklists,
+          }),
+        );
       }
 
       // Auto-set modified date

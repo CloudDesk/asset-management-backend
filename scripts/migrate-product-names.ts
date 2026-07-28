@@ -2,6 +2,7 @@ import 'dotenv/config';
 import fs from 'node:fs';
 import path from 'node:path';
 import { PrismaClient } from '@prisma/client';
+import { buildProductNaming } from '../src/utils/productNaming.js';
 
 const prisma = new PrismaClient();
 const CONFIRMATION = 'NIVAANA_PRODUCT_NAMES';
@@ -45,36 +46,24 @@ const main = async () => {
     }),
   ]);
 
-  const brandLabels = new Map(
-    picklists.filter((row) => row.fieldname === 'brand').map((row) => [row.value, row.label]),
-  );
-  const subcategoryLabels = new Map(
-    picklists.filter((row) => row.fieldname === 'subcategory').map((row) => [row.value, row.label]),
-  );
   const fragranceRows = picklists.filter((row) => row.fieldname === 'fragnancetype');
   const fragranceLabel = (subcategory: string, value: string) =>
     fragranceRows.find((row) => row.parent === subcategory && row.value === value)?.label ||
     fragranceRows.find((row) => row.value === value)?.label ||
-    null;
+    toTitleCase(value);
+  const normalize = (input: string) =>
+    input.replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
 
   const blocked: Array<{ puc: string; reason: string }> = [];
   const changes = products.map((product) => {
     if (!product.brand) blocked.push({ puc: product.puc, reason: 'missing brand' });
     if (!product.subcategory) blocked.push({ puc: product.puc, reason: 'missing subcategory' });
 
-    const brand = brandLabels.get(product.brand) || product.brand || '';
-    const subcategory =
-      subcategoryLabels.get(product.subcategory)?.trim() ||
-      toTitleCase(product.subcategory || '');
-    const fragrances = (product.fragnancetype || '')
+    const fragranceLabels = (product.fragnancetype || '')
       .split(',')
       .map((value) => value.trim())
       .filter(Boolean)
-      .map((value) => {
-        const label = fragranceLabel(product.subcategory || '', value);
-        return product.fragnancetype?.includes(',') ? toTitleCase(label || value) : label || toTitleCase(value);
-      })
-      .join(', ');
+      .map((value) => fragranceLabel(product.subcategory || '', value));
     const storedRemarks =
       product.remarks?.trim() && product.remarks.toLowerCase() !== 'false'
         ? product.remarks.trim()
@@ -83,12 +72,27 @@ const main = async () => {
       .split(' - ')
       .map((part) => part.trim())
       .filter(Boolean);
+    const remainingNameParts = currentNameParts.slice(2);
+    for (const fragrance of fragranceLabels) {
+      const index = remainingNameParts.findIndex(
+        (part) => normalize(part) === normalize(fragrance),
+      );
+      if (index >= 0) remainingNameParts.splice(index, 1);
+    }
     const derivedRemarks =
-      !storedRemarks && !fragrances
-        ? currentNameParts.slice(2).join(' - ') || currentNameParts.slice(1).join(' - ')
+      !storedRemarks
+        ? remainingNameParts.join(' - ') ||
+          (!fragranceLabels.length ? currentNameParts.slice(1).join(' - ') : '')
         : '';
-    const remarks = storedRemarks || derivedRemarks;
-    const proposedName = [brand, subcategory, fragrances, remarks].filter(Boolean).join(' - ');
+    const { name: proposedName, remarks: proposedRemarks } = buildProductNaming({
+      product: {
+        brand: product.brand,
+        subcategory: product.subcategory,
+        fragnancetype: product.fragnancetype,
+        remarks: storedRemarks || derivedRemarks,
+      },
+      picklists,
+    });
     if (!proposedName) blocked.push({ puc: product.puc, reason: 'generated name is empty' });
     return {
       id: product.id,
@@ -96,7 +100,7 @@ const main = async () => {
       currentName: product.name,
       proposedName,
       currentRemarks: product.remarks,
-      proposedRemarks: derivedRemarks || product.remarks,
+      proposedRemarks,
       remarksDerived: Boolean(derivedRemarks),
     };
   });
