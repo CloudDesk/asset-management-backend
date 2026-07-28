@@ -1687,7 +1687,8 @@ export class ProductService {
         select: {
           value: true,
           label: true,
-          controlledvalue: true, // This is the parent category
+          controlledvalue: true,
+          parent: true,
         },
       });
 
@@ -1700,7 +1701,8 @@ export class ProductService {
         select: {
           value: true,
           label: true,
-          controlledvalue: true, // This is the parent subcategory
+          controlledvalue: true,
+          parent: true,
         },
       });
 
@@ -1761,9 +1763,8 @@ export class ProductService {
       // Add all subcategories to their parent categories
       for (const subcat of subcategories) {
         // Skip if essential fields are null
-        if (!subcat.value || !subcat.label || !subcat.controlledvalue) continue;
-
-        const parentCategory = subcat.controlledvalue; // This is the parent category value
+        const parentCategory = subcat.controlledvalue || subcat.parent;
+        if (!subcat.value || !subcat.label || !parentCategory) continue;
 
         if (categoryMap.has(parentCategory)) {
           const categoryEntry = categoryMap.get(parentCategory)!;
@@ -1780,9 +1781,8 @@ export class ProductService {
       // Add all subsubcategories to their parent subcategories
       for (const subsubcat of subsubcategories) {
         // Skip if essential fields are null
-        if (!subsubcat.value || !subsubcat.label || !subsubcat.controlledvalue) continue;
-
-        const parentSubcategory = subsubcat.controlledvalue; // This is the parent subcategory value
+        const parentSubcategory = subsubcat.controlledvalue || subsubcat.parent;
+        if (!subsubcat.value || !subsubcat.label || !parentSubcategory) continue;
 
         // Find which category contains this subcategory
         for (const categoryEntry of categoryMap.values()) {
