@@ -199,6 +199,16 @@ const main = async () => {
       });
     }
 
+    // Imported environments can contain explicit IDs while the backing sequence
+    // still starts at 1. Synchronize it before creating cloned mappings.
+    await tx.$queryRawUnsafe(
+      `SELECT setval(
+        pg_get_serial_sequence('gst_hsn_mapping', 'id'),
+        COALESCE((SELECT MAX(id) FROM gst_hsn_mapping), 1),
+        EXISTS(SELECT 1 FROM gst_hsn_mapping)
+      )`,
+    );
+
     for (const clone of clonePlan) {
       if (clone.existing) continue;
       await tx.gstHsnMapping.create({
