@@ -1,0 +1,49 @@
+
+> asset-management-backend@1.0.0 dev
+> npx tsx watch src/index.ts
+
+🚀 POINVOICE SERVICE LOADED - This should appear when the service is imported
+🔌 Connecting to Redis...
+✅ Redis connected successfully
+🔌 Connecting to Ekart API...
+✅ Ekart API connected successfully
+test
+[07:31:24 UTC] [32mINFO[39m: [36mundefined - EkartAuthService initialized[39m
+[07:31:24 UTC] [32mINFO[39m: [36mundefined - EkartService initialized[39m
+[07:31:24 UTC] [32mINFO[39m: [36mundefined - EkartService initialized[39m
+[07:31:26 UTC] [32mINFO[39m: [36mundefined - Connecting to Redis...[39m
+    host: "redis-10690.c330.asia-south1-1.gce.redns.redis-cloud.com"
+    port: 10690
+    hasPassword: true
+    usingUrl: false
+[07:31:26 UTC] [32mINFO[39m: [36mundefined - Redis client is connecting...[39m
+[07:31:26 UTC] [32mINFO[39m: [36mundefined - Redis client is ready[39m
+[07:31:26 UTC] [32mINFO[39m: [36mundefined - ✅ Redis connected successfully[39m
+[07:31:26 UTC] [32mINFO[39m: [36mundefined - Connecting to Ekart API...[39m
+    clientId: "EKART_6927d80ab5353322c97bdf6d"
+[07:31:26 UTC] [32mINFO[39m: [36mundefined - Attempting authentication with official endpoint...[39m
+    authUrl: "https://app.elite.ekartlogistics.in/integrations/v2/auth/token/EKART_6927d80ab5353322c97bdf6d"
+    clientId: "EKART_6927d80ab5353322c97bdf6d"
+[07:31:27 UTC] [32mINFO[39m: [36mundefined - ✅ Connected to Ekart. Token obtained successfully[39m
+    expiresIn: 49492
+    tokenType: "Bearer"
+[07:31:27 UTC] [32mINFO[39m: [36mundefined - Logger plugin registered successfully[39m
+✅ Database connected successfully
+prisma:query SELECT 1
+{"level":30,"time":1785310289345,"pid":4748,"hostname":"DESKTOP-0U634VI","msg":"Database plugin registered successfully"}
+[07:31:29 UTC] [32mINFO[39m: [36mundefined - ✅ Database connected and tested successfully[39m
+[07:31:29 UTC] [33mWARN[39m: [36mundefined - Firebase service account file is not available; push sends will be disabled.[39m
+    path: "C:\Nivaana\asset-management-backend\secrets\nivaana-6a12c-firebase-adminsdk-fbsvc-2fcbe23391.json"
+[07:31:29 UTC] [32mINFO[39m: [36mundefined - Email service initialized[39m
+[07:31:29 UTC] [32mINFO[39m: [36mundefined - Email service initialized[39m
+[07:31:29 UTC] [32mINFO[39m: [36mundefined - Twilio SMS service initialized successfully[39m
+[07:31:30 UTC] [32mINFO[39m: [36mundefined - Email service initialized[39m
+[07:31:30 UTC] [32mINFO[39m: [36mundefined - PhonePe SDK client initialized successfully[39m
+    environment: "SANDBOX"
+    clientVersion: 1
+    usingSDK: true
+[07:31:30 UTC] [32mINFO[39m: [36mundefined - Twilio SMS service initialized successfully[39m
+[07:31:31 UTC] [32mINFO[39m: [36mundefined - Redis client connection closed[39m
+[07:31:31 UTC] [32mINFO[39m: [36mundefined - Redis disconnected[39m
+2:58:14 pm [tsx] change in ./src\plugins\firebase.ts Rerunning...
+c
