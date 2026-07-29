@@ -56,6 +56,11 @@ if (missing.length > 0) {
   process.exit(1);
 }
 
+if (parsed.STORAGE_API_KEY && parsed.STORAGE_API_KEY.length < 16) {
+  console.error('STORAGE_API_KEY must be at least 16 characters for Cloud Run deploys.');
+  process.exit(1);
+}
+
 const excluded = new Set([
   'PORT',
   'FIREBASE_SERVICE_ACCOUNT_JSON',

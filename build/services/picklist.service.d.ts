@@ -3,6 +3,11 @@ import { PaginationResult } from '../utils/pagination.js';
 import { FilterOptions } from '../utils/filterBuilder.js';
 export declare class PicklistService {
     findMany(filters: FilterOptions, page: number, limit: number): Promise<PaginationResult<any>>;
+    /**
+     * Add the active category image to picklist records without changing the
+     * existing database-shaped fields consumed by older clients.
+     */
+    private attachCategoryImages;
     findById(id: string): Promise<any>;
     findByObject(object: string): Promise<any[]>;
     findByFieldname(fieldname: string): Promise<any[]>;
