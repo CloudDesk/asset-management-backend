@@ -17,6 +17,7 @@
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "set-project": "gcloud config set project nivaana",
+    "deploy:sit": "gcloud builds submit . --config cloudbuildsit.yaml --project nivaana",
     "in-build": "docker build -t nivaana .",
     "in-tag": "docker tag nivaana gcr.io/nivaana/nivaana",
     "in-push": "docker push gcr.io/nivaana/nivaana",

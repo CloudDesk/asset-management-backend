@@ -117,10 +117,14 @@ export declare class ProductService {
             id: string;
             label: string;
             count: number;
+            imageUrl: string | null;
+            thumbnailUrl: string | null;
             subcategories: Array<{
                 id: string;
                 label: string;
                 count: number;
+                imageUrl: string | null;
+                thumbnailUrl: string | null;
                 subsubcategories: Array<{
                     id: string;
                     label: string;

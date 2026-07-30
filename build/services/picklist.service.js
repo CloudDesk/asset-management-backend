@@ -61,12 +61,47 @@ export class PicklistService {
                 orderDirections,
                 availableFields: picklists.length > 0 ? Object.keys(picklists[0]) : []
             }, 'Dynamic picklist findMany with filters completed');
-            return createPaginationResult(picklists, total, page, limit);
+            const enrichedPicklists = await this.attachCategoryImages(picklists);
+            return createPaginationResult(enrichedPicklists, total, page, limit);
         }
         catch (error) {
             logger.error({ error, filters, page, limit }, 'Error in dynamic picklist findMany operation');
             throw error;
         }
+    }
+    /**
+     * Add the active category image to picklist records without changing the
+     * existing database-shaped fields consumed by older clients.
+     */
+    async attachCategoryImages(picklists) {
+        const picklistIds = picklists
+            .map(item => Number(item.id))
+            .filter(Number.isInteger);
+        if (picklistIds.length === 0) {
+            return picklists;
+        }
+        const images = await prisma.categoryImage.findMany({
+            where: {
+                picklistid: { in: picklistIds },
+                isactive: true,
+            },
+            select: {
+                picklistid: true,
+                imageurl: true,
+                thumbnailurl: true,
+                alttext: true,
+            },
+        });
+        const imageByPicklistId = new Map(images.map(image => [image.picklistid, image]));
+        return picklists.map(item => {
+            const image = imageByPicklistId.get(Number(item.id));
+            return {
+                ...item,
+                imageUrl: image?.imageurl ?? null,
+                thumbnailUrl: image?.thumbnailurl ?? null,
+                imageAlt: image?.alttext ?? null,
+            };
+        });
     }
     async findById(id) {
         try {

@@ -267,6 +267,7 @@ const envSchema = z.object({
   GOOGLE_APPLICATION_CREDENTIALS: z.string().optional(),
   // GCP Storage Backend (server 4500) - for file uploads
   STORAGE_BACKEND_URL: z.string().optional().default("http://localhost:4500"),
+  STORAGE_API_KEY: z.string().min(16).optional(),
 
   // Email Configuration
   GMAIL_SERVICE: z.string().optional().default("gmail"),

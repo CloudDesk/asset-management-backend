@@ -50,6 +50,7 @@ declare const envSchema: z.ZodObject<{
     APNS_BUNDLE_ID: z.ZodOptional<z.ZodString>;
     GOOGLE_APPLICATION_CREDENTIALS: z.ZodOptional<z.ZodString>;
     STORAGE_BACKEND_URL: z.ZodDefault<z.ZodOptional<z.ZodString>>;
+    STORAGE_API_KEY: z.ZodOptional<z.ZodString>;
     GMAIL_SERVICE: z.ZodDefault<z.ZodOptional<z.ZodString>>;
     GMAIL_HOST: z.ZodDefault<z.ZodOptional<z.ZodString>>;
     GMAIL_PORT: z.ZodDefault<z.ZodOptional<z.ZodString>>;
@@ -164,6 +165,7 @@ declare const envSchema: z.ZodObject<{
     SHIPPING_BUCKET?: string | undefined;
     FIREBASE_SERVICE_ACCOUNT_JSON?: string | undefined;
     GOOGLE_APPLICATION_CREDENTIALS?: string | undefined;
+    STORAGE_API_KEY?: string | undefined;
     GMAIL_AUTH_USER?: string | undefined;
     GMAIL_AUTH_PASSWORD?: string | undefined;
     POSTGRES_HOST?: string | undefined;
@@ -244,6 +246,7 @@ declare const envSchema: z.ZodObject<{
     FIREBASE_SERVICE_ACCOUNT_JSON?: string | undefined;
     GOOGLE_APPLICATION_CREDENTIALS?: string | undefined;
     STORAGE_BACKEND_URL?: string | undefined;
+    STORAGE_API_KEY?: string | undefined;
     GMAIL_SERVICE?: string | undefined;
     GMAIL_HOST?: string | undefined;
     GMAIL_PORT?: string | undefined;
@@ -359,6 +362,7 @@ export declare const env: {
     SHIPPING_BUCKET?: string | undefined;
     FIREBASE_SERVICE_ACCOUNT_JSON?: string | undefined;
     GOOGLE_APPLICATION_CREDENTIALS?: string | undefined;
+    STORAGE_API_KEY?: string | undefined;
     GMAIL_AUTH_USER?: string | undefined;
     GMAIL_AUTH_PASSWORD?: string | undefined;
     POSTGRES_HOST?: string | undefined;

@@ -1147,6 +1147,16 @@ export async function productRoutes(fastify: FastifyInstance) {
                           type: "number",
                           description: "Number of products in this category"
                         },
+                        imageUrl: {
+                          type: "string",
+                          nullable: true,
+                          description: "Category image URL"
+                        },
+                        thumbnailUrl: {
+                          type: "string",
+                          nullable: true,
+                          description: "Category thumbnail URL"
+                        },
                         subcategories: {
                           type: "array",
                           items: {
@@ -1163,6 +1173,16 @@ export async function productRoutes(fastify: FastifyInstance) {
                               count: {
                                 type: "number",
                                 description: "Number of products in this subcategory"
+                              },
+                              imageUrl: {
+                                type: "string",
+                                nullable: true,
+                                description: "Subcategory image URL"
+                              },
+                              thumbnailUrl: {
+                                type: "string",
+                                nullable: true,
+                                description: "Subcategory thumbnail URL"
                               },
                               subsubcategories: {
                                 type: "array",

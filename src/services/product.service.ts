@@ -1707,10 +1707,14 @@ export class ProductService {
       id: string;
       label: string;
       count: number;
+      imageUrl: string | null;
+      thumbnailUrl: string | null;
       subcategories: Array<{
         id: string;
         label: string;
         count: number;
+        imageUrl: string | null;
+        thumbnailUrl: string | null;
         subsubcategories: Array<{
           id: string;
           label: string;
@@ -1731,6 +1735,13 @@ export class ProductService {
         select: {
           value: true,
           label: true,
+          categoryImage: {
+            select: {
+              imageurl: true,
+              thumbnailurl: true,
+              isactive: true,
+            },
+          },
         },
       });
 
@@ -1745,6 +1756,13 @@ export class ProductService {
           label: true,
           controlledvalue: true,
           parent: true,
+          categoryImage: {
+            select: {
+              imageurl: true,
+              thumbnailurl: true,
+              isactive: true,
+            },
+          },
         },
       });
 
@@ -1796,10 +1814,14 @@ export class ProductService {
         id: string;
         label: string;
         count: number;
+        imageUrl: string | null;
+        thumbnailUrl: string | null;
         subcategories: Map<string, {
           id: string;
           label: string;
           count: number;
+          imageUrl: string | null;
+          thumbnailUrl: string | null;
           subsubcategories: Array<{ id: string; label: string; count: number }>;
         }>;
       }>();
@@ -1812,6 +1834,12 @@ export class ProductService {
           id: cat.value,
           label: cat.label,
           count: 0,
+          imageUrl: cat.categoryImage?.isactive
+            ? cat.categoryImage.imageurl
+            : null,
+          thumbnailUrl: cat.categoryImage?.isactive
+            ? cat.categoryImage.thumbnailurl
+            : null,
           subcategories: new Map(),
         });
       }
@@ -1829,6 +1857,12 @@ export class ProductService {
             id: subcat.value,
             label: subcat.label,
             count: 0,
+            imageUrl: subcat.categoryImage?.isactive
+              ? subcat.categoryImage.imageurl
+              : null,
+            thumbnailUrl: subcat.categoryImage?.isactive
+              ? subcat.categoryImage.thumbnailurl
+              : null,
             subsubcategories: [],
           });
         }
@@ -1874,6 +1908,8 @@ export class ProductService {
             id: category,
             label: this.formatLabel(category),
             count: 0,
+            imageUrl: null,
+            thumbnailUrl: null,
             subcategories: new Map(),
           });
         }
@@ -1892,6 +1928,12 @@ export class ProductService {
             id: subcategory,
             label: picklistSubcategory?.label || this.formatLabel(subcategory),
             count: 0,
+            imageUrl: picklistSubcategory?.categoryImage?.isactive
+              ? picklistSubcategory.categoryImage.imageurl
+              : null,
+            thumbnailUrl: picklistSubcategory?.categoryImage?.isactive
+              ? picklistSubcategory.categoryImage.thumbnailurl
+              : null,
             subsubcategories: [],
           });
         }
@@ -1929,12 +1971,16 @@ export class ProductService {
           id: cat.id,
           label: cat.label,
           count: cat.count,
+          imageUrl: cat.imageUrl,
+          thumbnailUrl: cat.thumbnailUrl,
           subcategories: Array.from(cat.subcategories.values())
             .sort((a, b) => a.label.localeCompare(b.label))
             .map(subcat => ({
               id: subcat.id,
               label: subcat.label,
               count: subcat.count,
+              imageUrl: subcat.imageUrl,
+              thumbnailUrl: subcat.thumbnailUrl,
               subsubcategories: subcat.subsubcategories.sort((a, b) => a.label.localeCompare(b.label)),
             })),
         }));
