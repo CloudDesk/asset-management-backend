@@ -1,4 +1,6 @@
 .env
+.env.sit
+.env.prod
 secrets/
 *.firebase-service-account.json
 node_modules
