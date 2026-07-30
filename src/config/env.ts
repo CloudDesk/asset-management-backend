@@ -121,12 +121,11 @@ function validatePrivateKeyEnvValue(key: string, value: string) {
 
 function validatePushNotificationConfig(data: object) {
   const isProduction = getEnvConfigValue(data, 'NODE_ENV') === 'production';
-  const hasFirebaseDirectConfig = REQUIRED_FIREBASE_PUSH_ENV_VARS.some((key) =>
-    Boolean(getEnvConfigValue(data, key))
+  const hasFirebaseDirectConfig = Boolean(
+    getEnvConfigValue(data, 'FIREBASE_CLIENT_EMAIL') ||
+    getEnvConfigValue(data, 'FIREBASE_PRIVATE_KEY')
   );
-  const hasApnsConfig = REQUIRED_APNS_PUSH_ENV_VARS.some((key) =>
-    Boolean(getEnvConfigValue(data, key))
-  );
+  const hasApnsConfig = Boolean(getEnvConfigValue(data, 'APNS_AUTH_KEY'));
 
   const missingVars: string[] = [];
   const validationErrors: string[] = [];

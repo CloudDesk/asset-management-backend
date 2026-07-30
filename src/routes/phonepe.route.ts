@@ -2,6 +2,52 @@ import { FastifyInstance } from "fastify";
 import { PhonePeController } from "../controllers/phonepe.controller.js";
 import logger from "../plugins/logger.js";
 
+type PaymentRedirectStatus = "success" | "failure" | "pending" | "processing";
+
+function isAllowedPaymentReturnUrl(value: unknown): value is string {
+  if (typeof value !== "string" || !value.trim()) return false;
+
+  try {
+    const url = new URL(value);
+    const configuredOrigins = (
+      process.env.PAYMENT_RETURN_URL_ALLOWED_ORIGINS || ""
+    )
+      .split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean);
+    const isConfiguredOrigin = configuredOrigins.includes(url.origin);
+    const isLocalDevelopment =
+      process.env.NODE_ENV !== "production" &&
+      url.protocol === "http:" &&
+      ["localhost", "127.0.0.1"].includes(url.hostname);
+
+    return isConfiguredOrigin || isLocalDevelopment;
+  } catch {
+    return false;
+  }
+}
+
+function buildPaymentReturnUrl(
+  storedReturnUrl: unknown,
+  fallbackUrl: string,
+  status: PaymentRedirectStatus,
+  transactionId: string,
+  orderCreationStatus?: string
+) {
+  const baseUrl = isAllowedPaymentReturnUrl(storedReturnUrl)
+    ? storedReturnUrl
+    : fallbackUrl;
+  const url = new URL(baseUrl);
+
+  url.searchParams.set("payment", status);
+  url.searchParams.set("merchantTransactionId", transactionId);
+  if (orderCreationStatus) {
+    url.searchParams.set("order", orderCreationStatus);
+  }
+
+  return url.toString();
+}
+
 export async function phonePeRoutes(fastify: FastifyInstance) {
   const phonePeController = new PhonePeController();
 
@@ -498,6 +544,29 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { transactionId } = request.params as { transactionId: string };
+      let storedReturnUrl: unknown;
+      const redirectToStorefront = (
+        status: PaymentRedirectStatus,
+        orderCreationStatus?: string
+      ) => {
+        const fallback =
+          status === "failure"
+            ? process.env.REDIRECT_URL_FAILURE ||
+              "https://nivaana.in/payments?payment=failure"
+            : process.env.REDIRECT_URL_SUCCESS ||
+              "https://nivaana.in/payments?payment=success";
+
+        return reply.redirect(
+          buildPaymentReturnUrl(
+            storedReturnUrl,
+            fallback,
+            status,
+            transactionId,
+            orderCreationStatus
+          )
+        );
+      };
+
       console.log(transactionId, "Payment callback received for transaction:");
       try {
         fastify.log.info(
@@ -514,6 +583,8 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
         if (existingTransactions.data && existingTransactions.data.length > 0) {
           const existingTransaction = existingTransactions.data[0];
           const existingStatus = existingTransaction.transactiondata?.status;
+          storedReturnUrl =
+            existingTransaction.transactiondata?.originalPayload?.returnUrl;
 
           fastify.log.info(
             {
@@ -534,8 +605,7 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
               `Transaction already ${existingStatus} - rejecting callback, redirecting to failure page`
             );
 
-            const failureUrl = process.env.REDIRECT_URL_FAILURE || "https://nivaana.in/payments?payment=failure";
-            return reply.redirect(failureUrl);
+            return redirectToStorefront("failure");
           }
 
           // If transaction is already SUCCESS and order exists, redirect to success immediately (idempotent)
@@ -556,8 +626,7 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
                 "Transaction already SUCCESS and order exists - redirecting to success page (idempotent)"
               );
 
-              const successUrl = process.env.REDIRECT_URL_SUCCESS || "https://nivaana.in/payments?payment=success";
-              return reply.redirect(successUrl);
+              return redirectToStorefront("success", "already_exists");
             }
           }
 
@@ -599,241 +668,45 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
             `Payment successful for transaction: ${transactionId}`
           );
 
-          // Update transaction status to success first
+          const orderCreation =
+            await phonePeController.ensureOrderAfterSuccessfulPayment(
+              transactionId,
+              paymentStatus
+            );
+
+          fastify.log.info(
+            {
+              transactionId,
+              orderCreationStatus: orderCreation.status,
+              orderId: orderCreation.orderId,
+              orderCreationError: orderCreation.error,
+            },
+            "Successful payment reconciliation completed"
+          );
+
+          if (orderCreation.status === "failed") {
+            return redirectToStorefront("processing", orderCreation.status);
+          }
+
+          return redirectToStorefront("success", orderCreation.status);
+        } else if (
+          paymentStatus.code === "PAYMENT_PENDING" ||
+          paymentStatus.code === "PAYMENT_INITIATED"
+        ) {
+          fastify.log.info(
+            {
+              transactionId,
+              paymentStatus: paymentStatus.code,
+            },
+            "Payment is still pending; preserving transaction for reconciliation"
+          );
+
           await phonePeController.updateTransactionStatus(
             transactionId,
-            "SUCCESS",
+            "PENDING",
             paymentStatus
           );
-          fastify.log.info(
-            `Transaction status updated to SUCCESS for: ${transactionId}`
-          );
-
-          // Create order and orderline records with improved error handling
-          let orderCreationStatus = "success";
-          let orderCreationError = null;
-          let orderId = null;
-
-          try {
-            fastify.log.info(
-              `Calling createOrderAfterPayment for transaction: ${transactionId}`
-            );
-
-            // CRITICAL: Check if order already exists for this transaction (prevent duplicates on refresh)
-            const existingOrders = await phonePeController.ordersService.findMany(
-              { merchanttransactionid: transactionId },
-              1,
-              1
-            );
-
-            if (existingOrders.data && existingOrders.data.length > 0) {
-              const existingOrder = existingOrders.data[0];
-              orderId = existingOrder.id;
-
-              fastify.log.warn(
-                {
-                  transactionId,
-                  existingOrderId: existingOrder.id,
-                  existingOrderOrderId: existingOrder.orderid,
-                },
-                "Order already exists for this transaction - skipping duplicate creation"
-              );
-
-              // Still update transaction with order info (idempotent operation)
-              await phonePeController.updateTransactionStatus(
-                transactionId,
-                "SUCCESS",
-                {
-                  ...paymentStatus,
-                  orderCreation: {
-                    status: "already_exists",
-                    orderId: existingOrder.id,
-                    existingOrderOrderId: existingOrder.orderid,
-                    timestamp: new Date().toISOString(),
-                  },
-                  paymentCompleteAt: new Date().toISOString(),
-                }
-              );
-
-              // Skip order creation - use existing order
-              orderCreationStatus = "already_exists";
-            } else {
-              // Get evaluation IDs from transaction data for promotion redemption
-              const transactions =
-                await phonePeController.transactionService.findMany(
-                  { merchanttransactionid: transactionId },
-                  1,
-                  1
-                );
-
-              let evaluationIds: string[] = [];
-              if (transactions.data && transactions.data.length > 0) {
-                const transaction = transactions.data[0];
-                evaluationIds =
-                  transaction.transactiondata?.evaluation_ids || [];
-
-                fastify.log.info(
-                  {
-                    transactionId,
-                    evaluationIds,
-                    evaluationCount: evaluationIds.length,
-                  },
-                  "Retrieved evaluation IDs from transaction for promotion redemption"
-                );
-              }
-
-              // Force mode to "phonepe" since this is PhonePe webhook callback
-              const order = await phonePeController.createOrderAfterPayment(
-                transactionId,
-                "phonepe",
-                evaluationIds
-              );
-              orderId = order.id;
-            }
-            if (orderCreationStatus !== "already_exists") {
-              fastify.log.info(
-                `Order created successfully for transaction: ${transactionId}`,
-                {
-                  orderId: orderId,
-                  transactionId: transactionId,
-                }
-              );
-            }
-
-            // Update product quantities after successful order creation (only if order was just created)
-            if (orderCreationStatus !== "already_exists" && orderId) {
-              try {
-                fastify.log.info(
-                  `Starting product quantity updates for PhonePe order: ${transactionId}`
-                );
-
-                // Get orderlines for quantity update
-                const orderlines =
-                  await phonePeController.orderlineService.findMany(
-                    { orderid: orderId },
-                    1,
-                    100
-                  );
-
-              if (orderlines.data && orderlines.data.length > 0) {
-                // Convert orderlines to the format expected by updateProductQuantitiesAfterOrder
-                const orderItems = orderlines.data.map((orderline) => ({
-                  productid: Number(orderline.productid),
-                  quantity: orderline.quantity || 1,
-                  productname: orderline.productname || null,
-                }));
-
-                // Get order object for quantity update
-                const orders = await phonePeController.ordersService.findMany(
-                  { id: orderId },
-                  1,
-                  1
-                );
-
-                if (orders.data && orders.data.length > 0) {
-                  const orderForUpdate = orders.data[0];
-
-                  // Update product quantities
-                  const quantityUpdateResult =
-                    await phonePeController.updateProductQuantitiesAfterOrder(
-                      orderForUpdate,
-                      orderItems,
-                      "phonepe"
-                    );
-
-                  fastify.log.info(
-                    `Product quantities updated successfully for order: ${orderId}`,
-                    {
-                      orderId: orderId,
-                      updatedProducts:
-                        quantityUpdateResult.updateResults?.length || 0,
-                      results: quantityUpdateResult,
-                    }
-                  );
-                }
-              } else {
-                fastify.log.warn(
-                  `No orderlines found for order: ${orderId} - skipping quantity update`
-                );
-              }
-            } catch (quantityError: any) {
-              fastify.log.error(
-                `Error updating product quantities for order: ${orderId}`,
-                {
-                  error: quantityError.message,
-                  stack: quantityError.stack,
-                  orderId: orderId,
-                }
-              );
-              // Don't fail the entire callback for quantity update errors
-            }
-            }
-          } catch (orderError: any) {
-            orderCreationStatus = "failed";
-            orderCreationError = orderError.message;
-            fastify.log.error(orderError,"Error creating order for transaction");
-            fastify.log.error(
-              `Error creating order for transaction: ${transactionId}`,
-              {
-                error: orderError.message,
-                stack: orderError.stack,
-                errorType: orderError.constructor.name,
-              }
-            );
-
-            // Update transaction with order creation error details
-            try {
-              await phonePeController.updateTransactionStatus(
-                transactionId,
-                "SUCCESS",
-                {
-                  ...paymentStatus,
-                  orderCreation: {
-                    status: "failed",
-                    error: orderError.message,
-                    timestamp: new Date().toISOString(),
-                  },
-                }
-              );
-            } catch (updateError: any) {
-              fastify.log.error(
-                `Failed to update transaction with order creation error for ${transactionId}`,
-                {
-                  updateError: updateError.message,
-                }
-              );
-            }
-          }
-
-          // Update final transaction status with order creation results
-          try {
-            await phonePeController.updateTransactionStatus(
-              transactionId,
-              "SUCCESS",
-              {
-                ...paymentStatus,
-                orderCreation: {
-                  status: orderCreationStatus,
-                  error: orderCreationError,
-                  orderId: orderId,
-                  timestamp: new Date().toISOString(),
-                },
-                paymentCompleteAt: new Date().toISOString(),
-              }
-            );
-          } catch (finalUpdateError: any) {
-            fastify.log.error(
-              `Failed to update final transaction status for ${transactionId}`,
-              {
-                error: finalUpdateError.message,
-              }
-            );
-          }
-
-          // Redirect to success page regardless of order creation status
-          // Payment was successful, order creation is secondary
-          const successUrl = process.env.REDIRECT_URL_SUCCESS || "https://nivaana.in/payments?payment=success";
-          return reply.redirect(successUrl);
+          return redirectToStorefront("pending");
         } else if (paymentStatus.code === "TRANSACTION_NOT_FOUND") {
           fastify.log.warn(
             `Payment transaction not found or expired for: ${transactionId}`,
@@ -848,8 +721,7 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
           );
 
           // Redirect to failure page with appropriate message
-          const failureUrl = process.env.REDIRECT_URL_FAILURE || "https://nivaana.in/payments?payment=failure";
-          return reply.redirect(failureUrl);
+          return redirectToStorefront("failure");
         } else {
           fastify.log.warn(
             `Payment failed for transaction: ${transactionId}`,
@@ -864,8 +736,7 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
           );
 
           // Redirect to failure page
-          const failureUrl = process.env.REDIRECT_URL_FAILURE || "https://nivaana.in/payments?payment=failure";
-          return reply.redirect(failureUrl);
+          return redirectToStorefront("failure");
         }
       } catch (error: any) {
         fastify.log.error(
@@ -899,8 +770,7 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
         }
 
         // Redirect to failure page
-        const failureUrl = process.env.REDIRECT_URL_FAILURE || "https://nivaana.in/payments?payment=failure";
-        return reply.redirect(failureUrl);
+        return redirectToStorefront("failure");
       }
     }
   );
@@ -961,6 +831,14 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
                   paymentData: {
                     type: "object",
                     description: "Complete payment response from PhonePe",
+                  },
+                  orderCreation: {
+                    type: "object",
+                    properties: {
+                      status: { type: "string" },
+                      orderId: { type: ["number", "null"] },
+                      error: { type: ["string", "null"] },
+                    },
                   },
                 },
               },
@@ -1289,12 +1167,19 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
         headers: {
           type: "object",
           properties: {
+            authorization: {
+              type: "string",
+              description: "PhonePe webhook authorization header",
+            },
             "x-verify": {
               type: "string",
-              description: "PhonePe signature header for webhook verification",
+              description: "Legacy PhonePe signature header",
             },
           },
-          required: ["x-verify"],
+          anyOf: [
+            { required: ["authorization"] },
+            { required: ["x-verify"] },
+          ],
         },
         body: {
           type: "object",

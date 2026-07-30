@@ -19,7 +19,8 @@ class RedisClient {
    * Initialize Redis connection
    */
   public async connect(): Promise<void> {
-    if (this.isConnected && this.client) {
+    if (this.client?.isReady) {
+      this.isConnected = true;
       logger.info('Redis already connected');
       return;
     }
@@ -146,7 +147,32 @@ class RedisClient {
    * Check if Redis is connected
    */
   public isReady(): boolean {
-    return this.isConnected && this.client !== null;
+    return this.isConnected && this.client?.isReady === true;
+  }
+
+  /**
+   * Ensure a usable connection after transient network or Redis Cloud outages.
+   * A client that exhausted its reconnect attempts must be replaced.
+   */
+  public async ensureConnected(): Promise<void> {
+    if (this.client?.isReady) {
+      this.isConnected = true;
+      return;
+    }
+
+    if (this.client) {
+      try {
+        if (this.client.isOpen) {
+          await this.client.disconnect();
+        }
+      } catch (error: any) {
+        logger.warn({ error: error.message }, 'Failed to close stale Redis client');
+      }
+      this.client = null;
+      this.isConnected = false;
+    }
+
+    await this.connect();
   }
 
   /**
