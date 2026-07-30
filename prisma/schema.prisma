@@ -206,6 +206,29 @@ model CategoryImage {
   @@map("category_images")
 }
 
+model ReturnReplacementPolicy {
+  id                    Int      @id @default(autoincrement())
+  category              String   @db.VarChar(255)
+  subcategory           String?  @db.VarChar(255)
+  subsubcategory        String?  @db.VarChar(255)
+  scopekey              String   @unique @db.VarChar(900)
+  returnallowed         Boolean  @default(false)
+  replacementallowed    Boolean  @default(false)
+  returnwindowdays      Int?
+  replacementwindowdays Int?
+  allowedrefundmethods  String[]
+  notes                 String?
+  isactive              Boolean  @default(true)
+  createdby             Int?
+  modifiedby            Int?
+  createddate           BigInt?
+  modifieddate          BigInt?
+
+  @@index([category, subcategory, subsubcategory], map: "idx_return_replacement_policy_scope")
+  @@index([isactive], map: "idx_return_replacement_policy_isactive")
+  @@map("return_replacement_policies")
+}
+
 
 
 model PicklistBackup {
