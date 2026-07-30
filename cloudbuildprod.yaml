@@ -31,6 +31,7 @@ steps:
       - |
         import json
         import os
+        import sys
 
         substitution_map = {
           "GCP_PROJECT_ID": "_GCP_PROJECT_ID",
@@ -105,11 +106,33 @@ steps:
           "STORAGE_BACKEND_URL": "_STORAGE_BACKEND_URL",
         }
 
+        required_env_names = [
+          "DATABASE_URL",
+          "NODE_ENV",
+          "TWILIO_ACCOUNT_SID",
+          "TWILIO_AUTH_TOKEN",
+          "TWILIO_PHONE_NUMBER",
+          "AMAZON_ENVIRONMENT",
+        ]
+
+        env_values = {
+          env_name: os.environ.get(substitution_name, "")
+          for env_name, substitution_name in substitution_map.items()
+        }
+        missing_required = [
+          env_name for env_name in required_env_names if not env_values.get(env_name)
+        ]
+        if missing_required:
+          print(
+            "Missing required Cloud Build substitutions for .env.prod: "
+            + ", ".join(missing_required),
+            file=sys.stderr,
+          )
+          sys.exit(1)
+
         with open(".env.prod", "w", encoding="utf-8") as env_file:
-            json.dump(
-                {env_name: os.environ.get(substitution_name, "") for env_name, substitution_name in substitution_map.items()},
-                env_file,
-            )
+            for env_name, value in env_values.items():
+                env_file.write(f"{env_name}: {json.dumps(value)}\n")
 
   # Step 6: Deploy the image to Cloud Run with env vars from .env.prod
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
@@ -189,7 +212,7 @@ substitutions:
   _AMAZON_CLIENT_ID: "${AMAZON_CLIENT_ID}"
   _AMAZON_CLIENT_SECRET: "${AMAZON_CLIENT_SECRET}"
   _AMAZON_REFRESH_TOKEN: "${AMAZON_REFRESH_TOKEN}"
-  _AMAZON_ENVIRONMENT: "${AMAZON_ENVIRONMENT}"
+  _AMAZON_ENVIRONMENT: "PRODUCTION"
   _AMAZON_SELLER_CENTRAL_URL: "${AMAZON_SELLER_CENTRAL_URL}"
   _AMAZON_SELLER_ID: "${AMAZON_SELLER_ID}"
   _JWT_SECRET: "${JWT_SECRET}"
@@ -206,4 +229,5 @@ substitutions:
 
 
 options:
+  automapSubstitutions: true
   logging: CLOUD_LOGGING_ONLY
