@@ -4,9 +4,9 @@
 
 **Report date:** 31 July 2026  
 **Source:** Updated Return & Replacement implementation plan and repository inspection  
-**Current estimated completion:** **57% overall**  
-**Backend foundation:** approximately **78% complete**  
-**End-to-end customer-ready flow:** approximately **30% complete**
+**Current estimated completion:** **48% overall**  
+**Backend foundation:** approximately **65% complete**  
+**End-to-end customer-ready flow:** approximately **25% complete**
 
 > Completion values are weighted engineering estimates based on code present in the repository, reachable UI flows, missing integrations, and verification results. They are not effort-spent percentages.
 
@@ -18,7 +18,7 @@ Nivaana has a solid backend foundation for return and replacement processing. Th
 
 - Category and Subcategory policy configuration.
 - Policy CRUD APIs and order-item eligibility evaluation.
-- Predefined customer and delivery-partner reason rules.
+- Predefined customer and delivery-partner reason-rule masters.
 - All six required customer reasons.
 - Reason-specific evidence and deadline validation.
 - Item-level and quantity-level request creation.
@@ -34,8 +34,10 @@ Nivaana has a solid backend foundation for return and replacement processing. Th
 The module is not yet end-to-end complete. The largest remaining items are:
 
 - Remove Sub-subcategory from the implementation because the business hierarchy is only Category and Subcategory.
+- Add the missing Policy-to-Reason mapping entity and backfill all six customer reasons for every existing policy.
+- Change eligibility and request validation to use the matched policy's reason configuration rather than global reason rules.
 - Build the customer mobile return/replacement experience against the new APIs.
-- Build the reason-rule editor in the Inventory application.
+- Build the policy-specific reason configuration editor in the Inventory application.
 - Build the warehouse inspection UI.
 - Connect pickup preparation to the real Ekart reverse-shipment API.
 - Implement refund, replacement shipment, missing-item shipment, and partial-refund closure.
@@ -57,7 +59,7 @@ When both match, the Subcategory policy takes priority. Sub-subcategory is not p
 
 ### 2.2 Reason mapping
 
-Every active Return & Replacement Policy automatically receives all active predefined customer-facing reason rules:
+Every Return & Replacement Policy must own mappings to all six predefined customer-facing reasons:
 
 - Wrong Product.
 - Damaged Product.
@@ -66,11 +68,28 @@ Every active Return & Replacement Policy automatically receives all active prede
 - Leakage / Broken Bottle.
 - Changed Mind.
 
-Because all reasons apply to all policies, a separate policy-to-reason mapping table is not currently required. The reason master can be applied globally after category-policy eligibility succeeds.
+The system must use a separate Policy-to-Reason mapping entity. A global reason master supplies stable codes, display names, and default configuration templates; it is not the runtime policy configuration.
 
-If Nivaana later needs to disable a specific reason for a category, a policy-reason mapping or override table can be added in Phase 2.
+When a policy is created, the Policy Engine must automatically create six policy-reason mappings in the same database transaction. Each mapping receives a copy of that reason's current default configuration. Admin can then edit the copied configuration for that policy without changing:
 
-### 2.3 Policy responsibility
+- The master default.
+- Another policy's configuration.
+- Historical requests already created under an earlier configuration.
+
+This is required even though every policy initially uses the same six reasons. The explicit mapping provides per-policy editing, auditability, stable runtime behavior, and future category-specific variation.
+
+### 2.3 Configuration ownership
+
+The configuration layers are:
+
+1. **Reason Master** — six stable customer reason definitions and their default configuration templates.
+2. **Return/Replacement Policy** — Category/Subcategory eligibility, general windows, and supported fulfilment types.
+3. **Policy Reason Rule** — the editable configuration for one reason under one policy.
+4. **Return Request Snapshot** — the immutable policy and reason configuration used when the customer submitted the request.
+
+Only authorized Admin users can edit policy-reason rules. The shopper/customer can select from configured reasons and outcomes but cannot change the configuration.
+
+### 2.4 Policy responsibility
 
 The Category/Subcategory policy controls general eligibility:
 
@@ -81,9 +100,9 @@ The Category/Subcategory policy controls general eligibility:
 - Allowed refund methods.
 - Active/inactive status.
 
-### 2.4 Reason-rule responsibility
+### 2.5 Policy-reason rule responsibility
 
-The selected reason controls:
+The selected policy-reason mapping controls:
 
 - Allowed outcomes.
 - Reason-specific deadline.
@@ -95,7 +114,9 @@ The selected reason controls:
 - Resolution timing.
 - Replacement-stock-unavailable fallback.
 
-### 2.5 Reverse pickup, charges, rejection, and stock fallback
+The policy's general permissions remain authoritative. For example, if a reason mapping includes `refund` but the matched policy does not allow returns/refunds, the API must remove or reject that outcome. Runtime outcomes are the intersection of policy permission and policy-reason configuration.
+
+### 2.6 Reverse pickup, charges, rejection, and stock fallback
 
 The following operational decisions are confirmed:
 
@@ -121,17 +142,81 @@ The following operational decisions are confirmed:
 
 At least one photo is required for all customer return, replacement, and refund claims. A reason can impose stricter evidence requirements.
 
+The matrix above defines the master defaults. These defaults are copied into every new policy as six independent Policy Reason Rules. Authorized Admin users can edit a policy's copy; edits are versioned and apply only to future requests submitted under that policy.
+
 ---
 
 ## 4. Recommended Configuration Contract
 
-Core fields that are queried and validated frequently should remain typed database columns. JSON should only be used for a validated nested rule contract or future extensibility.
+### 4.1 Recommended data model
 
-Example reason configuration:
+Use three persistent configuration entities plus an immutable request snapshot.
+
+#### A. Return Reason Master
+
+Stores the predefined reason identity and default template:
+
+- `id`.
+- `reasonCode` — stable unique code.
+- `reasonName` — display name.
+- `source` — `customer` or `delivery_partner`.
+- `defaultConfig` — validated JSON template.
+- `schemaVersion`.
+- `isActive`.
+- Audit fields.
+
+The six customer reason masters are system-predefined. Delivery-partner/RTO reasons can remain master-level rules because they are not selected through a customer policy.
+
+#### B. Return/Replacement Policy
+
+Stores general Category/Subcategory eligibility:
+
+- `id`.
+- `categoryId`/Category reference.
+- Optional `subcategoryId`/Subcategory reference.
+- `returnAllowed` and `replacementAllowed`.
+- General return and replacement windows.
+- Allowed refund methods.
+- Active status and audit fields.
+
+Sub-subcategory must not be stored or evaluated.
+
+#### C. Policy Reason Rule
+
+Maps one policy to one predefined customer reason:
+
+- `id`.
+- `policyId` — foreign key to Return/Replacement Policy.
+- `reasonId` — foreign key to Return Reason Master.
+- `configuration` — validated JSON copied from the master default and editable per policy.
+- `schemaVersion` and `configurationVersion`.
+- `isActive`.
+- `createdBy`, `modifiedBy`, `createdDate`, and `modifiedDate`.
+- Unique constraint on `(policyId, reasonId)`.
+- Indexes on `policyId`, `reasonId`, and `isActive`.
+
+Core fields needed for filtering/indexing may be typed columns, but nested evidence, pickup, approval, and fallback behavior can remain in validated JSON. The JSON must be validated by a versioned application schema before persistence and use.
+
+#### D. Return Request Configuration Snapshot
+
+Each submitted request must store:
+
+- Applied policy ID and policy version.
+- Applied policy-reason mapping ID and configuration version.
+- Reason code and display name.
+- Immutable copy of the resolved rule configuration.
+- Resolved allowed outcome selected by the customer.
+
+Later Admin edits must not alter validation or fulfilment rules for an already-submitted request.
+
+### 4.2 Example policy-reason configuration
+
+Example Damaged Product configuration stored under one policy:
 
 ```json
 {
   "schemaVersion": 1,
+  "reasonCode": "damaged_product",
   "raiseWithinHours": 48,
   "evidence": [
     {
@@ -165,11 +250,69 @@ Example reason configuration:
 }
 ```
 
-### Required additions to the present model
+### 4.3 Policy creation behavior
 
-The current reason-rule model already covers most of this structure. Add or clarify:
+Policy creation must be atomic:
 
+```text
+Create Category/Subcategory policy
+  -> Load six active customer reason masters
+  -> Validate each default configuration
+  -> Create six Policy Reason Rule rows
+  -> Commit policy and mappings together
+```
+
+If any mapping cannot be created, the complete policy-creation transaction must roll back. A policy must never be left partially configured.
+
+Required behavior:
+
+- New policies receive all six reasons automatically.
+- Each mapping starts with a deep copy of the corresponding master default.
+- Master default changes apply only to policies created afterward.
+- Existing mappings are not silently overwritten.
+- Admin may explicitly reset one mapping to the current master default.
+- Any bulk-sync operation must show a preview and require confirmation.
+
+### 4.4 Policy editing behavior
+
+The policy editor must show a **Reason Configuration** section containing all six mapped reasons. For each reason, Admin can edit:
+
+- Claim deadline.
+- Allowed outcomes.
+- Required and optional evidence types and minimum counts.
+- Opened-package eligibility.
+- Approval mode and resolution timing.
+- Pickup requirement and manual Admin trigger behavior.
+- Reverse-shipping charge bearer.
+- Stock-unavailable fallback.
+- Customer-notification behavior.
+
+Saving a reason edit updates only that policy-reason mapping and increments its configuration version. It must not update the reason master or another policy.
+
+### 4.5 Runtime eligibility and request validation
+
+```text
+Order item
+  -> Resolve most-specific Category/Subcategory policy
+  -> Load active Policy Reason Rules for that policy
+  -> Intersect each rule's outcomes with policy permissions/windows
+  -> Return configured reasons, evidence, deadlines, and outcomes
+  -> Validate submission against the selected mapping
+  -> Save immutable configuration snapshot
+```
+
+The eligibility API must not load all global customer reasons directly. A submitted reason is valid only when an active mapping exists for the matched policy.
+
+### 4.6 Required additions to the present model
+
+The current global reason-rule model supplies useful defaults, but it does not yet implement the confirmed ownership model. Add or clarify:
+
+- Reason master/default-template separation.
+- `return_policy_reason_rules` mapping table with a unique `(policy_id, reason_id)` constraint.
+- Automatic six-mapping creation during policy creation/upsert.
+- Per-policy configuration read/update/reset APIs.
 - `schema_version`.
+- `configuration_version`.
 - `raise_within_hours` as the clearer replacement for `minimumraisewindowhours`.
 - Exact evidence type and minimum count.
 - `resolution_timing`.
@@ -177,7 +320,55 @@ The current reason-rule model already covers most of this structure. Add or clar
 - Pickup trigger mode and charge bearer.
 - Customer notification behavior for rejection and stock fallback.
 - Conditional pickup by resolution.
-- A version or rule snapshot stored on each return request.
+- Policy/mapping references and an immutable resolved-rule snapshot stored on each return request.
+
+### 4.7 Migration and backfill
+
+The migration must preserve current behavior while introducing per-policy ownership:
+
+1. Create or normalize the Return Reason Master from the existing predefined reason rules.
+2. Create the Policy Reason Rule mapping table.
+3. For every existing policy, create mappings for all six customer reason masters.
+4. Copy the current default rule configuration into each mapping.
+5. Verify every policy has exactly one mapping for each of the six reason codes.
+6. Update eligibility and request validation to use policy mappings.
+7. Add request snapshot fields.
+8. Only after verification, deprecate direct global-customer-rule evaluation.
+
+The migration must be idempotent: rerunning the backfill must not create duplicates or overwrite Admin-edited mappings.
+
+### 4.8 Recommended API contract
+
+#### Policy creation and details
+
+- `POST /v1/return-replacement-policies` — creates the policy and six default mappings atomically. It may accept validated `reasonOverrides` for configuration selected during policy creation.
+- `GET /v1/return-replacement-policies/:policyId` — returns the policy with all six mappings and their versions.
+- `PUT/PATCH /v1/return-replacement-policies/:policyId` — updates general policy eligibility without overwriting reason mappings unless explicit reason changes are included.
+
+#### Policy-specific reason configuration
+
+- `GET /v1/return-replacement-policies/:policyId/reasons` — lists the six policy mappings.
+- `GET /v1/return-replacement-policies/:policyId/reasons/:reasonCode` — reads one resolved mapping.
+- `PATCH /v1/return-replacement-policies/:policyId/reasons/:reasonCode` — validates and updates only that policy's configuration.
+- `POST /v1/return-replacement-policies/:policyId/reasons/:reasonCode/reset` — explicitly replaces the mapping with the current master default and creates a new version.
+
+Update requests should use optimistic concurrency through `configurationVersion`. A stale version must return a conflict instead of overwriting another Admin's changes.
+
+#### Eligibility response
+
+Each reason returned by `GET /v1/orders/:id/return-eligibility` should include:
+
+- `policyId` and `policyVersion`.
+- `policyReasonRuleId` and `configurationVersion`.
+- `reasonCode` and `reasonName`.
+- Resolved deadline and remaining claim time.
+- Required/optional evidence contract.
+- Allowed resolutions after intersection with policy permissions.
+- Pickup, approval, processing-timing, and stock-fallback behavior.
+
+#### Request submission
+
+The client submits the selected `policyReasonRuleId` or `reasonCode`, but the server must re-resolve the applicable policy and mapping. It must not trust evidence requirements, deadlines, outcomes, or configuration supplied by the client. After validation, the server saves the resolved configuration snapshot on the request.
 
 ---
 
@@ -603,7 +794,7 @@ closed
 
 ## 14. Current Implementation Evidence
 
-### 14.1 Database and migrations — Mostly complete
+### 14.1 Database and migrations — Partially complete
 
 Implemented:
 
@@ -628,11 +819,14 @@ Evidence:
 Remaining:
 
 - Remove `subsubcategory` from the return-policy model and migration path.
+- Split/normalize global customer reason definitions into master defaults and policy-specific mappings.
+- Add `return_policy_reason_rules` with foreign keys and a unique `(policy_id, reason_id)` constraint.
+- Backfill all six reason mappings for every existing policy without overwriting later Admin changes.
 - Add reason configuration version/snapshot fields.
 - Add resolution timing and stock-unavailable fallback fields.
 - Add refund, replacement fulfilment, and financial closure entities.
 
-### 14.2 Policy APIs — Mostly complete
+### 14.2 Policy APIs — Partially complete for confirmed design
 
 Implemented:
 
@@ -649,21 +843,24 @@ Evidence:
 Remaining:
 
 - Remove Sub-subcategory inputs, responses, matching, and indexes.
+- Automatically create all six reason mappings in the same transaction as policy creation/upsert.
+- Return policy-specific reason configurations in policy details.
+- Add policy-reason update and reset-to-default operations.
 - Prefer stable taxonomy IDs if category names can change.
 - Add policy versioning or immutable request snapshots.
 
-### 14.3 Reason rules — Mostly complete
+### 14.3 Reason masters and policy mappings — Partially complete
 
 Implemented:
 
-- All six customer reasons.
+- All six customer reason definitions and default behaviors.
 - Delivery-partner RTO reasons.
 - Allowed resolutions.
 - 48-hour damaged-product deadline.
 - Photo/video/package/unboxing requirements.
 - Opened-package restriction.
 - Pickup and evidence-first settings.
-- Create, update, list, read, and default-upsert APIs.
+- Global create, update, list, read, and default-upsert APIs.
 
 Evidence:
 
@@ -673,19 +870,24 @@ Evidence:
 
 Remaining:
 
-- Build the reason-rule editor in Inventory.
+- Introduce the missing Policy Reason Rule mapping entity.
+- Treat current customer reason rules as master defaults rather than directly evaluated runtime rules.
+- Automatically clone defaults into every new policy.
+- Backfill all existing policies with six independent mappings.
+- Add policy-specific list, update, reset, version, and audit APIs.
+- Build the policy-specific reason editor in Inventory.
 - Rename `minimumraisewindowhours` to `raiseWithinHours`/`maximumraisewindowhours`.
 - Require exact evidence types and minimum counts.
 - Add `resolutionTiming` and `stockUnavailableResolution`.
 - Set Changed Mind to evidence-first before pickup.
 
-### 14.4 Eligibility and request APIs — Mostly complete
+### 14.4 Eligibility and request APIs — Partially complete for confirmed design
 
 Implemented:
 
 - Ownership validation.
 - Delivered-item validation.
-- Policy and reason-rule evaluation.
+- Policy evaluation and global reason-rule evaluation.
 - Remaining-quantity calculation.
 - Allowed reasons and allowed outcomes returned per order item.
 - Customer request creation.
@@ -700,6 +902,9 @@ Evidence:
 
 Remaining:
 
+- Replace global customer-reason loading with mappings belonging to the matched policy.
+- Reject a reason when it has no active mapping under the matched policy.
+- Intersect mapping outcomes with policy return/replacement permissions.
 - Validate the compatibility of `requesttype` and `requestedresolution`.
 - A required product photo must not be satisfied only by a package photo.
 - Save a snapshot of the applied policy/reason configuration on the request.
@@ -723,7 +928,7 @@ Remaining:
 - Exact per-type minimum counts.
 - Malware/content scanning if required for production.
 
-### 14.6 Inventory policy UI — Mostly complete
+### 14.6 Inventory policy UI — Partially complete for confirmed design
 
 Implemented:
 
@@ -741,8 +946,10 @@ Evidence:
 Remaining:
 
 - Remove all `subsubcategory` form, type, filtering, and payload fields.
-- Show that all active reasons are automatically applied.
-- Link to the reason-rule editor.
+- Show all six mappings created under each policy.
+- Add a policy-specific Reason Configuration editor.
+- Support reset-to-master-default for one policy reason with explicit confirmation.
+- Show mapping version, modified user, and modified time.
 - Avoid permanent deletion when historical policy use exists; prefer inactive/archived.
 
 ### 14.7 Inventory return operations UI — Partially complete
@@ -864,26 +1071,28 @@ Verification performed for this report:
 
 | Workstream | Weight | Estimated completion | Weighted contribution | Status |
 |---|---:|---:|---:|---|
-| Requirements and architecture | 5% | 90% | 4.5% | Mostly complete |
-| Database and migrations | 10% | 80% | 8.0% | Mostly complete |
-| Policy and reason-rule backend | 15% | 80% | 12.0% | Mostly complete |
-| Eligibility, requests, and evidence backend | 15% | 80% | 12.0% | Mostly complete |
-| Inventory operations UI | 10% | 60% | 6.0% | Partial |
+| Requirements and architecture | 5% | 100% | 5.0% | Confirmed |
+| Database and migrations | 10% | 65% | 6.5% | Policy-reason mapping missing |
+| Policy and reason-rule backend | 15% | 50% | 7.5% | Global rules exist; per-policy ownership missing |
+| Eligibility, requests, and evidence backend | 15% | 65% | 9.75% | Core flow exists; mapping resolution missing |
+| Inventory operations UI | 10% | 55% | 5.5% | Policy-specific reason editor missing |
 | Warehouse inspection and stock | 10% | 70% | 7.0% | Backend strong; UI missing |
 | RTO handling | 5% | 60% | 3.0% | Partial |
 | Reverse-logistics integration | 10% | 20% | 2.0% | Early |
 | Refund/replacement/finance closure | 10% | 10% | 1.0% | Mostly pending |
 | Customer mobile/web experience | 7% | 10% | 0.7% | Mostly pending |
 | Automated tests and release readiness | 3% | 10% | 0.3% | Mostly pending |
-| **Total** | **100%** |  | **56.5%, rounded to 57%** | **In progress** |
+| **Total** | **100%** |  | **48.25%, rounded to 48%** | **In progress** |
 
 ### Completion interpretation
 
-- **Backend foundation:** approximately 78%.
-- **Inventory/admin usability:** approximately 60%.
+- **Backend foundation:** approximately 65%.
+- **Inventory/admin usability:** approximately 55%.
 - **Customer-facing request flow:** approximately 10%.
 - **Logistics and financial closure:** approximately 15%.
-- **Overall weighted completion:** approximately 57%.
+- **Overall weighted completion:** approximately 48%.
+
+The estimate decreased from 57% to 48% because the confirmed per-policy reason ownership is a core missing data-model, API, eligibility, migration, and UI requirement. This is a scope-correction to the assessment, not a loss of implemented code.
 
 ---
 
@@ -895,10 +1104,16 @@ Verification performed for this report:
 - [ ] Add a safe migration that removes or ignores the existing `subsubcategory` policy column.
 - [ ] Remove Sub-subcategory from policy schemas, routes, services, eligibility responses, Inventory types, and UI.
 - [ ] Update the older `CR5_RETURN_REPLACEMENT_MODULE_PLAN.md` assumptions to Category/Subcategory only.
-- [ ] Confirm global reasons are the intended long-term model; no join table is required while every policy uses every reason.
+- [ ] Convert the existing customer reason rules into stable master/default definitions.
+- [ ] Create `return_policy_reason_rules` with Policy and Reason foreign keys and unique `(policy_id, reason_id)`.
+- [ ] Backfill exactly six policy-reason mappings for every existing policy.
+- [ ] Make the backfill idempotent and preserve Admin-edited mappings.
+- [ ] Create all six mappings atomically whenever a new policy is created or upserted.
 
 ### Priority 1 — Harden the rule contract
 
+- [ ] Add policy-specific reason list/read/update/reset APIs.
+- [ ] Add mapping schema and configuration versioning.
 - [ ] Rename `minimumraisewindowhours` to a maximum/within-hours name.
 - [ ] Add exact evidence type and minimum-count validation.
 - [ ] Add `resolutionTiming`.
@@ -906,13 +1121,17 @@ Verification performed for this report:
 - [ ] Default `stockUnavailableResolution` to `refund` for Wrong Product, Damaged Product, Defective Product, and Leakage / Broken Bottle.
 - [ ] Make pickup conditional by reason and resolution.
 - [ ] Set Changed Mind to evidence-first approval.
-- [ ] Add request snapshots/versioning for policy and reason rules.
+- [ ] Save applied policy ID/version, mapping ID/version, and resolved configuration snapshot on every request.
 - [ ] Validate `requesttype` against `requestedresolution`.
 - [ ] Prefer deactivation over deleting historically used policies/reasons.
 
 ### Priority 2 — Complete the Inventory application
 
-- [ ] Build Return Reason Rules management UI.
+- [ ] Add a Reason Configuration section inside the Policy create/edit experience.
+- [ ] Display all six automatically mapped reasons under the selected policy.
+- [ ] Build policy-specific reason configuration forms with evidence, deadline, outcome, pickup, approval, and fallback fields.
+- [ ] Add explicit reset-to-master-default behavior for one mapping.
+- [ ] Display mapping version and audit history.
 - [ ] Build warehouse inspection form.
 - [ ] Add On Hold inventory handling for rejected returned products.
 - [ ] Notify the customer when warehouse inspection rejects a return.
@@ -926,7 +1145,7 @@ Verification performed for this report:
 
 - [ ] Call `GET /v1/orders/:id/return-eligibility` from the order details screen.
 - [ ] Show only eligible order items.
-- [ ] Show the six API-driven reason options.
+- [ ] Show only the active reason mappings returned for the matched policy; every correctly configured policy initially has all six.
 - [ ] Show only outcomes allowed for the selected reason and policy.
 - [ ] Add eligible quantity selection.
 - [ ] Ask whether the package is opened when required.
@@ -971,7 +1190,14 @@ Verification performed for this report:
 
 - [ ] Generate/synchronize the Prisma client and fix the current Server TypeScript build gate.
 - [ ] Add policy-priority tests.
-- [ ] Add all six reason-rule tests.
+- [ ] Test atomic creation of six reason mappings with every new policy.
+- [ ] Test idempotent backfill of six mappings for every existing policy.
+- [ ] Test that editing one policy-reason mapping does not change its master default or another policy.
+- [ ] Test reset-to-master-default behavior.
+- [ ] Test eligibility returns mappings only from the matched policy.
+- [ ] Test policy permission and reason-outcome intersection.
+- [ ] Test request configuration snapshots remain unchanged after later Admin edits.
+- [ ] Add all six policy-reason configuration tests.
 - [ ] Add 48-hour boundary tests.
 - [ ] Add exact evidence requirement tests.
 - [ ] Add opened-package Changed Mind tests.
@@ -1012,7 +1238,11 @@ This does not change the confirmed manual Admin trigger. Until the selection rul
 The module is complete only when all of the following are demonstrated in SIT/UAT:
 
 - [ ] Category/Subcategory policy priority works.
-- [ ] All six reasons are returned for eligible policies.
+- [ ] Every newly created policy atomically receives exactly six default reason mappings.
+- [ ] Every existing policy receives exactly six mappings through idempotent backfill.
+- [ ] Admin can edit one policy's reason configuration without changing the master default or another policy.
+- [ ] Eligibility returns reasons configured under the matched policy, not global customer rules.
+- [ ] A submitted request stores an immutable policy and reason-configuration snapshot.
 - [ ] Each reason shows the correct outcomes and evidence.
 - [ ] Damaged claims are rejected after 48 hours.
 - [ ] Changed Mind is rejected when the package is opened.
@@ -1037,9 +1267,11 @@ The module is complete only when all of the following are demonstrated in SIT/UA
 
 ## 19. Final Recommendation
 
-Continue with the current two-layer design:
+Implement the confirmed four-layer design:
 
-1. Category/Subcategory policy for general eligibility.
-2. Global predefined reason rules for reason-specific behavior.
+1. Reason Master for stable reason identity and default templates.
+2. Category/Subcategory Policy for general eligibility.
+3. Policy Reason Rule for six automatically created, independently editable per-policy configurations.
+4. Return Request Snapshot for immutable historical behavior.
 
-Do not add a policy-reason mapping table while every policy uses every reason. First remove Sub-subcategory and complete the rule contract. Then prioritize the customer flow, real reverse shipment, inspection UI, and financial/replacement closure. Those items convert the existing backend foundation into a production-ready end-to-end module.
+Add the Policy-to-Reason mapping before building more customer-facing behavior, because eligibility, evidence, outcomes, pickup, and fallback must resolve from the matched policy's configuration. First remove Sub-subcategory, add and backfill the mapping model, change runtime evaluation, and build the policy-specific editor. Then prioritize the customer flow, real reverse shipment, inspection UI, and financial/replacement closure. This sequence prevents later rework and converts the existing backend foundation into a stable production-ready module.
