@@ -10,6 +10,7 @@ export const createProductSchema = z.object({
   // Product details
   shortdescription: z.string().optional(),
   fulldescription: z.string().optional(),
+  remarks: z.string().max(255, 'Remarks too long').optional(),
   category: z.string().max(255).optional(),
   subcategory: z.string().max(255).optional(),
   subsubcategory: z.string().max(255).optional(),
@@ -83,6 +84,7 @@ export const updateProductSchema = z.object({
   // Product details
   shortdescription: z.string().optional(),
   fulldescription: z.string().optional(),
+  remarks: z.string().max(255, 'Remarks too long').optional(),
   category: z.string().max(255).optional(),
   subcategory: z.string().max(255).optional(),
   subsubcategory: z.string().max(255).optional(),
@@ -148,6 +150,7 @@ export const upsertProductSchema = z.object({
   // Product details
   shortdescription: z.string().optional(),
   fulldescription: z.string().optional(),
+  remarks: z.string().max(255, 'Remarks too long').optional(),
   category: z.string().max(255).optional(),
   subcategory: z.string().max(255).optional(),
   subsubcategory: z.string().max(255).optional(),
@@ -290,4 +293,4 @@ export type CreateProductInput = z.infer<typeof createProductSchema>;
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 export type UpsertProductInput = z.infer<typeof upsertProductSchema>;
 export type ProductParams = z.infer<typeof productParamsSchema>;
-export type ProductQuery = z.infer<typeof productQuerySchema>; 
+export type ProductQuery = z.infer<typeof productQuerySchema>;
