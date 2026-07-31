@@ -229,6 +229,137 @@ model ReturnReplacementPolicy {
   @@map("return_replacement_policies")
 }
 
+model ReturnReasonRule {
+  id                              Int      @id @default(autoincrement())
+  reasoncode                      String   @unique @db.VarChar(100)
+  reasonname                      String   @db.VarChar(255)
+  source                          String   @default("customer") @db.VarChar(50)
+  aliases                         String[]
+  allowedresolutions              String[]
+  minimumraisewindowhours         Int?
+  photorequired                   Boolean  @default(true)
+  videorequired                   Boolean  @default(false)
+  packagephotorequired            Boolean  @default(false)
+  packagephotooptional            Boolean  @default(false)
+  unboxingvideorequired           Boolean  @default(false)
+  unboxingvideooptional           Boolean  @default(false)
+  openedpackageallowed            Boolean  @default(true)
+  pickuprequired                  Boolean  @default(true)
+  evidencefirstapproval           Boolean  @default(false)
+  autocreatepickup                Boolean  @default(false)
+  reverseshippingchargebearer     String?  @db.VarChar(50)
+  notes                           String?
+  status                          String   @default("active") @db.VarChar(50)
+  createddate                     BigInt?
+  modifieddate                    BigInt?
+
+  @@index([source], map: "idx_return_reason_rules_source")
+  @@index([status], map: "idx_return_reason_rules_status")
+  @@map("return_reason_rules")
+}
+
+model ReturnRequest {
+  id                                Int      @id @default(autoincrement())
+  requestnumber                     String   @unique @db.VarChar(100)
+  orderid                           Int?
+  orderlineid                       Int?
+  customerid                        Int?
+  requesttype                       String   @db.VarChar(50)
+  source                            String   @default("customer") @db.VarChar(50)
+  reason                            String   @db.VarChar(255)
+  reasoncode                        String   @db.VarChar(100)
+  requestedquantity                 Int      @default(1)
+  requestedresolution               String?  @db.VarChar(100)
+  ispackageopened                   Boolean?
+  additionalremarks                 String?
+  evidenceReviewStatus              String   @default("pending") @map("evidence_review_status") @db.VarChar(50)
+  evidenceRejectionReason           String?  @map("evidence_rejection_reason")
+  evidenceReviewRemarks             String?  @map("evidence_review_remarks")
+  evidenceReviewedBy                Int?     @map("evidence_reviewed_by")
+  evidenceReviewedDate              BigInt?  @map("evidence_reviewed_date")
+  requestReviewStatus               String?  @map("request_review_status") @db.VarChar(50)
+  requestReviewRemarks              String?  @map("request_review_remarks")
+  requestRejectionReason            String?  @map("request_rejection_reason")
+  requestReviewedBy                 Int?     @map("request_reviewed_by")
+  requestReviewedDate               BigInt?  @map("request_reviewed_date")
+  pickupflow                        String?  @db.VarChar(50)
+  reverseShipmentTrackingId         String?  @map("reverse_shipment_tracking_id") @db.VarChar(500)
+  reverseShipmentProvider           String?  @map("reverse_shipment_provider") @db.VarChar(100)
+  autoCreatePickup                  Boolean  @default(false) @map("auto_create_pickup")
+  pickupCreatedBy                   String?  @map("pickup_created_by") @db.VarChar(50)
+  pickupPreparedBy                  Int?     @map("pickup_prepared_by")
+  pickupPreparedDate                BigInt?  @map("pickup_prepared_date")
+  pickupRemarks                     String?  @map("pickup_remarks")
+  logisticsProviderSource           String?  @map("logistics_provider_source") @db.VarChar(100)
+  reverseShippingChargeBearer       String?  @map("reverse_shipping_charge_bearer") @db.VarChar(50)
+  reverseShippingChargeAdjustment   String?  @map("reverse_shipping_charge_adjustment") @db.VarChar(100)
+  receivedQuantity                  Int?     @map("received_quantity")
+  receivedCondition                 String?  @map("received_condition") @db.VarChar(100)
+  receivedRemarks                   String?  @map("received_remarks")
+  receivedLocation                  String?  @map("received_location") @db.VarChar(255)
+  receivedBy                        Int?     @map("received_by")
+  receivedDate                      BigInt?  @map("received_date")
+  status                            String   @default("requested") @db.VarChar(100)
+  createdby                         Int?
+  modifiedby                        Int?
+  createddate                       BigInt?
+  modifieddate                      BigInt?
+
+  order                             orders?     @relation(fields: [orderid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  orderline                         orderline?  @relation(fields: [orderlineid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  customer                          users?      @relation(fields: [customerid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  attachments                       ReturnRequestAttachment[]
+  inspections                       ReturnInspection[]
+
+  @@index([orderid], map: "idx_return_requests_orderid")
+  @@index([orderlineid], map: "idx_return_requests_orderlineid")
+  @@index([customerid], map: "idx_return_requests_customerid")
+  @@index([source], map: "idx_return_requests_source")
+  @@index([status], map: "idx_return_requests_status")
+  @@index([reasoncode], map: "idx_return_requests_reasoncode")
+  @@map("return_requests")
+}
+
+model ReturnRequestAttachment {
+  id                       Int      @id @default(autoincrement())
+  returnrequestid          Int
+  attachmenttype           String   @db.VarChar(100)
+  fileurl                  String   @db.Text
+  isrequired               Boolean  @default(false)
+  uploadedbycustomerid     Int?
+  uploadeddate             BigInt?
+  status                   String   @default("active") @db.VarChar(50)
+
+  returnrequest            ReturnRequest @relation(fields: [returnrequestid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  uploadedbycustomer       users?        @relation(fields: [uploadedbycustomerid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([returnrequestid], map: "idx_return_request_attachments_request")
+  @@index([status], map: "idx_return_request_attachments_status")
+  @@map("return_request_attachments")
+}
+
+model ReturnInspection {
+  id                         Int           @id @default(autoincrement())
+  returnRequestId            Int           @map("return_request_id")
+  inspectedByInventoryUserId Int           @map("inspected_by_inventory_user_id")
+  receivedQuantity           Int           @map("received_quantity")
+  approvedQuantity           Int           @default(0) @map("approved_quantity")
+  rejectedQuantity           Int           @default(0) @map("rejected_quantity")
+  condition                  String        @db.VarChar(100)
+  inspectionNotes            String?       @map("inspection_notes")
+  restockAction              String        @default("none") @map("restock_action") @db.VarChar(100)
+  createddate                BigInt?
+  modifieddate               BigInt?
+
+  returnRequest              ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([returnRequestId], map: "idx_return_inspections_request")
+  @@index([inspectedByInventoryUserId], map: "idx_return_inspections_inspector")
+  @@index([condition], map: "idx_return_inspections_condition")
+  @@index([restockAction], map: "idx_return_inspections_restock_action")
+  @@map("return_inspections")
+}
+
 
 
 model PicklistBackup {
@@ -525,6 +656,7 @@ model orderline {
   users           users?    @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
   rating          rating[]
   stock           Stock[]
+  returnrequests  ReturnRequest[]
   tickets         tickets[] @ignore
   orders          orders?   @relation(fields: [orderid], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -600,6 +732,7 @@ model orders {
   users                 users?                   @relation(fields: [userid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_userid_orders")
   revoinvoice           revoinvoice[]
   stock                 Stock[]
+  returnrequests        ReturnRequest[]
 }
 
 model permissions {
@@ -917,6 +1050,8 @@ model users {
   address          address[]
   orderline        orderline[]
   orders           orders[]
+  returnrequests   ReturnRequest[]
+  returnrequestattachments ReturnRequestAttachment[]
   tickets          tickets[]   @ignore
   rating           rating[]
   // Note: amazonConnections relation removed - using userType field instead

@@ -446,6 +446,31 @@ export async function ordersRoutes(fastify: FastifyInstance) {
     }
   }, ordersController.trackOrder.bind(ordersController));
 
+  // GET /v1/orders/:id/return-eligibility - Evaluate return/replacement eligibility per order item
+  fastify.get('/:id/return-eligibility', {
+    schema: {
+      description: 'Evaluate return and replacement eligibility for each order item, including remaining quantity, allowed reasons, resolutions, and evidence requirements',
+      tags: ['Orders'],
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: { type: 'string', description: 'Order database ID or order number' }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: { type: 'object', additionalProperties: true }
+          }
+        }
+      }
+    }
+  }, ordersController.getReturnEligibility.bind(ordersController));
+
   // GET /v1/orders/:id/details - Get order details with orderlines and address (Inventory App)
   fastify.get('/:id/details', {
     schema: {
