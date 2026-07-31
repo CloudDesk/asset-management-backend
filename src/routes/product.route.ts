@@ -1461,7 +1461,7 @@ export async function productRoutes(fastify: FastifyInstance) {
             name: {
               type: "string",
               minLength: 1,
-              maxLength: 500,
+              maxLength: 1516,
               description: "Product name (required)",
             },
             shortdescription: {
@@ -1579,7 +1579,7 @@ export async function productRoutes(fastify: FastifyInstance) {
             },
             remarks: {
               type: "string",
-              maxLength: 255,
+              maxLength: 1000,
               description: "Product remarks",
             },
             // Combo Pack Support
@@ -1981,7 +1981,7 @@ export async function productRoutes(fastify: FastifyInstance) {
             name: {
               type: "string",
               minLength: 1,
-              maxLength: 500,
+              maxLength: 1516,
               description: "Product name",
             },
             shortdescription: {
@@ -2121,7 +2121,7 @@ export async function productRoutes(fastify: FastifyInstance) {
             },
             remarks: {
               type: "string",
-              maxLength: 255,
+              maxLength: 1000,
               description: "Product remarks",
             },
             // Note: iscombo, combotype, and components are NOT allowed in update
@@ -2640,7 +2640,7 @@ export async function productRoutes(fastify: FastifyInstance) {
             name: {
               type: "string",
               minLength: 1,
-              maxLength: 500,
+              maxLength: 1516,
               description: "Product name",
             },
             shortdescription: {
@@ -2780,7 +2780,7 @@ export async function productRoutes(fastify: FastifyInstance) {
             },
             remarks: {
               type: "string",
-              maxLength: 255,
+              maxLength: 1000,
               description: "Product remarks",
             },
           },

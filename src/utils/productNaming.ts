@@ -83,13 +83,13 @@ export const buildProductNaming = ({
   if (!remarks) {
     throw new Error('Remarks are required to generate the product name.');
   }
-  if (remarks.length > 255) {
-    throw new Error('Generated remarks exceed 255 characters.');
+  if (remarks.length > 1000) {
+    throw new Error('Generated remarks exceed 1000 characters.');
   }
 
   const name = [brand, subcategory, remarks].join(' - ');
-  if (name.length > 500) {
-    throw new Error('Generated product name exceeds 500 characters.');
+  if (name.length > 1516) {
+    throw new Error('Generated product name exceeds 1516 characters.');
   }
 
   return { name, remarks };
