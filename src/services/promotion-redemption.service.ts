@@ -1,11 +1,12 @@
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../config/logger.js';
-import { 
+import {
   RedemptionRequest, 
   RedemptionResponse, 
   RedemptionDetail 
 } from '../schemas/redemption.schema.js';
+import { isPromotionChannelEligible } from '../utils/promotionChannel.js';
 
 export class PromotionRedemptionService {
   private prisma: PrismaClient;
@@ -19,39 +20,38 @@ export class PromotionRedemptionService {
     try {
       logger.info({ request }, 'Starting promotion redemption');
 
-      // 1. Validate evaluation exists and is still valid
-      const evaluation = await this.getEvaluation(request.evaluation_id);
-      if (!evaluation) {
-        throw new Error('Evaluation not found');
-      }
+      const transactionResult = await this.prisma.$transaction(async (transaction) => {
+        const evaluation = await transaction.promotion_evaluations.findUnique({
+          where: { evaluation_id: request.evaluation_id }
+        });
+        if (!evaluation) throw new Error('Evaluation not found');
+        if (evaluation.status !== 'active') throw new Error('Evaluation is no longer active');
+        if (new Date(Number(evaluation.expires_at.toString())) < new Date()) {
+          throw new Error('Evaluation has expired');
+        }
 
-      if (evaluation.status !== 'active') {
-        throw new Error('Evaluation is no longer active');
-      }
+        const existingRedemption = await transaction.promotion_redemptions.findFirst({
+          where: { evaluation_id: request.evaluation_id }
+        });
+        if (existingRedemption) throw new Error('Evaluation has already been redeemed');
+        if (evaluation.user_id !== request.user_id) {
+          throw new Error('User not authorized to redeem this evaluation');
+        }
 
-      if (new Date(Number(evaluation.expires_at.toString())) < new Date()) {
-        throw new Error('Evaluation has expired');
-      }
+        await this.validateEvaluationChannels(evaluation, transaction);
+        await this.validateEvaluationUsage(evaluation, request.user_id, transaction);
+        const redemptionDetails = await this.createRedemptionRecords(evaluation, request, transaction);
+        await this.updateEvaluationStatus(request.evaluation_id, 'redeemed', transaction);
+        return { evaluation, redemptionDetails };
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
-      // 2. Check if already redeemed
-      const existingRedemption = await this.getRedemptionByEvaluation(request.evaluation_id);
-      if (existingRedemption) {
-        throw new Error('Evaluation has already been redeemed');
-      }
-
-      // 3. Validate user ownership
-      if (evaluation.user_id !== request.user_id) {
-        throw new Error('User not authorized to redeem this evaluation');
-      }
-
-      // 4. Create redemption records
-      const redemptionDetails = await this.createRedemptionRecords(evaluation, request);
-
-      // 5. Update evaluation status
-      await this.updateEvaluationStatus(request.evaluation_id, 'redeemed');
+      const { evaluation, redemptionDetails } = transactionResult;
 
       // 6. Update promotion usage counters
       await this.updatePromotionCounters(evaluation);
+      for (const detail of redemptionDetails) {
+        await this.updatePromotionUsageTracking(detail.promotion_id, detail.discount_amount);
+      }
 
       // 7. Build response
       const response: RedemptionResponse = {
@@ -93,8 +93,99 @@ export class PromotionRedemptionService {
     });
   }
 
+  private async validateEvaluationChannels(
+    evaluation: any,
+    database: Prisma.TransactionClient | PrismaClient = this.prisma
+  ): Promise<void> {
+    const appliedPromotions = (evaluation.applied_promotions as any[]) || [];
+    const promotionIds = appliedPromotions
+      .map((promotion: any) => promotion.promotion_id)
+      .filter((promotionId: unknown): promotionId is number => typeof promotionId === 'number');
+
+    if (promotionIds.length === 0) return;
+
+    const evaluationContext = evaluation.context as { channel?: string } | null;
+    const promotions = await database.promotions.findMany({
+      where: { id: { in: promotionIds } },
+      select: { id: true, applicable_channel: true }
+    });
+
+    const ineligiblePromotion = promotions.find((promotion) =>
+      !isPromotionChannelEligible(promotion.applicable_channel, evaluationContext?.channel)
+    );
+
+    if (ineligiblePromotion) {
+      throw new Error('CHANNEL_NOT_ELIGIBLE');
+    }
+  }
+
+  private async validateEvaluationUsage(
+    evaluation: any,
+    userId: string,
+    database: Prisma.TransactionClient
+  ): Promise<void> {
+    const appliedPromotions = (evaluation.applied_promotions as any[]) || [];
+    const nowSeconds = BigInt(Math.floor(Date.now() / 1000));
+
+    for (const applied of appliedPromotions) {
+      const promotion = await database.promotions.findUnique({
+        where: { id: applied.promotion_id },
+        select: { id: true, status: true, max_redemptions: true, per_user_limit: true }
+      });
+      if (!promotion || promotion.status !== 'active') throw new Error('PROMOTION_NOT_ACTIVE');
+
+      if (promotion.max_redemptions) {
+        const totalUsage = await database.promotion_redemptions.count({
+          where: { promotion_id: promotion.id }
+        });
+        if (totalUsage >= promotion.max_redemptions) throw new Error('PROMOTION_MAX_REDEMPTIONS_REACHED');
+      }
+
+      if (promotion.per_user_limit) {
+        const userUsage = await database.promotion_redemptions.count({
+          where: { promotion_id: promotion.id, user_id: userId }
+        });
+        if (userUsage >= promotion.per_user_limit) throw new Error('PROMOTION_PER_USER_LIMIT_REACHED');
+      }
+
+      if (applied.assignment_id) {
+        const assignment = await database.promotion_assignments.findUnique({
+          where: { id: applied.assignment_id }
+        });
+        if (!assignment || assignment.status !== 'active') throw new Error('VOUCHER_NOT_ACTIVE');
+        if (assignment.start_date && assignment.start_date > nowSeconds) throw new Error('VOUCHER_NOT_STARTED');
+        if (assignment.end_date && assignment.end_date < nowSeconds) throw new Error('VOUCHER_EXPIRED');
+        if (assignment.customer_id && assignment.customer_id !== Number(userId)) {
+          throw new Error('VOUCHER_NOT_ASSIGNED_TO_CUSTOMER');
+        }
+        if (assignment.customer_group_id) {
+          const membership = await database.customer_group_members.findFirst({
+            where: {
+              customer_group_id: assignment.customer_group_id,
+              customer_id: Number(userId),
+              status: 'active',
+              customer_group: { status: 'active' }
+            },
+            select: { id: true }
+          });
+          if (!membership) throw new Error('CUSTOMER_GROUP_NOT_ELIGIBLE');
+        }
+        if (assignment.usage_limit) {
+          const assignmentUsage = await database.promotion_redemptions.count({
+            where: { assignment_id: assignment.id }
+          });
+          if (assignmentUsage >= assignment.usage_limit) throw new Error('VOUCHER_USAGE_LIMIT_REACHED');
+        }
+      }
+    }
+  }
+
   // Create redemption records
-  private async createRedemptionRecords(evaluation: any, request: RedemptionRequest): Promise<RedemptionDetail[]> {
+  private async createRedemptionRecords(
+    evaluation: any,
+    request: RedemptionRequest,
+    database: Prisma.TransactionClient
+  ): Promise<RedemptionDetail[]> {
     const redemptionDetails: RedemptionDetail[] = [];
     const appliedPromotions = evaluation.applied_promotions as any[];
     const nowUtc = this.getUtcTimestamp();
@@ -120,17 +211,21 @@ export class PromotionRedemptionService {
     for (const promotion of appliedPromotions) {
       const redemptionId = uuidv4();
 
-        await this.prisma.promotion_redemptions.create({
+        await database.promotion_redemptions.create({
           data: {
             id: redemptionId,
             evaluation_id: evaluation.evaluation_id,
             order_id: request.order_id,
             user_id: request.user_id,
             promotion_id: promotion.promotion_id,
+            assignment_id: promotion.assignment_id || null,
+            voucher_code: promotion.voucher_code || null,
             discount_amount: promotion.discount_amount,
             redeemed_at: nowUtc,    // UTC timestamp as bigint
             redemption_data: {
               promotion_name: promotion.promotion_name,
+              assignment_id: promotion.assignment_id || null,
+              voucher_code: promotion.voucher_code || null,
               evaluation_id: evaluation.evaluation_id,
               redeemed_at: new Date(Number(nowUtc.toString())).toISOString() // ISO string for compatibility
             },
@@ -139,8 +234,12 @@ export class PromotionRedemptionService {
           }
         });
 
-        // Update promotion usage tracking (budget, usage counts)
-        await this.updatePromotionUsageTracking(promotion.promotion_id, promotion.discount_amount);
+        if (promotion.assignment_id) {
+          await database.promotion_assignments.update({
+            where: { id: promotion.assignment_id },
+            data: { used_count: { increment: 1 }, modifieddate: nowUtc }
+          });
+        }
 
       redemptionDetails.push({
         promotion_id: promotion.promotion_id,
@@ -153,14 +252,18 @@ export class PromotionRedemptionService {
   }
 
   // Update evaluation status
-  private async updateEvaluationStatus(evaluationId: string, status: string) {
+  private async updateEvaluationStatus(
+    evaluationId: string,
+    status: string,
+    database: Prisma.TransactionClient | PrismaClient = this.prisma
+  ) {
     logger.info({
       evaluationId,
       newStatus: status,
       previousStatus: 'active'
     }, 'Updating evaluation status from active to redeemed');
 
-    await this.prisma.promotion_evaluations.update({
+    await database.promotion_evaluations.update({
       where: { evaluation_id: evaluationId },
       data: { 
         status,

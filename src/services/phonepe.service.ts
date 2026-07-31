@@ -43,7 +43,9 @@ const PHONEPE_CONFIG = {
   REDIRECT_FAILURE:
     process.env.REDIRECT_URL_FAILURE || "https://nivaana.in/payments?payment=failure",
   REDIRECT_STATUS:
-    process.env.REDIRECT_URL_PAYMENT_STATUS || "https://nivaana-715569764663.asia-south1.run.app",
+    process.env.REDIRECT_URL_PAYMENT_STATUS ||
+    process.env.API_BASE_URL ||
+    "http://localhost:5600",
 };
 
 export interface PhonePePaymentRequest {
@@ -55,6 +57,28 @@ export interface PhonePePaymentRequest {
   productIds?: number[];
   transactionFor?: string;
   callbackUrl?: string;
+}
+
+function isAllowedCustomerRedirectUrl(value: unknown): value is string {
+  if (typeof value !== "string" || !value.trim()) return false;
+
+  try {
+    const url = new URL(value);
+    const configuredOrigins = (
+      process.env.PAYMENT_RETURN_URL_ALLOWED_ORIGINS || ""
+    )
+      .split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean);
+    const isLocalDevelopment =
+      process.env.NODE_ENV !== "production" &&
+      url.protocol === "http:" &&
+      ["localhost", "127.0.0.1"].includes(url.hostname);
+
+    return configuredOrigins.includes(url.origin) || isLocalDevelopment;
+  } catch {
+    return false;
+  }
 }
 
 export interface PhonePePaymentResponse {
@@ -181,10 +205,11 @@ export class PhonePeService {
         callbackUrl,
       } = paymentRequest;
 
-      // Create PhonePe callback URL
-      const finalCallbackUrl =
-        callbackUrl ||
-        `${PHONEPE_CONFIG.REDIRECT_STATUS}/v1/phonepe/callback/${merchantTransactionId}`;
+      // PhonePe's dashboard webhook handles server-to-server payment events.
+      // This SDK URL is only where the customer's browser returns afterward.
+      const finalCallbackUrl = isAllowedCustomerRedirectUrl(callbackUrl)
+        ? callbackUrl
+        : PHONEPE_CONFIG.REDIRECT_SUCCESS;
 
       logger.info(
         {
@@ -1454,8 +1479,8 @@ export class PhonePeService {
       if (this.sdkClient) {
         // Use SDK validation method
         const callbackResponse = await this.sdkClient.validateCallback(
-          PHONEPE_CONFIG.CLIENT_ID, // username
-          PHONEPE_CONFIG.CLIENT_SECRET, // password
+          process.env.PHONEPE_WEBHOOK_USERNAME || PHONEPE_CONFIG.CLIENT_ID,
+          process.env.PHONEPE_WEBHOOK_PASSWORD || PHONEPE_CONFIG.CLIENT_SECRET,
           authHeader, // Authorization header
           payload // response body string
         );
@@ -1463,21 +1488,17 @@ export class PhonePeService {
         logger.info(
           {
             isValid: true, // SDK validation succeeded
-            eventType: "PAYMENT", // Default event type
-            state: "VALIDATED",
-            orderId: "N/A",
-            refundId: "N/A",
+            callbackType: callbackResponse.type,
+            state: callbackResponse.payload?.state,
+            merchantOrderId: callbackResponse.payload?.merchantOrderId,
+            refundId: callbackResponse.payload?.refundId,
           },
           "PhonePe SDK webhook validation result"
         );
 
         return {
           isValid: true,
-          callbackResponse: {
-            isValid: true,
-            eventType: "PAYMENT",
-            state: "VALIDATED",
-          },
+          callbackResponse,
         };
       } else {
         // Fall back to legacy validation

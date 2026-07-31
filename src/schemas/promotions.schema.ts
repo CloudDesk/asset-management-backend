@@ -24,6 +24,9 @@ export const promotionTypeEnum = z.enum([
   'FREE_PRODUCT'
 ]);
 
+export const applicableChannelEnum = z.enum(['all', 'web', 'mobile']);
+export const promotionApplicationModeEnum = z.enum(['automatic', 'click_to_apply', 'code_entry']);
+
 // Condition object schema
 export const conditionSchema = z.object({
   attribute: z.string(), // e.g., "cart.total_value", "user.segment"
@@ -49,6 +52,8 @@ export const createPromotionsSchema = z.object({
   status: z.enum(['active', 'inactive']).optional(),
   priority: z.number().int().optional(),
   visibility: z.enum(['public', 'private']).optional(),
+  applicable_channel: applicableChannelEnum.default('all').optional(),
+  application_mode: promotionApplicationModeEnum.default('click_to_apply').optional(),
   max_redemptions: z.number().int().optional(),
   per_user_limit: z.number().int().optional(),
   stackable: z.boolean().optional(),
@@ -73,6 +78,8 @@ export const updatePromotionsSchema = z.object({
   status: z.enum(['active', 'inactive']).optional(),
   priority: z.number().int().optional(),
   visibility: z.enum(['public', 'private']).optional(),
+  applicable_channel: applicableChannelEnum.optional(),
+  application_mode: promotionApplicationModeEnum.optional(),
   max_redemptions: z.number().int().optional(),
   per_user_limit: z.number().int().optional(),
   stackable: z.boolean().optional(),
@@ -98,6 +105,8 @@ export const upsertPromotionsSchema = z.object({
   status: z.enum(['active', 'inactive']).optional(),
   priority: z.number().int().optional(),
   visibility: z.enum(['public', 'private']).optional(),
+  applicable_channel: applicableChannelEnum.optional(),
+  application_mode: promotionApplicationModeEnum.optional(),
   max_redemptions: z.number().int().optional(),
   per_user_limit: z.number().int().optional(),
   stackable: z.boolean().optional(),
@@ -129,6 +138,7 @@ export const promotionsQuerySchema = z.object({
   status: z.string().optional(),
   priority: z.string().optional(),
   visibility: z.string().optional(),
+  applicable_channel: applicableChannelEnum.optional(),
   stackable: z.string().optional(),
   budget_min: z.string().optional(),
   budget_max: z.string().optional(),
@@ -285,4 +295,4 @@ export type EvaluationResult = z.infer<typeof evaluationResultSchema>;
 export type RedemptionRequest = z.infer<typeof redemptionRequestSchema>;
 export type RedemptionResult = z.infer<typeof redemptionResultSchema>;
 export type ActivePromotionsQuery = z.infer<typeof activePromotionsQuerySchema>;
-export type ActivePromotion = z.infer<typeof activePromotionSchema>; 
+export type ActivePromotion = z.infer<typeof activePromotionSchema>;

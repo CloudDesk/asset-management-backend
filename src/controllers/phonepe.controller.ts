@@ -96,6 +96,32 @@ export class PhonePeController {
           });
         }
 
+        const customerName = requestBody.transaction?.name
+          ?.trim()
+          .replace(/\s+/g, " ");
+
+        if (!customerName || customerName.length < 2) {
+          return reply.code(400).send({
+            success: false,
+            message: "Customer name is required",
+            details: "Enter the customer name before proceeding to payment.",
+            statusCode: 400,
+          });
+        }
+
+        // Keep the canonical customer record complete for Inventory Customers.
+        // Never overwrite a name that the customer has already supplied.
+        await prisma.users.updateMany({
+          where: {
+            id: requestBody.transaction.userId,
+            OR: [{ firstname: null }, { firstname: "" }],
+          },
+          data: {
+            firstname: customerName,
+            modifieddate: BigInt(Date.now()),
+          },
+        });
+
         logger.info(
           {
             mode: requestBody.mode,
@@ -155,16 +181,24 @@ export class PhonePeController {
                   "Evaluation validation failed"
                 );
 
-                // Check if it's expired/cancelled (block order)
+                // A stale or newly ineligible promotion changes the payable
+                // amount, so payment must stop and the cart must recalculate.
                 if (
                   reasonStr.includes("expired") ||
+                  reasonStr.includes("EXPIRED") ||
                   reasonStr.includes("cancelled") ||
-                  reasonStr.includes("Promotion not found")
+                  reasonStr.includes("Promotion not found") ||
+                  reasonStr.includes("PROMOTION_NOT_FOUND") ||
+                  reasonStr.includes("PROMOTION_CONFIGURATION_CHANGED") ||
+                  reasonStr.includes("PROMOTION_NO_LONGER_ELIGIBLE") ||
+                  reasonStr.includes("PROMOTION_ASSIGNMENT_CHANGED") ||
+                  reasonStr.includes("PROMOTION_CART_CHANGED")
                 ) {
                   // CRITICAL: Expired/cancelled/missing promotion - block the entire order
                   return reply.code(400).send({
                     success: false,
-                    message: `Promotion validation failed: ${reasonStr}`,
+                    message:
+                      "Your cart offers changed before payment. One or more selected promotions are no longer available or cannot be combined. Please review the refreshed offers and updated total.",
                     error_code: "PROMOTION_EXPIRED_OR_INVALID",
                     evaluation_id: evaluationId,
                     reason: reasonStr,
@@ -1251,6 +1285,7 @@ export class PhonePeController {
           userId: requestBody.transaction.userId,
           productIds: requestBody.transaction.productid,
           transactionFor: requestBody.transaction.transactionfor,
+          callbackUrl: requestBody.returnUrl,
         };
 
         logger.info(
@@ -1536,92 +1571,32 @@ export class PhonePeController {
               );
             }
 
-            // Create order and orderlines for successful PhonePe payment
-            // Force mode to "phonepe" since this is PhonePe callback
-            const orderData = await this.createOrderAfterPayment(
+            // Reconcile through the same idempotent path used by status checks
+            // and webhooks. PhonePe can deliver these concurrently or retry them.
+            const orderCreation = await this.ensureOrderAfterSuccessfulPayment(
               merchantTransactionId,
-              "phonepe",
-              evaluationIds
+              {
+                ...result,
+                code: "PAYMENT_SUCCESS",
+                evaluationIds,
+                source: "redirect_callback",
+              }
             );
 
             logger.info(
               {
                 merchantTransactionId,
-                orderId: orderData?.id,
-                orderid: orderData?.orderid,
+                orderId: orderCreation.orderId,
+                reconciliationStatus: orderCreation.status,
                 mode: "phonepe",
               },
-              "Order and orderlines created successfully for PhonePe payment"
+              "PhonePe callback order reconciliation completed"
             );
 
-            try {
-              await this.customerNotificationService.notifyPaymentSuccess(orderData);
-            } catch (notificationError: any) {
-              logger.warn(
-                {
-                  merchantTransactionId,
-                  orderId: orderData?.id,
-                  error: notificationError?.message || "Unknown error",
-                },
-                "Failed to send payment success push notification"
+            if (orderCreation.status === "failed") {
+              throw new Error(
+                orderCreation.error || "Order reconciliation failed"
               );
-            }
-
-            // Update product quantities after successful order creation for PhonePe
-            try {
-              // Get the original order data from transaction
-              const transactions = await this.transactionService.findMany(
-                { merchanttransactionid: merchantTransactionId },
-                1,
-                1
-              );
-
-              if (transactions.data && transactions.data.length > 0) {
-                const transaction = transactions.data[0];
-                const originalOrderItems =
-                  transaction.transactiondata?.originalPayload?.order || [];
-
-                if (originalOrderItems.length > 0) {
-                  logger.info(
-                    {
-                      merchantTransactionId,
-                      orderId: orderData.id,
-                      mode: "phonepe",
-                    },
-                    "Starting product quantity updates for PhonePe order"
-                  );
-
-                  const quantityUpdateResult =
-                    await this.updateProductQuantitiesAfterOrder(
-                      orderData,
-                      originalOrderItems,
-                      "phonepe"
-                    );
-
-                  logger.info(
-                    {
-                      merchantTransactionId,
-                      orderId: orderData.id,
-                      mode: "phonepe",
-                      quantityUpdateResult,
-                    },
-                    "Product quantity updates completed for PhonePe order"
-                  );
-                }
-              }
-            } catch (quantityUpdateError: any) {
-              logger.error(
-                {
-                  error: quantityUpdateError.message,
-                  merchantTransactionId,
-                  orderId: orderData?.id,
-                  mode: "phonepe",
-                },
-                "Error updating product quantities for PhonePe order"
-              );
-
-              // Don't fail the order creation if quantity update fails
-              // The order is already created successfully
             }
           } catch (orderError: any) {
             logger.error(
@@ -1712,6 +1687,17 @@ export class PhonePeController {
           merchantTransactionId
         );
 
+        let orderCreation:
+          | { status: string; orderId: number | null; error: string | null }
+          | undefined;
+
+        if (paymentStatus.success && paymentStatus.code === "PAYMENT_SUCCESS") {
+          orderCreation = await this.ensureOrderAfterSuccessfulPayment(
+            merchantTransactionId,
+            paymentStatus
+          );
+        }
+
         const response = createSuccessResponse(
           "Payment status retrieved successfully",
           {
@@ -1720,6 +1706,7 @@ export class PhonePeController {
             success: paymentStatus.success,
             message: paymentStatus.message,
             paymentData: paymentStatus.data,
+            orderCreation,
           }
         );
 
@@ -2252,6 +2239,173 @@ export class PhonePeController {
   }
 
   /**
+   * Reconcile a successful PhonePe payment into an order.
+   *
+   * Both the PhonePe callback and the authenticated status endpoint use this
+   * method. This lets a customer recover safely when the browser redirect was
+   * interrupted after PhonePe captured the payment.
+   */
+  async ensureOrderAfterSuccessfulPayment(
+    transactionId: string,
+    paymentStatus: any
+  ): Promise<{ status: string; orderId: number | null; error: string | null }> {
+    let orderId: number | null = null;
+
+    try {
+      await this.updateTransactionStatus(transactionId, "SUCCESS", paymentStatus);
+
+      const existingOrders = await this.ordersService.findMany(
+        { merchanttransactionid: transactionId },
+        1,
+        1
+      );
+
+      if (existingOrders.data && existingOrders.data.length > 0) {
+        orderId = Number(existingOrders.data[0].id);
+        return { status: "already_exists", orderId, error: null };
+      }
+
+      const transactions = await this.transactionService.findMany(
+        { merchanttransactionid: transactionId },
+        1,
+        1
+      );
+      const evaluationIds =
+        transactions.data?.[0]?.transactiondata?.evaluation_ids || [];
+
+      let order: any;
+      try {
+        order = await this.createOrderAfterPayment(
+          transactionId,
+          "phonepe",
+          evaluationIds
+        );
+      } catch (createError: any) {
+        // The database unique constraint is the final concurrency barrier.
+        // A callback, webhook, and browser status request may all race after
+        // PhonePe reports success. The winner creates the order; all others
+        // resolve to that same order instead of surfacing an error.
+        const isMerchantTransactionConflict =
+          createError?.code === "P2002" ||
+          (createError?.code === "P2010" &&
+            createError?.meta?.code === "23505") ||
+          /uniq_orders_merchanttransactionid|merchanttransactionid.*unique|duplicate key/i.test(
+            String(createError?.message || "")
+          );
+
+        if (!isMerchantTransactionConflict) {
+          throw createError;
+        }
+
+        const concurrentlyCreatedOrders = await this.ordersService.findMany(
+          { merchanttransactionid: transactionId },
+          1,
+          1
+        );
+        const concurrentlyCreatedOrder = concurrentlyCreatedOrders.data?.[0];
+
+        if (!concurrentlyCreatedOrder) {
+          throw createError;
+        }
+
+        return {
+          status: "already_exists",
+          orderId: Number(concurrentlyCreatedOrder.id),
+          error: null,
+        };
+      }
+      orderId = Number(order.id);
+
+      try {
+        const orderlines = await this.orderlineService.findMany(
+          { orderid: String(orderId) },
+          1,
+          100
+        );
+
+        if (orderlines.data && orderlines.data.length > 0) {
+          const orderItems = orderlines.data.map((orderline) => ({
+            productid: Number(orderline.productid),
+            quantity: orderline.quantity || 1,
+            productname: orderline.productname || null,
+          }));
+          const createdOrders = await this.ordersService.findMany(
+            { id: String(orderId) },
+            1,
+            1
+          );
+
+          if (createdOrders.data && createdOrders.data.length > 0) {
+            await this.updateProductQuantitiesAfterOrder(
+              createdOrders.data[0],
+              orderItems,
+              "phonepe"
+            );
+          }
+        }
+      } catch (quantityError: any) {
+        logger.error(
+          {
+            transactionId,
+            orderId,
+            error: quantityError.message,
+            stack: quantityError.stack,
+          },
+          "Order was created but product quantity reconciliation failed"
+        );
+      }
+
+      try {
+        await this.customerNotificationService.notifyPaymentSuccess(order);
+      } catch (notificationError: any) {
+        logger.warn(
+          {
+            transactionId,
+            orderId,
+            error: notificationError?.message || "Unknown error",
+          },
+          "Failed to send payment success push notification"
+        );
+      }
+
+      await this.updateTransactionStatus(transactionId, "SUCCESS", {
+        ...paymentStatus,
+        orderCreation: {
+          status: "success",
+          orderId,
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+      return { status: "success", orderId, error: null };
+    } catch (error: any) {
+      logger.error(
+        { transactionId, orderId, error: error.message, stack: error.stack },
+        "Failed to reconcile successful payment into an order"
+      );
+
+      try {
+        await this.updateTransactionStatus(transactionId, "SUCCESS", {
+          ...paymentStatus,
+          orderCreation: {
+            status: "failed",
+            orderId,
+            error: error.message,
+            timestamp: new Date().toISOString(),
+          },
+        });
+      } catch (updateError: any) {
+        logger.error(
+          { transactionId, error: updateError.message },
+          "Failed to record order reconciliation error"
+        );
+      }
+
+      return { status: "failed", orderId, error: error.message };
+    }
+  }
+
+  /**
    * Create order and orderline records after successful payment
    */
   async createOrderAfterPayment(
@@ -2400,7 +2554,7 @@ export class PhonePeController {
       // Extract evaluation IDs from transaction data for primary evaluation
       const transactionEvaluationIds =
         transaction.transactiondata?.evaluation_ids || [];
-      const primaryEvaluationId =
+      let primaryEvaluationId =
         evaluationIds?.[0] || transactionEvaluationIds?.[0] || null;
 
       // Initialize promotion-related values
@@ -2473,10 +2627,56 @@ export class PhonePeController {
           );
 
           if (evaluationData) {
-            // Use cart_data from evaluation if available (more accurate)
             const evaluationCartData =
               (evaluationData.cart_data as any[]) || [];
-            if (evaluationCartData.length > 0) {
+
+            // An active evaluation belongs to one exact cart. Never let a stale
+            // evaluation overwrite the prices of the products actually paid for.
+            const requestedQuantities = new Map<number, number>();
+            filteredOrderData.forEach((item: any) => {
+              const productId = parseInt(item.productid?.toString() || "0");
+              const quantity = parseInt(item.quantity?.toString() || "1");
+              if (productId > 0) {
+                requestedQuantities.set(
+                  productId,
+                  (requestedQuantities.get(productId) || 0) + quantity
+                );
+              }
+            });
+
+            const evaluationQuantities = new Map<number, number>();
+            evaluationCartData.forEach((item: any) => {
+              const productId = parseInt(item.product_id?.toString() || "0");
+              const quantity = parseInt(item.quantity?.toString() || "1");
+              if (productId > 0) {
+                evaluationQuantities.set(
+                  productId,
+                  (evaluationQuantities.get(productId) || 0) + quantity
+                );
+              }
+            });
+
+            const evaluationMatchesOrder =
+              requestedQuantities.size > 0 &&
+              requestedQuantities.size === evaluationQuantities.size &&
+              Array.from(requestedQuantities.entries()).every(
+                ([productId, quantity]) =>
+                  evaluationQuantities.get(productId) === quantity
+              );
+
+            if (!evaluationMatchesOrder) {
+              logger.warn(
+                {
+                  transactionId,
+                  evaluationId: primaryEvaluationId,
+                  requestedProducts: Object.fromEntries(requestedQuantities),
+                  evaluationProducts: Object.fromEntries(evaluationQuantities),
+                },
+                "Ignoring stale promotion evaluation because it does not match the paid cart"
+              );
+              evaluationData = null;
+              primaryEvaluationId = null;
+            } else if (evaluationCartData.length > 0) {
               // Recalculate using evaluation's cart_data
               originalTotal = evaluationCartData.reduce(
                 (total: number, item: any) => {
@@ -2503,32 +2703,34 @@ export class PhonePeController {
               );
             }
 
-            // Calculate promotion discount total from applied promotions
-            const appliedPromotions =
-              (evaluationData.applied_promotions as any[]) || [];
-            promotionDiscountTotal = appliedPromotions.reduce(
-              (total: number, promo: any) => {
-                return (
-                  total + parseFloat(promo.discount_amount?.toString() || "0")
-                );
-              },
-              0
-            );
+            if (evaluationData) {
+              // Calculate promotion discount total from applied promotions
+              const appliedPromotions =
+                (evaluationData.applied_promotions as any[]) || [];
+              promotionDiscountTotal = appliedPromotions.reduce(
+                (total: number, promo: any) => {
+                  return (
+                    total + parseFloat(promo.discount_amount?.toString() || "0")
+                  );
+                },
+                0
+              );
 
-            logger.info(
-              {
-                transactionId,
-                evaluationId: primaryEvaluationId,
-                promotionDiscountTotal,
-                productDiscountTotal,
-                originalTotal: evaluationData.original_total,
-                discountedTotal: evaluationData.discounted_total,
-                cartItemsCount: cartItems.length,
-                evaluationCartDataCount: evaluationCartData.length,
-                evaluationCartData: evaluationCartData, // Log the cart data for debugging
-              },
-              "Evaluation data retrieved for order creation"
-            );
+              logger.info(
+                {
+                  transactionId,
+                  evaluationId: primaryEvaluationId,
+                  promotionDiscountTotal,
+                  productDiscountTotal,
+                  originalTotal: evaluationData.original_total,
+                  discountedTotal: evaluationData.discounted_total,
+                  cartItemsCount: cartItems.length,
+                  evaluationCartDataCount: evaluationCartData.length,
+                  evaluationCartData: evaluationCartData,
+                },
+                "Evaluation data retrieved for order creation"
+              );
+            }
           }
         } catch (error) {
           logger.warn(
@@ -5453,40 +5655,33 @@ export class PhonePeController {
 
         // Log webhook validation details
         if (validationResult.callbackResponse) {
+          const callbackPayload = validationResult.callbackResponse.payload;
           logger.info(
             {
               callbackResponse: {
-                eventType: validationResult.callbackResponse.eventType,
-                state: validationResult.callbackResponse.state,
-                orderId: validationResult.callbackResponse.orderId,
-                refundId: validationResult.callbackResponse.refundId,
+                type: validationResult.callbackResponse.type,
+                state: callbackPayload?.state,
+                orderId: callbackPayload?.orderId,
+                merchantOrderId: callbackPayload?.merchantOrderId,
+                refundId: callbackPayload?.refundId,
               },
             },
             "PhonePe webhook validation successful"
           );
         }
 
-        // Process webhook based on event type
-        const eventType =
-          validationResult.callbackResponse?.eventType || "PAYMENT";
+        const callbackResponse = validationResult.callbackResponse;
+        const callbackType = callbackResponse?.type;
+        const callbackTypeText = String(callbackType || "").toUpperCase();
+        const isRefundCallback =
+          [3, 4, 5].includes(Number(callbackType)) ||
+          callbackTypeText.includes("REFUND") ||
+          Boolean(callbackResponse?.payload?.merchantRefundId);
 
-        switch (eventType) {
-          case "PAYMENT":
-            // Handle payment webhook
-            await this.handlePaymentWebhook(
-              webhookPayload,
-              validationResult.callbackResponse
-            );
-            break;
-          case "REFUND":
-            // Handle refund webhook
-            await this.handleRefundWebhook(
-              webhookPayload,
-              validationResult.callbackResponse
-            );
-            break;
-          default:
-            logger.warn({ eventType }, "Unknown webhook event type");
+        if (isRefundCallback) {
+          await this.handleRefundWebhook(webhookPayload, callbackResponse);
+        } else {
+          await this.handlePaymentWebhook(webhookPayload, callbackResponse);
         }
 
         return reply.status(200).send({
@@ -5517,34 +5712,66 @@ export class PhonePeController {
    */
   private async handlePaymentWebhook(payload: any, callbackResponse?: any) {
     try {
+      const paymentPayload =
+        callbackResponse?.payload || payload?.payload || payload;
       const transactionId =
-        payload.merchantTransactionId || callbackResponse?.orderId;
+        paymentPayload.merchantOrderId ||
+        paymentPayload.merchantTransactionId ||
+        payload.merchantOrderId ||
+        payload.merchantTransactionId;
 
       if (!transactionId) {
-        logger.warn({ payload }, "No transaction ID found in payment webhook");
+        logger.warn(
+          { payload, callbackResponse },
+          "No merchant order ID found in payment webhook"
+        );
         return;
       }
+
+      const state = String(paymentPayload.state || "").toUpperCase();
 
       logger.info(
         {
           transactionId,
-          payload,
-          callbackResponse,
+          state,
+          callbackType: callbackResponse?.type,
         },
         "Processing payment webhook"
       );
 
-      // Update transaction status
-      await this.updateTransactionStatus(
-        transactionId,
-        callbackResponse?.state || payload.state || "PROCESSING",
-        {
-          ...payload,
-          webhookReceived: true,
-          callbackResponse,
-          webhookTimestamp: new Date().toISOString(),
-        }
-      );
+      const webhookPaymentStatus = {
+        success: ["COMPLETED", "SUCCESS", "PAYMENT_SUCCESS"].includes(state),
+        code: ["COMPLETED", "SUCCESS", "PAYMENT_SUCCESS"].includes(state)
+          ? "PAYMENT_SUCCESS"
+          : state || "PAYMENT_PENDING",
+        message: `PhonePe webhook state: ${state || "UNKNOWN"}`,
+        data: paymentPayload,
+        webhookReceived: true,
+        callbackType: callbackResponse?.type,
+        webhookTimestamp: new Date().toISOString(),
+      };
+
+      if (webhookPaymentStatus.success) {
+        await this.ensureOrderAfterSuccessfulPayment(
+          transactionId,
+          webhookPaymentStatus
+        );
+      } else if (
+        ["PENDING", "INITIATED", "PROCESSING"].includes(state) ||
+        !state
+      ) {
+        await this.updateTransactionStatus(
+          transactionId,
+          "PENDING",
+          webhookPaymentStatus
+        );
+      } else {
+        await this.updateTransactionStatus(
+          transactionId,
+          "FAILED",
+          webhookPaymentStatus
+        );
+      }
     } catch (error: any) {
       logger.error(
         {

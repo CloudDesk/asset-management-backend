@@ -12,6 +12,7 @@ import {
   asyncHandler
 } from '../utils/errorHandler.js';
 import { logger } from '../config/logger.js';
+import type { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 
 export class PromotionsController {
   public promotionsService = new PromotionsService();
@@ -36,10 +37,28 @@ export class PromotionsController {
     console.log(request.query,"ALLFILTERS")
     // Check for admin mode flag
     const { admin_mode, ...filtersWithoutAdmin } = allFilters;
-    const adminMode = admin_mode === 'true' || admin_mode === true;
+    const adminModeRequested = admin_mode === 'true' || admin_mode === true;
+    const authenticatedRequest = request as AuthenticatedRequest;
+    if (
+      adminModeRequested &&
+      authenticatedRequest.user?.userType !== 'inventory'
+    ) {
+      return reply.code(403).send({
+        success: false,
+        message: 'Inventory user authentication is required for admin promotion access'
+      });
+    }
+    const adminMode = adminModeRequested;
     
     // Remove pagination params from filters
     const { page: _, limit: __, ...filters } = filtersWithoutAdmin;
+    if (
+      !adminMode &&
+      authenticatedRequest.user?.userType === 'ecommerce'
+    ) {
+      // Never trust a caller-provided userid for customer promotion visibility.
+      filters.userid = String(authenticatedRequest.user.id);
+    }
     
     const result = await this.promotionsService.findMany(filters, page, limit, adminMode);
     
@@ -63,6 +82,46 @@ export class PromotionsController {
     
     const response = createSuccessResponse('Promotion retrieved successfully', promotion);
     return reply.code(200).send(response);
+  });
+
+  getMyPromotions = asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
+    if (!request.user || request.user.userType !== 'ecommerce') {
+      return reply.code(403).send({
+        success: false,
+        message: 'Customer authentication is required'
+      });
+    }
+
+    const { channel = 'web' } = request.query as { channel?: string };
+    const promotions = await this.promotionsService.getMyPromotions({
+      userId: String(request.user.id),
+      channel
+    });
+    return reply.code(200).send(createSuccessResponse('Customer promotions retrieved', promotions));
+  });
+
+  getPublicPromotions = asyncHandler(async (request: FastifyRequest<{
+    Querystring: {
+      channel?: string;
+      geo?: string;
+      limit?: string;
+    };
+  }>, reply: FastifyReply) => {
+    const {
+      channel = 'web',
+      geo = 'IN',
+      limit = '10'
+    } = request.query || {};
+    const parsedLimit = Math.min(Math.max(Number(limit) || 10, 1), 100);
+    const promotions = await this.promotionsService.getPublicPromotions({
+      channel,
+      geo,
+      limit: parsedLimit
+    });
+
+    return reply
+      .code(200)
+      .send(createSuccessResponse('Public promotions retrieved', promotions));
   });
 
   createPromotion = asyncHandler(async (request: FastifyRequest<{ Body: CreatePromotionsInput }>, reply: FastifyReply) => {
@@ -105,20 +164,25 @@ export class PromotionsController {
         price: number; 
       }>; 
       mode: 'phonepe' | 'cod'; 
+      channel?: 'web' | 'mobile' | 'mobile_app';
+      context?: {
+        channel?: 'web' | 'mobile' | 'mobile_app';
+      };
     } 
   }>, reply: FastifyReply) => {
-    const { userId, cartItems, mode } = request.body;
+    const { userId, cartItems, mode, channel, context } = request.body;
     
     logger.info({ userId, cartItemsCount: cartItems.length, mode }, 'Getting unified promotion offers');
     
     const offers = await this.promotionsService.getUnifiedPromotionOffers({
       userId,
       cartItems,
-      mode
+      mode,
+      channel: channel || context?.channel || 'web'
     });
     
     const response = createSuccessResponse('Unified promotion offers retrieved', offers);
     return reply.code(200).send(response);
   });
 
-} 
+}

@@ -30,6 +30,19 @@ import { buildProductNaming } from '../utils/productNaming.js';
 const DEFAULT_PLATFORM_STOCK_PLATFORMS = ['amazon', 'flipkart', 'nivapp'] as const;
 const DEFAULT_PLATFORM_STATUS = 'outofstock';
 
+type CategoryImageSelection = {
+  imageurl: string;
+  thumbnailurl: string | null;
+  isactive: boolean;
+};
+
+const getActiveCategoryImageUrls = (
+  categoryImage: CategoryImageSelection | null | undefined
+): { imageUrl: string | null; thumbnailUrl: string | null } => ({
+  imageUrl: categoryImage?.isactive ? categoryImage.imageurl : null,
+  thumbnailUrl: categoryImage?.isactive ? categoryImage.thumbnailurl : null,
+});
+
 export class ProductService {
   async findMany(
     filters: FilterOptions,
@@ -1830,16 +1843,14 @@ export class ProductService {
       for (const cat of categories) {
         if (!cat.value || !cat.label) continue; // Skip if value or label is null
 
+        const categoryImageUrls = getActiveCategoryImageUrls(cat.categoryImage);
+
         categoryMap.set(cat.value, {
           id: cat.value,
           label: cat.label,
           count: 0,
-          imageUrl: cat.categoryImage?.isactive
-            ? cat.categoryImage.imageurl
-            : null,
-          thumbnailUrl: cat.categoryImage?.isactive
-            ? cat.categoryImage.thumbnailurl
-            : null,
+          imageUrl: categoryImageUrls.imageUrl,
+          thumbnailUrl: categoryImageUrls.thumbnailUrl,
           subcategories: new Map(),
         });
       }
@@ -1852,17 +1863,14 @@ export class ProductService {
 
         if (categoryMap.has(parentCategory)) {
           const categoryEntry = categoryMap.get(parentCategory)!;
+          const subcategoryImageUrls = getActiveCategoryImageUrls(subcat.categoryImage);
 
           categoryEntry.subcategories.set(subcat.value, {
             id: subcat.value,
             label: subcat.label,
             count: 0,
-            imageUrl: subcat.categoryImage?.isactive
-              ? subcat.categoryImage.imageurl
-              : null,
-            thumbnailUrl: subcat.categoryImage?.isactive
-              ? subcat.categoryImage.thumbnailurl
-              : null,
+            imageUrl: subcategoryImageUrls.imageUrl,
+            thumbnailUrl: subcategoryImageUrls.thumbnailUrl,
             subsubcategories: [],
           });
         }
@@ -1923,17 +1931,16 @@ export class ProductService {
           const picklistSubcategory = subcategories.find(
             item => item.value === subcategory
           );
+          const subcategoryImageUrls = getActiveCategoryImageUrls(
+            picklistSubcategory?.categoryImage
+          );
 
           categoryEntry.subcategories.set(subcategory, {
             id: subcategory,
             label: picklistSubcategory?.label || this.formatLabel(subcategory),
             count: 0,
-            imageUrl: picklistSubcategory?.categoryImage?.isactive
-              ? picklistSubcategory.categoryImage.imageurl
-              : null,
-            thumbnailUrl: picklistSubcategory?.categoryImage?.isactive
-              ? picklistSubcategory.categoryImage.thumbnailurl
-              : null,
+            imageUrl: subcategoryImageUrls.imageUrl,
+            thumbnailUrl: subcategoryImageUrls.thumbnailUrl,
             subsubcategories: [],
           });
         }

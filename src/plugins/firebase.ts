@@ -91,6 +91,13 @@ export function initializeFirebaseAdmin(): FirebaseAdminContext | null {
     return { app, messaging: getMessaging(app) };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown Firebase Admin initialization error';
+    if (env.NODE_ENV !== 'production') {
+      logger.warn(
+        { message },
+        'Firebase Admin is unavailable in development; push sends will be disabled.'
+      );
+      return null;
+    }
     logger.error({ message }, 'Failed to initialize Firebase Admin');
     throw error;
   }
