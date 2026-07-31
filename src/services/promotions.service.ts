@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { randomBytes } from 'crypto';
 import {
   CreatePromotionsInput,
   UpdatePromotionsInput
@@ -14,6 +15,8 @@ import {
 } from '../utils/dynamicDbOperations.js';
 import { getTimezoneFromGeo } from '../utils/geoUtils.js';
 import { logger } from '../config/logger.js';
+import { isPromotionChannelEligible } from '../utils/promotionChannel.js';
+import { normalizePromotionConditionValues } from '../utils/promotionConditions.js';
 
 // Configuration constants for user segments
 const USER_SEGMENT_CONFIG = {
@@ -23,6 +26,44 @@ const USER_SEGMENT_CONFIG = {
 
 export class PromotionsService {
   private prisma = new PrismaClient();
+
+  private normalizePromotionCode(value: string): string {
+    return value.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+  }
+
+  private async ensurePromotionCodeAvailable(code: string, promotionId?: number): Promise<void> {
+    const [promotion, assignment] = await Promise.all([
+      this.prisma.promotions.findFirst({
+        where: {
+          code: { equals: code, mode: 'insensitive' },
+          ...(promotionId ? { id: { not: promotionId } } : {})
+        },
+        select: { id: true }
+      }),
+      this.prisma.promotion_assignments.findFirst({
+        where: {
+          voucher_code: { equals: code, mode: 'insensitive' },
+          ...(promotionId ? { promotion_id: { not: promotionId } } : {})
+        },
+        select: { id: true }
+      })
+    ]);
+    if (promotion || assignment) throw new Error('Promotion code already exists');
+  }
+
+  private async generatePromotionCode(name?: string): Promise<string> {
+    const prefix = this.normalizePromotionCode(name || 'OFFER').slice(0, 24) || 'OFFER';
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      const code = `${prefix}-${randomBytes(3).toString('hex').toUpperCase()}`;
+      try {
+        await this.ensurePromotionCodeAvailable(code);
+        return code;
+      } catch {
+        // Try another random suffix.
+      }
+    }
+    throw new Error('Unable to generate a unique promotion code');
+  }
 
   // Get auto-applied promotions from user's active evaluation record
   async getAutoAppliedPromotionsFromEvaluation(userId: string): Promise<any[]> {
@@ -96,6 +137,50 @@ export class PromotionsService {
     return new Date(numTimestamp * 1000);
   }
 
+  private getEffectivePromotionStatus(promotion: {
+    status?: string | null;
+    start_date?: number | string | bigint | null;
+    end_date?: number | string | bigint | null;
+  }): 'active' | 'inactive' | 'expired' {
+    const now = new Date();
+    const startDate = this.convertUnixTimestampToDate(
+      promotion.start_date === null || promotion.start_date === undefined
+        ? null
+        : promotion.start_date.toString()
+    );
+    const endDate = this.convertUnixTimestampToDate(
+      promotion.end_date === null || promotion.end_date === undefined
+        ? null
+        : promotion.end_date.toString()
+    );
+
+    if (endDate && endDate <= now) return 'expired';
+    if ((promotion.status || '').toLowerCase() !== 'active') return 'inactive';
+    if (startDate && startDate > now) return 'inactive';
+    return 'active';
+  }
+
+  private validatePromotionValidity(
+    startDateValue: number | string | bigint | null | undefined,
+    endDateValue: number | string | bigint | null | undefined,
+    requestedStatus?: string | null
+  ): void {
+    const startDate = this.convertUnixTimestampToDate(
+      startDateValue === null || startDateValue === undefined
+        ? null
+        : startDateValue.toString()
+    );
+    const endDate = this.convertUnixTimestampToDate(
+      endDateValue === null || endDateValue === undefined
+        ? null
+        : endDateValue.toString()
+    );
+
+    if (startDate && endDate && startDate >= endDate) {
+      throw new Error('Validation failed: Valid To must be later than Valid From');
+    }
+  }
+
   // Transform frontend data structure to backend format
   private transformFrontendDataToBackend(data: any): any {
     const transformed = { ...data };
@@ -103,6 +188,7 @@ export class PromotionsService {
     // If frontend sends discount_type and discount_value, create single action object
     if (data.discount_type && data.discount_value !== undefined) {
       const action: any = {
+        ...(data.action || {}),
         type: data.discount_type,
         value: data.discount_value
       };
@@ -179,7 +265,6 @@ export class PromotionsService {
       const filters: FilterOptions = {
         status: 'active',
         visibility: 'public',
-        auto_apply: 'true', // Show auto-apply promotions to guests
         timezone: timezone // Filter by timezone
       };
 
@@ -205,6 +290,8 @@ export class PromotionsService {
 
           return true;
         })
+        .filter((promo: any) => this.isPromotionApplicableToUser(promo, ['guest']))
+        .filter((promo: any) => isPromotionChannelEligible(promo.applicable_channel, options.channel))
         .map((promo: any) => ({
           id: promo.id,
           name: promo.name,
@@ -216,6 +303,11 @@ export class PromotionsService {
           end_date: promo.end_date,
           priority: promo.priority,
           status: promo.status,
+          applicable_channel: promo.applicable_channel || 'all',
+          application_mode: promo.application_mode || (promo.auto_apply ? 'automatic' : 'click_to_apply'),
+          code: promo.code,
+          action: promo.action,
+          conditions: promo.conditions,
           // Don't expose sensitive fields like budget, max_redemptions, etc.
         }))
         .sort((a: any, b: any) => {
@@ -285,6 +377,7 @@ export class PromotionsService {
         .filter((promo: any) => {
           return this.isPromotionCurrentlyActive(promo);
         })
+        .filter((promo: any) => isPromotionChannelEligible(promo.applicable_channel, options.channel))
         .filter((promo: any) => {
           return this.isPromotionApplicableToUser(promo, userSegments);
         })
@@ -305,6 +398,79 @@ export class PromotionsService {
       logger.error({ error, options }, 'Error getting personalized promotions');
       throw error;
     }
+  }
+
+  async getMyPromotions(options: { userId: string; channel: string }) {
+    const userSegments = await this.getUserSegments(options.userId);
+    const customerId = Number(options.userId);
+    const nowSeconds = BigInt(Math.floor(Date.now() / 1000));
+
+    const [globalPromotions, assignments] = await Promise.all([
+      this.prisma.promotions.findMany({
+        where: { status: 'active', visibility: 'public' },
+        orderBy: { priority: 'asc' }
+      }),
+      this.prisma.promotion_assignments.findMany({
+        where: {
+          status: 'active',
+          OR: [
+            { assignment_type: 'customer', customer_id: customerId },
+            {
+              assignment_type: 'customer_group',
+              customer_group: {
+                status: 'active',
+                members: { some: { customer_id: customerId, status: 'active' } }
+              }
+            }
+          ]
+        },
+        include: {
+          promotion: true,
+          customer_group: { select: { id: true, name: true, code: true } }
+        },
+        orderBy: { id: 'desc' }
+      })
+    ]);
+
+    const results = new Map<number, any>();
+    for (const promotion of globalPromotions) {
+      if (!this.isPromotionCurrentlyActive(promotion)) continue;
+      if (!isPromotionChannelEligible(promotion.applicable_channel, options.channel)) continue;
+      if (!this.isPromotionApplicableToUser(promotion, userSegments)) continue;
+      results.set(promotion.id, {
+        ...this.formatPromotionForDisplay(promotion),
+        audience: promotion.conditions ? 'segment' : 'global',
+        voucher_code: promotion.code || null,
+        assignment_id: null
+      });
+    }
+
+    for (const assignment of assignments) {
+      if (assignment.start_date && assignment.start_date > nowSeconds) continue;
+      if (assignment.end_date && assignment.end_date < nowSeconds) continue;
+      if (assignment.usage_limit && assignment.used_count >= assignment.usage_limit) continue;
+      if (!this.isPromotionCurrentlyActive(assignment.promotion)) continue;
+      if (!isPromotionChannelEligible(assignment.promotion.applicable_channel, options.channel)) continue;
+      if (!this.isPromotionApplicableToUser(assignment.promotion, userSegments)) continue;
+
+      results.set(assignment.promotion.id, {
+        ...this.formatPromotionForDisplay(assignment.promotion),
+        audience: assignment.assignment_type,
+        code: assignment.voucher_code,
+        voucher_code: assignment.voucher_code,
+        assignment_id: assignment.id,
+        assignment_usage: {
+          used: assignment.used_count,
+          limit: assignment.usage_limit,
+          remaining: assignment.usage_limit === null
+            ? null
+            : Math.max(assignment.usage_limit - assignment.used_count, 0)
+        },
+        customer_group: assignment.customer_group
+      });
+    }
+
+    return Array.from(results.values());
   }
 
   // Get user segments for personalization
@@ -352,14 +518,7 @@ export class PromotionsService {
 
   // Check if promotion is currently active
   private isPromotionCurrentlyActive(promotion: any): boolean {
-    const now = new Date();
-    const startDate = this.convertUnixTimestampToDate(promotion.start_date);
-    const endDate = this.convertUnixTimestampToDate(promotion.end_date);
-
-    if (startDate && startDate > now) return false;
-    if (endDate && endDate < now) return false;
-
-    return true;
+    return this.getEffectivePromotionStatus(promotion) === 'active';
   }
 
   // Check if promotion is applicable to user
@@ -381,8 +540,10 @@ export class PromotionsService {
   // Evaluate individual condition
   private evaluateCondition(condition: any, userSegments: string[]): boolean {
     switch (condition.attribute) {
-      case 'user.segment':
-        return condition.value.some((segment: string) => userSegments.includes(segment));
+      case 'user.segment': {
+        const requiredSegments = normalizePromotionConditionValues(condition.value);
+        return requiredSegments.some((segment) => userSegments.includes(segment));
+      }
 
       case 'user.created_date':
         return true; // Simplified for now
@@ -405,7 +566,19 @@ export class PromotionsService {
       logger.info({ filters, page, limit, adminMode }, 'Starting dynamic promotions findMany with filters');
 
       // Handle userid filtering for personalized promotions
-      const { userid, channel = 'web', geo = 'IN', current_date, search, ...otherFilters } = filters;
+      const {
+        userid,
+        channel = 'web',
+        geo = 'IN',
+        current_date,
+        search,
+        status: requestedStatus,
+        ...otherFilters
+      } = filters;
+      const adminStatusFilter =
+        adminMode && typeof requestedStatus === 'string'
+          ? requestedStatus.toLowerCase()
+          : null;
 
       // Convert geo code to timezone
       const geoString = Array.isArray(geo) ? (geo[0] || 'IN') : (geo || 'IN');
@@ -413,14 +586,14 @@ export class PromotionsService {
 
       let baseFilters: FilterOptions;
 
-      if (adminMode && Object.keys(otherFilters).length === 0 && !search) {
-        // Admin mode with no filters - get ALL promotions
-        logger.info('Admin mode: Getting all promotions without default filters');
-        baseFilters = {};
+      if (adminMode) {
+        // Admin status is derived from configured status plus Valid From/To,
+        // so it is filtered after records are formatted.
+        baseFilters = { ...otherFilters };
       } else {
         // Build base filters (existing behavior for e-commerce app)
         baseFilters = {
-          status: 'active',
+          status: requestedStatus || 'active',
           timezone: timezone,
           ...otherFilters
         };
@@ -459,7 +632,44 @@ export class PromotionsService {
       let total = 0;
 
       // Handle search with Prisma directly
-      if (searchWhere) {
+      if (adminMode) {
+        const { data: adminPromotions } = await dynamicFindManyWithFilters(
+          'promotions',
+          baseFilters,
+          {
+            skip: 0,
+            take: 10000,
+            useAllColumns: true
+          }
+        );
+        const searchText = Array.isArray(search) ? search[0] : search;
+        const normalizedSearch = searchText?.trim().toLowerCase();
+
+        let matchingPromotions = adminPromotions
+          .map((promotion: any) => this.formatPromotionForDisplay(promotion))
+          .filter((promotion: any) => {
+            if (!normalizedSearch) return true;
+            return [promotion.name, promotion.type, promotion.code, promotion.status]
+              .some((value) => String(value || '').toLowerCase().includes(normalizedSearch));
+          })
+          .filter((promotion: any) =>
+            adminStatusFilter ? promotion.status === adminStatusFilter : true
+          )
+          .sort((a: any, b: any) => {
+            if (a.status !== b.status) {
+              const statusOrder: Record<string, number> = {
+                active: 0,
+                inactive: 1,
+                expired: 2
+              };
+              return (statusOrder[a.status] ?? 999) - (statusOrder[b.status] ?? 999);
+            }
+            return (a.priority || 999) - (b.priority || 999);
+          });
+
+        total = matchingPromotions.length;
+        finalPromotions = matchingPromotions.slice((page - 1) * limit, page * limit);
+      } else if (searchWhere) {
         // Apply base filters to search where clause
         if (!adminMode) {
           searchWhere.status = 'active';
@@ -575,6 +785,7 @@ export class PromotionsService {
         // Filter and format promotions for guest users
         finalPromotions = promotions
           .filter((promo: any) => this.isPromotionCurrentlyActive(promo))
+          .filter((promo: any) => this.isPromotionApplicableToUser(promo, ['guest']))
           .map((promo: any) => this.formatPromotionForDisplay(promo)) // Use the same formatting method
           .sort((a: any, b: any) => {
             // Sort by priority (lower number = higher priority) then by discount value
@@ -601,6 +812,90 @@ export class PromotionsService {
         appliedFilters: Object.keys(filters),
         userType: userid ? 'identified' : 'guest'
       }, 'Dynamic promotions findMany with filters completed');
+
+      if (!adminMode) {
+        const requestChannel = Array.isArray(channel) ? channel[0] : channel;
+        finalPromotions = finalPromotions.filter((promotion: any) =>
+          isPromotionChannelEligible(promotion.applicable_channel, requestChannel)
+        );
+        total = finalPromotions.length;
+      }
+
+      if (adminMode && finalPromotions.length > 0) {
+        const assignments = await this.prisma.promotion_assignments.findMany({
+          where: {
+            promotion_id: { in: finalPromotions.map((promotion) => promotion.id) },
+            status: 'active'
+          },
+          include: {
+            customer: {
+              select: { id: true, firstname: true, lastname: true, useremail: true }
+            },
+            customer_group: {
+              select: { id: true, name: true, code: true }
+            }
+          },
+          orderBy: { id: 'desc' }
+        });
+        const assignmentByPromotion = new Map(
+          assignments.map((assignment) => [assignment.promotion_id, assignment])
+        );
+
+        finalPromotions = finalPromotions.map((promotion: any) => {
+          const assignment = assignmentByPromotion.get(promotion.id);
+          const conditions = Array.isArray(promotion.conditions)
+            ? promotion.conditions
+            : [];
+          const isNewCustomer = conditions.some(
+            (condition: any) =>
+              condition.attribute === 'user.segment' &&
+              condition.operator === 'IN' &&
+              Array.isArray(condition.value) &&
+              condition.value.includes('new_user')
+          );
+          if (assignment?.assignment_type === 'customer') {
+            const customerName = [
+              assignment.customer?.firstname,
+              assignment.customer?.lastname
+            ].filter(Boolean).join(' ');
+            return {
+              ...promotion,
+              audience_type: 'single_customer',
+              audience_label:
+                customerName || assignment.customer?.useremail || `Customer #${assignment.customer_id}`,
+              voucher_code: assignment.voucher_code,
+              assignment_id: assignment.id,
+              audience_customer_id: assignment.customer_id
+            };
+          }
+          if (assignment?.assignment_type === 'customer_group') {
+            return {
+              ...promotion,
+              audience_type: 'customer_group',
+              audience_label: assignment.customer_group?.name || 'Customer group',
+              voucher_code: assignment.voucher_code,
+              assignment_id: assignment.id,
+              audience_customer_group_id: assignment.customer_group_id
+            };
+          }
+          if (promotion.visibility === 'private') {
+            return {
+              ...promotion,
+              audience_type: 'global',
+              audience_label: 'Private - assignment missing',
+              audience_assignment_missing: true,
+              voucher_code: promotion.code || null
+            };
+          }
+          return {
+            ...promotion,
+            audience_type: isNewCustomer ? 'new_customer' : 'global',
+            audience_label: isNewCustomer ? 'New customers' : 'Everyone',
+            voucher_code: promotion.code || null
+          };
+        });
+      }
+
       return createPaginationResult(finalPromotions, total, page, limit);
     } catch (error) {
       logger.error({ error, filters, page, limit }, 'Error in dynamic promotions findMany operation');
@@ -636,10 +931,37 @@ export class PromotionsService {
 
       // Transform frontend data structure to backend format
       const transformedData = this.transformFrontendDataToBackend(data);
+      this.validatePromotionValidity(
+        transformedData.start_date,
+        transformedData.end_date,
+        transformedData.status
+      );
+      if (transformedData.status && transformedData.status !== 'active') {
+        transformedData.status = 'inactive';
+      }
+      const applicationMode =
+        transformedData.application_mode ||
+        (transformedData.auto_apply ? 'automatic' : transformedData.code ? 'code_entry' : 'click_to_apply');
+      let promotionCode = transformedData.code
+        ? this.normalizePromotionCode(transformedData.code)
+        : null;
+      if (promotionCode) await this.ensurePromotionCodeAvailable(promotionCode);
+      if (
+        applicationMode === 'click_to_apply' &&
+        !promotionCode &&
+        transformedData.visibility !== 'private'
+      ) {
+        promotionCode = await this.generatePromotionCode(transformedData.name);
+      }
+      if (applicationMode === 'automatic') promotionCode = null;
 
       // Add timestamps
       const promotionData = {
         ...transformedData,
+        applicable_channel: transformedData.applicable_channel || 'all',
+        application_mode: applicationMode,
+        auto_apply: applicationMode === 'automatic',
+        code: promotionCode,
         createddate: Date.now(),
         modifieddate: Date.now()
       };
@@ -668,10 +990,65 @@ export class PromotionsService {
 
       // Transform frontend data structure to backend format
       const transformedData = this.transformFrontendDataToBackend(data);
+      const currentPromotion = await this.prisma.promotions.findUnique({
+        where: { id: parseInt(id) },
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          visibility: true,
+          application_mode: true,
+          status: true,
+          start_date: true,
+          end_date: true
+        }
+      });
+      if (!currentPromotion) throw new Error('Promotion not found');
+      const nextStatus =
+        transformedData.status === undefined
+          ? currentPromotion.status
+          : transformedData.status === 'active'
+            ? 'active'
+            : 'inactive';
+      this.validatePromotionValidity(
+        transformedData.start_date ?? currentPromotion.start_date,
+        transformedData.end_date ?? currentPromotion.end_date,
+        nextStatus
+      );
+      if (transformedData.status !== undefined) {
+        transformedData.status = nextStatus;
+      }
+      const applicationMode =
+        transformedData.application_mode ||
+        currentPromotion.application_mode ||
+        (transformedData.auto_apply ? 'automatic' : currentPromotion.code ? 'code_entry' : 'click_to_apply');
+      let promotionCode =
+        transformedData.code !== undefined
+          ? transformedData.code
+            ? this.normalizePromotionCode(transformedData.code)
+            : null
+          : currentPromotion.code;
+      if (promotionCode) {
+        await this.ensurePromotionCodeAvailable(promotionCode, currentPromotion.id);
+      }
+      const nextVisibility = transformedData.visibility ?? currentPromotion.visibility;
+      if (
+        applicationMode === 'click_to_apply' &&
+        !promotionCode &&
+        nextVisibility !== 'private'
+      ) {
+        promotionCode = await this.generatePromotionCode(
+          transformedData.name || currentPromotion.name || undefined
+        );
+      }
+      if (applicationMode === 'automatic') promotionCode = null;
 
       // Add modified timestamp
       const updateData = {
         ...transformedData,
+        application_mode: applicationMode,
+        auto_apply: applicationMode === 'automatic',
+        code: promotionCode,
         modifieddate: Date.now()
       };
 
@@ -1008,6 +1385,7 @@ export class PromotionsService {
 
   // Format promotion for display
   private formatPromotionForDisplay(promotion: any): any {
+    const configuredStatus = promotion.status;
     return {
       id: promotion.id,
       name: promotion.name,
@@ -1017,9 +1395,13 @@ export class PromotionsService {
       auto_apply: promotion.auto_apply,
       start_date: promotion.start_date, // Keep as Unix timestamp for API consistency
       end_date: promotion.end_date, // Keep as Unix timestamp for API consistency
-      status: promotion.status,
+      status: this.getEffectivePromotionStatus(promotion),
+      configured_status: configuredStatus,
       priority: promotion.priority,
       visibility: promotion.visibility,
+      applicable_channel: promotion.applicable_channel || 'all',
+      application_mode:
+        promotion.application_mode || (promotion.auto_apply ? 'automatic' : 'click_to_apply'),
       max_redemptions: promotion.max_redemptions,
       per_user_limit: promotion.per_user_limit,
       stackable: promotion.stackable,
@@ -1040,6 +1422,7 @@ export class PromotionsService {
     userId: string;
     cartItems: Array<{ productId: string; qty: number; category: string; price: number }>;
     mode: 'phonepe' | 'cod';
+    channel?: 'web' | 'mobile' | 'mobile_app';
   }) {
     // Check for existing active evaluation to determine promotion states
     const activeEvaluation = await this.prisma.promotion_evaluations.findFirst({
@@ -1089,6 +1472,35 @@ export class PromotionsService {
         take: 100, // Get more promotions to evaluate
         useAllColumns: true
       });
+      const customerId = Number(request.userId);
+      const [customerAssignments, restrictedAssignments] = await Promise.all([
+        this.prisma.promotion_assignments.findMany({
+          where: {
+            status: 'active',
+            OR: [
+              { assignment_type: 'customer', customer_id: customerId },
+              {
+                assignment_type: 'customer_group',
+                customer_group: {
+                  status: 'active',
+                  members: { some: { customer_id: customerId, status: 'active' } }
+                }
+              }
+            ]
+          },
+          select: { id: true, promotion_id: true, voucher_code: true }
+        }),
+        this.prisma.promotion_assignments.findMany({
+          where: { status: 'active' },
+          select: { promotion_id: true }
+        })
+      ]);
+      const customerAssignmentByPromotion = new Map(
+        customerAssignments.map((assignment) => [assignment.promotion_id, assignment])
+      );
+      const restrictedPromotionIds = new Set(
+        restrictedAssignments.map((assignment) => assignment.promotion_id)
+      );
       logger.info(allPromotions, "allPromotions")
       logger.info({ totalPromotions: allPromotions.length }, 'Retrieved active promotions');
 
@@ -1099,6 +1511,23 @@ export class PromotionsService {
 
       for (const promotion of allPromotions) {
         try {
+          const customerAssignment = customerAssignmentByPromotion.get(promotion.id);
+          const isRestricted = restrictedPromotionIds.has(promotion.id);
+          const isPublicGlobal = promotion.visibility === 'public' && Boolean(promotion.code);
+          if ((isRestricted || promotion.visibility === 'private') && !customerAssignment && !isPublicGlobal) {
+            continue;
+          }
+          if (customerAssignment) {
+            promotion.code = customerAssignment.voucher_code;
+            promotion.assignment_id = customerAssignment.id;
+          }
+
+          if (!isPromotionChannelEligible(promotion.applicable_channel, request.channel || 'web')) {
+            // Promotions for another sales channel are irrelevant to this
+            // checkout and should not appear in either coupon list.
+            continue;
+          }
+
           // Check if promotion is currently active
           const startDate = this.convertUnixTimestampToDate(promotion.start_date);
           const endDate = this.convertUnixTimestampToDate(promotion.end_date);
@@ -1390,10 +1819,11 @@ export class PromotionsService {
         switch (condition.attribute) {
           case 'user.segment':
             const userSegments = await this.getUserSegments(userId);
-            if (!condition.value.some((segment: string) => userSegments.includes(segment))) {
+            const requiredSegments = normalizePromotionConditionValues(condition.value);
+            if (!requiredSegments.some((segment) => userSegments.includes(segment))) {
               return {
                 isEligible: false,
-                reason: `User segment not eligible. Required: ${condition.value.join(', ')}, Current: ${userSegments.join(', ')}`
+                reason: `User segment not eligible. Required: ${requiredSegments.join(', ')}, Current: ${userSegments.join(', ')}`
               };
             }
             break;
@@ -1464,33 +1894,35 @@ export class PromotionsService {
             break;
 
           case 'cart.category':
-            if (!condition.value.some((cat: string) => cartInfo.categories.includes(cat))) {
+            const requiredCategories = normalizePromotionConditionValues(condition.value);
+            if (!requiredCategories.some((cat) => cartInfo.categories.includes(cat))) {
               return {
                 isEligible: false,
-                reason: `Cart category not eligible. Required: ${condition.value.join(', ')}, Current: ${cartInfo.categories.join(', ')}`
+                reason: `Cart category not eligible. Required: ${requiredCategories.join(', ')}, Current: ${cartInfo.categories.join(', ')}`
               };
             }
             break;
 
           case 'cart.items.category':
+            const requiredItemCategories = normalizePromotionConditionValues(condition.value);
             // Handle cart.items.category condition for individual item category matching
             if (condition.operator === 'IN') {
               // Check if any cart item has a category that matches the condition values
               const hasMatchingCategory = cartInfo.items.some(item =>
-                condition.value.includes(item.category)
+                requiredItemCategories.includes(item.category)
               );
               if (!hasMatchingCategory) {
                 return {
                   isEligible: false,
-                  reason: `Cart items category not eligible. Required: ${condition.value.join(', ')}, Current items: ${cartInfo.items.map(item => `${item.productId}(${item.category})`).join(', ')}`
+                  reason: `Cart items category not eligible. Required: ${requiredItemCategories.join(', ')}, Current items: ${cartInfo.items.map(item => `${item.productId}(${item.category})`).join(', ')}`
                 };
               }
             } else {
               // For other operators, use the aggregated categories approach
-              if (!condition.value.some((cat: string) => cartInfo.categories.includes(cat))) {
+              if (!requiredItemCategories.some((cat) => cartInfo.categories.includes(cat))) {
                 return {
                   isEligible: false,
-                  reason: `Cart items category not eligible. Required: ${condition.value.join(', ')}, Current: ${cartInfo.categories.join(', ')}`
+                  reason: `Cart items category not eligible. Required: ${requiredItemCategories.join(', ')}, Current: ${cartInfo.categories.join(', ')}`
                 };
               }
             }
@@ -1508,4 +1940,4 @@ export class PromotionsService {
     }
   }
 
-} 
+}

@@ -25,8 +25,8 @@ export const ECOMMERCE_PUBLIC_ROUTES = [
     'GET /v1/products/:productId/platform/:platform', // Support any platform for dynamic routing
 
 
-    // 3. Promotions & Deals APIs
-    'GET /v1/promotions', // Main promotions route - supports optional userid parameter
+    // 3. Guest storefront promotions (curated public fields only)
+    'GET /v1/promotions/public',
 
     // 4. Ratings & Reviews APIs
     'GET /v1/ratings',
@@ -44,6 +44,7 @@ export const ECOMMERCE_PUBLIC_ROUTES = [
 
     // 8. System & Webhook APIs (Internal but public for cloud tasks/webhooks)
     'POST /v1/phonepe/cleanup-lock',
+    'POST /v1/phonepe/webhook',
     'POST /v1/ekart/webhook/track-status', // Ekart tracking status webhook
 
     // 9. Payment Callback APIs (PhonePe SDK redirects)

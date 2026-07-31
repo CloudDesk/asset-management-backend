@@ -95,13 +95,6 @@ export class PromotionEvaluationController {
         }
 
         // Apply promotion to evaluation
-        if (!promotion_id) {
-          return reply.code(400).send({
-            success: false,
-            message: 'promotion_id is required for manual_coupon or stackable_promotion',
-            details: 'Please provide a valid promotion_id'
-          });
-        }
         if (!targetEvaluationId) {
           return reply.code(400).send({
             success: false,
@@ -111,7 +104,8 @@ export class PromotionEvaluationController {
         }
         evaluation = await this.evaluationService.applyManualCoupon({
           evaluation_id: typeof targetEvaluationId === 'string' ? targetEvaluationId : String(targetEvaluationId),
-          promotion_id: typeof promotion_id === 'string' ? Number(promotion_id) : promotion_id,
+          ...(promotion_id && { promotion_id: typeof promotion_id === 'string' ? Number(promotion_id) : promotion_id }),
+          ...(code && { code }),
           cart_items
         });
         break;
@@ -223,7 +217,11 @@ export class PromotionEvaluationController {
     const cartSignature = this.evaluationService.generateCartSignature(cart_items);
 
     // Check for existing active evaluation with same cart signature
-    const existingEvaluation = await this.evaluationService.findActiveEvaluationByCartSignature(user_id, cartSignature);
+    const existingEvaluation = await this.evaluationService.findActiveEvaluationByCartSignature(
+      user_id,
+      cartSignature,
+      context.channel
+    );
     
     if (existingEvaluation) {
       logger.info({ 

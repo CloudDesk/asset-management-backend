@@ -98,7 +98,8 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
                 otpSent: { type: 'boolean' },
                 expiresIn: { type: 'number', description: 'OTP expiry time in seconds' },
                 canResendAfter: { type: 'number', description: 'Cooldown period in seconds before OTP can be resent' },
-                isNewUser: { type: 'boolean', description: 'Whether a new user was created automatically' }
+                isNewUser: { type: 'boolean', description: 'Whether this mobile number belongs to a new user' },
+                requiresName: { type: 'boolean', description: 'Whether a name must be supplied during OTP verification' }
               },
             },
             message: { type: 'string' },
@@ -259,7 +260,8 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
         otpSent: true,
         expiresIn: expiresIn,
         canResendAfter: canResendAfter,
-        isNewUser
+        isNewUser,
+        requiresName: !user?.firstname?.trim()
       });
 
       return reply.code(200).send(response);
@@ -287,6 +289,12 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
           },
           otp: {
             description: '4-digit OTP received via SMS (Exotel)'
+          },
+          firstname: {
+            type: 'string',
+            minLength: 2,
+            maxLength: 100,
+            description: 'Customer name; required for new customers or customers whose name is missing'
           },
         },
         additionalProperties: false,
@@ -368,7 +376,11 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
       },
     },
   }, asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
-    const { usermobilenumber, otp } = request.body as { usermobilenumber: number; otp?: number | string };
+    const { usermobilenumber, otp, firstname } = request.body as {
+      usermobilenumber: number;
+      otp?: number | string;
+      firstname?: string;
+    };
     // Custom OTP validation with user-friendly messages (Exotel: 4-digit OTP)
     if (otp === undefined || otp === null) {
       return reply.code(400).send({
@@ -403,6 +415,19 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
 
 
     try {
+      let user = await usersService.findByMobileNumber(usermobilenumber);
+      const normalizedName = firstname?.trim().replace(/\s+/g, ' ') || '';
+      const requiresName = !user?.firstname?.trim();
+
+      if (requiresName && (normalizedName.length < 2 || normalizedName.length > 100)) {
+        return reply.code(400).send({
+          success: false,
+          message: 'Customer name is required',
+          details: 'Please enter your name before verifying the OTP.',
+          statusCode: 400
+        });
+      }
+
       // Step 1: Verify OTP using Redis service FIRST
       const phoneNumberString = `+91${usermobilenumber}`;
       const otpProvider = getStaticUserOtp() ? 'static-env' : 'exotel';
@@ -430,7 +455,6 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
       }
 
       // Step 2: OTP is valid! Now check if user exists or create new one
-      let user = await usersService.findByMobileNumber(usermobilenumber);
       let isNewUser = false;
 
       if (!user) {
@@ -440,6 +464,7 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
         try {
           const newUserData = {
             usermobilenumber: usermobilenumber,
+            firstname: normalizedName,
             createddate: Date.now(),
             modifieddate: Date.now()
           };
@@ -461,6 +486,10 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
             statusCode: 500
           });
         }
+      } else if (!user.firstname?.trim()) {
+        user = await usersService.update(String(user.id), {
+          firstname: normalizedName
+        });
       }
 
       // Step 3: Generate JWT token pair (access + refresh) - Same as inventory users

@@ -238,7 +238,7 @@ export async function addressRoutes(fastify: FastifyInstance) {
         type: 'object',
         properties: {
           userid: { type: 'number', description: 'User ID' },
-          name: { type: 'string', maxLength: 100, description: 'Name' },
+          name: { type: 'string', minLength: 2, maxLength: 100, description: 'Name' },
           mobilenumber: { type: 'number', description: 'Mobile number' },
           pincode: { type: 'number', description: 'Pincode' },
           doornumber: { type: 'string', maxLength: 100, description: 'Door number' },
@@ -248,6 +248,7 @@ export async function addressRoutes(fastify: FastifyInstance) {
           city: { type: 'string', maxLength: 100, description: 'City' },
           isdefaultaddress: { type: 'boolean', description: 'Whether this should be the default address' }
         },
+        required: ['name'],
         additionalProperties: true, // Allow any additional fields
       },
       response: {
@@ -432,4 +433,4 @@ export async function addressRoutes(fastify: FastifyInstance) {
       },
     },
   }, addressController.deleteAddress.bind(addressController));
-} 
+}

@@ -132,7 +132,11 @@ function validatePushNotificationConfig(data: object) {
   const hasApnsAuthKeyPath = Boolean(getEnvConfigValue(data, 'APNS_AUTH_KEY_PATH'));
   const hasApnsIdentityConfig = REQUIRED_APNS_IDENTITY_PUSH_ENV_VARS.some((key) =>
     Boolean(getEnvConfigValue(data, key))
+  const hasFirebaseDirectConfig = Boolean(
+    getEnvConfigValue(data, 'FIREBASE_CLIENT_EMAIL') ||
+    getEnvConfigValue(data, 'FIREBASE_PRIVATE_KEY')
   );
+  const hasApnsConfig = Boolean(getEnvConfigValue(data, 'APNS_AUTH_KEY'));
 
   const missingVars: string[] = [];
   const validationErrors: string[] = [];

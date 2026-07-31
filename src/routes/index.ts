@@ -23,6 +23,7 @@ import { orderlineRoutes } from './orderline.route.js';
 import { transactionRoutes } from './transaction.route.js';
 import { phonePeRoutes } from './phonepe.route.js';
 import { promotionsRoutes } from './promotions.route.js';
+import { customerGroupRoutes } from './customer-groups.route.js';
 import { ratingRoutes } from './rating.route.js';
 import { smsRoutes } from './sms.route.js';
 import { ekartRoutes } from './ekart.route.js';
@@ -117,6 +118,7 @@ export async function routes(fastify: FastifyInstance) {
     await fastify.register(transactionRoutes, { prefix: '/transactions' });
     await fastify.register(phonePeRoutes, { prefix: '/phonepe' });
     await fastify.register(promotionsRoutes, { prefix: '/promotions' });
+    await fastify.register(customerGroupRoutes, { prefix: '/customer-groups' });
     await fastify.register(ratingRoutes, { prefix: '/ratings' });
     await fastify.register(smsRoutes, { prefix: '/sms' });
     await fastify.register(ekartRoutes, { prefix: '/ekart' });

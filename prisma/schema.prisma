@@ -684,7 +684,7 @@ model orders {
   deliveryfrom          String?                  @db.VarChar(200)
   orderprocessingtime   BigInt?
   ispaymentsucceed      Boolean?                 @default(false)
-  merchanttransactionid String?                  @db.VarChar(250)
+  merchanttransactionid String?                  @unique(map: "uniq_orders_merchanttransactionid") @db.VarChar(250)
   productid             Int[]
   evaluation_id         String?                   @db.VarChar(36) @unique
   promotion_discount_total    Decimal?            @db.Decimal(10,2) @default(0) // order-level + item-level promo discounts
@@ -1054,6 +1054,8 @@ model users {
   returnrequestattachments ReturnRequestAttachment[]
   tickets          tickets[]   @ignore
   rating           rating[]
+  promotion_assignments promotion_assignments[]
+  customer_group_members customer_group_members[]
   // Note: amazonConnections relation removed - using userType field instead
 
   @@map("users")
@@ -1125,6 +1127,8 @@ model promotions {
   status          String?   @db.Text
   priority        Int?
   visibility      String?   @db.Text
+  applicable_channel String @default("all") @db.VarChar(20) // all, web, mobile
+  application_mode String @default("click_to_apply") @db.VarChar(30) // automatic, click_to_apply, code_entry
   max_redemptions Int?     // Total usage limit (replaces total_usage_limit from coupons)
   per_user_limit  Int?     // Usage limit per user (replaces usage_limit_per_user from coupons)
   stackable       Boolean?
@@ -1138,7 +1142,9 @@ model promotions {
 
   // Relations
   redemptions           promotion_redemptions[]
+  assignments           promotion_assignments[]
 
+  @@index([application_mode])
   @@map("promotions")
 }
 
@@ -1173,6 +1179,8 @@ model promotion_redemptions {
   order_id        String?  @db.Text
   user_id         String?  @db.Text
   promotion_id    Int?
+  assignment_id   Int?
+  voucher_code    String?  @db.VarChar(100)
   discount_amount Decimal? @db.Decimal(10, 2)
   redeemed_at     BigInt
   redemption_data Json?
@@ -1181,10 +1189,74 @@ model promotion_redemptions {
   
   evaluation promotion_evaluations @relation(fields: [evaluation_id], references: [evaluation_id])
   promotion  promotions?            @relation(fields: [promotion_id], references: [id])
+  assignment promotion_assignments? @relation(fields: [assignment_id], references: [id], onDelete: SetNull)
   
   @@index([evaluation_id])
   @@index([order_id])
+  @@index([assignment_id])
+  @@index([voucher_code])
+  @@unique([evaluation_id, promotion_id])
   @@map("promotion_redemptions")
+}
+
+model promotion_assignments {
+  id                Int       @id @default(autoincrement())
+  promotion_id      Int
+  assignment_type   String    @db.VarChar(30) // customer, customer_group
+  customer_id       Int?
+  customer_group_id Int?
+  voucher_code      String    @unique @db.VarChar(100)
+  usage_limit       Int?
+  used_count        Int       @default(0)
+  start_date        BigInt?
+  end_date          BigInt?
+  status            String    @default("active") @db.VarChar(30)
+  createddate       BigInt?
+  modifieddate      BigInt?
+
+  promotion      promotions       @relation(fields: [promotion_id], references: [id], onDelete: Cascade)
+  customer       users?           @relation(fields: [customer_id], references: [id], onDelete: Cascade)
+  customer_group customer_groups? @relation(fields: [customer_group_id], references: [id], onDelete: Cascade)
+  redemptions    promotion_redemptions[]
+
+  @@index([promotion_id])
+  @@index([customer_id])
+  @@index([customer_group_id])
+  @@index([status])
+  @@map("promotion_assignments")
+}
+
+model customer_groups {
+  id           Int       @id @default(autoincrement())
+  name         String    @db.VarChar(255)
+  code         String    @unique @db.VarChar(100)
+  description  String?   @db.Text
+  status       String    @default("active") @db.VarChar(30)
+  createddate  BigInt?
+  modifieddate BigInt?
+
+  members     customer_group_members[]
+  assignments promotion_assignments[]
+
+  @@index([status])
+  @@map("customer_groups")
+}
+
+model customer_group_members {
+  id                Int       @id @default(autoincrement())
+  customer_group_id Int
+  customer_id       Int
+  status            String    @default("active") @db.VarChar(30)
+  createddate       BigInt?
+  modifieddate      BigInt?
+
+  customer_group customer_groups @relation(fields: [customer_group_id], references: [id], onDelete: Cascade)
+  customer       users           @relation(fields: [customer_id], references: [id], onDelete: Cascade)
+
+  @@unique([customer_group_id, customer_id])
+  @@index([customer_id])
+  @@index([status])
+  @@map("customer_group_members")
 }
 
 model AmazonConnection {
