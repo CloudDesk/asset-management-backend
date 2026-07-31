@@ -120,8 +120,9 @@ function validatePrivateKeyEnvValue(key: string, value: string) {
 
 function validatePushNotificationConfig(data: object) {
   const isProduction = getEnvConfigValue(data, 'NODE_ENV') === 'production';
-  const hasFirebaseDirectCredentialConfig = ['FIREBASE_CLIENT_EMAIL', 'FIREBASE_PRIVATE_KEY'].some((key) =>
-    Boolean(getEnvConfigValue(data, key))
+  const hasFirebaseDirectConfig = Boolean(
+    getEnvConfigValue(data, 'FIREBASE_CLIENT_EMAIL') ||
+    getEnvConfigValue(data, 'FIREBASE_PRIVATE_KEY')
   );
   const hasFirebaseServiceAccountJson = Boolean(getEnvConfigValue(data, 'FIREBASE_SERVICE_ACCOUNT_JSON'));
   const hasFirebaseServiceAccountPath = Boolean(getEnvConfigValue(data, 'FIREBASE_SERVICE_ACCOUNT_PATH'));
@@ -132,11 +133,7 @@ function validatePushNotificationConfig(data: object) {
   const hasApnsAuthKeyPath = Boolean(getEnvConfigValue(data, 'APNS_AUTH_KEY_PATH'));
   const hasApnsIdentityConfig = REQUIRED_APNS_IDENTITY_PUSH_ENV_VARS.some((key) =>
     Boolean(getEnvConfigValue(data, key))
-  const hasFirebaseDirectConfig = Boolean(
-    getEnvConfigValue(data, 'FIREBASE_CLIENT_EMAIL') ||
-    getEnvConfigValue(data, 'FIREBASE_PRIVATE_KEY')
   );
-  const hasApnsConfig = Boolean(getEnvConfigValue(data, 'APNS_AUTH_KEY'));
 
   const missingVars: string[] = [];
   const validationErrors: string[] = [];
@@ -145,7 +142,7 @@ function validatePushNotificationConfig(data: object) {
     if (!hasFirebaseServiceAccountJson && !hasFirebaseDirectCompleteConfig) {
       missingVars.push('FIREBASE_SERVICE_ACCOUNT_JSON or FIREBASE_PROJECT_ID/FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY');
     }
-  } else if (hasFirebaseDirectCredentialConfig && !hasFirebaseServiceAccountJson && !hasFirebaseServiceAccountPath) {
+  } else if (hasFirebaseDirectConfig && !hasFirebaseServiceAccountJson && !hasFirebaseServiceAccountPath) {
     missingVars.push(
       ...REQUIRED_FIREBASE_DIRECT_PUSH_ENV_VARS.filter((key) => !getEnvConfigValue(data, key))
     );

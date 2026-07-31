@@ -1005,8 +1005,8 @@ export class ReturnRequestService {
     const consumedQuantity = await this.getConsumedQuantity(orderline.id);
     const remainingEligibleQuantity = Math.max(0, orderedQuantity - consumedQuantity);
     const deliveryCheck = this.getDeliveryEligibilityReason(orderline, order);
-    const returnEligibility = await this.evaluatePolicyEligibility(orderline, 'return', deliveryCheck.eligible);
-    const replacementEligibility = await this.evaluatePolicyEligibility(orderline, 'replacement', deliveryCheck.eligible);
+    const returnEligibility = await this.evaluatePolicyEligibility(orderline, 'return');
+    const replacementEligibility = await this.evaluatePolicyEligibility(orderline, 'replacement');
     const returnWindow = this.evaluateWindow(orderline, order, returnEligibility.windowdays, 'return');
     const replacementWindow = this.evaluateWindow(orderline, order, replacementEligibility.windowdays, 'replacement');
 
@@ -1113,16 +1113,7 @@ export class ReturnRequestService {
     };
   }
 
-  private async evaluatePolicyEligibility(orderline: any, requesttype: 'return' | 'replacement', deliveryEligible: boolean) {
-    if (!deliveryEligible) {
-      return {
-        eligible: false,
-        windowdays: null,
-        allowedrefundmethods: [],
-        reason: 'Item is not delivery-eligible',
-      };
-    }
-
+  private async evaluatePolicyEligibility(orderline: any, requesttype: 'return' | 'replacement') {
     try {
       return await this.policyService.resolveEligibility({
         orderlineid: orderline.id,
