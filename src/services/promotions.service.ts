@@ -405,7 +405,7 @@ export class PromotionsService {
     const customerId = Number(options.userId);
     const nowSeconds = BigInt(Math.floor(Date.now() / 1000));
 
-    const [globalPromotions, assignments] = await Promise.all([
+    const [globalPromotions, assignments, userRedemptions] = await Promise.all([
       this.prisma.promotions.findMany({
         where: { status: 'active', visibility: 'public' },
         orderBy: { priority: 'asc' }
@@ -429,19 +429,91 @@ export class PromotionsService {
           customer_group: { select: { id: true, name: true, code: true } }
         },
         orderBy: { id: 'desc' }
+      }),
+      this.prisma.promotion_redemptions.findMany({
+        where: { user_id: options.userId },
+        select: { promotion_id: true, assignment_id: true }
       })
     ]);
+
+    const promotionUsageByCustomer = new Map<number, number>();
+    const assignmentUsageByCustomer = new Map<number, number>();
+    for (const redemption of userRedemptions) {
+      if (redemption.promotion_id !== null) {
+        promotionUsageByCustomer.set(
+          redemption.promotion_id,
+          (promotionUsageByCustomer.get(redemption.promotion_id) || 0) + 1
+        );
+      }
+      if (redemption.assignment_id !== null) {
+        assignmentUsageByCustomer.set(
+          redemption.assignment_id,
+          (assignmentUsageByCustomer.get(redemption.assignment_id) || 0) + 1
+        );
+      }
+    }
+
+    const buildCustomerUsage = (
+      promotion: any,
+      assignment?: any
+    ): {
+      used: number;
+      limit: number | null;
+      remaining: number | null;
+    } => {
+      const promotionUsed = promotionUsageByCustomer.get(promotion.id) || 0;
+      const assignmentUsed = assignment
+        ? assignmentUsageByCustomer.get(assignment.id) || 0
+        : 0;
+      const remainingLimits: number[] = [];
+
+      if (promotion.per_user_limit !== null && promotion.per_user_limit !== undefined) {
+        remainingLimits.push(Math.max(promotion.per_user_limit - promotionUsed, 0));
+      }
+      if (
+        assignment?.assignment_type === 'customer' &&
+        assignment.usage_limit !== null &&
+        assignment.usage_limit !== undefined
+      ) {
+        remainingLimits.push(Math.max(assignment.usage_limit - assignmentUsed, 0));
+      }
+
+      const remaining = remainingLimits.length > 0
+        ? Math.min(...remainingLimits)
+        : null;
+      const effectiveLimit = remaining === null
+        ? null
+        : Math.min(
+            ...[
+              promotion.per_user_limit,
+              assignment?.assignment_type === 'customer'
+                ? assignment.usage_limit
+                : null
+            ].filter((value): value is number => value !== null && value !== undefined)
+          );
+
+      return {
+        used: effectiveLimit === null
+          ? promotionUsed
+          : Math.max(effectiveLimit - (remaining ?? effectiveLimit), 0),
+        limit: effectiveLimit,
+        remaining
+      };
+    };
 
     const results = new Map<number, any>();
     for (const promotion of globalPromotions) {
       if (!this.isPromotionCurrentlyActive(promotion)) continue;
       if (!isPromotionChannelEligible(promotion.applicable_channel, options.channel)) continue;
       if (!this.isPromotionApplicableToUser(promotion, userSegments)) continue;
+      const customerUsage = buildCustomerUsage(promotion);
+      if (customerUsage.remaining === 0) continue;
       results.set(promotion.id, {
         ...this.formatPromotionForDisplay(promotion),
         audience: promotion.conditions ? 'segment' : 'global',
         voucher_code: promotion.code || null,
-        assignment_id: null
+        assignment_id: null,
+        customer_usage: customerUsage
       });
     }
 
@@ -452,13 +524,18 @@ export class PromotionsService {
       if (!this.isPromotionCurrentlyActive(assignment.promotion)) continue;
       if (!isPromotionChannelEligible(assignment.promotion.applicable_channel, options.channel)) continue;
       if (!this.isPromotionApplicableToUser(assignment.promotion, userSegments)) continue;
+      const customerUsage = buildCustomerUsage(assignment.promotion, assignment);
+      if (customerUsage.remaining === 0) continue;
 
       results.set(assignment.promotion.id, {
         ...this.formatPromotionForDisplay(assignment.promotion),
+        start_date: assignment.start_date ?? assignment.promotion.start_date,
+        end_date: assignment.end_date ?? assignment.promotion.end_date,
         audience: assignment.assignment_type,
         code: assignment.voucher_code,
         voucher_code: assignment.voucher_code,
         assignment_id: assignment.id,
+        customer_usage: customerUsage,
         assignment_usage: {
           used: assignment.used_count,
           limit: assignment.usage_limit,
@@ -865,6 +942,10 @@ export class PromotionsService {
                 customerName || assignment.customer?.useremail || `Customer #${assignment.customer_id}`,
               voucher_code: assignment.voucher_code,
               assignment_id: assignment.id,
+              assignment_usage_limit: assignment.usage_limit,
+              assignment_used_count: assignment.used_count,
+              assignment_start_date: assignment.start_date,
+              assignment_end_date: assignment.end_date,
               audience_customer_id: assignment.customer_id
             };
           }
@@ -875,6 +956,10 @@ export class PromotionsService {
               audience_label: assignment.customer_group?.name || 'Customer group',
               voucher_code: assignment.voucher_code,
               assignment_id: assignment.id,
+              assignment_usage_limit: assignment.usage_limit,
+              assignment_used_count: assignment.used_count,
+              assignment_start_date: assignment.start_date,
+              assignment_end_date: assignment.end_date,
               audience_customer_group_id: assignment.customer_group_id
             };
           }

@@ -106,6 +106,7 @@ export class PromotionEvaluationController {
           evaluation_id: typeof targetEvaluationId === 'string' ? targetEvaluationId : String(targetEvaluationId),
           ...(promotion_id && { promotion_id: typeof promotion_id === 'string' ? Number(promotion_id) : promotion_id }),
           ...(code && { code }),
+          application_type,
           cart_items
         });
         break;

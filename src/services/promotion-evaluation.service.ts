@@ -16,6 +16,7 @@ import {
   normalizePromotionChannel
 } from '../utils/promotionChannel.js';
 import { normalizePromotionConditionValues } from '../utils/promotionConditions.js';
+import { ValidationError } from '../utils/errorHandler.js';
 
 export class PromotionEvaluationService {
   private prisma: PrismaClient;
@@ -101,7 +102,9 @@ export class PromotionEvaluationService {
       discount_amount: discountAmount,
       is_auto: isAuto,
       is_free_shipping: promotion.type === 'FREE_SHIPPING',
-      is_stacked: this.isStackablePromotion(promotion.type)
+      is_stacked: this.isPromotionConfiguredStackable(promotion),
+      priority: promotion.priority ?? null,
+      stackable: promotion.stackable === true
     };
 
     // Add BOGO-specific details
@@ -123,10 +126,66 @@ export class PromotionEvaluationService {
     return basePromotion;
   }
 
-  // Helper function to determine if a promotion type is stackable
-  private isStackablePromotion(promotionType: string): boolean {
-    const stackableTypes = ['FREE_SHIPPING', 'BOGO', 'FREE_PRODUCT'];
-    return stackableTypes.includes(promotionType);
+  private isPromotionConfiguredStackable(promotion: any): boolean {
+    return promotion?.stackable === true;
+  }
+
+  private appliedPromotionComparator(left: any, right: any): number {
+    const leftDiscount = Number(left?.discount_amount || 0);
+    const rightDiscount = Number(right?.discount_amount || 0);
+    if (leftDiscount !== rightDiscount) {
+      return rightDiscount - leftDiscount;
+    }
+
+    // Priority resolves equal-savings offers; it must not make a small
+    // automatic benefit replace a materially better customer coupon.
+    const leftPriority = Number(left?.priority ?? 999);
+    const rightPriority = Number(right?.priority ?? 999);
+    if (leftPriority !== rightPriority) {
+      return leftPriority - rightPriority;
+    }
+
+    return Number(left?.promotion_id || 0) - Number(right?.promotion_id || 0);
+  }
+
+  private selectCompatiblePromotions(promotions: any[]): any[] {
+    const rankedPromotions = [...promotions].sort(
+      (left, right) => this.appliedPromotionComparator(left, right)
+    );
+    const isAutomaticFreeShipping = (promotion: any): boolean =>
+      promotion?.is_auto === true &&
+      (promotion?.is_free_shipping === true ||
+        promotion?.promotion_type === 'FREE_SHIPPING');
+    const automaticFreeShipping = rankedPromotions.find(
+      isAutomaticFreeShipping
+    );
+    const orderDiscountPromotions = rankedPromotions.filter(
+      promotion => !isAutomaticFreeShipping(promotion)
+    );
+    const winningPromotion = orderDiscountPromotions[0];
+
+    // Free shipping is a delivery benefit, not a second cart discount. Keep
+    // the best eligible automatic free-shipping offer alongside the selected
+    // order discount, including when that order discount is non-stackable.
+    if (!winningPromotion) {
+      return automaticFreeShipping ? [automaticFreeShipping] : [];
+    }
+
+    if (winningPromotion.stackable !== true) {
+      return automaticFreeShipping
+        ? [winningPromotion, automaticFreeShipping]
+        : [winningPromotion];
+    }
+
+    // Combining promotions requires mutual consent: once the winning
+    // promotion is stackable, retain only other promotions that are also
+    // explicitly configured as stackable.
+    const selectedOrderDiscounts = orderDiscountPromotions.filter(
+      promotion => promotion.stackable === true
+    );
+    return automaticFreeShipping
+      ? [...selectedOrderDiscounts, automaticFreeShipping]
+      : selectedOrderDiscounts;
   }
 
   // Helper function to calculate BOGO details
@@ -1541,26 +1600,110 @@ export class PromotionEvaluationService {
         };
       }
 
-      // TEMPORARY FIX FOR RELEASE: Disable expiration check
-      // TODO: Fix date format comparison later
-      logger.info({
-        evaluationId,
-        userId,
-        status: evaluation.status,
-        expiresAt: evaluation.expires_at,
-        message: 'Skipping expiration check for release'
-      }, 'Evaluation validation - expiration check disabled');
-      
-      // Comment out expiration check temporarily
-      // const now = new Date();
-      // const expiresAt = new Date(evaluation.expires_at);
-      // 
-      // if (expiresAt < now) {
-      //   return {
-      //     isValid: false,
-      //     reason: 'Evaluation has expired'
-      //   };
-      // }
+      const invalidateEvaluation = async (reason: string) => {
+        await this.prisma.promotion_evaluations.updateMany({
+          where: { evaluation_id: evaluationId, status: 'active' },
+          data: { status: 'cancelled', modifieddate: BigInt(Date.now()) }
+        });
+        logger.warn({ evaluationId, userId, reason }, 'Promotion evaluation invalidated before order');
+        return { isValid: false as const, reason };
+      };
+
+      // Evaluation timestamps are stored as epoch milliseconds.
+      const expiresAt = Number(evaluation.expires_at);
+      if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+        return invalidateEvaluation('EVALUATION_EXPIRED: Refresh the cart and apply an available promotion again.');
+      }
+
+      const appliedPromotions = Array.isArray(evaluation.applied_promotions)
+        ? evaluation.applied_promotions as any[]
+        : [];
+      const storedCartData = evaluation.cart_data as any;
+      const storedCartItems = Array.isArray(storedCartData)
+        ? storedCartData
+        : Array.isArray(storedCartData?.items)
+          ? storedCartData.items
+          : [];
+      const storedSubtotal = storedCartItems.reduce(
+        (sum: number, item: any) =>
+          sum + Number(item?.price ?? item?.base_price ?? 0) * Number(item?.quantity || 0),
+        0
+      );
+      const cartData: CartData | null = storedCartItems.length
+        ? {
+            items: storedCartItems,
+            subtotal: Number(storedCartData?.subtotal ?? storedSubtotal),
+            shipping_cost: Number(storedCartData?.shipping_cost ?? 0),
+            tax_amount: Number(storedCartData?.tax_amount ?? 0),
+            total: Number(
+              storedCartData?.total ??
+              Number(storedCartData?.subtotal ?? storedSubtotal) +
+                Number(storedCartData?.shipping_cost ?? 0) +
+                Number(storedCartData?.tax_amount ?? 0)
+            )
+          }
+        : null;
+      const context = (evaluation.context || undefined) as EvaluationRequest['context'];
+      const evaluatedAt = Number(evaluation.created_at || evaluation.createddate || 0);
+
+      for (const appliedPromotion of appliedPromotions) {
+        const promotionId = Number(appliedPromotion?.promotion_id);
+        if (!Number.isFinite(promotionId)) {
+          return invalidateEvaluation('PROMOTION_NOT_FOUND: The applied promotion is no longer available.');
+        }
+
+        const { promotion, assignment } = await this.resolvePromotionOrVoucher(
+          promotionId,
+          appliedPromotion?.voucher_code,
+          userId
+        );
+        if (!promotion) {
+          return invalidateEvaluation('PROMOTION_NOT_FOUND: The applied promotion is no longer available.');
+        }
+
+        // Any admin edit after the calculation (channel, audience, value,
+        // dates, status, conditions, etc.) makes the stored total stale.
+        const promotionModifiedAt = Number(promotion.modifieddate || promotion.createddate || 0);
+        if (evaluatedAt > 0 && promotionModifiedAt > evaluatedAt) {
+          return invalidateEvaluation(
+            'PROMOTION_CONFIGURATION_CHANGED: Promotion details changed. Refresh the cart to recalculate available offers.'
+          );
+        }
+
+        if (!cartData) {
+          return invalidateEvaluation('PROMOTION_CART_CHANGED: Cart details are unavailable. Refresh the cart.');
+        }
+
+        const eligibility = await this.validatePromotion(promotion, {
+          user_id: userId,
+          promotion_id: promotionId,
+          cart_data: cartData,
+          context
+        });
+        if (!eligibility.isValid) {
+          const reason = eligibility.reasons.map(item => item.reason).join(', ');
+          return invalidateEvaluation(
+            `PROMOTION_NO_LONGER_ELIGIBLE: ${reason || 'Current audience, channel, date, or cart rules are not satisfied.'}`
+          );
+        }
+
+        if (promotion.visibility !== 'public') {
+          if (!assignment || assignment.assignment_not_found) {
+            return invalidateEvaluation(
+              'PROMOTION_ASSIGNMENT_CHANGED: Promotion is no longer assigned to this customer.'
+            );
+          }
+          const assignmentReason = await this.validateVoucherAssignment(assignment, userId);
+          if (assignmentReason) {
+            return invalidateEvaluation(`PROMOTION_ASSIGNMENT_CHANGED: ${assignmentReason}`);
+          }
+        }
+
+        const usageReason = await this.validatePromotionUsage(promotion, userId);
+        if (usageReason) {
+          return invalidateEvaluation(`PROMOTION_USAGE_LIMIT_REACHED: ${usageReason}`);
+        }
+      }
 
       return {
         isValid: true,
@@ -2323,75 +2466,16 @@ console.log(request.cart_items,"request cartItems")
       // Calculate cart total using the price field (already after product discount)
       const cartTotal = request.cart_items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-      // Get automatic promotions that are active and auto_apply = true
-      // Use dynamic operations for consistency with date filtering
-      const { data: automaticPromotions } = await dynamicFindManyWithFilters('promotions', {
-        auto_apply: 'true',
-        status: 'active'
-      }, {
-        skip: 0,
-        take: 100,
-        useAllColumns: true
-      });
-
-      const appliedPromotions = [];
-      let totalDiscount = 0;
-
-      // Evaluate each automatic promotion
-      for (const promotion of automaticPromotions) {
-        try {
-          const isEligible = await this.checkAutomaticPromotionEligibility(
-            promotion, 
-            request.user_id, 
-            cartTotal, 
-            request.cart_items,
-            request.context.channel
-          );
-
-          if (isEligible.isEligible) {
-            // Calculate discount for this promotion
-            const discountResult = await this.calculateDiscounts(promotion, {
-              subtotal: cartTotal,
-              items: request.cart_items.map(item => ({
-                quantity: item.quantity,
-                base_price: item.base_price,
-                product_discount: item.product_discount,
-                price: item.price,
-                product_id: item.product_id,
-                name: item.name,
-                category: item.category,
-                subcategory: item.subcategory
-              })),
-              shipping_cost: 0,
-              tax_amount: 0,
-              total: cartTotal
-            });
-
-            const enhancedPromotion = await this.buildAppliedPromotion(
-              promotion, 
-              discountResult.total_discount, 
-              request.cart_items, 
-              true, // is_auto = true
-              request.context?.channel === 'mobile_app' ? 'nivapp' : 'web'
-            );
-            
-            appliedPromotions.push(enhancedPromotion);
-
-            totalDiscount += discountResult.total_discount;
-
-            logger.info({
-              promotionId: promotion.id,
-              promotionName: promotion.name,
-              discount: discountResult.total_discount
-            }, 'Applied automatic promotion');
-          }
-        } catch (error) {
-          logger.warn({
-            promotionId: promotion.id,
-            error: error instanceof Error ? error.message : 'Unknown error'
-          }, 'Error evaluating automatic promotion');
-        }
-      }
+      const appliedPromotions = await this.getEligibleAutomaticPromotions(
+        request.user_id,
+        cartTotal,
+        request.cart_items,
+        request.context.channel
+      );
+      const totalDiscount = appliedPromotions.reduce(
+        (sum, promotion) => sum + Number(promotion.discount_amount || 0),
+        0
+      );
 
       // Create evaluation record
       const nowUtc = this.getUtcTimestamp();
@@ -2411,7 +2495,7 @@ console.log(request.cart_items,"request cartItems")
           discount_amount: p.discount_amount
         })),
         originalTotal: cartTotal,
-        discountedTotal: cartTotal - totalDiscount,
+        discountedTotal: Math.max(cartTotal - totalDiscount, 0),
         totalDiscount
       }, 'Creating single evaluation record with multiple applied promotions');
 
@@ -2422,7 +2506,7 @@ console.log(request.cart_items,"request cartItems")
           cart_signature: request.cart_signature,  // Add this field
           cart_data: request.cart_items, // Store complete cart_items with base_price and product_discount
           original_total: cartTotal,
-          discounted_total: cartTotal - totalDiscount,
+          discounted_total: Math.max(cartTotal - totalDiscount, 0),
           applied_promotions: appliedPromotions,
           ineligible_coupons: [],
           context: request.context,
@@ -2463,6 +2547,7 @@ console.log(request.cart_items,"request cartItems")
     evaluation_id: string;
     promotion_id?: number;
     code?: string;
+    application_type?: 'manual_coupon' | 'stackable_promotion';
     cart_items: Array<{
       cart_record_id: string;
       product_id: string;
@@ -2561,6 +2646,38 @@ console.log(request.cart_items,"request cartItems")
         throw new Error('Promotion is already applied');
       }
 
+      const existingManualPromotions = appliedPromotions.filter(
+        appliedPromotion => !appliedPromotion.is_auto
+      );
+      const promotionIsStackable = promotion.stackable === true;
+
+      // Stackability is configured by the administrator and is therefore the
+      // authoritative rule. The application type only communicates the UI
+      // intent and cannot make a non-stackable promotion stackable.
+      if (
+        request.application_type === 'stackable_promotion' &&
+        !promotionIsStackable
+      ) {
+        throw new ValidationError('This promotion is not configured as stackable.');
+      }
+
+      const canCombineWithExistingManualPromotions =
+        promotionIsStackable &&
+        existingManualPromotions.every(
+          appliedPromotion =>
+            appliedPromotion.stackable === true ||
+            appliedPromotion.is_stacked === true
+        );
+
+      if (
+        existingManualPromotions.length > 0 &&
+        !canCombineWithExistingManualPromotions
+      ) {
+        throw new ValidationError(
+          'Remove the non-stackable promotion before selecting another offer.'
+        );
+      }
+
       // Add new promotion
       const enhancedPromotion = await this.buildAppliedPromotion(
         promotion, 
@@ -2572,30 +2689,40 @@ console.log(request.cart_items,"request cartItems")
       enhancedPromotion.assignment_id = assignment?.id || null;
       enhancedPromotion.voucher_code = assignment?.voucher_code || promotion.code || null;
       
-      appliedPromotions.push(enhancedPromotion);
-
-      // Re-run automatic promotions to ensure consistency
+      // Re-run every eligible automatic promotion. Conflict resolution must
+      // consider the entered coupon and automatic offers together.
       const automaticPromotions = await this.getEligibleAutomaticPromotions(
         evaluation.user_id || '',
         cartTotal,
         request.cart_items,
-        evaluationChannel
+        evaluationChannel,
+        false
       );
-      
-      // Add/update automatic promotions
-      for (const autoPromo of automaticPromotions) {
-        const existingAutoIndex = appliedPromotions.findIndex(p => p.promotion_id === autoPromo.promotion_id);
-        if (existingAutoIndex >= 0) {
-          // Update existing automatic promotion
-          appliedPromotions[existingAutoIndex] = autoPromo;
-        } else {
-          // Add new automatic promotion
-          appliedPromotions.push(autoPromo);
-        }
+
+      const manualPromotionCandidates = canCombineWithExistingManualPromotions
+        ? [...existingManualPromotions, enhancedPromotion]
+        : [enhancedPromotion];
+      const promotionsAfterConflictResolution = this.selectCompatiblePromotions([
+        ...manualPromotionCandidates,
+        ...automaticPromotions
+      ]);
+
+      const enteredPromotionWasSelected = promotionsAfterConflictResolution.some(
+        appliedPromotion => appliedPromotion.promotion_id === enhancedPromotion.promotion_id
+      );
+      if (!enteredPromotionWasSelected) {
+        const retainedPromotion = promotionsAfterConflictResolution[0];
+        const retainedSaving = Number(retainedPromotion?.discount_amount || 0);
+        const enteredSaving = Number(enhancedPromotion.discount_amount || 0);
+        throw new ValidationError(
+          `The current offer "${retainedPromotion?.promotion_name || 'Automatic promotion'}" ` +
+          `was retained because it provides better savings (priority resolves ties) ` +
+          `(current saving ₹${retainedSaving}, voucher saving ₹${enteredSaving}).`
+        );
       }
 
       // Remove duplicates and ensure each promotion_id is unique
-      const uniquePromotions = appliedPromotions.reduce((acc: any[], current: any) => {
+      const uniquePromotions = promotionsAfterConflictResolution.reduce((acc: any[], current: any) => {
         const existing = acc.find((item: any) => item.promotion_id === current.promotion_id);
         if (!existing) {
           acc.push(current);
@@ -2605,7 +2732,7 @@ console.log(request.cart_items,"request cartItems")
 
       // Calculate new totals
       const totalDiscount = uniquePromotions.reduce((sum: number, p: any) => sum + p.discount_amount, 0);
-      const discountedTotal = cartTotal - totalDiscount;
+      const discountedTotal = Math.max(cartTotal - totalDiscount, 0);
 
       // Update evaluation
       const nowUtc = this.getUtcTimestamp();
@@ -2682,12 +2809,16 @@ console.log(request.cart_items,"request cartItems")
         evaluation.user_id || '',
         cartTotal,
         cartItems,
-        evaluationContext?.channel || 'web'
+        evaluationContext?.channel || 'web',
+        false
       );
       
       // Rebuild applied promotions with manual promotions + fresh automatic promotions
       const manualPromotions = filteredPromotions.filter(p => !p.is_auto);
-      const newAppliedPromotions = [...manualPromotions, ...automaticPromotions];
+      const newAppliedPromotions = this.selectCompatiblePromotions([
+        ...manualPromotions,
+        ...automaticPromotions
+      ]);
 
       // Remove duplicates
       const uniquePromotions = newAppliedPromotions.reduce((acc: any[], current: any) => {
@@ -2700,7 +2831,7 @@ console.log(request.cart_items,"request cartItems")
 
       // Calculate new totals
       const totalDiscount = uniquePromotions.reduce((sum: number, p: any) => sum + p.discount_amount, 0);
-      const discountedTotal = cartTotal - totalDiscount;
+      const discountedTotal = Math.max(cartTotal - totalDiscount, 0);
 
       // Update evaluation
       const nowUtc = this.getUtcTimestamp();
@@ -2739,7 +2870,8 @@ console.log(request.cart_items,"request cartItems")
     userId: string,
     cartTotal: number,
     cartItems: any[],
-    requestChannel: string = 'web'
+    requestChannel: string = 'web',
+    resolveConflicts: boolean = true
   ) {
     // Use dynamic operations for consistency with date filtering
     const { data: automaticPromotions } = await dynamicFindManyWithFilters('promotions', {
@@ -2751,7 +2883,7 @@ console.log(request.cart_items,"request cartItems")
       useAllColumns: true
     });
 
-    const eligiblePromotions = [];
+    const eligibleCandidates: Array<{ promotion: any; appliedPromotion: any }> = [];
 
     for (const promotion of automaticPromotions) {
       try {
@@ -2780,13 +2912,15 @@ console.log(request.cart_items,"request cartItems")
             total: cartTotal
           });
 
-          eligiblePromotions.push({
-            promotion_id: promotion.id,
-            promotion_name: promotion.name || `Promotion ${promotion.id}`,
-            promotion_type: promotion.type || 'UNKNOWN',
-            discount_amount: discountResult.total_discount,
-            is_auto: true
-          });
+          const appliedPromotion = await this.buildAppliedPromotion(
+            promotion,
+            discountResult.total_discount,
+            cartItems,
+            true,
+            normalizePromotionChannel(requestChannel) === 'mobile' ? 'nivapp' : 'web'
+          );
+
+          eligibleCandidates.push({ promotion, appliedPromotion });
         }
       } catch (error) {
         logger.warn({
@@ -2796,6 +2930,28 @@ console.log(request.cart_items,"request cartItems")
       }
     }
 
-    return eligiblePromotions;
+    const eligiblePromotions = eligibleCandidates.map(candidate => candidate.appliedPromotion);
+    const selectedPromotions = resolveConflicts
+      ? this.selectCompatiblePromotions(eligiblePromotions)
+      : eligiblePromotions;
+
+    logger.info({
+      eligibleAutomaticPromotions: eligibleCandidates.map(candidate => ({
+        promotion_id: candidate.appliedPromotion.promotion_id,
+        promotion_name: candidate.appliedPromotion.promotion_name,
+        priority: candidate.promotion.priority ?? null,
+        discount_amount: candidate.appliedPromotion.discount_amount,
+        is_stacked: candidate.appliedPromotion.is_stacked
+      })),
+      selectedAutomaticPromotions: selectedPromotions.map(promotion => ({
+        promotion_id: promotion.promotion_id,
+        promotion_name: promotion.promotion_name,
+        priority: promotion.priority,
+        discount_amount: promotion.discount_amount,
+        is_stacked: promotion.is_stacked
+      }))
+    }, 'Selected automatic promotions after conflict resolution');
+
+    return selectedPromotions;
   }
 }

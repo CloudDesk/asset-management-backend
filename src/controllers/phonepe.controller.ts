@@ -181,16 +181,24 @@ export class PhonePeController {
                   "Evaluation validation failed"
                 );
 
-                // Check if it's expired/cancelled (block order)
+                // A stale or newly ineligible promotion changes the payable
+                // amount, so payment must stop and the cart must recalculate.
                 if (
                   reasonStr.includes("expired") ||
+                  reasonStr.includes("EXPIRED") ||
                   reasonStr.includes("cancelled") ||
-                  reasonStr.includes("Promotion not found")
+                  reasonStr.includes("Promotion not found") ||
+                  reasonStr.includes("PROMOTION_NOT_FOUND") ||
+                  reasonStr.includes("PROMOTION_CONFIGURATION_CHANGED") ||
+                  reasonStr.includes("PROMOTION_NO_LONGER_ELIGIBLE") ||
+                  reasonStr.includes("PROMOTION_ASSIGNMENT_CHANGED") ||
+                  reasonStr.includes("PROMOTION_CART_CHANGED")
                 ) {
                   // CRITICAL: Expired/cancelled/missing promotion - block the entire order
                   return reply.code(400).send({
                     success: false,
-                    message: `Promotion validation failed: ${reasonStr}`,
+                    message:
+                      "Your cart offers changed before payment. One or more selected promotions are no longer available or cannot be combined. Please review the refreshed offers and updated total.",
                     error_code: "PROMOTION_EXPIRED_OR_INVALID",
                     evaluation_id: evaluationId,
                     reason: reasonStr,
