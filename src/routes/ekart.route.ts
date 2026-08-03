@@ -533,6 +533,11 @@ export async function ekartRoutes(fastify: FastifyInstance) {
         headers: {
           type: 'object',
           properties: {
+            'x-swift-webhook-hmac': {
+              type: 'string',
+              description: 'Elite Ekart/Swift HMAC-SHA256 signature'
+            },
+            'x-swift-webhook-topic': { type: 'string' },
             'x-ekart-signature': { type: 'string' },
             'x-hub-signature': { type: 'string' },
             'eka-webhook-signature': { type: 'string' }
@@ -608,4 +613,3 @@ export async function ekartRoutes(fastify: FastifyInstance) {
     }, ekartController.handleTrackStatusWebhook);
   });
 }
-

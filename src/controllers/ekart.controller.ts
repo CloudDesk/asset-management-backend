@@ -696,15 +696,32 @@ export class EkartController {
       try {
         const webhookPayload = request.body as any;
         const hmacHeader =
+          request.headers['x-swift-webhook-hmac'] as string ||
           request.headers['x-ekart-signature'] as string ||
           request.headers['x-hub-signature'] as string ||
           request.headers['eka-webhook-signature'] as string ||
           request.headers['x-hmac'] as string ||
           request.headers['hmac'] as string;
 
-        console.log(webhookPayload, "webhookPayload handleTrackStatusWebhook")
-        console.log(JSON.stringify(webhookPayload), "webhookPayload stringify handleTrackStatusWebhook")
-        console.log(hmacHeader, "hmacHeader");
+        // Keep the raw webhook diagnostics visible in Cloud Run logs for
+        // troubleshooting the Elite Ekart integration.
+        console.log(webhookPayload, 'webhookPayload handleTrackStatusWebhook');
+        console.log(JSON.stringify(webhookPayload), 'webhookPayload stringify handleTrackStatusWebhook');
+        console.log(hmacHeader, 'hmacHeader');
+
+        logger.info(
+          {
+            requestId: request.id,
+            webhookTopic: request.headers['x-swift-webhook-topic'],
+            contentType: request.headers['content-type'],
+            contentLength: request.headers['content-length'],
+            trackingId: webhookPayload?.wbn,
+            ekartStatus: webhookPayload?.status,
+            signatureHeaderPresent: !!hmacHeader
+          },
+          'Received Ekart tracking status webhook'
+        );
+
         // Early validation (fail fast before any processing)
         if (!webhookPayload || !webhookPayload.wbn || !webhookPayload.status) {
           logger.warn(
@@ -739,14 +756,12 @@ export class EkartController {
           .createHmac('sha256', EkartController.WEBHOOK_SECRET)
           .update(rawBody)
           .digest('hex');
-        console.log(expectedHmac, "expectedHmac");
 
         // Clean provided HMAC (Ekart sometimes sends `sha256=<hash>`)
-        const providedHmac = hmacHeader ? hmacHeader.replace(/^sha256=/, '') : '';
-        console.log(providedHmac, "providedHmac");
+        const providedHmac = hmacHeader ? hmacHeader.trim().replace(/^sha256=/i, '') : '';
         // Timing-safe comparison to prevent timing attacks
         let isSignatureValid = false;
-        if (hmacHeader && providedHmac.length === expectedHmac.length) {
+        if (/^[a-f\d]{64}$/i.test(providedHmac)) {
           try {
             isSignatureValid = crypto.timingSafeEqual(
               Buffer.from(providedHmac, 'hex'),
@@ -756,14 +771,25 @@ export class EkartController {
             isSignatureValid = false;
           }
         }
-        console.log(isSignatureValid, "isSignatureValid");
+
+        logger.info(
+          {
+            requestId: request.id,
+            trackingId: webhookPayload.wbn,
+            rawBodyBytes: rawBody.length,
+            signatureHeaderPresent: !!hmacHeader,
+            signatureFormatValid: /^[a-f\d]{64}$/i.test(providedHmac),
+            signatureValid: isSignatureValid
+          },
+          'Completed Ekart webhook signature verification'
+        );
 
         if (!isSignatureValid) {
           logger.warn(
             {
-              providedHmac: hmacHeader ? (providedHmac.substring(0, 20) + '...') : 'missing',
-              expectedHmac: expectedHmac.substring(0, 20) + '...',
-              headers: request.headers // Log headers for debugging
+              signatureHeaderPresent: !!hmacHeader,
+              signatureFormatValid: /^[a-f\d]{64}$/i.test(providedHmac),
+              webhookTopic: request.headers['x-swift-webhook-topic']
             },
             'Invalid Ekart webhook HMAC signature'
           );
@@ -780,7 +806,6 @@ export class EkartController {
         // Find order by tracking_id (the "wbn" field in webhook)
         const trackingId = webhookPayload.wbn;
         const order = await this.ordersService.findByTrackingId(trackingId);
-        console.log(order, "order");
         if (!order) {
           logger.warn(
             { trackingId },
@@ -831,6 +856,18 @@ export class EkartController {
             'Failed to send EKART order push notification'
           );
         }
+
+        logger.info(
+          {
+            requestId: request.id,
+            orderId: updatedOrder.id,
+            trackingId,
+            ekartStatus: webhookPayload.status,
+            systemStatus: updatedOrder.orderstatus,
+            shipmentTrackingStatus: updatedOrder.shipment_tracking_status
+          },
+          'Ekart tracking status webhook processed successfully'
+        );
 
         return reply.code(200).send(
           createSuccessResponse(
