@@ -61,19 +61,6 @@ prisma.$use(async (params, next) => {
   }
 });
 
-// Graceful shutdown handling
-process.on('SIGINT', async () => {
-  console.log('Received SIGINT, gracefully shutting down Prisma client...');
-  await prisma.$disconnect();
-  process.exit(0);
-});
-
-process.on('SIGTERM', async () => {
-  console.log('Received SIGTERM, gracefully shutting down Prisma client...');
-  await prisma.$disconnect();
-  process.exit(0);
-});
-
 // Log successful connection on startup
 if (env.NODE_ENV === 'development') {
   prisma.$connect()

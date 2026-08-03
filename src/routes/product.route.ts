@@ -2611,7 +2611,7 @@ export async function productRoutes(fastify: FastifyInstance) {
           type: "object",
           properties: {
             productid: {
-              type: ["string", "number"],
+              anyOf: [{ type: "string" }, { type: "number" }],
               description: "Product ID for update (optional for create)",
             },
             url: {

@@ -22,7 +22,7 @@ const developmentConfig = env.NODE_ENV === 'development' ? {
       colorize: true,
       translateTime: 'HH:MM:ss Z',
       ignore: 'pid,hostname',
-      messageFormat: '{levelLabel} - {msg}',
+      messageFormat: '{msg}',
     },
   },
 } : loggerConfig;
