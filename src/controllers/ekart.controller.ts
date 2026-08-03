@@ -702,6 +702,26 @@ export class EkartController {
           request.headers['eka-webhook-signature'] as string ||
           request.headers['x-hmac'] as string ||
           request.headers['hmac'] as string;
+
+        // Keep the raw webhook diagnostics visible in Cloud Run logs for
+        // troubleshooting the Elite Ekart integration.
+        console.log(webhookPayload, 'webhookPayload handleTrackStatusWebhook');
+        console.log(JSON.stringify(webhookPayload), 'webhookPayload stringify handleTrackStatusWebhook');
+        console.log(hmacHeader, 'hmacHeader');
+
+        logger.info(
+          {
+            requestId: request.id,
+            webhookTopic: request.headers['x-swift-webhook-topic'],
+            contentType: request.headers['content-type'],
+            contentLength: request.headers['content-length'],
+            trackingId: webhookPayload?.wbn,
+            ekartStatus: webhookPayload?.status,
+            signatureHeaderPresent: !!hmacHeader
+          },
+          'Received Ekart tracking status webhook'
+        );
+
         // Early validation (fail fast before any processing)
         if (!webhookPayload || !webhookPayload.wbn || !webhookPayload.status) {
           logger.warn(
@@ -751,6 +771,18 @@ export class EkartController {
             isSignatureValid = false;
           }
         }
+
+        logger.info(
+          {
+            requestId: request.id,
+            trackingId: webhookPayload.wbn,
+            rawBodyBytes: rawBody.length,
+            signatureHeaderPresent: !!hmacHeader,
+            signatureFormatValid: /^[a-f\d]{64}$/i.test(providedHmac),
+            signatureValid: isSignatureValid
+          },
+          'Completed Ekart webhook signature verification'
+        );
 
         if (!isSignatureValid) {
           logger.warn(
@@ -824,6 +856,18 @@ export class EkartController {
             'Failed to send EKART order push notification'
           );
         }
+
+        logger.info(
+          {
+            requestId: request.id,
+            orderId: updatedOrder.id,
+            trackingId,
+            ekartStatus: webhookPayload.status,
+            systemStatus: updatedOrder.orderstatus,
+            shipmentTrackingStatus: updatedOrder.shipment_tracking_status
+          },
+          'Ekart tracking status webhook processed successfully'
+        );
 
         return reply.code(200).send(
           createSuccessResponse(
