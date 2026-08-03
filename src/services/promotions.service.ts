@@ -290,7 +290,9 @@ export class PromotionsService {
 
           return true;
         })
-        .filter((promo: any) => this.isPromotionApplicableToUser(promo, ['guest']))
+        // "Everyone" promotions use authenticated_user for redemption, but
+        // they must still be discoverable on the public guest storefront.
+        .filter((promo: any) => this.isPromotionApplicableToUser(promo, ['guest', 'authenticated_user']))
         .filter((promo: any) => isPromotionChannelEligible(promo.applicable_channel, options.channel))
         .map((promo: any) => ({
           id: promo.id,
