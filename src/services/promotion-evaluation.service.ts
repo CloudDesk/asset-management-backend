@@ -17,6 +17,7 @@ import {
 } from '../utils/promotionChannel.js';
 import { normalizePromotionConditionValues } from '../utils/promotionConditions.js';
 import { ValidationError } from '../utils/errorHandler.js';
+import { epochToDate, epochToMilliseconds } from '../utils/epochTimestamp.js';
 
 export class PromotionEvaluationService {
   private prisma: PrismaClient;
@@ -968,7 +969,7 @@ export class PromotionEvaluationService {
     const newUserDays = Number(process.env.NEW_USER_DAYS || 30);
     if (user.createddate) {
       const daysSinceCreation = Math.floor(
-        (Date.now() - Number(user.createddate)) / (1000 * 60 * 60 * 24)
+        (Date.now() - epochToMilliseconds(user.createddate)) / (1000 * 60 * 60 * 24)
       );
       if (daysSinceCreation <= newUserDays) segments.push('new_user');
     }
@@ -982,7 +983,7 @@ export class PromotionEvaluationService {
       where: { id: parseInt(userId) },
       select: { createddate: true }
     });
-    return user?.createddate ? new Date(Number(user.createddate)) : null;
+    return epochToDate(user?.createddate);
   }
 
   private async getUserOrderCount(userId: string): Promise<number> {
@@ -1923,6 +1924,14 @@ export class PromotionEvaluationService {
     requestChannel: string
   ) {
     try {
+      // Automatic offers must obey the same campaign and per-customer usage
+      // limits as manually applied offers. Without this check an already-used
+      // automatic promotion can be selected again until final order validation.
+      const usageReason = await this.validatePromotionUsage(promotion, userId);
+      if (usageReason) {
+        return { isEligible: false, reason: usageReason };
+      }
+
       if (promotion.visibility === 'private') {
         const { assignment } = await this.resolvePromotionOrVoucher(
           promotion.id,
@@ -2031,18 +2040,16 @@ export class PromotionEvaluationService {
       case 'LT': return actualValue < expectedValue;
       case 'EQ': return actualValue === expectedValue;
       case 'NE': return actualValue !== expectedValue;
-      case 'IN':
-        return Array.isArray(expectedValue) && (
-          Array.isArray(actualValue)
-            ? actualValue.some((value) => expectedValue.includes(value))
-            : expectedValue.includes(actualValue)
-        );
-      case 'NOT_IN':
-        return Array.isArray(expectedValue) && (
-          Array.isArray(actualValue)
-            ? actualValue.every((value) => !expectedValue.includes(value))
-            : !expectedValue.includes(actualValue)
-        );
+      case 'IN': {
+        const expectedValues = normalizePromotionConditionValues(expectedValue);
+        const actualValues = normalizePromotionConditionValues(actualValue);
+        return actualValues.some((value) => expectedValues.includes(value));
+      }
+      case 'NOT_IN': {
+        const expectedValues = normalizePromotionConditionValues(expectedValue);
+        const actualValues = normalizePromotionConditionValues(actualValue);
+        return actualValues.every((value) => !expectedValues.includes(value));
+      }
       default: return false;
     }
   }
@@ -2540,6 +2547,104 @@ console.log(request.cart_items,"request cartItems")
       logger.error({ error, request }, 'Error creating automatic evaluation');
       throw error;
     }
+  }
+
+  async refreshAutomaticEvaluation(
+    existingEvaluation: any,
+    request: {
+      user_id: string;
+      cart_items: any[];
+      context: {
+        channel: 'web' | 'mobile' | 'mobile_app';
+        geo: string;
+        payment_method?: string;
+        user_agent?: string;
+        ip_address?: string;
+      };
+      cart_signature: string;
+    }
+  ) {
+    const cartTotal = request.cart_items.reduce(
+      (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
+      0
+    );
+    const currentlyApplied = Array.isArray(existingEvaluation.applied_promotions)
+      ? existingEvaluation.applied_promotions
+      : [];
+    const manualPromotionIds = currentlyApplied
+      .filter((promotion: any) => promotion.is_auto !== true)
+      .map((promotion: any) => Number(promotion.promotion_id))
+      .filter((id: number) => id > 0);
+    const manualConfigurations = manualPromotionIds.length > 0
+      ? await this.prisma.promotions.findMany({
+          where: { id: { in: manualPromotionIds } },
+          select: {
+            id: true,
+            status: true,
+            auto_apply: true,
+            application_mode: true,
+            applicable_channel: true
+          }
+        })
+      : [];
+    const manualConfigurationById = new Map(
+      manualConfigurations.map((promotion) => [promotion.id, promotion])
+    );
+
+    // Preserve genuine manual selections, but discard entries whose current
+    // admin configuration now makes them automatic, inactive, or unavailable
+    // on this channel.
+    const manualPromotions = currentlyApplied.filter((promotion: any) => {
+      if (promotion.is_auto === true) return false;
+      const configuration = manualConfigurationById.get(Number(promotion.promotion_id));
+      return Boolean(
+        configuration &&
+        configuration.status === 'active' &&
+        configuration.auto_apply !== true &&
+        configuration.application_mode !== 'automatic' &&
+        isPromotionChannelEligible(configuration.applicable_channel, request.context.channel)
+      );
+    });
+    const automaticPromotions = await this.getEligibleAutomaticPromotions(
+      request.user_id,
+      cartTotal,
+      request.cart_items,
+      request.context.channel,
+      false
+    );
+    const appliedPromotions = this.selectCompatiblePromotions([
+      ...manualPromotions,
+      ...automaticPromotions
+    ]);
+    const totalDiscount = appliedPromotions.reduce(
+      (sum: number, promotion: any) => sum + Number(promotion.discount_amount || 0),
+      0
+    );
+    const expiresAt = this.getUtcTimestampWithOffset(15);
+
+    const refreshedEvaluation = await this.prisma.promotion_evaluations.update({
+      where: { evaluation_id: existingEvaluation.evaluation_id },
+      data: {
+        cart_data: request.cart_items,
+        cart_signature: request.cart_signature,
+        context: request.context,
+        original_total: cartTotal,
+        discounted_total: Math.max(cartTotal - totalDiscount, 0),
+        applied_promotions: appliedPromotions,
+        expires_at: expiresAt,
+        modifieddate: this.getUtcTimestamp()
+      }
+    });
+
+    logger.info({
+      evaluationId: existingEvaluation.evaluation_id,
+      manualPromotionCount: manualPromotions.length,
+      automaticPromotionCount: automaticPromotions.length,
+      appliedPromotionCount: appliedPromotions.length,
+      totalDiscount
+    }, 'Refreshed automatic promotions for existing evaluation');
+
+    return refreshedEvaluation;
   }
 
   // Apply manual coupon to existing evaluation

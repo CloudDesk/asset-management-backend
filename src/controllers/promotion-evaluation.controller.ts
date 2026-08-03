@@ -228,9 +228,21 @@ export class PromotionEvaluationController {
       logger.info({ 
         evaluationId: existingEvaluation.evaluation_id,
         cartSignature 
-      }, 'Found existing active evaluation for cart signature');
-      
-      const response = createSuccessResponse('Active evaluation found', existingEvaluation);
+      }, 'Found existing active evaluation for cart signature; refreshing automatic promotions');
+
+      // Promotion configuration can change while the cart remains identical
+      // (for example Apply button -> Automatic, status, channel, or rules).
+      // Reusing the stored evaluation unchanged leaves stale offers and totals.
+      const refreshedEvaluation = await this.evaluationService.refreshAutomaticEvaluation(
+        existingEvaluation,
+        {
+          user_id,
+          cart_items,
+          context,
+          cart_signature: cartSignature
+        }
+      );
+      const response = createSuccessResponse('Automatic promotions refreshed', refreshedEvaluation);
       return reply.code(200).send(response);
     }
     // Create new evaluation with automatic promotions

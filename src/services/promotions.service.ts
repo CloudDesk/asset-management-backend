@@ -17,6 +17,7 @@ import { getTimezoneFromGeo } from '../utils/geoUtils.js';
 import { logger } from '../config/logger.js';
 import { isPromotionChannelEligible } from '../utils/promotionChannel.js';
 import { normalizePromotionConditionValues } from '../utils/promotionConditions.js';
+import { epochToDate, epochToMilliseconds } from '../utils/epochTimestamp.js';
 
 // Configuration constants for user segments
 const USER_SEGMENT_CONFIG = {
@@ -575,7 +576,7 @@ export class PromotionsService {
 
       // Check if new user (created within configured days)
       const daysSinceCreation = Math.floor(
-        (Date.now() - Number(user.createddate)) / (1000 * 60 * 60 * 24)
+        (Date.now() - epochToMilliseconds(user.createddate)) / (1000 * 60 * 60 * 24)
       );
 
       if (daysSinceCreation <= USER_SEGMENT_CONFIG.NEW_USER_DAYS) {
@@ -929,10 +930,15 @@ export class PromotionsService {
             : [];
           const isNewCustomer = conditions.some(
             (condition: any) =>
-              condition.attribute === 'user.segment' &&
-              condition.operator === 'IN' &&
-              Array.isArray(condition.value) &&
-              condition.value.includes('new_user')
+              (
+                condition.attribute === 'user.segment' &&
+                condition.operator === 'IN' &&
+                normalizePromotionConditionValues(condition.value).includes('new_user')
+              ) ||
+              (
+                condition.attribute === 'user.created_date' &&
+                ['GTE', 'LTE'].includes(condition.operator)
+              )
           );
           if (assignment?.assignment_type === 'customer') {
             const customerName = [
@@ -1453,7 +1459,7 @@ export class PromotionsService {
         where: { id: parseInt(userId) },
         select: { createddate: true }
       });
-      return user?.createddate ? new Date(Number(user.createddate)) : null;
+      return epochToDate(user?.createddate);
     } catch (error) {
       logger.warn({ error, userId }, 'Error getting user created date');
       return null;

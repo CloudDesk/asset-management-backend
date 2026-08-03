@@ -220,7 +220,8 @@ export class PhonePeController {
                   reasonStr.includes("usage") ||
                   reasonStr.includes("exceeded")
                 ) {
-                  // Usage limit reached - inform user but allow order to continue
+                  // Removing a promotion changes the payable amount. Do not
+                  // continue payment with the stale discounted client total.
                   limitReachedEvaluations.push({
                     evaluation_id: evaluationId,
                     reason: reasonStr,
@@ -237,10 +238,28 @@ export class PhonePeController {
                     {
                       evaluationId,
                       reason: reasonStr,
-                      action: "skipped_due_to_limit",
+                      action: "payment_blocked_for_cart_refresh",
                     },
-                    "Promotion limit reached - will continue without this discount"
+                    "Promotion limit reached - blocking stale discounted payment"
                   );
+
+                  return reply.code(400).send({
+                    success: false,
+                    message:
+                      "This offer has already been used or has reached its usage limit. Refresh your cart to see the correct total before trying again.",
+                    error_code: "PROMOTION_USAGE_LIMIT_REACHED",
+                    evaluation_id: evaluationId,
+                    reason: reasonStr,
+                    action_required: "refresh_cart_and_retry",
+                    invalid_evaluations: [
+                      {
+                        evaluation_id: evaluationId,
+                        reason: reasonStr,
+                        status: "limit_reached",
+                      },
+                    ],
+                    statusCode: 400,
+                  });
                 }
                 // Other validation failures
                 else {
