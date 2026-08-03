@@ -290,7 +290,11 @@ export class PromotionsService {
 
           return true;
         })
-        .filter((promo: any) => this.isPromotionApplicableToUser(promo, ['guest']))
+        // The public catalogue is also used to advertise "Everyone" offers on
+        // the guest storefront. Those offers use the authenticated_user segment
+        // for redemption, so include that segment for discovery while checkout
+        // continues to enforce the real signed-in customer eligibility.
+        .filter((promo: any) => this.isPromotionApplicableToUser(promo, ['guest', 'authenticated_user']))
         .filter((promo: any) => isPromotionChannelEligible(promo.applicable_channel, options.channel))
         .map((promo: any) => ({
           id: promo.id,
