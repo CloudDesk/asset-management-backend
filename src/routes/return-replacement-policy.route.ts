@@ -5,7 +5,6 @@ const policyResponseProperties = {
   id: { type: 'number' },
   category: { type: 'string' },
   subcategory: { type: 'string', nullable: true },
-  subsubcategory: { type: 'string', nullable: true },
   scopekey: { type: 'string' },
   returnallowed: { type: 'boolean' },
   replacementallowed: { type: 'boolean' },
@@ -26,7 +25,6 @@ const policyBodySchema = {
   properties: {
     category: { type: 'string' },
     subcategory: { type: 'string' },
-    subsubcategory: { type: 'string' },
     returnallowed: { type: 'boolean' },
     replacementallowed: { type: 'boolean' },
     returnwindowdays: { type: 'number' },
@@ -39,6 +37,70 @@ const policyBodySchema = {
     isactive: { type: 'boolean' },
     createdby: { type: 'number' },
     modifiedby: { type: 'number' },
+  },
+  additionalProperties: false,
+};
+
+const reasonCodeParamsSchema = {
+  type: 'object',
+  required: ['id', 'reasonCode'],
+  properties: {
+    id: { type: 'string' },
+    reasonCode: { type: 'string' },
+  },
+};
+
+const policyReasonConfigurationBodySchema = {
+  type: 'object',
+  required: ['configurationVersion', 'configuration'],
+  properties: {
+    configurationVersion: { type: 'number' },
+    isActive: { type: 'boolean' },
+    modifiedBy: { type: 'number' },
+    configuration: {
+      type: 'object',
+      properties: {
+        aliases: { type: 'array', items: { type: 'string' } },
+        raiseWithinHours: { type: 'number', nullable: true },
+        evidence: {
+          type: 'array',
+          items: {
+            type: 'object',
+            required: ['type', 'required', 'minimum'],
+            properties: {
+              type: { type: 'string', enum: ['product_photo', 'package_photo', 'unboxing_video', 'defect_video', 'other'] },
+              required: { type: 'boolean' },
+              minimum: { type: 'number' },
+            },
+            additionalProperties: false,
+          },
+        },
+        allowedResolutions: {
+          type: 'array',
+          items: { type: 'string', enum: ['replacement', 'refund', 'partial_refund', 'ship_missing_item', 'complete_return'] },
+        },
+        openedPackageAllowed: { type: 'boolean' },
+        approvalMode: { type: 'string', enum: ['evidence_first', 'pickup_first'] },
+        resolutionTiming: { type: 'string', nullable: true },
+        pickup: {
+          type: 'object',
+          properties: {
+            required: { type: 'boolean' },
+            triggerMode: { type: 'string', enum: ['manual_admin'] },
+            chargeBearer: { type: 'string', enum: ['nivaana'] },
+            deductChargeFromRefund: { type: 'boolean', enum: [false] },
+          },
+          additionalProperties: false,
+        },
+        stockUnavailableResolution: {
+          type: 'string',
+          enum: ['replacement', 'refund', 'partial_refund', 'ship_missing_item', 'complete_return'],
+          nullable: true,
+        },
+        notifyCustomerOnStockFallback: { type: 'boolean' },
+      },
+      additionalProperties: false,
+    },
   },
   additionalProperties: false,
 };
@@ -57,7 +119,6 @@ export async function returnReplacementPolicyRoutes(fastify: FastifyInstance) {
           limit: { type: 'string' },
           category: { type: 'string' },
           subcategory: { type: 'string' },
-          subsubcategory: { type: 'string' },
           isactive: { type: 'string' },
         },
       },
@@ -90,12 +151,56 @@ export async function returnReplacementPolicyRoutes(fastify: FastifyInstance) {
           productid: { type: 'string' },
           category: { type: 'string' },
           subcategory: { type: 'string' },
-          subsubcategory: { type: 'string' },
           requesttype: { type: 'string', enum: ['return', 'replacement'] },
         },
       },
     },
   }, controller.checkEligibility);
+
+  fastify.get('/:id/reasons', {
+    schema: {
+      description: 'List policy-specific reason configurations for a return/replacement policy',
+      tags: ['Return Replacement Policies'],
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: { id: { type: 'string' } },
+      },
+    },
+  }, controller.getPolicyReasons);
+
+  fastify.get('/:id/reasons/:reasonCode', {
+    schema: {
+      description: 'Get one policy-specific reason configuration',
+      tags: ['Return Replacement Policies'],
+      params: reasonCodeParamsSchema,
+    },
+  }, controller.getPolicyReason);
+
+  fastify.patch('/:id/reasons/:reasonCode', {
+    schema: {
+      description: 'Update one policy-specific reason configuration with optimistic version control',
+      tags: ['Return Replacement Policies'],
+      params: reasonCodeParamsSchema,
+      body: policyReasonConfigurationBodySchema,
+    },
+  }, controller.updatePolicyReason);
+
+  fastify.post('/:id/reasons/:reasonCode/reset', {
+    schema: {
+      description: 'Reset one policy-specific reason configuration to the current master default',
+      tags: ['Return Replacement Policies'],
+      params: reasonCodeParamsSchema,
+      body: {
+        type: 'object',
+        properties: {
+          configurationVersion: { type: 'number' },
+          modifiedBy: { type: 'number' },
+        },
+        additionalProperties: false,
+      },
+    },
+  }, controller.resetPolicyReason);
 
   fastify.get('/:id', {
     schema: {

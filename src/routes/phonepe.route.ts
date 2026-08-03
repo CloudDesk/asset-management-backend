@@ -1554,6 +1554,26 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
 
       // You can add additional refund processing logic here
       // For example, updating order status, sending notifications, etc.
+      const callbackBody = (request.body || {}) as Record<string, any>;
+      const callbackQuery = (request.query || {}) as Record<string, any>;
+      const refundStatus =
+        callbackBody.state ||
+        callbackBody.status ||
+        callbackBody.code ||
+        callbackQuery.state ||
+        callbackQuery.status ||
+        callbackQuery.code ||
+        "PROCESSING";
+
+      await phonePeController.returnRequestService.reconcileRefundStatusByReference(
+        refundId,
+        String(refundStatus),
+        {
+          phonePeRefundCallback: callbackBody,
+          phonePeRefundQuery: callbackQuery,
+          callbackTimestamp: new Date().toISOString(),
+        }
+      );
 
       return reply.code(200).send({
         success: true,

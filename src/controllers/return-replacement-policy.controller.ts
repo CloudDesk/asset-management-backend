@@ -1,10 +1,14 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { ReturnReplacementPolicyService } from '../services/return-replacement-policy.service.js';
+import { ReturnPolicyReasonRuleService } from '../services/return-policy-reason-rule.service.js';
 import {
   createReturnReplacementPolicySchema,
   returnReplacementPolicyEligibilityQuerySchema,
   returnReplacementPolicyParamsSchema,
+  returnPolicyReasonParamsSchema,
   returnReplacementPolicyQuerySchema,
+  resetPolicyReasonRuleSchema,
+  updatePolicyReasonRuleSchema,
   updateReturnReplacementPolicySchema,
 } from '../schemas/return-replacement-policy.schema.js';
 import { createSuccessResponse, asyncHandler } from '../utils/errorHandler.js';
@@ -12,6 +16,7 @@ import { getPaginationParams } from '../utils/pagination.js';
 
 export class ReturnReplacementPolicyController {
   private policyService = new ReturnReplacementPolicyService();
+  private policyReasonRuleService = new ReturnPolicyReasonRuleService();
 
   getPolicies = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const query = returnReplacementPolicyQuerySchema.parse(request.query || {});
@@ -73,6 +78,44 @@ export class ReturnReplacementPolicyController {
     return reply
       .code(200)
       .send(createSuccessResponse('Return/replacement policy deleted successfully', null));
+  });
+
+  getPolicyReasons = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = returnReplacementPolicyParamsSchema.parse(request.params);
+    const mappings = await this.policyReasonRuleService.listPolicyReasonRules(parseInt(id, 10));
+
+    return reply
+      .code(200)
+      .send(createSuccessResponse('Policy reason configurations retrieved successfully', mappings));
+  });
+
+  getPolicyReason = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id, reasonCode } = returnPolicyReasonParamsSchema.parse(request.params);
+    const mapping = await this.policyReasonRuleService.getPolicyReasonRule(parseInt(id, 10), reasonCode);
+
+    return reply
+      .code(200)
+      .send(createSuccessResponse('Policy reason configuration retrieved successfully', mapping));
+  });
+
+  updatePolicyReason = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id, reasonCode } = returnPolicyReasonParamsSchema.parse(request.params);
+    const data = updatePolicyReasonRuleSchema.parse(request.body);
+    const mapping = await this.policyReasonRuleService.updatePolicyReasonRule(parseInt(id, 10), reasonCode, data);
+
+    return reply
+      .code(200)
+      .send(createSuccessResponse('Policy reason configuration updated successfully', mapping));
+  });
+
+  resetPolicyReason = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id, reasonCode } = returnPolicyReasonParamsSchema.parse(request.params);
+    const data = resetPolicyReasonRuleSchema.parse(request.body || {});
+    const mapping = await this.policyReasonRuleService.resetPolicyReasonRule(parseInt(id, 10), reasonCode, data);
+
+    return reply
+      .code(200)
+      .send(createSuccessResponse('Policy reason configuration reset successfully', mapping));
   });
 
   checkEligibility = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {

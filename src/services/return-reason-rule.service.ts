@@ -33,38 +33,42 @@ function sanitizeRuleInput<T extends CreateReturnReasonRuleInput | UpdateReturnR
     payload.allowedresolutions = Array.from(new Set(payload.allowedresolutions));
   }
 
+  if (Array.isArray(payload.evidencerules)) {
+    payload.evidencerules = payload.evidencerules.map((rule: any) => ({
+      type: normalizeCode(String(rule.type || '')),
+      required: Boolean(rule.required),
+      minimum: Number.isFinite(Number(rule.minimum)) ? Number(rule.minimum) : (rule.required ? 1 : 0),
+    })).filter((rule: any) => rule.type);
+  }
+
+  payload.schemaversion = payload.schemaversion || 1;
+  payload.autocreatepickup = false;
+  payload.pickuptriggermode = 'manual_admin';
+  if (payload.source === 'customer' || payload.source === 'both' || payload.source === undefined) {
+    payload.reverseshippingchargebearer = 'nivaana';
+  }
+
   return payload;
 }
 
 export const DEFAULT_RETURN_REASON_RULES: Array<Record<string, any>> = [
   {
-    reasoncode: 'wrongly_ordered',
-    reasonname: 'Wrongly Ordered',
+    reasoncode: 'wrong_product',
+    reasonname: 'Wrong Product',
     source: 'customer',
-    aliases: ['Wrongly Ordered', 'Changed Mind'],
-    allowedresolutions: ['refund', 'complete_return'],
-    photorequired: true,
-    packagephotorequired: true,
-    openedpackageallowed: false,
-    pickuprequired: true,
-    evidencefirstapproval: false,
-    autocreatepickup: false,
-    reverseshippingchargebearer: 'customer',
-    notes: 'Customer-side reason. Package must be unopened.',
-    status: 'active',
-  },
-  {
-    reasoncode: 'wrong_item_received',
-    reasonname: 'Wrong Item Received',
-    source: 'customer',
-    aliases: ['Wrong Item Received', 'Wrong Product'],
+    aliases: ['Wrong Product', 'Wrong Item Received'],
     allowedresolutions: ['replacement', 'refund'],
+    evidencerules: [{ type: 'product_photo', required: true, minimum: 1 }],
     photorequired: true,
     pickuprequired: true,
     evidencefirstapproval: false,
     autocreatepickup: false,
     reverseshippingchargebearer: 'nivaana',
-    notes: 'Nivaana-side issue. Product should be kept intact for pickup and verification.',
+    resolutiontiming: 'after_warehouse_verification',
+    stockunavailableresolution: 'refund',
+    pickuptriggermode: 'manual_admin',
+    notifycustomeronstockfallback: true,
+    notes: 'Product photo is required. Product should be kept intact for pickup and warehouse verification.',
     status: 'active',
   },
   {
@@ -72,8 +76,13 @@ export const DEFAULT_RETURN_REASON_RULES: Array<Record<string, any>> = [
     reasonname: 'Damaged Product',
     source: 'customer',
     aliases: ['Damaged Product'],
-    allowedresolutions: ['replacement', 'refund'],
-    minimumraisewindowhours: 48,
+    allowedresolutions: ['replacement'],
+    raisewithinhours: 48,
+    evidencerules: [
+      { type: 'product_photo', required: true, minimum: 1 },
+      { type: 'package_photo', required: false, minimum: 0 },
+      { type: 'unboxing_video', required: false, minimum: 0 },
+    ],
     photorequired: true,
     packagephotooptional: true,
     unboxingvideooptional: true,
@@ -81,7 +90,11 @@ export const DEFAULT_RETURN_REASON_RULES: Array<Record<string, any>> = [
     evidencefirstapproval: true,
     autocreatepickup: false,
     reverseshippingchargebearer: 'nivaana',
-    notes: 'Must be raised within 48 hours from delivery.',
+    resolutiontiming: 'after_warehouse_verification',
+    stockunavailableresolution: 'refund',
+    pickuptriggermode: 'manual_admin',
+    notifycustomeronstockfallback: true,
+    notes: 'Must be raised within 48 hours from delivery. Replacement falls back to refund when stock is unavailable.',
     status: 'active',
   },
   {
@@ -90,11 +103,18 @@ export const DEFAULT_RETURN_REASON_RULES: Array<Record<string, any>> = [
     source: 'customer',
     aliases: ['Missing Product'],
     allowedresolutions: ['ship_missing_item', 'partial_refund', 'complete_return'],
+    evidencerules: [
+      { type: 'product_photo', required: true, minimum: 1 },
+      { type: 'package_photo', required: true, minimum: 1 },
+    ],
     photorequired: true,
+    packagephotorequired: true,
     pickuprequired: false,
     evidencefirstapproval: true,
     autocreatepickup: false,
     reverseshippingchargebearer: 'nivaana',
+    resolutiontiming: 'after_team_verification',
+    pickuptriggermode: 'manual_admin',
     notes: 'Pickup is required only if the selected resolution is complete_return.',
     status: 'active',
   },
@@ -104,12 +124,20 @@ export const DEFAULT_RETURN_REASON_RULES: Array<Record<string, any>> = [
     source: 'customer',
     aliases: ['Defective Product'],
     allowedresolutions: ['replacement', 'refund'],
+    evidencerules: [
+      { type: 'product_photo', required: true, minimum: 1 },
+      { type: 'defect_video', required: true, minimum: 1 },
+    ],
     photorequired: true,
     videorequired: true,
     pickuprequired: true,
     evidencefirstapproval: true,
     autocreatepickup: false,
     reverseshippingchargebearer: 'nivaana',
+    resolutiontiming: 'after_warehouse_verification',
+    stockunavailableresolution: 'refund',
+    pickuptriggermode: 'manual_admin',
+    notifycustomeronstockfallback: true,
     notes: 'Photo and video evidence are mandatory.',
     status: 'active',
   },
@@ -119,13 +147,43 @@ export const DEFAULT_RETURN_REASON_RULES: Array<Record<string, any>> = [
     source: 'customer',
     aliases: ['Leakage / Broken Bottle', 'Leakage', 'Broken Bottle'],
     allowedresolutions: ['replacement', 'refund'],
+    evidencerules: [
+      { type: 'product_photo', required: true, minimum: 1 },
+      { type: 'defect_video', required: true, minimum: 1 },
+    ],
     photorequired: true,
     videorequired: true,
     pickuprequired: true,
     evidencefirstapproval: true,
     autocreatepickup: false,
     reverseshippingchargebearer: 'nivaana',
+    resolutiontiming: 'after_warehouse_verification',
+    stockunavailableresolution: 'refund',
+    pickuptriggermode: 'manual_admin',
+    notifycustomeronstockfallback: true,
     notes: 'Photo and video evidence are mandatory.',
+    status: 'active',
+  },
+  {
+    reasoncode: 'changed_mind',
+    reasonname: 'Changed Mind',
+    source: 'customer',
+    aliases: ['Changed Mind', 'Wrongly Ordered'],
+    allowedresolutions: ['complete_return', 'refund'],
+    evidencerules: [
+      { type: 'product_photo', required: true, minimum: 1 },
+      { type: 'package_photo', required: true, minimum: 1 },
+    ],
+    photorequired: true,
+    packagephotorequired: true,
+    openedpackageallowed: false,
+    pickuprequired: true,
+    evidencefirstapproval: true,
+    autocreatepickup: false,
+    reverseshippingchargebearer: 'nivaana',
+    resolutiontiming: 'after_warehouse_verification',
+    pickuptriggermode: 'manual_admin',
+    notes: 'Package must be unopened. Evidence approval is required before pickup. Nivaana bears reverse shipping.',
     status: 'active',
   },
   {
@@ -138,6 +196,8 @@ export const DEFAULT_RETURN_REASON_RULES: Array<Record<string, any>> = [
     pickuprequired: false,
     evidencefirstapproval: false,
     autocreatepickup: false,
+    evidencerules: [],
+    pickuptriggermode: 'manual_admin',
     status: 'active',
   },
   {
@@ -150,6 +210,8 @@ export const DEFAULT_RETURN_REASON_RULES: Array<Record<string, any>> = [
     pickuprequired: false,
     evidencefirstapproval: false,
     autocreatepickup: false,
+    evidencerules: [],
+    pickuptriggermode: 'manual_admin',
     status: 'active',
   },
   {
@@ -162,6 +224,8 @@ export const DEFAULT_RETURN_REASON_RULES: Array<Record<string, any>> = [
     pickuprequired: false,
     evidencefirstapproval: false,
     autocreatepickup: false,
+    evidencerules: [],
+    pickuptriggermode: 'manual_admin',
     status: 'active',
   },
   {
@@ -174,6 +238,8 @@ export const DEFAULT_RETURN_REASON_RULES: Array<Record<string, any>> = [
     pickuprequired: false,
     evidencefirstapproval: false,
     autocreatepickup: false,
+    evidencerules: [],
+    pickuptriggermode: 'manual_admin',
     status: 'active',
   },
 ];

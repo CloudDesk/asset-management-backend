@@ -210,7 +210,6 @@ model ReturnReplacementPolicy {
   id                    Int      @id @default(autoincrement())
   category              String   @db.VarChar(255)
   subcategory           String?  @db.VarChar(255)
-  subsubcategory        String?  @db.VarChar(255)
   scopekey              String   @unique @db.VarChar(900)
   returnallowed         Boolean  @default(false)
   replacementallowed    Boolean  @default(false)
@@ -224,7 +223,9 @@ model ReturnReplacementPolicy {
   createddate           BigInt?
   modifieddate          BigInt?
 
-  @@index([category, subcategory, subsubcategory], map: "idx_return_replacement_policy_scope")
+  policyReasonRules     ReturnPolicyReasonRule[]
+
+  @@index([category, subcategory], map: "idx_return_replacement_policy_scope")
   @@index([isactive], map: "idx_return_replacement_policy_isactive")
   @@map("return_replacement_policies")
 }
@@ -236,7 +237,9 @@ model ReturnReasonRule {
   source                          String   @default("customer") @db.VarChar(50)
   aliases                         String[]
   allowedresolutions              String[]
-  minimumraisewindowhours         Int?
+  schemaversion                   Int      @default(1) @map("schema_version")
+  raisewithinhours                Int?     @map("raise_within_hours")
+  evidencerules                   Json?    @map("evidence_rules")
   photorequired                   Boolean  @default(true)
   videorequired                   Boolean  @default(false)
   packagephotorequired            Boolean  @default(false)
@@ -247,15 +250,44 @@ model ReturnReasonRule {
   pickuprequired                  Boolean  @default(true)
   evidencefirstapproval           Boolean  @default(false)
   autocreatepickup                Boolean  @default(false)
+  resolutiontiming                String?  @map("resolution_timing") @db.VarChar(100)
+  stockunavailableresolution      String?  @map("stock_unavailable_resolution") @db.VarChar(100)
+  pickuptriggermode               String   @default("manual_admin") @map("pickup_trigger_mode") @db.VarChar(100)
+  notifycustomeronstockfallback   Boolean  @default(true) @map("notify_customer_on_stock_fallback")
   reverseshippingchargebearer     String?  @db.VarChar(50)
   notes                           String?
   status                          String   @default("active") @db.VarChar(50)
   createddate                     BigInt?
   modifieddate                    BigInt?
 
+  policyReasonRules               ReturnPolicyReasonRule[]
+
   @@index([source], map: "idx_return_reason_rules_source")
   @@index([status], map: "idx_return_reason_rules_status")
   @@map("return_reason_rules")
+}
+
+model ReturnPolicyReasonRule {
+  id                   Int                     @id @default(autoincrement())
+  policyId             Int                     @map("policy_id")
+  reasonId             Int                     @map("reason_id")
+  configuration        Json
+  schemaVersion        Int                     @default(1) @map("schema_version")
+  configurationVersion Int                     @default(1) @map("configuration_version")
+  isActive             Boolean                 @default(true) @map("is_active")
+  createdBy            Int?                    @map("created_by")
+  modifiedBy           Int?                    @map("modified_by")
+  createdDate          BigInt?                 @map("created_date")
+  modifiedDate         BigInt?                 @map("modified_date")
+
+  policy               ReturnReplacementPolicy @relation(fields: [policyId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  reason               ReturnReasonRule        @relation(fields: [reasonId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@unique([policyId, reasonId], map: "return_policy_reason_rules_policy_reason_unique")
+  @@index([policyId], map: "idx_return_policy_reason_rules_policy")
+  @@index([reasonId], map: "idx_return_policy_reason_rules_reason")
+  @@index([isActive], map: "idx_return_policy_reason_rules_is_active")
+  @@map("return_policy_reason_rules")
 }
 
 model ReturnRequest {
@@ -285,6 +317,13 @@ model ReturnRequest {
   pickupflow                        String?  @db.VarChar(50)
   reverseShipmentTrackingId         String?  @map("reverse_shipment_tracking_id") @db.VarChar(500)
   reverseShipmentProvider           String?  @map("reverse_shipment_provider") @db.VarChar(100)
+  appliedPolicyId                   Int?     @map("applied_policy_id")
+  appliedPolicyVersion              BigInt?  @map("applied_policy_version")
+  policyReasonRuleId                Int?     @map("policy_reason_rule_id")
+  policyReasonRuleVersion           Int?     @map("policy_reason_rule_version")
+  policysnapshot                    Json?    @map("policy_snapshot")
+  reasonrulesnapshot                Json?    @map("reason_rule_snapshot")
+  reasonruleversion                 Int?     @map("reason_rule_version")
   autoCreatePickup                  Boolean  @default(false) @map("auto_create_pickup")
   pickupCreatedBy                   String?  @map("pickup_created_by") @db.VarChar(50)
   pickupPreparedBy                  Int?     @map("pickup_prepared_by")
@@ -310,6 +349,9 @@ model ReturnRequest {
   customer                          users?      @relation(fields: [customerid], references: [id], onDelete: NoAction, onUpdate: NoAction)
   attachments                       ReturnRequestAttachment[]
   inspections                       ReturnInspection[]
+  resolutionActions                 ReturnResolutionAction[]
+  creditNotes                       ReturnCreditNote[]
+  statusTimeline                    ReturnStatusTimeline[]
 
   @@index([orderid], map: "idx_return_requests_orderid")
   @@index([orderlineid], map: "idx_return_requests_orderlineid")
@@ -317,7 +359,97 @@ model ReturnRequest {
   @@index([source], map: "idx_return_requests_source")
   @@index([status], map: "idx_return_requests_status")
   @@index([reasoncode], map: "idx_return_requests_reasoncode")
+  @@index([appliedPolicyId], map: "idx_return_requests_applied_policy_id")
+  @@index([policyReasonRuleId], map: "idx_return_requests_policy_reason_rule_id")
   @@map("return_requests")
+}
+
+model ReturnResolutionAction {
+  id                           Int           @id @default(autoincrement())
+  returnRequestId              Int           @map("return_request_id")
+  actionType                   String        @map("action_type") @db.VarChar(100)
+  status                       String        @default("pending") @db.VarChar(50)
+  amount                       Decimal?      @db.Decimal(10, 2)
+  refundMethod                 String?       @map("refund_method") @db.VarChar(100)
+  externalReference            String?       @map("external_reference") @db.VarChar(500)
+  shipmentTrackingId           String?       @map("shipment_tracking_id") @db.VarChar(500)
+  shipmentProvider             String?       @map("shipment_provider") @db.VarChar(100)
+  quantity                     Int?
+  stockFallbackApplied         Boolean       @default(false) @map("stock_fallback_applied")
+  noReverseChargeDeduction     Boolean       @default(true) @map("no_reverse_charge_deduction")
+  metadata                     Json?
+  notes                        String?
+  createdBy                    Int?          @map("created_by")
+  completedBy                  Int?          @map("completed_by")
+  createddate                  BigInt?
+  modifieddate                 BigInt?
+  completeddate                BigInt?
+
+  returnRequest                ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  creditNotes                  ReturnCreditNote[]
+
+  @@index([returnRequestId], map: "idx_return_resolution_actions_request")
+  @@index([actionType], map: "idx_return_resolution_actions_action_type")
+  @@index([status], map: "idx_return_resolution_actions_status")
+  @@map("return_resolution_actions")
+}
+
+model ReturnCreditNote {
+  id                    Int                     @id @default(autoincrement())
+  creditNoteNumber      String                  @unique @map("credit_note_number") @db.VarChar(100)
+  returnRequestId       Int                     @map("return_request_id")
+  resolutionActionId    Int?                    @map("resolution_action_id")
+  originalOrderId       Int?                    @map("original_order_id")
+  originalOrderNumber   String?                 @map("original_order_number") @db.VarChar(500)
+  originalInvoiceNumber String?                 @map("original_invoice_number") @db.VarChar(500)
+  originalInvoiceUrl    String?                 @map("original_invoice_url") @db.VarChar(1000)
+  reasonCode            String?                 @map("reason_code") @db.VarChar(100)
+  resolution            String?                 @db.VarChar(100)
+  quantity              Int                     @default(1)
+  refundAmount          Decimal                 @map("refund_amount") @db.Decimal(10, 2)
+  taxableAmount         Decimal?                @map("taxable_amount") @db.Decimal(10, 2)
+  gstRate               Decimal?                @map("gst_rate") @db.Decimal(5, 2)
+  cgstAmount            Decimal?                @map("cgst_amount") @db.Decimal(10, 2)
+  sgstAmount            Decimal?                @map("sgst_amount") @db.Decimal(10, 2)
+  igstAmount            Decimal?                @map("igst_amount") @db.Decimal(10, 2)
+  totalGstAmount        Decimal?                @map("total_gst_amount") @db.Decimal(10, 2)
+  hsnCode               String?                 @map("hsn_code") @db.VarChar(50)
+  status                String                  @default("draft") @db.VarChar(50)
+  metadata              Json?
+  notes                 String?
+  createdBy             Int?                    @map("created_by")
+  issuedBy              Int?                    @map("issued_by")
+  createddate           BigInt?
+  modifieddate          BigInt?
+  issueddate            BigInt?
+
+  returnRequest         ReturnRequest           @relation(fields: [returnRequestId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  resolutionAction      ReturnResolutionAction? @relation(fields: [resolutionActionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([returnRequestId], map: "idx_return_credit_notes_request")
+  @@index([resolutionActionId], map: "idx_return_credit_notes_resolution_action")
+  @@index([status], map: "idx_return_credit_notes_status")
+  @@map("return_credit_notes")
+}
+
+model ReturnStatusTimeline {
+  id                Int           @id @default(autoincrement())
+  returnRequestId   Int           @map("return_request_id")
+  previousStatus    String?       @map("previous_status") @db.VarChar(100)
+  status            String        @db.VarChar(100)
+  eventType         String        @map("event_type") @db.VarChar(100)
+  actorType         String?       @map("actor_type") @db.VarChar(50)
+  actorId           Int?          @map("actor_id")
+  message           String?
+  metadata          Json?
+  createddate       BigInt?
+
+  returnRequest     ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([returnRequestId], map: "idx_return_status_timeline_request")
+  @@index([status], map: "idx_return_status_timeline_status")
+  @@index([eventType], map: "idx_return_status_timeline_event_type")
+  @@map("return_status_timeline")
 }
 
 model ReturnRequestAttachment {

@@ -8,14 +8,15 @@ import {
 import { createPaginationResult, getPrismaSkipTake, PaginationResult } from '../utils/pagination.js';
 import { NotFoundError, ValidationError } from '../utils/errorHandler.js';
 import { logger } from '../config/logger.js';
+import { ReturnPolicyReasonRuleService } from './return-policy-reason-rule.service.js';
 
 type PolicyScope = {
   category: string;
   subcategory?: string | null;
-  subsubcategory?: string | null;
 };
 
 const policyClient = () => (prisma as any).returnReplacementPolicy;
+const policyClientFor = (database: any = prisma) => (database as any).returnReplacementPolicy;
 
 function normalizeScopeValue(value?: string | null) {
   if (typeof value !== 'string') {
@@ -38,7 +39,6 @@ function buildScopeKey(scope: PolicyScope) {
   return [
     normalizeRequiredScopeValue(scope.category).toLowerCase(),
     (normalizeScopeValue(scope.subcategory) || '*').toLowerCase(),
-    (normalizeScopeValue(scope.subsubcategory) || '*').toLowerCase(),
   ].join('|');
 }
 
@@ -57,14 +57,12 @@ function sanitizePolicyInput<T extends CreateReturnReplacementPolicyInput | Upda
   if ('subcategory' in sanitized) {
     sanitized.subcategory = normalizeScopeValue(sanitized.subcategory);
   }
-  if ('subsubcategory' in sanitized) {
-    sanitized.subsubcategory = normalizeScopeValue(sanitized.subsubcategory);
-  }
-
   return sanitized;
 }
 
 export class ReturnReplacementPolicyService {
+  private policyReasonRuleService = new ReturnPolicyReasonRuleService();
+
   async findMany(
     query: ReturnReplacementPolicyQuery,
     page: number,
@@ -79,9 +77,6 @@ export class ReturnReplacementPolicyService {
     if (query.subcategory) {
       where.subcategory = { equals: query.subcategory, mode: 'insensitive' };
     }
-    if (query.subsubcategory) {
-      where.subsubcategory = { equals: query.subsubcategory, mode: 'insensitive' };
-    }
     if (query.isactive !== undefined) {
       where.isactive = query.isactive === 'true';
     }
@@ -91,7 +86,7 @@ export class ReturnReplacementPolicyService {
         where,
         skip,
         take,
-        orderBy: [{ category: 'asc' }, { subcategory: 'asc' }, { subsubcategory: 'asc' }],
+        orderBy: [{ category: 'asc' }, { subcategory: 'asc' }],
       }),
       policyClient().count({ where }),
     ]);
@@ -100,9 +95,7 @@ export class ReturnReplacementPolicyService {
   }
 
   async findById(id: string) {
-    const policy = await policyClient().findUnique({
-      where: { id: parseInt(id, 10) },
-    });
+    const policy = await this.findPolicyWithReasonMappings(parseInt(id, 10));
 
     if (!policy) {
       throw new NotFoundError(`Return/replacement policy with ID ${id} not found`);
@@ -118,12 +111,22 @@ export class ReturnReplacementPolicyService {
     payload.modifieddate = payload.modifieddate || payload.createddate;
 
     try {
-      return await policyClient().create({ data: payload });
+      return await prisma.$transaction(async (tx: any) => {
+        const policy = await policyClientFor(tx).create({ data: payload });
+        await this.policyReasonRuleService.ensureDefaultMappingsForPolicy(policy.id, {
+          database: tx,
+          createdBy: policy.createdby || null,
+          modifiedBy: policy.modifiedby || policy.createdby || null,
+          timestamp: policy.createddate || payload.createddate,
+        });
+
+        return this.findPolicyWithReasonMappings(policy.id, tx);
+      });
     } catch (error: any) {
       if (error.code === 'P2002') {
         throw new ValidationError(
           'Policy already exists',
-          'A policy already exists for this category/subcategory/sub-subcategory scope'
+          'A policy already exists for this category/subcategory scope'
         );
       }
       logger.error({ error, payload }, 'Failed to create return/replacement policy');
@@ -136,13 +139,24 @@ export class ReturnReplacementPolicyService {
     payload.scopekey = buildScopeKey(payload as PolicyScope);
     payload.modifieddate = nowSeconds();
 
-    return policyClient().upsert({
-      where: { scopekey: payload.scopekey },
-      create: {
-        ...payload,
-        createddate: payload.createddate || payload.modifieddate,
-      },
-      update: payload,
+    return prisma.$transaction(async (tx: any) => {
+      const policy = await policyClientFor(tx).upsert({
+        where: { scopekey: payload.scopekey },
+        create: {
+          ...payload,
+          createddate: payload.createddate || payload.modifieddate,
+        },
+        update: payload,
+      });
+
+      await this.policyReasonRuleService.ensureDefaultMappingsForPolicy(policy.id, {
+        database: tx,
+        createdBy: policy.createdby || null,
+        modifiedBy: policy.modifiedby || policy.createdby || null,
+        timestamp: payload.modifieddate,
+      });
+
+      return this.findPolicyWithReasonMappings(policy.id, tx);
     });
   }
 
@@ -150,11 +164,10 @@ export class ReturnReplacementPolicyService {
     const existingPolicy = await this.findById(id);
     const payload = sanitizePolicyInput(data);
 
-    if (payload.category || payload.subcategory !== undefined || payload.subsubcategory !== undefined) {
+    if (payload.category || payload.subcategory !== undefined) {
       payload.scopekey = buildScopeKey({
         category: payload.category || existingPolicy.category,
         subcategory: payload.subcategory !== undefined ? payload.subcategory : existingPolicy.subcategory,
-        subsubcategory: payload.subsubcategory !== undefined ? payload.subsubcategory : existingPolicy.subsubcategory,
       });
     }
 
@@ -169,7 +182,7 @@ export class ReturnReplacementPolicyService {
       if (error.code === 'P2002') {
         throw new ValidationError(
           'Policy already exists',
-          'Another policy already exists for this category/subcategory/sub-subcategory scope'
+          'Another policy already exists for this category/subcategory scope'
         );
       }
       logger.error({ error, id, payload }, 'Failed to update return/replacement policy');
@@ -205,7 +218,6 @@ export class ReturnReplacementPolicyService {
       eligible: Boolean(allowed),
       category: scope.category,
       subcategory: scope.subcategory,
-      subsubcategory: scope.subsubcategory,
       windowdays: allowed ? windowDays : null,
       allowedrefundmethods: requestType === 'return' && allowed ? policy?.allowedrefundmethods || [] : [],
       policy,
@@ -250,7 +262,6 @@ export class ReturnReplacementPolicyService {
     return {
       category: normalizeRequiredScopeValue(query.category),
       subcategory: normalizeScopeValue(query.subcategory),
-      subsubcategory: normalizeScopeValue(query.subsubcategory),
     };
   }
 
@@ -267,7 +278,6 @@ export class ReturnReplacementPolicyService {
     return {
       category,
       subcategory: normalizeScopeValue(product?.subcategory),
-      subsubcategory: normalizeScopeValue(product?.subsubcategory),
     };
   }
 
@@ -280,24 +290,35 @@ export class ReturnReplacementPolicyService {
     });
 
     const normalizedSubcategory = normalizeScopeValue(scope.subcategory)?.toLowerCase() || null;
-    const normalizedSubsubcategory = normalizeScopeValue(scope.subsubcategory)?.toLowerCase() || null;
 
     return policies
       .map((policy: any) => {
         const policySubcategory = normalizeScopeValue(policy.subcategory)?.toLowerCase() || null;
-        const policySubsubcategory = normalizeScopeValue(policy.subsubcategory)?.toLowerCase() || null;
 
         if (policySubcategory && policySubcategory !== normalizedSubcategory) {
           return null;
         }
-        if (policySubsubcategory && policySubsubcategory !== normalizedSubsubcategory) {
-          return null;
-        }
 
-        const score = (policySubcategory ? 1 : 0) + (policySubsubcategory ? 1 : 0);
+        const score = policySubcategory ? 1 : 0;
         return { policy, score };
       })
       .filter(Boolean)
       .sort((a: any, b: any) => b.score - a.score)[0]?.policy || null;
+  }
+
+  private async findPolicyWithReasonMappings(id: number, database: any = prisma) {
+    const policy = await policyClientFor(database).findUnique({
+      where: { id },
+    });
+
+    if (!policy) {
+      return null;
+    }
+
+    const policyReasonRules = await this.policyReasonRuleService.findMappingsForPolicy(id, database);
+    return {
+      ...policy,
+      policyReasonRules,
+    };
   }
 }

@@ -4,6 +4,8 @@ import {
   addReturnRequestAttachmentSchema,
   approveReturnRequestSchema,
   attachmentTypeSchema,
+  completeReturnResolutionSchema,
+  createReturnCreditNoteSchema,
   createReturnRequestSchema,
   createRtoRequestSchema,
   evidenceReviewSchema,
@@ -11,9 +13,12 @@ import {
   markRtoReceivedSchema,
   markReturnReceivedSchema,
   preparePickupSchema,
+  returnOperationsSummaryQuerySchema,
   returnRequestQuerySchema,
   returnSourceParamsSchema,
   rejectReturnRequestSchema,
+  updateReturnRefundStatusSchema,
+  updateReturnShipmentStatusSchema,
   updateRtoStatusSchema,
 } from '../schemas/return-source.schema.js';
 import { asyncHandler, createSuccessResponse, ValidationError } from '../utils/errorHandler.js';
@@ -30,10 +35,10 @@ const getMultipartFieldValue = (field: any, fallback = ''): string => {
 export class ReturnRequestController {
   private returnRequestService = new ReturnRequestService();
 
-  getRequests = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+  getRequests = asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
     const query = returnRequestQuerySchema.parse(request.query || {});
     const { page, limit } = getPaginationParams(request.query as Record<string, unknown>);
-    const result = await this.returnRequestService.findMany(query, page, limit);
+    const result = await this.returnRequestService.findMany(query, page, limit, request.user);
 
     return reply.code(200).send({
       ...createSuccessResponse('Return requests retrieved successfully', result.data),
@@ -46,6 +51,53 @@ export class ReturnRequestController {
     const returnRequest = await this.returnRequestService.findById(id);
 
     return reply.code(200).send(createSuccessResponse('Return request retrieved successfully', returnRequest));
+  });
+
+  getOperationsSummary = asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
+    const query = returnOperationsSummaryQuerySchema.parse(request.query || {});
+    const summary = await this.returnRequestService.getOperationsSummary(query, request.user);
+
+    return reply.code(200).send(createSuccessResponse('Return operations summary retrieved successfully', summary));
+  });
+
+  getResolutionPreview = asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
+    const { id } = returnSourceParamsSchema.parse(request.params);
+    const preview = await this.returnRequestService.getResolutionPreview(id, request.user);
+
+    return reply.code(200).send(createSuccessResponse('Return resolution preview retrieved successfully', preview));
+  });
+
+  getEvidenceHealth = asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
+    const { id } = returnSourceParamsSchema.parse(request.params);
+    const health = await this.returnRequestService.getEvidenceHealth(id, request.user);
+
+    return reply.code(200).send(createSuccessResponse('Return evidence health retrieved successfully', health));
+  });
+
+  repairEvidenceLinks = asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
+    const { id } = returnSourceParamsSchema.parse(request.params);
+    const result = await this.returnRequestService.repairEvidenceLinks(id, request.user);
+
+    return reply.code(200).send(createSuccessResponse('Return evidence links repaired successfully', result));
+  });
+
+  getEvidenceFile = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as Record<string, string>;
+    const evidenceFile = await this.returnRequestService.openEvidenceFile(params['*'] || '');
+
+    if (evidenceFile.redirectUrl) {
+      return reply.redirect(evidenceFile.redirectUrl);
+    }
+
+    reply
+      .header('Cache-Control', 'private, max-age=3600')
+      .type(evidenceFile.contentType);
+
+    if (evidenceFile.contentLength) {
+      reply.header('Content-Length', evidenceFile.contentLength);
+    }
+
+    return reply.code(200).send(evidenceFile.stream);
   });
 
   createRequest = asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
@@ -134,6 +186,38 @@ export class ReturnRequestController {
     return reply.code(200).send(createSuccessResponse('Return inspection saved successfully', returnRequest));
   });
 
+  completeResolution = asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
+    const { id } = returnSourceParamsSchema.parse(request.params);
+    const data = completeReturnResolutionSchema.parse(request.body || {});
+    const returnRequest = await this.returnRequestService.completeResolution(id, data, request.user);
+
+    return reply.code(200).send(createSuccessResponse('Return resolution action saved successfully', returnRequest));
+  });
+
+  updateShipmentStatus = asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
+    const { id } = returnSourceParamsSchema.parse(request.params);
+    const data = updateReturnShipmentStatusSchema.parse(request.body || {});
+    const returnRequest = await this.returnRequestService.updateShipmentStatus(id, data, request.user);
+
+    return reply.code(200).send(createSuccessResponse('Return fulfilment shipment status saved successfully', returnRequest));
+  });
+
+  updateRefundStatus = asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
+    const { id } = returnSourceParamsSchema.parse(request.params);
+    const data = updateReturnRefundStatusSchema.parse(request.body || {});
+    const returnRequest = await this.returnRequestService.updateRefundStatus(id, data, request.user);
+
+    return reply.code(200).send(createSuccessResponse('Return refund status saved successfully', returnRequest));
+  });
+
+  createCreditNote = asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
+    const { id } = returnSourceParamsSchema.parse(request.params);
+    const data = createReturnCreditNoteSchema.parse(request.body || {});
+    const returnRequest = await this.returnRequestService.createCreditNote(id, data, request.user);
+
+    return reply.code(201).send(createSuccessResponse('Return credit note saved successfully', returnRequest));
+  });
+
   uploadEvidence = asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
     const body = request.body as any;
     const uploadedFile = body?.file;
@@ -177,5 +261,36 @@ export class ReturnRequestController {
     );
 
     return reply.code(201).send(createSuccessResponse('Evidence uploaded and attached successfully', returnRequest));
+  });
+
+  replaceEvidenceAttachment = asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
+    const { id } = returnSourceParamsSchema.parse(request.params);
+    const params = request.params as Record<string, string>;
+    const attachmentId = String(params.attachmentId || '').trim();
+    const body = request.body as any;
+    const uploadedFile = body?.file;
+
+    if (!attachmentId || !Number.isInteger(Number(attachmentId))) {
+      throw new ValidationError('Invalid evidence attachment', 'A valid attachment ID is required');
+    }
+    if (!uploadedFile) {
+      throw new ValidationError('No evidence file uploaded', 'Upload multipart/form-data using the field name "file"');
+    }
+
+    const attachmenttype = attachmentTypeSchema.parse(getMultipartFieldValue(body?.attachmenttype, 'product_photo'));
+    const fileBuffer = await uploadedFile.toBuffer();
+    const returnRequest = await this.returnRequestService.replaceEvidenceAttachment(
+      id,
+      attachmentId,
+      {
+        attachmenttype,
+        fileBuffer,
+        filename: uploadedFile.filename || `${attachmenttype}-evidence`,
+        mimetype: uploadedFile.mimetype || 'application/octet-stream',
+      },
+      request.user
+    );
+
+    return reply.code(200).send(createSuccessResponse('Evidence attachment replaced successfully', returnRequest));
   });
 }

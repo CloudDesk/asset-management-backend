@@ -7,6 +7,7 @@ import { TransactionService } from "../services/transaction.service.js";
 import { OrdersService } from "../services/orders.service.js";
 import { OrderlineService } from "../services/orderline.service.js";
 import { CustomerNotificationService } from "../services/customer-notification.service.js";
+import { ReturnRequestService } from "../services/return-request.service.js";
 import { prisma } from "../models/prisma.js";
 import {
   createSuccessResponse,
@@ -23,6 +24,7 @@ export class PhonePeController {
   public ordersService = new OrdersService();
   public orderlineService = new OrderlineService();
   public customerNotificationService = new CustomerNotificationService();
+  public returnRequestService = new ReturnRequestService();
 
   /**
    * Initiate payment with PhonePe
@@ -5807,6 +5809,16 @@ export class PhonePeController {
           callbackResponse,
           webhookTimestamp: new Date().toISOString(),
           transactionType: "refund",
+        }
+      );
+
+      await this.returnRequestService.reconcileRefundStatusByReference(
+        refundId,
+        callbackResponse?.state || payload.state || "PROCESSING",
+        {
+          phonePeWebhook: payload,
+          callbackResponse,
+          webhookTimestamp: new Date().toISOString(),
         }
       );
     } catch (error: any) {
