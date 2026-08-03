@@ -272,6 +272,28 @@ export class PromotionEvaluationController {
     return reply.code(200).send(response);
   });
 
+  // Revalidate an applied promotion before the shopper leaves the cart.
+  validateEvaluationForCheckout = asyncHandler(async (request: FastifyRequest<{
+    Body: { evaluation_id: string; user_id: string }
+  }>, reply: FastifyReply) => {
+    const { evaluation_id, user_id } = request.body;
+    const validation = await this.evaluationService.validateEvaluationForOrder(
+      evaluation_id,
+      user_id
+    );
+
+    return reply.code(200).send(createSuccessResponse(
+      validation.isValid
+        ? 'Promotion evaluation is valid for checkout'
+        : 'Promotion evaluation must be refreshed before checkout',
+      {
+        is_valid: validation.isValid,
+        reason: validation.reason || null,
+        evaluation_id
+      }
+    ));
+  });
+
   // Apply manual coupon to existing evaluation
   applyManualCoupon = asyncHandler(async (request: FastifyRequest<{
     Body: {

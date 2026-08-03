@@ -192,7 +192,10 @@ export class PhonePeController {
                   reasonStr.includes("PROMOTION_CONFIGURATION_CHANGED") ||
                   reasonStr.includes("PROMOTION_NO_LONGER_ELIGIBLE") ||
                   reasonStr.includes("PROMOTION_ASSIGNMENT_CHANGED") ||
-                  reasonStr.includes("PROMOTION_CART_CHANGED")
+                  reasonStr.includes("PROMOTION_CART_CHANGED") ||
+                  reasonStr.includes("PROMOTION_USAGE_LIMIT_REACHED") ||
+                  reasonStr.includes("PROMOTION_PER_USER_LIMIT_REACHED") ||
+                  reasonStr.includes("PROMOTION_MAX_REDEMPTIONS_REACHED")
                 ) {
                   // CRITICAL: Expired/cancelled/missing promotion - block the entire order
                   return reply.code(400).send({
