@@ -228,9 +228,21 @@ export class PromotionEvaluationController {
       logger.info({ 
         evaluationId: existingEvaluation.evaluation_id,
         cartSignature 
-      }, 'Found existing active evaluation for cart signature');
-      
-      const response = createSuccessResponse('Active evaluation found', existingEvaluation);
+      }, 'Found existing active evaluation for cart signature; refreshing automatic promotions');
+
+      // Promotion configuration can change while the cart remains identical
+      // (for example Apply button -> Automatic, status, channel, or rules).
+      // Reusing the stored evaluation unchanged leaves stale offers and totals.
+      const refreshedEvaluation = await this.evaluationService.refreshAutomaticEvaluation(
+        existingEvaluation,
+        {
+          user_id,
+          cart_items,
+          context,
+          cart_signature: cartSignature
+        }
+      );
+      const response = createSuccessResponse('Automatic promotions refreshed', refreshedEvaluation);
       return reply.code(200).send(response);
     }
     // Create new evaluation with automatic promotions
@@ -258,6 +270,28 @@ export class PromotionEvaluationController {
 
     const response = createSuccessResponse('User active evaluations retrieved successfully', result);
     return reply.code(200).send(response);
+  });
+
+  // Revalidate an applied promotion before the shopper leaves the cart.
+  validateEvaluationForCheckout = asyncHandler(async (request: FastifyRequest<{
+    Body: { evaluation_id: string; user_id: string }
+  }>, reply: FastifyReply) => {
+    const { evaluation_id, user_id } = request.body;
+    const validation = await this.evaluationService.validateEvaluationForOrder(
+      evaluation_id,
+      user_id
+    );
+
+    return reply.code(200).send(createSuccessResponse(
+      validation.isValid
+        ? 'Promotion evaluation is valid for checkout'
+        : 'Promotion evaluation must be refreshed before checkout',
+      {
+        is_valid: validation.isValid,
+        reason: validation.reason || null,
+        evaluation_id
+      }
+    ));
   });
 
   // Apply manual coupon to existing evaluation

@@ -17,6 +17,7 @@ import {
 } from '../utils/promotionChannel.js';
 import { normalizePromotionConditionValues } from '../utils/promotionConditions.js';
 import { ValidationError } from '../utils/errorHandler.js';
+import { epochToDate } from '../utils/epochTimestamp.js';
 
 export class PromotionEvaluationService {
   private prisma: PrismaClient;
@@ -367,13 +368,8 @@ export class PromotionEvaluationService {
 
   // Helper function to convert Unix timestamp to Date object
   private convertUnixTimestampToDate(timestamp: number | string | bigint | null): Date | null {
-    if (!timestamp) return null;
-    
-    const numTimestamp = typeof timestamp === 'string' ? parseInt(timestamp) : 
-                        typeof timestamp === 'bigint' ? Number(timestamp) : timestamp;
-    if (isNaN(numTimestamp)) return null;
-    
-    return new Date(numTimestamp * 1000); // Convert seconds to milliseconds
+    if (timestamp === null || timestamp === undefined || timestamp === '') return null;
+    return epochToDate(timestamp);
   }
 
   // Main evaluation method
@@ -644,12 +640,12 @@ export class PromotionEvaluationService {
 
         case 'user.created_date':
           const userCreatedDate = await this.getUserCreatedDate(userId);
-          if (userCreatedDate && !this.evaluateDateCondition(condition, userCreatedDate)) {
+          if (!userCreatedDate || !this.evaluateDateCondition(condition, userCreatedDate)) {
             reasons.push({
               promotion_id: promotion.id,
               reason: 'User creation date not eligible',
               required_value: condition.value,
-              current_value: userCreatedDate.getTime()
+              current_value: userCreatedDate?.getTime() ?? 0
             });
           }
           break;
@@ -966,11 +962,14 @@ export class PromotionEvaluationService {
 
     const segments = ['authenticated_user'];
     const newUserDays = Number(process.env.NEW_USER_DAYS || 30);
-    if (user.createddate) {
+    const userCreatedDate = this.convertUnixTimestampToDate(user.createddate);
+    if (userCreatedDate) {
       const daysSinceCreation = Math.floor(
-        (Date.now() - Number(user.createddate)) / (1000 * 60 * 60 * 24)
+        (Date.now() - userCreatedDate.getTime()) / (1000 * 60 * 60 * 24)
       );
-      if (daysSinceCreation <= newUserDays) segments.push('new_user');
+      if (daysSinceCreation >= 0 && daysSinceCreation <= newUserDays) {
+        segments.push('new_user');
+      }
     }
 
     if (await this.getUserOrderCount(userId) === 0) segments.push('first_order');
@@ -982,7 +981,7 @@ export class PromotionEvaluationService {
       where: { id: parseInt(userId) },
       select: { createddate: true }
     });
-    return user?.createddate ? new Date(Number(user.createddate)) : null;
+    return epochToDate(user?.createddate);
   }
 
   private async getUserOrderCount(userId: string): Promise<number> {
@@ -1923,6 +1922,14 @@ export class PromotionEvaluationService {
     requestChannel: string
   ) {
     try {
+      // Automatic offers must obey the same campaign and per-customer usage
+      // limits as manually applied offers. Without this check an already-used
+      // automatic promotion can be selected again until final order validation.
+      const usageReason = await this.validatePromotionUsage(promotion, userId);
+      if (usageReason) {
+        return { isEligible: false, reason: usageReason };
+      }
+
       if (promotion.visibility === 'private') {
         const { assignment } = await this.resolvePromotionOrVoucher(
           promotion.id,
@@ -2008,9 +2015,57 @@ export class PromotionEvaluationService {
               };
             }
             break;
+
+          case 'user.created_date': {
+            const userCreatedDate = await this.getUserCreatedDate(userId);
+
+            if (!userCreatedDate) {
+              return {
+                isEligible: false,
+                reason: 'Customer registration date is unavailable'
+              };
+            }
+
+            const isRegistrationDateEligible = this.evaluateDateCondition(
+              condition,
+              userCreatedDate
+            );
+
+            logger.info({
+              promotionId: promotion.id,
+              userId,
+              userCreatedDate: userCreatedDate.toISOString(),
+              operator,
+              value,
+              isRegistrationDateEligible
+            }, 'Customer registration date condition evaluation');
+
+            if (!isRegistrationDateEligible) {
+              return {
+                isEligible: false,
+                reason: `Customer registration date ${userCreatedDate.toISOString()} does not meet condition: ${operator} ${value}`
+              };
+            }
+            break;
+          }
+
+          case 'user.order_count': {
+            const orderCount = await this.getUserOrderCount(userId);
+            if (!this.evaluateCondition(orderCount, operator, value)) {
+              return {
+                isEligible: false,
+                reason: `Customer order count ${orderCount} does not meet condition: ${operator} ${value}`
+              };
+            }
+            break;
+          }
             
           default:
             logger.warn({ attribute, operator, value }, 'Unknown condition attribute');
+            return {
+              isEligible: false,
+              reason: `Unsupported promotion condition: ${attribute}`
+            };
         }
       }
 
@@ -2031,18 +2086,16 @@ export class PromotionEvaluationService {
       case 'LT': return actualValue < expectedValue;
       case 'EQ': return actualValue === expectedValue;
       case 'NE': return actualValue !== expectedValue;
-      case 'IN':
-        return Array.isArray(expectedValue) && (
-          Array.isArray(actualValue)
-            ? actualValue.some((value) => expectedValue.includes(value))
-            : expectedValue.includes(actualValue)
-        );
-      case 'NOT_IN':
-        return Array.isArray(expectedValue) && (
-          Array.isArray(actualValue)
-            ? actualValue.every((value) => !expectedValue.includes(value))
-            : !expectedValue.includes(actualValue)
-        );
+      case 'IN': {
+        const expectedValues = normalizePromotionConditionValues(expectedValue);
+        const actualValues = normalizePromotionConditionValues(actualValue);
+        return actualValues.some((value) => expectedValues.includes(value));
+      }
+      case 'NOT_IN': {
+        const expectedValues = normalizePromotionConditionValues(expectedValue);
+        const actualValues = normalizePromotionConditionValues(actualValue);
+        return actualValues.every((value) => !expectedValues.includes(value));
+      }
       default: return false;
     }
   }
@@ -2542,6 +2595,117 @@ console.log(request.cart_items,"request cartItems")
     }
   }
 
+  async refreshAutomaticEvaluation(
+    existingEvaluation: any,
+    request: {
+      user_id: string;
+      cart_items: any[];
+      context: {
+        channel: 'web' | 'mobile' | 'mobile_app';
+        geo: string;
+        payment_method?: string;
+        user_agent?: string;
+        ip_address?: string;
+      };
+      cart_signature: string;
+    }
+  ) {
+    const cartTotal = request.cart_items.reduce(
+      (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
+      0
+    );
+    const currentlyApplied = Array.isArray(existingEvaluation.applied_promotions)
+      ? existingEvaluation.applied_promotions
+      : [];
+    const validationCartData: CartData = {
+      items: request.cart_items,
+      subtotal: cartTotal,
+      shipping_cost: 0,
+      tax_amount: 0,
+      total: cartTotal
+    };
+    const manualPromotions: any[] = [];
+
+    // Revalidate retained manual selections against the latest admin config.
+    // This is important when per-user limits, audience dates, status, or
+    // channel are edited while the shopper still has the same cart signature.
+    for (const appliedPromotion of currentlyApplied) {
+      if (appliedPromotion.is_auto === true) continue;
+
+      const promotionId = Number(appliedPromotion.promotion_id);
+      if (!Number.isFinite(promotionId) || promotionId <= 0) continue;
+
+      const { promotion, assignment } = await this.resolvePromotionOrVoucher(
+        promotionId,
+        appliedPromotion.voucher_code,
+        request.user_id
+      );
+      if (
+        !promotion ||
+        promotion.auto_apply === true ||
+        promotion.application_mode === 'automatic'
+      ) continue;
+
+      const eligibility = await this.validatePromotion(promotion, {
+        user_id: request.user_id,
+        promotion_id: promotionId,
+        cart_data: validationCartData,
+        context: request.context
+      });
+      if (!eligibility.isValid) continue;
+
+      if (promotion.visibility !== 'public') {
+        const assignmentReason = await this.validateVoucherAssignment(assignment, request.user_id);
+        if (!assignment || assignment.assignment_not_found || assignmentReason) continue;
+      }
+
+      const usageReason = await this.validatePromotionUsage(promotion, request.user_id);
+      if (usageReason) continue;
+
+      manualPromotions.push(appliedPromotion);
+    }
+    const automaticPromotions = await this.getEligibleAutomaticPromotions(
+      request.user_id,
+      cartTotal,
+      request.cart_items,
+      request.context.channel,
+      false
+    );
+    const appliedPromotions = this.selectCompatiblePromotions([
+      ...manualPromotions,
+      ...automaticPromotions
+    ]);
+    const totalDiscount = appliedPromotions.reduce(
+      (sum: number, promotion: any) => sum + Number(promotion.discount_amount || 0),
+      0
+    );
+    const expiresAt = this.getUtcTimestampWithOffset(15);
+
+    const refreshedEvaluation = await this.prisma.promotion_evaluations.update({
+      where: { evaluation_id: existingEvaluation.evaluation_id },
+      data: {
+        cart_data: request.cart_items,
+        cart_signature: request.cart_signature,
+        context: request.context,
+        original_total: cartTotal,
+        discounted_total: Math.max(cartTotal - totalDiscount, 0),
+        applied_promotions: appliedPromotions,
+        expires_at: expiresAt,
+        modifieddate: this.getUtcTimestamp()
+      }
+    });
+
+    logger.info({
+      evaluationId: existingEvaluation.evaluation_id,
+      manualPromotionCount: manualPromotions.length,
+      automaticPromotionCount: automaticPromotions.length,
+      appliedPromotionCount: appliedPromotions.length,
+      totalDiscount
+    }, 'Refreshed automatic promotions for existing evaluation');
+
+    return refreshedEvaluation;
+  }
+
   // Apply manual coupon to existing evaluation
   async applyManualCoupon(request: {
     evaluation_id: string;
@@ -2600,7 +2764,7 @@ console.log(request.cart_items,"request cartItems")
 
       // Validate promotion against cart using the price field (already after product discount)
       const cartTotal = request.cart_items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-      const cartEligible = this.checkCartEligibility(promotion, {
+      const currentCartData: CartData = {
         subtotal: cartTotal,
         items: request.cart_items.map(item => ({
           quantity: item.quantity,
@@ -2614,28 +2778,27 @@ console.log(request.cart_items,"request cartItems")
         shipping_cost: 0,
         tax_amount: 0,
         total: cartTotal
+      };
+
+      const currentEligibility = await this.validatePromotion(promotion, {
+        user_id: evaluation.user_id || '',
+        promotion_id: promotion.id,
+        cart_data: currentCartData,
+        context: {
+          channel: normalizePromotionChannel(evaluationChannel) === 'mobile' ? 'mobile' : 'web',
+          geo: 'IN'
+        }
       });
 
-      if (!cartEligible.isEligible) {
-        throw new Error('Promotion is not eligible for this cart');
+      if (!currentEligibility.isValid) {
+        throw new Error(
+          currentEligibility.reasons.map(reason => reason.reason).join(', ') ||
+          'Promotion is not eligible for this customer or cart'
+        );
       }
 
       // Calculate discount for the new promotion
-      const discountResult = await this.calculateDiscounts(promotion, {
-        subtotal: cartTotal,
-        items: request.cart_items.map(item => ({
-          quantity: item.quantity,
-          base_price: item.base_price,
-          product_discount: item.product_discount,
-          price: item.price,
-          product_id: item.product_id,
-          name: item.name,
-          category: item.category
-        })),
-        shipping_cost: 0,
-        tax_amount: 0,
-        total: cartTotal
-      });
+      const discountResult = await this.calculateDiscounts(promotion, currentCartData);
 
       // Get current applied promotions
       const appliedPromotions = evaluation.applied_promotions as any[] || [];

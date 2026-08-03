@@ -1595,6 +1595,41 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
     }
   }, evaluationController.evaluateAutomaticPromotions.bind(evaluationController));
 
+  // Validate the currently applied promotion before entering checkout.
+  fastify.post('/evaluations/validate', {
+    schema: {
+      description: 'Revalidate a promotion evaluation against current dates, audience, limits, assignment, channel, and cart rules',
+      tags: ['Promotions', 'Evaluation'],
+      body: {
+        type: 'object',
+        properties: {
+          evaluation_id: { type: 'string' },
+          user_id: { type: 'string' }
+        },
+        required: ['evaluation_id', 'user_id'],
+        additionalProperties: false
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {
+              type: 'object',
+              properties: {
+                is_valid: { type: 'boolean' },
+                reason: { type: ['string', 'null'] },
+                evaluation_id: { type: 'string' }
+              },
+              required: ['is_valid', 'evaluation_id']
+            }
+          }
+        }
+      }
+    }
+  }, evaluationController.validateEvaluationForCheckout.bind(evaluationController));
+
   // Get user's active evaluations
   fastify.get('/evaluations', {
     schema: {
