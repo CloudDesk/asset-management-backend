@@ -9,7 +9,7 @@ datasource db {
 
 model Product {
   id                   BigInt      @id @default(autoincrement())
-  name                 String      @db.VarChar(1516)
+  name                 String      @db.VarChar(500)
   shortdescription     String?
   fulldescription      String?
   puc                  String      @unique @db.VarChar(255)
@@ -53,7 +53,7 @@ model Product {
   usage                String?     @db.VarChar(255)
   longevity            String?     @db.VarChar(255)
   gender               String?     @db.VarChar(50)
-  remarks              String?     @db.VarChar(1000)
+  remarks              String?     @db.VarChar(255)
   iscombo    Boolean?  @default(false)
   combotype  String?   @default("fixed") @db.VarChar(50)
   
