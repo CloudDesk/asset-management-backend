@@ -20,7 +20,6 @@ export async function buildServer() {
       plugins: [ajvFilePlugin],
     },
   });
-  console.log('test');
 
   // Register logger plugin first
   await fastify.register(loggerPlugin);

@@ -42,8 +42,8 @@ async function start() {
     //  host: '0.0.0.0',
     //});
 
-    fastify.log.info(`🚀 Server running at http://localhost:${env.PORT}`);
-    fastify.log.info(`📚 API Documentation available at http://localhost:${env.PORT}/docs`);
+    fastify.log.info(`🚀 Server running at http://localhost:${port}`);
+    fastify.log.info(`📚 API Documentation available at http://localhost:${port}/docs`);
    
 
     // Graceful shutdown
