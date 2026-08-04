@@ -16,6 +16,12 @@ export type PromotionUsageState = {
   campaignLimit?: number | null | undefined;
 };
 
+export type PromotionAssignmentTarget = {
+  assignmentType: string;
+  customerId?: number | null;
+  customerGroupId?: number | null;
+};
+
 /**
  * Automatic checkout application is opt-in twice: the boolean flag and the
  * canonical application mode must agree. This prevents legacy or partially
@@ -46,3 +52,21 @@ export const isPromotionUsageExhausted = (usage: PromotionUsageState): boolean =
   hasReachedLimit(usage.customerPromotionUsage, usage.perCustomerLimit) ||
   hasReachedLimit(usage.assignmentUsage, usage.assignmentLimit) ||
   hasReachedLimit(usage.campaignUsage, usage.campaignLimit);
+
+/** Audience changes create a new assignment instead of rewriting ownership. */
+export const hasPromotionAssignmentTargetChanged = (
+  current: PromotionAssignmentTarget,
+  requested: PromotionAssignmentTarget
+): boolean =>
+  current.assignmentType !== requested.assignmentType ||
+  (current.customerId ?? null) !== (requested.customerId ?? null) ||
+  (current.customerGroupId ?? null) !== (requested.customerGroupId ?? null);
+
+/** Usage belongs to each customer independently across the whole promotion. */
+export const getRemainingPromotionUses = (
+  perCustomerLimit: number | null | undefined,
+  customerPromotionUsage: number
+): number | null =>
+  perCustomerLimit === null || perCustomerLimit === undefined
+    ? null
+    : Math.max(0, perCustomerLimit - customerPromotionUsage);
