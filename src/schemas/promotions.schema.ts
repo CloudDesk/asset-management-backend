@@ -30,8 +30,21 @@ export const promotionApplicationModeEnum = z.enum(['automatic', 'click_to_apply
 // Condition object schema
 export const conditionSchema = z.object({
   attribute: z.string(), // e.g., "cart.total_value", "user.segment"
-  operator: z.enum(['GTE', 'LTE', 'EQ', 'IN', 'NOT_IN', 'CONTAINS']),
-  value: z.union([z.string(), z.number(), z.array(z.string())])
+  operator: z.enum([
+    'GTE',
+    'GT',
+    'LTE',
+    'LT',
+    'EQ',
+    'IN',
+    'NOT_IN',
+    'CONTAINS',
+    'DATE_ADD_DAYS',
+    'DATE_SUBTRACT_DAYS'
+  ]),
+  value: z.union([z.string(), z.number(), z.array(z.string())]),
+  comparison: z.enum(['GTE', 'GT', 'LTE', 'LT', 'EQ']).optional(),
+  compare_with: z.string().optional()
 });
 
 // Action object schema

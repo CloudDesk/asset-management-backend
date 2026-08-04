@@ -472,6 +472,21 @@ export class PromotionEvaluationService {
                   }
                 }
               ]
+            },
+            select: {
+              id: true,
+              promotion_id: true,
+              assignment_type: true,
+              customer_id: true,
+              customer_group_id: true,
+              voucher_code: true,
+              usage_limit: true,
+              used_count: true,
+              start_date: true,
+              end_date: true,
+              status: true,
+              createddate: true,
+              modifieddate: true
             }
           })
         : null;
@@ -492,7 +507,22 @@ export class PromotionEvaluationService {
 
     const assignment = await this.prisma.promotion_assignments.findFirst({
       where: { voucher_code: { equals: normalizedCode, mode: 'insensitive' } },
-      include: { promotion: true }
+      select: {
+        id: true,
+        promotion_id: true,
+        assignment_type: true,
+        customer_id: true,
+        customer_group_id: true,
+        voucher_code: true,
+        usage_limit: true,
+        used_count: true,
+        start_date: true,
+        end_date: true,
+        status: true,
+        createddate: true,
+        modifieddate: true,
+        promotion: true
+      }
     });
     return { promotion: assignment?.promotion || null, assignment };
   }
@@ -872,6 +902,7 @@ export class PromotionEvaluationService {
   private evaluateDateCondition(condition: any, date: Date): boolean {
     try {
       const { operator, value, comparison, compare_with } = condition;
+      if (date.getTime() > Date.now()) return false;
       
       switch (operator) {
         case 'DATE_ADD_DAYS':
@@ -897,7 +928,9 @@ export class PromotionEvaluationService {
           
         case 'DATE_SUBTRACT_DAYS':
           // Handle DATE_SUBTRACT_DAYS: Subtract specified days from current date
-          const referenceDate = new Date(Date.now() - (value * 24 * 60 * 60 * 1000));
+          const days = Number(value);
+          if (!Number.isFinite(days) || days <= 0) return false;
+          const referenceDate = new Date(Date.now() - (days * 24 * 60 * 60 * 1000));
           
           switch (comparison) {
             case 'GTE': // User created date >= reference date (user is newer than X days ago)

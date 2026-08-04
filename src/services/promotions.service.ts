@@ -355,7 +355,10 @@ export class PromotionsService {
       logger.info({ geo: options.geo, timezone }, 'Geo to timezone mapping');
 
       // Get user segments for personalized targeting
-      const userSegments = await this.getUserSegments(options.userId);
+      const [userSegments, userCreatedDate] = await Promise.all([
+        this.getUserSegments(options.userId),
+        this.getUserCreatedDate(options.userId)
+      ]);
 
       // Build filters with date constraints
       const filters: FilterOptions = {
@@ -384,7 +387,7 @@ export class PromotionsService {
         })
         .filter((promo: any) => isPromotionChannelEligible(promo.applicable_channel, options.channel))
         .filter((promo: any) => {
-          return this.isPromotionApplicableToUser(promo, userSegments);
+          return this.isPromotionApplicableToUser(promo, userSegments, userCreatedDate);
         })
         .map((promo: any) => this.formatPromotionForDisplay(promo))
         .sort((a: any, b: any) => {
@@ -406,7 +409,10 @@ export class PromotionsService {
   }
 
   async getMyPromotions(options: { userId: string; channel: string }) {
-    const userSegments = await this.getUserSegments(options.userId);
+    const [userSegments, userCreatedDate] = await Promise.all([
+      this.getUserSegments(options.userId),
+      this.getUserCreatedDate(options.userId)
+    ]);
     const customerId = Number(options.userId);
     const nowSeconds = BigInt(Math.floor(Date.now() / 1000));
 
@@ -429,7 +435,20 @@ export class PromotionsService {
             }
           ]
         },
-        include: {
+        select: {
+          id: true,
+          promotion_id: true,
+          assignment_type: true,
+          customer_id: true,
+          customer_group_id: true,
+          voucher_code: true,
+          usage_limit: true,
+          used_count: true,
+          start_date: true,
+          end_date: true,
+          status: true,
+          createddate: true,
+          modifieddate: true,
           promotion: true,
           customer_group: { select: { id: true, name: true, code: true } }
         },
@@ -510,7 +529,7 @@ export class PromotionsService {
     for (const promotion of globalPromotions) {
       if (!this.isPromotionCurrentlyActive(promotion)) continue;
       if (!isPromotionChannelEligible(promotion.applicable_channel, options.channel)) continue;
-      if (!this.isPromotionApplicableToUser(promotion, userSegments)) continue;
+      if (!this.isPromotionApplicableToUser(promotion, userSegments, userCreatedDate)) continue;
       const customerUsage = buildCustomerUsage(promotion);
       if (customerUsage.remaining === 0) continue;
       results.set(promotion.id, {
@@ -528,7 +547,7 @@ export class PromotionsService {
       if (assignment.usage_limit && assignment.used_count >= assignment.usage_limit) continue;
       if (!this.isPromotionCurrentlyActive(assignment.promotion)) continue;
       if (!isPromotionChannelEligible(assignment.promotion.applicable_channel, options.channel)) continue;
-      if (!this.isPromotionApplicableToUser(assignment.promotion, userSegments)) continue;
+      if (!this.isPromotionApplicableToUser(assignment.promotion, userSegments, userCreatedDate)) continue;
       const customerUsage = buildCustomerUsage(assignment.promotion, assignment);
       if (customerUsage.remaining === 0) continue;
 
@@ -579,7 +598,10 @@ export class PromotionsService {
         (Date.now() - epochToMilliseconds(user.createddate)) / (1000 * 60 * 60 * 24)
       );
 
-      if (daysSinceCreation <= USER_SEGMENT_CONFIG.NEW_USER_DAYS) {
+      if (
+        daysSinceCreation >= 0 &&
+        daysSinceCreation <= USER_SEGMENT_CONFIG.NEW_USER_DAYS
+      ) {
         segments.push('new_user');
       }
 
@@ -604,7 +626,11 @@ export class PromotionsService {
   }
 
   // Check if promotion is applicable to user
-  private isPromotionApplicableToUser(promotion: any, userSegments: string[]): boolean {
+  private isPromotionApplicableToUser(
+    promotion: any,
+    userSegments: string[],
+    userCreatedDate: Date | null = null
+  ): boolean {
     // If no conditions, check if it's public or hhaas user-specific targeting
     if (!promotion.conditions || promotion.conditions.length === 0) {
       // For identified users, show both public and private promotions without conditions
@@ -615,12 +641,16 @@ export class PromotionsService {
       promotion.conditions : JSON.parse(promotion.conditions);
 
     return conditions.every((condition: any) => {
-      return this.evaluateCondition(condition, userSegments);
+      return this.evaluateCondition(condition, userSegments, userCreatedDate);
     });
   }
 
   // Evaluate individual condition
-  private evaluateCondition(condition: any, userSegments: string[]): boolean {
+  private evaluateCondition(
+    condition: any,
+    userSegments: string[],
+    userCreatedDate: Date | null
+  ): boolean {
     switch (condition.attribute) {
       case 'user.segment': {
         const requiredSegments = normalizePromotionConditionValues(condition.value);
@@ -628,7 +658,9 @@ export class PromotionsService {
       }
 
       case 'user.created_date':
-        return true; // Simplified for now
+        return Boolean(
+          userCreatedDate && this.evaluateDateCondition(condition, userCreatedDate)
+        );
 
       case 'user.order_count':
         return true; // Simplified for now
@@ -819,7 +851,10 @@ export class PromotionsService {
 
         // Get user segments for personalization
         const userIdString = Array.isArray(userid) ? (userid[0] || '') : (userid || '');
-        const userSegments = await this.getUserSegments(userIdString);
+        const [userSegments, userCreatedDate] = await Promise.all([
+          this.getUserSegments(userIdString),
+          this.getUserCreatedDate(userIdString)
+        ]);
 
         // Get all active promotions (both public and private)
         const { data: allPromotions } = await dynamicFindManyWithFilters('promotions', baseFilters, {
@@ -835,7 +870,7 @@ export class PromotionsService {
             // For identified users, show:
             // 1. All promotions (since visibility is mostly null in current data)
             // 2. Filter by user segments for personalized targeting
-            return this.isPromotionApplicableToUser(promo, userSegments);
+            return this.isPromotionApplicableToUser(promo, userSegments, userCreatedDate);
           })
           .map((promo: any) => this.formatPromotionForDisplay(promo))
           .sort((a: any, b: any) => (a.priority || 999) - (b.priority || 999));
@@ -909,7 +944,18 @@ export class PromotionsService {
             promotion_id: { in: finalPromotions.map((promotion) => promotion.id) },
             status: 'active'
           },
-          include: {
+          select: {
+            id: true,
+            promotion_id: true,
+            assignment_type: true,
+            customer_id: true,
+            customer_group_id: true,
+            voucher_code: true,
+            usage_limit: true,
+            used_count: true,
+            start_date: true,
+            end_date: true,
+            status: true,
             customer: {
               select: { id: true, firstname: true, lastname: true, useremail: true }
             },
@@ -937,7 +983,13 @@ export class PromotionsService {
               ) ||
               (
                 condition.attribute === 'user.created_date' &&
-                ['GTE', 'LTE'].includes(condition.operator)
+                (
+                  ['GTE', 'LTE'].includes(condition.operator) ||
+                  (
+                    condition.operator === 'DATE_SUBTRACT_DAYS' &&
+                    (condition.comparison || 'GTE') === 'GTE'
+                  )
+                )
               )
           );
           if (assignment?.assignment_type === 'customer') {
@@ -1372,6 +1424,7 @@ export class PromotionsService {
   private evaluateDateCondition(condition: any, date: Date): boolean {
     try {
       const { operator, value, comparison, compare_with } = condition;
+      if (date.getTime() > Date.now()) return false;
 
       switch (operator) {
         case 'DATE_ADD_DAYS':
@@ -1397,7 +1450,9 @@ export class PromotionsService {
 
         case 'DATE_SUBTRACT_DAYS':
           // Handle DATE_SUBTRACT_DAYS: Subtract specified days from current date
-          const referenceDate = new Date(Date.now() - (value * 24 * 60 * 60 * 1000));
+          const days = Number(value);
+          if (!Number.isFinite(days) || days <= 0) return false;
+          const referenceDate = new Date(Date.now() - (days * 24 * 60 * 60 * 1000));
 
           switch (comparison) {
             case 'GTE': // User created date >= reference date (user is newer than X days ago)
@@ -1925,10 +1980,10 @@ export class PromotionsService {
 
           case 'user.created_date':
             const userCreatedDate = await this.getUserCreatedDate(userId);
-            if (userCreatedDate && !this.evaluateDateCondition(condition, userCreatedDate)) {
+            if (!userCreatedDate || !this.evaluateDateCondition(condition, userCreatedDate)) {
               return {
                 isEligible: false,
-                reason: `User creation date not eligible. Required: ${condition.value}, Current: ${userCreatedDate.toISOString()}`
+                reason: `User creation date not eligible. Required: ${condition.value}, Current: ${userCreatedDate?.toISOString() || 'unavailable'}`
               };
             }
             break;

@@ -301,7 +301,9 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
               type: 'object',
               properties: {
                 attribute: { type: 'string' },
-                operator: { type: 'string', enum: ['GTE', 'LTE', 'EQ', 'IN', 'NOT_IN', 'CONTAINS'] },
+                operator: { type: 'string', enum: ['GTE', 'GT', 'LTE', 'LT', 'EQ', 'IN', 'NOT_IN', 'CONTAINS', 'DATE_ADD_DAYS', 'DATE_SUBTRACT_DAYS'] },
+                comparison: { type: 'string', enum: ['GTE', 'GT', 'LTE', 'LT', 'EQ'] },
+                compare_with: { type: 'string' },
                 value: {
                   description: 'Condition value - can be string, number, or array of strings',
                   anyOf: [
@@ -500,7 +502,9 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
               type: 'object',
               properties: {
                 attribute: { type: 'string' },
-                operator: { type: 'string', enum: ['GTE', 'LTE', 'EQ', 'IN', 'NOT_IN', 'CONTAINS'] },
+                operator: { type: 'string', enum: ['GTE', 'GT', 'LTE', 'LT', 'EQ', 'IN', 'NOT_IN', 'CONTAINS', 'DATE_ADD_DAYS', 'DATE_SUBTRACT_DAYS'] },
+                comparison: { type: 'string', enum: ['GTE', 'GT', 'LTE', 'LT', 'EQ'] },
+                compare_with: { type: 'string' },
                 value: {
                   description: 'Condition value - can be string, number, or array of strings',
                   anyOf: [
