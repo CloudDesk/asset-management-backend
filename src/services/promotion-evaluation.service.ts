@@ -2214,6 +2214,28 @@ export class PromotionEvaluationService {
     }
   }
 
+  async findLatestActiveEvaluationForUser(
+    userId: string,
+    requestChannel?: string
+  ) {
+    const evaluations = await this.prisma.promotion_evaluations.findMany({
+      where: {
+        user_id: userId,
+        status: 'active'
+      },
+      orderBy: { created_at: 'desc' },
+      take: 10
+    });
+
+    if (!requestChannel) return evaluations[0] || null;
+
+    return evaluations.find(evaluation => {
+      const evaluationContext = evaluation.context as { channel?: string } | null;
+      return normalizePromotionChannel(evaluationContext?.channel) ===
+        normalizePromotionChannel(requestChannel);
+    }) || null;
+  }
+
   // Update existing evaluation with manual promotion
   async updateEvaluationWithManualPromotion(existingEvaluation: any, request: {
     user_id: string;
@@ -2695,7 +2717,18 @@ console.log(request.cart_items,"request cartItems")
       const usageReason = await this.validatePromotionUsage(promotion, request.user_id);
       if (usageReason) continue;
 
-      manualPromotions.push(appliedPromotion);
+      const discountResult = await this.calculateDiscounts(promotion, validationCartData);
+      const refreshedManualPromotion = await this.buildAppliedPromotion(
+        promotion,
+        discountResult.total_discount,
+        request.cart_items,
+        false,
+        normalizePromotionChannel(request.context.channel) === 'mobile' ? 'nivapp' : 'web'
+      );
+      refreshedManualPromotion.assignment_id = assignment?.id || appliedPromotion.assignment_id || null;
+      refreshedManualPromotion.voucher_code =
+        assignment?.voucher_code || appliedPromotion.voucher_code || promotion.code || null;
+      manualPromotions.push(refreshedManualPromotion);
     }
     const automaticPromotions = await this.getEligibleAutomaticPromotions(
       request.user_id,
@@ -2953,6 +2986,9 @@ console.log(request.cart_items,"request cartItems")
 
       return {
         evaluation_id: request.evaluation_id,
+        original_total: cartTotal,
+        discounted_total: discountedTotal,
+        total_discount: totalDiscount,
         applied_promotions: uniquePromotions,
         expires_at: new Date(Number(expiresAtUtc)).toISOString()
       };

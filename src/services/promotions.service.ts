@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { randomBytes } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 import {
   CreatePromotionsInput,
   UpdatePromotionsInput
@@ -67,13 +67,17 @@ export class PromotionsService {
   }
 
   // Get auto-applied promotions from user's active evaluation record
-  async getAutoAppliedPromotionsFromEvaluation(userId: string): Promise<any[]> {
+  async getAutoAppliedPromotionsFromEvaluation(
+    userId: string,
+    cartSignature?: string
+  ): Promise<any[]> {
     try {
       // Find the user's active evaluation
       const activeEvaluation = await this.prisma.promotion_evaluations.findFirst({
         where: {
           user_id: userId,
-          status: 'active'
+          status: 'active',
+          ...(cartSignature ? { cart_signature: cartSignature } : {})
         },
         orderBy: {
           created_at: 'desc' // Get most recent active evaluation
@@ -1574,10 +1578,23 @@ export class PromotionsService {
     mode: 'phonepe' | 'cod';
     channel?: 'web' | 'mobile' | 'mobile_app';
   }) {
+    const cartSignature = createHash('md5')
+      .update(JSON.stringify(
+        request.cartItems
+          .map(item => ({
+            product_id: String(item.productId),
+            quantity: Number(item.qty),
+            price: Number(item.price)
+          }))
+          .sort((left, right) => left.product_id.localeCompare(right.product_id))
+      ))
+      .digest('hex');
+
     // Check for existing active evaluation to determine promotion states
     const activeEvaluation = await this.prisma.promotion_evaluations.findFirst({
       where: {
         user_id: request.userId,
+        cart_signature: cartSignature,
         status: 'active'
       },
       orderBy: { created_at: 'desc' }
@@ -1824,7 +1841,10 @@ export class PromotionsService {
       });
 
       // Get auto-applied promotions from user's active evaluation record (not live calculation)
-      const autoAppliedFromEvaluation = await this.getAutoAppliedPromotionsFromEvaluation(request.userId);
+      const autoAppliedFromEvaluation = await this.getAutoAppliedPromotionsFromEvaluation(
+        request.userId,
+        cartSignature
+      );
 
       // Fetch full promotion details for auto-applied promotions
       const autoAppliedPromotions = [];
