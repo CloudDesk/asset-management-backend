@@ -18,6 +18,10 @@ import {
 import { normalizePromotionConditionValues } from '../utils/promotionConditions.js';
 import { ValidationError } from '../utils/errorHandler.js';
 import { epochToDate } from '../utils/epochTimestamp.js';
+import {
+  getRetainedManualPromotionCandidates,
+  isPromotionConfiguredAutomatic
+} from '../utils/promotionPolicy.js';
 
 export class PromotionEvaluationService {
   private prisma: PrismaClient;
@@ -1880,6 +1884,8 @@ export class PromotionEvaluationService {
 
       for (const promotion of automaticPromotions) {
         try {
+          if (!isPromotionConfiguredAutomatic(promotion)) continue;
+
           // Check if promotion conditions are met
           const isEligible = await this.checkAutomaticPromotionEligibility(
             promotion, 
@@ -2663,6 +2669,7 @@ console.log(request.cart_items,"request cartItems")
         ip_address?: string;
       };
       cart_signature: string;
+      retain_manual_promotions?: boolean;
     }
   ) {
     const cartTotal = request.cart_items.reduce(
@@ -2684,8 +2691,11 @@ console.log(request.cart_items,"request cartItems")
     // Revalidate retained manual selections against the latest admin config.
     // This is important when per-user limits, audience dates, status, or
     // channel are edited while the shopper still has the same cart signature.
-    for (const appliedPromotion of currentlyApplied) {
-      if (appliedPromotion.is_auto === true) continue;
+    const retainedManualPromotions = getRetainedManualPromotionCandidates<any>(
+      currentlyApplied,
+      request.retain_manual_promotions !== false
+    );
+    for (const appliedPromotion of retainedManualPromotions) {
 
       const promotionId = Number(appliedPromotion.promotion_id);
       if (!Number.isFinite(promotionId) || promotionId <= 0) continue;
@@ -3119,6 +3129,8 @@ console.log(request.cart_items,"request cartItems")
 
     for (const promotion of automaticPromotions) {
       try {
+        if (!isPromotionConfiguredAutomatic(promotion)) continue;
+
         const isEligible = await this.checkAutomaticPromotionEligibility(
           promotion, 
           userId, 

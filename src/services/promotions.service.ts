@@ -18,6 +18,7 @@ import { logger } from '../config/logger.js';
 import { isPromotionChannelEligible } from '../utils/promotionChannel.js';
 import { normalizePromotionConditionValues } from '../utils/promotionConditions.js';
 import { epochToDate, epochToMilliseconds } from '../utils/epochTimestamp.js';
+import { isPromotionUsageExhausted } from '../utils/promotionPolicy.js';
 
 // Configuration constants for user segments
 const USER_SEGMENT_CONFIG = {
@@ -1640,7 +1641,10 @@ export class PromotionsService {
         useAllColumns: true
       });
       const customerId = Number(request.userId);
-      const [customerAssignments, restrictedAssignments] = await Promise.all([
+      const promotionIds = allPromotions
+        .map((promotion: any) => Number(promotion.id))
+        .filter((promotionId: number) => Number.isFinite(promotionId) && promotionId > 0);
+      const [customerAssignments, restrictedAssignments, userRedemptions, campaignRedemptionCounts] = await Promise.all([
         this.prisma.promotion_assignments.findMany({
           where: {
             status: 'active',
@@ -1655,11 +1659,27 @@ export class PromotionsService {
               }
             ]
           },
-          select: { id: true, promotion_id: true, voucher_code: true }
+          select: {
+            id: true,
+            promotion_id: true,
+            assignment_type: true,
+            voucher_code: true,
+            usage_limit: true,
+            used_count: true
+          }
         }),
         this.prisma.promotion_assignments.findMany({
           where: { status: 'active' },
           select: { promotion_id: true }
+        }),
+        this.prisma.promotion_redemptions.findMany({
+          where: { user_id: request.userId },
+          select: { promotion_id: true, assignment_id: true }
+        }),
+        this.prisma.promotion_redemptions.groupBy({
+          by: ['promotion_id'],
+          where: { promotion_id: { in: promotionIds } },
+          _count: { _all: true }
         })
       ]);
       const customerAssignmentByPromotion = new Map(
@@ -1668,6 +1688,28 @@ export class PromotionsService {
       const restrictedPromotionIds = new Set(
         restrictedAssignments.map((assignment) => assignment.promotion_id)
       );
+      const promotionUsageByCustomer = new Map<number, number>();
+      const assignmentUsageByCustomer = new Map<number, number>();
+      for (const redemption of userRedemptions) {
+        if (redemption.promotion_id !== null) {
+          promotionUsageByCustomer.set(
+            redemption.promotion_id,
+            (promotionUsageByCustomer.get(redemption.promotion_id) || 0) + 1
+          );
+        }
+        if (redemption.assignment_id !== null) {
+          assignmentUsageByCustomer.set(
+            redemption.assignment_id,
+            (assignmentUsageByCustomer.get(redemption.assignment_id) || 0) + 1
+          );
+        }
+      }
+      const campaignUsage = new Map<number, number>(
+        campaignRedemptionCounts
+          .filter((redemption) => redemption.promotion_id !== null)
+          .map((redemption) => [redemption.promotion_id as number, redemption._count._all])
+      );
+      const exhaustedPromotionIds = new Set<number>();
       logger.info(allPromotions, "allPromotions")
       logger.info({ totalPromotions: allPromotions.length }, 'Retrieved active promotions');
 
@@ -1687,6 +1729,27 @@ export class PromotionsService {
           if (customerAssignment) {
             promotion.code = customerAssignment.voucher_code;
             promotion.assignment_id = customerAssignment.id;
+          }
+
+          const customerPromotionUsage = promotionUsageByCustomer.get(promotion.id) || 0;
+          const customerAssignmentUsage = customerAssignment
+            ? Math.max(
+                customerAssignment.used_count || 0,
+                assignmentUsageByCustomer.get(customerAssignment.id) || 0
+              )
+            : 0;
+          // Do not advertise an offer the customer or campaign has exhausted.
+          // Apply and checkout validation remain the final concurrency guard.
+          if (isPromotionUsageExhausted({
+            customerPromotionUsage,
+            perCustomerLimit: promotion.per_user_limit,
+            assignmentUsage: customerAssignmentUsage,
+            assignmentLimit: customerAssignment?.usage_limit,
+            campaignUsage: campaignUsage.get(promotion.id) || 0,
+            campaignLimit: promotion.max_redemptions
+          })) {
+            exhaustedPromotionIds.add(promotion.id);
+            continue;
           }
 
           if (!isPromotionChannelEligible(promotion.applicable_channel, request.channel || 'web')) {
@@ -1849,6 +1912,7 @@ export class PromotionsService {
       // Fetch full promotion details for auto-applied promotions
       const autoAppliedPromotions = [];
       for (const evalPromo of autoAppliedFromEvaluation) {
+        if (exhaustedPromotionIds.has(evalPromo.promotion_id)) continue;
         try {
           // Get full promotion details from database
           const fullPromotion = await this.findById(evalPromo.promotion_id.toString());
@@ -1899,7 +1963,11 @@ export class PromotionsService {
         for (const appliedPromo of appliedPromotionDetails) {
           // Find the original promotion data
           const originalPromo = allPromotions.find(p => p.id === appliedPromo.promotion_id);
-          if (originalPromo && !appliedPromo.is_auto) {
+          if (
+            originalPromo &&
+            !appliedPromo.is_auto &&
+            !exhaustedPromotionIds.has(appliedPromo.promotion_id)
+          ) {
             // Add applied manual promotion with state indicator
             const promotionData = this.formatPromotionForDisplay(originalPromo);
             allEligibleForUI.push({
@@ -1955,7 +2023,9 @@ export class PromotionsService {
           evaluation_id: activeEvaluation.evaluation_id,
           original_total: activeEvaluation.original_total,
           discounted_total: activeEvaluation.discounted_total,
-          applied_promotions: appliedPromotionDetails  // ✅ Enhanced applied promotions with new fields
+          applied_promotions: appliedPromotionDetails.filter(
+            (promotion) => !exhaustedPromotionIds.has(promotion.promotion_id)
+          )  // ✅ Enhanced applied promotions with new fields
         } : null,
         summary: {
           totalPromotions: allPromotions.length,
