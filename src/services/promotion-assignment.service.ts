@@ -1,14 +1,24 @@
 import { randomBytes } from 'crypto';
 import { PrismaClient } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 import type {
   CreateCustomerGroupInput,
   CreatePromotionAssignmentInput,
   UpdateCustomerGroupInput,
   UpdatePromotionAssignmentInput
 } from '../schemas/promotion-assignment.schema.js';
+import {
+  getRemainingPromotionUses,
+  hasPromotionAssignmentTargetChanged,
+} from '../utils/promotionPolicy.js';
+
+type AssignmentDatabase = Pick<
+  Prisma.TransactionClient,
+  'promotion_assignments' | 'promotions'
+>;
 
 export class PromotionAssignmentService {
-  private prisma = new PrismaClient();
+  constructor(private readonly prisma: PrismaClient = new PrismaClient()) {}
 
   private readonly assignmentSelect = {
     id: true,
@@ -38,10 +48,14 @@ export class PromotionAssignmentService {
     return value.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
   }
 
-  private async ensureCodeAvailable(code: string, assignmentId?: number): Promise<void> {
+  private async ensureCodeAvailable(
+    code: string,
+    assignmentId?: number,
+    database: AssignmentDatabase = this.prisma
+  ): Promise<void> {
     const [promotion, assignment] = await Promise.all([
-      this.prisma.promotions.findFirst({ where: { code: { equals: code, mode: 'insensitive' } }, select: { id: true } }),
-      this.prisma.promotion_assignments.findFirst({
+      database.promotions.findFirst({ where: { code: { equals: code, mode: 'insensitive' } }, select: { id: true } }),
+      database.promotion_assignments.findFirst({
         where: {
           voucher_code: { equals: code, mode: 'insensitive' },
           ...(assignmentId ? { id: { not: assignmentId } } : {})
@@ -52,17 +66,20 @@ export class PromotionAssignmentService {
     if (promotion || assignment) throw new Error('Voucher code already exists');
   }
 
-  private async generateVoucherCode(prefix: string): Promise<string> {
+  private async generateVoucherCode(
+    prefix: string,
+    database: AssignmentDatabase = this.prisma
+  ): Promise<string> {
     const normalizedPrefix = this.normalizeCode(prefix).slice(0, 30) || 'VOUCHER';
     for (let attempt = 0; attempt < 10; attempt += 1) {
       const suffix = randomBytes(4).toString('hex').toUpperCase();
       const code = `${normalizedPrefix}-${suffix}`;
-      const existing = await this.prisma.promotion_assignments.findUnique({
+      const existing = await database.promotion_assignments.findUnique({
         where: { voucher_code: code },
         select: { id: true }
       });
       if (!existing) {
-        const publicCode = await this.prisma.promotions.findFirst({
+        const publicCode = await database.promotions.findFirst({
           where: { code: { equals: code, mode: 'insensitive' } },
           select: { id: true }
         });
@@ -123,78 +140,160 @@ export class PromotionAssignmentService {
   }
 
   async updateVoucher(assignmentId: number, input: UpdatePromotionAssignmentInput) {
-    const existing = await this.prisma.promotion_assignments.findUnique({
-      where: { id: assignmentId },
-      select: {
-        id: true,
-        assignment_type: true,
-        customer_id: true,
-        customer_group_id: true,
-        voucher_code: true
+    return this.prisma.$transaction(async (database) => {
+      const existing = await database.promotion_assignments.findUnique({
+        where: { id: assignmentId },
+        select: {
+          id: true,
+          promotion_id: true,
+          assignment_type: true,
+          customer_id: true,
+          customer_group_id: true,
+          voucher_code: true,
+          usage_limit: true,
+          start_date: true,
+          end_date: true,
+          status: true,
+          promotion: {
+            select: { name: true, code: true, per_user_limit: true }
+          }
+        }
+      });
+      if (!existing) throw new Error('Promotion voucher not found');
+
+      const nextType = input.assignment_type || existing.assignment_type;
+      const nextCustomerId =
+        nextType === 'customer'
+          ? input.customer_id ?? existing.customer_id
+          : null;
+      const nextGroupId =
+        nextType === 'customer_group'
+          ? input.customer_group_id ?? existing.customer_group_id
+          : null;
+      if (nextType === 'customer' && !nextCustomerId) throw new Error('Customer is required');
+      if (nextType === 'customer_group' && !nextGroupId) throw new Error('Customer group is required');
+
+      if (nextCustomerId) {
+        const customer = await database.users.findUnique({
+          where: { id: nextCustomerId },
+          select: { id: true }
+        });
+        if (!customer) throw new Error('Customer not found');
       }
-    });
-    if (!existing) throw new Error('Promotion voucher not found');
-
-    const nextType = input.assignment_type || existing.assignment_type;
-    const nextCustomerId =
-      nextType === 'customer'
-        ? input.customer_id ?? existing.customer_id
-        : null;
-    const nextGroupId =
-      nextType === 'customer_group'
-        ? input.customer_group_id ?? existing.customer_group_id
-        : null;
-    if (nextType === 'customer' && !nextCustomerId) throw new Error('Customer is required');
-    if (nextType === 'customer_group' && !nextGroupId) throw new Error('Customer group is required');
-
-    const isTargetOrCodeChange =
-      nextType !== existing.assignment_type ||
-      nextCustomerId !== existing.customer_id ||
-      nextGroupId !== existing.customer_group_id ||
-      (input.voucher_code !== undefined &&
-        this.normalizeCode(input.voucher_code) !== existing.voucher_code);
-    if (isTargetOrCodeChange) {
-      const redemptionCount = await this.prisma.promotion_redemptions.count({
-        where: { assignment_id: assignmentId }
-      });
-      if (redemptionCount > 0) {
-        throw new Error('Voucher target or code cannot be changed after redemption');
+      if (nextGroupId) {
+        const group = await database.customer_groups.findUnique({
+          where: { id: nextGroupId },
+          select: { id: true }
+        });
+        if (!group) throw new Error('Customer group not found');
       }
-    }
 
-    if (nextCustomerId) {
-      const customer = await this.prisma.users.findUnique({
-        where: { id: nextCustomerId },
-        select: { id: true }
+      const assignmentTargetChanged = hasPromotionAssignmentTargetChanged(
+        {
+          assignmentType: existing.assignment_type,
+          customerId: existing.customer_id,
+          customerGroupId: existing.customer_group_id,
+        },
+        {
+          assignmentType: nextType,
+          customerId: nextCustomerId,
+          customerGroupId: nextGroupId,
+        }
+      );
+      const codeChanged =
+        input.voucher_code !== undefined &&
+        this.normalizeCode(input.voucher_code) !== existing.voucher_code;
+      const perCustomerLimit =
+        input.usage_limit ?? existing.promotion.per_user_limit ?? existing.usage_limit;
+      const customerTargetChanged =
+        existing.assignment_type === 'customer' &&
+        nextType === 'customer' &&
+        nextCustomerId !== existing.customer_id;
+
+      if (nextCustomerId && (customerTargetChanged || (input.status === 'active' && existing.status !== 'active'))) {
+        const customerPromotionUsage = await database.promotion_redemptions.count({
+          where: {
+            promotion_id: existing.promotion_id,
+            user_id: String(nextCustomerId)
+          }
+        });
+        const remainingUses = getRemainingPromotionUses(
+          perCustomerLimit,
+          customerPromotionUsage
+        );
+        if (remainingUses === 0) {
+          throw new Error(
+            `Customer has reached the promotion usage limit (${customerPromotionUsage}/${perCustomerLimit})`
+          );
+        }
+      }
+
+      if (customerTargetChanged) {
+        const now = BigInt(Date.now());
+        const voucherCode = await this.generateVoucherCode(
+          existing.promotion.code || existing.promotion.name || 'VOUCHER',
+          database
+        );
+
+        await database.promotion_assignments.update({
+          where: { id: existing.id },
+          data: { status: 'inactive', modifieddate: now }
+        });
+
+        return database.promotion_assignments.create({
+          data: {
+            promotion_id: existing.promotion_id,
+            assignment_type: nextType,
+            customer_id: nextCustomerId,
+            customer_group_id: nextGroupId,
+            voucher_code: voucherCode,
+            usage_limit: input.usage_limit ?? existing.usage_limit,
+            start_date:
+              input.start_date !== undefined
+                ? this.toUnixSeconds(input.start_date) ?? null
+                : existing.start_date,
+            end_date:
+              input.end_date !== undefined
+                ? this.toUnixSeconds(input.end_date) ?? null
+                : existing.end_date,
+            status: input.status ?? 'active',
+            createddate: now,
+            modifieddate: now
+          },
+          select: this.assignmentSelect
+        });
+      }
+
+      if ((assignmentTargetChanged && !customerTargetChanged) || codeChanged) {
+        const redemptionCount = await database.promotion_redemptions.count({
+          where: { assignment_id: assignmentId }
+        });
+        if (redemptionCount > 0) {
+          throw new Error('Voucher target or code cannot be changed after redemption');
+        }
+      }
+
+      const data: Prisma.promotion_assignmentsUncheckedUpdateInput = {
+        modifieddate: BigInt(Date.now()),
+        assignment_type: nextType,
+        customer_id: nextCustomerId,
+        customer_group_id: nextGroupId,
+      };
+      if (input.status !== undefined) data.status = input.status;
+      if (input.voucher_code !== undefined) {
+        const code = this.normalizeCode(input.voucher_code);
+        await this.ensureCodeAvailable(code, assignmentId, database);
+        data.voucher_code = code;
+      }
+      if (input.usage_limit !== undefined) data.usage_limit = input.usage_limit;
+      if (input.start_date !== undefined) data.start_date = this.toUnixSeconds(input.start_date) ?? null;
+      if (input.end_date !== undefined) data.end_date = this.toUnixSeconds(input.end_date) ?? null;
+
+      return database.promotion_assignments.update({
+        where: { id: assignmentId },
+        data,
+        select: this.assignmentSelect
       });
-      if (!customer) throw new Error('Customer not found');
-    }
-    if (nextGroupId) {
-      const group = await this.prisma.customer_groups.findUnique({
-        where: { id: nextGroupId },
-        select: { id: true }
-      });
-      if (!group) throw new Error('Customer group not found');
-    }
-
-    const data: any = { modifieddate: BigInt(Date.now()) };
-    if (input.status !== undefined) data.status = input.status;
-    data.assignment_type = nextType;
-    data.customer_id = nextCustomerId;
-    data.customer_group_id = nextGroupId;
-    if (input.voucher_code !== undefined) {
-      const code = this.normalizeCode(input.voucher_code);
-      await this.ensureCodeAvailable(code, assignmentId);
-      data.voucher_code = code;
-    }
-    if (input.usage_limit !== undefined) data.usage_limit = input.usage_limit;
-    if (input.start_date !== undefined) data.start_date = this.toUnixSeconds(input.start_date);
-    if (input.end_date !== undefined) data.end_date = this.toUnixSeconds(input.end_date);
-
-    return this.prisma.promotion_assignments.update({
-      where: { id: assignmentId },
-      data,
-      select: this.assignmentSelect
     });
   }
 
