@@ -103,7 +103,7 @@ export async function returnRequestRoutes(fastify: FastifyInstance) {
     },
   }, controller.getOperationsSummary);
 
-  fastify.get('/evidence-file/*', {
+  const evidenceFileRouteSchema = {
     schema: {
       description: 'Stream a return evidence image, video, or PDF from durable storage/local fallback.',
       tags: ['Returns'],
@@ -112,7 +112,11 @@ export async function returnRequestRoutes(fastify: FastifyInstance) {
         additionalProperties: true,
       },
     },
-  }, controller.getEvidenceFile);
+  };
+
+  fastify.get('/evidence-file/returns/evidence/*', evidenceFileRouteSchema, controller.getEvidenceFile);
+  fastify.get('/evidence-file/uploads/*', evidenceFileRouteSchema, controller.getEvidenceFile);
+  fastify.get('/evidence-file/*', evidenceFileRouteSchema, controller.getEvidenceFile);
 
   fastify.get('/:id/evidence-health', {
     schema: {
@@ -371,7 +375,12 @@ export async function returnRequestRoutes(fastify: FastifyInstance) {
           pickup_location_name: { type: 'string' },
           return_location_name: { type: 'string' },
           invoice_number: { type: 'string' },
-          invoice_date: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' },
+          invoice_date: {
+            anyOf: [
+              { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' },
+              { type: 'string', maxLength: 0 },
+            ],
+          },
           item_description: { type: 'string' },
           return_reason: { type: 'string' },
           length: { type: 'number' },

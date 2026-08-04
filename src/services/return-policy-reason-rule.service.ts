@@ -37,14 +37,36 @@ function hasRequiredEvidence(config: any, evidenceType: string) {
   );
 }
 
+function normalizeEvidenceType(type: string) {
+  const normalized = normalizeCode(type);
+  if (normalized === 'package_photo') return 'product_photo';
+  if (normalized === 'unboxing_video') return 'defect_video';
+  return normalized;
+}
+
 function normalizeEvidenceRules(value: unknown) {
-  return asArray<any>(value)
-    .map((rule) => ({
-      type: normalizeCode(String(rule?.type || '')),
-      required: Boolean(rule?.required),
-      minimum: Number.isFinite(Number(rule?.minimum)) ? Number(rule.minimum) : (rule?.required ? 1 : 0),
-    }))
-    .filter((rule) => rule.type);
+  const byType = new Map<string, { type: string; required: boolean; minimum: number }>();
+
+  asArray<any>(value).forEach((rule) => {
+    const type = normalizeEvidenceType(String(rule?.type || ''));
+    if (!['product_photo', 'defect_video'].includes(type)) {
+      return;
+    }
+
+    const existing = byType.get(type);
+    byType.set(type, {
+      type,
+      required: Boolean(existing?.required || rule?.required),
+      minimum: Math.max(
+        Number(existing?.minimum || 0),
+        Number.isFinite(Number(rule?.minimum)) ? Number(rule.minimum) : (rule?.required ? 1 : 0)
+      ),
+    });
+  });
+
+  return ['product_photo', 'defect_video']
+    .map((type) => byType.get(type))
+    .filter(Boolean) as Array<{ type: string; required: boolean; minimum: number }>;
 }
 
 function normalizePolicyReasonConfiguration(configuration: any, reason: any) {
@@ -75,10 +97,10 @@ function normalizePolicyReasonConfiguration(configuration: any, reason: any) {
     ...(configuration.legacyFields || {}),
     photorequired: hasRequiredEvidence(normalized, 'product_photo'),
     videorequired: hasRequiredEvidence(normalized, 'defect_video'),
-    packagephotorequired: hasRequiredEvidence(normalized, 'package_photo'),
-    packagephotooptional: asArray<any>(normalized.evidence).some((rule) => rule.type === 'package_photo' && !rule.required),
-    unboxingvideorequired: hasRequiredEvidence(normalized, 'unboxing_video'),
-    unboxingvideooptional: asArray<any>(normalized.evidence).some((rule) => rule.type === 'unboxing_video' && !rule.required),
+    packagephotorequired: false,
+    packagephotooptional: false,
+    unboxingvideorequired: false,
+    unboxingvideooptional: false,
     pickuprequired: normalized.pickup.required,
     evidencefirstapproval: normalized.approvalMode === 'evidence_first',
     autocreatepickup: false,
@@ -118,7 +140,7 @@ function assertValidPolicyReasonConfiguration(configuration: any) {
   if (!hasRequiredPhoto) {
     throw new ValidationError(
       'Photo evidence is required',
-      'Every customer-facing policy reason must require at least one product or package photo'
+      'Every customer-facing policy reason must require at least one photo evidence upload'
     );
   }
 

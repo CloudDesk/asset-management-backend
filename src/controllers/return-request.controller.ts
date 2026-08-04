@@ -35,6 +35,18 @@ const getMultipartFieldValue = (field: any, fallback = ''): string => {
 export class ReturnRequestController {
   private returnRequestService = new ReturnRequestService();
 
+  private getEvidenceFilePath(request: FastifyRequest) {
+    const requestPath = String(request.url || '').split('?')[0] || '';
+    const marker = '/evidence-file/';
+    const markerIndex = requestPath.indexOf(marker);
+    if (markerIndex >= 0) {
+      return requestPath.slice(markerIndex + marker.length);
+    }
+
+    const params = request.params as Record<string, string>;
+    return params['*'] || params.objectPath || '';
+  }
+
   getRequests = asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
     const query = returnRequestQuerySchema.parse(request.query || {});
     const { page, limit } = getPaginationParams(request.query as Record<string, unknown>);
@@ -82,8 +94,7 @@ export class ReturnRequestController {
   });
 
   getEvidenceFile = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
-    const params = request.params as Record<string, string>;
-    const evidenceFile = await this.returnRequestService.openEvidenceFile(params['*'] || '');
+    const evidenceFile = await this.returnRequestService.openEvidenceFile(this.getEvidenceFilePath(request));
 
     if (evidenceFile.redirectUrl) {
       return reply.redirect(evidenceFile.redirectUrl);

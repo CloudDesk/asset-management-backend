@@ -256,6 +256,13 @@ function getAttachmentTypes(attachments: ReturnRequestAttachmentInput[]) {
   return new Set(attachments.map((attachment) => attachment.attachmenttype));
 }
 
+function normalizeEvidenceAttachmentType(type: string) {
+  const normalized = normalizeCode(type);
+  if (normalized === 'package_photo') return 'product_photo';
+  if (normalized === 'unboxing_video') return 'defect_video';
+  return normalized;
+}
+
 function toJsonSafe(value: unknown): unknown {
   if (typeof value === 'bigint') {
     return Number(value);
@@ -277,14 +284,36 @@ function toJsonSafe(value: unknown): unknown {
 }
 
 function getEvidenceRules(reasonRule: any): Array<{ type: string; required: boolean; minimum: number }> {
+  const normalizeRules = (rules: Array<{ type: string; required: boolean; minimum: number }>) => {
+    const byType = new Map<string, { type: string; required: boolean; minimum: number }>();
+
+    rules.forEach((rule) => {
+      const type = normalizeEvidenceAttachmentType(rule.type);
+      if (!['product_photo', 'defect_video'].includes(type)) {
+        return;
+      }
+
+      const existing = byType.get(type);
+      byType.set(type, {
+        type,
+        required: Boolean(existing?.required || rule.required),
+        minimum: Math.max(Number(existing?.minimum || 0), Number(rule.minimum || 0)),
+      });
+    });
+
+    return ['product_photo', 'defect_video']
+      .map((type) => byType.get(type))
+      .filter(Boolean) as Array<{ type: string; required: boolean; minimum: number }>;
+  };
+
   if (Array.isArray(reasonRule?.evidencerules) && reasonRule.evidencerules.length > 0) {
-    return reasonRule.evidencerules
+    return normalizeRules(reasonRule.evidencerules
       .map((rule: any) => ({
         type: normalizeCode(String(rule?.type || '')),
         required: Boolean(rule?.required),
         minimum: Number.isFinite(Number(rule?.minimum)) ? Number(rule.minimum) : (rule?.required ? 1 : 0),
       }))
-      .filter((rule: any) => rule.type);
+      .filter((rule: any) => rule.type));
   }
 
   const rules: Array<{ type: string; required: boolean; minimum: number }> = [];
@@ -300,7 +329,7 @@ function getEvidenceRules(reasonRule: any): Array<{ type: string; required: bool
   if (reasonRule?.unboxingvideorequired) {
     rules.push({ type: 'unboxing_video', required: true, minimum: 1 });
   }
-  return rules;
+  return normalizeRules(rules);
 }
 
 function hasRequiredEvidenceRules(reasonRule: any) {
@@ -309,7 +338,7 @@ function hasRequiredEvidenceRules(reasonRule: any) {
 
 function countAttachmentsByType(attachments: Array<{ attachmenttype: string }>) {
   return attachments.reduce<Record<string, number>>((counts, attachment) => {
-    const type = attachment.attachmenttype;
+    const type = normalizeEvidenceAttachmentType(attachment.attachmenttype);
     counts[type] = (counts[type] || 0) + 1;
     return counts;
   }, {});
@@ -1974,7 +2003,7 @@ export class ReturnRequestService {
     this.validateInventoryUser(authUser);
 
     const request = await this.findById(id);
-    this.validateCustomerReturnRequestForAdminDecisionTarget(request, 'refund status update');
+    this.validateCustomerReturnRequestForRefundStatusUpdate(request);
 
     const refundActions = (request.resolutionActions || []).filter((action: any) =>
       REFUND_ACTIONS.has(action.actionType)
@@ -2331,7 +2360,14 @@ export class ReturnRequestService {
 
   private buildEvidenceFileUrl(filePath: string) {
     const apiBaseUrl = process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 5600}`;
-    return `${apiBaseUrl.replace(/\/$/, '')}/v1/returns/evidence-file/${encodeURIComponent(filePath)}`;
+    const encodedPath = filePath
+      .replace(/\\/g, '/')
+      .replace(/^\/+/, '')
+      .split('/')
+      .filter(Boolean)
+      .map(encodeURIComponent)
+      .join('/');
+    return `${apiBaseUrl.replace(/\/$/, '')}/v1/returns/evidence-file/${encodedPath}`;
   }
 
   private async saveEvidenceFileLocally(filePath: string, fileBuffer: Buffer) {
@@ -3656,7 +3692,7 @@ export class ReturnRequestService {
     }
 
     return getEvidenceRules(reasonRule).some(
-      (rule) => rule.type === attachmentType && rule.required && rule.minimum > 0
+      (rule) => rule.type === normalizeEvidenceAttachmentType(attachmentType) && rule.required && rule.minimum > 0
     );
   }
 
@@ -4433,6 +4469,22 @@ export class ReturnRequestService {
     }
   }
 
+  private validateCustomerReturnRequestForRefundStatusUpdate(request: any) {
+    if (request.requesttype === 'rto' || request.source === 'delivery_partner') {
+      throw new ValidationError(
+        'Refund status update is not applicable to RTO',
+        'RTO follows delivery-partner warehouse verification flow'
+      );
+    }
+
+    if (!['refund_pending', 'refund_completed'].includes(request.status)) {
+      throw new ValidationError(
+        'Return request is not in refund flow',
+        `Current status ${request.status} cannot be used for refund status update`
+      );
+    }
+  }
+
   private async getReasonRuleForRequest(request: any) {
     const snapshotRule = this.buildRuntimeReasonRuleFromSnapshot(request);
     if (snapshotRule) {
@@ -4537,11 +4589,12 @@ export class ReturnRequestService {
     await Promise.all(activeAttachments.map(async (attachment: any) => {
       try {
         await this.locateEvidenceFile(attachment.fileurl, false);
-        availableCounts[attachment.attachmenttype] = (availableCounts[attachment.attachmenttype] || 0) + 1;
+        const evidenceType = normalizeEvidenceAttachmentType(attachment.attachmenttype);
+        availableCounts[evidenceType] = (availableCounts[evidenceType] || 0) + 1;
       } catch (error: any) {
         unavailableAttachments.push({
           id: attachment.id,
-          type: attachment.attachmenttype,
+          type: normalizeEvidenceAttachmentType(attachment.attachmenttype),
           message: error?.message || 'Evidence file was not reachable',
         });
       }

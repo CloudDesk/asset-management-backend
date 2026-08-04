@@ -28,6 +28,17 @@ export const attachmentTypeSchema = z.enum([
   'other',
 ]);
 
+const optionalTrimmedString = (maxLength: number) =>
+  z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z.string().trim().max(maxLength).optional()
+  );
+
+const optionalDateString = z.preprocess(
+  (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+  z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, 'invoice_date must be in YYYY-MM-DD format').optional()
+);
+
 const evidenceRuleSchema = z.object({
   type: attachmentTypeSchema,
   required: z.coerce.boolean().default(false),
@@ -156,18 +167,18 @@ export const preparePickupSchema = z.object({
   logistics_provider_source: z.enum(['original_forward_provider', 'configured_provider', 'manual', 'undecided']).default('undecided'),
   reverse_shipping_charge_bearer: z.literal('nivaana').optional().default('nivaana'),
   reverse_shipping_charge_adjustment: z.literal('none').optional().default('none'),
-  reverse_shipment_tracking_id: z.string().trim().max(500).optional(),
-  reverse_shipment_provider: z.string().trim().max(100).optional(),
-  seller_name: z.string().trim().max(255).optional(),
-  seller_address: z.string().trim().max(1000).optional(),
-  seller_gst_tin: z.string().trim().max(50).optional(),
-  seller_location_alias: z.string().trim().max(100).optional(),
-  pickup_location_name: z.string().trim().max(100).optional(),
-  return_location_name: z.string().trim().max(100).optional(),
-  invoice_number: z.string().trim().max(100).optional(),
-  invoice_date: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, 'invoice_date must be in YYYY-MM-DD format').optional(),
-  item_description: z.string().trim().max(500).optional(),
-  return_reason: z.string().trim().max(255).optional(),
+  reverse_shipment_tracking_id: optionalTrimmedString(500),
+  reverse_shipment_provider: optionalTrimmedString(100),
+  seller_name: optionalTrimmedString(255),
+  seller_address: optionalTrimmedString(1000),
+  seller_gst_tin: optionalTrimmedString(50),
+  seller_location_alias: optionalTrimmedString(100),
+  pickup_location_name: optionalTrimmedString(100),
+  return_location_name: optionalTrimmedString(100),
+  invoice_number: optionalTrimmedString(100),
+  invoice_date: optionalDateString,
+  item_description: optionalTrimmedString(500),
+  return_reason: optionalTrimmedString(255),
   length: z.coerce.number().positive().optional(),
   width: z.coerce.number().positive().optional(),
   height: z.coerce.number().positive().optional(),

@@ -94,7 +94,7 @@ const policyReasonConfigurationBodySchema = {
         },
         stockUnavailableResolution: {
           type: 'string',
-          enum: ['replacement', 'refund', 'partial_refund', 'ship_missing_item', 'complete_return'],
+          enum: ['replacement', 'refund', 'partial_refund', 'ship_missing_item', 'complete_return', null],
           nullable: true,
         },
         notifyCustomerOnStockFallback: { type: 'boolean' },
