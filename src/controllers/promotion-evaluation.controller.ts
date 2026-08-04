@@ -239,16 +239,17 @@ export class PromotionEvaluationController {
           user_id,
           cart_items,
           context,
-          cart_signature: cartSignature
+          cart_signature: cartSignature,
+          retain_manual_promotions: true
         }
       );
       const response = createSuccessResponse('Automatic promotions refreshed', refreshedEvaluation);
       return reply.code(200).send(response);
     }
 
-    // A quantity change creates a new signature, but it is still the same
-    // shopper cart. Refresh the latest evaluation so eligible manual choices
-    // survive and are recalculated instead of being cancelled and discarded.
+    // A cart change creates a new signature. Reuse the evaluation record, but
+    // drop manual choices so only explicitly automatic promotions can apply to
+    // the changed cart without a fresh customer action.
     const latestEvaluation = await this.evaluationService.findLatestActiveEvaluationForUser(
       user_id,
       context.channel
@@ -260,7 +261,8 @@ export class PromotionEvaluationController {
           user_id,
           cart_items,
           context,
-          cart_signature: cartSignature
+          cart_signature: cartSignature,
+          retain_manual_promotions: false
         }
       );
       const response = createSuccessResponse(
