@@ -10,6 +10,24 @@ import type {
 export class PromotionAssignmentService {
   private prisma = new PrismaClient();
 
+  private readonly assignmentSelect = {
+    id: true,
+    promotion_id: true,
+    assignment_type: true,
+    customer_id: true,
+    customer_group_id: true,
+    voucher_code: true,
+    usage_limit: true,
+    used_count: true,
+    start_date: true,
+    end_date: true,
+    status: true,
+    createddate: true,
+    modifieddate: true,
+    customer: { select: { id: true, firstname: true, lastname: true, useremail: true } },
+    customer_group: { select: { id: true, name: true, code: true } }
+  } as const;
+
   private toUnixSeconds(value?: string | null): bigint | null | undefined {
     if (value === undefined) return undefined;
     if (value === null) return null;
@@ -64,7 +82,7 @@ export class PromotionAssignmentService {
     if (input.assignment_type === 'customer') {
       const customer = await this.prisma.users.findUnique({ where: { id: input.customer_id! } });
       if (!customer) throw new Error('Customer not found');
-    } else {
+    } else if (input.assignment_type === 'customer_group') {
       const group = await this.prisma.customer_groups.findUnique({ where: { id: input.customer_group_id! } });
       if (!group) throw new Error('Customer group not found');
     }
@@ -92,27 +110,28 @@ export class PromotionAssignmentService {
 
     return this.prisma.promotion_assignments.create({
       data: assignmentData,
-      include: {
-        customer: { select: { id: true, firstname: true, lastname: true, useremail: true } },
-        customer_group: { select: { id: true, name: true, code: true } }
-      }
+      select: this.assignmentSelect
     });
   }
 
   async listVouchers(promotionId: number) {
     return this.prisma.promotion_assignments.findMany({
       where: { promotion_id: promotionId },
-      include: {
-        customer: { select: { id: true, firstname: true, lastname: true, useremail: true } },
-        customer_group: { select: { id: true, name: true, code: true } }
-      },
+      select: this.assignmentSelect,
       orderBy: { id: 'desc' }
     });
   }
 
   async updateVoucher(assignmentId: number, input: UpdatePromotionAssignmentInput) {
     const existing = await this.prisma.promotion_assignments.findUnique({
-      where: { id: assignmentId }
+      where: { id: assignmentId },
+      select: {
+        id: true,
+        assignment_type: true,
+        customer_id: true,
+        customer_group_id: true,
+        voucher_code: true
+      }
     });
     if (!existing) throw new Error('Promotion voucher not found');
 
@@ -175,10 +194,7 @@ export class PromotionAssignmentService {
     return this.prisma.promotion_assignments.update({
       where: { id: assignmentId },
       data,
-      include: {
-        customer: { select: { id: true, firstname: true, lastname: true, useremail: true } },
-        customer_group: { select: { id: true, name: true, code: true } }
-      }
+      select: this.assignmentSelect
     });
   }
 

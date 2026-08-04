@@ -245,6 +245,31 @@ export class PromotionEvaluationController {
       const response = createSuccessResponse('Automatic promotions refreshed', refreshedEvaluation);
       return reply.code(200).send(response);
     }
+
+    // A quantity change creates a new signature, but it is still the same
+    // shopper cart. Refresh the latest evaluation so eligible manual choices
+    // survive and are recalculated instead of being cancelled and discarded.
+    const latestEvaluation = await this.evaluationService.findLatestActiveEvaluationForUser(
+      user_id,
+      context.channel
+    );
+    if (latestEvaluation) {
+      const refreshedEvaluation = await this.evaluationService.refreshAutomaticEvaluation(
+        latestEvaluation,
+        {
+          user_id,
+          cart_items,
+          context,
+          cart_signature: cartSignature
+        }
+      );
+      const response = createSuccessResponse(
+        'Promotions refreshed for updated cart',
+        refreshedEvaluation
+      );
+      return reply.code(200).send(response);
+    }
+
     // Create new evaluation with automatic promotions
     const result = await this.evaluationService.createAutomaticEvaluation({
       user_id,

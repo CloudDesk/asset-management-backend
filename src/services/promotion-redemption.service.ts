@@ -170,6 +170,13 @@ export class PromotionRedemptionService {
           });
           if (!membership) throw new Error('CUSTOMER_GROUP_NOT_ELIGIBLE');
         }
+        if (
+          assignment.assignment_type === 'anyone' &&
+          assignment.claimed_by_customer_id &&
+          assignment.claimed_by_customer_id !== Number(userId)
+        ) {
+          throw new Error('VOUCHER_CLAIMED_BY_ANOTHER_CUSTOMER');
+        }
         if (assignment.usage_limit) {
           const assignmentUsage = await database.promotion_redemptions.count({
             where: { assignment_id: assignment.id }
@@ -235,10 +242,35 @@ export class PromotionRedemptionService {
         });
 
         if (promotion.assignment_id) {
-          await database.promotion_assignments.update({
+          const assignment = await database.promotion_assignments.findUnique({
             where: { id: promotion.assignment_id },
-            data: { used_count: { increment: 1 }, modifieddate: nowUtc }
+            select: { assignment_type: true, claimed_by_customer_id: true }
           });
+          if (!assignment) throw new Error('VOUCHER_NOT_ACTIVE');
+
+          if (assignment.assignment_type === 'anyone') {
+            const claimed = await database.promotion_assignments.updateMany({
+              where: {
+                id: promotion.assignment_id,
+                OR: [
+                  { claimed_by_customer_id: null },
+                  { claimed_by_customer_id: Number(request.user_id) }
+                ]
+              },
+              data: {
+                claimed_by_customer_id: Number(request.user_id),
+                claimed_at: nowUtc,
+                used_count: { increment: 1 },
+                modifieddate: nowUtc
+              }
+            });
+            if (claimed.count !== 1) throw new Error('VOUCHER_CLAIMED_BY_ANOTHER_CUSTOMER');
+          } else {
+            await database.promotion_assignments.update({
+              where: { id: promotion.assignment_id },
+              data: { used_count: { increment: 1 }, modifieddate: nowUtc }
+            });
+          }
         }
 
       redemptionDetails.push({

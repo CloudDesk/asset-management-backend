@@ -8,78 +8,77 @@ datasource db {
 }
 
 model Product {
-  id                   BigInt      @id @default(autoincrement())
-  name                 String      @db.VarChar(1516)
-  shortdescription     String?
-  fulldescription      String?
-  puc                  String      @unique @db.VarChar(255)
-  category             String?     @db.VarChar(255)
-  subcategory          String?     @db.VarChar(255)
-  subsubcategory       String?     @db.VarChar(255)
-  fragnancetype        String?     @db.VarChar(255)
-  large                String[]
-  medium               String[]
-  small                String[]
-  brand                String?     @db.VarChar(255)
-  pack                 String?     @db.VarChar(255)
-  searchtext           Unsupported("tsvector")?
-  isdealoftheday        Boolean     @default(false)
+  id               BigInt                   @id @default(autoincrement())
+  name             String                   @db.VarChar(500)
+  shortdescription String?
+  fulldescription  String?
+  puc              String                   @unique @db.VarChar(255)
+  category         String?                  @db.VarChar(255)
+  subcategory      String?                  @db.VarChar(255)
+  subsubcategory   String?                  @db.VarChar(255)
+  fragnancetype    String?                  @db.VarChar(255)
+  large            String[]
+  medium           String[]
+  small            String[]
+  brand            String?                  @db.VarChar(255)
+  pack             String?                  @db.VarChar(255)
+  searchtext       Unsupported("tsvector")?
+  isdealoftheday   Boolean                  @default(false)
 
-  averagerating        Decimal?    @db.Decimal(2, 1)
-  discount             Int?
-  price                Decimal?    @db.Decimal(10, 2)
-  createddate          BigInt?
-  modifieddate         BigInt?
+  averagerating Decimal? @db.Decimal(2, 1)
+  discount      Int?
+  price         Decimal? @db.Decimal(10, 2)
+  createddate   BigInt?
+  modifieddate  BigInt?
 
-  quantity             Int?
-  orderedquantity      Int?
-  soldquantity         Int?
-  availablequantity    Int?
+  quantity              Int?
+  orderedquantity       Int?
+  soldquantity          Int?
+  availablequantity     Int?
   ecompublishedquantity Int?
-  productstatus        String?     @db.VarChar(255)
+  productstatus         String? @db.VarChar(255)
 
   // Additional Product Information
-  material             String?     @db.VarChar(255)
-  itemlength           String?     @db.VarChar(255)
-  manufacturer         String?     @db.VarChar(255)
-  netform              String?     @db.VarChar(255)
-  netquantity          String?     @db.VarChar(255)
-  numberofitems        Int?
-  itemthickness        String?     @db.VarChar(255)
+  material      String? @db.VarChar(255)
+  itemlength    String? @db.VarChar(255)
+  manufacturer  String? @db.VarChar(255)
+  netform       String? @db.VarChar(255)
+  netquantity   String? @db.VarChar(255)
+  numberofitems Int?
+  itemthickness String? @db.VarChar(255)
 
-  purpose              String?     @db.VarChar(255)
-  burntime             String?     @db.VarChar(255)
-  power                String?     @db.VarChar(255)
-  usage                String?     @db.VarChar(255)
-  longevity            String?     @db.VarChar(255)
-  gender               String?     @db.VarChar(50)
-  remarks              String?     @db.VarChar(1000)
-  iscombo    Boolean?  @default(false)
-  combotype  String?   @default("fixed") @db.VarChar(50)
-  
+  purpose   String?  @db.VarChar(255)
+  burntime  String?  @db.VarChar(255)
+  power     String?  @db.VarChar(255)
+  usage     String?  @db.VarChar(255)
+  longevity String?  @db.VarChar(255)
+  gender    String?  @db.VarChar(50)
+  remarks   String?  @db.VarChar(255)
+  iscombo   Boolean? @default(false)
+  combotype String?  @default("fixed") @db.VarChar(50)
 
-  platformStocks       PlatformStock[]
-  orderline             orderline[]
-  stock                 Stock[]
-  rating                rating[]
-  bundleproducts        ProductBundleMap[] @relation("BundleProducts")
-  componentproducts     ProductBundleMap[] @relation("ComponentProducts")
+  platformStocks    PlatformStock[]
+  orderline         orderline[]
+  stock             Stock[]
+  rating            rating[]
+  bundleproducts    ProductBundleMap[] @relation("BundleProducts")
+  componentproducts ProductBundleMap[] @relation("ComponentProducts")
 
   @@map("product")
 }
 
 model ProductBundleMap {
-  id                  BigInt   @id @default(autoincrement()) @db.BigInt
-  bundleproductid     BigInt   @db.BigInt
-  componentproductid  BigInt   @db.BigInt
-  requiredqty         Int      @default(1)
-  isactive            Boolean  @default(true)
-  createddate         BigInt?
-  modifieddate        BigInt?
+  id                 BigInt  @id @default(autoincrement()) @db.BigInt
+  bundleproductid    BigInt  @db.BigInt
+  componentproductid BigInt  @db.BigInt
+  requiredqty        Int     @default(1)
+  isactive           Boolean @default(true)
+  createddate        BigInt?
+  modifieddate       BigInt?
 
   // Relations
-  bundleproduct       Product  @relation("BundleProducts", fields: [bundleproductid], references: [id], onDelete: Cascade)
-  componentproduct    Product  @relation("ComponentProducts", fields: [componentproductid], references: [id], onDelete: Restrict)
+  bundleproduct    Product @relation("BundleProducts", fields: [bundleproductid], references: [id], onDelete: Cascade)
+  componentproduct Product @relation("ComponentProducts", fields: [componentproductid], references: [id], onDelete: Restrict)
 
   @@unique([bundleproductid, componentproductid], name: "unique_bundle_component")
   @@index([bundleproductid])
@@ -87,114 +86,106 @@ model ProductBundleMap {
   @@map("productbundlemap")
 }
 
-
 model PlatformStock {
-  id            BigInt   @id @default(autoincrement())
-  platform      String   @db.VarChar(100) // e.g. amazon, flipkart, nivapp
-  availableqty  Int      @default(0)
-  orderedqty    Int      @default(0)
-  soldqty       Int      @default(0)
-  totalqty      Int      @default(0)
-  ecomqty       Int      @default(0) // E-commerce published quantity (available AND ecompublish=true)
-  lockqty       Int?     @default(0) // Add this for NIVAPP cart locking
-  createddate   BigInt?
-  modifieddate  BigInt?
-  productid     BigInt
-  platformstatus        String?     @db.VarChar(255)
+  id             BigInt  @id @default(autoincrement())
+  platform       String  @db.VarChar(100) // e.g. amazon, flipkart, nivapp
+  availableqty   Int     @default(0)
+  orderedqty     Int     @default(0)
+  soldqty        Int     @default(0)
+  totalqty       Int     @default(0)
+  ecomqty        Int     @default(0) // E-commerce published quantity (available AND ecompublish=true)
+  lockqty        Int?    @default(0) // Add this for NIVAPP cart locking
+  createddate    BigInt?
+  modifieddate   BigInt?
+  productid      BigInt
+  platformstatus String? @db.VarChar(255)
   // Relations
-  product       Product  @relation(fields: [productid], references: [id], onDelete: Cascade)
+  product        Product @relation(fields: [productid], references: [id], onDelete: Cascade)
 
   @@unique([productid, platform])
   @@map("platformstock")
 }
 
-
-
 model Stock {
-  id                   BigInt      @id @default(autoincrement())
+  id                   BigInt                   @id @default(autoincrement())
   puc                  String
-  platform             String      @db.VarChar(100) // amazon, flipkart, nivapp
+  platform             String                   @db.VarChar(100) // amazon, flipkart, nivapp
   manufacturedyear     BigInt?
   releaseyear          BigInt?
-  isdeleted            Boolean?    @default(false)
-  isarchive            Boolean?    @default(false)
-  removefromrecyclebin Boolean?    @default(false)
-  ecompublish          Boolean?    @default(false)
+  isdeleted            Boolean?                 @default(false)
+  isarchive            Boolean?                 @default(false)
+  removefromrecyclebin Boolean?                 @default(false)
+  ecompublish          Boolean?                 @default(false)
   solddate             BigInt?
-  orderlinenumber      String?     @db.VarChar(500)
+  orderlinenumber      String?                  @db.VarChar(500)
   searchtext           Unsupported("tsvector")?
-  stockstatus          String      @default("available") @db.VarChar(500) // Available, Sold
-  serialnumber         String?     @db.VarChar(500)
-  sku                  String      @unique @db.VarChar(255)
+  stockstatus          String                   @default("available") @db.VarChar(500) // Available, Sold
+  serialnumber         String?                  @db.VarChar(500)
+  sku                  String                   @unique @db.VarChar(255)
   createddate          BigInt?
   modifieddate         BigInt?
   poid                 Int?
   supplierid           Int?
-  batchno              String?     @db.VarChar(255)
-  orderid              String?     @db.VarChar(500)
+  batchno              String?                  @db.VarChar(255)
+  orderid              String?                  @db.VarChar(500)
   platformhistory      Json?
-  rfid                 String?     @db.VarChar(500)
+  rfid                 String?                  @db.VarChar(500)
   rfidscannedtime      BigInt?
-  description          String?  // Added via: ALTER TABLE stock ADD COLUMN description TEXT;
+  description          String? // Added via: ALTER TABLE stock ADD COLUMN description TEXT;
 
   // Relations
-  product              Product?    @relation(fields: [puc], references: [puc], onDelete: Cascade, onUpdate: NoAction, map: "fk_puc")
-  orderline            orderline?  @relation(fields: [orderlinenumber], references: [orderlinenumber], onDelete: NoAction, onUpdate: NoAction, map: "fk_orderlinenumber")
-  orders               orders?     @relation(fields: [orderid], references: [orderid], onDelete: NoAction, onUpdate: NoAction, map: "stock_orderid_fkey")
-  po                   PurchaseOrder? @relation(fields: [poid], references: [id])
-  supplier             Supplier?      @relation(fields: [supplierid], references: [id])
-  
+  product   Product?       @relation(fields: [puc], references: [puc], onDelete: Cascade, onUpdate: NoAction, map: "fk_puc")
+  orderline orderline?     @relation(fields: [orderlinenumber], references: [orderlinenumber], onDelete: NoAction, onUpdate: NoAction, map: "fk_orderlinenumber")
+  orders    orders?        @relation(fields: [orderid], references: [orderid], onDelete: NoAction, onUpdate: NoAction, map: "stock_orderid_fkey")
+  po        PurchaseOrder? @relation(fields: [poid], references: [id])
+  supplier  Supplier?      @relation(fields: [supplierid], references: [id])
+
   @@index([sku], map: "idx_stock_sku")
- @@index([platform], map: "idx_stock_platform")
+  @@index([platform], map: "idx_stock_platform")
   @@index([createddate], map: "idx_stock_createddate")
   @@index([id], map: "idx_stock_id")
   @@index([puc], map: "idx_stock_puc")
   @@index([stockstatus], map: "idx_stock_stockstatus")
-
   @@map("stock")
 }
 
-
-
 model Picklist {
-  id                  Int     @id @default(autoincrement())
-  label               String? @db.VarChar(255)
-  value               String? @db.VarChar(255)
-  object              String? @db.VarChar(255)
-  controlledvalue     String? @db.VarChar(255)
-  fieldname           String? @db.VarChar(255)
-  controlledlabel     String? @db.VarChar(255)
-  controlledfieldname String? @db.VarChar(255)
-  parent              String? @db.VarChar(255)
-  description         String? @db.VarChar(255)
+  id                  Int      @id @default(autoincrement())
+  label               String?  @db.VarChar(255)
+  value               String?  @db.VarChar(255)
+  object              String?  @db.VarChar(255)
+  controlledvalue     String?  @db.VarChar(255)
+  fieldname           String?  @db.VarChar(255)
+  controlledlabel     String?  @db.VarChar(255)
+  controlledfieldname String?  @db.VarChar(255)
+  parent              String?  @db.VarChar(255)
+  description         String?  @db.VarChar(255)
   sortorder           Int?
   isactive            Boolean? @default(true)
-  createddate          BigInt?
-  modifieddate         BigInt?
+  createddate         BigInt?
+  modifieddate        BigInt?
 
   gstHsnMappingsAsSubcategory    GstHsnMapping[] @relation("SubcategoryMapping")
   gstHsnMappingsAsSubsubcategory GstHsnMapping[] @relation("SubsubcategoryMapping")
   categoryImage                  CategoryImage?
-  
+
   @@map("picklist")
 }
 
-
-
 model CategoryImage {
-  id           Int      @id @default(autoincrement())
-  picklistid   Int      @unique
-  imageurl     String   @db.Text
-  objectkey    String   @db.Text
-  thumbnailurl String?  @db.Text
-  thumbnailkey String?  @db.Text
-  bucket       String   @db.VarChar(255)
-  alttext      String?  @db.VarChar(255)
+  id           Int     @id @default(autoincrement())
+  picklistid   Int     @unique
+  imageurl     String  @db.Text
+  objectkey    String  @db.Text
+  thumbnailurl String? @db.Text
+  thumbnailkey String? @db.Text
+  bucket       String  @db.VarChar(255)
+  alttext      String? @db.VarChar(255)
   width        Int?
   height       Int?
   filesize     Int?
-  mimetype     String?  @db.VarChar(100)
-  isactive     Boolean  @default(true)
+  mimetype     String? @db.VarChar(100)
+  isactive     Boolean @default(true)
   createdby    Int?
   modifiedby   Int?
   createddate  BigInt?
@@ -205,8 +196,6 @@ model CategoryImage {
   @@index([isactive], map: "idx_category_images_isactive")
   @@map("category_images")
 }
-
-
 
 model PicklistBackup {
   backup_id           Int      @id @default(autoincrement())
@@ -228,23 +217,22 @@ model PicklistBackup {
   @@map("picklist_backup")
 }
 
-
 model GstHsnMapping {
-  id                  Int      @id @default(autoincrement())
-  subcategory_id      Int?
-  subcategory_value   String?  @db.VarChar(255)
-  subsubcategory_id   Int?
-  subsubcategory_value String? @db.VarChar(255)
-  hsn_code            String   @db.VarChar(50)
-  gst_rate            Decimal  @db.Decimal(5, 2)  // e.g., 5.00, 18.00
-  description         String?  @db.Text
-  isactive            Boolean? @default(true)
-  createddate         BigInt?
-  modifieddate        BigInt?
-  
-  subcategory         Picklist? @relation("SubcategoryMapping", fields: [subcategory_id], references: [id], onDelete: SetNull)
-  subsubcategory      Picklist? @relation("SubsubcategoryMapping", fields: [subsubcategory_id], references: [id], onDelete: SetNull)
-  
+  id                   Int      @id @default(autoincrement())
+  subcategory_id       Int?
+  subcategory_value    String?  @db.VarChar(255)
+  subsubcategory_id    Int?
+  subsubcategory_value String?  @db.VarChar(255)
+  hsn_code             String   @db.VarChar(50)
+  gst_rate             Decimal  @db.Decimal(5, 2) // e.g., 5.00, 18.00
+  description          String?  @db.Text
+  isactive             Boolean? @default(true)
+  createddate          BigInt?
+  modifieddate         BigInt?
+
+  subcategory    Picklist? @relation("SubcategoryMapping", fields: [subcategory_id], references: [id], onDelete: SetNull)
+  subsubcategory Picklist? @relation("SubsubcategoryMapping", fields: [subsubcategory_id], references: [id], onDelete: SetNull)
+
   // Note: Unique constraints handled via partial indexes in SQL (see SQL schema above)
   // Prisma doesn't support partial unique indexes directly, so we'll handle uniqueness in application logic
   @@index([subcategory_value])
@@ -254,9 +242,6 @@ model GstHsnMapping {
   @@index([isactive])
   @@map("gst_hsn_mapping")
 }
-
-
-
 
 model Supplier {
   id                  Int               @id @default(autoincrement())
@@ -328,7 +313,8 @@ model PurchaseOrder {
   poinvoice           poinvoice[]
   purchaserequest     PurchaseRequest? @relation(fields: [prnumber], references: [prnumber], onDelete: Cascade, onUpdate: NoAction, map: "fk_prnumber_purchaseorder")
   supplier            Supplier?        @relation(fields: [supplierid], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_supplierid_purchaseorder_supplier")
-  stocks    Stock[]
+  stocks              Stock[]
+
   @@map("purchaseorder")
 }
 
@@ -405,13 +391,13 @@ model inventoryusers {
   // sessiontoken removed - session management now handled by auth_sessions table
   resettoken        String? @db.VarChar(255)
   resettokenexpires BigInt?
-  
+
   // ADD THIS: One inventory user has one role (one-to-many relationship)
-  roleid           Int?        // Foreign key to roles.id
-  rolerelation     role?       @relation(fields: [roleid], references: [id], onDelete: SetNull)
-  
+  roleid       Int? // Foreign key to roles.id
+  rolerelation role? @relation(fields: [roleid], references: [id], onDelete: SetNull)
+
   // Note: amazonConnections relation removed - using userType field instead
-  
+
   @@index([roleid])
 }
 
@@ -452,131 +438,131 @@ model notes {
 }
 
 model orderline {
-  id              Int       @id @default(autoincrement())
-  orderid         Int  
-  orderlinenumber String?   @unique(map: "unique_orderlinenumber") @db.VarChar(500)
-  productid       BigInt?
-  quantity        Int?
-  createddate     BigInt?
-  modifieddate    BigInt?
-  userid          Int?
-  addressid       Int?
-  productamount   Decimal?  @db.Decimal(10,2)
-  discountamount  Decimal?  @db.Decimal(10,2)
-  orderamount     Decimal?  @db.Decimal(10,2)
-  merchanttransactionid String? @db.VarChar(500)
-  productname     String?   @db.VarChar(500)
-  productcategory String?   @db.VarChar(500)
-  productcolour   String?   @db.VarChar(500)
-  readytodispatchdate BigInt?
-  delivereddate   BigInt?
-  cancelleddate   BigInt?
-  returneddate    BigInt?
-  orderstatus     String?   @db.VarChar(500)
-  uniqueordderid  String?   @db.VarChar(500)
-  deliveryfrom    String?   @db.VarChar(500)
-  location        String?   @db.VarChar(500)
-  dispatcheddate  BigInt?
-  ordereddate     BigInt?
-  paymentfaileddate BigInt?
-  evaluation_id   String?   @db.VarChar(36)
-  original_price  Decimal?  @db.Decimal(10,2)
-  product_discount_amount  Decimal? @db.Decimal(10,2) @default(0)
-  promotion_discount_amount Decimal? @db.Decimal(10,2) @default(0)
-  shipping_cost            Decimal? @db.Decimal(10,2) @default(0)
+  id                        Int      @id @default(autoincrement())
+  orderid                   Int
+  orderlinenumber           String?  @unique(map: "unique_orderlinenumber") @db.VarChar(500)
+  productid                 BigInt?
+  quantity                  Int?
+  createddate               BigInt?
+  modifieddate              BigInt?
+  userid                    Int?
+  addressid                 Int?
+  productamount             Decimal? @db.Decimal(10, 2)
+  discountamount            Decimal? @db.Decimal(10, 2)
+  orderamount               Decimal? @db.Decimal(10, 2)
+  merchanttransactionid     String?  @db.VarChar(500)
+  productname               String?  @db.VarChar(500)
+  productcategory           String?  @db.VarChar(500)
+  productcolour             String?  @db.VarChar(500)
+  readytodispatchdate       BigInt?
+  delivereddate             BigInt?
+  cancelleddate             BigInt?
+  returneddate              BigInt?
+  orderstatus               String?  @db.VarChar(500)
+  uniqueordderid            String?  @db.VarChar(500)
+  deliveryfrom              String?  @db.VarChar(500)
+  location                  String?  @db.VarChar(500)
+  dispatcheddate            BigInt?
+  ordereddate               BigInt?
+  paymentfaileddate         BigInt?
+  evaluation_id             String?  @db.VarChar(36)
+  original_price            Decimal? @db.Decimal(10, 2)
+  product_discount_amount   Decimal? @default(0) @db.Decimal(10, 2)
+  promotion_discount_amount Decimal? @default(0) @db.Decimal(10, 2)
+  shipping_cost             Decimal? @default(0) @db.Decimal(10, 2)
   // EKART Shipment Information (shared with order)
-  
-  hsn_code                String?   @db.VarChar(50)
-  gst_rate                Decimal?  @db.Decimal(5, 2)   // e.g., 5.00, 18.00
-  taxable_amount          Decimal?  @db.Decimal(10, 2)  // orderamount / (1 + gst_rate/100)
-  cgst_amount             Decimal?  @db.Decimal(10, 2)  // if same state
-  sgst_amount             Decimal?  @db.Decimal(10, 2)  // if same state
-  igst_amount             Decimal?  @db.Decimal(10, 2)  // if different state
-  total_gst_amount        Decimal?  @db.Decimal(10, 2)  // cgst + sgst OR igst
 
-  tracking_id             String?   @db.VarChar(500)
-  shipdate                BigInt?
-  status_history          Json?     // Array of status change history entries
-  address         address?  @relation(fields: [addressid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  product         Product?  @relation(fields: [productid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users           users?    @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  rating          rating[]
-  stock           Stock[]
-  tickets         tickets[] @ignore
-  orders          orders?   @relation(fields: [orderid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  hsn_code         String?  @db.VarChar(50)
+  gst_rate         Decimal? @db.Decimal(5, 2) // e.g., 5.00, 18.00
+  taxable_amount   Decimal? @db.Decimal(10, 2) // orderamount / (1 + gst_rate/100)
+  cgst_amount      Decimal? @db.Decimal(10, 2) // if same state
+  sgst_amount      Decimal? @db.Decimal(10, 2) // if same state
+  igst_amount      Decimal? @db.Decimal(10, 2) // if different state
+  total_gst_amount Decimal? @db.Decimal(10, 2) // cgst + sgst OR igst
+
+  tracking_id    String?   @db.VarChar(500)
+  shipdate       BigInt?
+  status_history Json? // Array of status change history entries
+  address        address?  @relation(fields: [addressid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  product        Product?  @relation(fields: [productid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users          users?    @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  rating         rating[]
+  stock          Stock[]
+  tickets        tickets[] @ignore
+  orders         orders?   @relation(fields: [orderid], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("orderline")
 }
 
 model orders {
-  id                    Int                      @id @default(autoincrement())
-  userid                Int?
-  addressid             Int?
-  createddate           BigInt?
-  modifieddate          BigInt?
-  orderamount           Decimal?                 @db.Decimal
-  orderid               String?                  @unique(map: "uniq_orderid") @db.VarChar(500)
-  orderstatus           String?                  @db.VarChar(500)
-  delivereddate         BigInt?
-  cancelleddate         BigInt?
-  returneddate          BigInt?
-  quantity              Int?
-  transactionid         String?                  @db.VarChar(500)
-  readytodispatchdate   BigInt?
-  dispatcheddate        BigInt?
-  productamount         Decimal?                 @db.Decimal
-  discountamount        Decimal?                 @db.Decimal
-  deliveryfrom          String?                  @db.VarChar(200)
-  orderprocessingtime   BigInt?
-  ispaymentsucceed      Boolean?                 @default(false)
-  merchanttransactionid String?                  @unique(map: "uniq_orders_merchanttransactionid") @db.VarChar(250)
-  productid             Int[]
-  evaluation_id         String?                   @db.VarChar(36) @unique
-  promotion_discount_total    Decimal?            @db.Decimal(10,2) @default(0) // order-level + item-level promo discounts
-  original_total        Decimal?                  @db.Decimal(10,2)   // subtotal of items before any discount
-  shipping_cost         Decimal?                  @db.Decimal(10,2) @default(0)
-  tax_amount            Decimal?                  @db.Decimal(10,2) @default(0)
-  paymentfaileddate     BigInt?
-  searchtext            Unsupported("tsvector")?
+  id                        Int                      @id @default(autoincrement())
+  userid                    Int?
+  addressid                 Int?
+  createddate               BigInt?
+  modifieddate              BigInt?
+  orderamount               Decimal?                 @db.Decimal
+  orderid                   String?                  @unique(map: "uniq_orderid") @db.VarChar(500)
+  orderstatus               String?                  @db.VarChar(500)
+  delivereddate             BigInt?
+  cancelleddate             BigInt?
+  returneddate              BigInt?
+  quantity                  Int?
+  transactionid             String?                  @db.VarChar(500)
+  readytodispatchdate       BigInt?
+  dispatcheddate            BigInt?
+  productamount             Decimal?                 @db.Decimal
+  discountamount            Decimal?                 @db.Decimal
+  deliveryfrom              String?                  @db.VarChar(200)
+  orderprocessingtime       BigInt?
+  ispaymentsucceed          Boolean?                 @default(false)
+  merchanttransactionid     String?                  @unique(map: "uniq_orders_merchanttransactionid") @db.VarChar(250)
+  productid                 Int[]
+  evaluation_id             String?                  @unique @db.VarChar(36)
+  promotion_discount_total  Decimal?                 @default(0) @db.Decimal(10, 2) // order-level + item-level promo discounts
+  original_total            Decimal?                 @db.Decimal(10, 2) // subtotal of items before any discount
+  shipping_cost             Decimal?                 @default(0) @db.Decimal(10, 2)
+  tax_amount                Decimal?                 @default(0) @db.Decimal(10, 2)
+  paymentfaileddate         BigInt?
+  searchtext                Unsupported("tsvector")?
   // Payment Mode & COD Tracking
-  mode                        String?   @db.VarChar(50)  // 'cod' | 'phonepe'
-  cod_payment_received_date   BigInt?                    // When COD payment collected (epoch milliseconds)
-  cod_transaction_reference   String?   @db.VarChar(500) // EKART/payment gateway transaction reference
-  cod_amount                  Decimal?  @db.Decimal(10,2) // COD amount for verification and reconciliation
+  mode                      String?                  @db.VarChar(50) // 'cod' | 'phonepe'
+  cod_payment_received_date BigInt? // When COD payment collected (epoch milliseconds)
+  cod_transaction_reference String?                  @db.VarChar(500) // EKART/payment gateway transaction reference
+  cod_amount                Decimal?                 @db.Decimal(10, 2) // COD amount for verification and reconciliation
   // EKART Shipment Information
-  tracking_id           String?                   @db.VarChar(500)
-  vendor                String?                   @db.VarChar(100) @default("EKART")
-  barcodes              Json?
-  label_url             String?                   @db.VarChar(1000)
-  public_tracking_link  String?                   @db.VarChar(1000)
-  shipment_created_at   BigInt?
-  label_downloaded_at   BigInt?
-  label_printed_at      BigInt?
-  shipdate              BigInt?
-  shipment_tracking_status String?                @db.VarChar(500)  // Tracking status from Ekart webhook
-  status_history        Json?                     // Array of status change history entries
+  tracking_id               String?                  @db.VarChar(500)
+  vendor                    String?                  @default("EKART") @db.VarChar(100)
+  barcodes                  Json?
+  label_url                 String?                  @db.VarChar(1000)
+  public_tracking_link      String?                  @db.VarChar(1000)
+  shipment_created_at       BigInt?
+  label_downloaded_at       BigInt?
+  label_printed_at          BigInt?
+  shipdate                  BigInt?
+  shipment_tracking_status  String?                  @db.VarChar(500) // Tracking status from Ekart webhook
+  status_history            Json? // Array of status change history entries
 
-  items_total             Decimal?  @db.Decimal(10, 2)  // Σ(orderline.orderamount) = orderamount - shipping_cost
-  total_taxable_amount    Decimal?  @db.Decimal(10, 2)  // Sum of orderline.taxable_amount
-  total_cgst_amount       Decimal?  @db.Decimal(10, 2)  // Sum of orderline.cgst_amount
-  total_sgst_amount       Decimal?  @db.Decimal(10, 2)  // Sum of orderline.sgst_amount
-  total_igst_amount       Decimal?  @db.Decimal(10, 2)  // Sum of orderline.igst_amount
-  total_gst_amount        Decimal?  @db.Decimal(10, 2)  // Sum of orderline.total_gst_amount
-  
+  items_total          Decimal? @db.Decimal(10, 2) // Σ(orderline.orderamount) = orderamount - shipping_cost
+  total_taxable_amount Decimal? @db.Decimal(10, 2) // Sum of orderline.taxable_amount
+  total_cgst_amount    Decimal? @db.Decimal(10, 2) // Sum of orderline.cgst_amount
+  total_sgst_amount    Decimal? @db.Decimal(10, 2) // Sum of orderline.sgst_amount
+  total_igst_amount    Decimal? @db.Decimal(10, 2) // Sum of orderline.igst_amount
+  total_gst_amount     Decimal? @db.Decimal(10, 2) // Sum of orderline.total_gst_amount
+
   // Refund Tracking Fields (Added: December 2024)
-  refund_transaction_id   String?   @db.VarChar(500)    // PhonePe or payment gateway refund transaction ID
-  refund_amount           Decimal?  @db.Decimal(10, 2)  // Amount refunded to customer
-  refund_reference        String?   @db.VarChar(500)    // Bank or payment gateway confirmation reference
-  refund_initiated_date   BigInt?                        // Timestamp when refund was initiated (epoch ms)
-  refund_completed_date   BigInt?                        // Timestamp when refund was completed (epoch ms)
-  order_invoice_url       String?   @db.VarChar(1000)    // URL of the order invoice
+  refund_transaction_id String?  @db.VarChar(500) // PhonePe or payment gateway refund transaction ID
+  refund_amount         Decimal? @db.Decimal(10, 2) // Amount refunded to customer
+  refund_reference      String?  @db.VarChar(500) // Bank or payment gateway confirmation reference
+  refund_initiated_date BigInt? // Timestamp when refund was initiated (epoch ms)
+  refund_completed_date BigInt? // Timestamp when refund was completed (epoch ms)
+  order_invoice_url     String?  @db.VarChar(1000) // URL of the order invoice
 
-  orderline             orderline[]
-  address               address?                 @relation(fields: [addressid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_addressid_orders")
-  transaction           transaction?             @relation(fields: [transactionid], references: [transactionid], onDelete: Cascade, onUpdate: NoAction, map: "fk_transactionid")
-  users                 users?                   @relation(fields: [userid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_userid_orders")
-  revoinvoice           revoinvoice[]
-  stock                 Stock[]
+  orderline   orderline[]
+  address     address?      @relation(fields: [addressid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_addressid_orders")
+  transaction transaction?  @relation(fields: [transactionid], references: [transactionid], onDelete: Cascade, onUpdate: NoAction, map: "fk_transactionid")
+  users       users?        @relation(fields: [userid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_userid_orders")
+  revoinvoice revoinvoice[]
+  stock       Stock[]
 }
 
 model permissions {
@@ -813,24 +799,24 @@ model transaction {
 
 // 1. Role hierarchy and basic role information
 model role {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique @db.VarChar(100)
-  code        String   @unique @db.VarChar(50)  // e.g., "superadmin", "admin", "manager"
-  level       Int                               // Hierarchy level (1=highest, higher=lower, must be >= 1)
-  description String?  @db.VarChar(500)
-  isactive    Boolean  @default(true)
-  issystem    Boolean  @default(false)          // System roles cannot be deleted
-  
+  id          Int     @id @default(autoincrement())
+  name        String  @unique @db.VarChar(100)
+  code        String  @unique @db.VarChar(50) // e.g., "superadmin", "admin", "manager"
+  level       Int // Hierarchy level (1=highest, higher=lower, must be >= 1)
+  description String? @db.VarChar(500)
+  isactive    Boolean @default(true)
+  issystem    Boolean @default(false) // System roles cannot be deleted
+
   // Relations
   permissionsets permissionset[]
-  inventoryusers inventoryusers[]  // One-to-many: one role can have many inventory users
+  inventoryusers inventoryusers[] // One-to-many: one role can have many inventory users
   parentroleid   Int?
-  parentrole     role?     @relation("RoleHierarchy", fields: [parentroleid], references: [id], onDelete: SetNull)
-  childroles     role[]    @relation("RoleHierarchy")
-  
-  createddate    BigInt?
-  modifieddate   BigInt?
-  
+  parentrole     role?            @relation("RoleHierarchy", fields: [parentroleid], references: [id], onDelete: SetNull)
+  childroles     role[]           @relation("RoleHierarchy")
+
+  createddate  BigInt?
+  modifieddate BigInt?
+
   @@unique([level])
   @@index([code])
   @@index([level])
@@ -840,21 +826,21 @@ model role {
 // 2. Permission Sets - Collection of permissions for a role
 // Permissions stored as JSONB (not separate table)
 model permissionset {
-  id          Int      @id @default(autoincrement())
-  name        String   @db.VarChar(200)
-  description String?  @db.VarChar(500)
-  roleid      Int?     // NULL for system-wide default
-  role        role?    @relation(fields: [roleid], references: [id], onDelete: Cascade)
-  isactive    Boolean  @default(true)
-  isdefault   Boolean  @default(false)          // System-wide default (not per-role) - used as fallback when role has no active set
-  
+  id          Int     @id @default(autoincrement())
+  name        String  @db.VarChar(200)
+  description String? @db.VarChar(500)
+  roleid      Int? // NULL for system-wide default
+  role        role?   @relation(fields: [roleid], references: [id], onDelete: Cascade)
+  isactive    Boolean @default(true)
+  isdefault   Boolean @default(false) // System-wide default (not per-role) - used as fallback when role has no active set
+
   // Permissions stored as JSONB array
   // Structure: Array of permission objects
-  permissions      Json         // See structure below
-  
-  createddate      BigInt?
-  modifieddate     BigInt?
-  
+  permissions Json // See structure below
+
+  createddate  BigInt?
+  modifieddate BigInt?
+
   @@index([roleid])
   @@index([isactive])
   @@map("permission_sets")
@@ -862,61 +848,62 @@ model permissionset {
 
 // 3. User Hierarchy (OPTIONAL - for manager-subordinate relationships)
 model userhierarchy {
-  id            Int      @id @default(autoincrement())
-  userid        Int      @unique
-  managerid     Int?     // User's manager ID
-  subordinates  Json?    // Array of subordinate user IDs: [1, 2, 3]
-  
-  createddate   BigInt?
-  modifieddate  BigInt?
-  
+  id           Int   @id @default(autoincrement())
+  userid       Int   @unique
+  managerid    Int? // User's manager ID
+  subordinates Json? // Array of subordinate user IDs: [1, 2, 3]
+
+  createddate  BigInt?
+  modifieddate BigInt?
+
   @@index([managerid])
   @@map("user_hierarchies")
 }
 
 model users {
-  id               Int         @id @default(autoincrement())
-  useremail        String?     @unique(map: "unique_email_users") @db.VarChar(255)
-  userpassword     String?     @db.VarChar(255)
+  id               Int      @id @default(autoincrement())
+  useremail        String?  @unique(map: "unique_email_users") @db.VarChar(255)
+  userpassword     String?  @db.VarChar(255)
   createddate      BigInt?
   modifieddate     BigInt?
   usermobilenumber BigInt?
-  fcmid            String?     @db.VarChar(500)
-  firstname        String?     @db.VarChar(500)
-  lastname         String?     @db.VarChar(500)
-  gender           String?     @db.VarChar(50)
-  gstnumber        String?     @db.VarChar(20)
-  isbusinessuser   Boolean?    @default(false)
-  isguest          Boolean?    @default(false)
-  isactive         Boolean?    @default(true)
-  
+  fcmid            String?  @db.VarChar(500)
+  firstname        String?  @db.VarChar(500)
+  lastname         String?  @db.VarChar(500)
+  gender           String?  @db.VarChar(50)
+  gstnumber        String?  @db.VarChar(20)
+  isbusinessuser   Boolean? @default(false)
+  isguest          Boolean? @default(false)
+  isactive         Boolean? @default(true)
+
   // Existing relations
-  address          address[]
-  orderline        orderline[]
-  orders           orders[]
-  tickets          tickets[]   @ignore
-  rating           rating[]
-  promotion_assignments promotion_assignments[]
-  customer_group_members customer_group_members[]
+  address                    address[]
+  orderline                  orderline[]
+  orders                     orders[]
+  tickets                    tickets[]                @ignore
+  rating                     rating[]
+  promotion_assignments      promotion_assignments[]  @relation("AssignedCouponCustomer")
+  claimed_coupon_assignments promotion_assignments[]  @relation("ClaimedCouponCustomer")
+  customer_group_members     customer_group_members[]
   // Note: amazonConnections relation removed - using userType field instead
 
   @@map("users")
 }
 
 model pushdevice {
-  id               Int      @id @default(autoincrement())
+  id               Int     @id @default(autoincrement())
   userid           Int?
   inventoryuserid  Int?
-  usertype         String   @db.VarChar(30)
-  token            String   @unique @db.VarChar(2048)
-  platform         String   @db.VarChar(30)
-  provider         String   @db.VarChar(30)
-  deviceid         String?  @db.VarChar(255)
-  appversion       String?  @db.VarChar(100)
-  buildnumber      String?  @db.VarChar(100)
-  permissionstatus String?  @db.VarChar(50)
-  isactive         Boolean  @default(true)
-  failurecount     Int      @default(0)
+  usertype         String  @db.VarChar(30)
+  token            String  @unique @db.VarChar(2048)
+  platform         String  @db.VarChar(30)
+  provider         String  @db.VarChar(30)
+  deviceid         String? @db.VarChar(255)
+  appversion       String? @db.VarChar(100)
+  buildnumber      String? @db.VarChar(100)
+  permissionstatus String? @db.VarChar(50)
+  isactive         Boolean @default(true)
+  failurecount     Int     @default(0)
   createddate      BigInt?
   modifieddate     BigInt?
   lastseenat       BigInt?
@@ -931,17 +918,17 @@ model pushdevice {
 }
 
 model StorefrontPageSection {
-  id             BigInt   @id @default(autoincrement()) @db.BigInt
-  page_key       String   @default("home") @db.VarChar(80)
-  section_key    String   @db.VarChar(120)
-  section_type   String   @db.VarChar(80)
-  name           String   @db.VarChar(255)
-  attributes     Json     @default("{}")
-  sort_order     Int      @default(0)
-  is_active      Boolean  @default(true)
+  id             BigInt    @id @default(autoincrement()) @db.BigInt
+  page_key       String    @default("home") @db.VarChar(80)
+  section_key    String    @db.VarChar(120)
+  section_type   String    @db.VarChar(80)
+  name           String    @db.VarChar(255)
+  attributes     Json      @default("{}")
+  sort_order     Int       @default(0)
+  is_active      Boolean   @default(true)
   schedule_start DateTime? @db.Timestamptz(6)
   schedule_end   DateTime? @db.Timestamptz(6)
-  version        Int      @default(1)
+  version        Int       @default(1)
   createdby      Int?
   modifiedby     Int?
   createddate    BigInt?
@@ -953,65 +940,61 @@ model StorefrontPageSection {
   @@map("storefront_page_sections")
 }
 
-
-
-
-
 model promotions {
-  id              Int       @id @default(autoincrement())
-  name            String?   @db.Text
-  description     String?   @db.Text
-  type            String?   @db.Text // PERCENT_OFF_ITEM, FIXED_AMOUNT_OFF_ITEM, BOGO, PERCENT_OFF_CART, FIXED_AMOUNT_OFF_CART, FREE_SHIPPING,FREE_PRODUCT
-  code            String?   @db.Text // Coupon code (NULL for automatic promotions, populated for coupon-based promotions)
-  auto_apply      Boolean?
-  start_date      BigInt?   // Unix timestamp (seconds since epoch)
-  end_date        BigInt?   // Unix timestamp (seconds since epoch)
-  status          String?   @db.Text
-  priority        Int?
-  visibility      String?   @db.Text
-  applicable_channel String @default("all") @db.VarChar(20) // all, web, mobile
-  application_mode String @default("click_to_apply") @db.VarChar(30) // automatic, click_to_apply, code_entry
-  max_redemptions Int?     // Total usage limit (replaces total_usage_limit from coupons)
-  per_user_limit  Int?     // Usage limit per user (replaces usage_limit_per_user from coupons)
-  stackable       Boolean?
-  budget          Decimal?  @db.Decimal(10, 2)
-  timezone        String?   @db.VarChar(50)
-  evaluation_expiry_minutes Int? @default(15)
-  conditions      Json?     // Array of condition objects: [{ "attribute": "cart.total_value", "operator": "GTE", "value": 500 }]
-  action          Json?     // Single action object: { "type": "PERCENT_OFF", "value": 15, "max_discount": 500 }
-  createddate     BigInt?
-  modifieddate    BigInt?
+  id                        Int      @id @default(autoincrement())
+  name                      String?  @db.Text
+  description               String?  @db.Text
+  type                      String?  @db.Text // PERCENT_OFF_ITEM, FIXED_AMOUNT_OFF_ITEM, BOGO, PERCENT_OFF_CART, FIXED_AMOUNT_OFF_CART, FREE_SHIPPING,FREE_PRODUCT
+  code                      String?  @db.Text // Coupon code (NULL for automatic promotions, populated for coupon-based promotions)
+  auto_apply                Boolean?
+  start_date                BigInt? // Unix timestamp (seconds since epoch)
+  end_date                  BigInt? // Unix timestamp (seconds since epoch)
+  status                    String?  @db.Text
+  priority                  Int?
+  visibility                String?  @db.Text
+  applicable_channel        String   @default("all") @db.VarChar(20) // all, web, mobile
+  application_mode          String   @default("click_to_apply") @db.VarChar(30) // automatic, click_to_apply, code_entry
+  max_redemptions           Int? // Total usage limit (replaces total_usage_limit from coupons)
+  per_user_limit            Int? // Usage limit per user (replaces usage_limit_per_user from coupons)
+  stackable                 Boolean?
+  budget                    Decimal? @db.Decimal(10, 2)
+  timezone                  String?  @db.VarChar(50)
+  evaluation_expiry_minutes Int?     @default(15)
+  conditions                Json? // Array of condition objects: [{ "attribute": "cart.total_value", "operator": "GTE", "value": 500 }]
+  action                    Json? // Single action object: { "type": "PERCENT_OFF", "value": 15, "max_discount": 500 }
+  createddate               BigInt?
+  modifieddate              BigInt?
 
   // Relations
-  redemptions           promotion_redemptions[]
-  assignments           promotion_assignments[]
+  redemptions promotion_redemptions[]
+  assignments promotion_assignments[]
 
   @@index([application_mode])
   @@map("promotions")
 }
 
 model promotion_evaluations {
-  evaluation_id        String   @id @db.VarChar(36)
-  user_id              String?  @db.Text
-  cart_data            Json?
-  cart_signature       String? @db.VarChar(255)
-  original_total       Decimal? @db.Decimal(10, 2)
-  discounted_total     Decimal? @db.Decimal(10, 2)
-  applied_promotions   Json?
-  ineligible_coupons   Json?
-  context              Json? // channel, geo, payment_method
-   order_id             Int?    @unique              // FK -> orders.id (nullable until redeemed)
-  created_at           BigInt @db.BigInt 
-  expires_at           BigInt @db.BigInt 
-  status               String?  @default("active") @db.VarChar(50)
-  createddate          BigInt?
-  modifieddate         BigInt?
-  
+  evaluation_id      String   @id @db.VarChar(36)
+  user_id            String?  @db.Text
+  cart_data          Json?
+  cart_signature     String?  @db.VarChar(255)
+  original_total     Decimal? @db.Decimal(10, 2)
+  discounted_total   Decimal? @db.Decimal(10, 2)
+  applied_promotions Json?
+  ineligible_coupons Json?
+  context            Json? // channel, geo, payment_method
+  order_id           Int?     @unique // FK -> orders.id (nullable until redeemed)
+  created_at         BigInt   @db.BigInt
+  expires_at         BigInt   @db.BigInt
+  status             String?  @default("active") @db.VarChar(50)
+  createddate        BigInt?
+  modifieddate       BigInt?
+
   redemptions promotion_redemptions[]
-  
+
   @@index([user_id, created_at])
   @@index([expires_at])
-   @@index([cart_signature])
+  @@index([cart_signature])
   @@map("promotion_evaluations")
 }
 
@@ -1028,52 +1011,61 @@ model promotion_redemptions {
   redemption_data Json?
   createddate     BigInt?
   modifieddate    BigInt?
-  
-  evaluation promotion_evaluations @relation(fields: [evaluation_id], references: [evaluation_id])
+
+  evaluation promotion_evaluations  @relation(fields: [evaluation_id], references: [evaluation_id])
   promotion  promotions?            @relation(fields: [promotion_id], references: [id])
   assignment promotion_assignments? @relation(fields: [assignment_id], references: [id], onDelete: SetNull)
-  
+
+  @@unique([evaluation_id, promotion_id])
   @@index([evaluation_id])
   @@index([order_id])
   @@index([assignment_id])
   @@index([voucher_code])
-  @@unique([evaluation_id, promotion_id])
   @@map("promotion_redemptions")
 }
 
 model promotion_assignments {
-  id                Int       @id @default(autoincrement())
-  promotion_id      Int
-  assignment_type   String    @db.VarChar(30) // customer, customer_group
-  customer_id       Int?
-  customer_group_id Int?
-  voucher_code      String    @unique @db.VarChar(100)
-  usage_limit       Int?
-  used_count        Int       @default(0)
-  start_date        BigInt?
-  end_date          BigInt?
-  status            String    @default("active") @db.VarChar(30)
-  createddate       BigInt?
-  modifieddate      BigInt?
+  id                      Int     @id @default(autoincrement())
+  promotion_id            Int
+  assignment_type         String  @db.VarChar(30) // customer, customer_group, anyone
+  customer_id             Int?
+  customer_group_id       Int?
+  claimed_by_customer_id  Int?
+  claimed_at              BigInt?
+  voucher_code            String  @unique @db.VarChar(100)
+  usage_limit             Int?
+  used_count              Int     @default(0)
+  start_date              BigInt?
+  end_date                BigInt?
+  status                  String  @default("active") @db.VarChar(30)
+  dispatched_order_id     String? @db.VarChar(500)
+  reserved_by_customer_id Int?
+  reservation_reference   String? @db.VarChar(100)
+  reservation_expires_at  BigInt?
+  createddate             BigInt?
+  modifieddate            BigInt?
 
-  promotion      promotions       @relation(fields: [promotion_id], references: [id], onDelete: Cascade)
-  customer       users?           @relation(fields: [customer_id], references: [id], onDelete: Cascade)
-  customer_group customer_groups? @relation(fields: [customer_group_id], references: [id], onDelete: Cascade)
-  redemptions    promotion_redemptions[]
+  promotion        promotions              @relation(fields: [promotion_id], references: [id], onDelete: Cascade)
+  customer         users?                  @relation("AssignedCouponCustomer", fields: [customer_id], references: [id], onDelete: Cascade)
+  claimed_customer users?                  @relation("ClaimedCouponCustomer", fields: [claimed_by_customer_id], references: [id], onDelete: SetNull)
+  customer_group   customer_groups?        @relation(fields: [customer_group_id], references: [id], onDelete: Cascade)
+  redemptions      promotion_redemptions[]
 
   @@index([promotion_id])
   @@index([customer_id])
+  @@index([claimed_by_customer_id])
   @@index([customer_group_id])
   @@index([status])
+  @@index([reservation_expires_at])
   @@map("promotion_assignments")
 }
 
 model customer_groups {
-  id           Int       @id @default(autoincrement())
-  name         String    @db.VarChar(255)
-  code         String    @unique @db.VarChar(100)
-  description  String?   @db.Text
-  status       String    @default("active") @db.VarChar(30)
+  id           Int     @id @default(autoincrement())
+  name         String  @db.VarChar(255)
+  code         String  @unique @db.VarChar(100)
+  description  String? @db.Text
+  status       String  @default("active") @db.VarChar(30)
   createddate  BigInt?
   modifieddate BigInt?
 
@@ -1085,10 +1077,10 @@ model customer_groups {
 }
 
 model customer_group_members {
-  id                Int       @id @default(autoincrement())
+  id                Int     @id @default(autoincrement())
   customer_group_id Int
   customer_id       Int
-  status            String    @default("active") @db.VarChar(30)
+  status            String  @default("active") @db.VarChar(30)
   createddate       BigInt?
   modifieddate      BigInt?
 
@@ -1102,18 +1094,18 @@ model customer_group_members {
 }
 
 model AmazonConnection {
-  id            Int      @id @default(autoincrement())
-  userId        Int      // Can reference either inventoryusers.id or users.id
-  userType      String   @default("inventoryusers") @db.VarChar(50) // "inventoryusers" or "users"
-  sellerId      String   @db.VarChar(255)
-  refreshToken  String   @db.Text // Encrypted refresh token
-  marketplaceId String   @default("A21TJRUUN4KGV") @db.VarChar(50)
+  id            Int     @id @default(autoincrement())
+  userId        Int // Can reference either inventoryusers.id or users.id
+  userType      String  @default("inventoryusers") @db.VarChar(50) // "inventoryusers" or "users"
+  sellerId      String  @db.VarChar(255)
+  refreshToken  String  @db.Text // Encrypted refresh token
+  marketplaceId String  @default("A21TJRUUN4KGV") @db.VarChar(50)
   createdAt     BigInt?
   updatedAt     BigInt?
-  
+
   // Relations - Note: We'll use userId + userType to determine which table to reference
   // Prisma doesn't support conditional relations, so we'll handle this in application code
-  
+
   @@unique([userId, sellerId, userType])
   @@index([userId, userType])
   @@index([sellerId])
@@ -1125,16 +1117,16 @@ model AmazonConnection {
 // ============================================
 
 model AuthSession {
-  id                Int      @id @default(autoincrement())
-  userId            Int
-  userType          String   @db.VarChar(20) // 'inventory' or 'ecommerce'
-  refreshTokenHash  String   @db.Text
-  expiresAt         BigInt   // Unix timestamp in milliseconds
-  isRevoked         Boolean  @default(false)
-  ipAddress         String?  @db.VarChar(45) // Supports IPv4 and IPv6
-  userAgent         String?  @db.Text
-  createddate       BigInt?  // Matches other tables naming convention
-  modifieddate      BigInt?  // Matches other tables naming convention
+  id               Int     @id @default(autoincrement())
+  userId           Int
+  userType         String  @db.VarChar(20) // 'inventory' or 'ecommerce'
+  refreshTokenHash String  @db.Text
+  expiresAt        BigInt // Unix timestamp in milliseconds
+  isRevoked        Boolean @default(false)
+  ipAddress        String? @db.VarChar(45) // Supports IPv4 and IPv6
+  userAgent        String? @db.Text
+  createddate      BigInt? // Matches other tables naming convention
+  modifieddate     BigInt? // Matches other tables naming convention
 
   // Prisma doesn't support conditional relations based on userType
   // Relations will be handled in application code
