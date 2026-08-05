@@ -766,6 +766,9 @@ export class PromotionsService {
 
         let matchingPromotions = adminPromotions
           .map((promotion: any) => this.formatPromotionForDisplay(promotion))
+          .filter((promotion: any) =>
+            !String(promotion.description || '').startsWith('Private discount rule created for coupon ')
+          )
           .filter((promotion: any) => {
             if (!normalizedSearch) return true;
             return [promotion.name, promotion.type, promotion.code, promotion.status]
@@ -944,38 +947,72 @@ export class PromotionsService {
       }
 
       if (adminMode && finalPromotions.length > 0) {
-        const assignments = await this.prisma.promotion_assignments.findMany({
-          where: {
-            promotion_id: { in: finalPromotions.map((promotion) => promotion.id) },
-            status: 'active'
-          },
-          select: {
-            id: true,
-            promotion_id: true,
-            assignment_type: true,
-            customer_id: true,
-            customer_group_id: true,
-            voucher_code: true,
-            usage_limit: true,
-            used_count: true,
-            start_date: true,
-            end_date: true,
-            status: true,
-            customer: {
-              select: { id: true, firstname: true, lastname: true, useremail: true }
+        const promotionIds = finalPromotions.map((promotion) => promotion.id);
+        const [assignments, redemptionCounts] = await Promise.all([
+          this.prisma.promotion_assignments.findMany({
+            where: {
+              promotion_id: { in: promotionIds }
             },
-            customer_group: {
-              select: { id: true, name: true, code: true }
-            }
-          },
-          orderBy: { id: 'desc' }
-        });
+            select: {
+              id: true,
+              promotion_id: true,
+              assignment_type: true,
+              customer_id: true,
+              customer_group_id: true,
+              voucher_code: true,
+              usage_limit: true,
+              used_count: true,
+              start_date: true,
+              end_date: true,
+              status: true,
+              customer: {
+                select: { id: true, firstname: true, lastname: true, useremail: true }
+              },
+              customer_group: {
+                select: { id: true, name: true, code: true }
+              }
+            },
+            orderBy: { id: 'desc' }
+          }),
+          this.prisma.promotion_redemptions.groupBy({
+            by: ['promotion_id'],
+            where: { promotion_id: { in: promotionIds } },
+            _count: { _all: true }
+          })
+        ]);
         const assignmentByPromotion = new Map(
-          assignments.map((assignment) => [assignment.promotion_id, assignment])
+          assignments
+            .filter((assignment) => assignment.status === 'active')
+            .map((assignment) => [assignment.promotion_id, assignment])
+        );
+        const assignmentsByPromotion = new Map<number, typeof assignments>();
+        for (const assignment of assignments) {
+          const promotionAssignments = assignmentsByPromotion.get(assignment.promotion_id) || [];
+          promotionAssignments.push(assignment);
+          assignmentsByPromotion.set(assignment.promotion_id, promotionAssignments);
+        }
+        const redemptionCountByPromotion = new Map(
+          redemptionCounts.map((redemption) => [redemption.promotion_id, redemption._count._all])
         );
 
         finalPromotions = finalPromotions.map((promotion: any) => {
           const assignment = assignmentByPromotion.get(promotion.id);
+          const promotionAssignments = assignmentsByPromotion.get(promotion.id) || [];
+          const hasUnlimitedAssignment = promotionAssignments.some(
+            (item) => item.usage_limit === null
+          );
+          const assignmentCapacity = promotionAssignments.length === 0 || hasUnlimitedAssignment
+            ? null
+            : promotionAssignments.reduce((sum, item) => sum + (item.usage_limit || 0), 0);
+          const redemptionCount = redemptionCountByPromotion.get(promotion.id) || 0;
+          const redemptionLimit = promotion.max_redemptions ?? assignmentCapacity;
+          const usage = {
+            redemption_count: redemptionCount,
+            redemption_limit: redemptionLimit,
+            available_redemptions: redemptionLimit === null
+              ? null
+              : Math.max(redemptionLimit - redemptionCount, 0)
+          };
           const conditions = Array.isArray(promotion.conditions)
             ? promotion.conditions
             : [];
@@ -1004,6 +1041,7 @@ export class PromotionsService {
             ].filter(Boolean).join(' ');
             return {
               ...promotion,
+              ...usage,
               audience_type: 'single_customer',
               audience_label:
                 customerName || assignment.customer?.useremail || `Customer #${assignment.customer_id}`,
@@ -1019,6 +1057,7 @@ export class PromotionsService {
           if (assignment?.assignment_type === 'customer_group') {
             return {
               ...promotion,
+              ...usage,
               audience_type: 'customer_group',
               audience_label: assignment.customer_group?.name || 'Customer group',
               voucher_code: assignment.voucher_code,
@@ -1033,6 +1072,7 @@ export class PromotionsService {
           if (promotion.visibility === 'private') {
             return {
               ...promotion,
+              ...usage,
               audience_type: 'global',
               audience_label: 'Private - assignment missing',
               audience_assignment_missing: true,
@@ -1041,6 +1081,7 @@ export class PromotionsService {
           }
           return {
             ...promotion,
+            ...usage,
             audience_type: isNewCustomer ? 'new_customer' : 'global',
             audience_label: isNewCustomer ? 'New customers' : 'Everyone',
             voucher_code: promotion.code || null
@@ -1720,6 +1761,14 @@ export class PromotionsService {
 
       for (const promotion of allPromotions) {
         try {
+          // Standalone wallet coupons are converted into stored wallet credit.
+          // They must never also appear as ordinary cart promotion offers.
+          if (
+            promotion.visibility === 'private' &&
+            String(promotion.description || '').startsWith('Private discount rule created for coupon ')
+          ) {
+            continue;
+          }
           const customerAssignment = customerAssignmentByPromotion.get(promotion.id);
           const isRestricted = restrictedPromotionIds.has(promotion.id);
           const isPublicGlobal = promotion.visibility === 'public' && Boolean(promotion.code);

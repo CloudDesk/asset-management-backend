@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const createPromotionAssignmentSchema = z.object({
-  assignment_type: z.enum(['customer', 'customer_group']),
+  assignment_type: z.enum(['customer', 'customer_group', 'anyone']),
   customer_id: z.number().int().positive().optional(),
   customer_group_id: z.number().int().positive().optional(),
   prefix: z.string().min(1).max(30).optional(),
@@ -9,6 +9,7 @@ export const createPromotionAssignmentSchema = z.object({
   usage_limit: z.number().int().positive().optional(),
   start_date: z.string().datetime().optional(),
   end_date: z.string().datetime().nullable().optional(),
+  dispatched_order_id: z.string().trim().max(500).optional(),
 }).superRefine((value, context) => {
   if (value.assignment_type === 'customer' && !value.customer_id) {
     context.addIssue({ code: z.ZodIssueCode.custom, path: ['customer_id'], message: 'customer_id is required' });
@@ -20,13 +21,14 @@ export const createPromotionAssignmentSchema = z.object({
 
 export const updatePromotionAssignmentSchema = z.object({
   status: z.enum(['active', 'inactive', 'expired']).optional(),
-  assignment_type: z.enum(['customer', 'customer_group']).optional(),
+  assignment_type: z.enum(['customer', 'customer_group', 'anyone']).optional(),
   customer_id: z.number().int().positive().nullable().optional(),
   customer_group_id: z.number().int().positive().nullable().optional(),
   voucher_code: z.string().min(4).max(100).optional(),
   usage_limit: z.number().int().positive().nullable().optional(),
   start_date: z.string().datetime().nullable().optional(),
   end_date: z.string().datetime().nullable().optional(),
+  dispatched_order_id: z.string().trim().max(500).nullable().optional(),
 });
 
 export const createCustomerGroupSchema = z.object({

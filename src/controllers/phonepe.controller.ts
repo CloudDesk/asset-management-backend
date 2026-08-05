@@ -16,6 +16,7 @@ import {
   DatabaseError,
 } from "../utils/errorHandler.js";
 import { logger } from "../config/logger.js";
+import { WalletRedemptionService } from "../services/wallet-redemption.service.js";
 
 export class PhonePeController {
   public phonePeService = new PhonePeService();
@@ -23,16 +24,22 @@ export class PhonePeController {
   public ordersService = new OrdersService();
   public orderlineService = new OrderlineService();
   public customerNotificationService = new CustomerNotificationService();
+  public walletRedemptionService = new WalletRedemptionService();
 
   /**
    * Initiate payment with PhonePe
    */
   initiatePayment = asyncHandler(
     async (request: FastifyRequest, reply: FastifyReply) => {
+      let walletReservationReference: string | null = null;
       try {
         const requestBody = request.body as {
           mode: "phonepe" | "cod";
           evaluation_ids?: string[];
+          wallet?: {
+            apply: boolean;
+            eligibility_base: number;
+          };
           order: Array<{
             addressid: number;
             cartId: number;
@@ -1227,6 +1234,9 @@ export class PhonePeController {
         // Generate unique transaction ID for both modes
         const merchantTransactionId =
           PhonePeService.generateMerchantTransactionId();
+        walletReservationReference = merchantTransactionId;
+
+        let walletDiscountAmount = 0;
 
         // ========================================
         // CREATE GCP CLOUD TASK FOR LOCK CLEANUP
@@ -1294,6 +1304,38 @@ export class PhonePeController {
         //   );
         // }
 
+        if (requestBody.wallet?.apply) {
+          const reservation = await this.walletRedemptionService.reserve(
+            requestBody.transaction.userId,
+            merchantTransactionId,
+            Number(requestBody.wallet.eligibility_base),
+            Number(requestBody.transaction.amount),
+          );
+          walletDiscountAmount = reservation.discount_amount;
+          if (walletDiscountAmount <= 0) {
+            await this.walletRedemptionService.release(merchantTransactionId);
+            return reply.code(400).send({
+              success: false,
+              message: "No wallet credit is currently eligible for this order.",
+              error_code: "WALLET_CREDIT_NOT_ELIGIBLE",
+              statusCode: 400,
+            });
+          }
+
+          if (walletDiscountAmount >= Number(requestBody.transaction.amount)) {
+            return await this.completeWalletOnlyOrder(
+              reply,
+              requestBody,
+              merchantTransactionId,
+              walletDiscountAmount,
+              validEvaluations,
+              invalidEvaluations,
+              limitReachedEvaluations,
+              lockResults
+            );
+          }
+        }
+
         let result: any;
         let paymentRequest: any;
 
@@ -1301,7 +1343,7 @@ export class PhonePeController {
         // Create PhonePe payment request
         paymentRequest = {
           merchantTransactionId,
-          amount: requestBody.transaction.amount,
+          amount: Math.round((Number(requestBody.transaction.amount) - walletDiscountAmount) * 100) / 100,
           name: requestBody.transaction.name,
           mobileNumber: requestBody.transaction.mobilenumber,
           userId: requestBody.transaction.userId,
@@ -1330,6 +1372,11 @@ export class PhonePeController {
             status: "INITIATED", // Only PhonePe mode is allowed
             mode: requestBody.mode,
             evaluation_ids: validEvaluations, // Only use valid evaluations
+            wallet_discount: {
+              applied: walletDiscountAmount > 0,
+              amount: walletDiscountAmount,
+              eligibility_base: requestBody.wallet?.eligibility_base ?? null,
+            },
             invalid_evaluations: invalidEvaluations, // Track invalid ones for user info
             limit_reached_evaluations: limitReachedEvaluations, // Track limit-reached promotions
             originalPayload: requestBody,
@@ -1450,6 +1497,7 @@ export class PhonePeController {
           console.log(response, "response FInal ");
           return reply.code(200).send(response);
         } else {
+          await this.walletRedemptionService.release(merchantTransactionId);
           // If result is not successful
           const errorResponse = createErrorResponse(
             result.message || "Payment initiation failed",
@@ -1459,6 +1507,9 @@ export class PhonePeController {
           return reply.code(400).send(errorResponse);
         }
       } catch (error: any) {
+        if (walletReservationReference) {
+          await this.walletRedemptionService.release(walletReservationReference).catch(() => undefined);
+        }
         logger.error(
           {
             error: error.message,
@@ -1486,6 +1537,199 @@ export class PhonePeController {
       }
     }
   );
+
+  private async completeWalletOnlyOrder(
+    reply: FastifyReply,
+    requestBody: any,
+    merchantTransactionId: string,
+    walletDiscountAmount: number,
+    validEvaluations: string[],
+    invalidEvaluations: any[],
+    limitReachedEvaluations: any[],
+    lockResults: any[]
+  ) {
+    const paymentRequest = {
+      merchantTransactionId,
+      amount: 0,
+      name: requestBody.transaction.name,
+      mobileNumber: requestBody.transaction.mobilenumber,
+      userId: requestBody.transaction.userId,
+      productIds: requestBody.transaction.productid,
+      transactionFor: requestBody.transaction.transactionfor,
+      callbackUrl: requestBody.returnUrl,
+    };
+
+    const walletPaymentStatus = {
+      code: "WALLET_PAYMENT_SUCCESS",
+      state: "SUCCESS",
+      message: "Order fully paid using wallet credit",
+      merchantTransactionId,
+      amount: 0,
+      walletDiscountAmount,
+      completedAt: new Date().toISOString(),
+    };
+
+    const transactionData = {
+      status: "SUCCESS",
+      mode: "wallet",
+      evaluation_ids: validEvaluations,
+      wallet_discount: {
+        applied: true,
+        amount: walletDiscountAmount,
+        eligibility_base: requestBody.wallet?.eligibility_base ?? null,
+      },
+      invalid_evaluations: invalidEvaluations,
+      limit_reached_evaluations: limitReachedEvaluations,
+      originalPayload: requestBody,
+      paymentRequest,
+      initiatedAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      walletPayment: walletPaymentStatus,
+      phonePeResponses: {},
+      codData: null,
+    };
+
+    let reconciliation: { status: string; orderId: number | null; error: string | null };
+
+    try {
+      await this.storeTransactionDataWithStatus(paymentRequest, transactionData, "SUCCESS");
+      reconciliation = await this.ensureOrderAfterSuccessfulPayment(
+        merchantTransactionId,
+        walletPaymentStatus
+      );
+
+      if (reconciliation.status === "failed") {
+        throw new Error(reconciliation.error || "Wallet-funded order could not be created");
+      }
+    } catch (error: any) {
+      const existingOrders = await this.ordersService.findMany(
+        { merchanttransactionid: merchantTransactionId },
+        1,
+        1
+      ).catch(() => ({ data: [] as any[] }));
+
+      if (!existingOrders.data?.length) {
+        await this.releaseLockedStockForWalletOrder(
+          requestBody.order || [],
+          merchantTransactionId
+        ).catch((releaseError: any) => {
+          logger.error(
+            { merchantTransactionId, error: releaseError.message },
+            "Failed to release stock after wallet-only order failure"
+          );
+        });
+      }
+
+      throw error;
+    }
+
+    logger.info(
+      {
+        merchantTransactionId,
+        orderId: reconciliation.orderId,
+        walletDiscountAmount,
+      },
+      "Wallet-only order created without external payment"
+    );
+
+    return reply.code(200).send(createSuccessResponse(
+      "Order placed successfully using wallet credit",
+      {
+        merchantTransactionId,
+        amount: 0,
+        status: "SUCCESS",
+        mode: "wallet",
+        paymentMode: "wallet",
+        message: "Your order was placed. No external payment was required.",
+        orderCreation: reconciliation,
+        orderData: {
+          orderId: reconciliation.orderId,
+          status: "payment_completed",
+          order_created: true,
+        },
+        validation_summary: {
+          promotions_validated: validEvaluations.length,
+          products_validated: requestBody.order?.length || 0,
+          stock_validated: lockResults.length,
+          all_validations_passed: true,
+        },
+        next_steps: {
+          phonepe: null,
+          wallet: {
+            action: "order_complete",
+            instructions: "Open My Orders to view the placed order.",
+          },
+        },
+      }
+    ));
+  }
+
+  private async releaseLockedStockForWalletOrder(
+    orderItems: any[],
+    merchantTransactionId: string
+  ) {
+    const platformName = "nivapp";
+
+    await prisma.$transaction(async (tx) => {
+      for (const item of orderItems) {
+        const product = await tx.product.findUnique({
+          where: { id: BigInt(item.productid) },
+          select: { id: true, iscombo: true },
+        });
+
+        if (!product) continue;
+
+        if (product.iscombo) {
+          await this.releaseComboComponentLocks(
+            tx,
+            Number(item.productid),
+            Number(item.quantity || 1),
+            platformName,
+            merchantTransactionId
+          );
+          continue;
+        }
+
+        const platformStock = await tx.platformStock.findUnique({
+          where: {
+            productid_platform: {
+              productid: BigInt(item.productid),
+              platform: platformName,
+            },
+          },
+        });
+
+        if (!platformStock) continue;
+
+        const currentLockQty = Number(platformStock.lockqty || 0);
+        const quantityToRelease = Math.min(Number(item.quantity || 1), currentLockQty);
+        if (quantityToRelease <= 0) continue;
+
+        const newLockQty = Math.max(0, currentLockQty - quantityToRelease);
+        const newAvailableQty = Math.max(
+          0,
+          Number((platformStock as any).ecomqty || 0) -
+            Number(platformStock.orderedqty || 0) -
+            Number(platformStock.soldqty || 0) -
+            newLockQty
+        );
+
+        await tx.platformStock.update({
+          where: {
+            productid_platform: {
+              productid: BigInt(item.productid),
+              platform: platformName,
+            },
+          },
+          data: {
+            availableqty: newAvailableQty,
+            lockqty: newLockQty,
+            modifieddate: BigInt(Date.now()),
+          },
+        });
+      }
+    });
+  }
 
   /**
    * Handle payment callback from PhonePe
@@ -1634,6 +1878,7 @@ export class PhonePeController {
             // The order can be created later using the stored transaction data
           }
         } else {
+          await this.walletRedemptionService.release(merchantTransactionId);
           try {
             const transactions = await this.transactionService.findMany(
               { merchanttransactionid: merchantTransactionId },
@@ -1718,6 +1963,8 @@ export class PhonePeController {
             merchantTransactionId,
             paymentStatus
           );
+        } else if (!["PAYMENT_PENDING", "PAYMENT_INITIATED"].includes(paymentStatus.code)) {
+          await this.walletRedemptionService.release(merchantTransactionId);
         }
 
         const response = createSuccessResponse(
@@ -2276,6 +2523,19 @@ export class PhonePeController {
     try {
       await this.updateTransactionStatus(transactionId, "SUCCESS", paymentStatus);
 
+      const transactions = await this.transactionService.findMany(
+        { merchanttransactionid: transactionId },
+        1,
+        1
+      );
+      const expectedWalletDiscount = Number(
+        transactions.data?.[0]?.transactiondata?.wallet_discount?.amount || 0
+      );
+      const transactionMode =
+        transactions.data?.[0]?.transactiondata?.mode === "wallet"
+          ? "wallet"
+          : "phonepe";
+
       const existingOrders = await this.ordersService.findMany(
         { merchanttransactionid: transactionId },
         1,
@@ -2284,14 +2544,9 @@ export class PhonePeController {
 
       if (existingOrders.data && existingOrders.data.length > 0) {
         orderId = Number(existingOrders.data[0].id);
+        await this.walletRedemptionService.consume(transactionId, orderId, expectedWalletDiscount);
         return { status: "already_exists", orderId, error: null };
       }
-
-      const transactions = await this.transactionService.findMany(
-        { merchanttransactionid: transactionId },
-        1,
-        1
-      );
       const evaluationIds =
         transactions.data?.[0]?.transactiondata?.evaluation_ids || [];
 
@@ -2299,7 +2554,7 @@ export class PhonePeController {
       try {
         order = await this.createOrderAfterPayment(
           transactionId,
-          "phonepe",
+          transactionMode,
           evaluationIds
         );
       } catch (createError: any) {
@@ -2330,13 +2585,21 @@ export class PhonePeController {
           throw createError;
         }
 
+        orderId = Number(concurrentlyCreatedOrder.id);
+        await this.walletRedemptionService.consume(
+          transactionId,
+          orderId,
+          expectedWalletDiscount
+        );
+
         return {
           status: "already_exists",
-          orderId: Number(concurrentlyCreatedOrder.id),
+          orderId,
           error: null,
         };
       }
       orderId = Number(order.id);
+      await this.walletRedemptionService.consume(transactionId, orderId, expectedWalletDiscount);
 
       try {
         const orderlines = await this.orderlineService.findMany(
@@ -2361,7 +2624,7 @@ export class PhonePeController {
             await this.updateProductQuantitiesAfterOrder(
               createdOrders.data[0],
               orderItems,
-              "phonepe"
+              transactionMode
             );
           }
         }
@@ -3133,9 +3396,12 @@ export class PhonePeController {
         previous_status: "order_placed",
         new_status: initialOrderStatus,
         changed_date: currentTime,
-        source: isCodOrder ? "system" : "phonepe",
+        source: isCodOrder ? "system" : mode === "wallet" ? "wallet" : "phonepe",
         is_active: true
       }]);
+      const walletDiscountTotal = Number(
+        transaction.transactiondata?.wallet_discount?.amount || 0
+      );
 
       const orderData = {
         userid: transaction.userid,
@@ -3149,7 +3415,7 @@ export class PhonePeController {
           productAmount > 0
             ? productAmount
             : parseFloat(transaction.amount?.toString() || "0"),
-        discountamount: productDiscountTotal + promotionDiscountTotal, // Total discounts (product + promotion)
+        discountamount: productDiscountTotal + promotionDiscountTotal + walletDiscountTotal,
         ispaymentsucceed: !isCodOrder, // ✅ COD: false (payment pending), Prepaid: true
         merchanttransactionid: transaction.merchanttransactionid,
         productid: validProductIds, // Include product IDs for automatic orderline creation
@@ -3159,6 +3425,7 @@ export class PhonePeController {
         // Add new promotion-related fields
         evaluation_id: primaryEvaluationId,
         promotion_discount_total: promotionDiscountTotal, // Coupon/promotion discounts
+        wallet_discount_total: walletDiscountTotal,
         original_total: originalTotal,
         shipping_cost: shippingCost,
         tax_amount: taxAmount,
@@ -5114,6 +5381,36 @@ export class PhonePeController {
           "Lock cleanup check triggered"
         );
 
+        // Wallet-only orders never create a PhonePe transaction. Their stock
+        // lock is converted during local order reconciliation, so the delayed
+        // cleanup task must not query PhonePe or release that completed order.
+        const localTransactions = await this.transactionService.findMany(
+          { merchanttransactionid: merchantTransactionId },
+          1,
+          1
+        );
+        const localTransaction = localTransactions.data?.[0];
+        if (localTransaction?.transactiondata?.mode === "wallet") {
+          const walletOrders = await this.ordersService.findMany(
+            { merchanttransactionid: merchantTransactionId },
+            1,
+            1
+          );
+
+          if (walletOrders.data?.length) {
+            return reply.code(200).send({
+              success: true,
+              message: "Wallet-funded order completed - no cleanup needed",
+              action: "none",
+              data: {
+                merchantTransactionId,
+                paymentStatus: "SUCCESS",
+                lockStatus: "already_converted_to_order",
+              },
+            });
+          }
+        }
+
         // Step 1: Check current payment status from PhonePe
         const paymentStatus = await this.phonePeService.checkPaymentStatus(
           merchantTransactionId
@@ -5435,6 +5732,7 @@ export class PhonePeController {
             },
             modifieddate: Date.now(),
           });
+          await this.walletRedemptionService.release(merchantTransactionId);
 
           logger.info(
             {

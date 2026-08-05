@@ -18,8 +18,11 @@ import {
 } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
 import { gstService } from './gst.service.js';
+import { WalletRedemptionService } from './wallet-redemption.service.js';
 
 export class OrdersService {
+  private walletRedemptionService = new WalletRedemptionService();
+
   private normalizeStatusHistorySource(source?: string): string {
     if (!source) return 'system';
     return source === 'inventoryuser' || source === 'inventory_user'
@@ -3248,8 +3251,25 @@ export class OrdersService {
         throw new Error(`Order with ID ${orderId} not found`);
       }
 
-      // IDEMPOTENCY CHECK: If order already cancelled, handle appropriately
-      if (order.orderstatus === 'cancelled') {
+      if (normalizedSource === 'customer' && userId && order.userid !== userId) {
+        throw new Error('Unauthorized: userid does not match order owner');
+      }
+
+      const CANCELLED_STATUSES = [
+        'cancelled',
+        'cancelled_refund_processing',
+        'cancelled_refunded',
+        'cancelled_completed'
+      ];
+
+      // IDEMPOTENCY CHECK: retrying cancellation also heals wallet credits for
+      // orders cancelled before wallet restoration was introduced.
+      if (order.orderstatus && CANCELLED_STATUSES.includes(order.orderstatus)) {
+        const walletRestoration = await this.walletRedemptionService.restoreForCancelledOrder(orderId);
+        logger.info({ orderId, ...walletRestoration }, 'Wallet restoration checked for already-cancelled order');
+
+        if (order.orderstatus !== 'cancelled') return order;
+
         logger.info({
           orderId,
           orderNumber: order.orderid,
@@ -3358,10 +3378,12 @@ export class OrdersService {
         // If first request is processing, second request waits
         // When second request acquires lock, it will see status = 'cancelled'
         if (order.orderstatus === 'cancelled') {
+          const walletRestoration = await this.walletRedemptionService.restoreForCancelledOrder(orderId, tx);
           logger.info({
             orderId,
             orderNumber: order.orderid,
-            cancelledDate: order.cancelleddate
+            cancelledDate: order.cancelleddate,
+            ...walletRestoration,
           }, 'Order already cancelled - returning existing state (idempotent, lock-protected)');
 
           return order;
@@ -3462,6 +3484,11 @@ export class OrdersService {
             modifieddate: currentTimestamp
           }
         });
+
+        // Restore only consumed wallet reservations. Each row transitions from
+        // consumed to reversed once, making duplicate cancellation calls safe.
+        const walletRestoration = await this.walletRedemptionService.restoreForCancelledOrder(orderId, tx);
+        logger.info({ orderId, ...walletRestoration }, 'Wallet credit restored after order cancellation');
 
         // Fetch and return updated order
         const finalOrder = await this.findById(orderId);

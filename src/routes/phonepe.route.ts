@@ -74,6 +74,16 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
               items: { type: "string" },
               description: "Promotion evaluation IDs array (optional)",
             },
+            wallet: {
+              type: "object",
+              properties: {
+                apply: { type: "boolean" },
+                eligibility_base: { type: "number", minimum: 0 },
+              },
+              required: ["apply", "eligibility_base"],
+              additionalProperties: false,
+              description: "Optional Nivaana wallet discount selection",
+            },
             order: {
               type: "array",
               items: {
