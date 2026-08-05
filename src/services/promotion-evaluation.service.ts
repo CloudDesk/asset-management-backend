@@ -135,6 +135,11 @@ export class PromotionEvaluationService {
     return promotion?.stackable === true;
   }
 
+  private isStandaloneWalletCoupon(promotion: any): boolean {
+    return promotion?.visibility === 'private' &&
+      String(promotion?.description || '').startsWith('Private discount rule created for coupon ');
+  }
+
   private appliedPromotionComparator(left: any, right: any): number {
     const leftDiscount = Number(left?.discount_amount || 0);
     const rightDiscount = Number(right?.discount_amount || 0);
@@ -383,7 +388,7 @@ export class PromotionEvaluationService {
 
       // 1. Get promotion details
       const promotion = await this.getPromotion(request.promotion_id);
-      if (!promotion) {
+      if (!promotion || this.isStandaloneWalletCoupon(promotion)) {
         throw new Error('Promotion not found');
       }
 
@@ -451,6 +456,7 @@ export class PromotionEvaluationService {
   ): Promise<{ promotion: any; assignment: any }> {
     if (promotionId) {
       const promotion = await this.prisma.promotions.findUnique({ where: { id: promotionId } });
+      if (this.isStandaloneWalletCoupon(promotion)) return { promotion: null, assignment: null as any };
       if (!promotion || promotion.visibility === 'public') {
         return { promotion, assignment: null as any };
       }
@@ -506,6 +512,7 @@ export class PromotionEvaluationService {
       where: { code: { equals: normalizedCode, mode: 'insensitive' }, status: 'active' }
     });
     if (promotion) {
+      if (this.isStandaloneWalletCoupon(promotion)) return { promotion: null, assignment: null as any };
       return this.resolvePromotionOrVoucher(promotion.id, undefined, userId);
     }
 
@@ -528,6 +535,7 @@ export class PromotionEvaluationService {
         promotion: true
       }
     });
+    if (this.isStandaloneWalletCoupon(assignment?.promotion)) return { promotion: null, assignment: null as any };
     return { promotion: assignment?.promotion || null, assignment };
   }
 

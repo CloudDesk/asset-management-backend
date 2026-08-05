@@ -32,6 +32,7 @@ export class PromotionAssignmentService {
     start_date: true,
     end_date: true,
     status: true,
+    dispatched_order_id: true,
     createddate: true,
     modifieddate: true,
     customer: { select: { id: true, firstname: true, lastname: true, useremail: true } },
@@ -120,6 +121,7 @@ export class PromotionAssignmentService {
         usage_limit: input.usage_limit ?? null,
         start_date: this.toUnixSeconds(input.start_date) ?? promotion.start_date,
         end_date: this.toUnixSeconds(input.end_date) ?? promotion.end_date,
+        dispatched_order_id: input.dispatched_order_id?.trim() || null,
         status: 'active',
         createddate: now,
         modifieddate: now
@@ -154,6 +156,7 @@ export class PromotionAssignmentService {
           start_date: true,
           end_date: true,
           status: true,
+          dispatched_order_id: true,
           promotion: {
             select: { name: true, code: true, per_user_limit: true }
           }
@@ -256,6 +259,10 @@ export class PromotionAssignmentService {
               input.end_date !== undefined
                 ? this.toUnixSeconds(input.end_date) ?? null
                 : existing.end_date,
+            dispatched_order_id:
+              input.dispatched_order_id !== undefined
+                ? input.dispatched_order_id?.trim() || null
+                : existing.dispatched_order_id,
             status: input.status ?? 'active',
             createddate: now,
             modifieddate: now
@@ -288,6 +295,9 @@ export class PromotionAssignmentService {
       if (input.usage_limit !== undefined) data.usage_limit = input.usage_limit;
       if (input.start_date !== undefined) data.start_date = this.toUnixSeconds(input.start_date) ?? null;
       if (input.end_date !== undefined) data.end_date = this.toUnixSeconds(input.end_date) ?? null;
+      if (input.dispatched_order_id !== undefined) {
+        data.dispatched_order_id = input.dispatched_order_id?.trim() || null;
+      }
 
       return database.promotion_assignments.update({
         where: { id: assignmentId },

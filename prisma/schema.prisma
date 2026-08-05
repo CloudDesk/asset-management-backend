@@ -519,6 +519,7 @@ model orders {
   productid                 Int[]
   evaluation_id             String?                  @unique @db.VarChar(36)
   promotion_discount_total  Decimal?                 @default(0) @db.Decimal(10, 2) // order-level + item-level promo discounts
+  wallet_discount_total     Decimal?                 @default(0) @db.Decimal(10, 2)
   original_total            Decimal?                 @db.Decimal(10, 2) // subtotal of items before any discount
   shipping_cost             Decimal?                 @default(0) @db.Decimal(10, 2)
   tax_amount                Decimal?                 @default(0) @db.Decimal(10, 2)
@@ -885,6 +886,9 @@ model users {
   promotion_assignments      promotion_assignments[]  @relation("AssignedCouponCustomer")
   claimed_coupon_assignments promotion_assignments[]  @relation("ClaimedCouponCustomer")
   customer_group_members     customer_group_members[]
+  coupon_group_members       coupon_group_members[]
+  wallet_credits             wallet_credits[]
+  wallet_reservations        wallet_reservations[]
   // Note: amazonConnections relation removed - using userType field instead
 
   @@map("users")
@@ -1038,6 +1042,8 @@ model promotion_assignments {
   start_date              BigInt?
   end_date                BigInt?
   status                  String  @default("active") @db.VarChar(30)
+  delivery_channel        String  @default("all") @db.VarChar(20) // all, web, mobile, print
+  source_coupon_group_id  Int?
   dispatched_order_id     String? @db.VarChar(500)
   reserved_by_customer_id Int?
   reservation_reference   String? @db.VarChar(100)
@@ -1045,19 +1051,69 @@ model promotion_assignments {
   createddate             BigInt?
   modifieddate            BigInt?
 
-  promotion        promotions              @relation(fields: [promotion_id], references: [id], onDelete: Cascade)
-  customer         users?                  @relation("AssignedCouponCustomer", fields: [customer_id], references: [id], onDelete: Cascade)
-  claimed_customer users?                  @relation("ClaimedCouponCustomer", fields: [claimed_by_customer_id], references: [id], onDelete: SetNull)
-  customer_group   customer_groups?        @relation(fields: [customer_group_id], references: [id], onDelete: Cascade)
-  redemptions      promotion_redemptions[]
+  promotion           promotions              @relation(fields: [promotion_id], references: [id], onDelete: Cascade)
+  customer            users?                  @relation("AssignedCouponCustomer", fields: [customer_id], references: [id], onDelete: Cascade)
+  claimed_customer    users?                  @relation("ClaimedCouponCustomer", fields: [claimed_by_customer_id], references: [id], onDelete: SetNull)
+  customer_group      customer_groups?        @relation(fields: [customer_group_id], references: [id], onDelete: Cascade)
+  source_coupon_group coupon_groups?          @relation(fields: [source_coupon_group_id], references: [id], onDelete: SetNull)
+  redemptions         promotion_redemptions[]
+  wallet_credit       wallet_credits?
 
   @@index([promotion_id])
   @@index([customer_id])
   @@index([claimed_by_customer_id])
   @@index([customer_group_id])
+  @@index([source_coupon_group_id])
   @@index([status])
   @@index([reservation_expires_at])
   @@map("promotion_assignments")
+}
+
+model wallet_credits {
+  id                  Int     @id @default(autoincrement())
+  customer_id         Int
+  assignment_id       Int     @unique
+  source_type         String  @default("coupon") @db.VarChar(30)
+  original_amount     Decimal @db.Decimal(10, 2)
+  remaining_amount    Decimal @db.Decimal(10, 2)
+  minimum_cart_amount Decimal @default(0) @db.Decimal(10, 2)
+  status              String  @default("active") @db.VarChar(30)
+  expires_at          BigInt?
+  createddate         BigInt
+  modifieddate        BigInt
+
+  customer     users                 @relation(fields: [customer_id], references: [id], onDelete: Cascade)
+  assignment   promotion_assignments @relation(fields: [assignment_id], references: [id], onDelete: Restrict)
+  reservations wallet_reservations[]
+
+  @@index([customer_id, status])
+  @@index([expires_at])
+  @@map("wallet_credits")
+}
+
+model wallet_reservations {
+  id                      Int     @id @default(autoincrement())
+  customer_id             Int
+  wallet_credit_id        Int
+  merchant_transaction_id String  @db.VarChar(500)
+  amount                  Decimal @db.Decimal(10, 2)
+  status                  String  @default("reserved") @db.VarChar(30)
+  expires_at              BigInt
+  order_id                Int?
+  consumed_at             BigInt?
+  reversed_at             BigInt?
+  reversal_reason         String?  @db.VarChar(100)
+  createddate             BigInt
+  modifieddate            BigInt
+
+  customer users          @relation(fields: [customer_id], references: [id], onDelete: Cascade)
+  credit   wallet_credits @relation(fields: [wallet_credit_id], references: [id], onDelete: Restrict)
+
+  @@unique([wallet_credit_id, merchant_transaction_id])
+  @@index([customer_id, status])
+  @@index([merchant_transaction_id])
+  @@index([expires_at])
+  @@map("wallet_reservations")
 }
 
 model customer_groups {
@@ -1091,6 +1147,39 @@ model customer_group_members {
   @@index([customer_id])
   @@index([status])
   @@map("customer_group_members")
+}
+
+model coupon_groups {
+  id           Int     @id @default(autoincrement())
+  name         String  @db.VarChar(255)
+  code         String  @unique @db.VarChar(100)
+  description  String? @db.Text
+  status       String  @default("active") @db.VarChar(30)
+  createddate  BigInt
+  modifieddate BigInt
+
+  members            coupon_group_members[]
+  issued_assignments promotion_assignments[]
+
+  @@index([status])
+  @@map("coupon_groups")
+}
+
+model coupon_group_members {
+  id              Int    @id @default(autoincrement())
+  coupon_group_id Int
+  customer_id     Int
+  status          String @default("active") @db.VarChar(30)
+  createddate     BigInt
+  modifieddate    BigInt
+
+  coupon_group coupon_groups @relation(fields: [coupon_group_id], references: [id], onDelete: Cascade)
+  customer     users         @relation(fields: [customer_id], references: [id], onDelete: Cascade)
+
+  @@unique([coupon_group_id, customer_id])
+  @@index([customer_id])
+  @@index([status])
+  @@map("coupon_group_members")
 }
 
 model AmazonConnection {
