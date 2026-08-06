@@ -50,3 +50,24 @@ test('missing usage limits do not exhaust a promotion', () => {
     campaignUsage: 50,
   }), false);
 });
+
+test('non-positive usage limits are treated as unlimited', () => {
+  const usage = {
+    customerPromotionUsage: 50,
+    assignmentUsage: 50,
+    campaignUsage: 50,
+  };
+
+  assert.equal(isPromotionUsageExhausted({
+    ...usage,
+    perCustomerLimit: 0,
+    assignmentLimit: 0,
+    campaignLimit: 0,
+  }), false);
+  assert.equal(isPromotionUsageExhausted({
+    ...usage,
+    perCustomerLimit: -1,
+    assignmentLimit: -1,
+    campaignLimit: -1,
+  }), false);
+});
