@@ -36,7 +36,8 @@ model Product {
   soldquantity          Int?
   availablequantity     Int?
   ecompublishedquantity Int?
-  productstatus         String? @db.VarChar(255)
+  damagedquantity      Int?       @default(0)
+  productstatus        String?     @db.VarChar(255)
 
   // Additional Product Information
   material      String? @db.VarChar(255)
@@ -99,6 +100,19 @@ model PlatformStock {
   modifieddate   BigInt?
   productid      BigInt
   platformstatus String? @db.VarChar(255)
+  id            BigInt   @id @default(autoincrement())
+  platform      String   @db.VarChar(100) // e.g. amazon, flipkart, nivapp
+  availableqty  Int      @default(0)
+  orderedqty    Int      @default(0)
+  soldqty       Int      @default(0)
+  totalqty      Int      @default(0)
+  ecomqty       Int      @default(0) // E-commerce published quantity (available AND ecompublish=true)
+  damagedqty    Int      @default(0)
+  lockqty       Int?     @default(0) // Add this for NIVAPP cart locking
+  createddate   BigInt?
+  modifieddate  BigInt?
+  productid     BigInt
+  platformstatus        String?     @db.VarChar(255)
   // Relations
   product        Product @relation(fields: [productid], references: [id], onDelete: Cascade)
 
@@ -196,6 +210,325 @@ model CategoryImage {
   @@index([isactive], map: "idx_category_images_isactive")
   @@map("category_images")
 }
+
+model ReturnReplacementPolicy {
+  id                    Int      @id @default(autoincrement())
+  category              String   @db.VarChar(255)
+  subcategory           String?  @db.VarChar(255)
+  scopekey              String   @unique @db.VarChar(900)
+  returnallowed         Boolean  @default(false)
+  replacementallowed    Boolean  @default(false)
+  returnwindowdays      Int?
+  replacementwindowdays Int?
+  allowedrefundmethods  String[]
+  notes                 String?
+  isactive              Boolean  @default(true)
+  createdby             Int?
+  modifiedby            Int?
+  createddate           BigInt?
+  modifieddate          BigInt?
+
+  policyReasonRules     ReturnPolicyReasonRule[]
+
+  @@index([category, subcategory], map: "idx_return_replacement_policy_scope")
+  @@index([isactive], map: "idx_return_replacement_policy_isactive")
+  @@map("return_replacement_policies")
+}
+
+model ReturnReasonRule {
+  id                              Int      @id @default(autoincrement())
+  reasoncode                      String   @unique @db.VarChar(100)
+  reasonname                      String   @db.VarChar(255)
+  source                          String   @default("customer") @db.VarChar(50)
+  aliases                         String[]
+  allowedresolutions              String[]
+  schemaversion                   Int      @default(1) @map("schema_version")
+  raisewithinhours                Int?     @map("raise_within_hours")
+  evidencerules                   Json?    @map("evidence_rules")
+  photorequired                   Boolean  @default(true)
+  videorequired                   Boolean  @default(false)
+  packagephotorequired            Boolean  @default(false)
+  packagephotooptional            Boolean  @default(false)
+  unboxingvideorequired           Boolean  @default(false)
+  unboxingvideooptional           Boolean  @default(false)
+  openedpackageallowed            Boolean  @default(true)
+  pickuprequired                  Boolean  @default(true)
+  evidencefirstapproval           Boolean  @default(false)
+  autocreatepickup                Boolean  @default(false)
+  resolutiontiming                String?  @map("resolution_timing") @db.VarChar(100)
+  stockunavailableresolution      String?  @map("stock_unavailable_resolution") @db.VarChar(100)
+  pickuptriggermode               String   @default("manual_admin") @map("pickup_trigger_mode") @db.VarChar(100)
+  notifycustomeronstockfallback   Boolean  @default(true) @map("notify_customer_on_stock_fallback")
+  reverseshippingchargebearer     String?  @db.VarChar(50)
+  notes                           String?
+  status                          String   @default("active") @db.VarChar(50)
+  createddate                     BigInt?
+  modifieddate                    BigInt?
+
+  policyReasonRules               ReturnPolicyReasonRule[]
+
+  @@index([source], map: "idx_return_reason_rules_source")
+  @@index([status], map: "idx_return_reason_rules_status")
+  @@map("return_reason_rules")
+}
+
+model ReturnPolicyReasonRule {
+  id                   Int                     @id @default(autoincrement())
+  policyId             Int                     @map("policy_id")
+  reasonId             Int                     @map("reason_id")
+  configuration        Json
+  schemaVersion        Int                     @default(1) @map("schema_version")
+  configurationVersion Int                     @default(1) @map("configuration_version")
+  isActive             Boolean                 @default(true) @map("is_active")
+  createdBy            Int?                    @map("created_by")
+  modifiedBy           Int?                    @map("modified_by")
+  createdDate          BigInt?                 @map("created_date")
+  modifiedDate         BigInt?                 @map("modified_date")
+
+  policy               ReturnReplacementPolicy @relation(fields: [policyId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  reason               ReturnReasonRule        @relation(fields: [reasonId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@unique([policyId, reasonId], map: "return_policy_reason_rules_policy_reason_unique")
+  @@index([policyId], map: "idx_return_policy_reason_rules_policy")
+  @@index([reasonId], map: "idx_return_policy_reason_rules_reason")
+  @@index([isActive], map: "idx_return_policy_reason_rules_is_active")
+  @@map("return_policy_reason_rules")
+}
+
+model ReturnRequest {
+  id                                Int      @id @default(autoincrement())
+  requestnumber                     String   @unique @db.VarChar(100)
+  orderid                           Int?
+  orderlineid                       Int?
+  customerid                        Int?
+  requesttype                       String   @db.VarChar(50)
+  source                            String   @default("customer") @db.VarChar(50)
+  reason                            String   @db.VarChar(255)
+  reasoncode                        String   @db.VarChar(100)
+  requestedquantity                 Int      @default(1)
+  requestedresolution               String?  @db.VarChar(100)
+  ispackageopened                   Boolean?
+  additionalremarks                 String?
+  evidenceReviewStatus              String   @default("pending") @map("evidence_review_status") @db.VarChar(50)
+  evidenceRejectionReason           String?  @map("evidence_rejection_reason")
+  evidenceReviewRemarks             String?  @map("evidence_review_remarks")
+  evidenceReviewedBy                Int?     @map("evidence_reviewed_by")
+  evidenceReviewedDate              BigInt?  @map("evidence_reviewed_date")
+  requestReviewStatus               String?  @map("request_review_status") @db.VarChar(50)
+  requestReviewRemarks              String?  @map("request_review_remarks")
+  requestRejectionReason            String?  @map("request_rejection_reason")
+  requestReviewedBy                 Int?     @map("request_reviewed_by")
+  requestReviewedDate               BigInt?  @map("request_reviewed_date")
+  pickupflow                        String?  @db.VarChar(50)
+  reverseShipmentTrackingId         String?  @map("reverse_shipment_tracking_id") @db.VarChar(500)
+  reverseShipmentProvider           String?  @map("reverse_shipment_provider") @db.VarChar(100)
+  appliedPolicyId                   Int?     @map("applied_policy_id")
+  appliedPolicyVersion              BigInt?  @map("applied_policy_version")
+  policyReasonRuleId                Int?     @map("policy_reason_rule_id")
+  policyReasonRuleVersion           Int?     @map("policy_reason_rule_version")
+  policysnapshot                    Json?    @map("policy_snapshot")
+  reasonrulesnapshot                Json?    @map("reason_rule_snapshot")
+  reasonruleversion                 Int?     @map("reason_rule_version")
+  autoCreatePickup                  Boolean  @default(false) @map("auto_create_pickup")
+  pickupCreatedBy                   String?  @map("pickup_created_by") @db.VarChar(50)
+  pickupPreparedBy                  Int?     @map("pickup_prepared_by")
+  pickupPreparedDate                BigInt?  @map("pickup_prepared_date")
+  pickupRemarks                     String?  @map("pickup_remarks")
+  logisticsProviderSource           String?  @map("logistics_provider_source") @db.VarChar(100)
+  reverseShippingChargeBearer       String?  @map("reverse_shipping_charge_bearer") @db.VarChar(50)
+  reverseShippingChargeAdjustment   String?  @map("reverse_shipping_charge_adjustment") @db.VarChar(100)
+  receivedQuantity                  Int?     @map("received_quantity")
+  receivedCondition                 String?  @map("received_condition") @db.VarChar(100)
+  receivedRemarks                   String?  @map("received_remarks")
+  receivedLocation                  String?  @map("received_location") @db.VarChar(255)
+  receivedBy                        Int?     @map("received_by")
+  receivedDate                      BigInt?  @map("received_date")
+  status                            String   @default("requested") @db.VarChar(100)
+  createdby                         Int?
+  modifiedby                        Int?
+  createddate                       BigInt?
+  modifieddate                      BigInt?
+
+  order                             orders?     @relation(fields: [orderid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  orderline                         orderline?  @relation(fields: [orderlineid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  customer                          users?      @relation(fields: [customerid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  attachments                       ReturnRequestAttachment[]
+  inspections                       ReturnInspection[]
+  resolutionActions                 ReturnResolutionAction[]
+  creditNotes                       ReturnCreditNote[]
+  statusTimeline                    ReturnStatusTimeline[]
+
+  @@index([orderid], map: "idx_return_requests_orderid")
+  @@index([orderlineid], map: "idx_return_requests_orderlineid")
+  @@index([customerid], map: "idx_return_requests_customerid")
+  @@index([source], map: "idx_return_requests_source")
+  @@index([status], map: "idx_return_requests_status")
+  @@index([reasoncode], map: "idx_return_requests_reasoncode")
+  @@index([appliedPolicyId], map: "idx_return_requests_applied_policy_id")
+  @@index([policyReasonRuleId], map: "idx_return_requests_policy_reason_rule_id")
+  @@map("return_requests")
+}
+
+model ReturnResolutionAction {
+  id                           Int           @id @default(autoincrement())
+  returnRequestId              Int           @map("return_request_id")
+  actionType                   String        @map("action_type") @db.VarChar(100)
+  status                       String        @default("pending") @db.VarChar(50)
+  amount                       Decimal?      @db.Decimal(10, 2)
+  refundMethod                 String?       @map("refund_method") @db.VarChar(100)
+  externalReference            String?       @map("external_reference") @db.VarChar(500)
+  shipmentTrackingId           String?       @map("shipment_tracking_id") @db.VarChar(500)
+  shipmentProvider             String?       @map("shipment_provider") @db.VarChar(100)
+  quantity                     Int?
+  stockFallbackApplied         Boolean       @default(false) @map("stock_fallback_applied")
+  noReverseChargeDeduction     Boolean       @default(true) @map("no_reverse_charge_deduction")
+  metadata                     Json?
+  notes                        String?
+  createdBy                    Int?          @map("created_by")
+  completedBy                  Int?          @map("completed_by")
+  createddate                  BigInt?
+  modifieddate                 BigInt?
+  completeddate                BigInt?
+
+  returnRequest                ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  creditNotes                  ReturnCreditNote[]
+
+  @@index([returnRequestId], map: "idx_return_resolution_actions_request")
+  @@index([actionType], map: "idx_return_resolution_actions_action_type")
+  @@index([status], map: "idx_return_resolution_actions_status")
+  @@map("return_resolution_actions")
+}
+
+model ReturnCreditNote {
+  id                    Int                     @id @default(autoincrement())
+  creditNoteNumber      String                  @unique @map("credit_note_number") @db.VarChar(100)
+  returnRequestId       Int                     @map("return_request_id")
+  resolutionActionId    Int?                    @map("resolution_action_id")
+  originalOrderId       Int?                    @map("original_order_id")
+  originalOrderNumber   String?                 @map("original_order_number") @db.VarChar(500)
+  originalInvoiceNumber String?                 @map("original_invoice_number") @db.VarChar(500)
+  originalInvoiceUrl    String?                 @map("original_invoice_url") @db.VarChar(1000)
+  reasonCode            String?                 @map("reason_code") @db.VarChar(100)
+  resolution            String?                 @db.VarChar(100)
+  quantity              Int                     @default(1)
+  refundAmount          Decimal                 @map("refund_amount") @db.Decimal(10, 2)
+  taxableAmount         Decimal?                @map("taxable_amount") @db.Decimal(10, 2)
+  gstRate               Decimal?                @map("gst_rate") @db.Decimal(5, 2)
+  cgstAmount            Decimal?                @map("cgst_amount") @db.Decimal(10, 2)
+  sgstAmount            Decimal?                @map("sgst_amount") @db.Decimal(10, 2)
+  igstAmount            Decimal?                @map("igst_amount") @db.Decimal(10, 2)
+  totalGstAmount        Decimal?                @map("total_gst_amount") @db.Decimal(10, 2)
+  hsnCode               String?                 @map("hsn_code") @db.VarChar(50)
+  status                String                  @default("draft") @db.VarChar(50)
+  metadata              Json?
+  notes                 String?
+  createdBy             Int?                    @map("created_by")
+  issuedBy              Int?                    @map("issued_by")
+  createddate           BigInt?
+  modifieddate          BigInt?
+  issueddate            BigInt?
+
+  returnRequest         ReturnRequest           @relation(fields: [returnRequestId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  resolutionAction      ReturnResolutionAction? @relation(fields: [resolutionActionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([returnRequestId], map: "idx_return_credit_notes_request")
+  @@index([resolutionActionId], map: "idx_return_credit_notes_resolution_action")
+  @@index([status], map: "idx_return_credit_notes_status")
+  @@map("return_credit_notes")
+}
+
+model InvoiceAdjustment {
+  id                    Int       @id @default(autoincrement())
+  adjustmentNumber      String    @unique @map("adjustment_number") @db.VarChar(120)
+  adjustmentType        String    @map("adjustment_type") @db.VarChar(100)
+  sourceAction          String    @map("source_action") @db.VarChar(100)
+  status                String    @default("draft") @db.VarChar(50)
+  orderId               Int?      @map("order_id")
+  orderNumber           String?   @map("order_number") @db.VarChar(500)
+  returnRequestId       Int?      @map("return_request_id")
+  resolutionActionId    Int?      @map("resolution_action_id")
+  originalInvoiceNumber String?   @map("original_invoice_number") @db.VarChar(500)
+  originalInvoiceUrl    String?   @map("original_invoice_url") @db.VarChar(1000)
+  originalInvoiceAmount Decimal?  @map("original_invoice_amount") @db.Decimal(10, 2)
+  remainingAmount       Decimal?  @map("remaining_amount") @db.Decimal(10, 2)
+  reversedAmount        Decimal?  @map("reversed_amount") @db.Decimal(10, 2)
+  creditNoteId          Int?      @map("credit_note_id")
+  creditNoteNumber      String?   @map("credit_note_number") @db.VarChar(100)
+  gstReversalApplicable Boolean   @default(false) @map("gst_reversal_applicable")
+  metadata              Json?
+  notes                 String?
+  createdBy             Int?      @map("created_by")
+  createddate           BigInt?
+  modifieddate          BigInt?
+
+  @@index([orderId], map: "idx_invoice_adjustments_order")
+  @@index([returnRequestId], map: "idx_invoice_adjustments_return_request")
+  @@index([adjustmentType], map: "idx_invoice_adjustments_type")
+  @@index([sourceAction], map: "idx_invoice_adjustments_source_action")
+  @@map("invoice_adjustments")
+}
+
+model ReturnStatusTimeline {
+  id                Int           @id @default(autoincrement())
+  returnRequestId   Int           @map("return_request_id")
+  previousStatus    String?       @map("previous_status") @db.VarChar(100)
+  status            String        @db.VarChar(100)
+  eventType         String        @map("event_type") @db.VarChar(100)
+  actorType         String?       @map("actor_type") @db.VarChar(50)
+  actorId           Int?          @map("actor_id")
+  message           String?
+  metadata          Json?
+  createddate       BigInt?
+
+  returnRequest     ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([returnRequestId], map: "idx_return_status_timeline_request")
+  @@index([status], map: "idx_return_status_timeline_status")
+  @@index([eventType], map: "idx_return_status_timeline_event_type")
+  @@map("return_status_timeline")
+}
+
+model ReturnRequestAttachment {
+  id                       Int      @id @default(autoincrement())
+  returnrequestid          Int
+  attachmenttype           String   @db.VarChar(100)
+  fileurl                  String   @db.Text
+  isrequired               Boolean  @default(false)
+  uploadedbycustomerid     Int?
+  uploadeddate             BigInt?
+  status                   String   @default("active") @db.VarChar(50)
+
+  returnrequest            ReturnRequest @relation(fields: [returnrequestid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  uploadedbycustomer       users?        @relation(fields: [uploadedbycustomerid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([returnrequestid], map: "idx_return_request_attachments_request")
+  @@index([status], map: "idx_return_request_attachments_status")
+  @@map("return_request_attachments")
+}
+
+model ReturnInspection {
+  id                         Int           @id @default(autoincrement())
+  returnRequestId            Int           @map("return_request_id")
+  inspectedByInventoryUserId Int           @map("inspected_by_inventory_user_id")
+  receivedQuantity           Int           @map("received_quantity")
+  approvedQuantity           Int           @default(0) @map("approved_quantity")
+  rejectedQuantity           Int           @default(0) @map("rejected_quantity")
+  condition                  String        @db.VarChar(100)
+  inspectionNotes            String?       @map("inspection_notes")
+  restockAction              String        @default("none") @map("restock_action") @db.VarChar(100)
+  createddate                BigInt?
+  modifieddate               BigInt?
+
+  returnRequest              ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([returnRequestId], map: "idx_return_inspections_request")
+  @@index([inspectedByInventoryUserId], map: "idx_return_inspections_inspector")
+  @@index([condition], map: "idx_return_inspections_condition")
+  @@index([restockAction], map: "idx_return_inspections_restock_action")
+  @@map("return_inspections")
+}
+
+
 
 model PicklistBackup {
   backup_id           Int      @id @default(autoincrement())
@@ -472,24 +805,17 @@ model orderline {
   shipping_cost             Decimal? @default(0) @db.Decimal(10, 2)
   // EKART Shipment Information (shared with order)
 
-  hsn_code         String?  @db.VarChar(50)
-  gst_rate         Decimal? @db.Decimal(5, 2) // e.g., 5.00, 18.00
-  taxable_amount   Decimal? @db.Decimal(10, 2) // orderamount / (1 + gst_rate/100)
-  cgst_amount      Decimal? @db.Decimal(10, 2) // if same state
-  sgst_amount      Decimal? @db.Decimal(10, 2) // if same state
-  igst_amount      Decimal? @db.Decimal(10, 2) // if different state
-  total_gst_amount Decimal? @db.Decimal(10, 2) // cgst + sgst OR igst
-
-  tracking_id    String?   @db.VarChar(500)
-  shipdate       BigInt?
-  status_history Json? // Array of status change history entries
-  address        address?  @relation(fields: [addressid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  product        Product?  @relation(fields: [productid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users          users?    @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  rating         rating[]
-  stock          Stock[]
-  tickets        tickets[] @ignore
-  orders         orders?   @relation(fields: [orderid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  tracking_id             String?   @db.VarChar(500)
+  shipdate                BigInt?
+  status_history          Json?     // Array of status change history entries
+  address         address?  @relation(fields: [addressid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  product         Product?  @relation(fields: [productid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users           users?    @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  rating          rating[]
+  stock           Stock[]
+  returnrequests  ReturnRequest[]
+  tickets         tickets[] @ignore
+  orders          orders?   @relation(fields: [orderid], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("orderline")
 }
@@ -558,12 +884,13 @@ model orders {
   refund_completed_date BigInt? // Timestamp when refund was completed (epoch ms)
   order_invoice_url     String?  @db.VarChar(1000) // URL of the order invoice
 
-  orderline   orderline[]
-  address     address?      @relation(fields: [addressid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_addressid_orders")
-  transaction transaction?  @relation(fields: [transactionid], references: [transactionid], onDelete: Cascade, onUpdate: NoAction, map: "fk_transactionid")
-  users       users?        @relation(fields: [userid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_userid_orders")
-  revoinvoice revoinvoice[]
-  stock       Stock[]
+  orderline             orderline[]
+  address               address?                 @relation(fields: [addressid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_addressid_orders")
+  transaction           transaction?             @relation(fields: [transactionid], references: [transactionid], onDelete: Cascade, onUpdate: NoAction, map: "fk_transactionid")
+  users                 users?                   @relation(fields: [userid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_userid_orders")
+  revoinvoice           revoinvoice[]
+  stock                 Stock[]
+  returnrequests        ReturnRequest[]
 }
 
 model permissions {
@@ -881,6 +1208,8 @@ model users {
   address                    address[]
   orderline                  orderline[]
   orders                     orders[]
+  returnrequests   ReturnRequest[]
+  returnrequestattachments ReturnRequestAttachment[]
   tickets                    tickets[]                @ignore
   rating                     rating[]
   promotion_assignments      promotion_assignments[]  @relation("AssignedCouponCustomer")

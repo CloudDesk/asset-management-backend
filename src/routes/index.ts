@@ -32,6 +32,9 @@ import { pushNotificationRoutes } from './push-notification.route.js';
 import { storefrontPageSectionRoutes } from './storefront-page-section.route.js';
 import { categoryImageRoutes } from './category-image.route.js';
 import { couponWalletRoutes } from './coupon-wallet.route.js';
+import { returnReplacementPolicyRoutes } from './return-replacement-policy.route.js';
+import { returnReasonRuleRoutes } from './return-reason-rule.route.js';
+import { returnRequestRoutes } from './return-request.route.js';
 import { smartAuthentication } from '../middleware/smartAuth.middleware.js';
 import { createSuccessResponse } from '../utils/errorHandler.js';
 import { permissionRoutes } from './permission.route.js';
@@ -125,6 +128,9 @@ export async function routes(fastify: FastifyInstance) {
     await fastify.register(storefrontPageSectionRoutes, { prefix: '/storefront-page-sections' });
     await fastify.register(categoryImageRoutes, { prefix: '/category-images' });
     await fastify.register(couponWalletRoutes, { prefix: '/coupon-wallet' });
+    await fastify.register(returnReplacementPolicyRoutes, { prefix: '/return-replacement-policies' });
+    await fastify.register(returnReasonRuleRoutes, { prefix: '/return-reason-rules' });
+    await fastify.register(returnRequestRoutes, { prefix: '/returns' });
 
     // -------------------------------------------------------------------------
     // SMART AUTHENTICATION - Applied to ALL /v1 routes

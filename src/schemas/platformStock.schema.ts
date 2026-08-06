@@ -11,6 +11,7 @@ export const createPlatformStockSchema = z.object({
   orderedqty: z.number().int().min(0, 'Ordered quantity cannot be negative').default(0).optional(),
   soldqty: z.number().int().min(0, 'Sold quantity cannot be negative').default(0).optional(),
   totalqty: z.number().int().min(0, 'Total quantity cannot be negative').default(0).optional(),
+  damagedqty: z.number().int().min(0, 'Damaged quantity cannot be negative').default(0).optional(),
   lockqty: z.number().int().min(0, 'Lock quantity cannot be negative').default(0).optional(),
   
   // Timestamps
@@ -28,6 +29,7 @@ export const updatePlatformStockSchema = z.object({
   orderedqty: z.number().int().min(0, 'Ordered quantity cannot be negative').optional(),
   soldqty: z.number().int().min(0, 'Sold quantity cannot be negative').optional(),
   totalqty: z.number().int().min(0, 'Total quantity cannot be negative').optional(),
+  damagedqty: z.number().int().min(0, 'Damaged quantity cannot be negative').optional(),
   lockqty: z.number().int().min(0, 'Lock quantity cannot be negative').optional(),
   
   // Timestamps
@@ -46,6 +48,7 @@ export const upsertPlatformStockSchema = z.object({
   orderedqty: z.number().int().min(0, 'Ordered quantity cannot be negative').default(0).optional(),
   soldqty: z.number().int().min(0, 'Sold quantity cannot be negative').default(0).optional(),
   totalqty: z.number().int().min(0, 'Total quantity cannot be negative').default(0).optional(),
+  damagedqty: z.number().int().min(0, 'Damaged quantity cannot be negative').default(0).optional(),
   lockqty: z.number().int().min(0, 'Lock quantity cannot be negative').default(0).optional(),
   
   // Timestamps
@@ -95,6 +98,7 @@ export const bulkPlatformStockUpdateSchema = z.object({
     orderedqty: z.number().int().min(0).optional(),
     soldqty: z.number().int().min(0).optional(),
     totalqty: z.number().int().min(0).optional(),
+    damagedqty: z.number().int().min(0).optional(),
     lockqty: z.number().int().min(0).optional(),
   })).min(1, 'At least one platform update is required'),
 });
@@ -110,6 +114,7 @@ export function validatePlatformStockDynamicFields(data: Record<string, any>): R
       case 'orderedqty':
       case 'soldqty':
       case 'totalqty':
+      case 'damagedqty':
       case 'lockqty':
         dynamicFields[key] = Number(value);
         break;

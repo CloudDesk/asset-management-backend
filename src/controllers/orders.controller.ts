@@ -16,10 +16,12 @@ import { formatEntitiesForAPI } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
 import { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import { CustomerNotificationService } from '../services/customer-notification.service.js';
+import { ReturnRequestService } from '../services/return-request.service.js';
 
 export class OrdersController {
   public ordersService = new OrdersService();
   private customerNotificationService = new CustomerNotificationService();
+  private returnRequestService = new ReturnRequestService();
 
   private async sendOrderNotification(order: any, status?: string | null) {
     try {
@@ -98,6 +100,18 @@ export class OrdersController {
         filtered: Object.keys(filters).length > 0
       }
     });
+  });
+
+  getReturnEligibility = asyncHandler(async (
+    request: AuthenticatedRequest & FastifyRequest<{ Params: { id: string } }>,
+    reply: FastifyReply
+  ) => {
+    const { id } = request.params;
+    const result = await this.returnRequestService.getOrderReturnEligibility(id, request.user);
+
+    return reply
+      .code(200)
+      .send(createSuccessResponse('Order return eligibility evaluated successfully', result));
   });
 
   /**

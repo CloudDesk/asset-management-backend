@@ -1,0 +1,53 @@
+
+> asset-management-backend@1.0.0 dev
+> npx tsx watch src/index.ts
+
+🚀 POINVOICE SERVICE LOADED - This should appear when the service is imported
+🔌 Connecting to Redis...
+✅ Redis connected successfully
+🔌 Connecting to Ekart API...
+[07:33:05 UTC] [32mINFO[39m: [36mundefined - EkartAuthService initialized[39m
+[07:33:05 UTC] [32mINFO[39m: [36mundefined - EkartService initialized[39m
+[07:33:05 UTC] [32mINFO[39m: [36mundefined - EkartService initialized[39m
+[07:33:07 UTC] [32mINFO[39m: [36mundefined - Connecting to Redis...[39m
+    host: "redis-10690.c330.asia-south1-1.gce.redns.redis-cloud.com"
+    port: 10690
+    hasPassword: true
+    usingUrl: false
+[07:33:07 UTC] [32mINFO[39m: [36mundefined - Redis client is connecting...[39m
+[07:33:07 UTC] [32mINFO[39m: [36mundefined - Redis client is ready[39m
+[07:33:07 UTC] [32mINFO[39m: [36mundefined - ✅ Redis connected successfully[39m
+[07:33:07 UTC] [32mINFO[39m: [36mundefined - Connecting to Ekart API...[39m
+    clientId: "EKART_6927d80ab5353322c97bdf6d"
+[07:33:07 UTC] [32mINFO[39m: [36mundefined - Attempting authentication with official endpoint...[39m
+    authUrl: "https://app.elite.ekartlogistics.in/integrations/v2/auth/token/EKART_6927d80ab5353322c97bdf6d"
+    clientId: "EKART_6927d80ab5353322c97bdf6d"
+✅ Ekart API connected successfully
+test
+[07:33:08 UTC] [32mINFO[39m: [36mundefined - ✅ Connected to Ekart. Token obtained successfully[39m
+    expiresIn: 49392
+    tokenType: "Bearer"
+[07:33:08 UTC] [32mINFO[39m: [36mundefined - Logger plugin registered successfully[39m
+✅ Database connected successfully
+prisma:query SELECT 1
+{"level":30,"time":1785310390059,"pid":17580,"hostname":"DESKTOP-0U634VI","msg":"Database plugin registered successfully"}
+[07:33:10 UTC] [32mINFO[39m: [36mundefined - ✅ Database connected and tested successfully[39m
+[07:33:10 UTC] [33mWARN[39m: [36mundefined - Firebase service account file is not available; push sends will be disabled.[39m
+    path: "C:\Nivaana\asset-management-backend\secrets\nivaana-6a12c-firebase-adminsdk-fbsvc-2fcbe23391.json"
+{"level":30,"time":1785310392284,"pid":17580,"hostname":"DESKTOP-0U634VI","msg":"Server listening at http://127.0.0.1:5600"}
+{"level":30,"time":1785310392284,"pid":17580,"hostname":"DESKTOP-0U634VI","msg":"Server listening at http://192.168.1.22:5600"}
+{"level":30,"time":1785310392285,"pid":17580,"hostname":"DESKTOP-0U634VI","msg":"🚀 Server running at http://localhost:5600"}
+{"level":30,"time":1785310392286,"pid":17580,"hostname":"DESKTOP-0U634VI","msg":"📚 API Documentation available at http://localhost:5600/docs"}
+[07:33:10 UTC] [32mINFO[39m: [36mundefined - Email service initialized[39m
+[07:33:10 UTC] [32mINFO[39m: [36mundefined - Email service initialized[39m
+[07:33:10 UTC] [32mINFO[39m: [36mundefined - Twilio SMS service initialized successfully[39m
+[07:33:10 UTC] [32mINFO[39m: [36mundefined - Email service initialized[39m
+[07:33:10 UTC] [32mINFO[39m: [36mundefined - PhonePe SDK client initialized successfully[39m
+    environment: "SANDBOX"
+    clientVersion: 1
+    usingSDK: true
+[07:33:10 UTC] [32mINFO[39m: [36mundefined - Twilio SMS service initialized successfully[39m
+{"level":30,"time":1785310417856,"pid":17580,"hostname":"DESKTOP-0U634VI","reqId":"req-1","method":"GET","url":"/health","query":{},"userAgent":"Mozilla/5.0 (Windows NT; Windows NT 10.0; en-IN) WindowsPowerShell/5.1.19041.7548","msg":"Incoming request"}
+{"level":30,"time":1785310417893,"pid":17580,"hostname":"DESKTOP-0U634VI","reqId":"req-1","method":"GET","url":"/health","statusCode":200,"responseTime":37.14479994773865,"msg":"Request completed - 200 - 37.14479994773865ms"}
+2:58:14 pm [tsx] change in ./src\plugins\firebase.ts Restarting...
+c

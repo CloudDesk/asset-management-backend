@@ -228,6 +228,69 @@ export class StorageService {
     }
   }
 
+  async uploadReturnEvidenceFile(
+    fileBuffer: Buffer,
+    fileName: string,
+    contentType: string,
+    requestKey?: string
+  ): Promise<{
+    url: string;
+    objectKey: string;
+    bucket: string;
+    size: number;
+    filename?: string;
+    mimetype?: string;
+  }> {
+    const storageBackendUrl = process.env.STORAGE_BACKEND_URL || 'http://localhost:4500';
+    const formData = new FormData();
+    formData.append('file', fileBuffer, {
+      filename: fileName,
+      contentType,
+    });
+
+    let response;
+    try {
+      response = await axios.post(
+        `${storageBackendUrl}/return-evidence/upload`,
+        formData,
+        {
+          params: {
+            ...(requestKey ? { requestKey } : {}),
+          },
+          headers: {
+            ...formData.getHeaders(),
+            ...(process.env.STORAGE_API_KEY
+              ? { 'X-Storage-Api-Key': process.env.STORAGE_API_KEY }
+              : {}),
+          },
+          timeout: 90000,
+          maxBodyLength: 60 * 1024 * 1024,
+        }
+      );
+    } catch (error: any) {
+      const backendMessage =
+        error.response?.data?.message
+        || error.response?.data?.error
+        || error.response?.data?.details
+        || error.message;
+      const storageError: any = new Error(
+        error.response?.status === 401 || error.response?.status === 403
+          ? 'File-Upload service credentials are not configured correctly'
+          : backendMessage || 'File-Upload service failed to upload return evidence'
+      );
+      storageError.statusCode = 502;
+      throw storageError;
+    }
+
+    if (!response.data?.success || !response.data?.data?.objectKey) {
+      throw new Error(
+        response.data?.message || 'Storage backend did not return return evidence upload details'
+      );
+    }
+
+    return response.data.data;
+  }
+
   /**
    * Upload shipping label PDF to Storage Backend
    * EKART API returns binary PDF (application/octet-stream) which is converted to Buffer
