@@ -88,18 +88,6 @@ model ProductBundleMap {
 }
 
 model PlatformStock {
-  id             BigInt  @id @default(autoincrement())
-  platform       String  @db.VarChar(100) // e.g. amazon, flipkart, nivapp
-  availableqty   Int     @default(0)
-  orderedqty     Int     @default(0)
-  soldqty        Int     @default(0)
-  totalqty       Int     @default(0)
-  ecomqty        Int     @default(0) // E-commerce published quantity (available AND ecompublish=true)
-  lockqty        Int?    @default(0) // Add this for NIVAPP cart locking
-  createddate    BigInt?
-  modifieddate   BigInt?
-  productid      BigInt
-  platformstatus String? @db.VarChar(255)
   id            BigInt   @id @default(autoincrement())
   platform      String   @db.VarChar(100) // e.g. amazon, flipkart, nivapp
   availableqty  Int      @default(0)
@@ -802,6 +790,7 @@ model orderline {
   original_price            Decimal? @db.Decimal(10, 2)
   product_discount_amount   Decimal? @default(0) @db.Decimal(10, 2)
   promotion_discount_amount Decimal? @default(0) @db.Decimal(10, 2)
+  manual_discount_amount    Decimal? @default(0) @db.Decimal(10, 2)
   shipping_cost             Decimal? @default(0) @db.Decimal(10, 2)
   // EKART Shipment Information (shared with order)
 
@@ -853,6 +842,10 @@ model orders {
   searchtext                Unsupported("tsvector")?
   // Payment Mode & COD Tracking
   mode                      String?                  @db.VarChar(50) // 'cod' | 'phonepe'
+  order_type                String?                  @db.VarChar(50) // Set only by the dedicated in-store order flow
+  created_by_inventory_user_id Int?
+  manual_discount_total     Decimal?                 @default(0) @db.Decimal(10, 2)
+  manual_discount_reason    String?                  @db.VarChar(500)
   cod_payment_received_date BigInt? // When COD payment collected (epoch milliseconds)
   cod_transaction_reference String?                  @db.VarChar(500) // EKART/payment gateway transaction reference
   cod_amount                Decimal?                 @db.Decimal(10, 2) // COD amount for verification and reconciliation

@@ -38,6 +38,7 @@ import { returnRequestRoutes } from './return-request.route.js';
 import { smartAuthentication } from '../middleware/smartAuth.middleware.js';
 import { createSuccessResponse } from '../utils/errorHandler.js';
 import { permissionRoutes } from './permission.route.js';
+import { instoreOrderRoutes } from './instore-order.route.js';
 
 export async function routes(fastify: FastifyInstance) {
   // Health check endpoint (public)
@@ -115,6 +116,7 @@ export async function routes(fastify: FastifyInstance) {
     await fastify.register(samplePurchaseRequestRoutes, { prefix: '/samplepurchaserequests' });
     await fastify.register(cartRoutes, { prefix: '/carts' });
     await fastify.register(ordersRoutes, { prefix: '/orders' });
+    await fastify.register(instoreOrderRoutes, { prefix: '/instore-orders' });
     await fastify.register(orderlineRoutes, { prefix: '/orderlines' });
     await fastify.register(transactionRoutes, { prefix: '/transactions' });
     await fastify.register(phonePeRoutes, { prefix: '/phonepe' });

@@ -155,8 +155,13 @@ export class OrdersService {
       const whereClause: any = {};
       for (const [key, value] of Object.entries(filters)) {
         if (!['page', 'limit'].includes(key)) {
+          if (key === 'order_type') {
+            whereClause.OR = value === 'online'
+              ? [{ order_type: null }, { order_type: { not: 'instore' } }]
+              : [{ order_type: 'instore' }];
+          }
           // Handle numeric fields
-          if (['userid', 'addressid', 'id', 'quantity'].includes(key)) {
+          else if (['userid', 'addressid', 'id', 'quantity'].includes(key)) {
             whereClause[key] = parseInt(value as string);
           }
           // // Handle boolean fields
@@ -2646,6 +2651,13 @@ export class OrdersService {
         throw new Error('Order not found');
       }
 
+      const instoreCustomer = fullOrder.order_type === 'instore' && fullOrder.userid
+        ? await prisma.users.findUnique({
+            where: { id: Number(fullOrder.userid) },
+            select: { firstname: true, lastname: true, usermobilenumber: true, useremail: true }
+          })
+        : null;
+
       // Extract only required order fields
       const order = {
         id: fullOrder.id,
@@ -2666,6 +2678,15 @@ export class OrdersService {
         merchanttransactionid: fullOrder.merchanttransactionid,
         paymentfaileddate: fullOrder.paymentfaileddate,
         mode: fullOrder.mode,
+        order_type: fullOrder.order_type,
+        created_by_inventory_user_id: fullOrder.created_by_inventory_user_id,
+        manual_discount_total: fullOrder.manual_discount_total ? Number(fullOrder.manual_discount_total) : 0,
+        manual_discount_reason: fullOrder.manual_discount_reason,
+        username: instoreCustomer
+          ? `${instoreCustomer.firstname || ''} ${instoreCustomer.lastname || ''}`.trim()
+          : null,
+        usermobilenumber: instoreCustomer?.usermobilenumber || null,
+        useremail: instoreCustomer?.useremail || null,
         promotion_discount_total: fullOrder.promotion_discount_total ? Number(fullOrder.promotion_discount_total) : null,
         wallet_discount_total: Number(fullOrder.wallet_discount_total ?? 0),
         wallet_amount_applied: Number(fullOrder.wallet_discount_total ?? 0),
@@ -2725,6 +2746,7 @@ export class OrdersService {
             original_price: ol.original_price ? Number(ol.original_price) : null,
             product_discount_amount: ol.product_discount_amount ? Number(ol.product_discount_amount) : null,
             promotion_discount_amount: ol.promotion_discount_amount ? Number(ol.promotion_discount_amount) : null,
+            manual_discount_amount: ol.manual_discount_amount ? Number(ol.manual_discount_amount) : null,
             shipping_cost: ol.shipping_cost ? Number(ol.shipping_cost) : null,
             gst_rate: ol.gst_rate ? Number(ol.gst_rate) : null,
             taxable_amount: ol.taxable_amount ? Number(ol.taxable_amount) : null,
@@ -2828,6 +2850,19 @@ export class OrdersService {
         } catch (err) {
           logger.warn({ addressId: firstOrderlineWithAddress.addressid, error: err }, 'Failed to fetch address');
         }
+      }
+
+      if (!address && fullOrder.order_type === 'instore' && instoreCustomer) {
+        address = {
+          name: `${instoreCustomer.firstname || ''} ${instoreCustomer.lastname || ''}`.trim(),
+          mobilenumber: instoreCustomer.usermobilenumber,
+          pincode: null,
+          doornumber: null,
+          address: null,
+          landmark: null,
+          state: null,
+          city: null
+        };
       }
 
       // Wallet credit is an order-level payment adjustment. Return the source

@@ -20,6 +20,7 @@ export async function ordersRoutes(fastify: FastifyInstance) {
           addressid: { type: 'string', description: 'Filter by address ID' },
           orderid: { type: 'string', description: 'Filter by order ID' },
           orderstatus: { type: 'string', description: 'Filter by order status' },
+          order_type: { type: 'string', enum: ['instore', 'online'], description: 'Filter by in-store or online order type' },
           transactionid: { type: 'string', description: 'Filter by transaction ID' },
           merchanttransactionid: { type: 'string', description: 'Filter by merchant transaction ID' },
           deliveryfrom: { type: 'string', description: 'Filter by delivery from location' },
