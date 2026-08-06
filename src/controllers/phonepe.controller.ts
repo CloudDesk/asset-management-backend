@@ -3415,7 +3415,8 @@ export class PhonePeController {
           productAmount > 0
             ? productAmount
             : parseFloat(transaction.amount?.toString() || "0"),
-        discountamount: productDiscountTotal + promotionDiscountTotal + walletDiscountTotal,
+        // Wallet credit is a payment allocation, not a merchandise discount.
+        discountamount: productDiscountTotal + promotionDiscountTotal,
         ispaymentsucceed: !isCodOrder, // ✅ COD: false (payment pending), Prepaid: true
         merchanttransactionid: transaction.merchanttransactionid,
         productid: validProductIds, // Include product IDs for automatic orderline creation

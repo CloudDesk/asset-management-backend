@@ -2594,6 +2594,7 @@ export class OrdersService {
     order: any;
     orderlines: any[];
     address: any | null;
+    wallet_usage: any[];
   }> {
     try {
       logger.info({ idOrOrderNumber }, 'Getting order details with orderlines and address');
@@ -2633,6 +2634,8 @@ export class OrdersService {
         paymentfaileddate: fullOrder.paymentfaileddate,
         mode: fullOrder.mode,
         promotion_discount_total: fullOrder.promotion_discount_total ? Number(fullOrder.promotion_discount_total) : null,
+        wallet_discount_total: Number(fullOrder.wallet_discount_total ?? 0),
+        wallet_amount_applied: Number(fullOrder.wallet_discount_total ?? 0),
         original_total: fullOrder.original_total ? Number(fullOrder.original_total) : null,
         shipping_cost: fullOrder.shipping_cost ? Number(fullOrder.shipping_cost) : null,
         items_total: fullOrder.items_total ? Number(fullOrder.items_total) : null,
@@ -2794,16 +2797,48 @@ export class OrdersService {
         }
       }
 
+      // Wallet credit is an order-level payment adjustment. Return the source
+      // allocations separately so clients do not misattribute it to a line.
+      const walletReservations = await prisma.wallet_reservations.findMany({
+        where: {
+          order_id: Number(fullOrder.id),
+          status: { in: ['consumed', 'reversed'] }
+        },
+        include: {
+          credit: {
+            include: {
+              assignment: { include: { promotion: true } }
+            }
+          }
+        },
+        orderBy: { id: 'asc' }
+      });
+
+      const wallet_usage = walletReservations.map((reservation: any) => ({
+        reservation_id: reservation.id,
+        credit_id: reservation.wallet_credit_id,
+        coupon_code: reservation.credit?.assignment?.voucher_code || null,
+        coupon_name: reservation.credit?.assignment?.promotion?.name || null,
+        amount: Number(reservation.amount),
+        status: reservation.status,
+        consumed_at: reservation.consumed_at ? Number(reservation.consumed_at) : null,
+        reversed_at: reservation.reversed_at ? Number(reservation.reversed_at) : null,
+        reversal_reason: reservation.reversal_reason || null,
+        expires_at: reservation.credit?.expires_at ? Number(reservation.credit.expires_at) : null
+      }));
+
       logger.info({
         orderId: order.id,
         orderlinesCount: orderlines.length,
+        walletUsageCount: wallet_usage.length,
         hasAddress: !!address
       }, 'Order details retrieved successfully');
 
       return {
         order,
         orderlines,
-        address
+        address,
+        wallet_usage
       };
     } catch (error) {
       logger.error({ error, idOrOrderNumber }, 'Error getting order details');
@@ -2841,6 +2876,8 @@ export class OrdersService {
       ispaymentsucceed: boolean | null;
       mode: string | null;
       promotion_discount_total: number | null;
+      wallet_discount_total: number;
+      wallet_amount_applied: number;
       original_total: number | null;
       shipping_cost: number | null;
       items_total: number | null;
@@ -3173,6 +3210,8 @@ export class OrdersService {
           ispaymentsucceed: order.ispaymentsucceed,
           mode: order.mode,
           promotion_discount_total: order.promotion_discount_total ? Number(order.promotion_discount_total) : null,
+          wallet_discount_total: Number(order.wallet_discount_total ?? 0),
+          wallet_amount_applied: Number(order.wallet_discount_total ?? 0),
           original_total: order.original_total ? Number(order.original_total) : null,
           shipping_cost: order.shipping_cost ? Number(order.shipping_cost) : null,
           items_total: order.items_total ? Number(order.items_total) : null,

@@ -490,6 +490,8 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                     paymentfaileddate: { type: 'number', nullable: true },
                     mode: { type: 'string', nullable: true },
                     promotion_discount_total: { type: 'number', nullable: true },
+                    wallet_discount_total: { type: 'number', nullable: true, description: 'Legacy persisted wallet allocation amount' },
+                    wallet_amount_applied: { type: 'number', nullable: true, description: 'Wallet payment allocated to this order' },
                     original_total: { type: 'number', nullable: true },
                     shipping_cost: { type: 'number', nullable: true },
                     items_total: { type: 'number', nullable: true },
@@ -617,6 +619,25 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                     }
                   }
                 },
+                wallet_usage: {
+                  type: 'array',
+                  description: 'Wallet credit allocations used to pay for the order',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      reservation_id: { type: 'number' },
+                      credit_id: { type: 'number' },
+                      coupon_code: { type: 'string', nullable: true },
+                      coupon_name: { type: 'string', nullable: true },
+                      amount: { type: 'number' },
+                      status: { type: 'string' },
+                      consumed_at: { type: 'number', nullable: true },
+                      reversed_at: { type: 'number', nullable: true },
+                      reversal_reason: { type: 'string', nullable: true },
+                      expires_at: { type: 'number', nullable: true }
+                    }
+                  }
+                },
                 address: {
                   type: 'object',
                   nullable: true,
@@ -711,6 +732,8 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                   ispaymentsucceed: { type: 'boolean', nullable: true },
                   mode: { type: 'string', nullable: true },
                   promotion_discount_total: { type: 'number', nullable: true },
+                  wallet_discount_total: { type: 'number', nullable: true, description: 'Legacy persisted wallet allocation amount' },
+                  wallet_amount_applied: { type: 'number', nullable: true, description: 'Wallet payment allocated to this order' },
                   original_total: { type: 'number', nullable: true },
                   shipping_cost: { type: 'number', nullable: true },
                   items_total: { type: 'number', nullable: true },
