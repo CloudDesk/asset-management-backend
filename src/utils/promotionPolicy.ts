@@ -45,7 +45,7 @@ export const getRetainedManualPromotionCandidates = <T extends AppliedPromotionS
     : [];
 
 const hasReachedLimit = (usage: number, limit?: number | null): boolean =>
-  limit !== null && limit !== undefined && usage >= limit;
+  typeof limit === 'number' && limit > 0 && usage >= limit;
 
 /** Excludes exhausted offers before they reach recommendation or cart UI. */
 export const isPromotionUsageExhausted = (usage: PromotionUsageState): boolean =>
