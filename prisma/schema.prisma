@@ -446,6 +446,7 @@ model InvoiceAdjustment {
   resolutionActionId    Int?      @map("resolution_action_id")
   originalInvoiceNumber String?   @map("original_invoice_number") @db.VarChar(500)
   originalInvoiceUrl    String?   @map("original_invoice_url") @db.VarChar(1000)
+  adjustmentInvoiceUrl  String?   @map("adjustment_invoice_url") @db.VarChar(1000)
   originalInvoiceAmount Decimal?  @map("original_invoice_amount") @db.Decimal(10, 2)
   remainingAmount       Decimal?  @map("remaining_amount") @db.Decimal(10, 2)
   reversedAmount        Decimal?  @map("reversed_amount") @db.Decimal(10, 2)

@@ -116,6 +116,18 @@ export async function returnRequestRoutes(fastify: FastifyInstance) {
     },
   }, controller.exportCreditNotes);
 
+  fastify.post('/invoice-adjustments/:adjustmentId/generate-pdf', {
+    schema: {
+      description: 'Generate a missing return invoice cancellation or override PDF for an existing invoice adjustment.',
+      tags: ['Returns'],
+      params: {
+        type: 'object',
+        required: ['adjustmentId'],
+        properties: { adjustmentId: { type: 'string' } },
+      },
+    },
+  }, controller.generateInvoiceAdjustmentPdf);
+
   const evidenceFileRouteSchema = {
     schema: {
       description: 'Stream a return evidence image, video, or PDF from durable storage/local fallback.',

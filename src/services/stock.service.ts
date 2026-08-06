@@ -317,13 +317,15 @@ export class StockService {
       locations = platformStocks.map((platformStock) => {
         const platKey = (platformStock.platform ?? '').toLowerCase();
         const stockCounts = stockPlatformMap[platKey] || {};
+        const ecomPublishedQuantity = Number(platformStock.ecomqty || 0);
+        const orderedQuantity = Number(platformStock.orderedqty || 0);
         return {
           location: platformStock.platform ?? '',
           quantity: Number(stockCounts.quantity || 0),
-          availablequantity: platformStock.availableqty,
+          availablequantity: Math.max(0, ecomPublishedQuantity - orderedQuantity),
           orderedquantity: platformStock.orderedqty,
           soldquantity: platformStock.soldqty,
-          ecompublishedquantity: platformStock.ecomqty,
+          ecompublishedquantity: ecomPublishedQuantity,
           damagedquantity: platformStock.damagedqty,
         };
       });
