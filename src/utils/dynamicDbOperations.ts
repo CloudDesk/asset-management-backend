@@ -34,11 +34,11 @@ const SAFE_COLUMNS_TTL = 5 * 60 * 1000; // 5 minutes for debugging
 // Predefined safe columns for common tables (to avoid schema queries)
 const PREDEFINED_SAFE_COLUMNS: Record<string, string[]> = {
   stock: ['id', 'puc', 'category', 'subcategory', 'brand', 'model', 'stockstatus', 'createddate', 'modifieddate', 'productname', 'serialnumber', 'location'],
-  product: ['id', 'productname', 'category', 'subcategory', 'subsubcategory', 'brand', 'model', 'price', 'createddate', 'modifieddate', 'productstatus', 'puc'],
+  product: ['id', 'productname', 'category', 'subcategory', 'subsubcategory', 'brand', 'model', 'price', 'createddate', 'modifieddate', 'productstatus', 'puc', 'quantity', 'availablequantity', 'orderedquantity', 'soldquantity', 'ecompublishedquantity', 'damagedquantity'],
   picklist: ['id', 'label', 'value', 'object', 'controlledvalue', 'fieldname', 'controlledlabel', 'controlledfieldname', 'parent'],
   orders: ['id', 'userid', 'addressid', 'orderamount', 'orderid', 'orderstatus', 'quantity', 'transactionid', 'readytodispatchdate', 'dispatcheddate', 'productamount', 'discountamount', 'deliveryfrom', 'orderprocessingtime', 'ispaymentsucceed', 'merchanttransactionid', 'productid', 'mode', 'delivereddate', 'cancelleddate', 'returneddate', 'paymentfaileddate', 'createddate', 'modifieddate', 'items_total', 'total_taxable_amount', 'total_cgst_amount', 'total_sgst_amount', 'total_igst_amount', 'total_gst_amount', 'shipping_cost'],
   orderline: ['id', 'orderid', 'productid', 'userid', 'addressid', 'productamount', 'discountamount', 'orderamount', 'quantity', 'merchanttransactionid', 'productname', 'productcategory', 'productcolour', 'readytodispatchdate', 'delivereddate', 'cancelleddate', 'returneddate', 'orderstatus', 'uniqueordderid', 'orderlinenumber', 'deliveryfrom', 'location', 'dispatcheddate', 'ordereddate', 'paymentfaileddate', 'createddate', 'modifieddate', 'hsn_code', 'gst_rate', 'taxable_amount', 'cgst_amount', 'sgst_amount', 'igst_amount', 'total_gst_amount', 'shipping_cost'],
-  platformstock: ['id', 'productid', 'platform', 'availableqty', 'orderedqty', 'soldqty', 'totalqty', 'lockqty', 'createddate', 'modifieddate'],
+  platformstock: ['id', 'productid', 'platform', 'availableqty', 'orderedqty', 'soldqty', 'totalqty', 'ecomqty', 'damagedqty', 'lockqty', 'createddate', 'modifieddate', 'platformstatus'],
   gst_hsn_mapping: ['id', 'subcategory_id', 'subcategory_value', 'subsubcategory_id', 'subsubcategory_value', 'hsn_code', 'gst_rate', 'description', 'isactive', 'createddate', 'modifieddate'],
   address: ['id', 'userid', 'name', 'mobilenumber', 'pincode', 'doornumber', 'address', 'landmark', 'state', 'city', 'createddate', 'modifieddate']
 };

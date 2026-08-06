@@ -30,6 +30,7 @@ export const createProductSchema = z.object({
   soldquantity: z.number().int().min(0).optional(),
   availablequantity: z.number().int().min(0).optional(),
   ecompublishedquantity: z.number().int().min(0).optional(),
+  damagedquantity: z.number().int().min(0).optional(),
   
   // Status
   productstatus: z.string().max(255).optional(),
@@ -103,6 +104,7 @@ export const updateProductSchema = z.object({
   soldquantity: z.number().int().min(0).optional(),
   availablequantity: z.number().int().min(0).optional(),
   ecompublishedquantity: z.number().int().min(0).optional(),
+  damagedquantity: z.number().int().min(0).optional(),
   
   // Status
   productstatus: z.string().max(255).optional(),
@@ -168,6 +170,7 @@ export const upsertProductSchema = z.object({
   soldquantity: z.number().int().min(0).optional(),
   availablequantity: z.number().int().min(0).optional(),
   ecompublishedquantity: z.number().int().min(0).optional(),
+  damagedquantity: z.number().int().min(0).optional(),
   
   // Status
   productstatus: z.string().max(255).optional(),

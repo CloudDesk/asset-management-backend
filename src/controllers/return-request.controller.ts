@@ -8,7 +8,6 @@ import {
   createReturnCreditNoteSchema,
   createReturnRequestSchema,
   createRtoRequestSchema,
-  evidenceReviewSchema,
   inspectReturnRequestSchema,
   markRtoReceivedSchema,
   markReturnReceivedSchema,
@@ -70,6 +69,17 @@ export class ReturnRequestController {
     const summary = await this.returnRequestService.getOperationsSummary(query, request.user);
 
     return reply.code(200).send(createSuccessResponse('Return operations summary retrieved successfully', summary));
+  });
+
+  exportCreditNotes = asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
+    const fileBuffer = await this.returnRequestService.exportCreditNotesExcel(request.user);
+    const timestamp = new Date().toISOString().slice(0, 10);
+
+    reply
+      .header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+      .header('Content-Disposition', `attachment; filename="return-credit-notes-${timestamp}.xlsx"`);
+
+    return reply.code(200).send(Buffer.from(fileBuffer as any));
   });
 
   getResolutionPreview = asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
@@ -147,14 +157,6 @@ export class ReturnRequestController {
     const returnRequest = await this.returnRequestService.markRtoReceived(id, data, request.user);
 
     return reply.code(200).send(createSuccessResponse('RTO marked received at warehouse successfully', returnRequest));
-  });
-
-  reviewEvidence = asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
-    const { id } = returnSourceParamsSchema.parse(request.params);
-    const data = evidenceReviewSchema.parse(request.body);
-    const returnRequest = await this.returnRequestService.reviewEvidence(id, data, request.user);
-
-    return reply.code(200).send(createSuccessResponse('Evidence review completed successfully', returnRequest));
   });
 
   approveRequest = asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
@@ -238,12 +240,17 @@ export class ReturnRequestController {
     }
 
     const attachmenttype = attachmentTypeSchema.parse(getMultipartFieldValue(body?.attachmenttype, 'product_photo'));
+    const orderIdentifier =
+      getMultipartFieldValue(body?.orderid)
+      || getMultipartFieldValue(body?.orderId)
+      || getMultipartFieldValue(body?.orderNumber);
     const fileBuffer = await uploadedFile.toBuffer();
     const uploaded = await this.returnRequestService.uploadEvidenceFile({
       attachmenttype,
       fileBuffer,
       filename: uploadedFile.filename || `${attachmenttype}-evidence`,
       mimetype: uploadedFile.mimetype || 'application/octet-stream',
+      orderIdentifier,
     });
 
     return reply.code(201).send(createSuccessResponse('Evidence uploaded successfully', uploaded));

@@ -18,6 +18,7 @@ import {
 } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
 import { gstService } from './gst.service.js';
+import { invoiceAdjustmentService } from './invoice-adjustment.service.js';
 
 export class OrdersService {
   private normalizeStatusHistorySource(source?: string): string {
@@ -650,6 +651,10 @@ export class OrdersService {
 
         if (returnedCount === totalCount) {
           newOrderStatus = 'returned';
+        } else if (cancelledCount > 0) {
+          newOrderStatus = 'partially_cancelled';
+        } else if (returnedCount > 0) {
+          newOrderStatus = 'partially_returned';
         } else {
           // All orderlines have same status
           const uniqueStatuses = [...new Set(orderlineStatuses)];
@@ -740,6 +745,20 @@ export class OrdersService {
         }
 
         await dynamicUpdate('orders', { id: orderId }, orderUpdateData);
+
+        if (['cancelled', 'partially_cancelled', 'returned', 'partially_returned'].includes(newOrderStatus)) {
+          try {
+            await invoiceAdjustmentService.recordOrderCancellation(orderId, {
+              actorId: actorContext?.inventory_user_id || null,
+              source: newOrderStatus,
+            });
+          } catch (invoiceAdjustmentError) {
+            logger.error(
+              { error: invoiceAdjustmentError, orderId, newOrderStatus },
+              'Failed to record invoice adjustment during order status recalculation'
+            );
+          }
+        }
 
         logger.info({
           orderId,
@@ -1177,8 +1196,8 @@ export class OrdersService {
       // Track quantity updates per product/platform to avoid duplicate updates
       // Key: "productId-platform" -> { quantity, ecomQuantity }
       const platformStockUpdates = new Map<string, { productId: number; platform: string; quantity: number; ecomQuantity: number }>();
-      // Key: puc -> quantity
-      const productUpdates = new Map<string, number>();
+      // Key: puc -> quantity/e-com quantity to keep Product rollups aligned with PlatformStock.
+      const productUpdates = new Map<string, { quantity: number; ecomQuantity: number }>();
 
       for (const allocation of allocations) {
         const orderline = await orderlineService.findById(allocation.orderline_id.toString());
@@ -1233,9 +1252,11 @@ export class OrdersService {
         // Track Product update (aggregate by puc)
         // For combo components, this will track the COMPONENT product, not the combo product
         if (!productUpdates.has(firstStock.puc)) {
-          productUpdates.set(firstStock.puc, 0);
+          productUpdates.set(firstStock.puc, { quantity: 0, ecomQuantity: 0 });
         }
-        productUpdates.set(firstStock.puc, productUpdates.get(firstStock.puc)! + allocation.stocks.length);
+        const productUpdate = productUpdates.get(firstStock.puc)!;
+        productUpdate.quantity += allocation.stocks.length;
+        productUpdate.ecomQuantity += ecomPublishedCount;
 
         // Update each Stock record
         // For combo components, stock records are linked to the combo product's orderline
@@ -1283,11 +1304,11 @@ export class OrdersService {
           // - Decrease orderedqty (stocks were reserved, now sold)
           // - Increase soldqty (stocks are now sold)
           // - Decrease ecomqty (if stocks were e-commerce published)
-          // - Recalculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
+          // - Recalculate availableqty using formula: ecomqty - orderedqty - lockqty
           const newOrderedQty = Math.max(0, currentOrderedQty - update.quantity);
           const newSoldQty = currentSoldQty + update.quantity;
           const newEcomQty = Math.max(0, currentEcomQty - update.ecomQuantity); // Decrease by e-commerce published count
-          const newAvailableQty = Math.max(0, newEcomQty - newOrderedQty - newSoldQty - currentLockQty);
+          const newAvailableQty = Math.max(0, newEcomQty - newOrderedQty - currentLockQty);
 
           // Calculate platform status
           const { PlatformStockService } = await import('./platformStock.service.js');
@@ -1318,7 +1339,7 @@ export class OrdersService {
             oldAvailableQty: platformStock.availableqty,
             newAvailableQty,
             formula: {
-              availableqty: `${newEcomQty} - ${newOrderedQty} - ${newSoldQty} - ${currentLockQty} = ${newAvailableQty}`
+              availableqty: `${newEcomQty} - ${newOrderedQty} - ${currentLockQty} = ${newAvailableQty}`
             }
           }, 'PlatformStock quantities updated (dispatch)');
         }
@@ -1326,28 +1347,40 @@ export class OrdersService {
 
       // 4. Update Product quantities (once per product)
       // For combo products, this updates COMPONENT product quantities, not combo product
-      for (const [puc, quantity] of productUpdates.entries()) {
+      for (const [puc, update] of productUpdates.entries()) {
         const productForUpdate = await dynamicFindUnique('product', { puc });
         if (productForUpdate) {
-          // Update Product: decrease orderedquantity, increase soldquantity
-          // Note: availablequantity doesn't change (already done during order creation)
-          const newOrderedQuantity = Math.max(0, (productForUpdate.orderedquantity || 0) - quantity);
-          const newSoldQuantity = (productForUpdate.soldquantity || 0) + quantity;
+          // Product quantity represents physical stock in warehouse, so sold units leave quantity.
+          const newOrderedQuantity = Math.max(0, (productForUpdate.orderedquantity || 0) - update.quantity);
+          const newSoldQuantity = (productForUpdate.soldquantity || 0) + update.quantity;
+          const newQuantity = Math.max(0, (productForUpdate.quantity || 0) - update.quantity);
+          const newEcomPublishedQuantity = Math.max(0, (productForUpdate.ecompublishedquantity || 0) - update.ecomQuantity);
+          const newAvailableQuantity = Math.max(0, newEcomPublishedQuantity - newOrderedQuantity);
 
           await dynamicUpdate('product', { id: productForUpdate.id }, {
+            quantity: newQuantity,
+            availablequantity: newAvailableQuantity,
             orderedquantity: newOrderedQuantity,
             soldquantity: newSoldQuantity,
+            ecompublishedquantity: newEcomPublishedQuantity,
             modifieddate: currentTimestamp
           });
 
           logger.info({
             productId: productForUpdate.id,
             puc,
-            quantity,
+            quantity: update.quantity,
+            ecomQuantity: update.ecomQuantity,
+            oldQuantity: productForUpdate.quantity,
+            newQuantity,
+            oldAvailableQuantity: productForUpdate.availablequantity,
+            newAvailableQuantity,
             oldOrderedQuantity: productForUpdate.orderedquantity,
             newOrderedQuantity,
             oldSoldQuantity: productForUpdate.soldquantity,
-            newSoldQuantity
+            newSoldQuantity,
+            oldEcomPublishedQuantity: productForUpdate.ecompublishedquantity,
+            newEcomPublishedQuantity
           }, 'Product quantities updated');
         }
       }
@@ -3463,6 +3496,12 @@ export class OrdersService {
           }
         });
 
+        await invoiceAdjustmentService.recordOrderCancellation(orderId, {
+          actorId: inventoryUserId || userId || null,
+          source: 'full_order_cancellation',
+          database: tx,
+        });
+
         // Fetch and return updated order
         const finalOrder = await this.findById(orderId);
 
@@ -4158,15 +4197,14 @@ export class OrdersService {
 
           // Get current quantities
           const currentEcomQty = Number(platformStock.ecomqty || 0);
-          const currentSoldQty = Number(platformStock.soldqty || 0);
           const currentLockQty = Number(platformStock.lockqty || 0);
 
           // Restore orderedqty → availableqty
           const newOrderedQty = Math.max(0, (platformStock.orderedqty || 0) - update.quantity);
 
-          // Recalculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
+          // Recalculate availableqty using formula: ecomqty - orderedqty - lockqty
           // ecomqty doesn't change (stocks still available, just not ordered anymore)
-          const newAvailableQty = Math.max(0, currentEcomQty - newOrderedQty - currentSoldQty - currentLockQty);
+          const newAvailableQty = Math.max(0, currentEcomQty - newOrderedQty - currentLockQty);
 
           await dynamicUpdate('platformstock', { id: platformStock.id }, {
             availableqty: newAvailableQty,
@@ -4235,7 +4273,7 @@ export class OrdersService {
       // Track updates by product to avoid duplicate updates
       // Key: "productId-platform" -> { quantity, ecomQuantity }
       const platformStockUpdates = new Map<string, { productId: number; platform: string; quantity: number; ecomQuantity: number }>();
-      const productUpdates = new Map<number, number>();
+      const productUpdates = new Map<number, { quantity: number; ecomQuantity: number }>();
 
       // Get order to retrieve orderid string
       const order = await this.findById(orderId);
@@ -4362,9 +4400,11 @@ export class OrdersService {
 
               // Track component Product update
               if (!productUpdates.has(componentProductId)) {
-                productUpdates.set(componentProductId, 0);
+                productUpdates.set(componentProductId, { quantity: 0, ecomQuantity: 0 });
               }
-              productUpdates.set(componentProductId, productUpdates.get(componentProductId)! + componentTotalQty);
+              const productUpdate = productUpdates.get(componentProductId)!;
+              productUpdate.quantity += componentTotalQty;
+              productUpdate.ecomQuantity += componentTotalQty;
             }
 
             logger.info({
@@ -4406,9 +4446,11 @@ export class OrdersService {
 
         // Track Product update
         if (!productUpdates.has(productId)) {
-          productUpdates.set(productId, 0);
+          productUpdates.set(productId, { quantity: 0, ecomQuantity: 0 });
         }
-        productUpdates.set(productId, productUpdates.get(productId)! + quantity);
+        const productUpdate = productUpdates.get(productId)!;
+        productUpdate.quantity += quantity;
+        productUpdate.ecomQuantity += ecomPublishedCount;
       }
 
       // Update PlatformStock quantities
@@ -4435,8 +4477,8 @@ export class OrdersService {
           const newSoldQty = Math.max(0, (platformStock.soldqty || 0) - update.quantity);
           const newEcomQty = currentEcomQty + update.ecomQuantity; // Increase by e-commerce published count
 
-          // Recalculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
-          const newAvailableQty = Math.max(0, newEcomQty - currentOrderedQty - newSoldQty - currentLockQty);
+          // Recalculate availableqty using formula: ecomqty - orderedqty - lockqty
+          const newAvailableQty = Math.max(0, newEcomQty - currentOrderedQty - currentLockQty);
 
           await dynamicUpdate('platformstock', { id: platformStock.id }, {
             ecomqty: newEcomQty,
@@ -4458,33 +4500,42 @@ export class OrdersService {
             oldSoldQty: platformStock.soldqty,
             newSoldQty,
             formula: {
-              availableqty: `${newEcomQty} - ${currentOrderedQty} - ${newSoldQty} - ${currentLockQty} = ${newAvailableQty}`
+              availableqty: `${newEcomQty} - ${currentOrderedQty} - ${currentLockQty} = ${newAvailableQty}`
             }
           }, 'PlatformStock quantities restored (post-dispatch cancellation)');
         }
       }
 
       // Update Product quantities
-      for (const [productId, quantity] of productUpdates.entries()) {
+      for (const [productId, update] of productUpdates.entries()) {
         const product = await dynamicFindUnique('product', { id: productId });
         if (product) {
-          // Restore availablequantity, reduce soldquantity
-          const newAvailableQuantity = (product.availablequantity || 0) + quantity;
-          const newSoldQuantity = Math.max(0, (product.soldquantity || 0) - quantity);
+          // Restore warehouse quantity/e-com quantity and reduce soldquantity.
+          const newQuantity = (product.quantity || 0) + update.quantity;
+          const newEcomPublishedQuantity = (product.ecompublishedquantity || 0) + update.ecomQuantity;
+          const newAvailableQuantity = Math.max(0, newEcomPublishedQuantity - Number(product.orderedquantity || 0));
+          const newSoldQuantity = Math.max(0, (product.soldquantity || 0) - update.quantity);
 
           await dynamicUpdate('product', { id: product.id }, {
+            quantity: newQuantity,
             availablequantity: newAvailableQuantity,
             soldquantity: newSoldQuantity,
+            ecompublishedquantity: newEcomPublishedQuantity,
             modifieddate: currentTimestamp
           });
 
           logger.info({
             productId: product.id,
-            quantity,
+            quantity: update.quantity,
+            ecomQuantity: update.ecomQuantity,
+            oldQuantity: product.quantity,
+            newQuantity,
             oldAvailableQuantity: product.availablequantity,
             newAvailableQuantity,
             oldSoldQuantity: product.soldquantity,
-            newSoldQuantity
+            newSoldQuantity,
+            oldEcomPublishedQuantity: product.ecompublishedquantity,
+            newEcomPublishedQuantity
           }, 'Product quantities restored (post-dispatch cancellation)');
         }
       }

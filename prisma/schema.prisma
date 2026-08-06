@@ -36,6 +36,7 @@ model Product {
   soldquantity         Int?
   availablequantity    Int?
   ecompublishedquantity Int?
+  damagedquantity      Int?       @default(0)
   productstatus        String?     @db.VarChar(255)
 
   // Additional Product Information
@@ -96,6 +97,7 @@ model PlatformStock {
   soldqty       Int      @default(0)
   totalqty      Int      @default(0)
   ecomqty       Int      @default(0) // E-commerce published quantity (available AND ecompublish=true)
+  damagedqty    Int      @default(0)
   lockqty       Int?     @default(0) // Add this for NIVAPP cart locking
   createddate   BigInt?
   modifieddate  BigInt?
@@ -430,6 +432,37 @@ model ReturnCreditNote {
   @@index([resolutionActionId], map: "idx_return_credit_notes_resolution_action")
   @@index([status], map: "idx_return_credit_notes_status")
   @@map("return_credit_notes")
+}
+
+model InvoiceAdjustment {
+  id                    Int       @id @default(autoincrement())
+  adjustmentNumber      String    @unique @map("adjustment_number") @db.VarChar(120)
+  adjustmentType        String    @map("adjustment_type") @db.VarChar(100)
+  sourceAction          String    @map("source_action") @db.VarChar(100)
+  status                String    @default("draft") @db.VarChar(50)
+  orderId               Int?      @map("order_id")
+  orderNumber           String?   @map("order_number") @db.VarChar(500)
+  returnRequestId       Int?      @map("return_request_id")
+  resolutionActionId    Int?      @map("resolution_action_id")
+  originalInvoiceNumber String?   @map("original_invoice_number") @db.VarChar(500)
+  originalInvoiceUrl    String?   @map("original_invoice_url") @db.VarChar(1000)
+  originalInvoiceAmount Decimal?  @map("original_invoice_amount") @db.Decimal(10, 2)
+  remainingAmount       Decimal?  @map("remaining_amount") @db.Decimal(10, 2)
+  reversedAmount        Decimal?  @map("reversed_amount") @db.Decimal(10, 2)
+  creditNoteId          Int?      @map("credit_note_id")
+  creditNoteNumber      String?   @map("credit_note_number") @db.VarChar(100)
+  gstReversalApplicable Boolean   @default(false) @map("gst_reversal_applicable")
+  metadata              Json?
+  notes                 String?
+  createdBy             Int?      @map("created_by")
+  createddate           BigInt?
+  modifieddate          BigInt?
+
+  @@index([orderId], map: "idx_invoice_adjustments_order")
+  @@index([returnRequestId], map: "idx_invoice_adjustments_return_request")
+  @@index([adjustmentType], map: "idx_invoice_adjustments_type")
+  @@index([sourceAction], map: "idx_invoice_adjustments_source_action")
+  @@map("invoice_adjustments")
 }
 
 model ReturnStatusTimeline {

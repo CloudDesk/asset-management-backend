@@ -142,15 +142,6 @@ export const markRtoReceivedSchema = z.object({
   reverse_shipment_provider: z.string().trim().max(100).optional(),
 });
 
-export const evidenceReviewSchema = z.object({
-  decision: z.enum(['approved', 'rejected']),
-  remarks: z.string().trim().max(3000).optional(),
-  rejectionreason: z.string().trim().max(3000).optional(),
-}).refine(
-  (data) => data.decision !== 'rejected' || Boolean(data.rejectionreason),
-  'rejectionreason is required when decision is rejected'
-);
-
 export const approveReturnRequestSchema = z.object({
   remarks: z.string().trim().max(3000).optional(),
 });
@@ -258,7 +249,7 @@ export const updateReturnShipmentStatusSchema = z.object({
   resolution_action_id: z.coerce.number().int().positive().optional(),
   shipment_tracking_id: z.string().trim().max(500).optional(),
   shipment_provider: z.string().trim().max(100).optional(),
-  status: z.enum(['shipped', 'in_transit', 'delivered', 'failed', 'returned']),
+  status: z.enum(['shipped', 'in_transit', 'out_for_delivery', 'delivered', 'failed', 'returned']),
   event_time: z.coerce.number().int().positive().optional(),
   remarks: z.string().trim().max(3000).optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
@@ -331,7 +322,6 @@ export type CreateReturnRequestInput = z.infer<typeof createReturnRequestSchema>
 export type CreateRtoRequestInput = z.infer<typeof createRtoRequestSchema>;
 export type UpdateRtoStatusInput = z.infer<typeof updateRtoStatusSchema>;
 export type MarkRtoReceivedInput = z.infer<typeof markRtoReceivedSchema>;
-export type EvidenceReviewInput = z.infer<typeof evidenceReviewSchema>;
 export type ApproveReturnRequestInput = z.infer<typeof approveReturnRequestSchema>;
 export type RejectReturnRequestInput = z.infer<typeof rejectReturnRequestSchema>;
 export type PreparePickupInput = z.infer<typeof preparePickupSchema>;

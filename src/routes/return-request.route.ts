@@ -103,6 +103,19 @@ export async function returnRequestRoutes(fastify: FastifyInstance) {
     },
   }, controller.getOperationsSummary);
 
+  fastify.get('/credit-notes/export', {
+    schema: {
+      description: 'Export GST return credit notes for Finance as an Excel workbook.',
+      tags: ['Returns'],
+      response: {
+        200: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  }, controller.exportCreditNotes);
+
   const evidenceFileRouteSchema = {
     schema: {
       description: 'Stream a return evidence image, video, or PDF from durable storage/local fallback.',
@@ -273,28 +286,6 @@ export async function returnRequestRoutes(fastify: FastifyInstance) {
       },
     },
   }, controller.replaceEvidenceAttachment);
-
-  fastify.patch('/:id/evidence-review', {
-    schema: {
-      description: 'Approve or reject customer evidence for a return/replacement request. Does not update stock, create refund, or complete warehouse inspection.',
-      tags: ['Returns'],
-      params: {
-        type: 'object',
-        required: ['id'],
-        properties: { id: { type: 'string' } },
-      },
-      body: {
-        type: 'object',
-        required: ['decision'],
-        properties: {
-          decision: { type: 'string', enum: ['approved', 'rejected'] },
-          remarks: { type: 'string' },
-          rejectionreason: { type: 'string', description: 'Required when decision is rejected' },
-        },
-        additionalProperties: false,
-      },
-    },
-  }, controller.reviewEvidence);
 
   fastify.patch('/:id/approve', {
     schema: {
@@ -505,7 +496,7 @@ export async function returnRequestRoutes(fastify: FastifyInstance) {
           shipment_provider: { type: 'string' },
           status: {
             type: 'string',
-            enum: ['shipped', 'in_transit', 'delivered', 'failed', 'returned'],
+            enum: ['shipped', 'in_transit', 'out_for_delivery', 'delivered', 'failed', 'returned'],
           },
           event_time: { type: 'number' },
           remarks: { type: 'string' },

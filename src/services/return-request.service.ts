@@ -6,7 +6,6 @@ import {
   CreateReturnCreditNoteInput,
   CreateReturnRequestInput,
   CreateRtoRequestInput,
-  EvidenceReviewInput,
   InspectReturnRequestInput,
   MarkReturnReceivedInput,
   MarkRtoReceivedInput,
@@ -31,12 +30,14 @@ import { CreateShipmentPayload, CreateShipmentResponse, ekartService } from './e
 import { PhonePeService } from './phonepe.service.js';
 import { logger } from '../config/logger.js';
 import { storageService } from './storage.service.js';
+import { invoiceAdjustmentService } from './invoice-adjustment.service.js';
 import {
   calculateCreditNoteTaxBreakup,
   hasActiveCreditNoteForResolution,
   resolveCreditNoteRefundAmount,
 } from '../utils/returnFinance.js';
 import { randomUUID } from 'crypto';
+import ExcelJS from 'exceljs';
 import { createReadStream } from 'fs';
 import { access, mkdir, stat, writeFile } from 'fs/promises';
 import path from 'path';
@@ -83,7 +84,7 @@ const PDF_MIME_TYPES = new Set(['application/pdf']);
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 60 * 1024 * 1024;
 const MAX_OTHER_BYTES = 15 * 1024 * 1024;
-const DEFAULT_EVIDENCE_STORAGE_BUCKET = 'nivaana-storage';
+const DEFAULT_EVIDENCE_STORAGE_BUCKET = 'niv-return-attachments-dev';
 const gcsStorage = new Storage();
 const EVIDENCE_CONTENT_TYPES: Record<string, string> = {
   '.jpg': 'image/jpeg',
@@ -165,15 +166,9 @@ const RETURN_STATUS_MESSAGES: Record<string, string> = {
 
 const OPERATIONS_QUEUE_BUCKETS = [
   {
-    key: 'needsEvidenceReview',
-    label: 'Needs Evidence Review',
-    statuses: ['evidence_pending'],
-    slaHours: 24,
-  },
-  {
     key: 'needsRequestApproval',
     label: 'Needs Request Approval',
-    statuses: ['requested', 'evidence_approved'],
+    statuses: ['requested', 'evidence_pending', 'evidence_approved'],
     slaHours: 24,
   },
   {
@@ -406,6 +401,11 @@ function formatInvoiceDate(value: unknown) {
   return new Date(millis).toISOString().slice(0, 10);
 }
 
+function formatExcelDate(value: unknown) {
+  const millis = toMillis(value);
+  return millis ? new Date(millis).toISOString().replace('T', ' ').slice(0, 19) : '';
+}
+
 function buildAddressLine(address: any) {
   return [
     firstText(address?.doornumber),
@@ -612,6 +612,93 @@ export class ReturnRequestService {
     };
   }
 
+  async exportCreditNotesExcel(authUser?: AuthUser) {
+    this.validateInventoryUser(authUser);
+
+    const rows = await prisma.$queryRaw<any[]>`
+      SELECT
+        credit."credit_note_number",
+        credit."status",
+        credit."createddate",
+        credit."issueddate",
+        credit."original_invoice_number",
+        credit."original_order_number",
+        credit."reason_code",
+        credit."resolution",
+        credit."quantity",
+        credit."refund_amount",
+        credit."taxable_amount",
+        credit."gst_rate",
+        credit."cgst_amount",
+        credit."sgst_amount",
+        credit."igst_amount",
+        credit."total_gst_amount",
+        credit."hsn_code",
+        request."requestnumber" AS "return_reference",
+        request."requesttype",
+        line."productname",
+        adjustment."adjustment_number",
+        adjustment."adjustment_type",
+        adjustment."source_action",
+        adjustment."remaining_amount",
+        adjustment."reversed_amount",
+        adjustment."gst_reversal_applicable"
+      FROM "return_credit_notes" AS credit
+      LEFT JOIN "return_requests" AS request
+        ON request."id" = credit."return_request_id"
+      LEFT JOIN "orderline" AS line
+        ON line."id" = request."orderlineid"
+      LEFT JOIN "invoice_adjustments" AS adjustment
+        ON adjustment."credit_note_id" = credit."id"
+        OR adjustment."credit_note_number" = credit."credit_note_number"
+      WHERE credit."status" <> 'void'
+      ORDER BY credit."createddate" DESC NULLS LAST, credit."id" DESC
+    `;
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Return Credit Notes');
+    worksheet.columns = [
+      { header: 'Credit Note Number', key: 'credit_note_number', width: 28 },
+      { header: 'Credit Note Status', key: 'status', width: 16 },
+      { header: 'Credit Note Date', key: 'created_date', width: 20 },
+      { header: 'Issued Date', key: 'issued_date', width: 20 },
+      { header: 'Original Invoice Number', key: 'original_invoice_number', width: 28 },
+      { header: 'Order Number', key: 'original_order_number', width: 24 },
+      { header: 'Return Reference', key: 'return_reference', width: 24 },
+      { header: 'Request Type', key: 'requesttype', width: 16 },
+      { header: 'Returned Product', key: 'productname', width: 36 },
+      { header: 'Returned Quantity', key: 'quantity', width: 18 },
+      { header: 'HSN Code', key: 'hsn_code', width: 16 },
+      { header: 'Original GST Rate', key: 'gst_rate', width: 18 },
+      { header: 'Taxable Value', key: 'taxable_amount', width: 18 },
+      { header: 'CGST Amount', key: 'cgst_amount', width: 18 },
+      { header: 'SGST Amount', key: 'sgst_amount', width: 18 },
+      { header: 'IGST Amount', key: 'igst_amount', width: 18 },
+      { header: 'GST Amount', key: 'total_gst_amount', width: 18 },
+      { header: 'Total Credit Amount', key: 'refund_amount', width: 22 },
+      { header: 'Invoice Adjustment', key: 'adjustment_number', width: 28 },
+      { header: 'Adjustment Type', key: 'adjustment_type', width: 22 },
+      { header: 'Adjustment Source', key: 'source_action', width: 24 },
+      { header: 'Remaining Invoice Amount', key: 'remaining_amount', width: 24 },
+      { header: 'Reversed Invoice Amount', key: 'reversed_amount', width: 24 },
+      { header: 'GST Reversal Applicable', key: 'gst_reversal_applicable', width: 24 },
+    ];
+
+    rows.forEach((row) => {
+      worksheet.addRow({
+        ...row,
+        created_date: formatExcelDate(row.createddate),
+        issued_date: row.issueddate ? formatExcelDate(row.issueddate) : '',
+        gst_reversal_applicable: row.gst_reversal_applicable ? 'Yes' : 'No',
+      });
+    });
+
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.views = [{ state: 'frozen', ySplit: 1 }];
+
+    return workbook.xlsx.writeBuffer();
+  }
+
   async findById(id: string) {
     const request = await requestClient().findUnique({
       where: { id: parseInt(id, 10) },
@@ -670,6 +757,20 @@ export class ReturnRequestService {
     this.validatePolicyResolution(data, eligibility.policy, reasonRule);
     this.validateReasonRule(data, reasonRule, orderline);
 
+    const hasRejectedRequest = await requestClient().findFirst({
+      where: {
+        orderlineid: data.orderlineid,
+        status: { in: ['rejected', 'evidence_rejected', 'inspection_rejected'] },
+      },
+    });
+
+    if (hasRejectedRequest) {
+      throw new ValidationError(
+        'Return/replacement request already rejected',
+        'A previous return or replacement request for this item has been rejected by the administrator'
+      );
+    }
+
     await this.validateQuantity(data.orderlineid, data.requestedquantity, orderline.quantity || 1);
 
     const timestamp = nowSeconds();
@@ -690,7 +791,7 @@ export class ReturnRequestService {
       ispackageopened: data.ispackageopened ?? null,
       additionalremarks: data.additionalremarks || null,
       evidenceReviewStatus: hasRequiredEvidenceRules(reasonRule) ? 'pending' : 'not_required',
-      pickupflow: reasonRule.evidencefirstapproval ? 'evidence_first' : 'pickup_first',
+      pickupflow: 'pickup_first',
       appliedPolicyId: eligibility.policy?.id || null,
       appliedPolicyVersion: this.getPolicyVersion(eligibility.policy),
       policyReasonRuleId: mapping.id,
@@ -711,7 +812,7 @@ export class ReturnRequestService {
       logisticsProviderSource: null,
       reverseShippingChargeBearer: 'nivaana',
       reverseShippingChargeAdjustment: 'none',
-      status: reasonRule.evidencefirstapproval ? 'evidence_pending' : 'requested',
+      status: 'requested',
       createdby: authUser?.userType === 'inventory' ? authUser.id : null,
       modifiedby: authUser?.userType === 'inventory' ? authUser.id : null,
       createddate: timestamp,
@@ -938,70 +1039,6 @@ export class ReturnRequestService {
     return this.findById(updated.id.toString());
   }
 
-  async reviewEvidence(id: string, data: EvidenceReviewInput, authUser?: AuthUser) {
-    this.validateInventoryUser(authUser);
-
-    const request = await this.findById(id);
-    if (request.requesttype === 'rto') {
-      throw new ValidationError('Evidence review is not applicable to RTO', 'RTO follows warehouse verification flow');
-    }
-
-    if (['completed', 'cancelled', 'rejected', 'inspection_approved', 'inspection_rejected'].includes(request.status)) {
-      throw new ValidationError('Return request is not reviewable', `Current status ${request.status} cannot be evidence-reviewed`);
-    }
-
-    const reasonRule = await this.getReasonRuleForRequest(request);
-    if (!reasonRule) {
-      throw new ValidationError('Reason rule unavailable', 'Cannot review evidence because the reason rule no longer exists');
-    }
-
-    if (data.decision === 'approved') {
-      await this.validateExistingEvidenceForApproval(request, reasonRule);
-    }
-
-    const timestamp = nowSeconds();
-    const updated = await requestClient().update({
-      where: { id: request.id },
-      data: {
-        evidenceReviewStatus: data.decision,
-        evidenceReviewRemarks: data.remarks || null,
-        evidenceRejectionReason: data.decision === 'rejected' ? data.rejectionreason || null : null,
-        evidenceReviewedBy: authUser!.id,
-        evidenceReviewedDate: timestamp,
-        status: data.decision === 'approved' ? 'evidence_approved' : 'evidence_rejected',
-        modifiedby: authUser!.id,
-        modifieddate: timestamp,
-      },
-    });
-    await this.recordStatusTimeline(prisma, {
-      returnRequestId: request.id,
-      previousStatus: request.status,
-      status: updated.status,
-      eventType: data.decision === 'approved' ? 'evidence_approved' : 'evidence_rejected',
-      authUser,
-      message: RETURN_STATUS_MESSAGES[updated.status],
-      metadata: {
-        remarks: data.remarks || null,
-        rejectionReason: data.decision === 'rejected' ? data.rejectionreason || null : null,
-      },
-      timestamp,
-    });
-
-    logger.info(
-      {
-        returnRequestId: request.id,
-        requestNumber: request.requestnumber,
-        decision: data.decision,
-        reviewedBy: authUser!.id,
-      },
-      'Return request evidence reviewed'
-    );
-
-    await this.notifyCustomerReturnStatus(request, updated.status);
-
-    return this.findById(updated.id.toString());
-  }
-
   async approveRequest(id: string, data: ApproveReturnRequestInput, authUser?: AuthUser) {
     this.validateInventoryUser(authUser);
 
@@ -1013,47 +1050,194 @@ export class ReturnRequestService {
       throw new ValidationError('Reason rule unavailable', 'Cannot approve request because the reason rule no longer exists');
     }
 
-    if (reasonRule.evidencefirstapproval && request.evidenceReviewStatus !== 'approved') {
-      throw new ValidationError(
-        'Evidence approval required',
-        'This reason requires evidence approval before request approval'
-      );
-    }
-
-    if (request.evidenceReviewStatus === 'rejected') {
-      throw new ValidationError('Evidence was rejected', 'Request cannot be approved after evidence rejection');
-    }
-
-    if (reasonRule.pickuprequired || request.requestedresolution === 'complete_return') {
-      await this.validateExistingEvidenceForApproval(request, reasonRule);
-    }
+    await this.validateExistingEvidenceForApproval(request, reasonRule);
 
     const timestamp = nowSeconds();
-    const updated = await requestClient().update({
-      where: { id: request.id },
-      data: {
-        requestReviewStatus: 'approved',
-        requestReviewRemarks: data.remarks || null,
-        requestRejectionReason: null,
-        requestReviewedBy: authUser!.id,
-        requestReviewedDate: timestamp,
-        status: 'approved',
-        modifiedby: authUser!.id,
-        modifieddate: timestamp,
-      },
+    let updated: any;
+    const productId = request.orderline?.productid;
+
+    await prisma.$transaction(async (tx: any) => {
+      if (request.requesttype === 'replacement') {
+        const orderline = request.orderline || {};
+        const product = orderline.product || {};
+        const puc = firstText(product.puc, orderline.puc, orderline.productpuc);
+        if (!puc) {
+          throw new ValidationError('Product identifier missing', 'PUC is required to locate stock for replacement');
+        }
+
+        const quantity = Math.max(1, Math.trunc(request.requestedquantity || 1));
+
+        const stocks = await tx.$queryRaw<any[]>`
+          SELECT "id", "puc", "platform", "stockstatus"
+          FROM "stock"
+          WHERE "puc" = ${puc}
+            AND LOWER("stockstatus") = 'available'
+            AND "orderid" IS NULL
+            AND "orderlinenumber" IS NULL
+            AND COALESCE("isdeleted", false) = false
+            AND COALESCE("isarchive", false) = false
+          ORDER BY "id" ASC
+          LIMIT ${quantity}
+          FOR UPDATE
+        `;
+
+        if (!Array.isArray(stocks) || stocks.length < quantity) {
+          throw new ValidationError(
+            'Replacement stock unavailable',
+            `Insufficient available stock for replacement. Required: ${quantity}, Available: ${stocks?.length || 0}`
+          );
+        }
+
+        const replacementOrderId = `REP-${request.requestnumber}`;
+        const replacementOrderlineNum = `REPL-${request.requestnumber}-1`;
+        const timestampMs = BigInt(Date.now());
+        const replacementFinancials = this.calculateReplacementOrderFinancials(request, quantity);
+
+        const createdOrder = await tx.orders.create({
+          data: {
+            orderid: replacementOrderId,
+            userid: request.customerid,
+            addressid: request.order?.addressid || request.orderline?.addressid || null,
+            orderstatus: 'ready_for_dispatch',
+            orderamount: replacementFinancials.orderAmount,
+            productamount: replacementFinancials.productAmount,
+            discountamount: replacementFinancials.discountAmount,
+            original_total: replacementFinancials.originalTotal,
+            promotion_discount_total: replacementFinancials.promotionDiscountAmount,
+            shipping_cost: 0,
+            tax_amount: replacementFinancials.totalGstAmount,
+            items_total: replacementFinancials.orderAmount,
+            total_taxable_amount: replacementFinancials.taxableAmount,
+            total_cgst_amount: replacementFinancials.cgstAmount,
+            total_sgst_amount: replacementFinancials.sgstAmount,
+            total_igst_amount: replacementFinancials.igstAmount,
+            total_gst_amount: replacementFinancials.totalGstAmount,
+            quantity: quantity,
+            mode: 'replacement',
+            createddate: timestampMs,
+            modifieddate: timestampMs,
+            ispaymentsucceed: true,
+          }
+        });
+
+        const createdOrderline = await tx.orderline.create({
+          data: {
+            orderid: createdOrder.id,
+            orderlinenumber: replacementOrderlineNum,
+            productid: productId,
+            quantity: quantity,
+            productname: request.orderline?.productname || '',
+            productcategory: request.orderline?.productcategory || '',
+            productcolour: request.orderline?.productcolour || '',
+            orderstatus: 'ready_for_dispatch',
+            productamount: replacementFinancials.productAmount,
+            discountamount: replacementFinancials.discountAmount,
+            orderamount: replacementFinancials.orderAmount,
+            original_price: replacementFinancials.originalPrice,
+            product_discount_amount: replacementFinancials.productDiscountAmount,
+            promotion_discount_amount: replacementFinancials.promotionDiscountAmount,
+            shipping_cost: 0,
+            hsn_code: replacementFinancials.hsnCode,
+            gst_rate: replacementFinancials.gstRate,
+            taxable_amount: replacementFinancials.taxableAmount,
+            cgst_amount: replacementFinancials.cgstAmount,
+            sgst_amount: replacementFinancials.sgstAmount,
+            igst_amount: replacementFinancials.igstAmount,
+            total_gst_amount: replacementFinancials.totalGstAmount,
+            ordereddate: timestampMs,
+            createddate: timestampMs,
+            modifieddate: timestampMs,
+          }
+        });
+
+        // Existing DB triggers generate standard order/orderline numbers on insert.
+        // Replacement flow needs stable REP/REPL references because later shipment
+        // and stock release steps look them up by these values.
+        await tx.$executeRaw`
+          UPDATE "orders"
+          SET
+            "orderid" = ${replacementOrderId},
+            "modifieddate" = ${timestampMs}
+          WHERE "id" = ${createdOrder.id}
+        `;
+
+        await tx.$executeRaw`
+          UPDATE "orderline"
+          SET
+            "orderlinenumber" = ${replacementOrderlineNum},
+            "modifieddate" = ${timestampMs}
+          WHERE "id" = ${createdOrderline.id}
+        `;
+
+        for (const stock of stocks) {
+          await tx.$executeRaw`
+            UPDATE "stock"
+            SET
+              "orderid" = ${replacementOrderId},
+              "orderlinenumber" = ${replacementOrderlineNum},
+              "modifieddate" = ${timestampMs}
+            WHERE "id" = ${stock.id}
+          `;
+        }
+
+        if (productId) {
+          const platform = request.order?.deliveryfrom || product.platform || 'nivapp';
+          await tx.$executeRaw`
+            UPDATE "product"
+            SET
+              "orderedquantity" = COALESCE("orderedquantity", 0) + ${quantity},
+              "availablequantity" = GREATEST(0, COALESCE("ecompublishedquantity", 0) - (COALESCE("orderedquantity", 0) + ${quantity})),
+              "modifieddate" = ${timestampMs}
+            WHERE "id" = ${productId}
+          `;
+
+          await tx.$executeRaw`
+            UPDATE "platformstock"
+            SET
+              "orderedqty" = COALESCE("orderedqty", 0) + ${quantity},
+              "availableqty" = GREATEST(0, COALESCE("ecomqty", 0) - (COALESCE("orderedqty", 0) + ${quantity}) - COALESCE("lockqty", 0)),
+              "modifieddate" = ${timestampMs}
+            WHERE "productid" = ${productId}
+              AND LOWER("platform") = LOWER(${platform})
+          `;
+        }
+      }
+
+      updated = await tx.returnRequest.update({
+        where: { id: request.id },
+        data: {
+          requestReviewStatus: 'approved',
+          requestReviewRemarks: data.remarks || null,
+          requestRejectionReason: null,
+          requestReviewedBy: authUser!.id,
+          requestReviewedDate: timestamp,
+          status: 'approved',
+          modifiedby: authUser!.id,
+          modifieddate: timestamp,
+        },
+      });
+
+      await this.recordStatusTimeline(tx, {
+        returnRequestId: request.id,
+        previousStatus: request.status,
+        status: updated.status,
+        eventType: 'request_approved',
+        authUser,
+        message: RETURN_STATUS_MESSAGES[updated.status],
+        metadata: {
+          remarks: data.remarks || null,
+        },
+        timestamp,
+      });
     });
-    await this.recordStatusTimeline(prisma, {
-      returnRequestId: request.id,
-      previousStatus: request.status,
-      status: updated.status,
-      eventType: 'request_approved',
-      authUser,
-      message: RETURN_STATUS_MESSAGES[updated.status],
-      metadata: {
-        remarks: data.remarks || null,
-      },
-      timestamp,
-    });
+
+    if (request.requesttype === 'replacement' && productId) {
+      try {
+        await this.productStockService.updateStockTotals(String(productId));
+      } catch (err) {
+        logger.warn({ err, productId }, 'Deferred stock refresh failed during replacement approval');
+      }
+    }
 
     logger.info(
       {
@@ -1076,32 +1260,105 @@ export class ReturnRequestService {
     this.validateCustomerReturnRequestForAdminDecision(request);
 
     const timestamp = nowSeconds();
-    const updated = await requestClient().update({
-      where: { id: request.id },
-      data: {
-        requestReviewStatus: 'rejected',
-        requestReviewRemarks: data.remarks || null,
-        requestRejectionReason: data.rejectionreason,
-        requestReviewedBy: authUser!.id,
-        requestReviewedDate: timestamp,
-        status: 'rejected',
-        modifiedby: authUser!.id,
-        modifieddate: timestamp,
-      },
+    let updated: any;
+    const productId = request.orderline?.productid;
+
+    await prisma.$transaction(async (tx: any) => {
+      if (request.requesttype === 'replacement') {
+        const replacementOrderId = `REP-${request.requestnumber}`;
+        const replacementOrder = await tx.orders.findUnique({
+          where: { orderid: replacementOrderId }
+        });
+
+        if (replacementOrder && replacementOrder.orderstatus !== 'cancelled') {
+          const quantity = Math.max(1, Math.trunc(request.requestedquantity || 1));
+          const timestampMs = BigInt(Date.now());
+
+          await tx.$executeRaw`
+            UPDATE "stock"
+            SET
+              "orderid" = NULL,
+              "orderlinenumber" = NULL,
+              "modifieddate" = ${timestampMs}
+            WHERE "orderid" = ${replacementOrderId}
+          `;
+
+          if (productId) {
+            const platform = request.order?.deliveryfrom || request.orderline?.product?.platform || 'nivapp';
+            await tx.$executeRaw`
+              UPDATE "product"
+              SET
+                "orderedquantity" = GREATEST(0, COALESCE("orderedquantity", 0) - ${quantity}),
+                "availablequantity" = GREATEST(0, COALESCE("ecompublishedquantity", 0) - GREATEST(0, COALESCE("orderedquantity", 0) - ${quantity})),
+                "modifieddate" = ${timestampMs}
+              WHERE "id" = ${productId}
+            `;
+
+            await tx.$executeRaw`
+              UPDATE "platformstock"
+              SET
+                "orderedqty" = GREATEST(0, COALESCE("orderedqty", 0) - ${quantity}),
+                "availableqty" = GREATEST(0, COALESCE("ecomqty", 0) - GREATEST(0, COALESCE("orderedqty", 0) - ${quantity}) - COALESCE("lockqty", 0)),
+                "modifieddate" = ${timestampMs}
+              WHERE "productid" = ${productId}
+                AND LOWER("platform") = LOWER(${platform})
+            `;
+          }
+
+          await tx.orders.update({
+            where: { id: replacementOrder.id },
+            data: {
+              orderstatus: 'cancelled',
+              modifieddate: timestampMs
+            }
+          });
+
+          await tx.orderline.updateMany({
+            where: { orderid: replacementOrder.id },
+            data: {
+              orderstatus: 'cancelled',
+              modifieddate: timestampMs
+            }
+          });
+        }
+      }
+
+      updated = await tx.returnRequest.update({
+        where: { id: request.id },
+        data: {
+          requestReviewStatus: 'rejected',
+          requestReviewRemarks: data.remarks || null,
+          requestRejectionReason: data.rejectionreason,
+          requestReviewedBy: authUser!.id,
+          requestReviewedDate: timestamp,
+          status: 'rejected',
+          modifiedby: authUser!.id,
+          modifieddate: timestamp,
+        },
+      });
+
+      await this.recordStatusTimeline(tx, {
+        returnRequestId: request.id,
+        previousStatus: request.status,
+        status: updated.status,
+        eventType: 'request_rejected',
+        authUser,
+        message: RETURN_STATUS_MESSAGES[updated.status],
+        metadata: {
+          rejectionReason: data.rejectionreason,
+          remarks: data.remarks || null,
+        },
+        timestamp,
+      });
     });
-    await this.recordStatusTimeline(prisma, {
-      returnRequestId: request.id,
-      previousStatus: request.status,
-      status: updated.status,
-      eventType: 'request_rejected',
-      authUser,
-      message: RETURN_STATUS_MESSAGES[updated.status],
-      metadata: {
-        rejectionReason: data.rejectionreason,
-        remarks: data.remarks || null,
-      },
-      timestamp,
-    });
+
+    if (request.requesttype === 'replacement' && productId) {
+      try {
+        await this.productStockService.updateStockTotals(String(productId));
+      } catch (err) {
+        logger.warn({ err, productId }, 'Deferred stock refresh failed during replacement rejection');
+      }
+    }
 
     logger.info(
       {
@@ -1560,7 +1817,7 @@ export class ReturnRequestService {
           ${rejectedQuantity},
           ${data.condition},
           ${data.inspectionnotes || null},
-          ${inspectionRestockAction},
+          ${['available', 'damaged', 'quarantine', 'none'].includes(inspectionRestockAction) ? inspectionRestockAction : 'none'},
           ${timestamp},
           ${timestamp}
         )
@@ -1691,6 +1948,9 @@ export class ReturnRequestService {
     const refundAmount = ['refund', 'partial_refund'].includes(actionType)
       ? this.calculateClosureRefundAmount(request, data)
       : null;
+    const actionAmount = OUTBOUND_SHIPMENT_ACTIONS.has(actionType)
+      ? this.calculateFulfilmentShipmentAmount(request)
+      : refundAmount;
     let externalReference = data.external_reference || null;
     let actionStatus = data.status;
     let metadata: Record<string, unknown> = {
@@ -1745,9 +2005,147 @@ export class ReturnRequestService {
 
     const nextRequestStatus = this.getClosureRequestStatus(actionType, actionStatus);
     const timestamp = nowSeconds();
+    let createdResolutionAction: any = null;
+    let createdCreditNote: any = null;
 
     await prisma.$transaction(async (tx: any) => {
-      await tx.$executeRaw`
+      if (request.requesttype === 'replacement') {
+        const replacementOrderId = `REP-${request.requestnumber}`;
+        const replacementOrder = await tx.orders.findUnique({
+          where: { orderid: replacementOrderId }
+        });
+
+        if (replacementOrder) {
+          const quantity = Math.max(1, Math.trunc(request.requestedquantity || 1));
+          const productId = request.orderline?.productid;
+          const platform = request.order?.deliveryfrom || request.orderline?.product?.platform || 'nivapp';
+          const timestampMs = BigInt(Date.now());
+
+          if (actionType === 'replacement_shipment') {
+            const replacementEcomRows = await tx.$queryRaw<any[]>`
+              SELECT COUNT(*)::int AS "ecom_quantity"
+              FROM "stock"
+              WHERE "orderid" = ${replacementOrderId}
+                AND COALESCE("ecompublish", false) = true
+                AND COALESCE("isdeleted", false) = false
+                AND COALESCE("isarchive", false) = false
+            `;
+            const replacementEcomQuantity = Number(replacementEcomRows?.[0]?.ecom_quantity || 0);
+
+            await tx.$executeRaw`
+              UPDATE "stock"
+              SET
+                "stockstatus" = 'sold',
+                "solddate" = ${timestampMs},
+                "modifieddate" = ${timestampMs}
+              WHERE "orderid" = ${replacementOrderId}
+            `;
+
+            if (productId) {
+              await tx.$executeRaw`
+                UPDATE "product"
+                SET
+                  "quantity" = GREATEST(0, COALESCE("quantity", 0) - ${quantity}),
+                  "orderedquantity" = GREATEST(0, COALESCE("orderedquantity", 0) - ${quantity}),
+                  "soldquantity" = COALESCE("soldquantity", 0) + ${quantity},
+                  "ecompublishedquantity" = GREATEST(0, COALESCE("ecompublishedquantity", 0) - ${replacementEcomQuantity}),
+                  "availablequantity" = GREATEST(
+                    0,
+                    GREATEST(0, COALESCE("ecompublishedquantity", 0) - ${replacementEcomQuantity})
+                    - GREATEST(0, COALESCE("orderedquantity", 0) - ${quantity})
+                  ),
+                  "modifieddate" = ${timestampMs}
+                WHERE "id" = ${productId}
+              `;
+
+              await tx.$executeRaw`
+                UPDATE "platformstock"
+                SET
+                  "orderedqty" = GREATEST(0, COALESCE("orderedqty", 0) - ${quantity}),
+                  "soldqty" = COALESCE("soldqty", 0) + ${quantity},
+                  "ecomqty" = GREATEST(0, COALESCE("ecomqty", 0) - ${replacementEcomQuantity}),
+                  "availableqty" = GREATEST(
+                    0,
+                    GREATEST(0, COALESCE("ecomqty", 0) - ${replacementEcomQuantity})
+                    - GREATEST(0, COALESCE("orderedqty", 0) - ${quantity})
+                    - COALESCE("lockqty", 0)
+                  ),
+                  "modifieddate" = ${timestampMs}
+                WHERE "productid" = ${productId}
+                  AND LOWER("platform") = LOWER(${platform})
+              `;
+            }
+
+            await tx.orders.update({
+              where: { id: replacementOrder.id },
+              data: {
+                orderstatus: 'shipped',
+                tracking_id: data.shipment_tracking_id || null,
+                vendor: data.shipment_provider || 'EKART',
+                modifieddate: timestampMs
+              }
+            });
+
+            await tx.orderline.updateMany({
+              where: { orderid: replacementOrder.id },
+              data: {
+                orderstatus: 'shipped',
+                tracking_id: data.shipment_tracking_id || null,
+                modifieddate: timestampMs
+              }
+            });
+
+          } else if (actionType === 'refund') {
+            await tx.$executeRaw`
+              UPDATE "stock"
+              SET
+                "orderid" = NULL,
+                "orderlinenumber" = NULL,
+                "modifieddate" = ${timestampMs}
+              WHERE "orderid" = ${replacementOrderId}
+            `;
+
+            if (productId) {
+              await tx.$executeRaw`
+                UPDATE "product"
+                SET
+                  "orderedquantity" = GREATEST(0, COALESCE("orderedquantity", 0) - ${quantity}),
+                  "availablequantity" = GREATEST(0, COALESCE("ecompublishedquantity", 0) - GREATEST(0, COALESCE("orderedquantity", 0) - ${quantity})),
+                  "modifieddate" = ${timestampMs}
+                WHERE "id" = ${productId}
+              `;
+
+              await tx.$executeRaw`
+                UPDATE "platformstock"
+                SET
+                  "orderedqty" = GREATEST(0, COALESCE("orderedqty", 0) - ${quantity}),
+                  "availableqty" = GREATEST(0, COALESCE("ecomqty", 0) - GREATEST(0, COALESCE("orderedqty", 0) - ${quantity}) - COALESCE("lockqty", 0)),
+                  "modifieddate" = ${timestampMs}
+                WHERE "productid" = ${productId}
+                  AND LOWER("platform") = LOWER(${platform})
+              `;
+            }
+
+            await tx.orders.update({
+              where: { id: replacementOrder.id },
+              data: {
+                orderstatus: 'cancelled',
+                modifieddate: timestampMs
+              }
+            });
+
+            await tx.orderline.updateMany({
+              where: { orderid: replacementOrder.id },
+              data: {
+                orderstatus: 'cancelled',
+                modifieddate: timestampMs
+              }
+            });
+          }
+        }
+      }
+
+      const insertedActions = await tx.$queryRaw<any[]>`
         INSERT INTO "return_resolution_actions" (
           "return_request_id",
           "action_type",
@@ -1771,7 +2169,7 @@ export class ReturnRequestService {
           ${request.id},
           ${actionType},
           ${actionStatus},
-          ${refundAmount},
+          ${actionAmount},
           ${data.refund_method || null},
           ${externalReference},
           ${data.shipment_tracking_id || null},
@@ -1787,7 +2185,44 @@ export class ReturnRequestService {
           ${timestamp},
           ${actionStatus === 'completed' ? timestamp : null}
         )
+        RETURNING *
       `;
+      createdResolutionAction = insertedActions?.[0] || null;
+
+      if (createdResolutionAction && actionStatus === 'completed' && REFUND_ACTIONS.has(actionType)) {
+        createdCreditNote = await this.createCreditNoteRecord(tx, request, {
+          id: createdResolutionAction.id,
+          actionType,
+          amount: refundAmount,
+          status: actionStatus,
+          quantity: data.quantity || request.requestedquantity || 1,
+          refundMethod: data.refund_method || null,
+          externalReference,
+          noReverseChargeDeduction: true,
+        }, {
+          status: 'issued',
+          metadata: {
+            autoCreated: true,
+            source: 'resolution_closure',
+          },
+          notes: 'Auto-created from completed return refund resolution.',
+        }, authUser, {
+          autoSkipWithoutGst: true,
+          suppressTimeline: false,
+        });
+
+        await invoiceAdjustmentService.recordReturnResolution(request, {
+          id: createdResolutionAction.id,
+          actionType,
+          amount: refundAmount,
+          quantity: data.quantity || request.requestedquantity || 1,
+        }, {
+          creditNote: createdCreditNote,
+          gstReversalApplicable: Boolean(createdCreditNote),
+          actorId: authUser!.id,
+          database: tx,
+        });
+      }
 
       await (tx as any).returnRequest.update({
         where: { id: request.id },
@@ -1809,6 +2244,7 @@ export class ReturnRequestService {
           actionType,
           actionStatus,
           refundAmount,
+          actionAmount,
           refundMethod: data.refund_method || null,
           externalReference,
           shipmentTrackingId: data.shipment_tracking_id || null,
@@ -1827,6 +2263,7 @@ export class ReturnRequestService {
         actionType,
         actionStatus,
         refundAmount,
+        actionAmount,
         externalReference,
         nextRequestStatus,
         actorId: authUser!.id,
@@ -1839,6 +2276,14 @@ export class ReturnRequestService {
       amount: refundAmount,
     });
 
+    if (request.requesttype !== 'rto' && request.orderline?.productid) {
+      try {
+        await this.productStockService.updateStockTotals(String(request.orderline.productid));
+      } catch (err) {
+        logger.warn({ err, productId: request.orderline.productid }, 'Deferred stock refresh failed during resolution closure');
+      }
+    }
+
     return this.findById(request.id.toString());
   }
 
@@ -1846,7 +2291,7 @@ export class ReturnRequestService {
     this.validateInventoryUser(authUser);
 
     const request = await this.findById(id);
-    this.validateCustomerReturnRequestForAdminDecisionTarget(request, 'fulfilment shipment status update');
+    this.validateCustomerReturnRequestForShipmentStatusUpdate(request);
 
     const shipmentActions = (request.resolutionActions || []).filter((action: any) =>
       OUTBOUND_SHIPMENT_ACTIONS.has(action.actionType)
@@ -1900,6 +2345,7 @@ export class ReturnRequestService {
       : [];
     const trackingId = data.shipment_tracking_id || action.shipmentTrackingId || null;
     const provider = data.shipment_provider || action.shipmentProvider || null;
+    const shipmentAmount = this.calculateFulfilmentShipmentAmount(request);
     const shipmentEvent = {
       status: data.status,
       trackingId,
@@ -1929,11 +2375,21 @@ export class ReturnRequestService {
         SET
           "shipment_tracking_id" = COALESCE(${trackingId}, "shipment_tracking_id"),
           "shipment_provider" = COALESCE(${provider}, "shipment_provider"),
+          "amount" = COALESCE("amount", ${shipmentAmount}),
           "metadata" = ${JSON.stringify(toJsonSafe(nextMetadata))}::jsonb,
           "modifieddate" = ${timestamp}
         WHERE "id" = ${action.id}
           AND "return_request_id" = ${request.id}
       `;
+
+      await this.syncReplacementFulfilmentOrderStatus(tx, request, action, {
+        status: data.status,
+        trackingId,
+        provider,
+        remarks: data.remarks || null,
+        eventTimeSeconds: timestamp,
+        recordedBy: authUser!.id,
+      });
 
       if (nextRequestStatus !== currentStatus) {
         await (tx as any).returnRequest.update({
@@ -2118,16 +2574,93 @@ export class ReturnRequestService {
       );
     }
 
+    const creditNote = await this.createCreditNoteRecord(prisma, request, action, data, authUser, {
+      autoSkipWithoutGst: false,
+      suppressTimeline: false,
+    });
+
+    await invoiceAdjustmentService.recordReturnResolution(request, action, {
+      creditNote,
+      gstReversalApplicable: Boolean(creditNote),
+      actorId: authUser!.id,
+    });
+
+    return this.findById(request.id.toString());
+  }
+
+  private async createCreditNoteRecord(
+    database: any,
+    request: any,
+    action: any,
+    data: Partial<CreateReturnCreditNoteInput> = {},
+    authUser?: AuthUser,
+    options: { autoSkipWithoutGst?: boolean; suppressTimeline?: boolean } = {}
+  ) {
+    if (request.requesttype === 'rto' || request.source === 'delivery_partner') {
+      if (options.autoSkipWithoutGst) {
+        return null;
+      }
+      throw new ValidationError(
+        'Credit note is not valid for RTO',
+        'Delivery-partner RTO records do not create customer refund credit notes'
+      );
+    }
+
+    const existingCreditNote = (request.creditNotes || []).find((creditNote: any) =>
+      Number(creditNote.resolutionActionId) === Number(action.id) && creditNote.status !== 'void'
+    );
+    if (existingCreditNote) {
+      return {
+        id: existingCreditNote.id,
+        credit_note_number: existingCreditNote.creditNoteNumber,
+      };
+    }
+
+    const existingRows = await database.$queryRaw<any[]>`
+      SELECT "id", "credit_note_number"
+      FROM "return_credit_notes"
+      WHERE "resolution_action_id" = ${action.id}
+        AND "status" <> 'void'
+      ORDER BY "id" DESC
+      LIMIT 1
+    `;
+    if (existingRows[0]) {
+      return existingRows[0];
+    }
+
     let refundAmount: number;
     try {
-      refundAmount = resolveCreditNoteRefundAmount(action, data);
+      refundAmount = resolveCreditNoteRefundAmount(action, data as CreateReturnCreditNoteInput);
     } catch {
+      if (options.autoSkipWithoutGst) {
+        logger.warn(
+          { returnRequestId: request.id, resolutionActionId: action.id },
+          'Auto credit note skipped because refund amount is unavailable'
+        );
+        return null;
+      }
       throw new ValidationError(
         'Refund amount required',
         'Completed refund action does not have an amount; enter the credit note amount manually'
       );
     }
-    const taxBreakup = calculateCreditNoteTaxBreakup(request, refundAmount, data);
+
+    const taxBreakup = calculateCreditNoteTaxBreakup(request, refundAmount, data as CreateReturnCreditNoteInput);
+    const gstRate = Number(taxBreakup.gstRate || 0);
+    if (!Number.isFinite(gstRate) || gstRate <= 0) {
+      if (options.autoSkipWithoutGst) {
+        logger.info(
+          { returnRequestId: request.id, resolutionActionId: action.id },
+          'Auto credit note skipped because original orderline GST rate is unavailable'
+        );
+        return null;
+      }
+      throw new ValidationError(
+        'GST rate unavailable',
+        'GST credit note can be created only when a valid GST rate exists on the original order item or is provided explicitly'
+      );
+    }
+
     const timestamp = nowSeconds();
     const creditNoteNumber = generateCreditNoteNumber(request.requestnumber);
     const creditNoteStatus = data.status || 'draft';
@@ -2142,9 +2675,10 @@ export class ReturnRequestService {
       refundMethod: action.refundMethod || null,
       externalReference: action.externalReference || null,
       noReverseChargeDeduction: action.noReverseChargeDeduction ?? true,
+      gstReversalApplicable: true,
     };
 
-    await prisma.$executeRaw`
+    const rows = await database.$queryRaw<any[]>`
       INSERT INTO "return_credit_notes" (
         "credit_note_number",
         "return_request_id",
@@ -2178,7 +2712,7 @@ export class ReturnRequestService {
         ${action.id},
         ${request.orderid || null},
         ${firstText(order.orderid, orderline.uniqueordderid) || null},
-        ${data.original_invoice_number || null},
+        ${data.original_invoice_number || firstText(order.orderid, orderline.uniqueordderid) || null},
         ${firstText(order.order_invoice_url) || null},
         ${request.reasoncode || null},
         ${request.requestedresolution || action.actionType},
@@ -2194,30 +2728,40 @@ export class ReturnRequestService {
         ${creditNoteStatus},
         ${JSON.stringify(toJsonSafe(metadata))}::jsonb,
         ${data.notes || null},
-        ${authUser!.id},
-        ${creditNoteStatus === 'issued' ? authUser!.id : null},
+        ${authUser?.id || null},
+        ${creditNoteStatus === 'issued' ? authUser?.id || null : null},
         ${timestamp},
         ${timestamp},
         ${creditNoteStatus === 'issued' ? timestamp : null}
       )
+      ON CONFLICT ("credit_note_number") DO UPDATE SET
+        "status" = EXCLUDED."status",
+        "metadata" = EXCLUDED."metadata",
+        "modifieddate" = EXCLUDED."modifieddate"
+      RETURNING *
     `;
-    await this.recordStatusTimeline(prisma, {
-      returnRequestId: request.id,
-      previousStatus: request.status,
-      status: request.status,
-      eventType: creditNoteStatus === 'issued' ? 'credit_note_issued' : 'credit_note_created',
-      authUser,
-      message: creditNoteStatus === 'issued' ? 'Credit note issued' : 'Credit note drafted',
-      metadata: {
-        creditNoteNumber,
-        resolutionActionId: action.id,
-        refundAmount,
-        taxableAmount: taxBreakup.taxableAmount,
-        totalGstAmount: taxBreakup.totalGstAmount,
-        status: creditNoteStatus,
-      },
-      timestamp,
-    });
+
+    const creditNote = rows[0] || null;
+
+    if (!options.suppressTimeline) {
+      await this.recordStatusTimeline(database, {
+        returnRequestId: request.id,
+        previousStatus: request.status,
+        status: request.status,
+        eventType: creditNoteStatus === 'issued' ? 'credit_note_issued' : 'credit_note_created',
+        authUser,
+        message: creditNoteStatus === 'issued' ? 'Credit note issued' : 'Credit note drafted',
+        metadata: {
+          creditNoteNumber,
+          resolutionActionId: action.id,
+          refundAmount,
+          taxableAmount: taxBreakup.taxableAmount,
+          totalGstAmount: taxBreakup.totalGstAmount,
+          status: creditNoteStatus,
+        },
+        timestamp,
+      });
+    }
 
     logger.info(
       {
@@ -2229,12 +2773,12 @@ export class ReturnRequestService {
         refundAmount,
         taxableAmount: taxBreakup.taxableAmount,
         totalGstAmount: taxBreakup.totalGstAmount,
-        actorId: authUser!.id,
+        actorId: authUser?.id || null,
       },
       'Return credit note saved'
     );
 
-    return this.findById(request.id.toString());
+    return creditNote;
   }
 
   async addAttachments(id: string, data: AddReturnRequestAttachmentInput, authUser?: AuthUser) {
@@ -2283,17 +2827,58 @@ export class ReturnRequestService {
     fileBuffer: Buffer;
     filename: string;
     mimetype: string;
+    orderIdentifier?: string | number | null;
     returnRequestNumber?: string | null;
   }) {
     this.validateEvidenceFile(data.attachmenttype, data.fileBuffer, data.mimetype);
 
     const safeFileName = sanitizeFileName(data.filename);
-    const pathPrefix = data.returnRequestNumber
-      ? `returns/evidence/${data.returnRequestNumber}`
-      : `returns/evidence/uploads/${new Date().toISOString().slice(0, 10)}`;
+    const storageRequestKey = data.orderIdentifier
+      ? sanitizeFileName(String(data.orderIdentifier))
+      : data.returnRequestNumber
+        ? sanitizeFileName(data.returnRequestNumber)
+        : 'unassigned';
+    const pathPrefix = storageRequestKey;
     const filePath = `${pathPrefix}/${randomUUID()}-${safeFileName}`;
     const bucket = this.getEvidenceBucketName();
     let fileurl: string;
+    let uploadedBucket: string | null = bucket || null;
+    let uploadedObjectPath = filePath;
+
+    try {
+      const uploaded = await storageService.uploadReturnEvidenceFile(
+        data.fileBuffer,
+        safeFileName,
+        data.mimetype,
+        storageRequestKey
+      );
+
+      uploadedObjectPath = uploaded.objectKey;
+      uploadedBucket = uploaded.bucket || uploadedBucket;
+      fileurl = this.buildEvidenceFileUrl(uploadedObjectPath);
+
+      return {
+        attachmenttype: data.attachmenttype,
+        fileurl,
+        filename: uploaded.filename || safeFileName,
+        mimetype: uploaded.mimetype || data.mimetype,
+        filesize: uploaded.size || data.fileBuffer.length,
+        objectpath: uploadedObjectPath,
+        bucket: uploadedBucket,
+      };
+    } catch (error: any) {
+      logger.warn(
+        { error: error.message, filePath, bucket },
+        'File-Upload service upload failed for return evidence'
+      );
+
+      if (process.env.STORAGE_BACKEND_URL) {
+        throw new ValidationError(
+          'Evidence storage upload failed',
+          error.message || 'Unable to upload return evidence to the configured storage backend'
+        );
+      }
+    }
 
     if (bucket) {
       try {
@@ -2318,8 +2903,8 @@ export class ReturnRequestService {
       filename: safeFileName,
       mimetype: data.mimetype,
       filesize: data.fileBuffer.length,
-      objectpath: filePath,
-      bucket: bucket || null,
+      objectpath: uploadedObjectPath,
+      bucket: uploadedBucket,
     };
   }
 
@@ -2635,8 +3220,9 @@ export class ReturnRequestService {
   }
 
   private getEvidenceBucketName() {
-    return process.env.RETURN_EVIDENCE_BUCKET
-      || process.env.GCP_STORAGE_BUCKET
+    return process.env.RETURN_REPLACEMENT_BUCKET
+      || process.env.RETURN_EVIDENCE_BUCKET
+      || process.env.CATEGORY_IMAGES_BUCKET
       || DEFAULT_EVIDENCE_STORAGE_BUCKET;
   }
 
@@ -2681,6 +3267,7 @@ export class ReturnRequestService {
     this.validateRequestAccess(request, authUser);
     const uploaded = await this.uploadEvidenceFile({
       ...data,
+      orderIdentifier: request.order?.orderid || request.orderline?.orders?.orderid || request.orderid || request.orderline?.orderid,
       returnRequestNumber: request.requestnumber,
     });
 
@@ -2746,6 +3333,7 @@ export class ReturnRequestService {
 
     const uploaded = await this.uploadEvidenceFile({
       ...data,
+      orderIdentifier: request.order?.orderid || request.orderline?.orders?.orderid || request.orderid || request.orderline?.orderid,
       returnRequestNumber: request.requestnumber,
     });
     const reasonRule = await this.getReasonRuleForRequest(request);
@@ -2877,11 +3465,21 @@ export class ReturnRequestService {
     const returnWindow = this.evaluateWindow(orderline, order, returnEligibility.windowdays, 'return');
     const replacementWindow = this.evaluateWindow(orderline, order, replacementEligibility.windowdays, 'replacement');
 
-    const canReturn = deliveryCheck.eligible
+    const existingRequests = await requestClient().findMany({
+      where: { orderlineid: orderline.id },
+      select: { status: true },
+    });
+    const hasRejected = existingRequests.some((req: any) =>
+      ['rejected', 'evidence_rejected', 'inspection_rejected'].includes(req.status)
+    );
+
+    const canReturn = !hasRejected
+      && deliveryCheck.eligible
       && returnEligibility.eligible
       && returnWindow.eligible
       && remainingEligibleQuantity > 0;
-    const canReplace = deliveryCheck.eligible
+    const canReplace = !hasRejected
+      && deliveryCheck.eligible
       && replacementEligibility.eligible
       && replacementWindow.eligible
       && remainingEligibleQuantity > 0;
@@ -2905,7 +3503,7 @@ export class ReturnRequestService {
 
     const blockers = [
       !deliveryCheck.eligible ? deliveryCheck.reason : null,
-      remainingEligibleQuantity <= 0 ? 'No remaining eligible quantity' : null,
+      hasRejected ? 'Return/replacement request has been rejected by admin' : (remainingEligibleQuantity <= 0 ? 'No remaining eligible quantity' : null),
       !returnEligibility.eligible && !replacementEligibility.eligible
         ? 'Policy does not allow return or replacement for this item'
         : null,
@@ -3673,6 +4271,212 @@ export class ReturnRequestService {
     return defaultRefundAmount;
   }
 
+  private calculateFulfilmentShipmentAmount(request: any) {
+    const requestedQuantity = Math.max(1, Number(request.requestedquantity || 1));
+    const orderlineQuantity = Math.max(1, Number(request.orderline?.quantity || requestedQuantity));
+    const lineAmount = positiveNumber(
+      request.orderline?.orderamount,
+      positiveNumber(
+        request.orderline?.productamount,
+        positiveNumber(request.orderline?.product?.price, positiveNumber(request.order?.orderamount, 0))
+      )
+    );
+
+    if (lineAmount <= 0) return null;
+    return Number(((lineAmount / orderlineQuantity) * requestedQuantity).toFixed(2));
+  }
+
+  private mapFulfilmentShipmentStatusToOrderStatus(status: string) {
+    return ['shipped', 'in_transit', 'out_for_delivery', 'delivered'].includes(status)
+      ? status
+      : null;
+  }
+
+  private parseStatusHistory(value: unknown): any[] {
+    if (Array.isArray(value)) {
+      return value;
+    }
+
+    if (typeof value === 'string' && value.trim()) {
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+
+    return [];
+  }
+
+  private buildFulfilmentOrderStatusHistory(
+    existingHistory: unknown,
+    previousStatus: string | null | undefined,
+    nextStatus: string,
+    eventTimeMs: number,
+    event: {
+      trackingId?: string | null;
+      provider?: string | null;
+      remarks?: string | null;
+      recordedBy?: number | null;
+    }
+  ) {
+    if (previousStatus === nextStatus) {
+      return this.parseStatusHistory(existingHistory);
+    }
+
+    const deactivatedHistory = this.parseStatusHistory(existingHistory).map((entry) => ({
+      ...entry,
+      is_active: false,
+    }));
+
+    return [
+      ...deactivatedHistory,
+      {
+        previous_status: previousStatus || 'unknown',
+        new_status: nextStatus,
+        changed_date: eventTimeMs,
+        source: 'return_fulfilment',
+        inventory_user_id: event.recordedBy || null,
+        tracking_id: event.trackingId || null,
+        provider: event.provider || null,
+        description: event.remarks || null,
+        is_active: true,
+      },
+    ];
+  }
+
+  private async syncReplacementFulfilmentOrderStatus(
+    tx: any,
+    request: any,
+    action: any,
+    event: {
+      status: string;
+      trackingId?: string | null;
+      provider?: string | null;
+      remarks?: string | null;
+      eventTimeSeconds: number;
+      recordedBy?: number | null;
+    }
+  ) {
+    if (action.actionType !== 'replacement_shipment') {
+      return;
+    }
+
+    const orderStatus = this.mapFulfilmentShipmentStatusToOrderStatus(event.status);
+    if (!orderStatus) {
+      return;
+    }
+
+    const replacementOrderId = `REP-${request.requestnumber}`;
+    const eventTimeMs = event.eventTimeSeconds * 1000;
+    const orders = await tx.$queryRaw<any[]>`
+      SELECT "id", "orderstatus", "status_history", "shipdate", "delivereddate"
+      FROM "orders"
+      WHERE "orderid" = ${replacementOrderId}
+      LIMIT 1
+      FOR UPDATE
+    `;
+    const order = orders[0];
+    if (!order) {
+      logger.warn(
+        { returnRequestId: request.id, replacementOrderId, shipmentStatus: event.status },
+        'Replacement fulfilment order was not found while syncing shipment status'
+      );
+      return;
+    }
+
+    const orderHistory = this.buildFulfilmentOrderStatusHistory(
+      order.status_history,
+      order.orderstatus,
+      orderStatus,
+      eventTimeMs,
+      event
+    );
+
+    await tx.$executeRaw`
+      UPDATE "orders"
+      SET
+        "orderstatus" = ${orderStatus},
+        "shipment_tracking_status" = ${event.status},
+        "tracking_id" = COALESCE(${event.trackingId || null}, "tracking_id"),
+        "vendor" = COALESCE(${event.provider || null}, "vendor"),
+        "status_history" = ${JSON.stringify(toJsonSafe(orderHistory))}::jsonb,
+        "shipdate" = CASE WHEN ${orderStatus} = 'shipped' THEN COALESCE("shipdate", ${eventTimeMs}) ELSE "shipdate" END,
+        "delivereddate" = CASE WHEN ${orderStatus} = 'delivered' THEN ${eventTimeMs} ELSE "delivereddate" END,
+        "modifieddate" = ${eventTimeMs}
+      WHERE "id" = ${order.id}
+    `;
+
+    const orderlines = await tx.$queryRaw<any[]>`
+      SELECT "id", "orderstatus", "status_history", "shipdate", "delivereddate"
+      FROM "orderline"
+      WHERE "orderid" = ${order.id}
+      FOR UPDATE
+    `;
+
+    for (const orderline of orderlines) {
+      const lineHistory = this.buildFulfilmentOrderStatusHistory(
+        orderline.status_history,
+        orderline.orderstatus,
+        orderStatus,
+        eventTimeMs,
+        event
+      );
+
+      await tx.$executeRaw`
+        UPDATE "orderline"
+        SET
+          "orderstatus" = ${orderStatus},
+          "tracking_id" = COALESCE(${event.trackingId || null}, "tracking_id"),
+          "status_history" = ${JSON.stringify(toJsonSafe(lineHistory))}::jsonb,
+          "shipdate" = CASE WHEN ${orderStatus} = 'shipped' THEN COALESCE("shipdate", ${eventTimeMs}) ELSE "shipdate" END,
+          "delivereddate" = CASE WHEN ${orderStatus} = 'delivered' THEN ${eventTimeMs} ELSE "delivereddate" END,
+          "modifieddate" = ${eventTimeMs}
+        WHERE "id" = ${orderline.id}
+      `;
+    }
+  }
+
+  private calculateReplacementOrderFinancials(request: any, quantity: number) {
+    const requestedQuantity = Math.max(1, Math.trunc(quantity || request.requestedquantity || 1));
+    const orderlineQuantity = Math.max(1, Number(request.orderline?.quantity || requestedQuantity));
+    const productUnitPrice = positiveNumber(request.orderline?.product?.price, 0);
+    const roundMoney = (value: number) => Number(value.toFixed(2));
+    const proratePositive = (value: unknown) => {
+      const amount = positiveNumber(value, 0);
+      return amount > 0 ? roundMoney((amount / orderlineQuantity) * requestedQuantity) : 0;
+    };
+    const nullableProrate = (value: unknown) => {
+      const amount = proratePositive(value);
+      return amount > 0 ? amount : null;
+    };
+
+    const productAmount = proratePositive(request.orderline?.productamount)
+      || (productUnitPrice > 0 ? roundMoney(productUnitPrice * requestedQuantity) : 0);
+    const discountAmount = proratePositive(request.orderline?.discountamount);
+    const orderAmount = proratePositive(request.orderline?.orderamount)
+      || Math.max(0, roundMoney(productAmount - discountAmount));
+    const originalPrice = positiveNumber(request.orderline?.original_price, productUnitPrice) || null;
+
+    return {
+      orderAmount,
+      productAmount,
+      discountAmount,
+      originalTotal: productAmount,
+      originalPrice,
+      productDiscountAmount: proratePositive(request.orderline?.product_discount_amount),
+      promotionDiscountAmount: proratePositive(request.orderline?.promotion_discount_amount),
+      hsnCode: firstText(request.orderline?.hsn_code) || null,
+      gstRate: numberFromUnknown(request.orderline?.gst_rate),
+      taxableAmount: nullableProrate(request.orderline?.taxable_amount),
+      cgstAmount: nullableProrate(request.orderline?.cgst_amount),
+      sgstAmount: nullableProrate(request.orderline?.sgst_amount),
+      igstAmount: nullableProrate(request.orderline?.igst_amount),
+      totalGstAmount: nullableProrate(request.orderline?.total_gst_amount),
+    };
+  }
+
   private getClosureRequestStatus(actionType: string, actionStatus: string) {
     if (actionType === 'refund' || actionType === 'partial_refund') {
       return actionStatus === 'completed' ? 'refund_completed' : 'refund_pending';
@@ -3829,6 +4633,33 @@ export class ReturnRequestService {
         },
         timestamp,
       });
+
+      if (actionStatus === 'completed') {
+        const creditNote = await this.createCreditNoteRecord(tx, request, {
+          ...action,
+          status: actionStatus,
+        }, {
+          status: 'issued',
+          metadata: {
+            autoCreated: true,
+            source: 'refund_status_update',
+          },
+          notes: 'Auto-created from completed refund status.',
+        }, data.authUser, {
+          autoSkipWithoutGst: true,
+          suppressTimeline: false,
+        });
+
+        await invoiceAdjustmentService.recordReturnResolution(request, {
+          ...action,
+          status: actionStatus,
+        }, {
+          creditNote,
+          gstReversalApplicable: Boolean(creditNote),
+          actorId: data.authUser?.id || null,
+          database: tx,
+        });
+      }
     });
 
     logger.info(
@@ -3937,7 +4768,7 @@ export class ReturnRequestService {
       .filter((id) => Number.isInteger(id) && id > 0);
 
     if (requestIds.length === 0) {
-      return requests.map((request) => ({ ...request, inspections: [], resolutionActions: [], creditNotes: [], statusTimeline: [] }));
+      return requests.map((request) => ({ ...request, inspections: [], resolutionActions: [], creditNotes: [], invoiceAdjustments: [], statusTimeline: [] }));
     }
 
     const inspections = await prisma.$queryRawUnsafe<any[]>(`
@@ -4014,6 +4845,35 @@ export class ReturnRequestService {
         "modifieddate",
         "issueddate"
       FROM "return_credit_notes"
+      WHERE "return_request_id" IN (${requestIds.join(',')})
+      ORDER BY "createddate" DESC NULLS LAST, "id" DESC
+    `);
+
+    const invoiceAdjustments = await prisma.$queryRawUnsafe<any[]>(`
+      SELECT
+        "id",
+        "adjustment_number",
+        "adjustment_type",
+        "source_action",
+        "status",
+        "order_id",
+        "order_number",
+        "return_request_id",
+        "resolution_action_id",
+        "original_invoice_number",
+        "original_invoice_url",
+        "original_invoice_amount",
+        "remaining_amount",
+        "reversed_amount",
+        "credit_note_id",
+        "credit_note_number",
+        "gst_reversal_applicable",
+        "metadata",
+        "notes",
+        "created_by",
+        "createddate",
+        "modifieddate"
+      FROM "invoice_adjustments"
       WHERE "return_request_id" IN (${requestIds.join(',')})
       ORDER BY "createddate" DESC NULLS LAST, "id" DESC
     `);
@@ -4146,11 +5006,45 @@ export class ReturnRequestService {
       statusTimelineByRequestId.set(returnRequestId, existing);
     });
 
+    const invoiceAdjustmentsByRequestId = new Map<number, any[]>();
+    invoiceAdjustments.forEach((adjustment) => {
+      const returnRequestId = Number(adjustment.return_request_id);
+      const mappedAdjustment = {
+        id: adjustment.id,
+        adjustmentNumber: adjustment.adjustment_number,
+        adjustmentType: adjustment.adjustment_type,
+        sourceAction: adjustment.source_action,
+        status: adjustment.status,
+        orderId: adjustment.order_id,
+        orderNumber: adjustment.order_number,
+        returnRequestId,
+        resolutionActionId: adjustment.resolution_action_id,
+        originalInvoiceNumber: adjustment.original_invoice_number,
+        originalInvoiceUrl: adjustment.original_invoice_url,
+        originalInvoiceAmount: adjustment.original_invoice_amount === null || adjustment.original_invoice_amount === undefined ? null : Number(adjustment.original_invoice_amount),
+        remainingAmount: adjustment.remaining_amount === null || adjustment.remaining_amount === undefined ? null : Number(adjustment.remaining_amount),
+        reversedAmount: adjustment.reversed_amount === null || adjustment.reversed_amount === undefined ? null : Number(adjustment.reversed_amount),
+        creditNoteId: adjustment.credit_note_id,
+        creditNoteNumber: adjustment.credit_note_number,
+        gstReversalApplicable: adjustment.gst_reversal_applicable,
+        metadata: adjustment.metadata,
+        notes: adjustment.notes,
+        createdBy: adjustment.created_by,
+        createddate: adjustment.createddate,
+        modifieddate: adjustment.modifieddate,
+      };
+
+      const existing = invoiceAdjustmentsByRequestId.get(returnRequestId) || [];
+      existing.push(mappedAdjustment);
+      invoiceAdjustmentsByRequestId.set(returnRequestId, existing);
+    });
+
     return requests.map((request) => ({
       ...request,
       inspections: inspectionsByRequestId.get(Number(request.id)) || [],
       resolutionActions: resolutionActionsByRequestId.get(Number(request.id)) || [],
       creditNotes: creditNotesByRequestId.get(Number(request.id)) || [],
+      invoiceAdjustments: invoiceAdjustmentsByRequestId.get(Number(request.id)) || [],
       statusTimeline: statusTimelineByRequestId.get(Number(request.id)) || [],
     }));
   }
@@ -4243,15 +5137,45 @@ export class ReturnRequestService {
       }
 
       for (const stock of stocks) {
+        const ecompublishVal = action.stockstatus === 'available' ? true : false;
+        const availableIncrement = action.stockstatus === 'available' ? 1 : 0;
+        const damagedIncrement = action.stockstatus === 'damaged' ? 1 : 0;
         await tx.$executeRaw`
           UPDATE "stock"
           SET
             "stockstatus" = ${action.stockstatus},
+            "ecompublish" = ${ecompublishVal},
             "orderid" = NULL,
             "orderlinenumber" = NULL,
             "solddate" = NULL,
             "modifieddate" = ${modifiedDate}
           WHERE "id" = ${stock.id}
+        `;
+
+        await tx.$executeRaw`
+          UPDATE "product"
+          SET
+            "quantity" = COALESCE("quantity", 0) + 1,
+            "soldquantity" = GREATEST(0, COALESCE("soldquantity", 0) - 1),
+            "availablequantity" = COALESCE("availablequantity", 0) + ${availableIncrement},
+            "ecompublishedquantity" = COALESCE("ecompublishedquantity", 0) + ${availableIncrement},
+            "damagedquantity" = COALESCE("damagedquantity", 0) + ${damagedIncrement},
+            "modifieddate" = ${modifiedDate}
+          WHERE "puc" = ${stock.puc}
+        `;
+
+        await tx.$executeRaw`
+          UPDATE "platformstock" AS ps
+          SET
+            "soldqty" = GREATEST(0, COALESCE(ps."soldqty", 0) - 1),
+            "availableqty" = COALESCE(ps."availableqty", 0) + ${availableIncrement},
+            "ecomqty" = COALESCE(ps."ecomqty", 0) + ${availableIncrement},
+            "damagedqty" = COALESCE(ps."damagedqty", 0) + ${damagedIncrement},
+            "modifieddate" = ${modifiedDate}
+          FROM "product" AS p
+          WHERE ps."productid" = p."id"
+            AND p."puc" = ${stock.puc}
+            AND LOWER(ps."platform") = LOWER(${stock.platform})
         `;
 
         movements.push({
@@ -4313,11 +5237,32 @@ export class ReturnRequestService {
         UPDATE "stock"
         SET
           "stockstatus" = 'on_hold',
+          "ecompublish" = false,
           "orderid" = NULL,
           "orderlinenumber" = NULL,
           "solddate" = NULL,
           "modifieddate" = ${modifiedDate}
         WHERE "id" = ${stock.id}
+      `;
+
+      await tx.$executeRaw`
+        UPDATE "product"
+        SET
+          "quantity" = COALESCE("quantity", 0) + 1,
+          "soldquantity" = GREATEST(0, COALESCE("soldquantity", 0) - 1),
+          "modifieddate" = ${modifiedDate}
+        WHERE "puc" = ${stock.puc}
+      `;
+
+      await tx.$executeRaw`
+        UPDATE "platformstock" AS ps
+        SET
+          "soldqty" = GREATEST(0, COALESCE(ps."soldqty", 0) - 1),
+          "modifieddate" = ${modifiedDate}
+        FROM "product" AS p
+        WHERE ps."productid" = p."id"
+          AND p."puc" = ${stock.puc}
+          AND LOWER(ps."platform") = LOWER(${stock.platform})
       `;
 
       movements.push({
@@ -4485,6 +5430,22 @@ export class ReturnRequestService {
     }
   }
 
+  private validateCustomerReturnRequestForShipmentStatusUpdate(request: any) {
+    if (request.requesttype === 'rto' || request.source === 'delivery_partner') {
+      throw new ValidationError(
+        'Fulfilment shipment status update is not applicable to RTO',
+        'RTO follows delivery-partner warehouse verification flow'
+      );
+    }
+
+    if (!['replacement_shipped', 'replacement_delivered', 'missing_item_shipped', 'completed'].includes(request.status)) {
+      throw new ValidationError(
+        'Return request is not in fulfilment shipment flow',
+        `Current status ${request.status} cannot be used for fulfilment shipment status update`
+      );
+    }
+  }
+
   private async getReasonRuleForRequest(request: any) {
     const snapshotRule = this.buildRuntimeReasonRuleFromSnapshot(request);
     if (snapshotRule) {
@@ -4546,13 +5507,11 @@ export class ReturnRequestService {
     } else {
       updateData.evidenceReviewStatus = 'pending';
       if (shouldReopenRejectedEvidence) {
-        updateData.status = 'evidence_pending';
+        updateData.status = 'requested';
         updateData.evidenceRejectionReason = null;
         updateData.evidenceReviewRemarks = null;
         updateData.evidenceReviewedBy = null;
         updateData.evidenceReviewedDate = null;
-      } else if (hasRequiredEvidence && request.status === 'requested' && reasonRule.evidencefirstapproval) {
-        updateData.status = 'evidence_pending';
       }
     }
 
@@ -4567,9 +5526,9 @@ export class ReturnRequestService {
         returnRequestId: request.id,
         previousStatus: request.status,
         status: updated.status,
-        eventType: 'evidence_reopened',
+        eventType: 'request_reopened',
         authUser: options.authUser,
-        message: 'Evidence reopened for review',
+        message: 'Request reopened for approval',
         metadata: {
           eventReason: options.eventReason || null,
           evidenceReviewStatus: updated.evidenceReviewStatus,
