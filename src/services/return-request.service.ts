@@ -1088,93 +1088,16 @@ export class ReturnRequestService {
           );
         }
 
-        const replacementOrderId = `REP-${request.requestnumber}`;
-        const replacementOrderlineNum = `REPL-${request.requestnumber}-1`;
+        const replacementAllocationRef = this.getReplacementAllocationReference(request);
+        const replacementAllocationLineRef = this.getReplacementAllocationLineReference(request);
         const timestampMs = BigInt(Date.now());
-        const replacementFinancials = this.calculateReplacementOrderFinancials(request, quantity);
-
-        const createdOrder = await tx.orders.create({
-          data: {
-            orderid: replacementOrderId,
-            userid: request.customerid,
-            addressid: request.order?.addressid || request.orderline?.addressid || null,
-            orderstatus: 'ready_for_dispatch',
-            orderamount: replacementFinancials.orderAmount,
-            productamount: replacementFinancials.productAmount,
-            discountamount: replacementFinancials.discountAmount,
-            original_total: replacementFinancials.originalTotal,
-            promotion_discount_total: replacementFinancials.promotionDiscountAmount,
-            shipping_cost: 0,
-            tax_amount: replacementFinancials.totalGstAmount,
-            items_total: replacementFinancials.orderAmount,
-            total_taxable_amount: replacementFinancials.taxableAmount,
-            total_cgst_amount: replacementFinancials.cgstAmount,
-            total_sgst_amount: replacementFinancials.sgstAmount,
-            total_igst_amount: replacementFinancials.igstAmount,
-            total_gst_amount: replacementFinancials.totalGstAmount,
-            quantity: quantity,
-            mode: 'replacement',
-            createddate: timestampMs,
-            modifieddate: timestampMs,
-            ispaymentsucceed: true,
-          }
-        });
-
-        const createdOrderline = await tx.orderline.create({
-          data: {
-            orderid: createdOrder.id,
-            orderlinenumber: replacementOrderlineNum,
-            productid: productId,
-            quantity: quantity,
-            productname: request.orderline?.productname || '',
-            productcategory: request.orderline?.productcategory || '',
-            productcolour: request.orderline?.productcolour || '',
-            orderstatus: 'ready_for_dispatch',
-            productamount: replacementFinancials.productAmount,
-            discountamount: replacementFinancials.discountAmount,
-            orderamount: replacementFinancials.orderAmount,
-            original_price: replacementFinancials.originalPrice,
-            product_discount_amount: replacementFinancials.productDiscountAmount,
-            promotion_discount_amount: replacementFinancials.promotionDiscountAmount,
-            shipping_cost: 0,
-            hsn_code: replacementFinancials.hsnCode,
-            gst_rate: replacementFinancials.gstRate,
-            taxable_amount: replacementFinancials.taxableAmount,
-            cgst_amount: replacementFinancials.cgstAmount,
-            sgst_amount: replacementFinancials.sgstAmount,
-            igst_amount: replacementFinancials.igstAmount,
-            total_gst_amount: replacementFinancials.totalGstAmount,
-            ordereddate: timestampMs,
-            createddate: timestampMs,
-            modifieddate: timestampMs,
-          }
-        });
-
-        // Existing DB triggers generate standard order/orderline numbers on insert.
-        // Replacement flow needs stable REP/REPL references because later shipment
-        // and stock release steps look them up by these values.
-        await tx.$executeRaw`
-          UPDATE "orders"
-          SET
-            "orderid" = ${replacementOrderId},
-            "modifieddate" = ${timestampMs}
-          WHERE "id" = ${createdOrder.id}
-        `;
-
-        await tx.$executeRaw`
-          UPDATE "orderline"
-          SET
-            "orderlinenumber" = ${replacementOrderlineNum},
-            "modifieddate" = ${timestampMs}
-          WHERE "id" = ${createdOrderline.id}
-        `;
 
         for (const stock of stocks) {
           await tx.$executeRaw`
             UPDATE "stock"
             SET
-              "orderid" = ${replacementOrderId},
-              "orderlinenumber" = ${replacementOrderlineNum},
+              "orderid" = ${replacementAllocationRef},
+              "orderlinenumber" = ${replacementAllocationLineRef},
               "modifieddate" = ${timestampMs}
             WHERE "id" = ${stock.id}
           `;
@@ -1226,6 +1149,12 @@ export class ReturnRequestService {
         message: RETURN_STATUS_MESSAGES[updated.status],
         metadata: {
           remarks: data.remarks || null,
+          replacementAllocationRef: request.requesttype === 'replacement'
+            ? this.getReplacementAllocationReference(request)
+            : null,
+          replacementAllocationLineRef: request.requesttype === 'replacement'
+            ? this.getReplacementAllocationLineReference(request)
+            : null,
         },
         timestamp,
       });
@@ -1265,13 +1194,19 @@ export class ReturnRequestService {
 
     await prisma.$transaction(async (tx: any) => {
       if (request.requesttype === 'replacement') {
-        const replacementOrderId = `REP-${request.requestnumber}`;
-        const replacementOrder = await tx.orders.findUnique({
-          where: { orderid: replacementOrderId }
-        });
+        const replacementAllocationRef = this.getReplacementAllocationReference(request);
+        const legacyReplacementOrderRef = this.getLegacyReplacementOrderReference(request);
+        const reservedStocks = await tx.$queryRaw<any[]>`
+          SELECT "id"
+          FROM "stock"
+          WHERE ("orderid" = ${replacementAllocationRef} OR "orderid" = ${legacyReplacementOrderRef})
+            AND COALESCE("isdeleted", false) = false
+            AND COALESCE("isarchive", false) = false
+          FOR UPDATE
+        `;
 
-        if (replacementOrder && replacementOrder.orderstatus !== 'cancelled') {
-          const quantity = Math.max(1, Math.trunc(request.requestedquantity || 1));
+        if (Array.isArray(reservedStocks) && reservedStocks.length > 0) {
+          const quantity = reservedStocks.length;
           const timestampMs = BigInt(Date.now());
 
           await tx.$executeRaw`
@@ -1280,7 +1215,8 @@ export class ReturnRequestService {
               "orderid" = NULL,
               "orderlinenumber" = NULL,
               "modifieddate" = ${timestampMs}
-            WHERE "orderid" = ${replacementOrderId}
+            WHERE "orderid" = ${replacementAllocationRef}
+               OR "orderid" = ${legacyReplacementOrderRef}
           `;
 
           if (productId) {
@@ -1304,22 +1240,6 @@ export class ReturnRequestService {
                 AND LOWER("platform") = LOWER(${platform})
             `;
           }
-
-          await tx.orders.update({
-            where: { id: replacementOrder.id },
-            data: {
-              orderstatus: 'cancelled',
-              modifieddate: timestampMs
-            }
-          });
-
-          await tx.orderline.updateMany({
-            where: { orderid: replacementOrder.id },
-            data: {
-              orderstatus: 'cancelled',
-              modifieddate: timestampMs
-            }
-          });
         }
       }
 
@@ -2010,138 +1930,148 @@ export class ReturnRequestService {
 
     await prisma.$transaction(async (tx: any) => {
       if (request.requesttype === 'replacement') {
-        const replacementOrderId = `REP-${request.requestnumber}`;
-        const replacementOrder = await tx.orders.findUnique({
-          where: { orderid: replacementOrderId }
-        });
+        const replacementAllocationRef = this.getReplacementAllocationReference(request);
+        const replacementAllocationLineRef = this.getReplacementAllocationLineReference(request);
+        const legacyReplacementOrderRef = this.getLegacyReplacementOrderReference(request);
+        const quantity = Math.max(1, Math.trunc(request.requestedquantity || 1));
+        const productId = request.orderline?.productid;
+        const platform = request.order?.deliveryfrom || request.orderline?.product?.platform || 'nivapp';
+        const timestampMs = BigInt(Date.now());
 
-        if (replacementOrder) {
-          const quantity = Math.max(1, Math.trunc(request.requestedquantity || 1));
-          const productId = request.orderline?.productid;
-          const platform = request.order?.deliveryfrom || request.orderline?.product?.platform || 'nivapp';
-          const timestampMs = BigInt(Date.now());
+        if (actionType === 'replacement_shipment') {
+          const replacementStocks = await tx.$queryRaw<any[]>`
+            SELECT "id", "ecompublish"
+            FROM "stock"
+            WHERE ("orderid" = ${replacementAllocationRef} OR "orderid" = ${legacyReplacementOrderRef})
+              AND COALESCE("isdeleted", false) = false
+              AND COALESCE("isarchive", false) = false
+            FOR UPDATE
+          `;
 
-          if (actionType === 'replacement_shipment') {
-            const replacementEcomRows = await tx.$queryRaw<any[]>`
-              SELECT COUNT(*)::int AS "ecom_quantity"
-              FROM "stock"
-              WHERE "orderid" = ${replacementOrderId}
-                AND COALESCE("ecompublish", false) = true
-                AND COALESCE("isdeleted", false) = false
-                AND COALESCE("isarchive", false) = false
-            `;
-            const replacementEcomQuantity = Number(replacementEcomRows?.[0]?.ecom_quantity || 0);
+          if (!Array.isArray(replacementStocks) || replacementStocks.length < quantity) {
+            throw new ValidationError(
+              'Replacement stock unavailable',
+              `Reserved replacement stock is not available. Required: ${quantity}, Reserved: ${replacementStocks?.length || 0}`
+            );
+          }
 
-            await tx.$executeRaw`
-              UPDATE "stock"
-              SET
+          const replacementEcomQuantity = replacementStocks.filter((stock) => Boolean(stock.ecompublish)).length;
+
+          await tx.$executeRaw`
+            UPDATE "stock"
+            SET
                 "stockstatus" = 'sold',
                 "solddate" = ${timestampMs},
                 "modifieddate" = ${timestampMs}
-              WHERE "orderid" = ${replacementOrderId}
-            `;
+            WHERE "orderid" = ${replacementAllocationRef}
+               OR "orderid" = ${legacyReplacementOrderRef}
+          `;
 
-            if (productId) {
-              await tx.$executeRaw`
-                UPDATE "product"
-                SET
-                  "quantity" = GREATEST(0, COALESCE("quantity", 0) - ${quantity}),
-                  "orderedquantity" = GREATEST(0, COALESCE("orderedquantity", 0) - ${quantity}),
-                  "soldquantity" = COALESCE("soldquantity", 0) + ${quantity},
-                  "ecompublishedquantity" = GREATEST(0, COALESCE("ecompublishedquantity", 0) - ${replacementEcomQuantity}),
-                  "availablequantity" = GREATEST(
-                    0,
-                    GREATEST(0, COALESCE("ecompublishedquantity", 0) - ${replacementEcomQuantity})
-                    - GREATEST(0, COALESCE("orderedquantity", 0) - ${quantity})
-                  ),
-                  "modifieddate" = ${timestampMs}
-                WHERE "id" = ${productId}
-              `;
-
-              await tx.$executeRaw`
-                UPDATE "platformstock"
-                SET
-                  "orderedqty" = GREATEST(0, COALESCE("orderedqty", 0) - ${quantity}),
-                  "soldqty" = COALESCE("soldqty", 0) + ${quantity},
-                  "ecomqty" = GREATEST(0, COALESCE("ecomqty", 0) - ${replacementEcomQuantity}),
-                  "availableqty" = GREATEST(
-                    0,
-                    GREATEST(0, COALESCE("ecomqty", 0) - ${replacementEcomQuantity})
-                    - GREATEST(0, COALESCE("orderedqty", 0) - ${quantity})
-                    - COALESCE("lockqty", 0)
-                  ),
-                  "modifieddate" = ${timestampMs}
-                WHERE "productid" = ${productId}
-                  AND LOWER("platform") = LOWER(${platform})
-              `;
-            }
-
-            await tx.orders.update({
-              where: { id: replacementOrder.id },
-              data: {
-                orderstatus: 'shipped',
-                tracking_id: data.shipment_tracking_id || null,
-                vendor: data.shipment_provider || 'EKART',
-                modifieddate: timestampMs
-              }
-            });
-
-            await tx.orderline.updateMany({
-              where: { orderid: replacementOrder.id },
-              data: {
-                orderstatus: 'shipped',
-                tracking_id: data.shipment_tracking_id || null,
-                modifieddate: timestampMs
-              }
-            });
-
-          } else if (actionType === 'refund') {
+          if (productId) {
             await tx.$executeRaw`
-              UPDATE "stock"
+              UPDATE "product"
               SET
-                "orderid" = NULL,
-                "orderlinenumber" = NULL,
+                "quantity" = GREATEST(0, COALESCE("quantity", 0) - ${quantity}),
+                "orderedquantity" = GREATEST(0, COALESCE("orderedquantity", 0) - ${quantity}),
+                "soldquantity" = COALESCE("soldquantity", 0) + ${quantity},
+                "ecompublishedquantity" = GREATEST(0, COALESCE("ecompublishedquantity", 0) - ${replacementEcomQuantity}),
+                "availablequantity" = GREATEST(
+                  0,
+                  GREATEST(0, COALESCE("ecompublishedquantity", 0) - ${replacementEcomQuantity})
+                  - GREATEST(0, COALESCE("orderedquantity", 0) - ${quantity})
+                ),
                 "modifieddate" = ${timestampMs}
-              WHERE "orderid" = ${replacementOrderId}
+              WHERE "id" = ${productId}
             `;
 
-            if (productId) {
-              await tx.$executeRaw`
-                UPDATE "product"
-                SET
-                  "orderedquantity" = GREATEST(0, COALESCE("orderedquantity", 0) - ${quantity}),
-                  "availablequantity" = GREATEST(0, COALESCE("ecompublishedquantity", 0) - GREATEST(0, COALESCE("orderedquantity", 0) - ${quantity})),
-                  "modifieddate" = ${timestampMs}
-                WHERE "id" = ${productId}
-              `;
-
-              await tx.$executeRaw`
-                UPDATE "platformstock"
-                SET
-                  "orderedqty" = GREATEST(0, COALESCE("orderedqty", 0) - ${quantity}),
-                  "availableqty" = GREATEST(0, COALESCE("ecomqty", 0) - GREATEST(0, COALESCE("orderedqty", 0) - ${quantity}) - COALESCE("lockqty", 0)),
-                  "modifieddate" = ${timestampMs}
-                WHERE "productid" = ${productId}
-                  AND LOWER("platform") = LOWER(${platform})
-              `;
-            }
-
-            await tx.orders.update({
-              where: { id: replacementOrder.id },
-              data: {
-                orderstatus: 'cancelled',
-                modifieddate: timestampMs
-              }
-            });
-
-            await tx.orderline.updateMany({
-              where: { orderid: replacementOrder.id },
-              data: {
-                orderstatus: 'cancelled',
-                modifieddate: timestampMs
-              }
-            });
+            await tx.$executeRaw`
+              UPDATE "platformstock"
+              SET
+                "orderedqty" = GREATEST(0, COALESCE("orderedqty", 0) - ${quantity}),
+                "soldqty" = COALESCE("soldqty", 0) + ${quantity},
+                "ecomqty" = GREATEST(0, COALESCE("ecomqty", 0) - ${replacementEcomQuantity}),
+                "availableqty" = GREATEST(
+                  0,
+                  GREATEST(0, COALESCE("ecomqty", 0) - ${replacementEcomQuantity})
+                  - GREATEST(0, COALESCE("orderedqty", 0) - ${quantity})
+                  - COALESCE("lockqty", 0)
+                ),
+                "modifieddate" = ${timestampMs}
+              WHERE "productid" = ${productId}
+                AND LOWER("platform") = LOWER(${platform})
+            `;
           }
+
+          metadata = {
+            ...metadata,
+            replacementFulfillment: {
+              allocationRef: replacementAllocationRef,
+              allocationLineRef: replacementAllocationLineRef,
+              originalOrderId: request.orderid,
+              originalOrderNumber: request.order?.orderid || request.orderline?.uniqueordderid || null,
+              quantity,
+              amount: actionAmount,
+              shipmentTrackingId: data.shipment_tracking_id || null,
+              shipmentProvider: data.shipment_provider || null,
+              latestShipmentStatus: 'shipped',
+            },
+          };
+        } else if (actionType === 'refund') {
+          const reservedStocks = await tx.$queryRaw<any[]>`
+            SELECT "id"
+            FROM "stock"
+            WHERE ("orderid" = ${replacementAllocationRef} OR "orderid" = ${legacyReplacementOrderRef})
+              AND COALESCE("isdeleted", false) = false
+              AND COALESCE("isarchive", false) = false
+            FOR UPDATE
+          `;
+          const reservedQuantity = Array.isArray(reservedStocks) && reservedStocks.length > 0
+            ? reservedStocks.length
+            : quantity;
+
+          await tx.$executeRaw`
+            UPDATE "stock"
+            SET
+              "orderid" = NULL,
+              "orderlinenumber" = NULL,
+              "modifieddate" = ${timestampMs}
+            WHERE "orderid" = ${replacementAllocationRef}
+               OR "orderid" = ${legacyReplacementOrderRef}
+          `;
+
+          if (productId) {
+            await tx.$executeRaw`
+              UPDATE "product"
+              SET
+                "orderedquantity" = GREATEST(0, COALESCE("orderedquantity", 0) - ${reservedQuantity}),
+                "availablequantity" = GREATEST(0, COALESCE("ecompublishedquantity", 0) - GREATEST(0, COALESCE("orderedquantity", 0) - ${reservedQuantity})),
+                "modifieddate" = ${timestampMs}
+              WHERE "id" = ${productId}
+            `;
+
+            await tx.$executeRaw`
+              UPDATE "platformstock"
+              SET
+                "orderedqty" = GREATEST(0, COALESCE("orderedqty", 0) - ${reservedQuantity}),
+                "availableqty" = GREATEST(0, COALESCE("ecomqty", 0) - GREATEST(0, COALESCE("orderedqty", 0) - ${reservedQuantity}) - COALESCE("lockqty", 0)),
+                "modifieddate" = ${timestampMs}
+              WHERE "productid" = ${productId}
+                AND LOWER("platform") = LOWER(${platform})
+            `;
+          }
+
+          metadata = {
+            ...metadata,
+            replacementFulfillment: {
+              allocationRef: replacementAllocationRef,
+              allocationLineRef: replacementAllocationLineRef,
+              originalOrderId: request.orderid,
+              originalOrderNumber: request.order?.orderid || request.orderline?.uniqueordderid || null,
+              released: true,
+              releaseReason: 'refund_fallback',
+              quantity: reservedQuantity,
+            },
+          };
         }
       }
 
@@ -4347,7 +4277,7 @@ export class ReturnRequestService {
   }
 
   private async syncReplacementFulfilmentOrderStatus(
-    tx: any,
+    _tx: any,
     request: any,
     action: any,
     event: {
@@ -4368,74 +4298,28 @@ export class ReturnRequestService {
       return;
     }
 
-    const replacementOrderId = `REP-${request.requestnumber}`;
-    const eventTimeMs = event.eventTimeSeconds * 1000;
-    const orders = await tx.$queryRaw<any[]>`
-      SELECT "id", "orderstatus", "status_history", "shipdate", "delivereddate"
-      FROM "orders"
-      WHERE "orderid" = ${replacementOrderId}
-      LIMIT 1
-      FOR UPDATE
-    `;
-    const order = orders[0];
-    if (!order) {
-      logger.warn(
-        { returnRequestId: request.id, replacementOrderId, shipmentStatus: event.status },
-        'Replacement fulfilment order was not found while syncing shipment status'
-      );
-      return;
-    }
-
-    const orderHistory = this.buildFulfilmentOrderStatusHistory(
-      order.status_history,
-      order.orderstatus,
-      orderStatus,
-      eventTimeMs,
-      event
+    logger.info(
+      {
+        returnRequestId: request.id,
+        requestNumber: request.requestnumber,
+        originalOrderId: request.orderid,
+        fulfilmentOrderStatus: orderStatus,
+        shipmentStatus: event.status,
+      },
+      'Replacement fulfilment shipment is tracked on the return request; original order status is retained'
     );
+  }
 
-    await tx.$executeRaw`
-      UPDATE "orders"
-      SET
-        "orderstatus" = ${orderStatus},
-        "shipment_tracking_status" = ${event.status},
-        "tracking_id" = COALESCE(${event.trackingId || null}, "tracking_id"),
-        "vendor" = COALESCE(${event.provider || null}, "vendor"),
-        "status_history" = ${JSON.stringify(toJsonSafe(orderHistory))}::jsonb,
-        "shipdate" = CASE WHEN ${orderStatus} = 'shipped' THEN COALESCE("shipdate", ${eventTimeMs}) ELSE "shipdate" END,
-        "delivereddate" = CASE WHEN ${orderStatus} = 'delivered' THEN ${eventTimeMs} ELSE "delivereddate" END,
-        "modifieddate" = ${eventTimeMs}
-      WHERE "id" = ${order.id}
-    `;
+  private getReplacementAllocationReference(request: any) {
+    return `REPL-${request.requestnumber}`;
+  }
 
-    const orderlines = await tx.$queryRaw<any[]>`
-      SELECT "id", "orderstatus", "status_history", "shipdate", "delivereddate"
-      FROM "orderline"
-      WHERE "orderid" = ${order.id}
-      FOR UPDATE
-    `;
+  private getReplacementAllocationLineReference(request: any) {
+    return `REPL-${request.requestnumber}-1`;
+  }
 
-    for (const orderline of orderlines) {
-      const lineHistory = this.buildFulfilmentOrderStatusHistory(
-        orderline.status_history,
-        orderline.orderstatus,
-        orderStatus,
-        eventTimeMs,
-        event
-      );
-
-      await tx.$executeRaw`
-        UPDATE "orderline"
-        SET
-          "orderstatus" = ${orderStatus},
-          "tracking_id" = COALESCE(${event.trackingId || null}, "tracking_id"),
-          "status_history" = ${JSON.stringify(toJsonSafe(lineHistory))}::jsonb,
-          "shipdate" = CASE WHEN ${orderStatus} = 'shipped' THEN COALESCE("shipdate", ${eventTimeMs}) ELSE "shipdate" END,
-          "delivereddate" = CASE WHEN ${orderStatus} = 'delivered' THEN ${eventTimeMs} ELSE "delivereddate" END,
-          "modifieddate" = ${eventTimeMs}
-        WHERE "id" = ${orderline.id}
-      `;
-    }
+  private getLegacyReplacementOrderReference(request: any) {
+    return `REP-${request.requestnumber}`;
   }
 
   private calculateReplacementOrderFinancials(request: any, quantity: number) {
