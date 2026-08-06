@@ -7,8 +7,9 @@ import {
 import { createPaginationResult, getPrismaSkipTake, PaginationResult } from '../utils/pagination.js';
 import { NotFoundError, ValidationError } from '../utils/errorHandler.js';
 import { logger } from '../config/logger.js';
+import type { Prisma } from '@prisma/client';
 
-const reasonRuleClient = () => (prisma as any).returnReasonRule;
+const reasonRuleClient = () => prisma.returnReasonRule;
 
 function nowSeconds() {
   return Math.floor(Date.now() / 1000);
@@ -317,7 +318,9 @@ export class ReturnReasonRuleService {
     payload.modifieddate = payload.createddate;
 
     try {
-      return await reasonRuleClient().create({ data: payload });
+      return await reasonRuleClient().create({
+        data: payload as Prisma.ReturnReasonRuleUncheckedCreateInput,
+      });
     } catch (error: any) {
       if (error.code === 'P2002') {
         throw new ValidationError('Reason rule already exists', 'A rule already exists for this reason code');
@@ -335,7 +338,7 @@ export class ReturnReasonRuleService {
     try {
       return await reasonRuleClient().update({
         where: { id: parseInt(id, 10) },
-        data: payload,
+        data: payload as Prisma.ReturnReasonRuleUncheckedUpdateInput,
       });
     } catch (error: any) {
       if (error.code === 'P2002') {
@@ -359,8 +362,8 @@ export class ReturnReasonRuleService {
         create: {
           ...payload,
           createddate: timestamp,
-        },
-        update: payload,
+        } as Prisma.ReturnReasonRuleUncheckedCreateInput,
+        update: payload as Prisma.ReturnReasonRuleUncheckedUpdateInput,
       });
 
       results.push(saved);

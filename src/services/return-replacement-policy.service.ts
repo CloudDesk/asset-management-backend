@@ -15,7 +15,7 @@ type PolicyScope = {
   subcategory?: string | null;
 };
 
-const policyClient = () => (prisma as any).returnReplacementPolicy;
+const policyClient = () => prisma.returnReplacementPolicy;
 const policyClientFor = (database: any = prisma) => (database as any).returnReplacementPolicy;
 
 function normalizeScopeValue(value?: string | null) {

@@ -69,8 +69,8 @@ type EvidenceFileLocation = {
   source: 'local' | 'gcs' | 'gcs_public';
 };
 
-const requestClient = () => (prisma as any).returnRequest;
-const attachmentClient = () => (prisma as any).returnRequestAttachment;
+const requestClient = () => prisma.returnRequest;
+const attachmentClient = () => prisma.returnRequestAttachment;
 const RETURN_REQUEST_INCLUDE = {
   attachments: true,
   orderline: { include: { product: true, address: true, orders: { include: { address: true } } } },
@@ -201,7 +201,7 @@ function nowSeconds() {
   return Math.floor(Date.now() / 1000);
 }
 
-function epochSeconds(value?: number | null) {
+function epochSeconds(value?: number | bigint | null) {
   const timestamp = Number(value || 0);
   if (!timestamp) return nowSeconds();
   return timestamp > 1000000000000 ? Math.floor(timestamp / 1000) : Math.floor(timestamp);
