@@ -1090,14 +1090,28 @@ export class ReturnRequestService {
 
         const replacementAllocationRef = this.getReplacementAllocationReference(request);
         const replacementAllocationLineRef = this.getReplacementAllocationLineReference(request);
+        const reservedOrderRef = firstText(request.order?.orderid, orderline.uniqueordderid);
+        const reservedOrderlineRef = firstText(orderline.orderlinenumber);
+        if (!reservedOrderRef || !reservedOrderlineRef) {
+          throw new ValidationError(
+            'Order reference missing',
+            'Original order and order line references are required to reserve replacement stock'
+          );
+        }
         const timestampMs = BigInt(Date.now());
 
         for (const stock of stocks) {
           await tx.$executeRaw`
             UPDATE "stock"
             SET
-              "orderid" = ${replacementAllocationRef},
-              "orderlinenumber" = ${replacementAllocationLineRef},
+              "orderid" = ${reservedOrderRef},
+              "orderlinenumber" = ${reservedOrderlineRef},
+              "platformhistory" = COALESCE("platformhistory"::jsonb, '{}'::jsonb)
+                || jsonb_build_object(
+                  'replacement_return_request_id', ${String(request.id)},
+                  'replacement_allocation_ref', ${replacementAllocationRef},
+                  'replacement_allocation_line_ref', ${replacementAllocationLineRef}
+                ),
               "modifieddate" = ${timestampMs}
             WHERE "id" = ${stock.id}
           `;
@@ -1199,7 +1213,11 @@ export class ReturnRequestService {
         const reservedStocks = await tx.$queryRaw<any[]>`
           SELECT "id"
           FROM "stock"
-          WHERE ("orderid" = ${replacementAllocationRef} OR "orderid" = ${legacyReplacementOrderRef})
+          WHERE (
+              ("platformhistory"::jsonb ->> 'replacement_return_request_id') = ${String(request.id)}
+              OR "orderid" = ${replacementAllocationRef}
+              OR "orderid" = ${legacyReplacementOrderRef}
+            )
             AND COALESCE("isdeleted", false) = false
             AND COALESCE("isarchive", false) = false
           FOR UPDATE
@@ -1214,8 +1232,13 @@ export class ReturnRequestService {
             SET
               "orderid" = NULL,
               "orderlinenumber" = NULL,
+              "platformhistory" = COALESCE("platformhistory"::jsonb, '{}'::jsonb)
+                - 'replacement_return_request_id'
+                - 'replacement_allocation_ref'
+                - 'replacement_allocation_line_ref',
               "modifieddate" = ${timestampMs}
-            WHERE "orderid" = ${replacementAllocationRef}
+            WHERE ("platformhistory"::jsonb ->> 'replacement_return_request_id') = ${String(request.id)}
+               OR "orderid" = ${replacementAllocationRef}
                OR "orderid" = ${legacyReplacementOrderRef}
           `;
 
@@ -1942,7 +1965,11 @@ export class ReturnRequestService {
           const replacementStocks = await tx.$queryRaw<any[]>`
             SELECT "id", "ecompublish"
             FROM "stock"
-            WHERE ("orderid" = ${replacementAllocationRef} OR "orderid" = ${legacyReplacementOrderRef})
+            WHERE (
+                ("platformhistory"::jsonb ->> 'replacement_return_request_id') = ${String(request.id)}
+                OR "orderid" = ${replacementAllocationRef}
+                OR "orderid" = ${legacyReplacementOrderRef}
+              )
               AND COALESCE("isdeleted", false) = false
               AND COALESCE("isarchive", false) = false
             FOR UPDATE
@@ -1962,8 +1989,13 @@ export class ReturnRequestService {
             SET
                 "stockstatus" = 'sold',
                 "solddate" = ${timestampMs},
+                "platformhistory" = COALESCE("platformhistory"::jsonb, '{}'::jsonb)
+                  - 'replacement_return_request_id'
+                  - 'replacement_allocation_ref'
+                  - 'replacement_allocation_line_ref',
                 "modifieddate" = ${timestampMs}
-            WHERE "orderid" = ${replacementAllocationRef}
+            WHERE ("platformhistory"::jsonb ->> 'replacement_return_request_id') = ${String(request.id)}
+               OR "orderid" = ${replacementAllocationRef}
                OR "orderid" = ${legacyReplacementOrderRef}
           `;
 
@@ -2020,7 +2052,11 @@ export class ReturnRequestService {
           const reservedStocks = await tx.$queryRaw<any[]>`
             SELECT "id"
             FROM "stock"
-            WHERE ("orderid" = ${replacementAllocationRef} OR "orderid" = ${legacyReplacementOrderRef})
+            WHERE (
+                ("platformhistory"::jsonb ->> 'replacement_return_request_id') = ${String(request.id)}
+                OR "orderid" = ${replacementAllocationRef}
+                OR "orderid" = ${legacyReplacementOrderRef}
+              )
               AND COALESCE("isdeleted", false) = false
               AND COALESCE("isarchive", false) = false
             FOR UPDATE
@@ -2034,8 +2070,13 @@ export class ReturnRequestService {
             SET
               "orderid" = NULL,
               "orderlinenumber" = NULL,
+              "platformhistory" = COALESCE("platformhistory"::jsonb, '{}'::jsonb)
+                - 'replacement_return_request_id'
+                - 'replacement_allocation_ref'
+                - 'replacement_allocation_line_ref',
               "modifieddate" = ${timestampMs}
-            WHERE "orderid" = ${replacementAllocationRef}
+            WHERE ("platformhistory"::jsonb ->> 'replacement_return_request_id') = ${String(request.id)}
+               OR "orderid" = ${replacementAllocationRef}
                OR "orderid" = ${legacyReplacementOrderRef}
           `;
 
@@ -4746,6 +4787,7 @@ export class ReturnRequestService {
         "resolution_action_id",
         "original_invoice_number",
         "original_invoice_url",
+        to_jsonb("invoice_adjustments") ->> 'adjustment_invoice_url' AS "adjustment_invoice_url",
         "original_invoice_amount",
         "remaining_amount",
         "reversed_amount",
@@ -4905,6 +4947,7 @@ export class ReturnRequestService {
         resolutionActionId: adjustment.resolution_action_id,
         originalInvoiceNumber: adjustment.original_invoice_number,
         originalInvoiceUrl: adjustment.original_invoice_url,
+        adjustmentInvoiceUrl: adjustment.adjustment_invoice_url,
         originalInvoiceAmount: adjustment.original_invoice_amount === null || adjustment.original_invoice_amount === undefined ? null : Number(adjustment.original_invoice_amount),
         remainingAmount: adjustment.remaining_amount === null || adjustment.remaining_amount === undefined ? null : Number(adjustment.remaining_amount),
         reversedAmount: adjustment.reversed_amount === null || adjustment.reversed_amount === undefined ? null : Number(adjustment.reversed_amount),

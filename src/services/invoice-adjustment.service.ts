@@ -1,5 +1,7 @@
 import { prisma } from '../models/prisma.js';
 import { logger } from '../config/logger.js';
+import { NotFoundError, ValidationError } from '../utils/errorHandler.js';
+import axios from 'axios';
 
 type DbClient = typeof prisma | any;
 
@@ -22,6 +24,8 @@ const toNumber = (value: unknown): number => {
 
 const roundCurrency = (value: number) =>
   Number((Math.round((value + Number.EPSILON) * 100) / 100).toFixed(2));
+
+const toDecimalNumber = (value: unknown): number => roundCurrency(toNumber(value));
 
 const jsonSafe = (value: unknown): unknown => {
   if (typeof value === 'bigint') return Number(value);
@@ -190,6 +194,80 @@ export class InvoiceAdjustmentService {
     });
   }
 
+  async generateAdjustmentInvoiceById(adjustmentId: number, data: {
+    actorId?: number | null;
+    database?: DbClient;
+  } = {}) {
+    if (!Number.isInteger(adjustmentId) || adjustmentId <= 0) {
+      throw new ValidationError('Invalid invoice adjustment', 'A valid invoice adjustment ID is required');
+    }
+
+    const database = data.database || prisma;
+    await this.ensureAdjustmentInvoiceUrlColumn(database);
+
+    const rows = await database.$queryRaw<any[]>`
+      SELECT *
+      FROM "invoice_adjustments"
+      WHERE "id" = ${adjustmentId}
+      LIMIT 1
+    `;
+    const adjustment = rows[0] || null;
+
+    if (!adjustment) {
+      throw new NotFoundError('Invoice adjustment not found');
+    }
+
+    if (!['invoice_cancellation', 'invoice_override'].includes(adjustment.adjustment_type)) {
+      throw new ValidationError(
+        'Invoice adjustment PDF is not supported',
+        'Only invoice cancellation and invoice override documents can be generated here'
+      );
+    }
+
+    if (adjustment.adjustment_invoice_url) {
+      return adjustment;
+    }
+
+    const adjustmentInvoiceUrl = await this.generateAdjustmentInvoicePdf(database, {
+      adjustmentNumber: adjustment.adjustment_number,
+      adjustmentType: adjustment.adjustment_type,
+      sourceAction: adjustment.source_action,
+      status: adjustment.status,
+      orderId: adjustment.order_id,
+      orderNumber: adjustment.order_number,
+      remainingAmount: adjustment.remaining_amount,
+      reversedAmount: adjustment.reversed_amount,
+      metadata: adjustment.metadata || {},
+    }, { throwOnFailure: true });
+
+    if (!adjustmentInvoiceUrl) {
+      throw new ValidationError(
+        'Unable to generate return invoice PDF',
+        'The invoice PDF service did not return a document URL'
+      );
+    }
+
+    const updatedRows = await database.$queryRaw<any[]>`
+      UPDATE "invoice_adjustments"
+      SET
+        "adjustment_invoice_url" = ${adjustmentInvoiceUrl},
+        "modifieddate" = ${Date.now()}
+      WHERE "id" = ${adjustmentId}
+      RETURNING *
+    `;
+
+    logger.info(
+      {
+        adjustmentId,
+        adjustmentNumber: adjustment.adjustment_number,
+        actorId: data.actorId || null,
+      },
+      'Invoice adjustment PDF generated'
+    );
+
+    return updatedRows[0] || { ...adjustment, adjustment_invoice_url: adjustmentInvoiceUrl };
+  }
+
   private async upsertAdjustment(database: DbClient, data: {
     adjustmentNumber: string;
     adjustmentType: string;
@@ -212,6 +290,7 @@ export class InvoiceAdjustmentService {
     createdBy?: number | null;
   }) {
     const timestamp = Date.now();
+    await this.ensureAdjustmentInvoiceUrlColumn(database);
     const rows = await database.$queryRaw<any[]>`
       INSERT INTO "invoice_adjustments" (
         "adjustment_number",
@@ -224,6 +303,7 @@ export class InvoiceAdjustmentService {
         "resolution_action_id",
         "original_invoice_number",
         "original_invoice_url",
+        "adjustment_invoice_url",
         "original_invoice_amount",
         "remaining_amount",
         "reversed_amount",
@@ -246,6 +326,7 @@ export class InvoiceAdjustmentService {
         ${data.resolutionActionId || null},
         ${data.originalInvoiceNumber || null},
         ${data.originalInvoiceUrl || null},
+        ${null},
         ${data.originalInvoiceAmount ?? null},
         ${data.remainingAmount ?? null},
         ${data.reversedAmount ?? null},
@@ -260,6 +341,7 @@ export class InvoiceAdjustmentService {
       )
       ON CONFLICT ("adjustment_number") DO UPDATE SET
         "status" = EXCLUDED."status",
+        "original_invoice_url" = COALESCE("invoice_adjustments"."original_invoice_url", EXCLUDED."original_invoice_url"),
         "remaining_amount" = EXCLUDED."remaining_amount",
         "reversed_amount" = EXCLUDED."reversed_amount",
         "credit_note_id" = COALESCE(EXCLUDED."credit_note_id", "invoice_adjustments"."credit_note_id"),
@@ -271,7 +353,21 @@ export class InvoiceAdjustmentService {
       RETURNING *
     `;
 
-    const adjustment = rows[0] || null;
+    let adjustment = rows[0] || null;
+    if (adjustment && !adjustment.adjustment_invoice_url && ['invoice_cancellation', 'invoice_override'].includes(data.adjustmentType)) {
+      const adjustmentInvoiceUrl = await this.generateAdjustmentInvoicePdf(database, data);
+      if (adjustmentInvoiceUrl) {
+        const updatedRows = await database.$queryRaw<any[]>`
+          UPDATE "invoice_adjustments"
+          SET
+            "adjustment_invoice_url" = ${adjustmentInvoiceUrl},
+            "modifieddate" = ${Date.now()}
+          WHERE "id" = ${adjustment.id}
+          RETURNING *
+        `;
+        adjustment = updatedRows[0] || { ...adjustment, adjustment_invoice_url: adjustmentInvoiceUrl };
+      }
+    }
     logger.info(
       {
         adjustmentNumber: data.adjustmentNumber,
@@ -283,6 +379,173 @@ export class InvoiceAdjustmentService {
       'Invoice adjustment saved'
     );
     return adjustment;
+  }
+
+  private async ensureAdjustmentInvoiceUrlColumn(database: DbClient) {
+    await database.$executeRawUnsafe(`
+      ALTER TABLE "invoice_adjustments"
+      ADD COLUMN IF NOT EXISTS "adjustment_invoice_url" VARCHAR(1000)
+    `);
+  }
+
+  private async loadInvoiceAddress(database: DbClient, order: any) {
+    const fallbackAddress = {
+      name: '-',
+      mobilenumber: '-',
+      pincode: '-',
+      doornumber: '',
+      address: '-',
+      landmark: '',
+      state: '',
+      city: '',
+    };
+
+    const addressId = Number(order?.addressid || 0);
+    let resolvedAddressId = Number.isInteger(addressId) && addressId > 0 ? addressId : 0;
+
+    if (!resolvedAddressId && order?.id) {
+      const orderlines = await database.orderline.findMany({
+        where: { orderid: Number(order.id) },
+        take: 1,
+      });
+      resolvedAddressId = Number(orderlines[0]?.addressid || 0);
+    }
+
+    if (!resolvedAddressId) {
+      return fallbackAddress;
+    }
+
+    const address = await database.address.findUnique({ where: { id: resolvedAddressId } });
+    if (!address) {
+      return fallbackAddress;
+    }
+
+    return {
+      name: address.name || '-',
+      mobilenumber: address.mobilenumber || '-',
+      pincode: address.pincode || '-',
+      doornumber: address.doornumber || (address as any).addressline1 || '',
+      address: (address as any).addressline2 || address.address || '-',
+      landmark: address.landmark || '',
+      state: address.state || '',
+      city: address.city || '',
+    };
+  }
+
+  private async loadInvoiceSeller() {
+    try {
+      const { ekartService } = await import('./ekart.service.js');
+      const addresses = await ekartService.getAddresses();
+      return addresses && addresses.length > 0 ? addresses[0] : {};
+    } catch (sellerError: any) {
+      logger.warn({ error: sellerError.message }, 'Failed to fetch seller data for invoice adjustment PDF');
+      return {
+        alias: process.env.SELLER_NAME || 'Nivaana',
+        address_line1: process.env.SELLER_ADDRESS || 'Chennai, Tamil Nadu, India',
+        city: '',
+        state: '',
+        pincode: '',
+        country: 'India',
+        phone: process.env.SELLER_PHONE || '+91-1234567890',
+      };
+    }
+  }
+
+  private async generateAdjustmentInvoicePdf(database: DbClient, data: {
+    adjustmentNumber: string;
+    adjustmentType: string;
+    sourceAction: string;
+    status: string;
+    orderId?: number | null;
+    orderNumber?: string | null;
+    remainingAmount?: number | null;
+    reversedAmount?: number | null;
+    metadata?: Record<string, unknown>;
+  }, options: { throwOnFailure?: boolean } = {}): Promise<string | null> {
+    try {
+      if (!data.orderId) return null;
+
+      const order = await database.orders.findUnique({ where: { id: data.orderId } });
+      if (!order) return null;
+
+      const metadata = data.metadata || {};
+      const documentLines = data.adjustmentType === 'invoice_override'
+        ? ((metadata.remainingItems as any[]) || [])
+        : ((metadata.reversedItems as any[]) || []);
+      const documentAmount = data.adjustmentType === 'invoice_override'
+        ? toDecimalNumber(data.remainingAmount)
+        : toDecimalNumber(data.reversedAmount);
+
+      const orderlines = documentLines.map((line: any, index: number) => {
+        const quantity = Math.max(1, Math.trunc(Number(line.quantity || 1)));
+        const lineAmount = toDecimalNumber(line.amount);
+        const gstRate = toDecimalNumber(line.gstRate);
+        const taxableAmount = gstRate > 0 ? roundCurrency(lineAmount / (1 + gstRate / 100)) : lineAmount;
+        const gstAmount = roundCurrency(lineAmount - taxableAmount);
+
+        return {
+          id: line.orderlineId || index + 1,
+          orderlinenumber: line.orderlineNumber || `${data.adjustmentNumber}-${index + 1}`,
+          productid: line.productId || null,
+          productname: line.productName || 'Returned item',
+          productcategory: '',
+          quantity,
+          original_price: quantity > 0 ? roundCurrency(lineAmount / quantity) : lineAmount,
+          product_discount_amount: 0,
+          promotion_discount_amount: 0,
+          taxable_amount: taxableAmount,
+          gst_rate: gstRate,
+          total_gst_amount: gstAmount,
+          orderamount: lineAmount,
+          productamount: lineAmount,
+        };
+      });
+
+      const address = await this.loadInvoiceAddress(database, order);
+      const seller = await this.loadInvoiceSeller();
+
+      const adjustedOrder = {
+        ...order,
+        id: order.id,
+        orderid: data.adjustmentNumber,
+        createddate: Date.now(),
+        mode: order.mode || 'prepaid',
+        transactionid: data.orderNumber || order.orderid || '-',
+        items_total: documentAmount,
+        shipping_cost: 0,
+        total_taxable_amount: orderlines.reduce((sum: number, line: any) => sum + toNumber(line.taxable_amount), 0),
+        total_gst_amount: orderlines.reduce((sum: number, line: any) => sum + toNumber(line.total_gst_amount), 0),
+        orderamount: documentAmount,
+      };
+
+      const storageBackendUrl = process.env.STORAGE_BACKEND_URL || 'http://localhost:4500';
+      const response = await axios.post(`${storageBackendUrl}/order/invoice`, {
+        order: jsonSafe(adjustedOrder),
+        orderlines: jsonSafe(orderlines),
+        address: jsonSafe(address),
+        seller: jsonSafe(seller),
+      }, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 60000,
+      });
+
+      return response.data?.invoiceUrl || null;
+    } catch (error: any) {
+      logger.error({
+        error: error.message,
+        response: error.response?.data,
+        adjustmentNumber: data.adjustmentNumber,
+        adjustmentType: data.adjustmentType,
+      }, 'Failed to generate invoice adjustment PDF');
+      if (options.throwOnFailure) {
+        const details = error.response?.data?.error
+          || error.response?.data?.message
+          || error.message
+          || 'The invoice PDF service failed';
+        throw new ValidationError('Unable to generate return invoice PDF', details);
+      }
+      return null;
+    }
   }
 
   private mapLine(line: any) {

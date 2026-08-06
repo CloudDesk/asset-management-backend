@@ -1,5 +1,6 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { ReturnRequestService } from '../services/return-request.service.js';
+import { invoiceAdjustmentService } from '../services/invoice-adjustment.service.js';
 import {
   addReturnRequestAttachmentSchema,
   approveReturnRequestSchema,
@@ -33,6 +34,34 @@ const getMultipartFieldValue = (field: any, fallback = ''): string => {
 
 export class ReturnRequestController {
   private returnRequestService = new ReturnRequestService();
+
+  private mapInvoiceAdjustment(adjustment: any) {
+    return {
+      id: adjustment.id,
+      adjustmentNumber: adjustment.adjustment_number,
+      adjustmentType: adjustment.adjustment_type,
+      sourceAction: adjustment.source_action,
+      status: adjustment.status,
+      orderId: adjustment.order_id,
+      orderNumber: adjustment.order_number,
+      returnRequestId: adjustment.return_request_id,
+      resolutionActionId: adjustment.resolution_action_id,
+      originalInvoiceNumber: adjustment.original_invoice_number,
+      originalInvoiceUrl: adjustment.original_invoice_url,
+      adjustmentInvoiceUrl: adjustment.adjustment_invoice_url,
+      originalInvoiceAmount: adjustment.original_invoice_amount,
+      remainingAmount: adjustment.remaining_amount,
+      reversedAmount: adjustment.reversed_amount,
+      creditNoteId: adjustment.credit_note_id,
+      creditNoteNumber: adjustment.credit_note_number,
+      gstReversalApplicable: adjustment.gst_reversal_applicable,
+      metadata: adjustment.metadata,
+      notes: adjustment.notes,
+      createdBy: adjustment.created_by,
+      createddate: adjustment.createddate,
+      modifieddate: adjustment.modifieddate,
+    };
+  }
 
   private getEvidenceFilePath(request: FastifyRequest) {
     const requestPath = String(request.url || '').split('?')[0] || '';
@@ -80,6 +109,18 @@ export class ReturnRequestController {
       .header('Content-Disposition', `attachment; filename="return-credit-notes-${timestamp}.xlsx"`);
 
     return reply.code(200).send(Buffer.from(fileBuffer as any));
+  });
+
+  generateInvoiceAdjustmentPdf = asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
+    const params = request.params as Record<string, string>;
+    const adjustmentId = Number(params.adjustmentId);
+    const adjustment = await invoiceAdjustmentService.generateAdjustmentInvoiceById(adjustmentId, {
+      actorId: request.user?.id || null,
+    });
+
+    return reply
+      .code(200)
+      .send(createSuccessResponse('Return invoice PDF generated successfully', this.mapInvoiceAdjustment(adjustment)));
   });
 
   getResolutionPreview = asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
