@@ -279,6 +279,7 @@ export class StorageService {
           : backendMessage || 'File-Upload service failed to upload return evidence'
       );
       storageError.statusCode = 502;
+      storageError.upstreamStatusCode = error.response?.status;
       throw storageError;
     }
 

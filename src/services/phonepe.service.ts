@@ -81,6 +81,17 @@ function isAllowedCustomerRedirectUrl(value: unknown): value is string {
   }
 }
 
+function getPhonePeErrorMessage(error: any): string {
+  const providerData = error?.response?.data || error?.data;
+  const providerCode = providerData?.code || providerData?.errorCode || error?.code;
+  const providerMessage =
+    providerData?.message ||
+    providerData?.errorMessage ||
+    error?.message ||
+    "Unknown PhonePe error";
+  return [providerCode, providerMessage].filter(Boolean).join(": ");
+}
+
 export interface PhonePePaymentResponse {
   success: boolean;
   code: string;
@@ -1034,7 +1045,8 @@ export class PhonePeService {
   async refundPayment(
     merchantTransactionId: string,
     refundAmount?: number,
-    reason?: string
+    reason?: string,
+    merchantRefundId?: string
   ): Promise<{
     success: boolean;
     message: string;
@@ -1047,14 +1059,14 @@ export class PhonePeService {
       );
 
       // Get original transaction
-      const transaction = await this.transactionService.findByTransactionId(
-        merchantTransactionId
-      );
+      const transaction =
+        await this.transactionService.findByTransactionId(merchantTransactionId) ||
+        await this.transactionService.findByMerchantTransactionId(merchantTransactionId);
       if (!transaction) {
         throw new ValidationError("Transaction not found");
       }
 
-      const refundId = `REFUND_${merchantTransactionId}_${Date.now()}`;
+      const refundId = merchantRefundId || `REFUND_${merchantTransactionId}_${Date.now()}`;
       const finalRefundAmount =
         refundAmount || parseFloat(transaction.amount?.toString() || "0");
 
@@ -1109,7 +1121,8 @@ export class PhonePeService {
 
       return {
         success: false,
-        message: "Refund initiation failed",
+        message: `Refund initiation failed: ${getPhonePeErrorMessage(error)}`,
+        ...(merchantRefundId ? { refundId: merchantRefundId } : {}),
       };
     }
   }
@@ -1129,27 +1142,46 @@ export class PhonePeService {
     refundId?: string;
   }> {
     try {
-      logger.info(
-        {
-          merchantTransactionId,
-          refundId,
-          refundAmount,
-        },
-        "SDK refund not fully implemented yet, falling back to legacy"
-      );
+      const request = RefundRequest.builder()
+        .merchantRefundId(refundId)
+        .originalMerchantOrderId(merchantTransactionId)
+        .amount(Math.round(refundAmount * 100))
+        .build();
+      const response = await this.sdkClient!.refund(request);
 
-      // For now, fall back to legacy refund method
-      return await this.refundPaymentLegacy(
-        merchantTransactionId,
-        refundId,
-        refundAmount,
-        reason,
-        transaction
+      const existingRefund = await this.transactionService.findByTransactionId(refundId);
+      if (!existingRefund) {
+        await this.transactionService.create({
+          transactionid: refundId,
+          merchanttransactionid: refundId,
+          name: transaction.name || "Refund",
+          amount: refundAmount,
+          mobilenumber: transaction.mobilenumber,
+          userid: transaction.userid,
+          productid: transaction.productid,
+          transactionfor: "refund",
+          transactiondata: {
+            status: response.state || "REFUND_INITIATED",
+            originalTransactionId: merchantTransactionId,
+            reason,
+            phonePeResponse: response,
+          },
+        });
+      }
+
+      logger.info(
+        { merchantTransactionId, refundId, refundAmount, state: response.state },
+        "PhonePe refund initiated via SDK"
       );
+      return {
+        success: !["FAILED", "FAILURE"].includes(String(response.state || "").toUpperCase()),
+        message: `PhonePe refund ${String(response.state || "initiated").toLowerCase()}`,
+        refundId,
+      };
     } catch (error: any) {
       logger.error(
         {
-          error: error.message,
+          error: getPhonePeErrorMessage(error),
           stack: error.stack,
           merchantTransactionId,
           refundId,
@@ -1276,15 +1308,12 @@ export class PhonePeService {
   }> {
     try {
       if (this.sdkClient) {
-        logger.info(
-          { refundId },
-          "SDK refund status check not fully implemented yet"
-        );
-
-        // For now, return a placeholder response
+        const response = await this.sdkClient.getRefundStatus(refundId);
+        const state = String(response.state || "PENDING").toUpperCase();
         return {
-          success: false,
-          message: "SDK refund status check not fully implemented yet",
+          success: ["COMPLETED", "SUCCESS", "SUCCESSFUL"].includes(state),
+          message: `PhonePe refund status: ${state}`,
+          refundData: response,
         };
       } else {
         logger.warn({ refundId }, "SDK not available for refund status check");
@@ -1304,7 +1333,7 @@ export class PhonePeService {
 
       return {
         success: false,
-        message: `Failed to check refund status: ${error.message}`,
+        message: `Failed to check refund status: ${getPhonePeErrorMessage(error)}`,
       };
     }
   }

@@ -18,6 +18,7 @@ import {
 } from "../utils/errorHandler.js";
 import { logger } from "../config/logger.js";
 import { WalletRedemptionService } from "../services/wallet-redemption.service.js";
+import { RefundOperationService } from "../services/refund-operation.service.js";
 
 export class PhonePeController {
   public phonePeService = new PhonePeService();
@@ -27,6 +28,7 @@ export class PhonePeController {
   public customerNotificationService = new CustomerNotificationService();
   public walletRedemptionService = new WalletRedemptionService();
   public returnRequestService = new ReturnRequestService();
+  public refundOperationService = new RefundOperationService();
 
   /**
    * Initiate payment with PhonePe
@@ -6141,15 +6143,50 @@ export class PhonePeController {
         }
       );
 
-      await this.returnRequestService.reconcileRefundStatusByReference(
+      const refundOperation = await this.refundOperationService.reconcilePhonePe(
         refundId,
         callbackResponse?.state || payload.state || "PROCESSING",
-        {
-          phonePeWebhook: payload,
-          callbackResponse,
-          webhookTimestamp: new Date().toISOString(),
-        }
       );
+      if (refundOperation?.returnRequestId && refundOperation?.resolutionActionId) {
+        await this.returnRequestService.reconcileRefundStatusByOperation(
+          Number(refundOperation.returnRequestId),
+          Number(refundOperation.resolutionActionId),
+          callbackResponse?.state || payload.state || "PROCESSING",
+          refundId,
+          {
+            phonePeWebhook: payload,
+            callbackResponse,
+            webhookTimestamp: new Date().toISOString(),
+          },
+        );
+      } else {
+        await this.returnRequestService.reconcileRefundStatusByReference(
+          refundId,
+          callbackResponse?.state || payload.state || "PROCESSING",
+          {
+            phonePeWebhook: payload,
+            callbackResponse,
+            webhookTimestamp: new Date().toISOString(),
+          }
+        );
+      }
+
+      if (refundOperation?.status === 'completed' && refundOperation.triggerType === 'cancellation') {
+        const order = await this.ordersService.findById(refundOperation.orderId);
+        if (order?.orderstatus === 'cancelled_refund_processing') {
+          const updatedOrder = await this.ordersService.updateRefundStatus(
+            refundOperation.orderId,
+            'cancelled_refunded',
+            refundOperation.createdBy || -1,
+            'PhonePe cancellation refund completed by gateway callback',
+            refundId,
+            Number(refundOperation.walletCreditedAmount || 0) + Number(refundOperation.phonepeRefundAmount || 0),
+            refundOperation.operationNumber,
+            'system',
+          );
+          await this.customerNotificationService.notifyOrderStatus(updatedOrder, 'cancelled_refunded');
+        }
+      }
     } catch (error: any) {
       logger.error(
         {

@@ -27,7 +27,7 @@ import { ProductService } from './product.service.js';
 import { PlatformStockService } from './platformStock.service.js';
 import { CustomerNotificationService } from './customer-notification.service.js';
 import { CreateShipmentPayload, CreateShipmentResponse, ekartService } from './ekart.service.js';
-import { PhonePeService } from './phonepe.service.js';
+import { RefundOperationService } from './refund-operation.service.js';
 import { logger } from '../config/logger.js';
 import { storageService } from './storage.service.js';
 import { invoiceAdjustmentService } from './invoice-adjustment.service.js';
@@ -421,7 +421,7 @@ export class ReturnRequestService {
   private productStockService = new ProductService();
   private platformStockService = new PlatformStockService();
   private customerNotificationService = new CustomerNotificationService();
-  private phonePeService = new PhonePeService();
+  private refundOperationService = new RefundOperationService();
 
   async findMany(query: ReturnRequestQuery, page: number, limit: number, authUser?: AuthUser): Promise<PaginationResult<any>> {
     const { skip, take } = getPrismaSkipTake(page, limit);
@@ -1903,47 +1903,41 @@ export class ReturnRequestService {
       reverseShippingChargeDeducted: false,
       resolutionPreview,
     };
-
-    if (data.process_original_payment_refund) {
-      if (actionType !== 'refund' && actionType !== 'partial_refund') {
-        throw new ValidationError(
-          'Original-payment refund is only valid for refund actions',
-          'Use shipment fields for replacement or missing-item closure'
-        );
+    const sourceAwareRefund = REFUND_ACTIONS.has(actionType)
+      && ['original_payment', 'wallet'].includes(String(data.refund_method || ''));
+    const refundDestination = data.refund_method === 'wallet' ? 'wallet' : 'original_sources';
+    if (sourceAwareRefund) {
+      if (data.refund_destination && data.refund_destination !== refundDestination) {
+        throw new ValidationError('Refund destination does not match refund method');
       }
-      if (data.refund_method !== 'original_payment') {
-        throw new ValidationError(
-          'Refund method mismatch',
-          'process_original_payment_refund requires refund_method original_payment'
-        );
-      }
-
-      const merchantTransactionId = firstText(request.order?.transactionid, request.order?.merchanttransactionid);
-      if (!merchantTransactionId) {
-        throw new ValidationError(
-          'Original payment transaction unavailable',
-          'Record this refund manually or use wallet because the original payment transaction id is missing'
-        );
-      }
-
-      const refundResult = await this.phonePeService.refundPayment(
-        merchantTransactionId,
-        refundAmount || undefined,
-        data.notes || `${request.requestnumber} ${actionType.replace(/_/g, ' ')}`
+      actionStatus = 'pending';
+      const sourceAwareAllocation = await this.refundOperationService.previewReturnRefund(
+        Number(request.orderid),
+        Number(request.id),
+        Number(refundAmount || 0),
       );
-
+      if (Number(sourceAwareAllocation.approved_amount) !== Number(refundAmount || 0)) {
+        throw new ValidationError(
+          'Refund exceeds remaining payment sources',
+          `Only ${sourceAwareAllocation.approved_amount} remains refundable for this order`,
+        );
+      }
+      if (
+        refundDestination === 'wallet'
+        && sourceAwareAllocation.wallet.consent_required
+        && (!data.consent_accepted || !data.consent_channel)
+      ) {
+        throw new ValidationError(
+          'Customer consent required',
+          'Record customer consent and the consent channel before converting online payment into wallet credit',
+        );
+      }
       metadata = {
         ...metadata,
-        originalPaymentTransactionId: merchantTransactionId,
-        phonePeRefund: refundResult,
+        sourceAwareRefund: true,
+        refundDestination,
+        refundAllocation: sourceAwareAllocation,
       };
-      externalReference = refundResult.refundId || externalReference;
-
-      if (!refundResult.success) {
-        actionStatus = 'failed';
-      } else if (data.status === 'completed') {
-        actionStatus = 'pending';
-      }
     }
 
     const nextRequestStatus = this.getClosureRequestStatus(actionType, actionStatus);
@@ -2227,6 +2221,64 @@ export class ReturnRequestService {
       });
     });
 
+    if (sourceAwareRefund && createdResolutionAction && refundAmount) {
+      const operation = await this.refundOperationService.initiateReturnRefund(Number(request.orderid), {
+        destination: refundDestination,
+        approved_amount: refundAmount,
+        return_request_id: Number(request.id),
+        resolution_action_id: Number(createdResolutionAction.id),
+        return_request_number: request.requestnumber,
+        consent_accepted: data.consent_accepted,
+        consent_channel: data.consent_channel,
+        consent_reference: data.consent_reference,
+        consent_notes: data.consent_notes || data.notes,
+        admin_user_id: authUser!.id,
+      });
+      const refundReference = operation.destination === 'original_sources'
+        ? null
+        : operation.operationNumber;
+      await prisma.$executeRaw`
+        UPDATE "return_resolution_actions"
+        SET
+          "external_reference" = ${refundReference},
+          "metadata" = COALESCE("metadata"::jsonb, '{}'::jsonb)
+            || ${JSON.stringify(toJsonSafe({
+              refundOperationId: operation.id,
+              refundOperationNumber: operation.operationNumber,
+              refundDestination: operation.destination,
+            }))}::jsonb,
+          "modifieddate" = ${nowSeconds()}
+        WHERE "id" = ${createdResolutionAction.id}
+          AND "return_request_id" = ${request.id}
+      `;
+      const refundStatus = operation.status === 'completed'
+        ? 'completed'
+        : operation.status === 'failed'
+          ? 'failed'
+          : 'pending';
+      const updatedRefundRequest = await this.updateRefundStatus(request.id.toString(), {
+        resolution_action_id: Number(createdResolutionAction.id),
+        external_reference: refundReference,
+        status: refundStatus,
+        remarks: operation.failureReason || `Source-aware refund ${String(operation.status).replace(/_/g, ' ')}`,
+        metadata: {
+          refundOperationId: operation.id,
+          refundOperationNumber: operation.operationNumber,
+          walletCreditedAmount: Number(operation.walletCreditedAmount || 0),
+          phonepeRefundAmount: Number(operation.phonepeRefundAmount || 0),
+          expiredWalletAmount: Number(operation.expiredWalletAmount || 0),
+        },
+      }, authUser);
+      if (request.orderline?.productid) {
+        try {
+          await this.productStockService.updateStockTotals(String(request.orderline.productid));
+        } catch (err) {
+          logger.warn({ err, productId: request.orderline.productid }, 'Deferred stock refresh failed after return refund initiation');
+        }
+      }
+      return updatedRefundRequest;
+    }
+
     logger.info(
       {
         returnRequestId: request.id,
@@ -2446,6 +2498,14 @@ export class ReturnRequestService {
       );
     }
 
+    if (this.normalizeRefundProcessingStatus(data.status) === 'completed') {
+      await this.refundOperationService.completeReturnRefundOperation(
+        Number(request.id),
+        Number(action.id),
+        data.external_reference || action.externalReference || null,
+      );
+    }
+
     await this.applyRefundStatusUpdate(request, action, {
       status: data.status,
       eventTime: data.event_time,
@@ -2502,6 +2562,44 @@ export class ReturnRequestService {
     });
 
     return this.findById(String(match.return_request_id));
+  }
+
+  async reconcileRefundStatusByOperation(
+    returnRequestId: number,
+    resolutionActionId: number,
+    status: string,
+    refundReference?: string | null,
+    metadata: Record<string, unknown> = {}
+  ) {
+    const request = await this.findById(String(returnRequestId));
+    const action = (request.resolutionActions || []).find(
+      (entry: any) => Number(entry.id) === resolutionActionId && REFUND_ACTIONS.has(entry.actionType)
+    );
+    if (!action) {
+      logger.warn({ returnRequestId, resolutionActionId, status }, 'No return refund action found for refund operation');
+      return null;
+    }
+    if (this.normalizeRefundProcessingStatus(status) === 'completed') {
+      await this.refundOperationService.completeReturnRefundOperation(
+        returnRequestId,
+        resolutionActionId,
+        refundReference || action.externalReference || null,
+      );
+    }
+    if (refundReference && action.externalReference !== refundReference) {
+      await prisma.$executeRaw`
+        UPDATE "return_resolution_actions"
+        SET "external_reference" = ${refundReference}, "modifieddate" = ${nowSeconds()}
+        WHERE "id" = ${resolutionActionId} AND "return_request_id" = ${returnRequestId}
+      `;
+      action.externalReference = refundReference;
+    }
+    await this.applyRefundStatusUpdate(request, action, {
+      status,
+      metadata: { ...metadata, externalReference: refundReference || action.externalReference || null },
+      source: 'payment_gateway',
+    });
+    return this.findById(String(returnRequestId));
   }
 
   async createCreditNote(id: string, data: CreateReturnCreditNoteInput, authUser?: AuthUser) {
@@ -2838,12 +2936,26 @@ export class ReturnRequestService {
         bucket: uploadedBucket,
       };
     } catch (error: any) {
+      const storageRouteUnavailable =
+        Number(error?.upstreamStatusCode) === 404
+        && /route\s+.*not found/i.test(String(error?.message || ''));
+
       logger.warn(
-        { error: error.message, filePath, bucket },
+        {
+          error: error.message,
+          upstreamStatusCode: error?.upstreamStatusCode,
+          filePath,
+          bucket,
+          fallbackEnabled: storageRouteUnavailable,
+        },
         'File-Upload service upload failed for return evidence'
       );
 
-      if (process.env.STORAGE_BACKEND_URL) {
+      // During rolling deployments, the configured upload service may still be
+      // on a revision that predates the dedicated evidence route. Only that
+      // compatibility case may use the existing GCS/local evidence fallback;
+      // authentication, validation, and storage failures must remain visible.
+      if (process.env.STORAGE_BACKEND_URL && !storageRouteUnavailable) {
         throw new ValidationError(
           'Evidence storage upload failed',
           error.message || 'Unable to upload return evidence to the configured storage backend'
@@ -4050,6 +4162,17 @@ export class ReturnRequestService {
       }
     }
 
+    const estimatedRefundAmount = ['refund', 'partial_refund'].includes(String(recommendedAction))
+      ? this.calculateClosureRefundAmount(request, { amount: undefined } as CompleteReturnResolutionInput)
+      : null;
+    const refundAllocation = estimatedRefundAmount && request.orderid
+      ? await this.refundOperationService.previewReturnRefund(
+          Number(request.orderid),
+          Number(request.id),
+          estimatedRefundAmount,
+        )
+      : null;
+
     return {
       requestId: request.id,
       requestNumber: request.requestnumber,
@@ -4062,9 +4185,8 @@ export class ReturnRequestService {
       stockFallbackRequired,
       fallbackResolution,
       notifyCustomerOnStockFallback: reasonRule?.notifycustomeronstockfallback !== false,
-      estimatedRefundAmount: ['refund', 'partial_refund'].includes(String(recommendedAction))
-        ? this.calculateClosureRefundAmount(request, { amount: undefined } as CompleteReturnResolutionInput)
-        : null,
+      estimatedRefundAmount,
+      refundAllocation,
       replacementStock,
       reason,
     };

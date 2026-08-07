@@ -62,6 +62,16 @@ test('enforces refund closure method and partial refund amount', () => {
     }).success,
     false
   );
+  const walletRefund = completeReturnResolutionSchema.parse({
+    action_type: 'refund',
+    refund_method: 'wallet',
+    refund_destination: 'wallet',
+    consent_accepted: true,
+    consent_channel: 'call',
+    consent_reference: 'CALL-100',
+  });
+  assert.equal(walletRefund.refund_destination, 'wallet');
+  assert.equal(walletRefund.consent_channel, 'call');
 });
 
 test('requires tracking or reference for completed replacement and missing-item shipments', () => {

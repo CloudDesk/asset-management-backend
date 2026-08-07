@@ -2633,6 +2633,7 @@ export class OrdersService {
     orderlines: any[];
     address: any | null;
     wallet_usage: any[];
+    refund_operations: any[];
   }> {
     try {
       logger.info({ idOrOrderNumber }, 'Getting order details with orderlines and address');
@@ -2874,7 +2875,13 @@ export class OrdersService {
         },
         include: {
           credit: {
-            include: {
+            select: {
+              id: true,
+              original_amount: true,
+              remaining_amount: true,
+              minimum_cart_amount: true,
+              status: true,
+              expires_at: true,
               assignment: { include: { promotion: true } }
             }
           }
@@ -2892,7 +2899,56 @@ export class OrdersService {
         consumed_at: reservation.consumed_at ? Number(reservation.consumed_at) : null,
         reversed_at: reservation.reversed_at ? Number(reservation.reversed_at) : null,
         reversal_reason: reservation.reversal_reason || null,
-        expires_at: reservation.credit?.expires_at ? Number(reservation.credit.expires_at) : null
+        expires_at: reservation.credit?.expires_at ? Number(reservation.credit.expires_at) : null,
+        restoration_status: reservation.status === 'reversed'
+          ? 'restored'
+          : reservation.credit?.expires_at && Number(reservation.credit.expires_at) < Math.floor(Date.now() / 1000)
+            ? 'skipped_expired'
+            : 'not_restored'
+      }));
+
+      let refundOperations: any[] = [];
+      try {
+        refundOperations = await (prisma as any).refundOperation.findMany({
+          where: { orderId: Number(fullOrder.id) },
+          orderBy: { id: 'desc' },
+        });
+      } catch (error: any) {
+        // Keep order details available during rolling deployments where the
+        // API is updated before the additive refund migration is applied.
+        if (error?.code !== 'P2021' && error?.code !== 'P2022') throw error;
+        logger.warn({ orderId: fullOrder.id, code: error.code }, 'Refund tables are not available yet; returning order details without refund operations');
+      }
+      const refundOperationIds = refundOperations.map((operation: any) => operation.id);
+      const refundAllocations = refundOperationIds.length
+        ? await (prisma as any).refundWalletAllocation.findMany({
+            where: { refundOperationId: { in: refundOperationIds } },
+            orderBy: { id: 'asc' },
+          })
+        : [];
+      const refund_operations = refundOperations.map((operation: any) => ({
+        ...operation,
+        approvedAmount: Number(operation.approvedAmount),
+        originalWalletAmount: Number(operation.originalWalletAmount),
+        eligibleWalletAmount: Number(operation.eligibleWalletAmount),
+        expiredWalletAmount: Number(operation.expiredWalletAmount),
+        onlineAmount: Number(operation.onlineAmount),
+        nonExpiringWalletAmount: Number(operation.nonExpiringWalletAmount),
+        walletCreditedAmount: Number(operation.walletCreditedAmount),
+        phonepeRefundAmount: Number(operation.phonepeRefundAmount),
+        createddate: Number(operation.createddate),
+        modifieddate: Number(operation.modifieddate),
+        completeddate: operation.completeddate ? Number(operation.completeddate) : null,
+        consentAt: operation.consentAt ? Number(operation.consentAt) : null,
+        wallet_allocations: refundAllocations
+          .filter((allocation: any) => allocation.refundOperationId === operation.id)
+          .map((allocation: any) => ({
+            ...allocation,
+            amount: Number(allocation.amount),
+            expiresAt: allocation.expiresAt ? Number(allocation.expiresAt) : null,
+            createddate: Number(allocation.createddate),
+            modifieddate: Number(allocation.modifieddate),
+          })),
       }));
 
       logger.info({
@@ -2906,7 +2962,8 @@ export class OrdersService {
         order,
         orderlines,
         address,
-        wallet_usage
+        wallet_usage,
+        refund_operations
       };
     } catch (error) {
       logger.error({ error, idOrOrderNumber }, 'Error getting order details');

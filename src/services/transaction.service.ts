@@ -202,6 +202,17 @@ export class TransactionService {
     }, 'findByTransactionId');
   }
 
+  async findByMerchantTransactionId(merchanttransactionid: string) {
+    return this.retryDatabaseOperation(async () => {
+      const transactions = await dynamicFindManyWithFilters('transaction', { merchanttransactionid }, {
+        skip: 0,
+        take: 1,
+        useAllColumns: true
+      });
+      return transactions.data?.[0] || null;
+    }, 'findByMerchantTransactionId');
+  }
+
   async findByUserId(userId: number, page: number = 1, limit: number = 10): Promise<PaginationResult<any>> {
     try {
       logger.debug({ userId, page, limit }, 'Starting dynamic transaction findByUserId operation');

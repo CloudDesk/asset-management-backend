@@ -660,9 +660,15 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                       consumed_at: { type: 'number', nullable: true },
                       reversed_at: { type: 'number', nullable: true },
                       reversal_reason: { type: 'string', nullable: true },
-                      expires_at: { type: 'number', nullable: true }
+                      expires_at: { type: 'number', nullable: true },
+                      restoration_status: { type: 'string', nullable: true }
                     }
                   }
+                },
+                refund_operations: {
+                  type: 'array',
+                  description: 'Source-aware cancellation and return refund operations',
+                  items: { type: 'object', additionalProperties: true }
                 },
                 address: {
                   type: 'object',
@@ -952,6 +958,36 @@ export async function ordersRoutes(fastify: FastifyInstance) {
       }
     }
   }, ordersController.cancelOrder.bind(ordersController));
+
+  fastify.get('/:id/cancellation-refund-preview', {
+    schema: {
+      description: 'Preview source-aware cancellation refund allocation (admin-only)',
+      tags: ['Orders'],
+      params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+      response: { 200: { type: 'object', additionalProperties: true } }
+    }
+  }, ordersController.getCancellationRefundPreview.bind(ordersController));
+
+  fastify.post('/:id/cancellation-refund', {
+    schema: {
+      description: 'Initiate a source-aware cancellation refund (admin-only)',
+      tags: ['Orders'],
+      params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+      body: {
+        type: 'object',
+        properties: {
+          destination: { type: 'string', enum: ['original_sources', 'wallet'] },
+          consent_accepted: { type: 'boolean' },
+          consent_channel: { type: 'string', enum: ['call', 'whatsapp', 'email', 'support_ticket', 'in_app', 'other'] },
+          consent_reference: { type: 'string', maxLength: 500 },
+          consent_notes: { type: 'string', maxLength: 3000 },
+          admin_user_id: { type: 'number' }
+        },
+        required: ['destination']
+      },
+      response: { 200: { type: 'object', additionalProperties: true } }
+    }
+  }, ordersController.initiateCancellationRefund.bind(ordersController));
 
   // PATCH /v1/orders/:id/refund-status - Update refund status for cancelled orders (admin-only)
   fastify.patch('/:id/refund-status', {

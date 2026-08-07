@@ -4,6 +4,7 @@ import type { CouponWalletListInput, CreateQuickCouponInput, UpdateQuickCouponIn
 import { ValidationError } from '../utils/errorHandler.js';
 
 const STANDALONE_DESCRIPTION_PREFIX = 'Private discount rule created for coupon ';
+const money = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 
 export const generatePersonalizedCouponCode = () => `NV-${randomBytes(6).toString('hex').toUpperCase()}`;
 
@@ -104,7 +105,13 @@ export class CouponWalletService {
     customer_group: { select: { id: true, name: true, code: true } },
     source_coupon_group: { select: { id: true, name: true, code: true } },
     wallet_credit: {
-      include: {
+      select: {
+        id: true,
+        original_amount: true,
+        remaining_amount: true,
+        minimum_cart_amount: true,
+        status: true,
+        expires_at: true,
         reservations: {
           where: { status: 'reserved' },
           select: { amount: true },
@@ -135,9 +142,54 @@ export class CouponWalletService {
       },
       include: this.include,
       orderBy: { id: 'desc' },
-    });
+      });
+    let directRefundCredits: any[] = [];
+    try {
+      directRefundCredits = await this.prisma.wallet_credits.findMany({
+          where: {
+            customer_id: customerId,
+            assignment_id: null,
+            source_type: { in: ['cancellation_refund', 'return_refund'] },
+          },
+          include: {
+            reservations: {
+              where: { status: 'reserved', expires_at: { gt: BigInt(Date.now()) } },
+              select: { amount: true },
+            },
+          },
+          orderBy: { id: 'desc' },
+        });
+    } catch (error: any) {
+      if (error?.code !== 'P2021' && error?.code !== 'P2022') throw error;
+      // Coupon wallet remains usable until the additive refund-credit columns
+      // are deployed. Refund credits become visible after migration.
+      directRefundCredits = [];
+    }
     const coupons = assignments.map((assignment) => this.formatCoupon(assignment));
-    const availableCredits = coupons.filter((coupon) => {
+    const refundCredits = directRefundCredits.map((credit: any) => {
+      const reserved = credit.reservations.reduce((sum: number, reservation: any) => sum + Number(reservation.amount), 0);
+      const availableAmount = Math.max(money(Number(credit.remaining_amount) - reserved), 0);
+      return {
+        id: -credit.id,
+        code: credit.source_reference || `REFUND-${credit.id}`,
+        status: 'claimed',
+        start_date: credit.createddate,
+        end_date: credit.expires_at,
+        claimed_at: credit.createddate,
+        promotion: { name: credit.label || 'Nivaana refund credit', action: null, conditions: [] },
+        wallet_credit: {
+          id: credit.id,
+          original_amount: Number(credit.original_amount),
+          remaining_amount: Number(credit.remaining_amount),
+          available_amount: availableAmount,
+          minimum_cart_amount: Number(credit.minimum_cart_amount),
+          status: credit.status,
+          expires_at: credit.expires_at,
+          source_type: credit.source_type,
+        },
+      };
+    });
+    const availableCredits = [...coupons, ...refundCredits].filter((coupon) => {
       const credit = coupon.wallet_credit;
       return Boolean(
         credit &&
@@ -190,14 +242,14 @@ export class CouponWalletService {
 
     const activity = credits.flatMap((credit) => {
       let remaining = Number(credit.original_amount);
-      const events = credit.reservations.flatMap((reservation) => {
+      const events: any[] = credit.reservations.flatMap((reservation) => {
         const redemption = {
           id: `redemption-${reservation.id}`,
           type: 'order_redemption' as const,
           amount: -Number(reservation.amount),
           wallet_credit_id: credit.id,
-          coupon_code: credit.assignment.voucher_code,
-          coupon_name: credit.assignment.promotion.name || 'Nivaana wallet coupon',
+          coupon_code: credit.assignment?.voucher_code || credit.source_reference || `REFUND-${credit.id}`,
+          coupon_name: credit.assignment?.promotion?.name || credit.label || 'Nivaana refund credit',
           order_id: reservation.order_id,
           merchant_transaction_id: reservation.merchant_transaction_id,
           occurred_at: (reservation.consumed_at || reservation.createddate).toString(),
@@ -209,14 +261,28 @@ export class CouponWalletService {
           type: 'cancellation_reversal' as const,
           amount: Number(reservation.amount),
           wallet_credit_id: credit.id,
-          coupon_code: credit.assignment.voucher_code,
-          coupon_name: credit.assignment.promotion.name || 'Nivaana wallet coupon',
+          coupon_code: credit.assignment?.voucher_code || credit.source_reference || `REFUND-${credit.id}`,
+          coupon_name: credit.assignment?.promotion?.name || credit.label || 'Nivaana refund credit',
           order_id: reservation.order_id,
           merchant_transaction_id: reservation.merchant_transaction_id,
           occurred_at: (reservation.reversed_at || reservation.createddate).toString(),
           credit_balance_after: 0,
         }];
       });
+      if (!credit.assignment && ['cancellation_refund', 'return_refund'].includes(credit.source_type)) {
+        events.push({
+          id: `refund-credit-${credit.id}`,
+          type: 'refund_credit',
+          amount: Number(credit.original_amount),
+          wallet_credit_id: credit.id,
+          coupon_code: credit.source_reference || `REFUND-${credit.id}`,
+          coupon_name: credit.label || 'Nivaana refund credit',
+          order_id: credit.source_order_id,
+          merchant_transaction_id: null,
+          occurred_at: credit.createddate.toString(),
+          credit_balance_after: 0,
+        });
+      }
       return events
         .sort((left, right) => Number(left.occurred_at) - Number(right.occurred_at))
         .map((event) => {
