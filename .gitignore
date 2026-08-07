@@ -10,3 +10,4 @@ build
 debug_*.txt
 scripts/dryrun-logs/product-name-backup-*.json
 scripts/dryrun-logs/production-taxonomy-backup-*.json
+.codex-*.log

@@ -16,7 +16,7 @@ import {
 import { logger } from '../config/logger.js';
 import { hashPassword, verifyPassword, sanitizeUserData } from '../utils/auth.js';
 import { prisma } from '../models/prisma.js';
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 export class UsersService {
   async findMany(
@@ -28,6 +28,40 @@ export class UsersService {
       logger.info({ filters, page, limit }, 'Starting dynamic users findMany with filters');
 
       const { skip, take } = getPrismaSkipTake(page, limit);
+
+      // Customer pickers need one search term to match names and mobile numbers.
+      // Keep this out of the generic dynamic filter builder because `search` is
+      // not a database column and mobile numbers are stored as BigInt.
+      if (filters.search !== undefined) {
+        const search = String(filters.search || '').trim();
+        const pattern = `%${search}%`;
+        const where = Prisma.sql`
+          WHERE (
+            CONCAT_WS(' ', firstname, lastname) ILIKE ${pattern}
+            OR COALESCE(usermobilenumber::text, '') ILIKE ${pattern}
+            OR id::text = ${search}
+          )
+        `;
+        const [users, countRows] = await Promise.all([
+          prisma.$queryRaw<any[]>(Prisma.sql`
+            SELECT * FROM users
+            ${where}
+            ORDER BY createddate DESC NULLS LAST, id DESC
+            OFFSET ${skip}
+            LIMIT ${take}
+          `),
+          prisma.$queryRaw<Array<{ count: bigint }>>(Prisma.sql`
+            SELECT COUNT(*)::bigint AS count FROM users
+            ${where}
+          `),
+        ]);
+        return createPaginationResult(
+          users,
+          Number(countRows[0]?.count || 0),
+          page,
+          limit
+        );
+      }
 
       // Use the new dynamic filtering system
       const { data: users, total } = await dynamicFindManyWithFilters('users', filters, {

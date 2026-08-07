@@ -14,6 +14,7 @@ export async function usersRoutes(fastify: FastifyInstance) {
         properties: {
           page: { type: 'string', description: 'Page number' },
           limit: { type: 'string', description: 'Items per page' },
+          search: { type: 'string', description: 'Search by customer name, mobile number, or exact ID' },
           useremail: { type: 'string', description: 'Filter by user email' },
           firstname: { type: 'string', description: 'Filter by first name' },
           lastname: { type: 'string', description: 'Filter by last name' },

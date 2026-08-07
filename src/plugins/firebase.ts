@@ -3,6 +3,7 @@ import fp from 'fastify-plugin';
 import { getApps, initializeApp, applicationDefault, cert, App } from 'firebase-admin/app';
 import { getMessaging, Messaging } from 'firebase-admin/messaging';
 import fs from 'node:fs';
+import path from 'node:path';
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
 
@@ -63,8 +64,20 @@ export function initializeFirebaseAdmin(): FirebaseAdminContext | null {
         projectId
       );
     } else if (env.FIREBASE_SERVICE_ACCOUNT_PATH) {
+      const serviceAccountPath = path.isAbsolute(env.FIREBASE_SERVICE_ACCOUNT_PATH)
+        ? env.FIREBASE_SERVICE_ACCOUNT_PATH
+        : path.resolve(process.cwd(), env.FIREBASE_SERVICE_ACCOUNT_PATH);
+
+      if (!fs.existsSync(serviceAccountPath)) {
+        logger.warn(
+          { path: serviceAccountPath },
+          'Firebase service account file is not available; push sends will be disabled.'
+        );
+        return null;
+      }
+
       const serviceAccount = parseServiceAccountFromJson(
-        fs.readFileSync(env.FIREBASE_SERVICE_ACCOUNT_PATH, 'utf8')
+        fs.readFileSync(serviceAccountPath, 'utf8')
       );
       credential = buildServiceAccountCredential(
         serviceAccount.clientEmail,

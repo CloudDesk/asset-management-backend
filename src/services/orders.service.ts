@@ -19,9 +19,129 @@ import {
 import { logger } from '../config/logger.js';
 import { gstService } from './gst.service.js';
 import { WalletRedemptionService } from './wallet-redemption.service.js';
+import { invoiceAdjustmentService } from './invoice-adjustment.service.js';
 
 export class OrdersService {
   private walletRedemptionService = new WalletRedemptionService();
+
+  private resolveReturnWorkflowStatus(request: any): string {
+    const requestType = String(request?.requesttype || 'return').toLowerCase();
+    const requestStatus = String(request?.status || 'requested').toLowerCase();
+    const actions = Array.isArray(request?.resolutionActions)
+      ? [...request.resolutionActions].sort((a: any, b: any) =>
+          Number(b.modifieddate || b.completeddate || b.id || 0) - Number(a.modifieddate || a.completeddate || a.id || 0))
+      : [];
+    const refundAction = actions.find((action: any) => ['refund', 'partial_refund'].includes(String(action.actionType).toLowerCase()));
+    if (refundAction) {
+      const metadata = refundAction.metadata && typeof refundAction.metadata === 'object' ? refundAction.metadata : {};
+      const refundStatus = String(metadata.latestRefundStatus || refundAction.status || requestStatus).toLowerCase();
+      if (['completed', 'refund_completed'].includes(refundStatus) || requestStatus === 'refund_completed') return 'refund_completed';
+      if (['failed', 'cancelled'].includes(refundStatus)) return 'refund_failed';
+      return 'refund_processing';
+    }
+
+    const shipmentAction = actions.find((action: any) =>
+      ['replacement_shipment', 'missing_item_shipment'].includes(String(action.actionType).toLowerCase()));
+    if (shipmentAction) {
+      const shipmentStatus = String(shipmentAction.status || requestStatus).toLowerCase();
+      if (requestStatus === 'replacement_delivered' || shipmentStatus === 'delivered') return 'replacement_delivered';
+      if (['completed', 'shipped'].includes(shipmentStatus) || requestStatus === 'replacement_shipped') return 'replacement_shipped';
+      return 'replacement_processing';
+    }
+
+    const statusMap: Record<string, string> = {
+      requested: `${requestType}_requested`,
+      evidence_pending: `${requestType}_requested`,
+      evidence_approved: `${requestType}_approved`,
+      approved: `${requestType}_approved`,
+      pickup_prepared: 'return_pickup_scheduled',
+      pickup_created: 'return_pickup_scheduled',
+      in_transit: 'return_in_transit',
+      received_at_warehouse: 'return_received',
+      warehouse_received: 'return_received',
+      inspection_pending: 'return_inspection',
+      inspection_approved: requestType === 'replacement' ? 'replacement_processing' : 'return_processing',
+      evidence_rejected: `${requestType}_rejected`,
+      rejected: `${requestType}_rejected`,
+      inspection_rejected: `${requestType}_rejected`,
+      completed: requestType === 'replacement' ? 'replacement_completed' : 'return_completed',
+      replacement_pending: 'replacement_processing',
+      replacement_shipped: 'replacement_shipped',
+      replacement_delivered: 'replacement_delivered',
+      refund_pending: 'refund_processing',
+      refund_completed: 'refund_completed',
+      cancelled: `${requestType}_cancelled`,
+    };
+    return statusMap[requestStatus] || `${requestType}_${requestStatus}`;
+  }
+
+  private async attachEffectiveStatuses<T extends Record<string, any>>(orders: T[]): Promise<T[]> {
+    if (!orders.length) return orders;
+    const orderIds = orders.map((order) => Number(order.id)).filter(Number.isFinite);
+    if (!orderIds.length) return orders;
+
+    let requests: any[] = [];
+    let refundOperations: any[] = [];
+    try {
+      [requests, refundOperations] = await Promise.all([
+        prisma.returnRequest.findMany({
+          where: { orderid: { in: orderIds } },
+          include: { resolutionActions: true },
+          orderBy: [{ modifieddate: 'desc' }, { id: 'desc' }],
+        }),
+        (prisma as any).refundOperation.findMany({
+          where: { orderId: { in: orderIds } },
+          orderBy: [{ modifieddate: 'desc' }, { id: 'desc' }],
+        }),
+      ]);
+    } catch (error: any) {
+      if (error?.code !== 'P2021' && error?.code !== 'P2022') throw error;
+      logger.warn({ code: error?.code }, 'Return/refund tables unavailable while resolving effective order statuses');
+    }
+
+    const requestByOrder = new Map<number, any>();
+    for (const request of requests) {
+      const orderId = Number(request.orderid);
+      if (!requestByOrder.has(orderId)) requestByOrder.set(orderId, request);
+    }
+    const refundByOrder = new Map<number, any>();
+    for (const operation of refundOperations) {
+      const orderId = Number(operation.orderId);
+      if (!refundByOrder.has(orderId)) refundByOrder.set(orderId, operation);
+    }
+
+    return orders.map((order) => {
+      const request = requestByOrder.get(Number(order.id));
+      const operation = refundByOrder.get(Number(order.id));
+      let effectiveStatus = String(order.orderstatus || 'unknown');
+      let workflowType: string | null = null;
+      if (request) {
+        effectiveStatus = this.resolveReturnWorkflowStatus(request);
+        workflowType = String(request.requesttype || 'return');
+      } else if (operation) {
+        const operationStatus = String(operation.status || '').toLowerCase();
+        effectiveStatus = operationStatus === 'completed'
+          ? 'refund_completed'
+          : operationStatus === 'failed'
+            ? 'refund_failed'
+            : 'refund_processing';
+        workflowType = String(operation.triggerType || 'cancellation');
+      } else if (order.refund_completed_date) {
+        effectiveStatus = 'refund_completed';
+        workflowType = 'cancellation';
+      } else if (order.refund_initiated_date) {
+        effectiveStatus = 'refund_processing';
+        workflowType = 'cancellation';
+      }
+      return {
+        ...order,
+        fulfillment_status: order.orderstatus,
+        effective_status: effectiveStatus,
+        workflow_type: workflowType,
+        workflow_request_id: request?.id ?? null,
+      };
+    });
+  }
 
   private normalizeStatusHistorySource(source?: string): string {
     if (!source) return 'system';
@@ -140,6 +260,45 @@ export class OrdersService {
     return [];
   }
 
+  private async enrichStatusHistoryActors(statusHistory: any): Promise<any[]> {
+    const history = this.parseStatusHistory(statusHistory);
+    const inventoryUserIds = [...new Set(
+      history
+        .filter((entry) =>
+          this.normalizeStatusHistorySource(entry?.source) === 'inventory_user'
+          && !String(entry?.username || '').trim())
+        .map((entry) => Number(entry.inventory_user_id))
+        .filter((id) => Number.isInteger(id) && id > 0)
+    )];
+
+    if (!inventoryUserIds.length) return history;
+
+    const inventoryUsers = await prisma.inventoryusers.findMany({
+      where: { id: { in: inventoryUserIds } },
+      select: {
+        id: true,
+        firstname: true,
+        lastname: true,
+        useremail: true,
+      },
+    });
+    const usernameById = new Map(inventoryUsers.map((user) => {
+      const fullName = `${user.firstname || ''} ${user.lastname || ''}`.trim();
+      return [user.id, fullName || user.useremail || `Inventory User #${user.id}`];
+    }));
+
+    return history.map((entry) => {
+      if (
+        this.normalizeStatusHistorySource(entry?.source) !== 'inventory_user'
+        || String(entry?.username || '').trim()
+      ) {
+        return entry;
+      }
+      const username = usernameById.get(Number(entry.inventory_user_id));
+      return username ? { ...entry, username } : entry;
+    });
+  }
+
   async findMany(
     filters: FilterOptions,
     page: number,
@@ -154,8 +313,24 @@ export class OrdersService {
       const whereClause: any = {};
       for (const [key, value] of Object.entries(filters)) {
         if (!['page', 'limit'].includes(key)) {
+          const rangeMatch = key.match(/_(gte|lte)$/);
+
+          if (rangeMatch) {
+            const field = key.slice(0, -4);
+            const operator = rangeMatch[1] as 'gte' | 'lte';
+            const numericValue = Number(value);
+            whereClause[field] = {
+              ...(whereClause[field] || {}),
+              [operator]: Number.isNaN(numericValue) ? value : numericValue,
+            };
+          }
+          else if (key === 'order_type') {
+            whereClause.OR = value === 'online'
+              ? [{ order_type: null }, { order_type: { not: 'instore' } }]
+              : [{ order_type: 'instore' }];
+          }
           // Handle numeric fields
-          if (['userid', 'addressid', 'id', 'quantity'].includes(key)) {
+          else if (['userid', 'addressid', 'id', 'quantity'].includes(key)) {
             whereClause[key] = parseInt(value as string);
           }
           // // Handle boolean fields
@@ -164,7 +339,15 @@ export class OrdersService {
           // }
           // Handle string fields
           else {
-            whereClause[key] = value;
+            const values = Array.isArray(value)
+              ? value
+              : typeof value === 'string' && value.includes(',')
+                ? value.split(',')
+                : null;
+
+            whereClause[key] = values
+              ? { in: values.map((item) => String(item).trim()).filter(Boolean) }
+              : value;
           }
         }
       }
@@ -215,7 +398,8 @@ export class OrdersService {
         availableFields: transformedOrders.length > 0 ? Object.keys(transformedOrders[0]) : []
       }, 'Dynamic orders findMany with user data completed');
 
-      return createPaginationResult(transformedOrders, total, page, limit);
+      const ordersWithEffectiveStatus = await this.attachEffectiveStatuses(transformedOrders);
+      return createPaginationResult(ordersWithEffectiveStatus, total, page, limit);
     } catch (error) {
       logger.error({ error, filters, page, limit }, 'Error in dynamic orders findMany operation');
       throw error;
@@ -653,6 +837,10 @@ export class OrdersService {
 
         if (returnedCount === totalCount) {
           newOrderStatus = 'returned';
+        } else if (cancelledCount > 0) {
+          newOrderStatus = 'partially_cancelled';
+        } else if (returnedCount > 0) {
+          newOrderStatus = 'partially_returned';
         } else {
           // All orderlines have same status
           const uniqueStatuses = [...new Set(orderlineStatuses)];
@@ -743,6 +931,20 @@ export class OrdersService {
         }
 
         await dynamicUpdate('orders', { id: orderId }, orderUpdateData);
+
+        if (['cancelled', 'partially_cancelled', 'returned', 'partially_returned'].includes(newOrderStatus)) {
+          try {
+            await invoiceAdjustmentService.recordOrderCancellation(orderId, {
+              actorId: actorContext?.inventory_user_id || null,
+              source: newOrderStatus,
+            });
+          } catch (invoiceAdjustmentError) {
+            logger.error(
+              { error: invoiceAdjustmentError, orderId, newOrderStatus },
+              'Failed to record invoice adjustment during order status recalculation'
+            );
+          }
+        }
 
         logger.info({
           orderId,
@@ -1180,8 +1382,8 @@ export class OrdersService {
       // Track quantity updates per product/platform to avoid duplicate updates
       // Key: "productId-platform" -> { quantity, ecomQuantity }
       const platformStockUpdates = new Map<string, { productId: number; platform: string; quantity: number; ecomQuantity: number }>();
-      // Key: puc -> quantity
-      const productUpdates = new Map<string, number>();
+      // Key: puc -> quantity/e-com quantity to keep Product rollups aligned with PlatformStock.
+      const productUpdates = new Map<string, { quantity: number; ecomQuantity: number }>();
 
       for (const allocation of allocations) {
         const orderline = await orderlineService.findById(allocation.orderline_id.toString());
@@ -1236,9 +1438,11 @@ export class OrdersService {
         // Track Product update (aggregate by puc)
         // For combo components, this will track the COMPONENT product, not the combo product
         if (!productUpdates.has(firstStock.puc)) {
-          productUpdates.set(firstStock.puc, 0);
+          productUpdates.set(firstStock.puc, { quantity: 0, ecomQuantity: 0 });
         }
-        productUpdates.set(firstStock.puc, productUpdates.get(firstStock.puc)! + allocation.stocks.length);
+        const productUpdate = productUpdates.get(firstStock.puc)!;
+        productUpdate.quantity += allocation.stocks.length;
+        productUpdate.ecomQuantity += ecomPublishedCount;
 
         // Update each Stock record
         // For combo components, stock records are linked to the combo product's orderline
@@ -1286,11 +1490,11 @@ export class OrdersService {
           // - Decrease orderedqty (stocks were reserved, now sold)
           // - Increase soldqty (stocks are now sold)
           // - Decrease ecomqty (if stocks were e-commerce published)
-          // - Recalculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
+          // - Recalculate availableqty using formula: ecomqty - orderedqty - lockqty
           const newOrderedQty = Math.max(0, currentOrderedQty - update.quantity);
           const newSoldQty = currentSoldQty + update.quantity;
           const newEcomQty = Math.max(0, currentEcomQty - update.ecomQuantity); // Decrease by e-commerce published count
-          const newAvailableQty = Math.max(0, newEcomQty - newOrderedQty - newSoldQty - currentLockQty);
+          const newAvailableQty = Math.max(0, newEcomQty - newOrderedQty - currentLockQty);
 
           // Calculate platform status
           const { PlatformStockService } = await import('./platformStock.service.js');
@@ -1321,7 +1525,7 @@ export class OrdersService {
             oldAvailableQty: platformStock.availableqty,
             newAvailableQty,
             formula: {
-              availableqty: `${newEcomQty} - ${newOrderedQty} - ${newSoldQty} - ${currentLockQty} = ${newAvailableQty}`
+              availableqty: `${newEcomQty} - ${newOrderedQty} - ${currentLockQty} = ${newAvailableQty}`
             }
           }, 'PlatformStock quantities updated (dispatch)');
         }
@@ -1329,28 +1533,40 @@ export class OrdersService {
 
       // 4. Update Product quantities (once per product)
       // For combo products, this updates COMPONENT product quantities, not combo product
-      for (const [puc, quantity] of productUpdates.entries()) {
+      for (const [puc, update] of productUpdates.entries()) {
         const productForUpdate = await dynamicFindUnique('product', { puc });
         if (productForUpdate) {
-          // Update Product: decrease orderedquantity, increase soldquantity
-          // Note: availablequantity doesn't change (already done during order creation)
-          const newOrderedQuantity = Math.max(0, (productForUpdate.orderedquantity || 0) - quantity);
-          const newSoldQuantity = (productForUpdate.soldquantity || 0) + quantity;
+          // Product quantity represents physical stock in warehouse, so sold units leave quantity.
+          const newOrderedQuantity = Math.max(0, (productForUpdate.orderedquantity || 0) - update.quantity);
+          const newSoldQuantity = (productForUpdate.soldquantity || 0) + update.quantity;
+          const newQuantity = Math.max(0, (productForUpdate.quantity || 0) - update.quantity);
+          const newEcomPublishedQuantity = Math.max(0, (productForUpdate.ecompublishedquantity || 0) - update.ecomQuantity);
+          const newAvailableQuantity = Math.max(0, newEcomPublishedQuantity - newOrderedQuantity);
 
           await dynamicUpdate('product', { id: productForUpdate.id }, {
+            quantity: newQuantity,
+            availablequantity: newAvailableQuantity,
             orderedquantity: newOrderedQuantity,
             soldquantity: newSoldQuantity,
+            ecompublishedquantity: newEcomPublishedQuantity,
             modifieddate: currentTimestamp
           });
 
           logger.info({
             productId: productForUpdate.id,
             puc,
-            quantity,
+            quantity: update.quantity,
+            ecomQuantity: update.ecomQuantity,
+            oldQuantity: productForUpdate.quantity,
+            newQuantity,
+            oldAvailableQuantity: productForUpdate.availablequantity,
+            newAvailableQuantity,
             oldOrderedQuantity: productForUpdate.orderedquantity,
             newOrderedQuantity,
             oldSoldQuantity: productForUpdate.soldquantity,
-            newSoldQuantity
+            newSoldQuantity,
+            oldEcomPublishedQuantity: productForUpdate.ecompublishedquantity,
+            newEcomPublishedQuantity
           }, 'Product quantities updated');
         }
       }
@@ -2595,6 +2811,7 @@ export class OrdersService {
     orderlines: any[];
     address: any | null;
     wallet_usage: any[];
+    refund_operations: any[];
   }> {
     try {
       logger.info({ idOrOrderNumber }, 'Getting order details with orderlines and address');
@@ -2612,6 +2829,13 @@ export class OrdersService {
       if (!fullOrder) {
         throw new Error('Order not found');
       }
+
+      const instoreCustomer = fullOrder.order_type === 'instore' && fullOrder.userid
+        ? await prisma.users.findUnique({
+            where: { id: Number(fullOrder.userid) },
+            select: { firstname: true, lastname: true, usermobilenumber: true, useremail: true }
+          })
+        : null;
 
       // Extract only required order fields
       const order = {
@@ -2633,6 +2857,15 @@ export class OrdersService {
         merchanttransactionid: fullOrder.merchanttransactionid,
         paymentfaileddate: fullOrder.paymentfaileddate,
         mode: fullOrder.mode,
+        order_type: fullOrder.order_type,
+        created_by_inventory_user_id: fullOrder.created_by_inventory_user_id,
+        manual_discount_total: fullOrder.manual_discount_total ? Number(fullOrder.manual_discount_total) : 0,
+        manual_discount_reason: fullOrder.manual_discount_reason,
+        username: instoreCustomer
+          ? `${instoreCustomer.firstname || ''} ${instoreCustomer.lastname || ''}`.trim()
+          : null,
+        usermobilenumber: instoreCustomer?.usermobilenumber || null,
+        useremail: instoreCustomer?.useremail || null,
         promotion_discount_total: fullOrder.promotion_discount_total ? Number(fullOrder.promotion_discount_total) : null,
         wallet_discount_total: Number(fullOrder.wallet_discount_total ?? 0),
         wallet_amount_applied: Number(fullOrder.wallet_discount_total ?? 0),
@@ -2662,7 +2895,7 @@ export class OrdersService {
         refund_reference: fullOrder.refund_reference,
         refund_initiated_date: fullOrder.refund_initiated_date,
         refund_completed_date: fullOrder.refund_completed_date,
-        status_history: this.parseStatusHistory(fullOrder.status_history)
+        status_history: await this.enrichStatusHistoryActors(fullOrder.status_history)
       };
 
       // Get orderlines for this order
@@ -2692,6 +2925,7 @@ export class OrdersService {
             original_price: ol.original_price ? Number(ol.original_price) : null,
             product_discount_amount: ol.product_discount_amount ? Number(ol.product_discount_amount) : null,
             promotion_discount_amount: ol.promotion_discount_amount ? Number(ol.promotion_discount_amount) : null,
+            manual_discount_amount: ol.manual_discount_amount ? Number(ol.manual_discount_amount) : null,
             shipping_cost: ol.shipping_cost ? Number(ol.shipping_cost) : null,
             gst_rate: ol.gst_rate ? Number(ol.gst_rate) : null,
             taxable_amount: ol.taxable_amount ? Number(ol.taxable_amount) : null,
@@ -2699,7 +2933,7 @@ export class OrdersService {
             sgst_amount: ol.sgst_amount ? Number(ol.sgst_amount) : null,
             igst_amount: ol.igst_amount ? Number(ol.igst_amount) : null,
             total_gst_amount: ol.total_gst_amount ? Number(ol.total_gst_amount) : null,
-            status_history: this.parseStatusHistory(ol.status_history)
+            status_history: await this.enrichStatusHistoryActors(ol.status_history)
           };
 
           // Check if product is combo and fetch component data
@@ -2797,6 +3031,19 @@ export class OrdersService {
         }
       }
 
+      if (!address && fullOrder.order_type === 'instore' && instoreCustomer) {
+        address = {
+          name: `${instoreCustomer.firstname || ''} ${instoreCustomer.lastname || ''}`.trim(),
+          mobilenumber: instoreCustomer.usermobilenumber,
+          pincode: null,
+          doornumber: null,
+          address: null,
+          landmark: null,
+          state: null,
+          city: null
+        };
+      }
+
       // Wallet credit is an order-level payment adjustment. Return the source
       // allocations separately so clients do not misattribute it to a line.
       const walletReservations = await prisma.wallet_reservations.findMany({
@@ -2806,7 +3053,13 @@ export class OrdersService {
         },
         include: {
           credit: {
-            include: {
+            select: {
+              id: true,
+              original_amount: true,
+              remaining_amount: true,
+              minimum_cart_amount: true,
+              status: true,
+              expires_at: true,
               assignment: { include: { promotion: true } }
             }
           }
@@ -2824,7 +3077,56 @@ export class OrdersService {
         consumed_at: reservation.consumed_at ? Number(reservation.consumed_at) : null,
         reversed_at: reservation.reversed_at ? Number(reservation.reversed_at) : null,
         reversal_reason: reservation.reversal_reason || null,
-        expires_at: reservation.credit?.expires_at ? Number(reservation.credit.expires_at) : null
+        expires_at: reservation.credit?.expires_at ? Number(reservation.credit.expires_at) : null,
+        restoration_status: reservation.status === 'reversed'
+          ? 'restored'
+          : reservation.credit?.expires_at && Number(reservation.credit.expires_at) < Math.floor(Date.now() / 1000)
+            ? 'skipped_expired'
+            : 'not_restored'
+      }));
+
+      let refundOperations: any[] = [];
+      try {
+        refundOperations = await (prisma as any).refundOperation.findMany({
+          where: { orderId: Number(fullOrder.id) },
+          orderBy: { id: 'desc' },
+        });
+      } catch (error: any) {
+        // Keep order details available during rolling deployments where the
+        // API is updated before the additive refund migration is applied.
+        if (error?.code !== 'P2021' && error?.code !== 'P2022') throw error;
+        logger.warn({ orderId: fullOrder.id, code: error.code }, 'Refund tables are not available yet; returning order details without refund operations');
+      }
+      const refundOperationIds = refundOperations.map((operation: any) => operation.id);
+      const refundAllocations = refundOperationIds.length
+        ? await (prisma as any).refundWalletAllocation.findMany({
+            where: { refundOperationId: { in: refundOperationIds } },
+            orderBy: { id: 'asc' },
+          })
+        : [];
+      const refund_operations = refundOperations.map((operation: any) => ({
+        ...operation,
+        approvedAmount: Number(operation.approvedAmount),
+        originalWalletAmount: Number(operation.originalWalletAmount),
+        eligibleWalletAmount: Number(operation.eligibleWalletAmount),
+        expiredWalletAmount: Number(operation.expiredWalletAmount),
+        onlineAmount: Number(operation.onlineAmount),
+        nonExpiringWalletAmount: Number(operation.nonExpiringWalletAmount),
+        walletCreditedAmount: Number(operation.walletCreditedAmount),
+        phonepeRefundAmount: Number(operation.phonepeRefundAmount),
+        createddate: Number(operation.createddate),
+        modifieddate: Number(operation.modifieddate),
+        completeddate: operation.completeddate ? Number(operation.completeddate) : null,
+        consentAt: operation.consentAt ? Number(operation.consentAt) : null,
+        wallet_allocations: refundAllocations
+          .filter((allocation: any) => allocation.refundOperationId === operation.id)
+          .map((allocation: any) => ({
+            ...allocation,
+            amount: Number(allocation.amount),
+            expiresAt: allocation.expiresAt ? Number(allocation.expiresAt) : null,
+            createddate: Number(allocation.createddate),
+            modifieddate: Number(allocation.modifieddate),
+          })),
       }));
 
       logger.info({
@@ -2834,11 +3136,13 @@ export class OrdersService {
         hasAddress: !!address
       }, 'Order details retrieved successfully');
 
+      const [orderWithEffectiveStatus] = await this.attachEffectiveStatuses([order]);
       return {
-        order,
+        order: orderWithEffectiveStatus,
         orderlines,
         address,
-        wallet_usage
+        wallet_usage,
+        refund_operations
       };
     } catch (error) {
       logger.error({ error, idOrOrderNumber }, 'Error getting order details');
@@ -3243,16 +3547,18 @@ export class OrdersService {
         };
       });
 
+      const ordersWithEffectiveStatus = await this.attachEffectiveStatuses(ordersWithDetails);
+
       logger.info({
         userId,
-        ordersCount: ordersWithDetails.length,
+        ordersCount: ordersWithEffectiveStatus.length,
         totalOrders: pagination.total,
         page,
         limit
       }, 'Orders with orderlines and address retrieved successfully');
 
       return {
-        orders: ordersWithDetails,
+        orders: ordersWithEffectiveStatus,
         pagination
       };
     } catch (error) {
@@ -3528,6 +3834,11 @@ export class OrdersService {
         // consumed to reversed once, making duplicate cancellation calls safe.
         const walletRestoration = await this.walletRedemptionService.restoreForCancelledOrder(orderId, tx);
         logger.info({ orderId, ...walletRestoration }, 'Wallet credit restored after order cancellation');
+        await invoiceAdjustmentService.recordOrderCancellation(orderId, {
+          actorId: inventoryUserId || userId || null,
+          source: 'full_order_cancellation',
+          database: tx,
+        });
 
         // Fetch and return updated order
         const finalOrder = await this.findById(orderId);
@@ -4224,15 +4535,14 @@ export class OrdersService {
 
           // Get current quantities
           const currentEcomQty = Number(platformStock.ecomqty || 0);
-          const currentSoldQty = Number(platformStock.soldqty || 0);
           const currentLockQty = Number(platformStock.lockqty || 0);
 
           // Restore orderedqty → availableqty
           const newOrderedQty = Math.max(0, (platformStock.orderedqty || 0) - update.quantity);
 
-          // Recalculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
+          // Recalculate availableqty using formula: ecomqty - orderedqty - lockqty
           // ecomqty doesn't change (stocks still available, just not ordered anymore)
-          const newAvailableQty = Math.max(0, currentEcomQty - newOrderedQty - currentSoldQty - currentLockQty);
+          const newAvailableQty = Math.max(0, currentEcomQty - newOrderedQty - currentLockQty);
 
           await dynamicUpdate('platformstock', { id: platformStock.id }, {
             availableqty: newAvailableQty,
@@ -4301,7 +4611,7 @@ export class OrdersService {
       // Track updates by product to avoid duplicate updates
       // Key: "productId-platform" -> { quantity, ecomQuantity }
       const platformStockUpdates = new Map<string, { productId: number; platform: string; quantity: number; ecomQuantity: number }>();
-      const productUpdates = new Map<number, number>();
+      const productUpdates = new Map<number, { quantity: number; ecomQuantity: number }>();
 
       // Get order to retrieve orderid string
       const order = await this.findById(orderId);
@@ -4428,9 +4738,11 @@ export class OrdersService {
 
               // Track component Product update
               if (!productUpdates.has(componentProductId)) {
-                productUpdates.set(componentProductId, 0);
+                productUpdates.set(componentProductId, { quantity: 0, ecomQuantity: 0 });
               }
-              productUpdates.set(componentProductId, productUpdates.get(componentProductId)! + componentTotalQty);
+              const productUpdate = productUpdates.get(componentProductId)!;
+              productUpdate.quantity += componentTotalQty;
+              productUpdate.ecomQuantity += componentTotalQty;
             }
 
             logger.info({
@@ -4472,9 +4784,11 @@ export class OrdersService {
 
         // Track Product update
         if (!productUpdates.has(productId)) {
-          productUpdates.set(productId, 0);
+          productUpdates.set(productId, { quantity: 0, ecomQuantity: 0 });
         }
-        productUpdates.set(productId, productUpdates.get(productId)! + quantity);
+        const productUpdate = productUpdates.get(productId)!;
+        productUpdate.quantity += quantity;
+        productUpdate.ecomQuantity += ecomPublishedCount;
       }
 
       // Update PlatformStock quantities
@@ -4501,8 +4815,8 @@ export class OrdersService {
           const newSoldQty = Math.max(0, (platformStock.soldqty || 0) - update.quantity);
           const newEcomQty = currentEcomQty + update.ecomQuantity; // Increase by e-commerce published count
 
-          // Recalculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
-          const newAvailableQty = Math.max(0, newEcomQty - currentOrderedQty - newSoldQty - currentLockQty);
+          // Recalculate availableqty using formula: ecomqty - orderedqty - lockqty
+          const newAvailableQty = Math.max(0, newEcomQty - currentOrderedQty - currentLockQty);
 
           await dynamicUpdate('platformstock', { id: platformStock.id }, {
             ecomqty: newEcomQty,
@@ -4524,33 +4838,42 @@ export class OrdersService {
             oldSoldQty: platformStock.soldqty,
             newSoldQty,
             formula: {
-              availableqty: `${newEcomQty} - ${currentOrderedQty} - ${newSoldQty} - ${currentLockQty} = ${newAvailableQty}`
+              availableqty: `${newEcomQty} - ${currentOrderedQty} - ${currentLockQty} = ${newAvailableQty}`
             }
           }, 'PlatformStock quantities restored (post-dispatch cancellation)');
         }
       }
 
       // Update Product quantities
-      for (const [productId, quantity] of productUpdates.entries()) {
+      for (const [productId, update] of productUpdates.entries()) {
         const product = await dynamicFindUnique('product', { id: productId });
         if (product) {
-          // Restore availablequantity, reduce soldquantity
-          const newAvailableQuantity = (product.availablequantity || 0) + quantity;
-          const newSoldQuantity = Math.max(0, (product.soldquantity || 0) - quantity);
+          // Restore warehouse quantity/e-com quantity and reduce soldquantity.
+          const newQuantity = (product.quantity || 0) + update.quantity;
+          const newEcomPublishedQuantity = (product.ecompublishedquantity || 0) + update.ecomQuantity;
+          const newAvailableQuantity = Math.max(0, newEcomPublishedQuantity - Number(product.orderedquantity || 0));
+          const newSoldQuantity = Math.max(0, (product.soldquantity || 0) - update.quantity);
 
           await dynamicUpdate('product', { id: product.id }, {
+            quantity: newQuantity,
             availablequantity: newAvailableQuantity,
             soldquantity: newSoldQuantity,
+            ecompublishedquantity: newEcomPublishedQuantity,
             modifieddate: currentTimestamp
           });
 
           logger.info({
             productId: product.id,
-            quantity,
+            quantity: update.quantity,
+            ecomQuantity: update.ecomQuantity,
+            oldQuantity: product.quantity,
+            newQuantity,
             oldAvailableQuantity: product.availablequantity,
             newAvailableQuantity,
             oldSoldQuantity: product.soldquantity,
-            newSoldQuantity
+            newSoldQuantity,
+            oldEcomPublishedQuantity: product.ecompublishedquantity,
+            newEcomPublishedQuantity
           }, 'Product quantities restored (post-dispatch cancellation)');
         }
       }

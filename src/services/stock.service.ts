@@ -191,6 +191,7 @@ export class StockService {
       orderedquantity: number;
       soldquantity: number;
       ecompublishedquantity: number;
+      damagedquantity: number;
     }>;
   } | null> {
     try {
@@ -201,12 +202,30 @@ export class StockService {
 
       const productRecord = Array.isArray(products) && products.length > 0 ? products[0] : null;
 
+      const stockSummaryResult = await prisma.$queryRaw<any[]>`
+        SELECT
+          COUNT(*) FILTER (WHERE LOWER("stockstatus") <> 'sold')::int AS "quantity",
+          COUNT(*) FILTER (WHERE LOWER("stockstatus") = 'available' AND COALESCE("ecompublish", false) = true)::int AS "available_quantity",
+          COUNT(*) FILTER (WHERE LOWER("stockstatus") = 'sold')::int AS "sold_quantity",
+          COUNT(*) FILTER (WHERE LOWER("stockstatus") = 'available' AND COALESCE("ecompublish", false) = true)::int AS "ecom_published_quantity",
+          COUNT(*) FILTER (WHERE LOWER("stockstatus") = 'damaged')::int AS "damaged_quantity"
+        FROM "stock"
+        WHERE "puc" = ${puc}
+          AND COALESCE("isdeleted", false) = false
+          AND COALESCE("isarchive", false) = false
+      `;
+      const stockSummary = stockSummaryResult[0] || {};
+      const damagedquantity = Number(stockSummary.damaged_quantity || 0);
+      const ecomPublishedQuantity = Number(stockSummary.ecom_published_quantity || 0);
+      const orderedQuantity = productRecord?.orderedquantity !== undefined ? Number(productRecord.orderedquantity) : 0;
+
       const summaryTotals = {
-        quantity: productRecord?.quantity !== undefined ? Number(productRecord.quantity) : 0,
-        availablequantity: productRecord?.availablequantity !== undefined ? Number(productRecord.availablequantity) : 0,
-        orderedquantity: productRecord?.orderedquantity !== undefined ? Number(productRecord.orderedquantity) : 0,
-        soldquantity: productRecord?.soldquantity !== undefined ? Number(productRecord.soldquantity) : 0,
-        ecompublishedquantity: productRecord?.ecompublishedquantity !== undefined ? Number(productRecord.ecompublishedquantity) : 0
+        quantity: Number(stockSummary.quantity || 0),
+        availablequantity: Math.max(0, ecomPublishedQuantity - orderedQuantity),
+        orderedquantity: orderedQuantity,
+        soldquantity: Number(stockSummary.sold_quantity || 0),
+        ecompublishedquantity: ecomPublishedQuantity,
+        damagedquantity
       };
 
       let platformStocks: Array<{
@@ -216,6 +235,7 @@ export class StockService {
         orderedqty: number;
         soldqty: number;
         ecomqty: number;
+        damagedqty: number;
         lockqty: number;
       }> = [];
 
@@ -225,10 +245,20 @@ export class StockService {
           const productId =
             typeof productIdRaw === 'bigint' ? productIdRaw : BigInt(productIdRaw);
 
-          const platformStockRecords = await prisma.platformStock.findMany({
-            where: { productid: productId },
-            orderBy: { platform: 'asc' },
-          });
+          const platformStockRecords = await prisma.$queryRaw<any[]>`
+            SELECT
+              "platform",
+              "totalqty",
+              "availableqty",
+              "orderedqty",
+              "soldqty",
+              "ecomqty",
+              "damagedqty",
+              "lockqty"
+            FROM "platformstock"
+            WHERE "productid" = ${productId}
+            ORDER BY "platform" ASC
+          `;
 
           platformStocks = platformStockRecords.map((record: any) => ({
             platform: record.platform ?? '',
@@ -237,6 +267,7 @@ export class StockService {
             orderedqty: Number(record.orderedqty ?? 0),
             soldqty: Number(record.soldqty ?? 0),
             ecomqty: Number(record.ecomqty ?? 0),
+            damagedqty: Number((record as any).damagedqty ?? 0),
             lockqty: Number(record.lockqty ?? 0),
           }));
         } catch (error) {
@@ -258,16 +289,60 @@ export class StockService {
         orderedquantity: number;
         soldquantity: number;
         ecompublishedquantity: number;
+        damagedquantity: number;
       }> = [];
 
-      locations = platformStocks.map((platformStock) => ({
-        location: platformStock.platform ?? '',
-        quantity: platformStock.totalqty,
-        availablequantity: platformStock.availableqty,
-        orderedquantity: platformStock.orderedqty,
-        soldquantity: platformStock.soldqty,
-        ecompublishedquantity: platformStock.ecomqty,
-      }));
+      const stockByPlatform = await prisma.$queryRaw<any[]>`
+        SELECT
+          "platform",
+          COUNT(*)::int AS "quantity",
+          COUNT(*) FILTER (WHERE LOWER("stockstatus") = 'available' AND COALESCE("ecompublish", false) = true)::int AS "available_quantity",
+          COUNT(*) FILTER (WHERE LOWER("stockstatus") = 'sold')::int AS "sold_quantity",
+          COUNT(*) FILTER (WHERE LOWER("stockstatus") = 'available' AND COALESCE("ecompublish", false) = true)::int AS "ecom_published_quantity",
+          COUNT(*) FILTER (WHERE LOWER("stockstatus") = 'damaged')::int AS "damaged_quantity"
+        FROM "stock"
+        WHERE "puc" = ${puc}
+          AND COALESCE("isdeleted", false) = false
+          AND COALESCE("isarchive", false) = false
+        GROUP BY "platform"
+      `;
+
+      const stockPlatformMap: Record<string, any> = {};
+      stockByPlatform.forEach((row: any) => {
+        if (row.platform) {
+          stockPlatformMap[row.platform.toLowerCase()] = row;
+        }
+      });
+
+      locations = platformStocks.map((platformStock) => {
+        const platKey = (platformStock.platform ?? '').toLowerCase();
+        const stockCounts = stockPlatformMap[platKey] || {};
+        const ecomPublishedQuantity = Number(platformStock.ecomqty || 0);
+        const orderedQuantity = Number(platformStock.orderedqty || 0);
+        return {
+          location: platformStock.platform ?? '',
+          quantity: Number(stockCounts.quantity || 0),
+          availablequantity: Math.max(0, ecomPublishedQuantity - orderedQuantity),
+          orderedquantity: platformStock.orderedqty,
+          soldquantity: platformStock.soldqty,
+          ecompublishedquantity: ecomPublishedQuantity,
+          damagedquantity: platformStock.damagedqty,
+        };
+      });
+
+      Object.entries(stockPlatformMap).forEach(([platKey, stockCounts]) => {
+        if (!locations.some((location) => location.location.toLowerCase() === platKey)) {
+          locations.push({
+            location: stockCounts.platform ?? platKey,
+            quantity: Number(stockCounts.quantity || 0),
+            availablequantity: Number(stockCounts.available_quantity || 0),
+            orderedquantity: 0,
+            soldquantity: Number(stockCounts.sold_quantity || 0),
+            ecompublishedquantity: Number(stockCounts.ecom_published_quantity || 0),
+            damagedquantity: Number(stockCounts.damaged_quantity || 0),
+          });
+        }
+      });
 
       locations.sort((a, b) => a.location.localeCompare(b.location));
 

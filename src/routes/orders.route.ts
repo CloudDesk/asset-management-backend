@@ -20,6 +20,7 @@ export async function ordersRoutes(fastify: FastifyInstance) {
           addressid: { type: 'string', description: 'Filter by address ID' },
           orderid: { type: 'string', description: 'Filter by order ID' },
           orderstatus: { type: 'string', description: 'Filter by order status' },
+          order_type: { type: 'string', enum: ['instore', 'online'], description: 'Filter by in-store or online order type' },
           transactionid: { type: 'string', description: 'Filter by transaction ID' },
           merchanttransactionid: { type: 'string', description: 'Filter by merchant transaction ID' },
           deliveryfrom: { type: 'string', description: 'Filter by delivery from location' },
@@ -47,6 +48,10 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                   orderamount: { type: 'number', nullable: true, description: 'Order amount' },
                   orderid: { type: 'string', nullable: true, description: 'Order ID string' },
                   orderstatus: { type: 'string', nullable: true, description: 'Order status' },
+                  fulfillment_status: { type: 'string', nullable: true, description: 'Original fulfillment status' },
+                  effective_status: { type: 'string', nullable: true, description: 'Current customer-facing order/return/refund status' },
+                  workflow_type: { type: 'string', nullable: true },
+                  workflow_request_id: { type: 'number', nullable: true },
                   quantity: { type: 'number', nullable: true, description: 'Quantity' },
                   transactionid: { type: 'string', nullable: true, description: 'Transaction ID' },
                   readytodispatchdate: { type: 'number', nullable: true, description: 'Ready to dispatch date' },
@@ -446,6 +451,31 @@ export async function ordersRoutes(fastify: FastifyInstance) {
     }
   }, ordersController.trackOrder.bind(ordersController));
 
+  // GET /v1/orders/:id/return-eligibility - Evaluate return/replacement eligibility per order item
+  fastify.get('/:id/return-eligibility', {
+    schema: {
+      description: 'Evaluate return and replacement eligibility for each order item, including remaining quantity, allowed reasons, resolutions, and evidence requirements',
+      tags: ['Orders'],
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: { type: 'string', description: 'Order database ID or order number' }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: { type: 'object', additionalProperties: true }
+          }
+        }
+      }
+    }
+  }, ordersController.getReturnEligibility.bind(ordersController));
+
   // GET /v1/orders/:id/details - Get order details with orderlines and address (Inventory App)
   fastify.get('/:id/details', {
     schema: {
@@ -477,6 +507,10 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                     modifieddate: { type: 'number', nullable: true },
                     orderamount: { type: 'number', nullable: true },
                     orderstatus: { type: 'string', nullable: true },
+                    fulfillment_status: { type: 'string', nullable: true },
+                    effective_status: { type: 'string', nullable: true },
+                    workflow_type: { type: 'string', nullable: true },
+                    workflow_request_id: { type: 'number', nullable: true },
                     delivereddate: { type: 'number', nullable: true },
                     cancelleddate: { type: 'number', nullable: true },
                     returneddate: { type: 'number', nullable: true },
@@ -634,9 +668,15 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                       consumed_at: { type: 'number', nullable: true },
                       reversed_at: { type: 'number', nullable: true },
                       reversal_reason: { type: 'string', nullable: true },
-                      expires_at: { type: 'number', nullable: true }
+                      expires_at: { type: 'number', nullable: true },
+                      restoration_status: { type: 'string', nullable: true }
                     }
                   }
+                },
+                refund_operations: {
+                  type: 'array',
+                  description: 'Source-aware cancellation and return refund operations',
+                  items: { type: 'object', additionalProperties: true }
                 },
                 address: {
                   type: 'object',
@@ -725,6 +765,10 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                   orderamount: { type: 'number', nullable: true },
                   orderid: { type: 'string', nullable: true },
                   orderstatus: { type: 'string', nullable: true },
+                  fulfillment_status: { type: 'string', nullable: true },
+                  effective_status: { type: 'string', nullable: true },
+                  workflow_type: { type: 'string', nullable: true },
+                  workflow_request_id: { type: 'number', nullable: true },
                   quantity: { type: 'number', nullable: true },
                   productid: { type: 'array', items: { type: 'number' }, nullable: true, description: 'Array of product IDs' },
                   productamount: { type: 'number', nullable: true },
@@ -926,6 +970,36 @@ export async function ordersRoutes(fastify: FastifyInstance) {
       }
     }
   }, ordersController.cancelOrder.bind(ordersController));
+
+  fastify.get('/:id/cancellation-refund-preview', {
+    schema: {
+      description: 'Preview source-aware cancellation refund allocation (admin-only)',
+      tags: ['Orders'],
+      params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+      response: { 200: { type: 'object', additionalProperties: true } }
+    }
+  }, ordersController.getCancellationRefundPreview.bind(ordersController));
+
+  fastify.post('/:id/cancellation-refund', {
+    schema: {
+      description: 'Initiate a source-aware cancellation refund (admin-only)',
+      tags: ['Orders'],
+      params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+      body: {
+        type: 'object',
+        properties: {
+          destination: { type: 'string', enum: ['original_sources', 'wallet'] },
+          consent_accepted: { type: 'boolean' },
+          consent_channel: { type: 'string', enum: ['call', 'whatsapp', 'email', 'support_ticket', 'in_app', 'other'] },
+          consent_reference: { type: 'string', maxLength: 500 },
+          consent_notes: { type: 'string', maxLength: 3000 },
+          admin_user_id: { type: 'number' }
+        },
+        required: ['destination']
+      },
+      response: { 200: { type: 'object', additionalProperties: true } }
+    }
+  }, ordersController.initiateCancellationRefund.bind(ordersController));
 
   // PATCH /v1/orders/:id/refund-status - Update refund status for cancelled orders (admin-only)
   fastify.patch('/:id/refund-status', {

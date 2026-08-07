@@ -8,13 +8,12 @@ const REQUIRED_EXOTEL_ENV_VARS = [
   'EXOTEL_API_TOKEN',
   'EXOTEL_SENDER_ID'
 ] as const;
-const REQUIRED_FIREBASE_PUSH_ENV_VARS = [
+const REQUIRED_FIREBASE_DIRECT_PUSH_ENV_VARS = [
   'FIREBASE_PROJECT_ID',
   'FIREBASE_CLIENT_EMAIL',
   'FIREBASE_PRIVATE_KEY'
 ] as const;
-const REQUIRED_APNS_PUSH_ENV_VARS = [
-  'APNS_AUTH_KEY',
+const REQUIRED_APNS_IDENTITY_PUSH_ENV_VARS = [
   'APNS_KEY_ID',
   'APNS_TEAM_ID',
   'APNS_BUNDLE_ID'
@@ -125,20 +124,37 @@ function validatePushNotificationConfig(data: object) {
     getEnvConfigValue(data, 'FIREBASE_CLIENT_EMAIL') ||
     getEnvConfigValue(data, 'FIREBASE_PRIVATE_KEY')
   );
-  const hasApnsConfig = Boolean(getEnvConfigValue(data, 'APNS_AUTH_KEY'));
+  const hasFirebaseServiceAccountJson = Boolean(getEnvConfigValue(data, 'FIREBASE_SERVICE_ACCOUNT_JSON'));
+  const hasFirebaseServiceAccountPath = Boolean(getEnvConfigValue(data, 'FIREBASE_SERVICE_ACCOUNT_PATH'));
+  const hasFirebaseDirectCompleteConfig = REQUIRED_FIREBASE_DIRECT_PUSH_ENV_VARS.every((key) =>
+    Boolean(getEnvConfigValue(data, key))
+  );
+  const hasApnsAuthKey = Boolean(getEnvConfigValue(data, 'APNS_AUTH_KEY'));
+  const hasApnsAuthKeyPath = Boolean(getEnvConfigValue(data, 'APNS_AUTH_KEY_PATH'));
+  const hasApnsIdentityConfig = REQUIRED_APNS_IDENTITY_PUSH_ENV_VARS.some((key) =>
+    Boolean(getEnvConfigValue(data, key))
+  );
 
   const missingVars: string[] = [];
   const validationErrors: string[] = [];
 
-  if (isProduction || hasFirebaseDirectConfig) {
+  if (isProduction) {
+    if (!hasFirebaseServiceAccountJson && !hasFirebaseDirectCompleteConfig) {
+      missingVars.push('FIREBASE_SERVICE_ACCOUNT_JSON or FIREBASE_PROJECT_ID/FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY');
+    }
+  } else if (hasFirebaseDirectConfig && !hasFirebaseServiceAccountJson && !hasFirebaseServiceAccountPath) {
     missingVars.push(
-      ...REQUIRED_FIREBASE_PUSH_ENV_VARS.filter((key) => !getEnvConfigValue(data, key))
+      ...REQUIRED_FIREBASE_DIRECT_PUSH_ENV_VARS.filter((key) => !getEnvConfigValue(data, key))
     );
   }
 
-  if (isProduction || hasApnsConfig) {
+  if (isProduction || hasApnsAuthKey || hasApnsAuthKeyPath || hasApnsIdentityConfig) {
+    const hasUsableApnsAuthKey = hasApnsAuthKey || (!isProduction && hasApnsAuthKeyPath);
+    if (!hasUsableApnsAuthKey) {
+      missingVars.push(isProduction ? 'APNS_AUTH_KEY' : 'APNS_AUTH_KEY or APNS_AUTH_KEY_PATH');
+    }
     missingVars.push(
-      ...REQUIRED_APNS_PUSH_ENV_VARS.filter((key) => !getEnvConfigValue(data, key))
+      ...REQUIRED_APNS_IDENTITY_PUSH_ENV_VARS.filter((key) => !getEnvConfigValue(data, key))
     );
   }
 
@@ -224,6 +240,9 @@ const envSchema = z.object({
   GCP_PROJECT_QUEUE: z.string().optional(),
   GCP_TASK_URL: z.string().optional(),
   GCP_STORAGE_BUCKET: z.string().optional(),
+  CATEGORY_IMAGES_BUCKET: z.string().optional(),
+  RETURN_REPLACEMENT_BUCKET: z.string().optional(),
+  RETURN_EVIDENCE_BUCKET: z.string().optional(),
   SHIPPING_BUCKET: z.string().optional(),
   FIREBASE_PROJECT_ID: z.string().optional(),
   FIREBASE_CLIENT_EMAIL: z.string().optional(),

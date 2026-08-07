@@ -154,10 +154,27 @@ export class WalletRedemptionService {
       orderBy: { id: 'asc' },
     });
     const now = BigInt(Date.now());
+    const currentSeconds = BigInt(Math.floor(Date.now() / 1000));
     let restoredAmount = 0;
     let restoredCount = 0;
+    let skippedExpiredAmount = 0;
+    let skippedExpiredCount = 0;
 
     for (const reservation of reservations) {
+      const credit = await database.wallet_credits.findUniqueOrThrow({
+        where: { id: reservation.wallet_credit_id },
+      });
+      const creditExpired = Boolean(
+        credit.expires_at && credit.expires_at < currentSeconds
+      );
+      // Promotional wallet value keeps its original expiry. An expired source
+      // is intentionally left consumed so it never re-enters wallet balance.
+      if (creditExpired) {
+        skippedExpiredAmount = money(skippedExpiredAmount + Number(reservation.amount));
+        skippedExpiredCount += 1;
+        continue;
+      }
+
       const reversed = await database.wallet_reservations.updateMany({
         where: { id: reservation.id, status: 'consumed' },
         data: {
@@ -169,24 +186,15 @@ export class WalletRedemptionService {
       });
       if (reversed.count !== 1) continue;
 
-      const credit = await database.wallet_credits.findUniqueOrThrow({
-        where: { id: reservation.wallet_credit_id },
-      });
       const restoredRemaining = money(Math.min(
         Number(credit.original_amount),
         Number(credit.remaining_amount) + Number(reservation.amount),
       ));
-      const nowSeconds = BigInt(Math.floor(Date.now() / 1000));
-      const creditExpired = Boolean(
-        credit.expires_at && credit.expires_at < nowSeconds
-      );
       await database.wallet_credits.update({
         where: { id: credit.id },
         data: {
           remaining_amount: new Prisma.Decimal(restoredRemaining),
-          status: creditExpired
-            ? 'expired'
-            : restoredRemaining >= Number(credit.original_amount)
+          status: restoredRemaining >= Number(credit.original_amount)
               ? 'active'
               : 'partially_used',
           modifieddate: now,
@@ -196,6 +204,11 @@ export class WalletRedemptionService {
       restoredCount += 1;
     }
 
-    return { restored_amount: restoredAmount, restored_count: restoredCount };
+    return {
+      restored_amount: restoredAmount,
+      restored_count: restoredCount,
+      skipped_expired_amount: skippedExpiredAmount,
+      skipped_expired_count: skippedExpiredCount,
+    };
   }
 }
