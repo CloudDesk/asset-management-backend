@@ -196,6 +196,21 @@ export class OrderlineService {
       );
       const inventoryUserId = additionalData?.inventory_user_id;
 
+      if (status.toLowerCase() === 'cancelled') {
+        const cancellableStatuses = new Set([
+          'order_placed',
+          'payment_completed',
+          'order_confirmed',
+          'packed',
+          'ready_for_dispatch',
+        ]);
+        const currentStatus = String(previousStatus || '').toLowerCase().trim();
+
+        if (!cancellableStatuses.has(currentStatus)) {
+          throw new Error(`Orderline cannot be cancelled. Current status: ${previousStatus || 'unknown'}`);
+        }
+      }
+
       // ✅ CANCELLATION FLOW: Handle EKART shipment cancellation before updating status
       // According to ORDER_FULFILLMENT_EKART_INTEGRATION_PLAN.md Section 6
       if (status.toLowerCase() === 'cancelled') {

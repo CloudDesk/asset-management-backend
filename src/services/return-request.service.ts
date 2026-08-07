@@ -3505,7 +3505,7 @@ export class ReturnRequestService {
     const status = (orderline.orderstatus || '').toLowerCase();
     const deliveredDate = toMillis(orderline.delivereddate || orderline.orders?.delivereddate);
 
-    if (!['delivered', 'cod_payment_received'].includes(status) && !deliveredDate) {
+    if (!['delivered', 'cod_payment_received'].includes(status)) {
       throw new ValidationError('Return request allowed only after delivery', 'The selected order item is not delivered yet');
     }
 
@@ -3657,7 +3657,7 @@ export class ReturnRequestService {
       };
     }
 
-    if (!['delivered', 'cod_payment_received'].includes(status) && !deliveredDate) {
+    if (!['delivered', 'cod_payment_received'].includes(status)) {
       return {
         eligible: false,
         reason: 'Item is not delivered yet',

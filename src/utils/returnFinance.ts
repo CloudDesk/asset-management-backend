@@ -71,19 +71,31 @@ export function calculateCreditNoteTaxBreakup(
 ) {
   const orderline = request.orderline || {};
   const order = request.order || {};
+  const orderProductIds = Array.isArray(order.productid) ? order.productid : [];
+  const canUseOrderTaxTotals = orderProductIds.length === 1;
   const linePaidAmount = positiveFinanceNumber(
     orderline.orderamount,
     positiveFinanceNumber(orderline.productamount, positiveFinanceNumber(order.orderamount, refundAmount))
   );
   const proportion = linePaidAmount > 0 ? Math.min(1, refundAmount / linePaidAmount) : 1;
+  const orderTaxableAmount = canUseOrderTaxTotals
+    ? numberFromFinanceValue(order.total_taxable_amount)
+    : null;
+  const orderTotalGstAmount = canUseOrderTaxTotals
+    ? numberFromFinanceValue(order.total_gst_amount)
+    : null;
+  const derivedOrderGstRate =
+    orderTaxableAmount !== null && orderTaxableAmount > 0 && orderTotalGstAmount !== null
+      ? roundCurrency((orderTotalGstAmount / orderTaxableAmount) * 100)
+      : null;
   const gstRate = data.gst_rate !== undefined
     ? roundCurrency(Number(data.gst_rate))
-    : numberFromFinanceValue(orderline.gst_rate);
-  const lineTaxableAmount = numberFromFinanceValue(orderline.taxable_amount);
-  const lineCgstAmount = numberFromFinanceValue(orderline.cgst_amount);
-  const lineSgstAmount = numberFromFinanceValue(orderline.sgst_amount);
-  const lineIgstAmount = numberFromFinanceValue(orderline.igst_amount);
-  const lineTotalGstAmount = numberFromFinanceValue(orderline.total_gst_amount);
+    : numberFromFinanceValue(orderline.gst_rate) ?? derivedOrderGstRate;
+  const lineTaxableAmount = numberFromFinanceValue(orderline.taxable_amount) ?? orderTaxableAmount;
+  const lineCgstAmount = numberFromFinanceValue(orderline.cgst_amount) ?? (canUseOrderTaxTotals ? numberFromFinanceValue(order.total_cgst_amount) : null);
+  const lineSgstAmount = numberFromFinanceValue(orderline.sgst_amount) ?? (canUseOrderTaxTotals ? numberFromFinanceValue(order.total_sgst_amount) : null);
+  const lineIgstAmount = numberFromFinanceValue(orderline.igst_amount) ?? (canUseOrderTaxTotals ? numberFromFinanceValue(order.total_igst_amount) : null);
+  const lineTotalGstAmount = numberFromFinanceValue(orderline.total_gst_amount) ?? orderTotalGstAmount;
 
   let taxableAmount = data.taxable_amount !== undefined
     ? roundCurrency(Number(data.taxable_amount))

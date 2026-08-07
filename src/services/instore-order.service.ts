@@ -121,7 +121,13 @@ export class InstoreOrderService {
     }));
   }
 
-  async createOrder(input: InstoreOrderInput, inventoryUser: { id: number; location?: string }) {
+  async createOrder(input: InstoreOrderInput, inventoryUser: {
+    id: number;
+    location?: string;
+    firstname?: string;
+    lastname?: string;
+    useremail?: string;
+  }) {
     const merchantTransactionId = `INSTORE-${input.client_reference}`;
     const existing = await prisma.orders.findUnique({
       where: { merchanttransactionid: merchantTransactionId },
@@ -188,12 +194,16 @@ export class InstoreOrderService {
       const orderNumber = `INS-${now}-${randomUUID().slice(0, 8).toUpperCase()}`;
       const transactionId = `INST-${randomUUID()}`;
       const location = input.store_location || inventoryUser.location || 'In-store';
+      const inventoryUsername = `${inventoryUser.firstname || ''} ${inventoryUser.lastname || ''}`.trim()
+        || inventoryUser.useremail
+        || `Inventory User #${inventoryUser.id}`;
       const statusHistory = [{
         previous_status: 'order_placed',
         new_status: 'delivered',
         changed_date: now,
         source: 'inventory_user',
         inventory_user_id: inventoryUser.id,
+        username: inventoryUsername,
         is_active: true,
       }];
 

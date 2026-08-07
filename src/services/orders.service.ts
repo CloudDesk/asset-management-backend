@@ -24,6 +24,125 @@ import { invoiceAdjustmentService } from './invoice-adjustment.service.js';
 export class OrdersService {
   private walletRedemptionService = new WalletRedemptionService();
 
+  private resolveReturnWorkflowStatus(request: any): string {
+    const requestType = String(request?.requesttype || 'return').toLowerCase();
+    const requestStatus = String(request?.status || 'requested').toLowerCase();
+    const actions = Array.isArray(request?.resolutionActions)
+      ? [...request.resolutionActions].sort((a: any, b: any) =>
+          Number(b.modifieddate || b.completeddate || b.id || 0) - Number(a.modifieddate || a.completeddate || a.id || 0))
+      : [];
+    const refundAction = actions.find((action: any) => ['refund', 'partial_refund'].includes(String(action.actionType).toLowerCase()));
+    if (refundAction) {
+      const metadata = refundAction.metadata && typeof refundAction.metadata === 'object' ? refundAction.metadata : {};
+      const refundStatus = String(metadata.latestRefundStatus || refundAction.status || requestStatus).toLowerCase();
+      if (['completed', 'refund_completed'].includes(refundStatus) || requestStatus === 'refund_completed') return 'refund_completed';
+      if (['failed', 'cancelled'].includes(refundStatus)) return 'refund_failed';
+      return 'refund_processing';
+    }
+
+    const shipmentAction = actions.find((action: any) =>
+      ['replacement_shipment', 'missing_item_shipment'].includes(String(action.actionType).toLowerCase()));
+    if (shipmentAction) {
+      const shipmentStatus = String(shipmentAction.status || requestStatus).toLowerCase();
+      if (requestStatus === 'replacement_delivered' || shipmentStatus === 'delivered') return 'replacement_delivered';
+      if (['completed', 'shipped'].includes(shipmentStatus) || requestStatus === 'replacement_shipped') return 'replacement_shipped';
+      return 'replacement_processing';
+    }
+
+    const statusMap: Record<string, string> = {
+      requested: `${requestType}_requested`,
+      evidence_pending: `${requestType}_requested`,
+      evidence_approved: `${requestType}_approved`,
+      approved: `${requestType}_approved`,
+      pickup_prepared: 'return_pickup_scheduled',
+      pickup_created: 'return_pickup_scheduled',
+      in_transit: 'return_in_transit',
+      received_at_warehouse: 'return_received',
+      warehouse_received: 'return_received',
+      inspection_pending: 'return_inspection',
+      inspection_approved: requestType === 'replacement' ? 'replacement_processing' : 'return_processing',
+      evidence_rejected: `${requestType}_rejected`,
+      rejected: `${requestType}_rejected`,
+      inspection_rejected: `${requestType}_rejected`,
+      completed: requestType === 'replacement' ? 'replacement_completed' : 'return_completed',
+      replacement_pending: 'replacement_processing',
+      replacement_shipped: 'replacement_shipped',
+      replacement_delivered: 'replacement_delivered',
+      refund_pending: 'refund_processing',
+      refund_completed: 'refund_completed',
+      cancelled: `${requestType}_cancelled`,
+    };
+    return statusMap[requestStatus] || `${requestType}_${requestStatus}`;
+  }
+
+  private async attachEffectiveStatuses<T extends Record<string, any>>(orders: T[]): Promise<T[]> {
+    if (!orders.length) return orders;
+    const orderIds = orders.map((order) => Number(order.id)).filter(Number.isFinite);
+    if (!orderIds.length) return orders;
+
+    let requests: any[] = [];
+    let refundOperations: any[] = [];
+    try {
+      [requests, refundOperations] = await Promise.all([
+        prisma.returnRequest.findMany({
+          where: { orderid: { in: orderIds } },
+          include: { resolutionActions: true },
+          orderBy: [{ modifieddate: 'desc' }, { id: 'desc' }],
+        }),
+        (prisma as any).refundOperation.findMany({
+          where: { orderId: { in: orderIds } },
+          orderBy: [{ modifieddate: 'desc' }, { id: 'desc' }],
+        }),
+      ]);
+    } catch (error: any) {
+      if (error?.code !== 'P2021' && error?.code !== 'P2022') throw error;
+      logger.warn({ code: error?.code }, 'Return/refund tables unavailable while resolving effective order statuses');
+    }
+
+    const requestByOrder = new Map<number, any>();
+    for (const request of requests) {
+      const orderId = Number(request.orderid);
+      if (!requestByOrder.has(orderId)) requestByOrder.set(orderId, request);
+    }
+    const refundByOrder = new Map<number, any>();
+    for (const operation of refundOperations) {
+      const orderId = Number(operation.orderId);
+      if (!refundByOrder.has(orderId)) refundByOrder.set(orderId, operation);
+    }
+
+    return orders.map((order) => {
+      const request = requestByOrder.get(Number(order.id));
+      const operation = refundByOrder.get(Number(order.id));
+      let effectiveStatus = String(order.orderstatus || 'unknown');
+      let workflowType: string | null = null;
+      if (request) {
+        effectiveStatus = this.resolveReturnWorkflowStatus(request);
+        workflowType = String(request.requesttype || 'return');
+      } else if (operation) {
+        const operationStatus = String(operation.status || '').toLowerCase();
+        effectiveStatus = operationStatus === 'completed'
+          ? 'refund_completed'
+          : operationStatus === 'failed'
+            ? 'refund_failed'
+            : 'refund_processing';
+        workflowType = String(operation.triggerType || 'cancellation');
+      } else if (order.refund_completed_date) {
+        effectiveStatus = 'refund_completed';
+        workflowType = 'cancellation';
+      } else if (order.refund_initiated_date) {
+        effectiveStatus = 'refund_processing';
+        workflowType = 'cancellation';
+      }
+      return {
+        ...order,
+        fulfillment_status: order.orderstatus,
+        effective_status: effectiveStatus,
+        workflow_type: workflowType,
+        workflow_request_id: request?.id ?? null,
+      };
+    });
+  }
+
   private normalizeStatusHistorySource(source?: string): string {
     if (!source) return 'system';
     return source === 'inventoryuser' || source === 'inventory_user'
@@ -141,6 +260,45 @@ export class OrdersService {
     return [];
   }
 
+  private async enrichStatusHistoryActors(statusHistory: any): Promise<any[]> {
+    const history = this.parseStatusHistory(statusHistory);
+    const inventoryUserIds = [...new Set(
+      history
+        .filter((entry) =>
+          this.normalizeStatusHistorySource(entry?.source) === 'inventory_user'
+          && !String(entry?.username || '').trim())
+        .map((entry) => Number(entry.inventory_user_id))
+        .filter((id) => Number.isInteger(id) && id > 0)
+    )];
+
+    if (!inventoryUserIds.length) return history;
+
+    const inventoryUsers = await prisma.inventoryusers.findMany({
+      where: { id: { in: inventoryUserIds } },
+      select: {
+        id: true,
+        firstname: true,
+        lastname: true,
+        useremail: true,
+      },
+    });
+    const usernameById = new Map(inventoryUsers.map((user) => {
+      const fullName = `${user.firstname || ''} ${user.lastname || ''}`.trim();
+      return [user.id, fullName || user.useremail || `Inventory User #${user.id}`];
+    }));
+
+    return history.map((entry) => {
+      if (
+        this.normalizeStatusHistorySource(entry?.source) !== 'inventory_user'
+        || String(entry?.username || '').trim()
+      ) {
+        return entry;
+      }
+      const username = usernameById.get(Number(entry.inventory_user_id));
+      return username ? { ...entry, username } : entry;
+    });
+  }
+
   async findMany(
     filters: FilterOptions,
     page: number,
@@ -155,7 +313,18 @@ export class OrdersService {
       const whereClause: any = {};
       for (const [key, value] of Object.entries(filters)) {
         if (!['page', 'limit'].includes(key)) {
-          if (key === 'order_type') {
+          const rangeMatch = key.match(/_(gte|lte)$/);
+
+          if (rangeMatch) {
+            const field = key.slice(0, -4);
+            const operator = rangeMatch[1] as 'gte' | 'lte';
+            const numericValue = Number(value);
+            whereClause[field] = {
+              ...(whereClause[field] || {}),
+              [operator]: Number.isNaN(numericValue) ? value : numericValue,
+            };
+          }
+          else if (key === 'order_type') {
             whereClause.OR = value === 'online'
               ? [{ order_type: null }, { order_type: { not: 'instore' } }]
               : [{ order_type: 'instore' }];
@@ -170,7 +339,15 @@ export class OrdersService {
           // }
           // Handle string fields
           else {
-            whereClause[key] = value;
+            const values = Array.isArray(value)
+              ? value
+              : typeof value === 'string' && value.includes(',')
+                ? value.split(',')
+                : null;
+
+            whereClause[key] = values
+              ? { in: values.map((item) => String(item).trim()).filter(Boolean) }
+              : value;
           }
         }
       }
@@ -221,7 +398,8 @@ export class OrdersService {
         availableFields: transformedOrders.length > 0 ? Object.keys(transformedOrders[0]) : []
       }, 'Dynamic orders findMany with user data completed');
 
-      return createPaginationResult(transformedOrders, total, page, limit);
+      const ordersWithEffectiveStatus = await this.attachEffectiveStatuses(transformedOrders);
+      return createPaginationResult(ordersWithEffectiveStatus, total, page, limit);
     } catch (error) {
       logger.error({ error, filters, page, limit }, 'Error in dynamic orders findMany operation');
       throw error;
@@ -2717,7 +2895,7 @@ export class OrdersService {
         refund_reference: fullOrder.refund_reference,
         refund_initiated_date: fullOrder.refund_initiated_date,
         refund_completed_date: fullOrder.refund_completed_date,
-        status_history: this.parseStatusHistory(fullOrder.status_history)
+        status_history: await this.enrichStatusHistoryActors(fullOrder.status_history)
       };
 
       // Get orderlines for this order
@@ -2755,7 +2933,7 @@ export class OrdersService {
             sgst_amount: ol.sgst_amount ? Number(ol.sgst_amount) : null,
             igst_amount: ol.igst_amount ? Number(ol.igst_amount) : null,
             total_gst_amount: ol.total_gst_amount ? Number(ol.total_gst_amount) : null,
-            status_history: this.parseStatusHistory(ol.status_history)
+            status_history: await this.enrichStatusHistoryActors(ol.status_history)
           };
 
           // Check if product is combo and fetch component data
@@ -2958,8 +3136,9 @@ export class OrdersService {
         hasAddress: !!address
       }, 'Order details retrieved successfully');
 
+      const [orderWithEffectiveStatus] = await this.attachEffectiveStatuses([order]);
       return {
-        order,
+        order: orderWithEffectiveStatus,
         orderlines,
         address,
         wallet_usage,
@@ -3368,16 +3547,18 @@ export class OrdersService {
         };
       });
 
+      const ordersWithEffectiveStatus = await this.attachEffectiveStatuses(ordersWithDetails);
+
       logger.info({
         userId,
-        ordersCount: ordersWithDetails.length,
+        ordersCount: ordersWithEffectiveStatus.length,
         totalOrders: pagination.total,
         page,
         limit
       }, 'Orders with orderlines and address retrieved successfully');
 
       return {
-        orders: ordersWithDetails,
+        orders: ordersWithEffectiveStatus,
         pagination
       };
     } catch (error) {

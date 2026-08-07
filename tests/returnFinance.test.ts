@@ -51,6 +51,30 @@ test('derives taxable and GST values from GST rate when line tax fields are unav
   assert.equal(breakup.sgstAmount, 90);
 });
 
+test('uses persisted order GST totals for a single-product return when line tax fields are unavailable', () => {
+  const breakup = calculateCreditNoteTaxBreakup(
+    {
+      orderline: { orderamount: 40 },
+      order: {
+        productid: [44],
+        total_taxable_amount: 38.1,
+        total_cgst_amount: 0.95,
+        total_sgst_amount: 0.95,
+        total_igst_amount: 0,
+        total_gst_amount: 1.9,
+      },
+    },
+    40,
+    {}
+  );
+
+  assert.equal(breakup.taxableAmount, 38.1);
+  assert.equal(breakup.gstRate, 4.99);
+  assert.equal(breakup.cgstAmount, 0.95);
+  assert.equal(breakup.sgstAmount, 0.95);
+  assert.equal(breakup.totalGstAmount, 1.9);
+});
+
 test('honors manual credit note tax overrides', () => {
   const breakup = calculateCreditNoteTaxBreakup(
     {

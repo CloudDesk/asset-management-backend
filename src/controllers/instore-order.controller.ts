@@ -12,9 +12,13 @@ export class InstoreOrderController {
     if (!user || user.userType !== 'inventory') {
       throw new ValidationError('Only authenticated inventory users can create in-store orders');
     }
-    return user.location
-      ? { id: user.id, location: user.location }
-      : { id: user.id };
+    return {
+      id: user.id,
+      ...(user.location ? { location: user.location } : {}),
+      ...(user.firstname ? { firstname: user.firstname } : {}),
+      ...(user.lastname ? { lastname: user.lastname } : {}),
+      ...(user.useremail ? { useremail: user.useremail } : {}),
+    };
   }
 
   searchCustomers = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
