@@ -9,9 +9,11 @@ datasource db {
 
 model Product {
   id               BigInt                   @id @default(autoincrement())
-  name             String                   @db.VarChar(500)
+  name             String                   @db.VarChar(1200)
+  shortname        String?                  @db.VarChar(160)
   shortdescription String?
   fulldescription  String?
+  benefititems     Json?                    @db.JsonB
   puc              String                   @unique @db.VarChar(255)
   category         String?                  @db.VarChar(255)
   subcategory      String?                  @db.VarChar(255)
@@ -51,10 +53,10 @@ model Product {
   purpose   String?  @db.VarChar(255)
   burntime  String?  @db.VarChar(255)
   power     String?  @db.VarChar(255)
-  usage     String?  @db.VarChar(255)
+  usage     String?
   longevity String?  @db.VarChar(255)
   gender    String?  @db.VarChar(50)
-  remarks   String?  @db.VarChar(255)
+  remarks   String   @db.VarChar(1000)
   iscombo   Boolean? @default(false)
   combotype String?  @default("fixed") @db.VarChar(50)
 
@@ -771,7 +773,7 @@ model orderline {
   discountamount            Decimal? @db.Decimal(10, 2)
   orderamount               Decimal? @db.Decimal(10, 2)
   merchanttransactionid     String?  @db.VarChar(500)
-  productname               String?  @db.VarChar(500)
+  productname               String?  @db.VarChar(1200)
   productcategory           String?  @db.VarChar(500)
   productcolour             String?  @db.VarChar(500)
   readytodispatchdate       BigInt?
@@ -1061,7 +1063,7 @@ model tickets {
   issuedescription          String?
   recipturl                 String?                  @db.VarChar(200)
   trackingnumber            String?                  @db.VarChar(255)
-  productname               String?                  @db.VarChar(255)
+  productname               String?                  @db.VarChar(1200)
   purchasedate              BigInt?
   userid                    Int?
   location                  String?                  @db.VarChar(255)

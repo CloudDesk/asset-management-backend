@@ -1,3 +1,5 @@
+/// <reference types="node" />
+
 import 'dotenv/config';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -9,15 +11,21 @@ const CONFIRMATION = 'NIVAANA_PRODUCT_NAMES';
 const applyRequested = process.argv.includes('--apply');
 const confirmation = process.argv.find((arg) => arg.startsWith('--confirm='))?.split('=')[1];
 
-const toTitleCase = (input: string) =>
-  input
-    .replace(/[-_]/g, ' ')
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .split(' ')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ');
+const clean = (value: string | null | undefined) => {
+  const trimmed = value?.trim() || '';
+  return trimmed.toLowerCase() === 'false' ? '' : trimmed;
+};
+
+const deriveRemarksFromLegacyName = (name: string) => {
+  const parts = name
+    .split(' - ')
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (parts.length >= 3) return parts.slice(2).join(' - ');
+  if (parts.length >= 2) return parts.slice(1).join(' - ');
+  return clean(name);
+};
 
 const main = async () => {
   if (applyRequested && confirmation !== CONFIRMATION) {
@@ -31,8 +39,6 @@ const main = async () => {
         puc: true,
         name: true,
         brand: true,
-        subcategory: true,
-        fragnancetype: true,
         remarks: true,
       },
       orderBy: { puc: 'asc' },
@@ -40,74 +46,49 @@ const main = async () => {
     prisma.picklist.findMany({
       where: {
         object: 'product',
-        fieldname: { in: ['brand', 'subcategory', 'fragnancetype'] },
+        fieldname: 'brand',
         isactive: true,
       },
     }),
   ]);
 
-  const fragranceRows = picklists.filter((row) => row.fieldname === 'fragnancetype');
-  const fragranceLabel = (subcategory: string, value: string) =>
-    fragranceRows.find((row) => row.parent === subcategory && row.value === value)?.label ||
-    fragranceRows.find((row) => row.value === value)?.label ||
-    toTitleCase(value);
-  const normalize = (input: string) =>
-    input.replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
-
   const blocked: Array<{ puc: string; reason: string }> = [];
   const changes = products.map((product) => {
-    if (!product.brand) blocked.push({ puc: product.puc, reason: 'missing brand' });
-    if (!product.subcategory) blocked.push({ puc: product.puc, reason: 'missing subcategory' });
+    const storedRemarks = clean(product.remarks);
+    const proposedRemarks = storedRemarks || deriveRemarksFromLegacyName(product.name);
 
-    const fragranceLabels = (product.fragnancetype || '')
-      .split(',')
-      .map((value) => value.trim())
-      .filter(Boolean)
-      .map((value) => fragranceLabel(product.subcategory || '', value));
-    const storedRemarks =
-      product.remarks?.trim() && product.remarks.toLowerCase() !== 'false'
-        ? product.remarks.trim()
-        : '';
-    const currentNameParts = product.name
-      .split(' - ')
-      .map((part) => part.trim())
-      .filter(Boolean);
-    const remainingNameParts = currentNameParts.slice(2);
-    for (const fragrance of fragranceLabels) {
-      const index = remainingNameParts.findIndex(
-        (part) => normalize(part) === normalize(fragrance),
-      );
-      if (index >= 0) remainingNameParts.splice(index, 1);
+    if (!clean(product.brand)) {
+      blocked.push({ puc: product.puc, reason: 'missing brand' });
     }
-    const derivedRemarks =
-      !storedRemarks
-        ? remainingNameParts.join(' - ') ||
-          (!fragranceLabels.length ? currentNameParts.slice(1).join(' - ') : '')
-        : '';
-    const fragrancePrefix = fragranceLabels.join(', ');
-    let descriptor = storedRemarks || derivedRemarks;
-    const delimiterIndex = descriptor.indexOf(' - ');
-    const firstSegment =
-      delimiterIndex >= 0 ? descriptor.slice(0, delimiterIndex) : descriptor;
-    if (
-      fragrancePrefix &&
-      normalize(firstSegment) === normalize(fragrancePrefix)
-    ) {
-      descriptor =
-        delimiterIndex >= 0 ? descriptor.slice(delimiterIndex + 3).trim() : '';
+    if (!proposedRemarks) {
+      blocked.push({ puc: product.puc, reason: 'missing remarks' });
     }
-    const migratedRemarks = [fragrancePrefix, descriptor]
-      .filter(Boolean)
-      .join(' - ');
-    const { name: proposedName, remarks: proposedRemarks } = buildProductNaming({
-      product: {
-        brand: product.brand,
-        subcategory: product.subcategory,
-        remarks: migratedRemarks,
-      },
-      picklists,
-    });
-    if (!proposedName) blocked.push({ puc: product.puc, reason: 'generated name is empty' });
+    if (proposedRemarks.length > 1000) {
+      blocked.push({ puc: product.puc, reason: 'remarks exceed 1000 characters' });
+    }
+
+    let proposedName = '';
+    if (clean(product.brand) && proposedRemarks && proposedRemarks.length <= 1000) {
+      try {
+        proposedName = buildProductNaming({
+          product: {
+            brand: product.brand,
+            remarks: proposedRemarks,
+          },
+          picklists,
+        }).name;
+      } catch (error) {
+        blocked.push({
+          puc: product.puc,
+          reason: error instanceof Error ? error.message : 'name generation failed',
+        });
+      }
+    }
+
+    if (proposedName.length > 1200) {
+      blocked.push({ puc: product.puc, reason: 'generated name exceeds 1200 characters' });
+    }
+
     return {
       id: product.id,
       puc: product.puc,
@@ -115,41 +96,54 @@ const main = async () => {
       proposedName,
       currentRemarks: product.remarks,
       proposedRemarks,
-      remarksDerived: Boolean(derivedRemarks),
+      remarksDerived: !storedRemarks && Boolean(proposedRemarks),
     };
   });
 
   const findCollisions = () => {
     const byName = new Map<string, typeof changes>();
     for (const change of changes) {
+      if (!change.proposedName) continue;
       const key = change.proposedName.toLowerCase();
       byName.set(key, [...(byName.get(key) || []), change]);
     }
     return [...byName.values()].filter((group) => group.length > 1);
   };
 
+  const collisionResolutions: Array<{
+    puc: string;
+    originalProposedName: string;
+    resolvedProposedName: string;
+  }> = [];
   for (const group of findCollisions()) {
-    if (!group.every((change) => change.remarksDerived && change.proposedRemarks)) continue;
     for (const change of group) {
+      const originalProposedName = change.proposedName;
       change.proposedRemarks = `${change.proposedRemarks} - ${change.puc}`;
       change.proposedName = `${change.proposedName} - ${change.puc}`;
+      collisionResolutions.push({
+        puc: change.puc,
+        originalProposedName,
+        resolvedProposedName: change.proposedName,
+      });
+      if (change.proposedRemarks.length > 1000) {
+        blocked.push({ puc: change.puc, reason: 'collision-resolved remarks exceed 1000 characters' });
+      }
+      if (change.proposedName.length > 1200) {
+        blocked.push({ puc: change.puc, reason: 'collision-resolved name exceeds 1200 characters' });
+      }
     }
   }
   const collisions = findCollisions();
   const changed = changes.filter((change) => change.currentName !== change.proposedName);
   const remarksToPopulate = changes.filter(
-    (change) => change.proposedRemarks !== change.currentRemarks,
+    (change) => change.proposedRemarks !== clean(change.currentRemarks),
   );
   const updates = changes.filter(
     (change) =>
-      change.currentName !== change.proposedName ||
-      change.proposedRemarks !== change.currentRemarks,
+      change.proposedName &&
+      (change.currentName !== change.proposedName ||
+        change.proposedRemarks !== clean(change.currentRemarks)),
   );
-  for (const change of changes) {
-    if (change.proposedName.length > 500) {
-      blocked.push({ puc: change.puc, reason: 'generated name exceeds 500 characters' });
-    }
-  }
 
   console.log(JSON.stringify({
     mode: applyRequested ? 'APPLY' : 'DRY_RUN',
@@ -158,6 +152,7 @@ const main = async () => {
     unchanged: products.length - changed.length,
     remarksToPopulate: remarksToPopulate.length,
     blocked,
+    collisionResolutions,
     collisionGroups: collisions.map((group) => ({
       proposedName: group[0].proposedName,
       products: group.map(({ puc, currentName }) => ({ puc, currentName })),
@@ -220,9 +215,7 @@ const main = async () => {
         where: { id: change.id },
         data: {
           name: change.proposedName,
-          ...(change.proposedRemarks !== change.currentRemarks
-            ? { remarks: change.proposedRemarks }
-            : {}),
+          remarks: change.proposedRemarks,
           modifieddate: BigInt(Date.now()),
         },
       });

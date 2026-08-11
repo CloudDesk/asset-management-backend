@@ -1,0 +1,3 @@
+ALTER TABLE "product"
+ALTER COLUMN "usage" TYPE TEXT;
+

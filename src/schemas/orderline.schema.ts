@@ -11,7 +11,7 @@ export const createOrderlineSchema = z.object({
   orderamount: z.number().optional(),
   quantity: z.number().optional(),
   merchanttransactionid: z.string().max(250).optional(),
-  productname: z.string().max(500).optional(),
+  productname: z.string().max(1200).optional(),
   productcategory: z.string().max(500).optional(),
   productcolour: z.string().max(500).optional(),
   readytodispatchdate: z.number().optional(),
@@ -40,7 +40,7 @@ export const updateOrderlineSchema = z.object({
   orderamount: z.number().optional(),
   quantity: z.number().optional(),
   merchanttransactionid: z.string().max(250).optional(),
-  productname: z.string().max(500).optional(),
+  productname: z.string().max(1200).optional(),
   productcategory: z.string().max(500).optional(),
   productcolour: z.string().max(500).optional(),
   readytodispatchdate: z.number().optional(),
@@ -69,7 +69,7 @@ export const upsertOrderlineSchema = z.object({
   orderamount: z.number().optional(),
   quantity: z.number().optional(),
   merchanttransactionid: z.string().max(250).optional(),
-  productname: z.string().max(500).optional(),
+  productname: z.string().max(1200).optional(),
   productcategory: z.string().max(500).optional(),
   productcolour: z.string().max(500).optional(),
   readytodispatchdate: z.number().optional(),
@@ -95,4 +95,4 @@ export const orderlineParamsSchema = z.object({
 export type CreateOrderlineInput = z.infer<typeof createOrderlineSchema>;
 export type UpdateOrderlineInput = z.infer<typeof updateOrderlineSchema>;
 export type UpsertOrderlineInput = z.infer<typeof upsertOrderlineSchema>;
-export type OrderlineParams = z.infer<typeof orderlineParamsSchema>; 
+export type OrderlineParams = z.infer<typeof orderlineParamsSchema>;

@@ -681,6 +681,7 @@ export class ProductService {
     if (filters.search) {
       where.OR = [
         { name: { contains: filters.search, mode: 'insensitive' } },
+        { shortname: { contains: filters.search, mode: 'insensitive' } },
         { shortdescription: { contains: filters.search, mode: 'insensitive' } },
         { fulldescription: { contains: filters.search, mode: 'insensitive' } },
       ];
@@ -705,7 +706,7 @@ export class ProductService {
       const namingPicklists = await prisma.picklist.findMany({
         where: {
           object: 'product',
-          fieldname: { in: ['brand', 'subcategory'] },
+          fieldname: 'brand',
           isactive: true,
         },
         select: {
@@ -917,14 +918,13 @@ export class ProductService {
       const namingFields = [
         'name',
         'brand',
-        'subcategory',
         'remarks',
       ];
       if (namingFields.some((field) => field in updateData)) {
         const namingPicklists = await prisma.picklist.findMany({
           where: {
             object: 'product',
-            fieldname: { in: ['brand', 'subcategory'] },
+            fieldname: 'brand',
             isactive: true,
           },
           select: {
@@ -936,7 +936,6 @@ export class ProductService {
         });
         const effectiveProduct = {
           brand: updateData.brand ?? existingProduct.brand,
-          subcategory: updateData.subcategory ?? existingProduct.subcategory,
           remarks: updateData.remarks ?? existingProduct.remarks,
         };
         Object.assign(

@@ -4224,7 +4224,7 @@ export class PhonePeController {
     // Validate string fields length
     const stringFields = [
       { field: "merchanttransactionid", maxLength: 250 },
-      { field: "productname", maxLength: 500 },
+      { field: "productname", maxLength: 1200 },
       { field: "productcategory", maxLength: 500 },
       { field: "productcolour", maxLength: 500 },
       { field: "orderstatus", maxLength: 500 },

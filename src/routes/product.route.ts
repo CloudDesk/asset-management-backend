@@ -19,6 +19,7 @@ export async function productRoutes(fastify: FastifyInstance) {
             limit: { type: "string", description: "Items per page" },
             id: { type: "string", description: "Filter by product ID" },
             name: { type: "string", description: "Filter by product name" },
+            shortname: { type: "string", description: "Filter by product short name" },
             shortdescription: {
               type: "string",
               description: "Filter by short description",
@@ -188,6 +189,7 @@ export async function productRoutes(fastify: FastifyInstance) {
                   properties: {
                     id: { type: "number", description: "Product ID" },
                     name: { type: "string", description: "Product name" },
+                    shortname: { type: "string", nullable: true, description: "Editable product short name" },
                     shortdescription: {
                       type: "string",
                       nullable: true,
@@ -512,6 +514,7 @@ export async function productRoutes(fastify: FastifyInstance) {
                 properties: {
                   id: { type: "number", description: "Product ID" },
                   name: { type: "string", description: "Product name" },
+                  shortname: { type: "string", nullable: true, description: "Editable product short name" },
                   shortdescription: {
                     type: "string",
                     nullable: true,
@@ -952,6 +955,7 @@ export async function productRoutes(fastify: FastifyInstance) {
                   properties: {
                     id: { type: "number", description: "Product ID" },
                     name: { type: "string", description: "Product name" },
+                    shortname: { type: "string", nullable: true, description: "Editable product short name" },
                     shortdescription: { type: "string", nullable: true, description: "Short description" },
                     fulldescription: { type: "string", nullable: true, description: "Full description" },
                     price: { type: "number", nullable: true, description: "Product price" },
@@ -1276,6 +1280,7 @@ export async function productRoutes(fastify: FastifyInstance) {
                 properties: {
                   id: { type: "number", description: "Product ID" },
                   name: { type: "string", description: "Product name" },
+                  shortname: { type: "string", nullable: true, description: "Editable product short name" },
                   price: { type: "number", nullable: true, description: "Product price" },
                   category: { type: "string", nullable: true, description: "Product category" },
                   subcategory: { type: "string", nullable: true, description: "Product subcategory" },
@@ -1461,8 +1466,15 @@ export async function productRoutes(fastify: FastifyInstance) {
             name: {
               type: "string",
               minLength: 1,
-              maxLength: 1516,
+              maxLength: 1200,
               description: "Product name (required)",
+            },
+            shortname: {
+              type: "string",
+              nullable: true,
+              minLength: 2,
+              maxLength: 160,
+              description: "Editable product short name used on listing cards",
             },
             shortdescription: {
               type: "string",
@@ -1471,6 +1483,23 @@ export async function productRoutes(fastify: FastifyInstance) {
             fulldescription: {
               type: "string",
               description: "Full description",
+            },
+            benefititems: {
+              type: "array",
+              maxItems: 12,
+              items: {
+                type: "object",
+                required: ["icon", "text"],
+                properties: {
+                  icon: { type: "string", enum: ["sparkles", "leaf", "shield", "repeat", "package", "heart", "droplet", "sun", "star", "wind"] },
+                  text: { type: "string", minLength: 1, maxLength: 300 },
+                },
+              },
+              description: "Ordered benefit items with cross-platform icon keys",
+            },
+            usage: {
+              type: "string",
+              description: "Rich-text product usage instructions",
             },
             fragnancetype: {
               type: "string",
@@ -1616,7 +1645,7 @@ export async function productRoutes(fastify: FastifyInstance) {
               },
             },
           },
-          required: ["name"], // Only name is required as per schema
+          required: ["name", "remarks"],
           additionalProperties: false, // Strict validation - only allow specified fields
         },
         response: {
@@ -1629,6 +1658,7 @@ export async function productRoutes(fastify: FastifyInstance) {
                 properties: {
                   id: { type: "number", description: "Product ID" },
                   name: { type: "string", description: "Product name" },
+                  shortname: { type: "string", nullable: true, description: "Editable product short name" },
                   shortdescription: {
                     type: "string",
                     nullable: true,
@@ -1981,8 +2011,15 @@ export async function productRoutes(fastify: FastifyInstance) {
             name: {
               type: "string",
               minLength: 1,
-              maxLength: 1516,
+              maxLength: 1200,
               description: "Product name",
+            },
+            shortname: {
+              type: "string",
+              nullable: true,
+              minLength: 2,
+              maxLength: 160,
+              description: "Editable product short name used on listing cards",
             },
             shortdescription: {
               type: "string",
@@ -1991,6 +2028,23 @@ export async function productRoutes(fastify: FastifyInstance) {
             fulldescription: {
               type: "string",
               description: "Full description",
+            },
+            benefititems: {
+              type: "array",
+              maxItems: 12,
+              items: {
+                type: "object",
+                required: ["icon", "text"],
+                properties: {
+                  icon: { type: "string", enum: ["sparkles", "leaf", "shield", "repeat", "package", "heart", "droplet", "sun", "star", "wind"] },
+                  text: { type: "string", minLength: 1, maxLength: 300 },
+                },
+              },
+              description: "Ordered benefit items with cross-platform icon keys",
+            },
+            usage: {
+              type: "string",
+              description: "Rich-text product usage instructions",
             },
             fragnancetype: {
               type: "string",
@@ -2139,6 +2193,7 @@ export async function productRoutes(fastify: FastifyInstance) {
                 properties: {
                   id: { type: "number", description: "Product ID" },
                   name: { type: "string", description: "Product name" },
+                  shortname: { type: "string", nullable: true, description: "Editable product short name" },
                   shortdescription: {
                     type: "string",
                     nullable: true,
@@ -2640,8 +2695,15 @@ export async function productRoutes(fastify: FastifyInstance) {
             name: {
               type: "string",
               minLength: 1,
-              maxLength: 1516,
+              maxLength: 1200,
               description: "Product name",
+            },
+            shortname: {
+              type: "string",
+              nullable: true,
+              minLength: 2,
+              maxLength: 160,
+              description: "Editable product short name used on listing cards",
             },
             shortdescription: {
               type: "string",
@@ -2650,6 +2712,23 @@ export async function productRoutes(fastify: FastifyInstance) {
             fulldescription: {
               type: "string",
               description: "Full description",
+            },
+            benefititems: {
+              type: "array",
+              maxItems: 12,
+              items: {
+                type: "object",
+                required: ["icon", "text"],
+                properties: {
+                  icon: { type: "string", enum: ["sparkles", "leaf", "shield", "repeat", "package", "heart", "droplet", "sun", "star", "wind"] },
+                  text: { type: "string", minLength: 1, maxLength: 300 },
+                },
+              },
+              description: "Ordered benefit items with cross-platform icon keys",
+            },
+            usage: {
+              type: "string",
+              description: "Rich-text product usage instructions",
             },
             fragnancetype: {
               type: "string",
@@ -2799,6 +2878,7 @@ export async function productRoutes(fastify: FastifyInstance) {
                     properties: {
                       id: { type: "number", description: "Product ID" },
                       name: { type: "string", description: "Product name" },
+                      shortname: { type: "string", nullable: true, description: "Editable product short name" },
                       shortdescription: {
                         type: "string",
                         nullable: true,
