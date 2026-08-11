@@ -47,7 +47,11 @@ export class InvoiceAdjustmentService {
     const database = data.database || prisma;
     const order = await database.orders.findUnique({
       where: { id: orderId },
-      include: { orderline: true },
+      include: {
+        orderline: {
+          include: { product: { select: { name: true, shortname: true } } },
+        },
+      },
     });
 
     if (!order) {
@@ -124,7 +128,10 @@ export class InvoiceAdjustmentService {
       return null;
     }
 
-    const orderlines = await database.orderline.findMany({ where: { orderid: orderId } });
+    const orderlines = await database.orderline.findMany({
+      where: { orderid: orderId },
+      include: { product: { select: { name: true, shortname: true } } },
+    });
     const targetOrderlineId = Number(request.orderlineid || request.orderline?.id || 0);
     const targetLine = orderlines.find((line: any) => Number(line.id) === targetOrderlineId) || request.orderline || {};
     const requestedQuantity = Math.max(1, Math.trunc(Number(action.quantity || request.requestedquantity || 1)));
@@ -475,6 +482,16 @@ export class InvoiceAdjustmentService {
       const documentAmount = data.adjustmentType === 'invoice_override'
         ? toDecimalNumber(data.remainingAmount)
         : toDecimalNumber(data.reversedAmount);
+      const productIds = documentLines
+        .map((line: any) => Number(line.productId))
+        .filter((id: number) => Number.isInteger(id) && id > 0);
+      const products = await database.product.findMany({
+        where: { id: { in: productIds.map((id: number) => BigInt(id)) } },
+        select: { id: true, shortname: true },
+      });
+      const shortnamesByProductId = new Map(
+        products.map((product: any) => [Number(product.id), product.shortname?.trim()]),
+      );
 
       const orderlines = documentLines.map((line: any, index: number) => {
         const quantity = Math.max(1, Math.trunc(Number(line.quantity || 1)));
@@ -487,7 +504,11 @@ export class InvoiceAdjustmentService {
           id: line.orderlineId || index + 1,
           orderlinenumber: line.orderlineNumber || `${data.adjustmentNumber}-${index + 1}`,
           productid: line.productId || null,
-          productname: line.productName || 'Returned item',
+          productshortname: shortnamesByProductId.get(Number(line.productId)) || null,
+          productname:
+            shortnamesByProductId.get(Number(line.productId))
+            || line.productName
+            || 'Returned item',
           productcategory: '',
           quantity,
           original_price: quantity > 0 ? roundCurrency(lineAmount / quantity) : lineAmount,
@@ -553,7 +574,12 @@ export class InvoiceAdjustmentService {
       orderlineId: line?.id || null,
       orderlineNumber: line?.orderlinenumber || null,
       productId: line?.productid || null,
-      productName: line?.productname || line?.product?.name || null,
+      productName:
+        line?.productshortname?.trim()
+        || line?.product?.shortname?.trim()
+        || line?.productname
+        || line?.product?.name
+        || null,
       quantity: Number(line?.quantity || 0),
       amount: roundCurrency(toNumber(line?.orderamount || line?.productamount)),
       hsnCode: line?.hsn_code || null,

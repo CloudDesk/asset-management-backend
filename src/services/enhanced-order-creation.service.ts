@@ -181,6 +181,17 @@ export class EnhancedOrderCreationService {
     lineLevelBreakdown: any[]
   ) {
     const orderlines = [];
+    const productIds = orderItems
+      .map((item) => Number(item.productid))
+      .filter((id) => Number.isInteger(id) && id > 0)
+      .map((id) => BigInt(id));
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, shortname: true },
+    });
+    const shortnamesByProductId = new Map(
+      products.map((product) => [Number(product.id), product.shortname.trim()]),
+    );
 
     for (let i = 0; i < orderItems.length; i++) {
       const item = orderItems[i];
@@ -196,6 +207,7 @@ export class EnhancedOrderCreationService {
         orderamount: item.orderamount,
         quantity: item.quantity,
         productname: item.productname,
+        productshortname: shortnamesByProductId.get(Number(item.productid)) || null,
         productcategory: item.productcategory,
         orderstatus: 'payment_completed',
         // Enhanced promotion tracking fields
