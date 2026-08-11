@@ -10,7 +10,7 @@ datasource db {
 model Product {
   id               BigInt                   @id @default(autoincrement())
   name             String                   @db.VarChar(1200)
-  shortname        String?                  @db.VarChar(160)
+  shortname        String                   @db.VarChar(160)
   shortdescription String?
   fulldescription  String?
   benefititems     Json?                    @db.JsonB

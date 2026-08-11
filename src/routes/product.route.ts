@@ -189,7 +189,7 @@ export async function productRoutes(fastify: FastifyInstance) {
                   properties: {
                     id: { type: "number", description: "Product ID" },
                     name: { type: "string", description: "Product name" },
-                    shortname: { type: "string", nullable: true, description: "Editable product short name" },
+                    shortname: { type: "string", description: "Required editable product short name" },
                     shortdescription: {
                       type: "string",
                       nullable: true,
@@ -514,7 +514,7 @@ export async function productRoutes(fastify: FastifyInstance) {
                 properties: {
                   id: { type: "number", description: "Product ID" },
                   name: { type: "string", description: "Product name" },
-                  shortname: { type: "string", nullable: true, description: "Editable product short name" },
+                    shortname: { type: "string", description: "Required editable product short name" },
                   shortdescription: {
                     type: "string",
                     nullable: true,
@@ -955,7 +955,7 @@ export async function productRoutes(fastify: FastifyInstance) {
                   properties: {
                     id: { type: "number", description: "Product ID" },
                     name: { type: "string", description: "Product name" },
-                    shortname: { type: "string", nullable: true, description: "Editable product short name" },
+                    shortname: { type: "string", description: "Required editable product short name" },
                     shortdescription: { type: "string", nullable: true, description: "Short description" },
                     fulldescription: { type: "string", nullable: true, description: "Full description" },
                     price: { type: "number", nullable: true, description: "Product price" },
@@ -1280,7 +1280,7 @@ export async function productRoutes(fastify: FastifyInstance) {
                 properties: {
                   id: { type: "number", description: "Product ID" },
                   name: { type: "string", description: "Product name" },
-                  shortname: { type: "string", nullable: true, description: "Editable product short name" },
+                  shortname: { type: "string", description: "Required editable product short name" },
                   price: { type: "number", nullable: true, description: "Product price" },
                   category: { type: "string", nullable: true, description: "Product category" },
                   subcategory: { type: "string", nullable: true, description: "Product subcategory" },
@@ -1471,7 +1471,6 @@ export async function productRoutes(fastify: FastifyInstance) {
             },
             shortname: {
               type: "string",
-              nullable: true,
               minLength: 2,
               maxLength: 160,
               description: "Editable product short name used on listing cards",
@@ -1645,7 +1644,7 @@ export async function productRoutes(fastify: FastifyInstance) {
               },
             },
           },
-          required: ["name", "remarks"],
+          required: ["name", "shortname", "remarks"],
           additionalProperties: false, // Strict validation - only allow specified fields
         },
         response: {
@@ -1658,7 +1657,7 @@ export async function productRoutes(fastify: FastifyInstance) {
                 properties: {
                   id: { type: "number", description: "Product ID" },
                   name: { type: "string", description: "Product name" },
-                  shortname: { type: "string", nullable: true, description: "Editable product short name" },
+                  shortname: { type: "string", description: "Required editable product short name" },
                   shortdescription: {
                     type: "string",
                     nullable: true,
@@ -2016,7 +2015,6 @@ export async function productRoutes(fastify: FastifyInstance) {
             },
             shortname: {
               type: "string",
-              nullable: true,
               minLength: 2,
               maxLength: 160,
               description: "Editable product short name used on listing cards",
@@ -2193,7 +2191,7 @@ export async function productRoutes(fastify: FastifyInstance) {
                 properties: {
                   id: { type: "number", description: "Product ID" },
                   name: { type: "string", description: "Product name" },
-                  shortname: { type: "string", nullable: true, description: "Editable product short name" },
+                  shortname: { type: "string", description: "Required editable product short name" },
                   shortdescription: {
                     type: "string",
                     nullable: true,
@@ -2700,7 +2698,6 @@ export async function productRoutes(fastify: FastifyInstance) {
             },
             shortname: {
               type: "string",
-              nullable: true,
               minLength: 2,
               maxLength: 160,
               description: "Editable product short name used on listing cards",
@@ -2878,7 +2875,7 @@ export async function productRoutes(fastify: FastifyInstance) {
                     properties: {
                       id: { type: "number", description: "Product ID" },
                       name: { type: "string", description: "Product name" },
-                      shortname: { type: "string", nullable: true, description: "Editable product short name" },
+                      shortname: { type: "string", description: "Required editable product short name" },
                       shortdescription: {
                         type: "string",
                         nullable: true,
