@@ -774,6 +774,7 @@ model orderline {
   orderamount               Decimal? @db.Decimal(10, 2)
   merchanttransactionid     String?  @db.VarChar(500)
   productname               String?  @db.VarChar(1200)
+  productshortname          String?  @db.VarChar(160)
   productcategory           String?  @db.VarChar(500)
   productcolour             String?  @db.VarChar(500)
   readytodispatchdate       BigInt?

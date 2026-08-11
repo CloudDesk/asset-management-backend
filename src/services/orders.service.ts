@@ -580,6 +580,13 @@ export class OrdersService {
     mode?: string // ✅ Optional mode parameter for correct orderline status
   ) {
     const orderlines = [];
+    const products = await prisma.product.findMany({
+      where: { id: { in: productIds.map((id) => BigInt(id)) } },
+      select: { id: true, shortname: true },
+    });
+    const shortnamesByProductId = new Map(
+      products.map((product) => [Number(product.id), product.shortname.trim()]),
+    );
 
     // ✅ FIX: COD orderlines should start with order_confirmed, Prepaid with payment_completed
     const isCodOrder = mode === 'cod';
@@ -596,7 +603,7 @@ export class OrdersService {
     }]);
 
     for (let i = 0; i < productIds.length; i++) {
-      const productId = productIds[i];
+      const productId = productIds[i]!;
 
       const orderlineData = {
         orderid: orderId, // Use the database ID, not the string orderid
@@ -608,6 +615,7 @@ export class OrdersService {
         orderamount: orderData.orderamount || null,
         quantity: orderData.quantity || 1, // Default quantity per line
         merchanttransactionid: orderData.merchanttransactionid || null,
+        productshortname: shortnamesByProductId.get(productId) || null,
         orderstatus: orderData.orderstatus || defaultStatus, // ✅ COD: order_confirmed, Prepaid: payment_completed
         uniqueordderid: orderidString, // Use the string orderid
         deliveryfrom: orderData.deliveryfrom || null,
@@ -652,6 +660,16 @@ export class OrdersService {
     mode?: string // ✅ Optional mode parameter for correct orderline status
   ) {
     const orderlines = [];
+    const productIds = orderItems
+      .map((item) => Number(item.productid))
+      .filter((id) => Number.isInteger(id) && id > 0);
+    const products = await prisma.product.findMany({
+      where: { id: { in: productIds.map((id) => BigInt(id)) } },
+      select: { id: true, shortname: true },
+    });
+    const shortnamesByProductId = new Map(
+      products.map((product) => [Number(product.id), product.shortname.trim()]),
+    );
 
     logger.info({
       orderId,
@@ -694,6 +712,7 @@ export class OrdersService {
         orderamount: parseFloat(orderItem.orderamount?.toString() || '0') || null,
         quantity: parseInt(orderItem.quantity?.toString() || '1') || 1,
         productname: orderItem.productname || null,
+        productshortname: shortnamesByProductId.get(Number(orderItem.productid)) || null,
         productcategory: orderItem.productcategory || null,
         orderstatus: orderlineStatus, // ✅ COD: order_confirmed, Prepaid: payment_completed
         uniqueordderid: orderidString, // Use the string orderid
@@ -1701,6 +1720,14 @@ export class OrdersService {
       // Call storage backend to generate invoice
       const storageBackendUrl = process.env.STORAGE_BACKEND_URL || 'http://localhost:4500';
       const invoiceEndpoint = `${storageBackendUrl}/order/invoice`;
+      const invoiceOrderlines = orderDetails.orderlines.map((line: any) => ({
+        ...line,
+        productid: line.productid === null || line.productid === undefined
+          ? null
+          : Number(line.productid),
+        // Maintain compatibility with invoice services that only read productname.
+        productname: line.productshortname?.trim() || line.productname,
+      }));
 
       logger.info({
         endpoint: invoiceEndpoint,
@@ -1709,12 +1736,14 @@ export class OrdersService {
         hasSeller: !!sellerData
       }, 'Calling storage backend to generate invoice');
 
-      const invoiceResponse = await axios.post(invoiceEndpoint, {
+      const invoicePayload = JSON.parse(JSON.stringify({
         order: orderDetails.order,
-        orderlines: orderDetails.orderlines,
+        orderlines: invoiceOrderlines,
         address: orderDetails.address,
         seller: sellerData
-      }, {
+      }, (_key, value) => typeof value === 'bigint' ? Number(value) : value));
+
+      const invoiceResponse = await axios.post(invoiceEndpoint, invoicePayload, {
         headers: {
           'Content-Type': 'application/json'
         },
@@ -2919,6 +2948,7 @@ export class OrdersService {
             quantity: ol.quantity,
             productid: ol.productid,
             productname: ol.productname,
+            productshortname: ol.productshortname,
             productcategory: ol.productcategory,
             hsn_code: ol.hsn_code,
             orderstatus: ol.orderstatus,

@@ -25,6 +25,7 @@ interface PricedItem {
   product: {
     id: bigint;
     name: string;
+    shortname: string;
     puc: string;
     price: Prisma.Decimal | null;
     discount: number | null;
@@ -155,6 +156,7 @@ export class InstoreOrderService {
         select: {
           id: true,
           name: true,
+          shortname: true,
           puc: true,
           price: true,
           discount: true,
@@ -285,6 +287,7 @@ export class InstoreOrderService {
             orderamount: lineAmount,
             merchanttransactionid: merchantTransactionId,
             productname: item.product.name,
+            productshortname: item.product.shortname.trim(),
             productcategory: item.product.category || item.product.subcategory,
             delivereddate: now,
             orderstatus: 'delivered',

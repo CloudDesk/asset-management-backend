@@ -92,6 +92,15 @@ export class OrderlineService {
         ordereddate: data.ordereddate || currentTimestamp,
       };
 
+      // Snapshot the compact invoice label when the order line is created.
+      if (!createData.productshortname && createData.productid) {
+        const product = await prisma.product.findUnique({
+          where: { id: BigInt(createData.productid) },
+          select: { shortname: true },
+        });
+        createData.productshortname = product?.shortname?.trim() || undefined;
+      }
+
       // Generate unique orderlinenumber if not provided
       if (!createData.orderlinenumber) {
         createData.orderlinenumber = `OL-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -133,6 +142,14 @@ export class OrderlineService {
         ...data,
         modifieddate: data.modifieddate || Date.now(),
       };
+
+      if (data.productid && !data.productshortname) {
+        const product = await prisma.product.findUnique({
+          where: { id: BigInt(data.productid) },
+          select: { shortname: true },
+        });
+        updateData.productshortname = product?.shortname?.trim() || undefined;
+      }
 
       const orderline = await dynamicUpdate('orderline', { id: parseInt(id) }, updateData);
 
