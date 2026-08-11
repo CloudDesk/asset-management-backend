@@ -9,7 +9,7 @@ export const dynamicFieldConfigs: Record<string, DynamicFieldConfig> = {
   product: {
     table: 'product',
     allowedFields: [
-      'name', 'puc', 'shortdescription', 'fulldescription', 'category', 'subcategory',
+      'name', 'shortname', 'puc', 'shortdescription', 'fulldescription', 'category', 'subcategory',
       'fragnancetype', 'Brand', 'pack', 'price', 'discount', 'averagerating',
       'quantity', 'orderedquantity', 'soldquantity', 'availablequantity', 
       'ecompublishedquantity', 'productstatus', 'large', 'medium', 'small',
@@ -18,6 +18,7 @@ export const dynamicFieldConfigs: Record<string, DynamicFieldConfig> = {
     requiredFields: ['name'],
     fieldTypes: {
       name: 'string',
+      shortname: 'string',
       puc: 'string',
       shortdescription: 'string',
       fulldescription: 'string',
@@ -148,4 +149,4 @@ export const picklistTypes = {
   QUALITY_GRADE: 'QUALITY_GRADE'
 } as const;
 
-export type PicklistType = typeof picklistTypes[keyof typeof picklistTypes]; 
+export type PicklistType = typeof picklistTypes[keyof typeof picklistTypes];

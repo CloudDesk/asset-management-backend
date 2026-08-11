@@ -1,6 +1,5 @@
 type NamingProduct = {
   brand?: string | null | undefined;
-  subcategory?: string | null | undefined;
   remarks?: string | null | undefined;
 };
 
@@ -68,28 +67,22 @@ export const buildProductNaming = ({
   picklists: NamingPicklist[];
 }) => {
   const brandValue = clean(product.brand);
-  const subcategoryValue = clean(product.subcategory);
-  if (!brandValue || !subcategoryValue) {
-    throw new Error('Brand and subcategory are required to generate the product name.');
+  if (!brandValue) {
+    throw new Error('Brand is required to generate the product name.');
   }
 
   const brand = labelFor(picklists, 'brand', brandValue, undefined, true);
-  const subcategory = labelFor(
-    picklists,
-    'subcategory',
-    subcategoryValue,
-  );
   const remarks = clean(product.remarks);
   if (!remarks) {
     throw new Error('Remarks are required to generate the product name.');
   }
-  if (remarks.length > 255) {
-    throw new Error('Generated remarks exceed 255 characters.');
+  if (remarks.length > 1000) {
+    throw new Error('Generated remarks exceed 1000 characters.');
   }
 
-  const name = [brand, subcategory, remarks].join(' - ');
-  if (name.length > 500) {
-    throw new Error('Generated product name exceeds 500 characters.');
+  const name = [brand, remarks].join(' - ');
+  if (name.length > 1200) {
+    throw new Error('Generated product name exceeds 1200 characters.');
   }
 
   return { name, remarks };

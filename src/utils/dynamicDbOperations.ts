@@ -30,6 +30,17 @@ const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 // Cache for safe columns to avoid repeated schema queries
 const safeColumnsCache = new Map<string, { columns: string[]; columnList: string; lastChecked: number }>();
 const SAFE_COLUMNS_TTL = 5 * 60 * 1000; // 5 minutes for debugging
+const JSONB_FIELDS = new Set([
+  'paymentdata',
+  'items',
+  'content',
+  'conditions',
+  'action',
+  'status_history',
+  'barcodes',
+  'benefititems',
+]);
+const isJsonbField = (field: string | undefined): boolean => Boolean(field && JSONB_FIELDS.has(field));
 
 // Predefined safe columns for common tables (to avoid schema queries)
 const PREDEFINED_SAFE_COLUMNS: Record<string, string[]> = {
@@ -1471,7 +1482,7 @@ export async function dynamicBulkCreate(
           // Only include columns that are in our filtered columns list
           if (columns.includes(key)) {
             // Handle JSON fields properly for PostgreSQL
-            if ((key === 'paymentdata' || key === 'items' || key === 'content' || key === 'conditions' || key === 'action' || key === 'status_history' || key === 'barcodes') && value !== null && value !== undefined) {
+            if (isJsonbField(key) && value !== null && value !== undefined) {
               rawData[key] = typeof value === 'string' ? value : JSON.stringify(value);
             } else {
               rawData[key] = value;
@@ -1509,7 +1520,7 @@ export async function dynamicBulkCreate(
         const value = record[col];
 
         // Handle JSON fields with explicit casting
-        if ((col === 'paymentdata' || col === 'items' || col === 'conditions' || col === 'action' || col === 'status_history' || col === 'barcodes') && value !== null && value !== undefined) {
+        if (isJsonbField(col) && value !== null && value !== undefined) {
           recordValues.push(typeof value === 'string' ? value : JSON.stringify(value));
         } else {
           recordValues.push(value);
@@ -1518,7 +1529,7 @@ export async function dynamicBulkCreate(
 
       const placeholders = recordValues.map((_, index) => {
         const col = columns[index];
-        if ((col === 'paymentdata' || col === 'items' || col === 'conditions' || col === 'action' || col === 'status_history' || col === 'barcodes') && recordValues[index] !== null && recordValues[index] !== undefined) {
+        if (isJsonbField(col) && recordValues[index] !== null && recordValues[index] !== undefined) {
           return `$${allValues.length + index + 1}::jsonb`;
         }
         return `$${allValues.length + index + 1}`;
@@ -1603,7 +1614,7 @@ export async function dynamicCreate(
     for (const [key, value] of Object.entries(filteredData)) {
       if (availableColumns.includes(key)) {
         // Handle JSON fields properly for PostgreSQL
-        if ((key === 'paymentdata' || key === 'items' || key === 'content' || key === 'conditions' || key === 'action' || key === 'status_history' || key === 'barcodes') && value !== null && value !== undefined) {
+        if (isJsonbField(key) && value !== null && value !== undefined) {
           // For JSONB fields with explicit casting, stringify the JSON
           rawData[key] = typeof value === 'string' ? value : JSON.stringify(value);
         } else {
@@ -1632,7 +1643,7 @@ export async function dynamicCreate(
 
     // Build placeholders with special handling for JSON fields
     const placeholders = columns.map((col, index) => {
-      if (col === 'paymentdata' || col === 'items' || col === 'conditions' || col === 'action' || col === 'status_history' || col === 'barcodes') {
+      if (isJsonbField(col)) {
         return `$${index + 1}::jsonb`;
       }
       return `$${index + 1}`;
@@ -1771,7 +1782,7 @@ export async function dynamicUpdate(
       for (const [key, value] of Object.entries(filteredData)) {
         if (availableColumns.includes(key)) {
           // Handle JSON fields properly for PostgreSQL
-          if ((key === 'paymentdata' || key === 'items' || key === 'conditions' || key === 'action' || key === 'status_history' || key === 'barcodes') && value !== null && value !== undefined) {
+          if (isJsonbField(key) && value !== null && value !== undefined) {
             // For JSONB fields with explicit casting, stringify the JSON
             rawData[key] = typeof value === 'string' ? value : JSON.stringify(value);
             if (key === 'paymentdata') {
@@ -1817,7 +1828,7 @@ export async function dynamicUpdate(
       // Build dynamic UPDATE query
       const setClause = Object.keys(rawData)
         .map((key, index) => {
-          if (key === 'paymentdata' || key === 'items' || key === 'conditions' || key === 'action' || key === 'status_history' || key === 'barcodes') {
+          if (isJsonbField(key)) {
             return `"${key}" = $${index + 2}::jsonb`; // Cast to JSONB for JSON fields
           }
           return `"${key}" = $${index + 2}`;
@@ -1900,7 +1911,7 @@ export async function dynamicUpdate(
       for (const [key, value] of Object.entries(filteredData)) {
         if (availableColumns.includes(key)) {
           // Handle JSON fields properly for PostgreSQL
-          if (key === 'paymentdata' && value !== null && value !== undefined) {
+          if (isJsonbField(key) && value !== null && value !== undefined) {
             // For JSONB fields with explicit casting, stringify the JSON
             rawData[key] = typeof value === 'string' ? value : JSON.stringify(value);
           } else {
@@ -1929,7 +1940,7 @@ export async function dynamicUpdate(
 
       // Build dynamic UPDATE query
       const setClause = Object.keys(rawData)
-        .map((key, index) => `"${key}" = $${index + 2}`) // Start from $2 since $1 is for WHERE
+        .map((key, index) => `"${key}" = $${index + 2}${isJsonbField(key) ? '::jsonb' : ''}`) // Start from $2 since $1 is for WHERE
         .join(', ');
 
       // Use safe columns for RETURNING to avoid tsvector issues

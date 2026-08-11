@@ -34,7 +34,9 @@
     "taxonomy:gst:dry-run": "npx tsx scripts/migrate-gst-taxonomy.ts",
     "taxonomy:gst:apply": "npx tsx scripts/migrate-gst-taxonomy.ts --apply --confirm=NIVAANA_GST_TAXONOMY",
     "taxonomy:names:dry-run": "npx tsx scripts/migrate-product-names.ts",
-    "taxonomy:names:apply": "npx tsx scripts/migrate-product-names.ts --apply --confirm=NIVAANA_PRODUCT_NAMES"
+    "taxonomy:names:apply": "npx tsx scripts/migrate-product-names.ts --apply --confirm=NIVAANA_PRODUCT_NAMES",
+    "shortnames:dry-run": "npx tsx scripts/migrate-product-shortnames.ts",
+    "shortnames:apply:dev": "npx tsx scripts/migrate-product-shortnames.ts --apply --confirm=NIVAANA_PRODUCT_SHORTNAMES_DEV"
   },
   "repository": {
     "type": "git",
@@ -98,6 +100,7 @@
     "qs": "^6.14.0",
     "redis": "^4.7.0",
     "revo-365_backend": "file:",
+    "sanitize-html": "^2.17.6",
     "tsx": "^4.19.1",
     "twilio": "^5.10.2",
     "url": "^0.11.3",
@@ -110,6 +113,7 @@
     "@types/node": "^20.11.24",
     "@types/node-cron": "^3.0.11",
     "@types/pino": "^7.0.5",
+    "@types/sanitize-html": "^2.16.1",
     "@types/uuid": "^9.0.7",
     "@typescript-eslint/eslint-plugin": "^6.19.0",
     "@typescript-eslint/parser": "^6.19.0",
