@@ -3,6 +3,7 @@ import { env } from './config/env.js';
 import { redisClient } from './config/redis.js';
 import { ekartAuthService } from './services/ekart-auth.service.js';
 import { prisma } from './models/prisma.js';
+import { scheduleShipmozoTrackingSync } from './utils/shipmozoTrackingScheduler.js';
 
 // Global BigInt serialization fix
 (BigInt.prototype as any).toJSON = function () {
@@ -36,6 +37,7 @@ async function start() {
       port: Number(port),
       host: '0.0.0.0',
     });
+    const shipmozoTrackingTask = scheduleShipmozoTrackingSync();
     // Start the server
     // await fastify.listen({
     //  port: env.PORT,
@@ -55,6 +57,8 @@ async function start() {
         // Disconnect Redis
         fastify.log.info('Disconnecting from Redis...');
         await redisClient.disconnect();
+
+        shipmozoTrackingTask?.stop();
 
         await fastify.close();
         process.exit(0);

@@ -540,6 +540,43 @@ export class OrdersController {
       }));
     }
 
+    // Shipmozo shipments use the Shipmozo tracking API. Keep the existing
+    // EKART branch below unchanged for EKART and legacy records.
+    if (String(order.vendor || '').toUpperCase() === 'SHIPMOZO') {
+      try {
+        const { buildShipmozoPublicTrackingUrl, shipmozoService } = await import('../services/shipmozo.service.js');
+        const { normalizeShipmozoTracking } = await import('../utils/shipmozo-status.js');
+        const trackingInfo = await shipmozoService.trackOrder(order.tracking_id);
+
+        return reply.code(200).send(createSuccessResponse('Order tracking retrieved successfully', {
+          order_id: order.id,
+          order_number: order.orderid,
+          order_status: order.orderstatus,
+          tracking_id: order.tracking_id,
+          vendor: 'SHIPMOZO',
+          public_tracking_link: order.public_tracking_link || buildShipmozoPublicTrackingUrl(order.tracking_id),
+          normalized_tracking: normalizeShipmozoTracking(trackingInfo),
+          shipmozo_tracking: trackingInfo,
+          tracking_available: true
+        }));
+      } catch (error: any) {
+        logger.error(
+          { error: error.message, trackingId: order.tracking_id },
+          'Failed to fetch Shipmozo tracking info'
+        );
+        return reply.code(200).send(createSuccessResponse('Order tracking information (Shipmozo tracking unavailable)', {
+          order_id: order.id,
+          order_number: order.orderid,
+          order_status: order.orderstatus,
+          tracking_id: order.tracking_id,
+          vendor: 'SHIPMOZO',
+          public_tracking_link: order.public_tracking_link || `https://app.shipmozo.com/track-order?awb=${encodeURIComponent(order.tracking_id)}`,
+          message: 'Shipmozo tracking information temporarily unavailable',
+          tracking_available: true
+        }));
+      }
+    }
+
     // Get EKART tracking info
     try {
       const { ekartService } = await import('../services/ekart.service.js');

@@ -27,6 +27,7 @@ import { customerGroupRoutes } from './customer-groups.route.js';
 import { ratingRoutes } from './rating.route.js';
 import { smsRoutes } from './sms.route.js';
 import { ekartRoutes } from './ekart.route.js';
+import { shipmozoRoutes } from './shipmozo.route.js';
 import { analyticsRoutes } from './analytics.route.js';
 import { pushNotificationRoutes } from './push-notification.route.js';
 import { storefrontPageSectionRoutes } from './storefront-page-section.route.js';
@@ -125,6 +126,7 @@ export async function routes(fastify: FastifyInstance) {
     await fastify.register(ratingRoutes, { prefix: '/ratings' });
     await fastify.register(smsRoutes, { prefix: '/sms' });
     await fastify.register(ekartRoutes, { prefix: '/ekart' });
+    await fastify.register(shipmozoRoutes, { prefix: '/shipmozo' });
     await fastify.register(analyticsRoutes, { prefix: '/analytics' });
     await fastify.register(pushNotificationRoutes, { prefix: '/push-notifications' });
     await fastify.register(storefrontPageSectionRoutes, { prefix: '/storefront-page-sections' });
