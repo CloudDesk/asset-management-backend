@@ -330,6 +330,7 @@ const envSchema = z.object({
   SHIPMOZO_TRACKING_SYNC_ENABLED: z.enum(['true', 'false']).optional().default('false'),
   SHIPMOZO_TRACKING_SYNC_CRON: z.string().optional().default('*/30 * * * *'),
   SHIPMOZO_TRACKING_SYNC_BATCH_SIZE: z.coerce.number().int().min(1).max(100).optional().default(25),
+  SHIPMOZO_WEBHOOK_SECRET: z.string().min(16).optional(),
   
   // Seller Information (for EKART shipments)
   SELLER_GST_TIN: z.string().optional(),

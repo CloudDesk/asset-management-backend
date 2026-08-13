@@ -84,6 +84,7 @@ export class ShipmozoTrackingSyncService {
       normalized.system_status && canApplyShipmozoStatus(currentStatus, normalized.system_status)
     );
     const appliedStatus = canAdvance ? normalized.system_status : null;
+    const providerCancelled = normalized.is_provider_cancelled;
     const timestamp = Date.now();
 
     await prisma.$transaction(async (tx) => {
@@ -103,11 +104,31 @@ export class ShipmozoTrackingSyncService {
           ]
         : orderHistory;
 
+      const existingMetadata = order.barcodes && typeof order.barcodes === 'object' && !Array.isArray(order.barcodes)
+        ? order.barcodes as Record<string, any>
+        : {};
+      const existingCancellation = existingMetadata.cancellation && typeof existingMetadata.cancellation === 'object'
+        ? existingMetadata.cancellation as Record<string, any>
+        : {};
+
       await tx.orders.update({
         where: { id: order.id },
         data: {
           shipment_tracking_status: normalized.provider_status,
           public_tracking_link: order.public_tracking_link || buildShipmozoPublicTrackingUrl(order.tracking_id || ''),
+          ...(providerCancelled ? {
+            barcodes: {
+              ...existingMetadata,
+              cancellation: {
+                ...existingCancellation,
+                provider: 'SHIPMOZO',
+                status: 'confirmed',
+                tracking_id: order.tracking_id,
+                confirmed_at: timestamp,
+                confirmation_source: 'tracking'
+              }
+            }
+          } : {}),
           ...(statusChanged ? { orderstatus: appliedStatus, status_history: updatedOrderHistory } : {}),
           ...(appliedStatus === 'shipped' && !order.shipdate ? { shipdate: timestamp } : {}),
           ...(appliedStatus === 'delivered' ? { delivereddate: timestamp } : {}),
@@ -145,19 +166,22 @@ export class ShipmozoTrackingSyncService {
         where: { orderId: order.id, direction: 'forward' },
         orderBy: { id: 'desc' }
       });
+      const trackingComplete = Boolean(providerCancelled || (appliedStatus && TERMINAL_STATUSES.has(appliedStatus)));
       const operationData = {
-        stage: appliedStatus && TERMINAL_STATUSES.has(appliedStatus) ? 'tracking_complete' : 'tracking_synced',
-        status: appliedStatus && TERMINAL_STATUSES.has(appliedStatus) ? 'completed' : 'active',
+        stage: providerCancelled ? 'shipment_cancelled' : trackingComplete ? 'tracking_complete' : 'tracking_synced',
+        status: providerCancelled ? 'cancelled' : trackingComplete ? 'completed' : 'active',
         awbNumber: order.tracking_id,
         lastProviderStatus: normalized.provider_status,
-        lastSystemStatus: appliedStatus || currentStatus,
+        lastSystemStatus: appliedStatus || normalized.event_status || currentStatus,
         lastTrackingPayload: tracking as Prisma.InputJsonValue,
         lastSyncedAt: timestamp,
-        nextSyncAt: nextSyncAt(appliedStatus || currentStatus),
+        nextSyncAt: providerCancelled
+          ? null
+          : nextSyncAt(appliedStatus || (currentStatus === 'cancelled' ? null : currentStatus)),
         retryCount: 0,
         failureReason: null,
         modifieddate: timestamp,
-        ...(appliedStatus && TERMINAL_STATUSES.has(appliedStatus) ? { completeddate: timestamp } : {})
+        ...(trackingComplete ? { completeddate: timestamp } : {})
       };
       if (operation) {
         await tx.shipmozoOperation.update({ where: { id: operation.id }, data: operationData });
@@ -183,9 +207,36 @@ export class ShipmozoTrackingSyncService {
       previous_status: currentStatus,
       provider_status: normalized.provider_status,
       normalized_status: normalized.system_status,
+      event_status: normalized.event_status,
       applied_status: appliedStatus,
+      provider_cancellation_confirmed: providerCancelled,
       ignored_regression: Boolean(normalized.system_status && !canAdvance)
     };
+  }
+
+  async syncByAwb(awbNumber: string) {
+    const normalizedAwb = String(awbNumber || '').trim();
+    if (!normalizedAwb) throw new Error('AWB number is required');
+
+    const order = await prisma.orders.findFirst({
+      where: {
+        tracking_id: normalizedAwb,
+        vendor: { equals: 'SHIPMOZO', mode: 'insensitive' }
+      },
+      select: { id: true }
+    });
+    if (order) return { entity: 'order', ...(await this.syncOrder(order.id)) };
+
+    const returnRequest = await prisma.returnRequest.findFirst({
+      where: {
+        reverseShipmentTrackingId: normalizedAwb,
+        reverseShipmentProvider: { equals: 'SHIPMOZO', mode: 'insensitive' }
+      },
+      select: { id: true }
+    });
+    if (returnRequest) return { entity: 'return', ...(await this.syncReturn(returnRequest.id)) };
+
+    return { entity: null, tracking_id: normalizedAwb, ignored: true, reason: 'tracking_id_not_found' };
   }
 
   async syncReturn(returnRequestId: number) {
@@ -255,7 +306,16 @@ export class ShipmozoTrackingSyncService {
       where: {
         vendor: { equals: 'SHIPMOZO', mode: 'insensitive' },
         tracking_id: { not: null },
-        orderstatus: { notIn: [...TERMINAL_STATUSES] }
+        OR: [
+          { orderstatus: { notIn: [...TERMINAL_STATUSES] } },
+          {
+            orderstatus: 'cancelled',
+            OR: [
+              { barcodes: { path: ['cancellation', 'status'], equals: 'pending' } },
+              { barcodes: { path: ['cancellation', 'status'], equals: 'failed' } }
+            ]
+          }
+        ]
       },
       select: { id: true, orderid: true, tracking_id: true },
       take: limit * 3,

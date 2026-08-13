@@ -24,6 +24,7 @@ import { shipmozoTrackingSyncService } from '../services/shipmozo-tracking-sync.
 import { asyncHandler, createSuccessResponse, ValidationError } from '../utils/errorHandler.js';
 import { dynamicUpdate } from '../utils/dynamicDbOperations.js';
 import { normalizeShipmozoTracking } from '../utils/shipmozo-status.js';
+import { extractShipmozoWebhookAwb } from '../utils/shipmozo-status.js';
 import {
   asShipmozoWorkflowData,
   extractShipmozoOrderId,
@@ -510,6 +511,38 @@ export class ShipmozoController {
     }
     const result = await shipmozoTrackingSyncService.runBatch(limit);
     return reply.code(200).send(createSuccessResponse('Shipmozo tracking batch completed', result));
+  });
+
+  handleTrackingWebhook = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    const configuredSecret = env.SHIPMOZO_WEBHOOK_SECRET;
+    const providedSecret = String(
+      request.headers['x-shipmozo-webhook-secret'] ||
+      request.headers['x-webhook-secret'] ||
+      ''
+    ).trim();
+
+    if (!configuredSecret) {
+      logger.error('Shipmozo webhook received before SHIPMOZO_WEBHOOK_SECRET was configured');
+      return reply.code(503).send({ success: false, message: 'Webhook is not configured', statusCode: 503 });
+    }
+    if (providedSecret !== configuredSecret) {
+      logger.warn({ secretProvided: Boolean(providedSecret) }, 'Rejected Shipmozo webhook with invalid secret');
+      return reply.code(401).send({ success: false, message: 'Invalid webhook secret', statusCode: 401 });
+    }
+
+    const awbNumber = extractShipmozoWebhookAwb(request.body);
+    if (!awbNumber) {
+      logger.warn({ payload: request.body }, 'Shipmozo webhook did not contain an AWB number');
+      return reply.code(200).send(createSuccessResponse('Shipmozo webhook ignored: AWB number missing', {
+        accepted: true,
+        ignored: true
+      }));
+    }
+
+    // Treat the webhook as a change notification only. Re-fetch the signed,
+    // authoritative tracking state using the AWB before updating Nivaana.
+    const result = await shipmozoTrackingSyncService.syncByAwb(awbNumber);
+    return reply.code(200).send(createSuccessResponse('Shipmozo webhook processed successfully', result));
   });
 
   listOperations = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
