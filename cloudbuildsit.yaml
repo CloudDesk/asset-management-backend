@@ -41,6 +41,8 @@ steps:
       - "nivaana-dev@nivaana.iam.gserviceaccount.com"
       - "--port"
       - "5600"
+      - "--update-env-vars"
+      - "SHIPMOZO_TRACKING_SYNC_ENABLED=true,SHIPMOZO_TRACKING_SYNC_CRON=*/15 * * * *,SHIPMOZO_TRACKING_SYNC_BATCH_SIZE=25"
 
 options:
   logging: CLOUD_LOGGING_ONLY

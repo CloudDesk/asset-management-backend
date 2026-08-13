@@ -1460,6 +1460,40 @@ model RefundOperation {
   @@map("refund_operations")
 }
 
+model ShipmozoOperation {
+  id                    Int      @id @default(autoincrement())
+  idempotencyKey        String   @unique @map("idempotency_key") @db.VarChar(200)
+  providerOrderId       String   @map("provider_order_id") @db.VarChar(500)
+  orderId               Int?     @map("order_id")
+  returnRequestId       Int?     @map("return_request_id")
+  direction             String   @db.VarChar(20)
+  operationType         String   @map("operation_type") @db.VarChar(50)
+  stage                 String   @default("initialized") @db.VarChar(50)
+  status                String   @default("pending") @db.VarChar(30)
+  awbNumber             String?  @map("awb_number") @db.VarChar(500)
+  courierName           String?  @map("courier_name") @db.VarChar(255)
+  providerReference     String?  @map("provider_reference") @db.VarChar(500)
+  requestPayload        Json?    @map("request_payload")
+  providerResponse      Json?    @map("provider_response")
+  lastProviderStatus    String?  @map("last_provider_status") @db.VarChar(500)
+  lastSystemStatus      String?  @map("last_system_status") @db.VarChar(100)
+  lastTrackingPayload   Json?    @map("last_tracking_payload")
+  lastSyncedAt          BigInt?  @map("last_synced_at")
+  nextSyncAt            BigInt?  @map("next_sync_at")
+  retryCount            Int      @default(0) @map("retry_count")
+  failureReason         String?  @map("failure_reason")
+  createddate           BigInt
+  modifieddate          BigInt
+  completeddate         BigInt?
+
+  @@index([orderId])
+  @@index([returnRequestId])
+  @@index([awbNumber])
+  @@index([status, nextSyncAt])
+  @@index([providerOrderId])
+  @@map("shipmozo_operations")
+}
+
 model RefundWalletAllocation {
   id                Int     @id @default(autoincrement())
   refundOperationId Int     @map("refund_operation_id")

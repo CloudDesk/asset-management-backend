@@ -320,6 +320,16 @@ const envSchema = z.object({
   EKART_USERNAME: z.string().optional(),
   EKART_PASSWORD: z.string().optional(),
   EKART_BASE_URL: z.string().optional().default('https://app.elite.ekartlogistics.in/api'),
+
+  // Shipmozo Logistics Configuration
+  // Credentials must only be configured on the backend/secret manager.
+  SHIPMOZO_PUBLIC_KEY: z.string().optional(),
+  SHIPMOZO_PRIVATE_KEY: z.string().optional(),
+  SHIPMOZO_BASE_URL: z.string().optional().default('https://shipping-api.com/app/api/v1'),
+  SHIPMOZO_WAREHOUSE_ID: z.string().optional(),
+  SHIPMOZO_TRACKING_SYNC_ENABLED: z.enum(['true', 'false']).optional().default('false'),
+  SHIPMOZO_TRACKING_SYNC_CRON: z.string().optional().default('*/30 * * * *'),
+  SHIPMOZO_TRACKING_SYNC_BATCH_SIZE: z.coerce.number().int().min(1).max(100).optional().default(25),
   
   // Seller Information (for EKART shipments)
   SELLER_GST_TIN: z.string().optional(),

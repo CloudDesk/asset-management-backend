@@ -434,6 +434,16 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                     ndr_actions: { type: 'array', nullable: true },
                     attempts: { type: 'number', nullable: true }
                   }
+                },
+                shipmozo_tracking: {
+                  type: 'object',
+                  additionalProperties: true,
+                  nullable: true
+                },
+                normalized_tracking: {
+                  type: 'object',
+                  additionalProperties: true,
+                  nullable: true
                 }
               }
             }
@@ -523,6 +533,9 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                     merchanttransactionid: { type: 'string', nullable: true },
                     paymentfaileddate: { type: 'number', nullable: true },
                     mode: { type: 'string', nullable: true },
+                    username: { type: 'string', nullable: true },
+                    useremail: { type: 'string', nullable: true },
+                    usermobilenumber: { type: 'number', nullable: true },
                     promotion_discount_total: { type: 'number', nullable: true },
                     wallet_discount_total: { type: 'number', nullable: true, description: 'Legacy persisted wallet allocation amount' },
                     wallet_amount_applied: { type: 'number', nullable: true, description: 'Wallet payment allocated to this order' },
@@ -581,6 +594,7 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                       orderamount: { type: 'number', nullable: true, description: 'Final amount for orderline (TOTAL, excludes shipping)' },
                       quantity: { type: 'number', nullable: true },
                       productid: { type: 'number', nullable: true },
+                      sku_number: { type: 'string', nullable: true, description: 'Inventory SKU/PUC for carrier integrations' },
                       productname: { type: 'string', nullable: true },
                       productcategory: { type: 'string', nullable: true },
                       hsn_code: { type: 'string', nullable: true },

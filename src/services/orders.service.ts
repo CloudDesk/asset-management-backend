@@ -20,9 +20,119 @@ import { logger } from '../config/logger.js';
 import { gstService } from './gst.service.js';
 import { WalletRedemptionService } from './wallet-redemption.service.js';
 import { invoiceAdjustmentService } from './invoice-adjustment.service.js';
+import { buildShipmozoPublicTrackingUrl } from './shipmozo.service.js';
 
 export class OrdersService {
   private walletRedemptionService = new WalletRedemptionService();
+
+  private async cancelProviderShipment(order: any): Promise<any> {
+    const trackingId = String(order?.tracking_id || '').trim();
+    const provider = String(order?.vendor || '').toUpperCase();
+    if (!trackingId || !['EKART', 'SHIPMOZO'].includes(provider)) return order;
+
+    const metadata = order.barcodes && typeof order.barcodes === 'object' && !Array.isArray(order.barcodes)
+      ? order.barcodes as Record<string, any>
+      : {};
+    const existingCancellation = metadata.cancellation && typeof metadata.cancellation === 'object'
+      ? metadata.cancellation as Record<string, any>
+      : {};
+    if (existingCancellation.status === 'confirmed') return order;
+
+    const requestedAt = Date.now();
+    const persistCancellation = async (cancellation: Record<string, unknown>) => {
+      await dynamicUpdate('orders', { id: order.id }, {
+        barcodes: { ...metadata, cancellation },
+        modifieddate: Date.now()
+      });
+    };
+
+    await persistCancellation({
+      ...existingCancellation,
+      provider,
+      status: 'pending',
+      requested_at: requestedAt,
+      tracking_id: trackingId
+    });
+
+    try {
+      let providerResponse: unknown;
+      let shipmozoOperationId: number | null = null;
+      if (provider === 'SHIPMOZO') {
+        const operation = await prisma.shipmozoOperation.findFirst({
+          where: { orderId: order.id, direction: 'forward' },
+          orderBy: { id: 'desc' }
+        });
+        const { extractShipmozoOrderId } = await import('../utils/shipmozo-workflow.js');
+        const providerOrderId = String(metadata.provider_order_id || '').trim()
+          || extractShipmozoOrderId(operation?.providerResponse);
+        if (!providerOrderId) throw new Error('Shipmozo internal order ID is missing');
+
+        const { shipmozoService } = await import('./shipmozo.service.js');
+        providerResponse = await shipmozoService.cancelOrder(providerOrderId, trackingId);
+        shipmozoOperationId = operation?.id || null;
+
+        if (shipmozoOperationId) {
+          await prisma.shipmozoOperation.update({
+            where: { id: shipmozoOperationId },
+            data: {
+              stage: 'shipment_cancelled',
+              status: 'cancelled',
+              failureReason: null,
+              nextSyncAt: null,
+              completeddate: Date.now(),
+              modifieddate: Date.now()
+            }
+          });
+        }
+      } else {
+        const { ekartService } = await import('./ekart.service.js');
+        providerResponse = await ekartService.cancelShipment(trackingId);
+      }
+
+      await persistCancellation({
+        provider,
+        status: 'confirmed',
+        requested_at: requestedAt,
+        confirmed_at: Date.now(),
+        tracking_id: trackingId,
+        response: providerResponse as any
+      });
+      logger.info({ orderId: order.id, provider, trackingId }, 'Provider shipment cancellation confirmed');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await persistCancellation({
+        provider,
+        status: 'failed',
+        requested_at: requestedAt,
+        failed_at: Date.now(),
+        tracking_id: trackingId,
+        error: message.slice(0, 1000)
+      });
+      if (provider === 'SHIPMOZO') {
+        const operation = await prisma.shipmozoOperation.findFirst({
+          where: { orderId: order.id, direction: 'forward' },
+          orderBy: { id: 'desc' }
+        });
+        if (operation) {
+          await prisma.shipmozoOperation.update({
+            where: { id: operation.id },
+            data: {
+              stage: 'cancellation_failed',
+              status: 'active',
+              failureReason: message.slice(0, 4000),
+              modifieddate: Date.now()
+            }
+          });
+        }
+      }
+      logger.warn(
+        { error: message, orderId: order.id, provider, trackingId },
+        'Provider shipment cancellation failed; local cancellation remains valid and logistics follow-up is required'
+      );
+    }
+
+    return await this.findById(order.id) || order;
+  }
 
   private resolveReturnWorkflowStatus(request: any): string {
     const requestType = String(request?.requesttype || 'return').toLowerCase();
@@ -1027,26 +1137,21 @@ export class OrdersService {
    */
   async findByOrderIdString(orderIdString: string) {
     try {
-      logger.debug({ orderIdString }, 'Finding order by orderid string using filters');
+      logger.debug({ orderIdString }, 'Finding order by exact orderid');
+      const order = await prisma.orders.findUnique({ where: { orderid: orderIdString } });
 
-      const { data: orders } = await dynamicFindManyWithFilters(
-        'orders',
-        { orderid: orderIdString },
-        { take: 1, useAllColumns: true }
-      );
-
-      if (!orders || orders.length === 0) {
+      if (!order) {
         logger.debug({ orderIdString }, 'Order not found by orderid string');
         return null;
       }
 
       logger.debug({
         orderIdString,
-        foundOrderId: orders[0].id,
-        foundOrderid: orders[0].orderid
+        foundOrderId: order.id,
+        foundOrderid: order.orderid
       }, 'Order found by orderid string');
 
-      return orders[0];
+      return order;
     } catch (error) {
       logger.error({ error, orderIdString }, 'Error finding order by orderid string');
       throw error;
@@ -2859,7 +2964,7 @@ export class OrdersService {
         throw new Error('Order not found');
       }
 
-      const instoreCustomer = fullOrder.order_type === 'instore' && fullOrder.userid
+      const orderCustomer = fullOrder.userid
         ? await prisma.users.findUnique({
             where: { id: Number(fullOrder.userid) },
             select: { firstname: true, lastname: true, usermobilenumber: true, useremail: true }
@@ -2890,11 +2995,11 @@ export class OrdersService {
         created_by_inventory_user_id: fullOrder.created_by_inventory_user_id,
         manual_discount_total: fullOrder.manual_discount_total ? Number(fullOrder.manual_discount_total) : 0,
         manual_discount_reason: fullOrder.manual_discount_reason,
-        username: instoreCustomer
-          ? `${instoreCustomer.firstname || ''} ${instoreCustomer.lastname || ''}`.trim()
+        username: fullOrder.order_type === 'instore' && orderCustomer
+          ? `${orderCustomer.firstname || ''} ${orderCustomer.lastname || ''}`.trim()
           : null,
-        usermobilenumber: instoreCustomer?.usermobilenumber || null,
-        useremail: instoreCustomer?.useremail || null,
+        usermobilenumber: orderCustomer?.usermobilenumber || null,
+        useremail: orderCustomer?.useremail || null,
         promotion_discount_total: fullOrder.promotion_discount_total ? Number(fullOrder.promotion_discount_total) : null,
         wallet_discount_total: Number(fullOrder.wallet_discount_total ?? 0),
         wallet_amount_applied: Number(fullOrder.wallet_discount_total ?? 0),
@@ -2912,7 +3017,11 @@ export class OrdersService {
         barcodes: fullOrder.barcodes,
         label_url: fullOrder.label_url,
         order_invoice_url: fullOrder.order_invoice_url,
-        public_tracking_link: fullOrder.public_tracking_link,
+        public_tracking_link: fullOrder.public_tracking_link || (
+          String(fullOrder.vendor || '').toUpperCase() === 'SHIPMOZO' && fullOrder.tracking_id
+            ? buildShipmozoPublicTrackingUrl(fullOrder.tracking_id)
+            : null
+        ),
         shipment_created_at: fullOrder.shipment_created_at,
         shipdate: fullOrder.shipdate,
         cod_payment_received_date: fullOrder.cod_payment_received_date,
@@ -2972,6 +3081,11 @@ export class OrdersService {
           if (ol.productid) {
             try {
               const product = await dynamicFindUnique('product', { id: Number(ol.productid) });
+
+              // Carrier integrations require the inventory SKU/PUC, not the
+              // internal numeric product ID. This is an additive detail field
+              // and does not alter existing order or EKART behaviour.
+              orderlineData.sku_number = product?.puc || String(ol.productid);
 
               if (product?.iscombo === true) {
                 orderlineData.iscombo = true;
@@ -3061,10 +3175,10 @@ export class OrdersService {
         }
       }
 
-      if (!address && fullOrder.order_type === 'instore' && instoreCustomer) {
+      if (!address && fullOrder.order_type === 'instore' && orderCustomer) {
         address = {
-          name: `${instoreCustomer.firstname || ''} ${instoreCustomer.lastname || ''}`.trim(),
-          mobilenumber: instoreCustomer.usermobilenumber,
+          name: `${orderCustomer.firstname || ''} ${orderCustomer.lastname || ''}`.trim(),
+          mobilenumber: orderCustomer.usermobilenumber,
           pincode: null,
           doornumber: null,
           address: null,
@@ -3643,7 +3757,7 @@ export class OrdersService {
         const walletRestoration = await this.walletRedemptionService.restoreForCancelledOrder(orderId);
         logger.info({ orderId, ...walletRestoration }, 'Wallet restoration checked for already-cancelled order');
 
-        if (order.orderstatus !== 'cancelled') return order;
+        if (order.orderstatus !== 'cancelled') return await this.cancelProviderShipment(order);
 
         logger.info({
           orderId,
@@ -3682,7 +3796,7 @@ export class OrdersService {
               finalStatus: finalOrder.orderstatus
             }, 'COD order auto-completed during idempotent check');
 
-            return finalOrder;
+            return await this.cancelProviderShipment(finalOrder);
           } catch (autoCompleteError: any) {
             logger.error({
               error: autoCompleteError.message,
@@ -3691,12 +3805,12 @@ export class OrdersService {
               orderNumber: order.orderid
             }, 'Failed to auto-complete COD order during idempotent check - returning cancelled order');
 
-            return order;
+            return await this.cancelProviderShipment(order);
           }
         }
 
         // PhonePe orders: Just return as-is (already cancelled, waiting for admin refund)
-        return order;
+        return await this.cancelProviderShipment(order);
       }
 
       // Define cancellable statuses
@@ -3930,64 +4044,6 @@ export class OrdersService {
         }, 'Failed to update transaction record for cancellation');
       }
 
-      // Helper function for async eKart shipment cancellation
-      // This ensures consistent eKart cancellation for both COD and PhonePe orders
-      const cancelEkartShipmentAsync = (orderToCancel: any) => {
-        if (orderToCancel.tracking_id) {
-          logger.info({
-            orderId,
-            orderNumber: orderToCancel.orderid,
-            trackingId: orderToCancel.tracking_id,
-            orderStatus: orderToCancel.orderstatus
-          }, 'Order has eKart shipment - attempting async cancellation');
-
-          // Fire-and-forget async eKart cancellation
-          // Don't await - let it run in background
-          setImmediate(async () => {
-            try {
-              const { ekartService } = await import('./ekart.service.js');
-              await ekartService.cancelShipment(orderToCancel.tracking_id!);
-
-              logger.info({
-                orderId,
-                orderNumber: orderToCancel.orderid,
-                trackingId: orderToCancel.tracking_id
-              }, '✅ eKart shipment cancelled successfully (async)');
-
-              // Optional: Update order record with eKart cancellation status
-              // This is best-effort - if it fails, it won't affect the order cancellation
-              try {
-                await dynamicUpdate('orders', { id: orderId }, {
-                  ekart_cancellation_status: 'cancelled',
-                  ekart_cancellation_date: Date.now(),
-                  modifieddate: Date.now()
-                });
-              } catch (updateError: any) {
-                logger.warn({
-                  error: updateError.message,
-                  orderId
-                }, 'Failed to update eKart cancellation status in order record');
-              }
-            } catch (error: any) {
-              // eKart cancellation may fail if shipment is already picked up or in transit
-              // This is expected and should not affect the order cancellation
-              logger.warn({
-                error: error.message,
-                errorStack: error.stack,
-                orderId,
-                orderNumber: orderToCancel.orderid,
-                trackingId: orderToCancel.tracking_id
-              }, '⚠️ Failed to cancel eKart shipment (async) - shipment may be in transit. eKart will handle RTO automatically.');
-            }
-          });
-        } else {
-          logger.debug({
-            orderId,
-            orderNumber: orderToCancel.orderid
-          }, 'No eKart shipment found - skipping eKart cancellation');
-        }
-      };
-
       // AUTO-COMPLETE COD ORDERS (no refund needed)
       // PhonePe orders remain in 'cancelled' status awaiting manual refund processing
       logger.info({
@@ -4028,10 +4084,8 @@ export class OrdersService {
             finalStatus: finalOrder.orderstatus
           }, 'COD order cancellation completed automatically');
 
-          // ASYNC EKART CANCELLATION - Final step after ALL updates complete (COD path)
-          cancelEkartShipmentAsync(finalOrder);
-
-          return finalOrder;
+          // ASYNC PROVIDER CANCELLATION - Final step after all local updates (COD path)
+          return await this.cancelProviderShipment(finalOrder);
         } catch (autoCompleteError: any) {
           // If auto-complete fails, log but return the cancelled order
           logger.error({
@@ -4043,10 +4097,8 @@ export class OrdersService {
             currentStatus: updatedOrder.orderstatus
           }, 'CRITICAL: Failed to auto-complete COD order, remains in cancelled status');
 
-          // ASYNC EKART CANCELLATION - Even if COD auto-complete fails (fallback)
-          cancelEkartShipmentAsync(updatedOrder);
-
-          return updatedOrder;
+          // ASYNC PROVIDER CANCELLATION - Even if COD auto-complete fails (fallback)
+          return await this.cancelProviderShipment(updatedOrder);
         }
       } else {
         logger.info({
@@ -4066,10 +4118,8 @@ export class OrdersService {
         isPaymentSucceed: updatedOrder.ispaymentsucceed
       }, 'PhonePe order cancelled. Admin must manually process refund via PhonePe portal.');
 
-      // ASYNC EKART CANCELLATION - Final step after ALL updates complete (PhonePe path)
-      cancelEkartShipmentAsync(updatedOrder);
-
-      return updatedOrder;
+      // ASYNC PROVIDER CANCELLATION - Final step after all local updates (PhonePe path)
+      return await this.cancelProviderShipment(updatedOrder);
     } catch (error) {
       logger.error({ error, orderId }, 'Error cancelling order');
       throw error;
