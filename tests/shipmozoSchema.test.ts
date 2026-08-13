@@ -12,6 +12,8 @@ import {
 } from '../src/schemas/shipmozo.schema.ts';
 import {
   canApplyShipmozoStatus,
+  extractShipmozoWebhookAwb,
+  mapShipmozoEventStatus,
   mapShipmozoStatus,
   normalizeShipmozoTracking
 } from '../src/utils/shipmozo-status.ts';
@@ -146,6 +148,9 @@ test('normalizes common Shipmozo tracking statuses without changing unknown stat
   }), {
     provider_status: 'Delivered',
     system_status: 'delivered',
+    event_status: 'delivered',
+    is_exception: false,
+    is_provider_cancelled: false,
     provider: 'SHIPMOZO'
   });
 });
@@ -156,6 +161,33 @@ test('builds the supported Shipmozo customer tracking URL from an AWB', () => {
     'https://app.shipmozo.com/track-order?awb=153291463400264'
   );
   assert.equal(buildShipmozoPublicTrackingUrl(''), '');
+});
+
+test('classifies Shipmozo logistics exceptions without promoting them to order lifecycle statuses', () => {
+  assert.equal(mapShipmozoEventStatus('Pickup Pending'), 'pickup_pending');
+  assert.equal(mapShipmozoEventStatus('Pickup Failed'), 'pickup_failed');
+  assert.equal(mapShipmozoEventStatus('Pickup Cancelled'), 'pickup_failed');
+  assert.equal(mapShipmozoEventStatus('Undelivered'), 'undelivered');
+  assert.equal(mapShipmozoEventStatus('Delivery Failed'), 'delivery_failed');
+  assert.equal(mapShipmozoEventStatus('NDR'), 'ndr');
+  assert.equal(mapShipmozoEventStatus('Shipment Lost'), 'lost');
+  assert.equal(mapShipmozoEventStatus('Package Damaged'), 'damaged');
+  for (const status of ['Pickup Pending', 'Pickup Failed', 'Undelivered', 'Delivery Failed', 'NDR', 'Lost', 'Damaged']) {
+    assert.equal(mapShipmozoStatus(status), null);
+  }
+});
+
+test('prioritizes Shipmozo cancellation over stale pickup status and extracts webhook AWB variants', () => {
+  const normalized = normalizeShipmozoTracking({
+    awb_number: '153291463400264',
+    order_status: 'CANCELLED',
+    current_status: 'Pickup Pending'
+  });
+  assert.equal(normalized.provider_status, 'CANCELLED');
+  assert.equal(normalized.event_status, 'cancelled');
+  assert.equal(normalized.system_status, null);
+  assert.equal(normalized.is_provider_cancelled, true);
+  assert.equal(extractShipmozoWebhookAwb({ data: { tracking_number: '153291463400264' } }), '153291463400264');
 });
 
 test('allows forward shipment progress and blocks stale tracking regression', () => {

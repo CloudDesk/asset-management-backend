@@ -133,6 +133,21 @@ export async function shipmozoRoutes(fastify: FastifyInstance) {
     }
   }, controller.runTrackingSync);
 
+  fastify.post('/webhook/track-status', {
+    schema: {
+      tags,
+      description: 'Receive a Shipmozo status notification and reconcile authoritative tracking by AWB',
+      headers: {
+        type: 'object',
+        properties: {
+          'x-shipmozo-webhook-secret': { type: 'string' }
+        }
+      },
+      body: {},
+      response: { 200: successResponse }
+    }
+  }, controller.handleTrackingWebhook);
+
   fastify.post('/orders/:orderId/tracking/sync', {
     schema: {
       tags,
