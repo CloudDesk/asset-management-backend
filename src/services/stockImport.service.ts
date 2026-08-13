@@ -7,6 +7,7 @@ import type { StockImportCommitRow } from '../schemas/stock-import.schema.js';
 import { StockService } from './stock.service.js';
 import { ProductService } from './product.service.js';
 import { PlatformStockService } from './platformStock.service.js';
+import { amazonInventorySyncService } from './amazon-inventory-sync.service.js';
 
 export type StockImportRowStatus = 'success' | 'warning' | 'error';
 
@@ -1481,7 +1482,7 @@ export class StockImportService {
           }, 'Calculating platformstock quantities for bulk update');
 
           // Update platformstock directly
-          await prisma.platformStock.upsert({
+          const updatedPlatformStock = await prisma.platformStock.upsert({
             where: {
               productid_platform: {
                 productid: BigInt(group.productId),
@@ -1514,6 +1515,10 @@ export class StockImportService {
               modifieddate: BigInt(Date.now())
             }
           });
+
+          await amazonInventorySyncService.syncAfterPlatformStockChange(
+            updatedPlatformStock as unknown as Record<string, unknown>
+          );
           
           platformStockUpdateSuccessCount += 1;
           

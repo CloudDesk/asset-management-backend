@@ -60,12 +60,17 @@ model Product {
   iscombo   Boolean? @default(false)
   combotype String?  @default("fixed") @db.VarChar(50)
 
-  platformStocks    PlatformStock[]
-  orderline         orderline[]
-  stock             Stock[]
-  rating            rating[]
-  bundleproducts    ProductBundleMap[] @relation("BundleProducts")
-  componentproducts ProductBundleMap[] @relation("ComponentProducts")
+  platformStocks          PlatformStock[]
+  orderline               orderline[]
+  stock                   Stock[]
+  rating                  rating[]
+  bundleproducts          ProductBundleMap[]            @relation("BundleProducts")
+  componentproducts       ProductBundleMap[]            @relation("ComponentProducts")
+  marketplaceListings     MarketplaceListing[]
+  amazonOrderItems        AmazonMarketplaceOrderItem[]
+  amazonOrderReservations AmazonOrderStockReservation[]
+  amazonPublishDrafts     AmazonListingPublishDraft[]
+  amazonReturns           AmazonReturnEvent[]
 
   @@map("product")
 }
@@ -90,21 +95,22 @@ model ProductBundleMap {
 }
 
 model PlatformStock {
-  id             BigInt  @id @default(autoincrement())
-  platform       String  @db.VarChar(100) // e.g. amazon, flipkart, nivapp
-  availableqty   Int     @default(0)
-  orderedqty     Int     @default(0)
-  soldqty        Int     @default(0)
-  totalqty       Int     @default(0)
-  ecomqty        Int     @default(0) // E-commerce published quantity (available AND ecompublish=true)
-  damagedqty     Int     @default(0)
-  lockqty        Int?    @default(0) // Add this for NIVAPP cart locking
-  createddate    BigInt?
-  modifieddate   BigInt?
-  productid      BigInt
-  platformstatus String? @db.VarChar(255)
+  id                      BigInt                        @id @default(autoincrement())
+  platform                String                        @db.VarChar(100) // e.g. amazon, flipkart, nivapp
+  availableqty            Int                           @default(0)
+  orderedqty              Int                           @default(0)
+  soldqty                 Int                           @default(0)
+  totalqty                Int                           @default(0)
+  ecomqty                 Int                           @default(0) // E-commerce published quantity (available AND ecompublish=true)
+  damagedqty              Int                           @default(0)
+  lockqty                 Int?                          @default(0) // Add this for NIVAPP cart locking
+  createddate             BigInt?
+  modifieddate            BigInt?
+  productid               BigInt
+  platformstatus          String?                       @db.VarChar(255)
   // Relations
-  product        Product @relation(fields: [productid], references: [id], onDelete: Cascade)
+  product                 Product                       @relation(fields: [productid], references: [id], onDelete: Cascade)
+  amazonOrderReservations AmazonOrderStockReservation[]
 
   @@unique([productid, platform])
   @@map("platformstock")
@@ -796,6 +802,14 @@ model orderline {
   shipping_cost             Decimal? @default(0) @db.Decimal(10, 2)
   // EKART Shipment Information (shared with order)
 
+  hsn_code         String?  @db.VarChar(50)
+  gst_rate         Decimal? @db.Decimal(5, 2) // e.g., 5.00, 18.00
+  taxable_amount   Decimal? @db.Decimal(10, 2) // orderamount / (1 + gst_rate/100)
+  cgst_amount      Decimal? @db.Decimal(10, 2) // if same state
+  sgst_amount      Decimal? @db.Decimal(10, 2) // if same state
+  igst_amount      Decimal? @db.Decimal(10, 2) // if different state
+  total_gst_amount Decimal? @db.Decimal(10, 2) // cgst + sgst OR igst
+
   tracking_id    String?         @db.VarChar(500)
   shipdate       BigInt?
   status_history Json? // Array of status change history entries
@@ -1461,30 +1475,30 @@ model RefundOperation {
 }
 
 model ShipmozoOperation {
-  id                    Int      @id @default(autoincrement())
-  idempotencyKey        String   @unique @map("idempotency_key") @db.VarChar(200)
-  providerOrderId       String   @map("provider_order_id") @db.VarChar(500)
-  orderId               Int?     @map("order_id")
-  returnRequestId       Int?     @map("return_request_id")
-  direction             String   @db.VarChar(20)
-  operationType         String   @map("operation_type") @db.VarChar(50)
-  stage                 String   @default("initialized") @db.VarChar(50)
-  status                String   @default("pending") @db.VarChar(30)
-  awbNumber             String?  @map("awb_number") @db.VarChar(500)
-  courierName           String?  @map("courier_name") @db.VarChar(255)
-  providerReference     String?  @map("provider_reference") @db.VarChar(500)
-  requestPayload        Json?    @map("request_payload")
-  providerResponse      Json?    @map("provider_response")
-  lastProviderStatus    String?  @map("last_provider_status") @db.VarChar(500)
-  lastSystemStatus      String?  @map("last_system_status") @db.VarChar(100)
-  lastTrackingPayload   Json?    @map("last_tracking_payload")
-  lastSyncedAt          BigInt?  @map("last_synced_at")
-  nextSyncAt            BigInt?  @map("next_sync_at")
-  retryCount            Int      @default(0) @map("retry_count")
-  failureReason         String?  @map("failure_reason")
-  createddate           BigInt
-  modifieddate          BigInt
-  completeddate         BigInt?
+  id                  Int     @id @default(autoincrement())
+  idempotencyKey      String  @unique @map("idempotency_key") @db.VarChar(200)
+  providerOrderId     String  @map("provider_order_id") @db.VarChar(500)
+  orderId             Int?    @map("order_id")
+  returnRequestId     Int?    @map("return_request_id")
+  direction           String  @db.VarChar(20)
+  operationType       String  @map("operation_type") @db.VarChar(50)
+  stage               String  @default("initialized") @db.VarChar(50)
+  status              String  @default("pending") @db.VarChar(30)
+  awbNumber           String? @map("awb_number") @db.VarChar(500)
+  courierName         String? @map("courier_name") @db.VarChar(255)
+  providerReference   String? @map("provider_reference") @db.VarChar(500)
+  requestPayload      Json?   @map("request_payload")
+  providerResponse    Json?   @map("provider_response")
+  lastProviderStatus  String? @map("last_provider_status") @db.VarChar(500)
+  lastSystemStatus    String? @map("last_system_status") @db.VarChar(100)
+  lastTrackingPayload Json?   @map("last_tracking_payload")
+  lastSyncedAt        BigInt? @map("last_synced_at")
+  nextSyncAt          BigInt? @map("next_sync_at")
+  retryCount          Int     @default(0) @map("retry_count")
+  failureReason       String? @map("failure_reason")
+  createddate         BigInt
+  modifieddate        BigInt
+  completeddate       BigInt?
 
   @@index([orderId])
   @@index([returnRequestId])
@@ -1619,10 +1633,744 @@ model AmazonConnection {
   // Relations - Note: We'll use userId + userType to determine which table to reference
   // Prisma doesn't support conditional relations, so we'll handle this in application code
 
-  @@unique([userId, sellerId, userType])
+  @@unique([userId, sellerId, marketplaceId, userType])
   @@index([userId, userType])
   @@index([sellerId])
   @@map("amazon_connections")
+}
+
+model MarketplaceListing {
+  id                      BigInt    @id @default(autoincrement()) @db.BigInt
+  marketplace             String    @default("AMAZON") @db.VarChar(30)
+  environment             String    @default("PRODUCTION") @db.VarChar(20)
+  marketplaceId           String    @db.VarChar(50)
+  sellerId                String    @db.VarChar(255)
+  sellerSku               String    @db.VarChar(255)
+  asin                    String?   @db.VarChar(20)
+  fnSku                   String?   @db.VarChar(255)
+  title                   String?   @db.Text
+  productType             String?   @db.VarChar(255)
+  listingStatus           String    @default("UNKNOWN") @db.VarChar(255)
+  originalFulfilmentValue String?   @db.VarChar(255)
+  fulfilmentChannel       String    @default("UNKNOWN") @db.VarChar(20)
+  publishedQuantity       Int?
+  fbaFulfillableQuantity  Int?
+  fbaReservedQuantity     Int?
+  fbaPendingOrderQuantity Int?
+  fbaTotalQuantity        Int?
+  price                   Decimal?  @db.Decimal(12, 2)
+  currency                String?   @db.VarChar(10)
+  amazonLastUpdatedAt     DateTime? @db.Timestamptz(3)
+  productId               BigInt?   @db.BigInt
+  mappingStatus           String    @default("UNMAPPED") @db.VarChar(20)
+  unitsPerListing         Int       @default(1)
+  mappedAt                DateTime? @db.Timestamptz(3)
+  inventorySyncMode       String    @default("DISABLED") @db.VarChar(20)
+  lastInventorySyncAt     DateTime? @db.Timestamptz(3)
+  lastInventorySyncStatus String?   @db.VarChar(20)
+  lastSyncedQuantity      Int?
+  pendingOfferPrice       Decimal?  @db.Decimal(12, 2)
+  pendingOfferQuantity    Int?
+  pendingHandlingTimeDays Int?
+  lastOfferUpdateAt       DateTime? @db.Timestamptz(3)
+  lastOfferUpdateStatus   String?   @db.VarChar(30)
+  lastOfferSubmissionId   String?   @db.VarChar(255)
+  lastImportedAt          DateTime  @default(now()) @db.Timestamptz(3)
+  createdAt               DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  product                      Product?                      @relation(fields: [productId], references: [id], onDelete: SetNull)
+  audits                       MarketplaceListingAudit[]
+  inventorySyncAttempts        AmazonInventorySyncAttempt[]
+  amazonOrderItems             AmazonMarketplaceOrderItem[]
+  amazonOrderStockReservations AmazonOrderStockReservation[]
+  offerUpdatePreviews          AmazonOfferUpdatePreview[]
+  amazonReturns                AmazonReturnEvent[]
+
+  @@unique([marketplace, marketplaceId, sellerId, sellerSku], map: "marketplace_listing_seller_sku_key")
+  @@index([productId], map: "marketplace_listings_product_id_idx")
+  @@index([marketplace, marketplaceId, sellerId, mappingStatus], map: "marketplace_listings_mapping_status_idx")
+  @@index([marketplace, marketplaceId, sellerId, fulfilmentChannel], map: "marketplace_listings_fulfilment_idx")
+  @@index([marketplace, marketplaceId, sellerId, listingStatus], map: "marketplace_listings_status_idx")
+  @@map("marketplace_listings")
+}
+
+model AmazonOfferUpdatePreview {
+  id                  BigInt    @id @default(autoincrement()) @db.BigInt
+  listingId           BigInt    @db.BigInt
+  sourceUpdatedAt     DateTime  @db.Timestamptz(3)
+  operationType       String    @default("OFFER") @db.VarChar(30)
+  requestedChanges    Json
+  amazonIssues        Json
+  canApply            Boolean
+  status              String    @default("PENDING") @db.VarChar(20)
+  expiresAt           DateTime  @db.Timestamptz(3)
+  requestedByUserId   Int?
+  requestedByUserType String?   @db.VarChar(30)
+  createdAt           DateTime  @default(now()) @db.Timestamptz(3)
+  consumedAt          DateTime? @db.Timestamptz(3)
+
+  listing MarketplaceListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId, status, expiresAt], map: "amazon_offer_preview_listing_status_idx")
+  @@map("amazon_offer_update_previews")
+}
+
+model AmazonListingPublishDraft {
+  id                      BigInt    @id @default(autoincrement()) @db.BigInt
+  productId               BigInt    @db.BigInt
+  marketplace             String    @default("AMAZON") @db.VarChar(30)
+  environment             String    @default("PRODUCTION") @db.VarChar(20)
+  sellerId                String    @db.VarChar(255)
+  marketplaceId           String    @db.VarChar(50)
+  activeDraftKey          String?   @unique(map: "amazon_publish_drafts_active_key_unique") @db.VarChar(600)
+  listingMode             String    @default("UNDECIDED") @db.VarChar(30)
+  sellerSku               String?   @db.VarChar(255)
+  asin                    String?   @db.VarChar(20)
+  productType             String?   @db.VarChar(255)
+  requirements            String?   @db.VarChar(40)
+  fulfilmentChannel       String    @default("UNKNOWN") @db.VarChar(20)
+  status                  String    @default("DRAFT") @db.VarChar(40)
+  lastValidationStatus    String?   @db.VarChar(40)
+  lastSubmissionStatus    String?   @db.VarChar(40)
+  draftRevision           Int       @default(1)
+  sourceProductModifiedAt BigInt?
+  sourceSnapshot          Json
+  candidateResults        Json
+  mappedAttributes        Json
+  schemaVersion           String?   @db.VarChar(100)
+  schemaChecksum          String?   @db.VarChar(128)
+  validatedPayloadHash    String?   @db.VarChar(128)
+  approvedByUserId        Int?
+  approvedByUserType      String?   @db.VarChar(30)
+  createdByUserId         Int?
+  createdByUserType       String?   @db.VarChar(30)
+  cancelledByUserId       Int?
+  cancelledByUserType     String?   @db.VarChar(30)
+  cancelledAt             DateTime? @db.Timestamptz(3)
+  createdAt               DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  product  Product                       @relation(fields: [productId], references: [id], onDelete: Restrict)
+  attempts AmazonListingPublishAttempt[]
+  audits   AmazonListingPublishAudit[]
+  images   AmazonListingPublishImage[]
+
+  @@index([productId, sellerId, marketplaceId, status], map: "amazon_publish_drafts_product_scope_status_idx")
+  @@index([sellerId, marketplaceId, status, updatedAt], map: "amazon_publish_drafts_scope_status_updated_idx")
+  @@index([sellerSku, sellerId, marketplaceId], map: "amazon_publish_drafts_sku_scope_idx")
+  @@map("amazon_listing_publish_drafts")
+}
+
+model AmazonListingPublishImage {
+  id                     BigInt    @id @default(autoincrement()) @db.BigInt
+  draftId                BigInt    @db.BigInt
+  sourceType             String    @db.VarChar(30)
+  sourceProductUrl       String?   @db.Text
+  url                    String    @db.Text
+  originalFileName       String?   @db.VarChar(500)
+  contentType            String?   @db.VarChar(100)
+  sizeBytes              Int?
+  width                  Int?
+  height                 Int?
+  sortOrder              Int
+  status                 String    @default("ACTIVE") @db.VarChar(20)
+  accessibilityStatus    String    @default("PENDING") @db.VarChar(20)
+  accessibilityError     String?   @db.Text
+  accessibilityCheckedAt DateTime? @db.Timestamptz(3)
+  validationErrors       Json
+  createdByUserId        Int?
+  createdByUserType      String?   @db.VarChar(30)
+  createdAt              DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  draft AmazonListingPublishDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+
+  @@index([draftId, status, sortOrder], map: "amazon_publish_images_draft_status_order_idx")
+  @@map("amazon_listing_publish_images")
+}
+
+model AmazonListingPublishAttempt {
+  id                  BigInt    @id @default(autoincrement()) @db.BigInt
+  draftId             BigInt    @db.BigInt
+  operation           String    @db.VarChar(30)
+  status              String    @db.VarChar(40)
+  requestKey          String    @unique(map: "amazon_publish_attempts_request_key_unique") @db.VarChar(128)
+  draftRevision       Int
+  payloadHash         String    @db.VarChar(128)
+  requestPayload      Json
+  responsePayload     Json?
+  amazonSubmissionId  String?   @db.VarChar(255)
+  amazonStatus        String?   @db.VarChar(40)
+  issues              Json
+  httpStatus          Int?
+  errorCode           String?   @db.VarChar(100)
+  errorMessage        String?   @db.Text
+  requestedByUserId   Int?
+  requestedByUserType String?   @db.VarChar(30)
+  startedAt           DateTime  @default(now()) @db.Timestamptz(3)
+  finishedAt          DateTime? @db.Timestamptz(3)
+  createdAt           DateTime  @default(now()) @db.Timestamptz(3)
+
+  draft AmazonListingPublishDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+
+  @@index([draftId, createdAt], map: "amazon_publish_attempts_draft_created_idx")
+  @@index([status, createdAt], map: "amazon_publish_attempts_status_created_idx")
+  @@map("amazon_listing_publish_attempts")
+}
+
+model AmazonListingPublishAudit {
+  id                  BigInt   @id @default(autoincrement()) @db.BigInt
+  draftId             BigInt   @db.BigInt
+  productId           BigInt   @db.BigInt
+  sellerId            String   @db.VarChar(255)
+  marketplaceId       String   @db.VarChar(50)
+  sellerSku           String?  @db.VarChar(255)
+  asin                String?  @db.VarChar(20)
+  operation           String   @db.VarChar(60)
+  beforeValues        Json?
+  afterValues         Json?
+  metadata            Json?
+  requestedByUserId   Int?
+  requestedByUserType String?  @db.VarChar(30)
+  createdAt           DateTime @default(now()) @db.Timestamptz(3)
+
+  draft AmazonListingPublishDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+
+  @@index([draftId, createdAt], map: "amazon_publish_audits_draft_created_idx")
+  @@index([sellerId, marketplaceId, createdAt], map: "amazon_publish_audits_scope_created_idx")
+  @@map("amazon_listing_publish_audits")
+}
+
+model AmazonProductTypeSchemaCache {
+  id                   BigInt   @id @default(autoincrement()) @db.BigInt
+  cacheKey             String   @unique(map: "amazon_product_type_schema_cache_key_unique") @db.VarChar(700)
+  sellerId             String?  @db.VarChar(255)
+  marketplaceId        String   @db.VarChar(50)
+  productType          String   @db.VarChar(255)
+  requirements         String   @db.VarChar(40)
+  requirementsEnforced String   @default("ENFORCED") @db.VarChar(30)
+  locale               String   @default("DEFAULT") @db.VarChar(20)
+  productTypeVersion   String   @default("LATEST") @db.VarChar(100)
+  resolvedVersion      String?  @db.VarChar(100)
+  schemaChecksum       String   @db.VarChar(128)
+  definitionSchema     Json
+  propertyGroups       Json?
+  fetchedAt            DateTime @default(now()) @db.Timestamptz(3)
+  expiresAt            DateTime @db.Timestamptz(3)
+  createdAt            DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime @default(now()) @updatedAt @db.Timestamptz(3)
+
+  @@index([marketplaceId, productType, requirements, expiresAt], map: "amazon_product_type_schema_lookup_idx")
+  @@map("amazon_product_type_schema_cache")
+}
+
+model AmazonInventorySyncAttempt {
+  id                  BigInt    @id @default(autoincrement()) @db.BigInt
+  listingId           BigInt    @db.BigInt
+  operation           String    @db.VarChar(20)
+  status              String    @db.VarChar(20)
+  amazonQuantity      Int?
+  nivaanaQuantity     Int
+  targetQuantity      Int
+  requestKey          String    @unique @db.VarChar(64)
+  previewId           BigInt?   @unique @db.BigInt
+  amazonSubmissionId  String?   @db.VarChar(255)
+  errorCode           String?   @db.VarChar(100)
+  errorMessage        String?   @db.Text
+  requestedByUserId   Int?
+  requestedByUserType String?   @db.VarChar(30)
+  startedAt           DateTime  @default(now()) @db.Timestamptz(3)
+  finishedAt          DateTime? @db.Timestamptz(3)
+  createdAt           DateTime  @default(now()) @db.Timestamptz(3)
+
+  listing MarketplaceListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId, createdAt], map: "amazon_inventory_sync_attempts_listing_idx")
+  @@index([status, createdAt], map: "amazon_inventory_sync_attempts_status_idx")
+  @@map("amazon_inventory_sync_attempts")
+}
+
+model AmazonMarketplaceOrder {
+  id                         BigInt    @id @default(autoincrement()) @db.BigInt
+  sellerId                   String    @db.VarChar(255)
+  marketplaceId              String    @db.VarChar(50)
+  amazonOrderId              String    @db.VarChar(255)
+  purchaseDate               DateTime  @db.Timestamptz(3)
+  lastUpdateDate             DateTime  @db.Timestamptz(3)
+  orderStatus                String    @db.VarChar(50)
+  buyerName                  String?   @db.VarChar(255)
+  buyerEmail                 String?   @db.VarChar(320)
+  fulfilmentType             String    @db.VarChar(30)
+  fulfilmentRoute            String    @db.VarChar(40)
+  syncState                  String    @db.VarChar(30)
+  hasUnmappedItems           Boolean   @default(false)
+  isCancelled                Boolean   @default(false)
+  buyerRequestedCancellation Boolean   @default(false)
+  shipByStart                DateTime? @db.Timestamptz(3)
+  shipByEnd                  DateTime? @db.Timestamptz(3)
+  programs                   Json?
+  lastImportedAt             DateTime  @default(now()) @db.Timestamptz(3)
+  createdAt                  DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt                  DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  items                 AmazonMarketplaceOrderItem[]
+  routeHandoff          AmazonOrderRouteHandoff?
+  stockReservations     AmazonOrderStockReservation[]
+  fulfillment           AmazonOrderFulfillment?
+  fulfillmentAudits     AmazonOrderFulfillmentAudit[]
+  fulfillmentExceptions AmazonOrderFulfillmentException[]
+  returns               AmazonReturnEvent[]
+
+  @@unique([sellerId, marketplaceId, amazonOrderId], map: "amazon_marketplace_orders_unique")
+  @@index([sellerId, marketplaceId, purchaseDate], map: "amazon_marketplace_orders_purchase_idx")
+  @@index([sellerId, marketplaceId, syncState], map: "amazon_marketplace_orders_sync_idx")
+  @@map("amazon_marketplace_orders")
+}
+
+model AmazonMarketplaceOrderItem {
+  id                    BigInt   @id @default(autoincrement()) @db.BigInt
+  orderId               BigInt   @db.BigInt
+  amazonOrderItemId     String   @db.VarChar(255)
+  sellerSku             String?  @db.VarChar(255)
+  asin                  String?  @db.VarChar(20)
+  title                 String?  @db.Text
+  quantityOrdered       Int      @default(0)
+  quantityShipped       Int      @default(0)
+  unitPrice             Decimal? @db.Decimal(12, 2)
+  currency              String?  @db.VarChar(10)
+  listingId             BigInt?  @db.BigInt
+  productId             BigInt?  @db.BigInt
+  unitsPerListing       Int      @default(1)
+  mappingStatus         String   @db.VarChar(20)
+  cancellationRequester String?  @db.VarChar(30)
+  buyerCancelReason     String?  @db.Text
+  createdAt             DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime @default(now()) @updatedAt @db.Timestamptz(3)
+
+  order   AmazonMarketplaceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  listing MarketplaceListing?    @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  product Product?               @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@unique([orderId, amazonOrderItemId], map: "amazon_marketplace_order_items_unique")
+  @@index([listingId], map: "amazon_marketplace_order_items_listing_idx")
+  @@index([productId], map: "amazon_marketplace_order_items_product_idx")
+  @@map("amazon_marketplace_order_items")
+}
+
+model AmazonOrderRouteHandoff {
+  id              BigInt   @id @default(autoincrement()) @db.BigInt
+  orderId         BigInt   @unique @db.BigInt
+  route           String   @db.VarChar(40)
+  status          String   @db.VarChar(40)
+  blockedReason   String?  @db.Text
+  lastEvaluatedAt DateTime @default(now()) @db.Timestamptz(3)
+  createdAt       DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime @default(now()) @updatedAt @db.Timestamptz(3)
+
+  order AmazonMarketplaceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([route, status], map: "amazon_order_route_handoffs_route_status_idx")
+  @@map("amazon_order_route_handoffs")
+}
+
+model AmazonOrderStockReservation {
+  id                 BigInt    @id @default(autoincrement()) @db.BigInt
+  orderId            BigInt    @db.BigInt
+  amazonOrderItemId  String    @db.VarChar(255)
+  productId          BigInt    @db.BigInt
+  listingId          BigInt?   @db.BigInt
+  platformStockId    BigInt?   @db.BigInt
+  quantity           Int
+  inventoryOwnership String    @default("SELLER") @db.VarChar(30)
+  status             String    @db.VarChar(30)
+  errorMessage       String?   @db.Text
+  reservedAt         DateTime? @db.Timestamptz(3)
+  releasedAt         DateTime? @db.Timestamptz(3)
+  soldAt             DateTime? @db.Timestamptz(3)
+  createdAt          DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  order         AmazonMarketplaceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product       Product                @relation(fields: [productId], references: [id], onDelete: Restrict)
+  listing       MarketplaceListing?    @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  platformStock PlatformStock?         @relation(fields: [platformStockId], references: [id], onDelete: SetNull)
+
+  @@unique([orderId, amazonOrderItemId], map: "amazon_order_stock_reservations_order_item_unique")
+  @@index([productId, status], map: "amazon_order_stock_reservations_product_status_idx")
+  @@index([listingId, inventoryOwnership, status], map: "amazon_order_stock_reservations_listing_owner_status_idx")
+  @@index([status, soldAt], map: "amazon_order_stock_reservations_status_sold_idx")
+  @@map("amazon_order_stock_reservations")
+}
+
+model AmazonOrderImportJob {
+  id                  BigInt    @id @default(autoincrement()) @db.BigInt
+  sellerId            String    @db.VarChar(255)
+  marketplaceId       String    @db.VarChar(50)
+  mode                String    @db.VarChar(20)
+  trigger             String    @db.VarChar(20)
+  status              String    @db.VarChar(20)
+  activeKey           String?   @unique @db.VarChar(350)
+  fetched             Int       @default(0)
+  created             Int       @default(0)
+  updated             Int       @default(0)
+  unmapped            Int       @default(0)
+  cancelled           Int       @default(0)
+  pagesProcessed      Int       @default(0)
+  searchStart         DateTime? @db.Timestamptz(3)
+  errorMessage        String?   @db.Text
+  requestedByUserId   Int?
+  requestedByUserType String?   @db.VarChar(30)
+  startedAt           DateTime? @db.Timestamptz(3)
+  finishedAt          DateTime? @db.Timestamptz(3)
+  createdAt           DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  notifications AmazonOrderNotification[]
+
+  @@index([sellerId, marketplaceId, createdAt], map: "amazon_order_import_jobs_scope_created_idx")
+  @@index([status, createdAt], map: "amazon_order_import_jobs_status_created_idx")
+  @@map("amazon_order_import_jobs")
+}
+
+model AmazonOrderNotification {
+  id               BigInt    @id @default(autoincrement()) @db.BigInt
+  notificationId   String    @unique @db.VarChar(255)
+  notificationType String    @db.VarChar(100)
+  sellerId         String    @db.VarChar(255)
+  marketplaceId    String    @db.VarChar(50)
+  eventTime        DateTime  @db.Timestamptz(3)
+  payload          Json
+  status           String    @db.VarChar(20)
+  jobId            BigInt?   @db.BigInt
+  errorMessage     String?   @db.Text
+  processedAt      DateTime? @db.Timestamptz(3)
+  createdAt        DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  job AmazonOrderImportJob? @relation(fields: [jobId], references: [id], onDelete: SetNull)
+
+  @@index([sellerId, marketplaceId, eventTime], map: "amazon_order_notifications_scope_event_idx")
+  @@index([status, createdAt], map: "amazon_order_notifications_status_created_idx")
+  @@map("amazon_order_notifications")
+}
+
+model AmazonReturnImportJob {
+  id                  BigInt    @id @default(autoincrement()) @db.BigInt
+  sellerId            String    @db.VarChar(255)
+  marketplaceId       String    @db.VarChar(50)
+  fulfilmentType      String    @db.VarChar(10)
+  reportType          String    @db.VarChar(100)
+  amazonReportId      String?   @db.VarChar(255)
+  status              String    @default("QUEUED") @db.VarChar(20)
+  activeKey           String?   @unique @db.VarChar(350)
+  fetched             Int       @default(0)
+  created             Int       @default(0)
+  updated             Int       @default(0)
+  unmapped            Int       @default(0)
+  errorMessage        String?   @db.Text
+  requestedByUserId   Int?
+  requestedByUserType String?   @db.VarChar(30)
+  startedAt           DateTime? @db.Timestamptz(3)
+  finishedAt          DateTime? @db.Timestamptz(3)
+  createdAt           DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  @@index([sellerId, marketplaceId, createdAt], map: "amazon_return_import_jobs_scope_created_idx")
+  @@index([status, createdAt], map: "amazon_return_import_jobs_status_created_idx")
+  @@map("amazon_return_import_jobs")
+}
+
+model AmazonReturnEvent {
+  id                  BigInt    @id @default(autoincrement()) @db.BigInt
+  fingerprint         String    @unique @db.VarChar(64)
+  sellerId            String    @db.VarChar(255)
+  marketplaceId       String    @db.VarChar(50)
+  fulfilmentType      String    @db.VarChar(10)
+  reportType          String    @db.VarChar(100)
+  amazonOrderId       String    @db.VarChar(255)
+  amazonRmaId         String?   @db.VarChar(255)
+  returnDate          DateTime  @db.Timestamptz(3)
+  sellerSku           String?   @db.VarChar(255)
+  asin                String?   @db.VarChar(20)
+  fnSku               String?   @db.VarChar(255)
+  quantity            Int
+  amazonStatus        String?   @db.VarChar(100)
+  disposition         String?   @db.VarChar(100)
+  reason              String?   @db.Text
+  fulfillmentCenterId String?   @db.VarChar(100)
+  licensePlateNumber  String?   @db.VarChar(255)
+  customerComments    String?   @db.Text
+  orderId             BigInt?   @db.BigInt
+  listingId           BigInt?   @db.BigInt
+  productId           BigInt?   @db.BigInt
+  inventoryAction     String    @default("REMOTE_ONLY") @db.VarChar(30)
+  quantityReceived    Int?
+  qcDisposition       String?   @db.VarChar(30)
+  receivedAt          DateTime? @db.Timestamptz(3)
+  processedAt         DateTime? @db.Timestamptz(3)
+  processedByUserId   Int?
+  processedByUserType String?   @db.VarChar(30)
+  rawData             Json?
+  createdAt           DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  order   AmazonMarketplaceOrder? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  listing MarketplaceListing?     @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  product Product?                @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([sellerId, marketplaceId, returnDate], map: "amazon_return_events_scope_date_idx")
+  @@index([amazonOrderId], map: "amazon_return_events_order_id_idx")
+  @@index([productId, fulfilmentType, inventoryAction], map: "amazon_return_events_product_action_idx")
+  @@map("amazon_return_events")
+}
+
+model AmazonOrderFulfillment {
+  id                       BigInt    @id @default(autoincrement()) @db.BigInt
+  orderId                  BigInt    @unique @db.BigInt
+  route                    String    @db.VarChar(40)
+  workflowStatus           String    @db.VarChar(40)
+  pickTaskReference        String?   @unique @db.VarChar(100)
+  pickedAt                 DateTime? @db.Timestamptz(3)
+  packedAt                 DateTime? @db.Timestamptz(3)
+  packageWeightGrams       Int?
+  packageLengthCm          Decimal?  @db.Decimal(10, 2)
+  packageWidthCm           Decimal?  @db.Decimal(10, 2)
+  packageHeightCm          Decimal?  @db.Decimal(10, 2)
+  packageIdentifier        String?   @db.VarChar(255)
+  shippingMethod           String?   @db.VarChar(100)
+  logisticsPartner         String?   @db.VarChar(100)
+  courierCode              String?   @db.VarChar(100)
+  courierName              String?   @db.VarChar(255)
+  trackingNumber           String?   @db.VarChar(255)
+  shippingDate             DateTime? @db.Timestamptz(3)
+  invoiceUrl               String?   @db.Text
+  packingSlipUrl           String?   @db.Text
+  shippingLabelUrl         String?   @db.Text
+  easyShipPackageId        String?   @db.VarChar(255)
+  easyShipSlotId           String?   @db.VarChar(255)
+  easyShipSlotStart        DateTime? @db.Timestamptz(3)
+  easyShipSlotEnd          DateTime? @db.Timestamptz(3)
+  easyShipHandoverMethod   String?   @db.VarChar(20)
+  easyShipStatus           String?   @db.VarChar(50)
+  amazonConfirmationStatus String    @default("NOT_REQUIRED") @db.VarChar(30)
+  amazonConfirmedAt        DateTime? @db.Timestamptz(3)
+  lastError                String?   @db.Text
+  createdAt                DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt                DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  order      AmazonMarketplaceOrder            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  audits     AmazonOrderFulfillmentAudit[]
+  exceptions AmazonOrderFulfillmentException[]
+
+  @@index([route, workflowStatus], map: "amazon_order_fulfillment_route_status_idx")
+  @@map("amazon_order_fulfillments")
+}
+
+model AmazonOrderFulfillmentAudit {
+  id            BigInt   @id @default(autoincrement()) @db.BigInt
+  orderId       BigInt   @db.BigInt
+  fulfillmentId BigInt?  @db.BigInt
+  action        String   @db.VarChar(50)
+  fromStatus    String?  @db.VarChar(40)
+  toStatus      String?  @db.VarChar(40)
+  outcome       String   @db.VarChar(20)
+  details       Json?
+  actorUserId   Int?
+  actorUserType String?  @db.VarChar(30)
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+
+  order       AmazonMarketplaceOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fulfillment AmazonOrderFulfillment? @relation(fields: [fulfillmentId], references: [id], onDelete: SetNull)
+
+  @@index([orderId, createdAt], map: "amazon_order_fulfillment_audit_order_created_idx")
+  @@map("amazon_order_fulfillment_audits")
+}
+
+model AmazonOrderFulfillmentException {
+  id                 BigInt    @id @default(autoincrement()) @db.BigInt
+  orderId            BigInt    @db.BigInt
+  fulfillmentId      BigInt?   @db.BigInt
+  action             String    @db.VarChar(50)
+  status             String    @default("OPEN") @db.VarChar(20)
+  errorCode          String    @db.VarChar(100)
+  message            String    @db.Text
+  retryPayload       Json?
+  retryCount         Int       @default(0)
+  lastRetriedAt      DateTime? @db.Timestamptz(3)
+  resolutionNote     String?   @db.Text
+  resolvedByUserId   Int?
+  resolvedByUserType String?   @db.VarChar(30)
+  resolvedAt         DateTime? @db.Timestamptz(3)
+  createdAt          DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  order       AmazonMarketplaceOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fulfillment AmazonOrderFulfillment? @relation(fields: [fulfillmentId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt], map: "amazon_order_fulfillment_exception_status_idx")
+  @@index([orderId, status], map: "amazon_order_fulfillment_exception_order_idx")
+  @@map("amazon_order_fulfillment_exceptions")
+}
+
+model ChannelSyncLog {
+  id                  BigInt    @id @default(autoincrement()) @db.BigInt
+  marketplace         String    @db.VarChar(30)
+  environment         String    @db.VarChar(20)
+  operation           String    @db.VarChar(50)
+  status              String    @db.VarChar(20)
+  marketplaceId       String    @db.VarChar(50)
+  sellerId            String    @db.VarChar(255)
+  totalFetched        Int       @default(0)
+  created             Int       @default(0)
+  updated             Int       @default(0)
+  unmapped            Int       @default(0)
+  conflicts           Int       @default(0)
+  inactive            Int       @default(0)
+  failed              Int       @default(0)
+  errorCode           String?   @db.VarChar(100)
+  errorMessage        String?   @db.Text
+  requestedByUserId   Int?
+  requestedByUserType String?   @db.VarChar(30)
+  startedAt           DateTime  @default(now()) @db.Timestamptz(3)
+  finishedAt          DateTime? @db.Timestamptz(3)
+  createdAt           DateTime  @default(now()) @db.Timestamptz(3)
+
+  listingAudits MarketplaceListingAudit[]
+
+  @@index([marketplace, environment, operation, startedAt], map: "channel_sync_logs_lookup_idx")
+  @@index([sellerId, marketplaceId, startedAt], map: "channel_sync_logs_seller_idx")
+  @@map("channel_sync_logs")
+}
+
+model AmazonOperationsSetting {
+  id                     BigInt    @id @default(autoincrement()) @db.BigInt
+  sellerId               String    @db.VarChar(255)
+  marketplaceId          String    @db.VarChar(50)
+  productionWritesPaused Boolean   @default(false)
+  pauseReason            String?   @db.Text
+  pausedAt               DateTime? @db.Timestamptz(3)
+  pausedByUserId         Int?
+  pausedByUserType       String?   @db.VarChar(30)
+  createdAt              DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  @@unique([sellerId, marketplaceId], map: "amazon_operations_settings_scope_unique")
+  @@map("amazon_operations_settings")
+}
+
+model AmazonRetryJob {
+  id                  BigInt    @id @default(autoincrement()) @db.BigInt
+  sellerId            String    @db.VarChar(255)
+  marketplaceId       String    @db.VarChar(50)
+  operation           String    @db.VarChar(50)
+  resourceType        String    @db.VarChar(50)
+  resourceId          String    @db.VarChar(255)
+  payload             Json?
+  status              String    @default("QUEUED") @db.VarChar(20)
+  attempts            Int       @default(0)
+  maxAttempts         Int       @default(3)
+  nextAttemptAt       DateTime  @default(now()) @db.Timestamptz(3)
+  lastError           String?   @db.Text
+  requestedByUserId   Int?
+  requestedByUserType String?   @db.VarChar(30)
+  startedAt           DateTime? @db.Timestamptz(3)
+  finishedAt          DateTime? @db.Timestamptz(3)
+  createdAt           DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  @@index([sellerId, marketplaceId, status, nextAttemptAt], map: "amazon_retry_jobs_scope_status_idx")
+  @@index([resourceType, resourceId, createdAt], map: "amazon_retry_jobs_resource_idx")
+  @@map("amazon_retry_jobs")
+}
+
+model AmazonOperationsAudit {
+  id                  BigInt   @id @default(autoincrement()) @db.BigInt
+  sellerId            String   @db.VarChar(255)
+  marketplaceId       String   @db.VarChar(50)
+  action              String   @db.VarChar(80)
+  outcome             String   @db.VarChar(20)
+  details             Json?
+  requestedByUserId   Int?
+  requestedByUserType String?  @db.VarChar(30)
+  createdAt           DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([sellerId, marketplaceId, createdAt], map: "amazon_operations_audits_scope_created_idx")
+  @@map("amazon_operations_audits")
+}
+
+model AmazonApiTelemetry {
+  id            BigInt   @id @default(autoincrement()) @db.BigInt
+  sellerId      String   @db.VarChar(255)
+  marketplaceId String   @db.VarChar(50)
+  operation     String   @db.VarChar(120)
+  method        String   @db.VarChar(10)
+  path          String   @db.VarChar(500)
+  statusCode    Int
+  rateLimit     String?  @db.VarChar(100)
+  requestId     String?  @db.VarChar(255)
+  retryAfter    String?  @db.VarChar(100)
+  throttled     Boolean  @default(false)
+  successful    Boolean  @default(false)
+  observedAt    DateTime @default(now()) @db.Timestamptz(3)
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime @default(now()) @updatedAt @db.Timestamptz(3)
+
+  @@unique([sellerId, marketplaceId, operation], map: "amazon_api_telemetry_scope_operation_unique")
+  @@index([sellerId, marketplaceId, observedAt], map: "amazon_api_telemetry_scope_observed_idx")
+  @@index([sellerId, marketplaceId, throttled, observedAt], map: "amazon_api_telemetry_throttled_idx")
+  @@map("amazon_api_telemetry")
+}
+
+model AmazonNotificationSubscription {
+  id                   BigInt    @id @default(autoincrement()) @db.BigInt
+  sellerId             String    @db.VarChar(255)
+  marketplaceId        String    @db.VarChar(50)
+  notificationType     String    @db.VarChar(100)
+  payloadVersion       String    @db.VarChar(30)
+  destinationKind      String    @db.VarChar(30)
+  destinationId        String?   @db.VarChar(255)
+  amazonSubscriptionId String?   @db.VarChar(255)
+  status               String    @default("NOT_CONFIGURED") @db.VarChar(30)
+  lastError            String?   @db.Text
+  lastCheckedAt        DateTime? @db.Timestamptz(3)
+  configuredAt         DateTime? @db.Timestamptz(3)
+  configuredByUserId   Int?
+  configuredByUserType String?   @db.VarChar(30)
+  createdAt            DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  @@unique([sellerId, marketplaceId, notificationType, payloadVersion], map: "amazon_notification_subscriptions_scope_type_unique")
+  @@index([sellerId, marketplaceId, status], map: "amazon_notification_subscriptions_scope_status_idx")
+  @@map("amazon_notification_subscriptions")
+}
+
+model MarketplaceListingAudit {
+  id                  BigInt   @id @default(autoincrement()) @db.BigInt
+  listingId           BigInt?  @db.BigInt
+  syncLogId           BigInt?  @db.BigInt
+  marketplace         String   @default("AMAZON") @db.VarChar(30)
+  environment         String   @default("PRODUCTION") @db.VarChar(20)
+  marketplaceId       String   @db.VarChar(50)
+  sellerId            String   @db.VarChar(255)
+  sellerSku           String   @db.VarChar(255)
+  operation           String   @db.VarChar(50)
+  changedFields       Json
+  beforeValues        Json?
+  afterValues         Json?
+  previousProductId   BigInt?  @db.BigInt
+  productId           BigInt?  @db.BigInt
+  requestedByUserId   Int?
+  requestedByUserType String?  @db.VarChar(30)
+  createdAt           DateTime @default(now()) @db.Timestamptz(3)
+
+  listing MarketplaceListing? @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  syncLog ChannelSyncLog?     @relation(fields: [syncLogId], references: [id], onDelete: SetNull)
+
+  @@index([listingId, createdAt], map: "marketplace_listing_audits_listing_idx")
+  @@index([syncLogId], map: "marketplace_listing_audits_sync_log_idx")
+  @@index([marketplace, marketplaceId, sellerId, createdAt], map: "marketplace_listing_audits_lookup_idx")
+  @@map("marketplace_listing_audits")
 }
 
 // ============================================

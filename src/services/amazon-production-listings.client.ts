@@ -1,0 +1,1026 @@
+import { env } from '../config/env.js';
+import { gunzipSync } from 'node:zlib';
+import {
+  AmazonAccessTokenProvider,
+  AmazonAuthorizationError,
+  amazonLwaTokenService,
+} from './amazon-lwa-token.service.js';
+import { AmazonApiTelemetryRecorder, amazonApiTelemetryService } from './amazon-api-telemetry.service.js';
+
+type FetchLike = typeof fetch;
+
+export type AmazonListingSummary = {
+  marketplaceId?: string;
+  asin?: string;
+  productType?: string;
+  itemName?: string;
+  status?: string[] | string;
+  statuses?: string[];
+  lastUpdatedDate?: string;
+};
+
+export type AmazonListingOffer = {
+  marketplaceId?: string;
+  offerType?: string;
+  price?: {
+    currencyCode?: string;
+    amount?: string | number;
+  };
+};
+
+export type AmazonFulfilmentAvailability = {
+  fulfillmentChannelCode?: string;
+  quantity?: number;
+};
+
+export type AmazonRawListing = {
+  sku?: string;
+  summaries?: AmazonListingSummary[];
+  offers?: AmazonListingOffer[];
+  fulfillmentAvailability?: AmazonFulfilmentAvailability[];
+  productTypes?: Array<{
+    marketplaceId?: string;
+    productType?: string;
+  }>;
+  attributes?: Record<string, unknown>;
+  issues?: Array<{
+    code?: string;
+    message?: string;
+    severity?: 'ERROR' | 'WARNING' | 'INFO' | string;
+    attributeNames?: string[];
+    categories?: string[];
+    enforcements?: unknown;
+  }>;
+};
+
+export type AmazonFbaInventorySummary = {
+  asin?: string;
+  fnSku?: string;
+  sellerSku?: string;
+  productName?: string;
+  lastUpdatedTime?: string;
+  totalQuantity?: number;
+  inventoryDetails?: {
+    fulfillableQuantity?: number;
+    reservedQuantity?: {
+      totalReservedQuantity?: number;
+      pendingCustomerOrderQuantity?: number;
+    };
+  };
+};
+
+export type AmazonListingsPage = {
+  items: AmazonRawListing[];
+  nextToken: string | null;
+};
+
+export type AmazonFbaInventoryPage = {
+  items: AmazonFbaInventorySummary[];
+  nextToken: string | null;
+};
+
+export type AmazonCatalogItem = {
+  asin?: string;
+  identifiers?: Array<{
+    marketplaceId?: string;
+    identifiers?: Array<{ identifierType?: string; identifier?: string }>;
+  }>;
+  images?: Array<{
+    marketplaceId?: string;
+    images?: Array<{ link?: string; height?: number; width?: number; variant?: string }>;
+  }>;
+  productTypes?: Array<{ marketplaceId?: string; productType?: string }>;
+  summaries?: Array<{
+    marketplaceId?: string;
+    itemName?: string;
+    brand?: string;
+    manufacturer?: string;
+  }>;
+};
+
+export type AmazonProductTypeRecommendation = {
+  name: string;
+  displayName: string;
+  marketplaceIds: string[];
+};
+
+export type AmazonProductTypeDefinition = {
+  metaSchema?: { link?: { resource?: string; verb?: 'GET' }; checksum?: string };
+  schema: { link: { resource: string; verb: 'GET' }; checksum: string };
+  requirements: string;
+  requirementsEnforced: string;
+  propertyGroups?: Record<string, unknown>;
+  productTypeVersion?: { version?: string; latest?: boolean; releaseCandidate?: boolean };
+};
+
+export type AmazonListingRestriction = {
+  marketplaceId: string;
+  conditionType?: string;
+  reasons?: Array<{
+    message: string;
+    reasonCode?: 'APPROVAL_REQUIRED' | 'ASIN_NOT_FOUND' | 'NOT_ELIGIBLE';
+    links?: Array<{
+      resource: string;
+      verb: string;
+      title?: string;
+      type?: string;
+    }>;
+  }>;
+};
+
+export type AmazonRawOrder = {
+  orderId?: string;
+  createdTime?: string;
+  lastUpdatedTime?: string;
+  programs?: string[];
+  salesChannel?: { marketplaceId?: string };
+  buyer?: {
+    buyerName?: string;
+    buyerEmail?: string;
+  };
+  fulfillment?: {
+    fulfillmentStatus?: string;
+    fulfilledBy?: string;
+    shipByWindow?: { earliestDateTime?: string; latestDateTime?: string };
+  };
+  orderItems?: Array<{
+    orderItemId?: string;
+    quantityOrdered?: number;
+    quantityShipped?: number;
+    fulfillment?: { quantityFulfilled?: number };
+    product?: {
+      sellerSku?: string;
+      asin?: string;
+      title?: string;
+      price?: {
+        unitPrice?: {
+          amount?: string;
+          currencyCode?: string;
+        };
+      };
+    };
+    cancellation?: {
+      requester?: string;
+      cancelReason?: string;
+      cancellationRequest?: { requester?: string; cancelReason?: string };
+    };
+  }>;
+};
+
+export type AmazonOrdersPage = { orders: AmazonRawOrder[]; nextToken: string | null };
+export type AmazonReportStatus = {
+  reportId: string;
+  processingStatus: 'IN_QUEUE' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED' | 'FATAL';
+  reportDocumentId?: string;
+};
+
+export type AmazonPackageDimensions = { length: number; width: number; height: number; unit: 'cm' };
+export type AmazonPackageWeight = { value: number; unit: 'grams' | 'g' };
+export type AmazonEasyShipTimeSlot = {
+  slotId: string;
+  startTime?: string | undefined;
+  endTime?: string | undefined;
+  handoverMethod?: 'PICKUP' | 'DROPOFF' | undefined;
+};
+export type AmazonEasyShipPackage = {
+  scheduledPackageId?: { amazonOrderId?: string; packageId?: string };
+  packageDimensions?: AmazonPackageDimensions;
+  packageWeight?: AmazonPackageWeight;
+  packageTimeSlot?: AmazonEasyShipTimeSlot;
+  packageIdentifier?: string;
+  packageStatus?: string;
+  trackingDetails?: { trackingId?: string };
+  invoice?: { invoiceNumber?: string; invoiceDate?: string };
+};
+
+export type AmazonNotificationSubscription = {
+  subscriptionId: string;
+  destinationId: string;
+  payloadVersion: string;
+};
+
+type SearchListingsResponse = {
+  items?: AmazonRawListing[];
+  pagination?: {
+    nextToken?: string;
+  };
+};
+
+type FbaInventoryResponse = {
+  payload?: {
+    inventorySummaries?: AmazonFbaInventorySummary[];
+    pagination?: {
+      nextToken?: string;
+    };
+  };
+};
+
+export class AmazonSpApiError extends Error {
+  readonly statusCode: number;
+  readonly code: string;
+
+  constructor(message: string, statusCode: number, code: string) {
+    super(message);
+    this.name = 'AmazonSpApiError';
+    this.statusCode = statusCode;
+    this.code = code;
+  }
+}
+
+export interface AmazonListingsReadClient {
+  getSellerId(): string;
+  getMarketplaceId(): string;
+  fetchListingsPage(pageToken?: string): Promise<AmazonListingsPage>;
+  fetchFbaInventoryPage(nextToken?: string): Promise<AmazonFbaInventoryPage>;
+  fetchListing?(sellerSku: string): Promise<AmazonRawListing>;
+  searchCatalogItems?(input: {
+    identifiers?: string[];
+    identifiersType?: 'ASIN' | 'EAN' | 'GTIN' | 'ISBN' | 'JAN' | 'MINSAN' | 'SKU' | 'UPC';
+    keywords?: string[];
+    brandNames?: string[];
+    pageSize?: number;
+  }): Promise<AmazonCatalogItem[]>;
+  searchProductTypes?(input: {
+    itemName?: string;
+    keywords?: string[];
+  }): Promise<{ productTypes: AmazonProductTypeRecommendation[]; productTypeVersion: string | null }>;
+  getProductTypeDefinition?(input: {
+    productType: string;
+    requirements: 'LISTING' | 'LISTING_PRODUCT_ONLY' | 'LISTING_OFFER_ONLY';
+  }): Promise<AmazonProductTypeDefinition & { definitionSchema: Record<string, unknown> }>;
+  getListingsRestrictions?(input: {
+    asin: string;
+    conditionType?: 'new_new' | 'new_open_box' | 'new_oem' | 'refurbished_refurbished'
+      | 'used_like_new' | 'used_very_good' | 'used_good' | 'used_acceptable'
+      | 'collectible_like_new' | 'collectible_very_good' | 'collectible_good'
+      | 'collectible_acceptable' | 'club_club';
+  }): Promise<AmazonListingRestriction[]>;
+  patchMfnQuantity?(input: {
+    sellerSku: string;
+    productType: string;
+    quantity: number;
+  }): Promise<{ submissionId: string | null; status: string; issues: unknown[] }>;
+  patchListingOffer?(input: {
+    sellerSku: string;
+    productType: string;
+    patches: Array<{ op: 'replace' | 'merge'; path: string; value: Array<Record<string, unknown>> }>;
+    validationPreview?: boolean;
+  }): Promise<{ submissionId: string | null; status: string; issues: unknown[] }>;
+  previewListingItem?(input: {
+    sellerSku: string;
+    productType: string;
+    requirements: 'LISTING' | 'LISTING_PRODUCT_ONLY' | 'LISTING_OFFER_ONLY';
+    attributes: Record<string, unknown>;
+  }): Promise<{
+    submissionId: string | null;
+    status: string;
+    issues: unknown[];
+    identifiers: unknown[];
+  }>;
+  submitListingItem?(input: {
+    sellerSku: string;
+    productType: string;
+    requirements: 'LISTING' | 'LISTING_PRODUCT_ONLY' | 'LISTING_OFFER_ONLY';
+    attributes: Record<string, unknown>;
+  }): Promise<{
+    submissionId: string | null;
+    status: string;
+    issues: unknown[];
+  }>;
+  searchOrders?(input: {
+    lastUpdatedAfter?: string;
+    createdAfter?: string;
+    paginationToken?: string;
+  }): Promise<AmazonOrdersPage>;
+  confirmShipment?(input: {
+    orderId: string;
+    marketplaceId: string;
+    packageReferenceId: string;
+    carrierCode: string;
+    carrierName?: string;
+    shippingMethod?: string;
+    trackingNumber: string;
+    shipDate: string;
+    orderItems: Array<{ orderItemId: string; quantity: number }>;
+  }): Promise<void>;
+  listEasyShipHandoverSlots?(input: {
+    orderId: string;
+    marketplaceId: string;
+    dimensions: AmazonPackageDimensions;
+    weight: AmazonPackageWeight;
+  }): Promise<AmazonEasyShipTimeSlot[]>;
+  createEasyShipScheduledPackage?(input: {
+    orderId: string;
+    marketplaceId: string;
+    dimensions: AmazonPackageDimensions;
+    weight: AmazonPackageWeight;
+    timeSlot: AmazonEasyShipTimeSlot;
+    packageIdentifier?: string;
+    orderItems: Array<{ orderItemId: string; serialNumbers?: string[] }>;
+  }): Promise<AmazonEasyShipPackage>;
+  getEasyShipScheduledPackage?(orderId: string): Promise<AmazonEasyShipPackage>;
+  updateEasyShipScheduledPackage?(input: {
+    orderId: string;
+    marketplaceId: string;
+    packageId: string;
+    timeSlot: AmazonEasyShipTimeSlot;
+  }): Promise<AmazonEasyShipPackage[]>;
+  getNotificationSubscription?(notificationType: string, payloadVersion: string): Promise<AmazonNotificationSubscription | null>;
+  createNotificationSubscription?(notificationType: string, payloadVersion: string, destinationId: string): Promise<AmazonNotificationSubscription>;
+  createReport?(input: { reportType: string; dataStartTime: string; dataEndTime: string }): Promise<{ reportId: string }>;
+  getReport?(reportId: string): Promise<AmazonReportStatus>;
+  downloadReportDocument?(reportDocumentId: string): Promise<string>;
+}
+
+type AmazonProductionListingsClientOptions = {
+  accessTokenProvider?: AmazonAccessTokenProvider;
+  fetchImpl?: FetchLike;
+  sleep?: (milliseconds: number) => Promise<void>;
+  baseUrl?: string;
+  sellerId?: string;
+  marketplaceId?: string;
+  pageSize?: number;
+  maxRetries?: number;
+  requestTimeoutMs?: number;
+  telemetryRecorder?: AmazonApiTelemetryRecorder | null;
+};
+
+export class AmazonProductionListingsClient implements AmazonListingsReadClient {
+  private readonly accessTokenProvider: AmazonAccessTokenProvider;
+  private readonly fetchImpl: FetchLike;
+  private readonly sleep: (milliseconds: number) => Promise<void>;
+  private readonly configuredBaseUrl: string | undefined;
+  private readonly configuredSellerId: string | undefined;
+  private readonly configuredMarketplaceId: string | undefined;
+  private readonly configuredPageSize: number | undefined;
+  private readonly configuredMaxRetries: number | undefined;
+  private readonly requestTimeoutMs: number;
+  private readonly telemetryRecorder: AmazonApiTelemetryRecorder | null;
+
+  constructor(options: AmazonProductionListingsClientOptions = {}) {
+    this.accessTokenProvider = options.accessTokenProvider ?? amazonLwaTokenService;
+    this.fetchImpl = options.fetchImpl ?? fetch;
+    this.sleep = options.sleep ?? ((milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)));
+    this.configuredBaseUrl = options.baseUrl;
+    this.configuredSellerId = options.sellerId;
+    this.configuredMarketplaceId = options.marketplaceId;
+    this.configuredPageSize = options.pageSize;
+    this.configuredMaxRetries = options.maxRetries;
+    this.requestTimeoutMs = options.requestTimeoutMs ?? 30_000;
+    this.telemetryRecorder = options.telemetryRecorder === undefined
+      ? (options.fetchImpl ? null : amazonApiTelemetryService)
+      : options.telemetryRecorder;
+  }
+
+  getSellerId(): string {
+    return this.requiredConfig('AMAZON_SELLER_ID', this.configuredSellerId ?? env.AMAZON_SELLER_ID);
+  }
+
+  getMarketplaceId(): string {
+    return this.requiredConfig(
+      'AMAZON_MARKETPLACE_ID',
+      this.configuredMarketplaceId ?? env.AMAZON_MARKETPLACE_ID
+    );
+  }
+
+  async fetchListingsPage(pageToken?: string): Promise<AmazonListingsPage> {
+    const sellerId = this.getSellerId();
+    const marketplaceId = this.getMarketplaceId();
+    const payload = await this.getJson<SearchListingsResponse>(
+      `/listings/2021-08-01/items/${encodeURIComponent(sellerId)}`,
+      {
+        marketplaceIds: marketplaceId,
+        includedData: 'summaries,offers,fulfillmentAvailability,productTypes,attributes',
+        pageSize: String(this.configuredPageSize ?? env.AMAZON_LISTING_IMPORT_PAGE_SIZE),
+        ...(pageToken ? { pageToken } : {}),
+      }
+    );
+
+    return {
+      items: payload.items ?? [],
+      nextToken: payload.pagination?.nextToken ?? null,
+    };
+  }
+
+  async fetchFbaInventoryPage(nextToken?: string): Promise<AmazonFbaInventoryPage> {
+    const marketplaceId = this.getMarketplaceId();
+    const payload = await this.getJson<FbaInventoryResponse>(
+      '/fba/inventory/v1/summaries',
+      {
+        details: 'true',
+        granularityType: 'Marketplace',
+        granularityId: marketplaceId,
+        marketplaceIds: marketplaceId,
+        ...(nextToken ? { nextToken } : {}),
+      }
+    );
+
+    return {
+      items: payload.payload?.inventorySummaries ?? [],
+      nextToken: payload.payload?.pagination?.nextToken ?? null,
+    };
+  }
+
+  async fetchListing(sellerSku: string): Promise<AmazonRawListing> {
+    return this.getJson<AmazonRawListing>(
+      `/listings/2021-08-01/items/${encodeURIComponent(this.getSellerId())}/${encodeURIComponent(sellerSku)}`,
+      {
+        marketplaceIds: this.getMarketplaceId(),
+        includedData: 'summaries,offers,fulfillmentAvailability,productTypes,attributes,issues',
+      }
+    );
+  }
+
+  async searchCatalogItems(input: {
+    identifiers?: string[];
+    identifiersType?: 'ASIN' | 'EAN' | 'GTIN' | 'ISBN' | 'JAN' | 'MINSAN' | 'SKU' | 'UPC';
+    keywords?: string[];
+    brandNames?: string[];
+    pageSize?: number;
+  }): Promise<AmazonCatalogItem[]> {
+    const identifiers = input.identifiers?.filter(Boolean);
+    const keywords = input.keywords?.filter(Boolean);
+    if (identifiers?.length && keywords?.length) {
+      throw new AmazonSpApiError('Catalog search cannot combine identifiers and keywords', 400, 'AMAZON_CATALOG_SEARCH_CONFLICT');
+    }
+    if (!identifiers?.length && !keywords?.length) {
+      throw new AmazonSpApiError('Catalog search requires identifiers or keywords', 400, 'AMAZON_CATALOG_SEARCH_REQUIRED');
+    }
+    if (identifiers?.length && !input.identifiersType) {
+      throw new AmazonSpApiError('Identifier type is required for identifier search', 400, 'AMAZON_IDENTIFIER_TYPE_REQUIRED');
+    }
+    const response = await this.getJson<{ items?: AmazonCatalogItem[] }>(
+      '/catalog/2022-04-01/items',
+      {
+        marketplaceIds: this.getMarketplaceId(),
+        includedData: 'identifiers,images,productTypes,summaries',
+        pageSize: String(Math.min(Math.max(input.pageSize ?? 10, 1), 20)),
+        ...(identifiers?.length ? {
+          identifiers: identifiers.join(','),
+          identifiersType: input.identifiersType!,
+          ...(input.identifiersType === 'SKU' ? { sellerId: this.getSellerId() } : {}),
+        } : {}),
+        ...(keywords?.length ? { keywords: keywords.join(',') } : {}),
+        ...(input.brandNames?.length ? { brandNames: input.brandNames.join(',') } : {}),
+      }
+    );
+    return response.items ?? [];
+  }
+
+  async searchProductTypes(input: {
+    itemName?: string;
+    keywords?: string[];
+  }): Promise<{ productTypes: AmazonProductTypeRecommendation[]; productTypeVersion: string | null }> {
+    if (input.itemName && input.keywords?.length) {
+      throw new AmazonSpApiError('Product type search cannot combine itemName and keywords', 400, 'AMAZON_PRODUCT_TYPE_SEARCH_CONFLICT');
+    }
+    const response = await this.getJson<{
+      productTypes?: AmazonProductTypeRecommendation[];
+      productTypeVersion?: string;
+    }>('/definitions/2020-09-01/productTypes', {
+      marketplaceIds: this.getMarketplaceId(),
+      ...(input.itemName ? { itemName: input.itemName } : {}),
+      ...(input.keywords?.length ? { keywords: input.keywords.join(',') } : {}),
+    });
+    return {
+      productTypes: response.productTypes ?? [],
+      productTypeVersion: response.productTypeVersion ?? null,
+    };
+  }
+
+  async getProductTypeDefinition(input: {
+    productType: string;
+    requirements: 'LISTING' | 'LISTING_PRODUCT_ONLY' | 'LISTING_OFFER_ONLY';
+  }): Promise<AmazonProductTypeDefinition & { definitionSchema: Record<string, unknown> }> {
+    const definition = await this.getJson<AmazonProductTypeDefinition>(
+      `/definitions/2020-09-01/productTypes/${encodeURIComponent(input.productType)}`,
+      {
+        sellerId: this.getSellerId(),
+        marketplaceIds: this.getMarketplaceId(),
+        productTypeVersion: 'LATEST',
+        requirements: input.requirements,
+        requirementsEnforced: 'ENFORCED',
+        locale: 'en_IN',
+      }
+    );
+    if (!definition.schema?.link?.resource) {
+      throw new AmazonSpApiError('Amazon Product Type Definition did not include a schema link', 502, 'AMAZON_PRODUCT_TYPE_SCHEMA_LINK_MISSING');
+    }
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), this.requestTimeoutMs);
+    try {
+      const response = await this.fetchImpl(definition.schema.link.resource, {
+        method: 'GET',
+        headers: { accept: 'application/json' },
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        throw new AmazonSpApiError(
+          `Amazon product type schema download failed with HTTP ${response.status}`,
+          response.status,
+          'AMAZON_PRODUCT_TYPE_SCHEMA_DOWNLOAD_FAILED'
+        );
+      }
+      return {
+        ...definition,
+        definitionSchema: await response.json() as Record<string, unknown>,
+      };
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  async getListingsRestrictions(input: {
+    asin: string;
+    conditionType?: 'new_new' | 'new_open_box' | 'new_oem' | 'refurbished_refurbished'
+      | 'used_like_new' | 'used_very_good' | 'used_good' | 'used_acceptable'
+      | 'collectible_like_new' | 'collectible_very_good' | 'collectible_good'
+      | 'collectible_acceptable' | 'club_club';
+  }): Promise<AmazonListingRestriction[]> {
+    const response = await this.getJson<{ restrictions?: AmazonListingRestriction[] }>(
+      '/listings/2021-08-01/restrictions',
+      {
+        asin: input.asin,
+        sellerId: this.getSellerId(),
+        marketplaceIds: this.getMarketplaceId(),
+        reasonLocale: 'en_IN',
+        ...(input.conditionType ? { conditionType: input.conditionType } : {}),
+      }
+    );
+    return response.restrictions ?? [];
+  }
+
+  async patchMfnQuantity(input: {
+    sellerSku: string;
+    productType: string;
+    quantity: number;
+  }): Promise<{ submissionId: string | null; status: string; issues: unknown[] }> {
+    return this.patchListingOffer({
+      sellerSku: input.sellerSku, productType: input.productType,
+      patches: [{
+        op: 'merge', path: '/attributes/fulfillment_availability',
+        value: [{ fulfillment_channel_code: 'DEFAULT', quantity: input.quantity }],
+      }],
+    });
+  }
+
+  async patchListingOffer(input: {
+    sellerSku: string;
+    productType: string;
+    patches: Array<{ op: 'replace' | 'merge'; path: string; value: Array<Record<string, unknown>> }>;
+    validationPreview?: boolean;
+  }): Promise<{ submissionId: string | null; status: string; issues: unknown[] }> {
+    const response = await this.requestJson<{
+      submissionId?: string;
+      status?: string;
+      issues?: unknown[];
+    }>(
+      'PATCH',
+      `/listings/2021-08-01/items/${encodeURIComponent(this.getSellerId())}/${encodeURIComponent(input.sellerSku)}`,
+      {
+        marketplaceIds: this.getMarketplaceId(), includedData: 'issues', issueLocale: 'en_IN',
+        ...(input.validationPreview ? { mode: 'VALIDATION_PREVIEW' } : {}),
+      },
+      {
+        productType: input.productType,
+        patches: input.patches,
+      }
+    );
+    return {
+      submissionId: response.submissionId ?? null,
+      status: response.status ?? 'UNKNOWN',
+      issues: response.issues ?? [],
+    };
+  }
+
+  async searchOrders(input: {
+    lastUpdatedAfter?: string;
+    createdAfter?: string;
+    paginationToken?: string;
+  }): Promise<AmazonOrdersPage> {
+    if (!input.lastUpdatedAfter && !input.createdAfter) {
+      throw new AmazonSpApiError(
+        'An Amazon order search start date is required',
+        400,
+        'AMAZON_ORDER_SEARCH_DATE_REQUIRED'
+      );
+    }
+    type SearchOrdersResponse = {
+      orders?: AmazonRawOrder[];
+      pagination?: { nextToken?: string };
+    };
+    const baseQuery = {
+      marketplaceIds: this.getMarketplaceId(),
+      ...(input.createdAfter
+        ? { createdAfter: input.createdAfter }
+        : { lastUpdatedAfter: input.lastUpdatedAfter! }),
+      maxResultsPerPage: '100',
+      ...(input.paginationToken ? { paginationToken: input.paginationToken } : {}),
+    };
+    let response: SearchOrdersResponse;
+    try {
+      response = await this.getJson<SearchOrdersResponse>('/orders/2026-01-01/orders', {
+        ...baseQuery,
+        includedData: 'BUYER,FULFILLMENT,CANCELLATION',
+      });
+    } catch (error) {
+      if (!(error instanceof AmazonAuthorizationError)) throw error;
+      response = await this.getJson<SearchOrdersResponse>('/orders/2026-01-01/orders', {
+        ...baseQuery,
+        includedData: 'FULFILLMENT,CANCELLATION',
+      });
+    }
+    return { orders: response.orders ?? [], nextToken: response.pagination?.nextToken ?? null };
+  }
+
+  async createReport(input: {
+    reportType: string;
+    dataStartTime: string;
+    dataEndTime: string;
+  }): Promise<{ reportId: string }> {
+    const response = await this.requestJson<{ reportId?: string }>(
+      'POST',
+      '/reports/2021-06-30/reports',
+      {},
+      {
+        reportType: input.reportType,
+        marketplaceIds: [this.getMarketplaceId()],
+        dataStartTime: input.dataStartTime,
+        dataEndTime: input.dataEndTime,
+      }
+    );
+    if (!response.reportId) {
+      throw new AmazonSpApiError('Amazon did not return a report ID', 502, 'AMAZON_REPORT_ID_MISSING');
+    }
+    return { reportId: response.reportId };
+  }
+
+  async getReport(reportId: string): Promise<AmazonReportStatus> {
+    const response = await this.getJson<{
+      reportId?: string;
+      processingStatus?: AmazonReportStatus['processingStatus'];
+      reportDocumentId?: string;
+    }>(`/reports/2021-06-30/reports/${encodeURIComponent(reportId)}`, {});
+    return {
+      reportId: response.reportId ?? reportId,
+      processingStatus: response.processingStatus ?? 'IN_QUEUE',
+      ...(response.reportDocumentId ? { reportDocumentId: response.reportDocumentId } : {}),
+    };
+  }
+
+  async downloadReportDocument(reportDocumentId: string): Promise<string> {
+    const document = await this.getJson<{ url?: string; compressionAlgorithm?: string }>(
+      `/reports/2021-06-30/documents/${encodeURIComponent(reportDocumentId)}`,
+      {}
+    );
+    if (!document.url) {
+      throw new AmazonSpApiError('Amazon did not return a report download URL', 502, 'AMAZON_REPORT_URL_MISSING');
+    }
+    const response = await this.fetchImpl(document.url, { signal: AbortSignal.timeout(this.requestTimeoutMs) });
+    if (!response.ok) {
+      throw new AmazonSpApiError('Amazon report download failed', response.status || 502, 'AMAZON_REPORT_DOWNLOAD_FAILED');
+    }
+    const bytes = Buffer.from(await response.arrayBuffer());
+    const content = document.compressionAlgorithm === 'GZIP' ? gunzipSync(bytes) : bytes;
+    return content.toString('utf8').replace(/^\uFEFF/, '');
+  }
+
+  async previewListingItem(input: {
+    sellerSku: string;
+    productType: string;
+    requirements: 'LISTING' | 'LISTING_PRODUCT_ONLY' | 'LISTING_OFFER_ONLY';
+    attributes: Record<string, unknown>;
+  }): Promise<{
+    submissionId: string | null;
+    status: string;
+    issues: unknown[];
+    identifiers: unknown[];
+  }> {
+    const response = await this.requestJson<{
+      submissionId?: string;
+      status?: string;
+      issues?: unknown[];
+      identifiers?: unknown[];
+    }>(
+      'PUT',
+      `/listings/2021-08-01/items/${encodeURIComponent(this.getSellerId())}/${encodeURIComponent(input.sellerSku)}`,
+      {
+        marketplaceIds: this.getMarketplaceId(),
+        includedData: 'issues,identifiers',
+        issueLocale: 'en_IN',
+        mode: 'VALIDATION_PREVIEW',
+      },
+      {
+        productType: input.productType,
+        requirements: input.requirements,
+        attributes: input.attributes,
+      }
+    );
+    return {
+      submissionId: response.submissionId ?? null,
+      status: response.status ?? 'UNKNOWN',
+      issues: response.issues ?? [],
+      identifiers: response.identifiers ?? [],
+    };
+  }
+
+  async submitListingItem(input: {
+    sellerSku: string;
+    productType: string;
+    requirements: 'LISTING' | 'LISTING_PRODUCT_ONLY' | 'LISTING_OFFER_ONLY';
+    attributes: Record<string, unknown>;
+  }): Promise<{
+    submissionId: string | null;
+    status: string;
+    issues: unknown[];
+  }> {
+    const response = await this.requestJson<{
+      submissionId?: string;
+      status?: string;
+      issues?: unknown[];
+    }>(
+      'PUT',
+      `/listings/2021-08-01/items/${encodeURIComponent(this.getSellerId())}/${encodeURIComponent(input.sellerSku)}`,
+      {
+        marketplaceIds: this.getMarketplaceId(),
+        includedData: 'issues',
+        issueLocale: 'en_IN',
+      },
+      {
+        productType: input.productType,
+        requirements: input.requirements,
+        attributes: input.attributes,
+      }
+    );
+    return {
+      submissionId: response.submissionId ?? null,
+      status: response.status ?? 'UNKNOWN',
+      issues: response.issues ?? [],
+    };
+  }
+
+  async confirmShipment(input: {
+    orderId: string;
+    marketplaceId: string;
+    packageReferenceId: string;
+    carrierCode: string;
+    carrierName?: string;
+    shippingMethod?: string;
+    trackingNumber: string;
+    shipDate: string;
+    orderItems: Array<{ orderItemId: string; quantity: number }>;
+  }): Promise<void> {
+    await this.requestJson<void>('POST', `/orders/v0/orders/${encodeURIComponent(input.orderId)}/shipmentConfirmation`, {}, {
+      marketplaceId: input.marketplaceId,
+      packageDetail: {
+        packageReferenceId: input.packageReferenceId,
+        carrierCode: input.carrierCode,
+        ...(input.carrierName ? { carrierName: input.carrierName } : {}),
+        ...(input.shippingMethod ? { shippingMethod: input.shippingMethod } : {}),
+        trackingNumber: input.trackingNumber,
+        shipDate: input.shipDate,
+        orderItems: input.orderItems,
+      },
+    });
+  }
+
+  async listEasyShipHandoverSlots(input: {
+    orderId: string;
+    marketplaceId: string;
+    dimensions: AmazonPackageDimensions;
+    weight: AmazonPackageWeight;
+  }): Promise<AmazonEasyShipTimeSlot[]> {
+    const response = await this.requestJson<{ timeSlots?: AmazonEasyShipTimeSlot[] }>('POST', '/easyShip/2022-03-23/timeSlot', {}, {
+      amazonOrderId: input.orderId,
+      marketplaceId: input.marketplaceId,
+      packageDimensions: input.dimensions,
+      packageWeight: input.weight,
+    });
+    return response.timeSlots ?? [];
+  }
+
+  async createEasyShipScheduledPackage(input: {
+    orderId: string;
+    marketplaceId: string;
+    dimensions: AmazonPackageDimensions;
+    weight: AmazonPackageWeight;
+    timeSlot: AmazonEasyShipTimeSlot;
+    packageIdentifier?: string;
+    orderItems: Array<{ orderItemId: string; serialNumbers?: string[] }>;
+  }): Promise<AmazonEasyShipPackage> {
+    return this.requestJson<AmazonEasyShipPackage>('POST', '/easyShip/2022-03-23/package', {}, {
+      amazonOrderId: input.orderId,
+      marketplaceId: input.marketplaceId,
+      packageDetails: {
+        packageDimensions: input.dimensions,
+        packageWeight: input.weight,
+        packageTimeSlot: input.timeSlot,
+        packageItems: input.orderItems.map((item) => ({
+          orderItemId: item.orderItemId,
+          ...(item.serialNumbers?.length ? { orderItemSerialNumbers: item.serialNumbers } : {}),
+        })),
+        ...(input.packageIdentifier ? { packageIdentifier: input.packageIdentifier } : {}),
+      },
+    });
+  }
+
+  async getEasyShipScheduledPackage(orderId: string): Promise<AmazonEasyShipPackage> {
+    return this.getJson<AmazonEasyShipPackage>('/easyShip/2022-03-23/package', {
+      amazonOrderId: orderId,
+      marketplaceId: this.getMarketplaceId(),
+    });
+  }
+
+  async updateEasyShipScheduledPackage(input: {
+    orderId: string;
+    marketplaceId: string;
+    packageId: string;
+    timeSlot: AmazonEasyShipTimeSlot;
+  }): Promise<AmazonEasyShipPackage[]> {
+    const response = await this.requestJson<{ packages?: AmazonEasyShipPackage[] }>('PATCH', '/easyShip/2022-03-23/package', {}, {
+      marketplaceId: input.marketplaceId,
+      updatePackageDetailsList: [{
+        scheduledPackageId: { amazonOrderId: input.orderId, packageId: input.packageId },
+        packageTimeSlot: input.timeSlot,
+      }],
+    });
+    return response.packages ?? [];
+  }
+
+  async getNotificationSubscription(notificationType: string, payloadVersion: string): Promise<AmazonNotificationSubscription | null> {
+    try {
+      const response = await this.getJson<any>(
+        `/notifications/v1/subscriptions/${encodeURIComponent(notificationType)}`,
+        { payloadVersion }
+      );
+      const payload = response?.payload ?? response;
+      if (!payload?.subscriptionId) return null;
+      return {
+        subscriptionId: String(payload.subscriptionId),
+        destinationId: String(payload.destinationId ?? ''),
+        payloadVersion: String(payload.payloadVersion ?? payloadVersion),
+      };
+    } catch (error) {
+      if (error instanceof AmazonSpApiError && error.statusCode === 404) return null;
+      throw error;
+    }
+  }
+
+  async createNotificationSubscription(notificationType: string, payloadVersion: string, destinationId: string): Promise<AmazonNotificationSubscription> {
+    const processingDirective = notificationType === 'ORDER_CHANGE'
+      ? {
+          processingDirective: {
+            eventFilter: {
+              eventFilterType: 'ORDER_CHANGE',
+              orderChangeTypes: ['OrderStatusChange', 'BuyerRequestedChange'],
+            },
+          },
+        }
+      : {};
+    const response = await this.requestJson<any>(
+      'POST',
+      `/notifications/v1/subscriptions/${encodeURIComponent(notificationType)}`,
+      {},
+      { payloadVersion, destinationId, ...processingDirective }
+    );
+    const payload = response?.payload ?? response;
+    if (!payload?.subscriptionId) {
+      throw new AmazonSpApiError('Amazon did not return a notification subscription ID', 502, 'AMAZON_NOTIFICATION_SUBSCRIPTION_INVALID');
+    }
+    return {
+      subscriptionId: String(payload.subscriptionId),
+      destinationId: String(payload.destinationId ?? destinationId),
+      payloadVersion: String(payload.payloadVersion ?? payloadVersion),
+    };
+  }
+
+  private requiredConfig(name: string, value?: string): string {
+    const normalized = value?.trim();
+    if (!normalized) {
+      throw new AmazonSpApiError(`${name} is not configured on the backend`, 503, 'AMAZON_CONFIGURATION_ERROR');
+    }
+    return normalized;
+  }
+
+  private getProductionBaseUrl(): string {
+    const configured = this.requiredConfig(
+      'AMAZON_PRODUCTION_SP_API_BASE_URL',
+      this.configuredBaseUrl ?? env.AMAZON_PRODUCTION_SP_API_BASE_URL
+    ).replace(/\/$/, '');
+    const parsed = new URL(configured);
+
+    if (parsed.protocol !== 'https:' || parsed.hostname !== 'sellingpartnerapi-eu.amazon.com') {
+      throw new AmazonSpApiError(
+        'Amazon production listing importer refused an unexpected SP-API endpoint',
+        503,
+        'AMAZON_ENDPOINT_REJECTED'
+      );
+    }
+
+    return configured;
+  }
+
+  private async getJson<T>(path: string, query: Record<string, string>): Promise<T> {
+    return this.requestJson<T>('GET', path, query);
+  }
+
+  private async requestJson<T>(
+    method: 'GET' | 'POST' | 'PATCH' | 'PUT',
+    path: string,
+    query: Record<string, string>,
+    body?: Record<string, unknown>
+  ): Promise<T> {
+    const url = new URL(`${this.getProductionBaseUrl()}${path}`);
+    for (const [key, value] of Object.entries(query)) {
+      url.searchParams.set(key, value);
+    }
+
+    const maxRetries = this.configuredMaxRetries ?? env.AMAZON_LISTING_IMPORT_MAX_RETRIES;
+    let lastNetworkError: unknown;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+      try {
+        const accessToken = await this.accessTokenProvider.getAccessToken();
+        const response = await this.fetchImpl(url, {
+          method,
+          signal: AbortSignal.timeout(this.requestTimeoutMs),
+          headers: {
+            Accept: 'application/json',
+            ...(body ? { 'Content-Type': 'application/json' } : {}),
+            'x-amz-access-token': accessToken,
+          },
+          ...(body ? { body: JSON.stringify(body) } : {}),
+        });
+
+        if (this.telemetryRecorder) {
+          await this.telemetryRecorder.record({
+            sellerId: this.getSellerId(),
+            marketplaceId: this.getMarketplaceId(),
+            method,
+            path,
+            statusCode: response.status,
+            rateLimit: response.headers.get('x-amzn-ratelimit-limit'),
+            requestId: response.headers.get('x-amzn-requestid'),
+            retryAfter: response.headers.get('retry-after'),
+          }).catch(() => undefined);
+        }
+
+        if (response.ok) {
+          if (response.status === 204) return undefined as T;
+          return await response.json() as T;
+        }
+
+        if (response.status === 401 || response.status === 403) {
+          this.accessTokenProvider.invalidate();
+          throw new AmazonAuthorizationError();
+        }
+
+        const retryable = response.status === 429 || response.status === 500 || response.status === 503;
+        if (retryable && attempt < maxRetries) {
+          await this.sleep(this.retryDelayMilliseconds(response.headers.get('retry-after'), attempt));
+          continue;
+        }
+
+        throw new AmazonSpApiError(
+          'Amazon SP-API listing request failed',
+          response.status >= 400 && response.status < 600 ? response.status : 502,
+          retryable ? 'AMAZON_RETRY_EXHAUSTED' : 'AMAZON_REQUEST_FAILED'
+        );
+      } catch (error) {
+        if (error instanceof AmazonAuthorizationError || error instanceof AmazonSpApiError) {
+          throw error;
+        }
+
+        lastNetworkError = error;
+        if (attempt < maxRetries) {
+          await this.sleep(this.retryDelayMilliseconds(null, attempt));
+          continue;
+        }
+      }
+    }
+
+    throw new AmazonSpApiError(
+      lastNetworkError ? 'Amazon SP-API could not be reached' : 'Amazon SP-API request failed',
+      502,
+      'AMAZON_NETWORK_ERROR'
+    );
+  }
+
+  private retryDelayMilliseconds(retryAfter: string | null, attempt: number): number {
+    if (retryAfter) {
+      const seconds = Number.parseFloat(retryAfter);
+      if (Number.isFinite(seconds)) {
+        return Math.min(Math.max(seconds * 1000, 0), 30_000);
+      }
+
+      const dateDelay = Date.parse(retryAfter) - Date.now();
+      if (Number.isFinite(dateDelay) && dateDelay > 0) {
+        return Math.min(dateDelay, 30_000);
+      }
+    }
+
+    return Math.min(500 * (2 ** attempt), 10_000);
+  }
+}
+
+export const amazonProductionListingsClient = new AmazonProductionListingsClient();
