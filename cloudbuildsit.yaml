@@ -22,17 +22,7 @@ steps:
       - "push"
       - "gcr.io/nivaana/nivaana-sit:latest"
 
-  # Step 4a: Remove the old Cloud Run Secret Manager bindings for Amazon credentials.
-  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
-    entrypoint: "bash"
-    args:
-      - "-c"
-      - |
-        gcloud run services update nivaana-dev \
-          --region asia-south1 \
-          --remove-secrets AMAZON_CLIENT_ID,AMAZON_CLIENT_SECRET,AMAZON_REFRESH_TOKEN || true
-
-  # Step 4b: Deploy to Cloud Run SIT using .env.sit plus temporary Amazon substitutions.
+  # Step 4: Deploy to Cloud Run SIT using .env.sit plus Secret Manager for Amazon credentials.
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     entrypoint: "gcloud"
     args:
@@ -52,13 +42,8 @@ steps:
       - "5600"
       - "--env-vars-file"
       - ".env.sit"
-      - "--set-env-vars"
-      - "AMAZON_CLIENT_ID=${_AMAZON_CLIENT_ID},AMAZON_CLIENT_SECRET=${_AMAZON_CLIENT_SECRET},AMAZON_REFRESH_TOKEN=${_AMAZON_REFRESH_TOKEN}"
+      - "--set-secrets"
+      - "AMAZON_CLIENT_ID=nivaana-sit-amazon-client-id:latest,AMAZON_CLIENT_SECRET=nivaana-sit-amazon-client-secret:latest,AMAZON_REFRESH_TOKEN=nivaana-sit-amazon-refresh-token:latest"
 
 options:
   logging: CLOUD_LOGGING_ONLY
-
-substitutions:
-  _AMAZON_CLIENT_ID: "SET_AT_BUILD_SUBMISSION"
-  _AMAZON_CLIENT_SECRET: "SET_AT_BUILD_SUBMISSION"
-  _AMAZON_REFRESH_TOKEN: "SET_AT_BUILD_SUBMISSION"
