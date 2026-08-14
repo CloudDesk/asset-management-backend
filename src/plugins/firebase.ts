@@ -69,9 +69,14 @@ export function initializeFirebaseAdmin(): FirebaseAdminContext | null {
         : path.resolve(process.cwd(), env.FIREBASE_SERVICE_ACCOUNT_PATH);
 
       if (!fs.existsSync(serviceAccountPath)) {
+        const message = `Firebase service account file was not found at ${serviceAccountPath}`;
+        if (env.NODE_ENV === 'production') {
+          throw new Error(message);
+        }
+
         logger.warn(
           { path: serviceAccountPath },
-          'Firebase service account file is not available; push sends will be disabled.'
+          `${message}; push sends will be disabled.`
         );
         return null;
       }

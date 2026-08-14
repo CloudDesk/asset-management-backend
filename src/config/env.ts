@@ -304,14 +304,55 @@ const envSchema = z.object({
   // Amazon SP-API Configuration (Global keys - change values for sandbox/production)
   AMAZON_CLIENT_ID: z.string().optional(),
   AMAZON_CLIENT_SECRET: z.string().optional(),
+  AMAZON_SP_API_APP_ID: z.string().optional(),
+  AMAZON_OAUTH_VERSION: z.enum(['beta']).optional(),
   AMAZON_REFRESH_TOKEN: z.string().optional(),
+  AMAZON_SELLER_ID: z.string().optional(),
   AMAZON_ENVIRONMENT: z.enum(['SANDBOX', 'PRODUCTION']).optional().default('SANDBOX'),
+  AMAZON_AUTO_SYNC_ENABLED: z.enum(['true', 'false']).optional().default('false').transform((value) => value === 'true'),
+  AMAZON_ORDER_AUTO_SYNC_ENABLED: z.enum(['true', 'false']).optional().default('false').transform((value) => value === 'true'),
+  AMAZON_ORDER_SYNC_CRON: z.string().optional().default('*/15 * * * *'),
+  AMAZON_RETURN_AUTO_SYNC_ENABLED: z.enum(['true', 'false']).optional().default('false').transform((value) => value === 'true'),
+  AMAZON_RETURN_SYNC_CRON: z.string().optional().default('30 2 * * *'),
+  AMAZON_LISTING_AUTO_SYNC_ENABLED: z.enum(['true', 'false']).optional().default('false').transform((value) => value === 'true'),
+  AMAZON_LISTING_SYNC_CRON: z.string().optional().default('0 */6 * * *'),
+  AMAZON_RETRY_WORKER_ENABLED: z.enum(['true', 'false']).optional().default('false').transform((value) => value === 'true'),
+  AMAZON_RETRY_WORKER_CRON: z.string().optional().default('*/5 * * * *'),
+  AMAZON_NOTIFICATION_INGEST_SECRET: z.string().trim().min(32).optional(),
+  AMAZON_NOTIFICATION_DESTINATION_ID: z.string().trim().optional(),
+  AMAZON_NOTIFICATION_SQS_DESTINATION_ID: z.string().trim().optional(),
+  AMAZON_NOTIFICATION_EVENTBRIDGE_DESTINATION_ID: z.string().trim().optional(),
+  AMAZON_LISTING_IMPORT_ENABLED: z.enum(['true', 'false']).optional().default('false').transform((value) => value === 'true'),
+  AMAZON_PRODUCTION_WRITES_ENABLED: z.enum(['true', 'false']).optional().default('false').transform((value) => value === 'true'),
+  // Listing creation remains independently controllable even when other Amazon writes are enabled.
+  AMAZON_LISTING_CREATION_ENABLED: z.enum(['true', 'false']).optional().default('false').transform((value) => value === 'true'),
+  AMAZON_FULL_CATALOG_CREATION_ENABLED: z.enum(['true', 'false']).optional().default('false').transform((value) => value === 'true'),
+  AMAZON_LISTING_EDIT_ENABLED: z.enum(['true', 'false']).optional().default('false').transform((value) => value === 'true'),
+  AMAZON_PRODUCTION_SP_API_BASE_URL: z.string().optional().default('https://sellingpartnerapi-eu.amazon.com'),
+  AMAZON_LISTING_IMPORT_PAGE_SIZE: z.string().optional().default('20').transform((value) => {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) ? Math.min(20, Math.max(1, parsed)) : 20;
+  }),
+  AMAZON_LISTING_IMPORT_MAX_RETRIES: z.string().optional().default('3').transform((value) => {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) ? Math.min(5, Math.max(0, parsed)) : 3;
+  }),
+  AMAZON_SANDBOX_CREDENTIAL_SOURCE: z.enum(['SANDBOX', 'PRODUCTION']).optional().default('SANDBOX'),
   AMAZON_MARKETPLACE_ID: z.string().optional().default('A21TJRUUN4KGV'), // Fixed for India
   AMAZON_SP_API_BASE_URL: z.string().optional(),
+  AMAZON_SANDBOX_CLIENT_ID: z.string().optional(),
+  AMAZON_SANDBOX_CLIENT_SECRET: z.string().optional(),
+  AMAZON_SANDBOX_REFRESH_TOKEN: z.string().optional(),
+  AMAZON_SANDBOX_SP_API_BASE_URL: z.string().optional().default('https://sandbox.sellingpartnerapi-eu.amazon.com'),
   AMAZON_AWS_IAM_ROLE_ARN: z.string().optional(),
   AMAZON_REGION: z.string().optional().default('eu-west-1'),
   AMAZON_SELLER_CENTRAL_URL: z.string().optional().default('https://sellercentral.amazon.in'),
   AMAZON_REDIRECT_URI: z.string().optional(),
+  AMAZON_TOKEN_ENCRYPTION_KEY: z.string().optional(),
+  AMAZON_OAUTH_STATE_TTL_SECONDS: z.string().optional().default('600').transform((value) => {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) ? Math.min(900, Math.max(300, parsed)) : 600;
+  }),
   AWS_ACCESS_KEY_ID: z.string().optional(),
   AWS_SECRET_ACCESS_KEY: z.string().optional(),
 

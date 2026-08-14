@@ -329,4 +329,4 @@ export async function requireSelfOrAdmin(
     isAdmin,
     isSelf
   }, 'Self or admin authorization successful');
-}
+} 

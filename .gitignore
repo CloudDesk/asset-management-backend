@@ -1,6 +1,7 @@
 .env
 .env.sit
 .env.prod
+.env.amazon.local
 secrets/
 *.firebase-service-account.json
 node_modules
