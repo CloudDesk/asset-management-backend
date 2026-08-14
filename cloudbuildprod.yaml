@@ -225,6 +225,8 @@ steps:
       - "nivaana-prod@nivaana.iam.gserviceaccount.com"
       - "--port"
       - "5600"
+      - "--memory"
+      - "512Mi"
       - "--env-vars-file"
       - ".env.prod"
 
