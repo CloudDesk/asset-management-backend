@@ -1,4 +1,5 @@
 .env
+.env.amazon.local
 secrets/
 *.firebase-service-account.json
 node_modules
