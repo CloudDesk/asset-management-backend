@@ -44,6 +44,7 @@ import { smartAuthentication } from '../middleware/smartAuth.middleware.js';
 import { createSuccessResponse } from '../utils/errorHandler.js';
 import { permissionRoutes } from './permission.route.js';
 import { instoreOrderRoutes } from './instore-order.route.js';
+import { env } from '../config/env.js';
 
 export async function routes(fastify: FastifyInstance) {
   // Health check endpoint (public)
@@ -130,7 +131,9 @@ export async function routes(fastify: FastifyInstance) {
     await fastify.register(ratingRoutes, { prefix: '/ratings' });
     await fastify.register(smsRoutes, { prefix: '/sms' });
     await fastify.register(ekartRoutes, { prefix: '/ekart' });
-    await fastify.register(shipmozoRoutes, { prefix: '/shipmozo' });
+    if (env.SHIPMOZO_INTEGRATION_ENABLED) {
+      await fastify.register(shipmozoRoutes, { prefix: '/shipmozo' });
+    }
     await fastify.register(analyticsRoutes, { prefix: '/analytics' });
     await fastify.register(pushNotificationRoutes, { prefix: '/push-notifications' });
     await fastify.register(storefrontPageSectionRoutes, { prefix: '/storefront-page-sections' });
@@ -139,7 +142,9 @@ export async function routes(fastify: FastifyInstance) {
     await fastify.register(returnReplacementPolicyRoutes, { prefix: '/return-replacement-policies' });
     await fastify.register(returnReasonRuleRoutes, { prefix: '/return-reason-rules' });
     await fastify.register(returnRequestRoutes, { prefix: '/returns' });
-    await fastify.register(amazonRoutes, { prefix: '/amazon' });
+    if (env.AMAZON_INTEGRATION_ENABLED) {
+      await fastify.register(amazonRoutes, { prefix: '/amazon' });
+    }
 
     // -------------------------------------------------------------------------
     // SMART AUTHENTICATION - Applied to ALL /v1 routes
@@ -160,9 +165,11 @@ export async function routes(fastify: FastifyInstance) {
   // Production Amazon listing import is intentionally exposed under the
   // channel API namespace requested by the integration contract. Each route
   // has an explicit authentication pre-handler and the Amazon client is GET-only.
-  await fastify.register(amazonChannelRoutes, { prefix: '/api/channels/amazon' });
-  await fastify.register(amazonListingPublishRoutes, { prefix: '/api/channels/amazon' });
-  await fastify.register(amazonOperationsRoutes, { prefix: '/api/channels/amazon/operations' });
+  if (env.AMAZON_INTEGRATION_ENABLED) {
+    await fastify.register(amazonChannelRoutes, { prefix: '/api/channels/amazon' });
+    await fastify.register(amazonListingPublishRoutes, { prefix: '/api/channels/amazon' });
+    await fastify.register(amazonOperationsRoutes, { prefix: '/api/channels/amazon/operations' });
+  }
 
   // API v2 routes
   await fastify.register(async function (fastify) {

@@ -18,6 +18,7 @@ import { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import { CustomerNotificationService } from '../services/customer-notification.service.js';
 import { ReturnRequestService } from '../services/return-request.service.js';
 import { RefundOperationService } from '../services/refund-operation.service.js';
+import { env } from '../config/env.js';
 
 const formatRefundOperationForApi = (operation: any) => ({
   ...operation,
@@ -543,6 +544,15 @@ export class OrdersController {
     // Shipmozo shipments use the Shipmozo tracking API. Keep the existing
     // EKART branch below unchanged for EKART and legacy records.
     if (String(order.vendor || '').toUpperCase() === 'SHIPMOZO') {
+      if (!env.SHIPMOZO_INTEGRATION_ENABLED) {
+        return reply.code(404).send({
+          success: false,
+          message: 'Shipmozo integration is disabled in this environment',
+          statusCode: 404,
+          code: 'SHIPMOZO_INTEGRATION_DISABLED'
+        });
+      }
+
       try {
         const { buildShipmozoPublicTrackingUrl, shipmozoService } = await import('../services/shipmozo.service.js');
         const { normalizeShipmozoTracking } = await import('../utils/shipmozo-status.js');

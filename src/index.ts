@@ -41,11 +41,15 @@ async function start() {
       port: Number(port),
       host: '0.0.0.0',
     });
-    const shipmozoTrackingTask = scheduleShipmozoTrackingSync();
-    await startAmazonOrderScheduler();
-    startAmazonListingScheduler();
-    startAmazonRetryScheduler();
-    startAmazonReturnScheduler();
+    const shipmozoTrackingTask = env.SHIPMOZO_INTEGRATION_ENABLED
+      ? scheduleShipmozoTrackingSync()
+      : null;
+    if (env.AMAZON_INTEGRATION_ENABLED) {
+      await startAmazonOrderScheduler();
+      startAmazonListingScheduler();
+      startAmazonRetryScheduler();
+      startAmazonReturnScheduler();
+    }
     // Start the server
     // await fastify.listen({
     //  port: env.PORT,

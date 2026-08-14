@@ -302,6 +302,7 @@ const envSchema = z.object({
   ),
   
   // Amazon SP-API Configuration (Global keys - change values for sandbox/production)
+  AMAZON_INTEGRATION_ENABLED: z.enum(['true', 'false']).optional().default('true').transform((value) => value === 'true'),
   AMAZON_CLIENT_ID: z.string().optional(),
   AMAZON_CLIENT_SECRET: z.string().optional(),
   AMAZON_SP_API_APP_ID: z.string().optional(),
@@ -364,6 +365,7 @@ const envSchema = z.object({
 
   // Shipmozo Logistics Configuration
   // Credentials must only be configured on the backend/secret manager.
+  SHIPMOZO_INTEGRATION_ENABLED: z.enum(['true', 'false']).optional().default('true').transform((value) => value === 'true'),
   SHIPMOZO_PUBLIC_KEY: z.string().optional(),
   SHIPMOZO_PRIVATE_KEY: z.string().optional(),
   SHIPMOZO_BASE_URL: z.string().optional().default('https://shipping-api.com/app/api/v1'),
