@@ -40,6 +40,8 @@ steps:
       - "nivaana-dev@nivaana.iam.gserviceaccount.com"
       - "--port"
       - "5600"
+      - "--memory"
+      - "512Mi"
       - "--env-vars-file"
       - ".env.sit"
       - "--set-secrets"
