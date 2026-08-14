@@ -2,11 +2,13 @@ import { FastifyInstance } from 'fastify';
 import { PromotionsController } from '../controllers/promotions.controller.js';
 import { PromotionEvaluationController } from '../controllers/promotion-evaluation.controller.js';
 import { PromotionRedemptionController } from '../controllers/promotion-redemption.controller.js';
+import { PromotionAssignmentController } from '../controllers/promotion-assignment.controller.js';
 
 export async function promotionsRoutes(fastify: FastifyInstance) {
   const promotionsController = new PromotionsController();
   const evaluationController = new PromotionEvaluationController();
   const redemptionController = new PromotionRedemptionController();
+  const assignmentController = new PromotionAssignmentController();
 
   // GET /v1/promotions - Get all promotions with pagination and filtering
   fastify.get('/', {
@@ -30,6 +32,8 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
           status: { type: 'string', description: 'Filter by promotion status' },
           priority: { type: 'string', description: 'Filter by priority' },
           visibility: { type: 'string', description: 'Filter by visibility' },
+          applicable_channel: { type: 'string', enum: ['all', 'web', 'mobile'], description: 'Filter by applicable app channel' },
+          application_mode: { type: 'string', enum: ['automatic', 'click_to_apply', 'code_entry'], description: 'Filter by how customers apply the promotion' },
           stackable: { type: 'string', description: 'Filter by stackable status (true/false)' },
           budget_min: { type: 'string', description: 'Filter by minimum budget' },
           budget_max: { type: 'string', description: 'Filter by maximum budget' },
@@ -66,6 +70,8 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                   status: { type: 'string', nullable: true, description: 'Promotion status' },
                   priority: { type: 'number', nullable: true, description: 'Priority' },
                   visibility: { type: 'string', nullable: true, description: 'Visibility' },
+                  applicable_channel: { type: 'string', enum: ['all', 'web', 'mobile'], description: 'Applicable app channel' },
+                  application_mode: { type: 'string', enum: ['automatic', 'click_to_apply', 'code_entry'], description: 'Promotion application method' },
                   max_redemptions: { type: 'number', nullable: true, description: 'Maximum redemptions' },
                   per_user_limit: { type: 'number', nullable: true, description: 'Per user limit' },
                   stackable: { type: 'boolean', nullable: true, description: 'Stackable status' },
@@ -138,6 +144,9 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
       },
     },
   }, promotionsController.getPromotions.bind(promotionsController));
+
+  fastify.get('/mine', promotionsController.getMyPromotions);
+  fastify.get('/public', promotionsController.getPublicPromotions);
 
 
 
@@ -262,9 +271,11 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
           auto_apply: { type: 'boolean', description: 'Auto-apply status' },
           start_date: { type: 'number', description: 'Start date as Unix timestamp (seconds since epoch)' },
           end_date: { type: 'number', description: 'End date as Unix timestamp (seconds since epoch)' },
-          status: { type: 'string', enum: ['active', 'inactive', 'draft', 'expired', 'paused', 'scheduled'], description: 'Promotion status' },
+          status: { type: 'string', enum: ['active', 'inactive'], description: 'Configured status. Expired is derived from Valid To.' },
           priority: { type: 'number', description: 'Priority' },
           visibility: { type: 'string', enum: ['public', 'private'], description: 'Visibility' },
+          applicable_channel: { type: 'string', enum: ['all', 'web', 'mobile'], default: 'all', description: 'Applicable app channel' },
+          application_mode: { type: 'string', enum: ['automatic', 'click_to_apply', 'code_entry'], default: 'click_to_apply', description: 'How customers apply the promotion' },
           max_redemptions: { type: 'number', description: 'Maximum redemptions' },
           per_user_limit: { type: 'number', description: 'Per user limit' },
           stackable: { type: 'boolean', description: 'Stackable status' },
@@ -290,7 +301,9 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
               type: 'object',
               properties: {
                 attribute: { type: 'string' },
-                operator: { type: 'string', enum: ['GTE', 'LTE', 'EQ', 'IN', 'NOT_IN', 'CONTAINS'] },
+                operator: { type: 'string', enum: ['GTE', 'GT', 'LTE', 'LT', 'EQ', 'IN', 'NOT_IN', 'CONTAINS', 'DATE_ADD_DAYS', 'DATE_SUBTRACT_DAYS'] },
+                comparison: { type: 'string', enum: ['GTE', 'GT', 'LTE', 'LT', 'EQ'] },
+                compare_with: { type: 'string' },
                 value: {
                   description: 'Condition value - can be string, number, or array of strings',
                   anyOf: [
@@ -459,9 +472,11 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
           auto_apply: { type: 'boolean', description: 'Auto-apply status' },
           start_date: { type: 'number', description: 'Start date as Unix timestamp (seconds since epoch)' },
           end_date: { type: 'number', description: 'End date as Unix timestamp (seconds since epoch)' },
-          status: { type: 'string', enum: ['active', 'inactive', 'draft', 'expired', 'paused', 'scheduled'], description: 'Promotion status' },
+          status: { type: 'string', enum: ['active', 'inactive'], description: 'Configured status. Expired is derived from Valid To.' },
           priority: { type: 'number', description: 'Priority' },
           visibility: { type: 'string', enum: ['public', 'private'], description: 'Visibility' },
+          applicable_channel: { type: 'string', enum: ['all', 'web', 'mobile'], description: 'Applicable app channel' },
+          application_mode: { type: 'string', enum: ['automatic', 'click_to_apply', 'code_entry'], description: 'How customers apply the promotion' },
           max_redemptions: { type: 'number', description: 'Maximum redemptions' },
           per_user_limit: { type: 'number', description: 'Per user limit' },
           stackable: { type: 'boolean', description: 'Stackable status' },
@@ -487,7 +502,9 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
               type: 'object',
               properties: {
                 attribute: { type: 'string' },
-                operator: { type: 'string', enum: ['GTE', 'LTE', 'EQ', 'IN', 'NOT_IN', 'CONTAINS'] },
+                operator: { type: 'string', enum: ['GTE', 'GT', 'LTE', 'LT', 'EQ', 'IN', 'NOT_IN', 'CONTAINS', 'DATE_ADD_DAYS', 'DATE_SUBTRACT_DAYS'] },
+                comparison: { type: 'string', enum: ['GTE', 'GT', 'LTE', 'LT', 'EQ'] },
+                compare_with: { type: 'string' },
                 value: {
                   description: 'Condition value - can be string, number, or array of strings',
                   anyOf: [
@@ -650,6 +667,10 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
       return reply.code(500).send(errorResponse);
     }
   });
+
+  fastify.post('/:id/vouchers', assignmentController.createVoucher);
+  fastify.get('/:id/vouchers', assignmentController.listVouchers);
+  fastify.patch('/vouchers/:assignmentId', assignmentController.updateVoucher);
 
   // DELETE /v1/promotions/:id - Delete promotion
   fastify.delete('/:id', {
@@ -1103,6 +1124,18 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
             type: 'string',
             enum: ['phonepe', 'cod'],
             description: 'Payment mode'
+          },
+          channel: {
+            type: 'string',
+            enum: ['web', 'mobile', 'mobile_app'],
+            description: 'Platform channel'
+          },
+          context: {
+            type: 'object',
+            properties: {
+              channel: { type: 'string', enum: ['web', 'mobile', 'mobile_app'] },
+              geo: { type: 'string' }
+            }
           }
         },
         required: ['userId', 'cartItems', 'mode']
@@ -1124,6 +1157,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                     description: { type: 'string' },
                     type: { type: 'string' },
                     code: { type: 'string' },
+                    stackable: { type: 'boolean' },
                     priority: { type: 'number' },
                     start_date: { type: 'integer' },
                     end_date: { type: 'integer' },
@@ -1166,6 +1200,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                       description: { type: 'string' },
                       type: { type: 'string' },
                       code: { type: 'string' },
+                      stackable: { type: 'boolean' },
                       priority: { type: 'number' },
                       start_date: { type: 'integer' },
                       end_date: { type: 'integer' },
@@ -1202,6 +1237,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                       description: { type: 'string' },
                       type: { type: 'string' },
                       code: { type: 'string' },
+                      stackable: { type: 'boolean' },
                       priority: { type: 'number' },
                       start_date: { type: 'integer' },
                       end_date: { type: 'integer' },
@@ -1221,6 +1257,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                       description: { type: 'string' },
                       type: { type: 'string' },
                       code: { type: 'string' },
+                      stackable: { type: 'boolean' },
                       priority: { type: 'number' },
                       start_date: { type: 'integer' },
                       end_date: { type: 'integer' },
@@ -1283,6 +1320,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                       description: { type: 'string' },
                       type: { type: 'string' },
                       code: { type: 'string' },
+                      stackable: { type: 'boolean' },
                       priority: { type: 'number' },
                       start_date: { type: 'integer' },
                       end_date: { type: 'integer' },
@@ -1560,6 +1598,41 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
       }
     }
   }, evaluationController.evaluateAutomaticPromotions.bind(evaluationController));
+
+  // Validate the currently applied promotion before entering checkout.
+  fastify.post('/evaluations/validate', {
+    schema: {
+      description: 'Revalidate a promotion evaluation against current dates, audience, limits, assignment, channel, and cart rules',
+      tags: ['Promotions', 'Evaluation'],
+      body: {
+        type: 'object',
+        properties: {
+          evaluation_id: { type: 'string' },
+          user_id: { type: 'string' }
+        },
+        required: ['evaluation_id', 'user_id'],
+        additionalProperties: false
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {
+              type: 'object',
+              properties: {
+                is_valid: { type: 'boolean' },
+                reason: { type: ['string', 'null'] },
+                evaluation_id: { type: 'string' }
+              },
+              required: ['is_valid', 'evaluation_id']
+            }
+          }
+        }
+      }
+    }
+  }, evaluationController.validateEvaluationForCheckout.bind(evaluationController));
 
   // Get user's active evaluations
   fastify.get('/evaluations', {
@@ -1858,4 +1931,4 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
     }
   }, evaluationController.removeManualCoupon.bind(evaluationController));
 
-} 
+}

@@ -2,7 +2,9 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import formbody from '@fastify/formbody';
 import multipart, { ajvFilePlugin } from '@fastify/multipart';
+import fastifyStatic from '@fastify/static';
 import fastifyCookie from 'fastify-cookie';
+import path from 'path';
 import { env } from './config/env.js';
 import { logger } from './config/logger.js';
 import loggerPlugin from './plugins/logger.js';
@@ -20,7 +22,6 @@ export async function buildServer() {
       plugins: [ajvFilePlugin],
     },
   });
-  console.log('test');
 
   // Register logger plugin first
   await fastify.register(loggerPlugin);
@@ -45,6 +46,11 @@ export async function buildServer() {
       fields: 10,
       parts: 20,
     },
+  });
+
+  await fastify.register(fastifyStatic, {
+    root: path.join(process.cwd(), 'uploads'),
+    prefix: '/uploads/',
   });
 
   // Register cookie support for session management

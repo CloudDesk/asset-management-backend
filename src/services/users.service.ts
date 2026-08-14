@@ -16,7 +16,8 @@ import {
 import { logger } from '../config/logger.js';
 import { hashPassword, verifyPassword, sanitizeUserData } from '../utils/auth.js';
 import { prisma } from '../models/prisma.js';
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import { amazonTokenCryptoService } from './amazon-token-crypto.service.js';
 
 export class UsersService {
   async findMany(
@@ -28,6 +29,40 @@ export class UsersService {
       logger.info({ filters, page, limit }, 'Starting dynamic users findMany with filters');
 
       const { skip, take } = getPrismaSkipTake(page, limit);
+
+      // Customer pickers need one search term to match names and mobile numbers.
+      // Keep this out of the generic dynamic filter builder because `search` is
+      // not a database column and mobile numbers are stored as BigInt.
+      if (filters.search !== undefined) {
+        const search = String(filters.search || '').trim();
+        const pattern = `%${search}%`;
+        const where = Prisma.sql`
+          WHERE (
+            CONCAT_WS(' ', firstname, lastname) ILIKE ${pattern}
+            OR COALESCE(usermobilenumber::text, '') ILIKE ${pattern}
+            OR id::text = ${search}
+          )
+        `;
+        const [users, countRows] = await Promise.all([
+          prisma.$queryRaw<any[]>(Prisma.sql`
+            SELECT * FROM users
+            ${where}
+            ORDER BY createddate DESC NULLS LAST, id DESC
+            OFFSET ${skip}
+            LIMIT ${take}
+          `),
+          prisma.$queryRaw<Array<{ count: bigint }>>(Prisma.sql`
+            SELECT COUNT(*)::bigint AS count FROM users
+            ${where}
+          `),
+        ]);
+        return createPaginationResult(
+          users,
+          Number(countRows[0]?.count || 0),
+          page,
+          limit
+        );
+      }
 
       // Use the new dynamic filtering system
       const { data: users, total } = await dynamicFindManyWithFilters('users', filters, {
@@ -677,11 +712,11 @@ export class UsersService {
   /**
    * Store Amazon refresh token and seller ID for a user
    * @param userId - User ID
-   * @param refreshToken - Refresh token from Amazon (will be encrypted in Step 8)
+   * @param refreshToken - Refresh token from Amazon (encrypted before storage)
    * @param sellerId - Seller ID from Amazon
    * @param userType - User type: "inventoryusers" or "users" (default: "inventoryusers")
    * @param marketplaceId - Marketplace ID (default: "A21TJRUUN4KGV" for India)
-   * @returns Amazon connection record
+   * @returns Amazon connection metadata; token material is never returned
    */
   async storeAmazonRefreshToken(
     userId: number,
@@ -693,9 +728,7 @@ export class UsersService {
     try {
       logger.info({ userId, sellerId, userType }, 'Storing Amazon refresh token');
 
-      // TODO: Step 8 - Encrypt refresh token before storing
-      // const encryptedToken = this.encrypt(refreshToken);
-      const encryptedToken = refreshToken; // Temporary: store as-is until encryption is implemented
+      const encryptedToken = amazonTokenCryptoService.encrypt(refreshToken);
 
       const now = Date.now();
 
@@ -739,7 +772,8 @@ export class UsersService {
 
       logger.info({ userId, sellerId, connectionId: connection.id }, 'Amazon refresh token stored successfully');
 
-      return connection;
+      const { refreshToken: _storedToken, ...connectionMetadata } = connection;
+      return connectionMetadata;
     } catch (error) {
       logger.error({ error, userId, sellerId }, 'Error storing Amazon refresh token');
       throw error;
@@ -769,9 +803,7 @@ export class UsersService {
         return null;
       }
 
-      // TODO: Step 8 - Decrypt refresh token
-      // const decryptedToken = this.decrypt(connection.refreshToken);
-      const decryptedToken = connection.refreshToken; // Temporary: return as-is until encryption is implemented
+      const decryptedToken = amazonTokenCryptoService.decrypt(connection.refreshToken);
 
       logger.debug({ userId, userType }, 'Amazon refresh token retrieved successfully');
 
@@ -797,6 +829,15 @@ export class UsersService {
         where: {
           userId,
           userType,
+        },
+        select: {
+          id: true,
+          userId: true,
+          userType: true,
+          sellerId: true,
+          marketplaceId: true,
+          createdAt: true,
+          updatedAt: true,
         },
       });
 

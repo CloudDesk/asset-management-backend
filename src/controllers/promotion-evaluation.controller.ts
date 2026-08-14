@@ -95,13 +95,6 @@ export class PromotionEvaluationController {
         }
 
         // Apply promotion to evaluation
-        if (!promotion_id) {
-          return reply.code(400).send({
-            success: false,
-            message: 'promotion_id is required for manual_coupon or stackable_promotion',
-            details: 'Please provide a valid promotion_id'
-          });
-        }
         if (!targetEvaluationId) {
           return reply.code(400).send({
             success: false,
@@ -111,7 +104,9 @@ export class PromotionEvaluationController {
         }
         evaluation = await this.evaluationService.applyManualCoupon({
           evaluation_id: typeof targetEvaluationId === 'string' ? targetEvaluationId : String(targetEvaluationId),
-          promotion_id: typeof promotion_id === 'string' ? Number(promotion_id) : promotion_id,
+          ...(promotion_id && { promotion_id: typeof promotion_id === 'string' ? Number(promotion_id) : promotion_id }),
+          ...(code && { code }),
+          application_type,
           cart_items
         });
         break;
@@ -223,17 +218,60 @@ export class PromotionEvaluationController {
     const cartSignature = this.evaluationService.generateCartSignature(cart_items);
 
     // Check for existing active evaluation with same cart signature
-    const existingEvaluation = await this.evaluationService.findActiveEvaluationByCartSignature(user_id, cartSignature);
+    const existingEvaluation = await this.evaluationService.findActiveEvaluationByCartSignature(
+      user_id,
+      cartSignature,
+      context.channel
+    );
     
     if (existingEvaluation) {
       logger.info({ 
         evaluationId: existingEvaluation.evaluation_id,
         cartSignature 
-      }, 'Found existing active evaluation for cart signature');
-      
-      const response = createSuccessResponse('Active evaluation found', existingEvaluation);
+      }, 'Found existing active evaluation for cart signature; refreshing automatic promotions');
+
+      // Promotion configuration can change while the cart remains identical
+      // (for example Apply button -> Automatic, status, channel, or rules).
+      // Reusing the stored evaluation unchanged leaves stale offers and totals.
+      const refreshedEvaluation = await this.evaluationService.refreshAutomaticEvaluation(
+        existingEvaluation,
+        {
+          user_id,
+          cart_items,
+          context,
+          cart_signature: cartSignature,
+          retain_manual_promotions: true
+        }
+      );
+      const response = createSuccessResponse('Automatic promotions refreshed', refreshedEvaluation);
       return reply.code(200).send(response);
     }
+
+    // A cart change creates a new signature. Reuse the evaluation record, but
+    // drop manual choices so only explicitly automatic promotions can apply to
+    // the changed cart without a fresh customer action.
+    const latestEvaluation = await this.evaluationService.findLatestActiveEvaluationForUser(
+      user_id,
+      context.channel
+    );
+    if (latestEvaluation) {
+      const refreshedEvaluation = await this.evaluationService.refreshAutomaticEvaluation(
+        latestEvaluation,
+        {
+          user_id,
+          cart_items,
+          context,
+          cart_signature: cartSignature,
+          retain_manual_promotions: false
+        }
+      );
+      const response = createSuccessResponse(
+        'Promotions refreshed for updated cart',
+        refreshedEvaluation
+      );
+      return reply.code(200).send(response);
+    }
+
     // Create new evaluation with automatic promotions
     const result = await this.evaluationService.createAutomaticEvaluation({
       user_id,
@@ -259,6 +297,28 @@ export class PromotionEvaluationController {
 
     const response = createSuccessResponse('User active evaluations retrieved successfully', result);
     return reply.code(200).send(response);
+  });
+
+  // Revalidate an applied promotion before the shopper leaves the cart.
+  validateEvaluationForCheckout = asyncHandler(async (request: FastifyRequest<{
+    Body: { evaluation_id: string; user_id: string }
+  }>, reply: FastifyReply) => {
+    const { evaluation_id, user_id } = request.body;
+    const validation = await this.evaluationService.validateEvaluationForOrder(
+      evaluation_id,
+      user_id
+    );
+
+    return reply.code(200).send(createSuccessResponse(
+      validation.isValid
+        ? 'Promotion evaluation is valid for checkout'
+        : 'Promotion evaluation must be refreshed before checkout',
+      {
+        is_valid: validation.isValid,
+        reason: validation.reason || null,
+        evaluation_id
+      }
+    ));
   });
 
   // Apply manual coupon to existing evaluation

@@ -1,0 +1,26 @@
+strict mode: use allowUnionTypes to allow union type keyword at "#/properties/productid" (strictTypes)
+strict mode: use allowUnionTypes to allow union type keyword at "#/items/properties/id" (strictTypes)
+Error starting server: Error: listen EADDRINUSE: address already in use 0.0.0.0:5600
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at node:net:2206:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 5600
+}
+C:\Nivaana\asset-management-backend\src\config\env.ts:175
+    throw new Error(validationErrors.join('; '));
+          ^
+
+
+Error: Missing required push notification environment variables: FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY, APNS_AUTH_KEY
+    at validatePushNotificationConfig (C:\Nivaana\asset-management-backend\src\config\env.ts:175:11)
+    at <anonymous> (C:\Nivaana\asset-management-backend\src\config\env.ts:316:1)
+    at ModuleJob.run (node:internal/modules/esm/module_job:345:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:651:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+Node.js v22.19.0

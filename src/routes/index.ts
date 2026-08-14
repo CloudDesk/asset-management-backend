@@ -23,16 +23,28 @@ import { orderlineRoutes } from './orderline.route.js';
 import { transactionRoutes } from './transaction.route.js';
 import { phonePeRoutes } from './phonepe.route.js';
 import { promotionsRoutes } from './promotions.route.js';
+import { customerGroupRoutes } from './customer-groups.route.js';
 import { ratingRoutes } from './rating.route.js';
 import { smsRoutes } from './sms.route.js';
 import { ekartRoutes } from './ekart.route.js';
+import { shipmozoRoutes } from './shipmozo.route.js';
 import { analyticsRoutes } from './analytics.route.js';
 import { pushNotificationRoutes } from './push-notification.route.js';
 import { storefrontPageSectionRoutes } from './storefront-page-section.route.js';
 import { categoryImageRoutes } from './category-image.route.js';
+import { couponWalletRoutes } from './coupon-wallet.route.js';
+import { returnReplacementPolicyRoutes } from './return-replacement-policy.route.js';
+import { returnReasonRuleRoutes } from './return-reason-rule.route.js';
+import { returnRequestRoutes } from './return-request.route.js';
+import { amazonRoutes } from './amazon.route.js';
+import { amazonChannelRoutes } from './amazon-channel.route.js';
+import { amazonListingPublishRoutes } from './amazon-listing-publish.route.js';
+import { amazonOperationsRoutes } from './amazon-operations.route.js';
 import { smartAuthentication } from '../middleware/smartAuth.middleware.js';
 import { createSuccessResponse } from '../utils/errorHandler.js';
 import { permissionRoutes } from './permission.route.js';
+import { instoreOrderRoutes } from './instore-order.route.js';
+import { env } from '../config/env.js';
 
 export async function routes(fastify: FastifyInstance) {
   // Health check endpoint (public)
@@ -110,17 +122,29 @@ export async function routes(fastify: FastifyInstance) {
     await fastify.register(samplePurchaseRequestRoutes, { prefix: '/samplepurchaserequests' });
     await fastify.register(cartRoutes, { prefix: '/carts' });
     await fastify.register(ordersRoutes, { prefix: '/orders' });
+    await fastify.register(instoreOrderRoutes, { prefix: '/instore-orders' });
     await fastify.register(orderlineRoutes, { prefix: '/orderlines' });
     await fastify.register(transactionRoutes, { prefix: '/transactions' });
     await fastify.register(phonePeRoutes, { prefix: '/phonepe' });
     await fastify.register(promotionsRoutes, { prefix: '/promotions' });
+    await fastify.register(customerGroupRoutes, { prefix: '/customer-groups' });
     await fastify.register(ratingRoutes, { prefix: '/ratings' });
     await fastify.register(smsRoutes, { prefix: '/sms' });
     await fastify.register(ekartRoutes, { prefix: '/ekart' });
+    if (env.SHIPMOZO_INTEGRATION_ENABLED) {
+      await fastify.register(shipmozoRoutes, { prefix: '/shipmozo' });
+    }
     await fastify.register(analyticsRoutes, { prefix: '/analytics' });
     await fastify.register(pushNotificationRoutes, { prefix: '/push-notifications' });
     await fastify.register(storefrontPageSectionRoutes, { prefix: '/storefront-page-sections' });
     await fastify.register(categoryImageRoutes, { prefix: '/category-images' });
+    await fastify.register(couponWalletRoutes, { prefix: '/coupon-wallet' });
+    await fastify.register(returnReplacementPolicyRoutes, { prefix: '/return-replacement-policies' });
+    await fastify.register(returnReasonRuleRoutes, { prefix: '/return-reason-rules' });
+    await fastify.register(returnRequestRoutes, { prefix: '/returns' });
+    if (env.AMAZON_INTEGRATION_ENABLED) {
+      await fastify.register(amazonRoutes, { prefix: '/amazon' });
+    }
 
     // -------------------------------------------------------------------------
     // SMART AUTHENTICATION - Applied to ALL /v1 routes
@@ -137,6 +161,15 @@ export async function routes(fastify: FastifyInstance) {
     fastify.addHook('preHandler', smartAuthentication);
 
   }, { prefix: '/v1' });
+
+  // Production Amazon listing import is intentionally exposed under the
+  // channel API namespace requested by the integration contract. Each route
+  // has an explicit authentication pre-handler and the Amazon client is GET-only.
+  if (env.AMAZON_INTEGRATION_ENABLED) {
+    await fastify.register(amazonChannelRoutes, { prefix: '/api/channels/amazon' });
+    await fastify.register(amazonListingPublishRoutes, { prefix: '/api/channels/amazon' });
+    await fastify.register(amazonOperationsRoutes, { prefix: '/api/channels/amazon/operations' });
+  }
 
   // API v2 routes
   await fastify.register(async function (fastify) {

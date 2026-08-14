@@ -1,11 +1,14 @@
 .env
 .env.sit
 .env.prod
+.env.amazon.local
 secrets/
 *.firebase-service-account.json
 node_modules
 build
 /node_modules
 /build
+debug_*.txt
 scripts/dryrun-logs/product-name-backup-*.json
 scripts/dryrun-logs/production-taxonomy-backup-*.json
+.codex-*.log

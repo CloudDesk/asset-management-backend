@@ -3,7 +3,7 @@ import { z } from 'zod';
 // Address schema based on actual database fields from prisma schema  
 export const createAddressSchema = z.object({
   userid: z.number().optional(),
-  name: z.string().max(100).optional(),
+  name: z.string().trim().min(2, 'Name is required').max(100),
   mobilenumber: z.number().optional(),
   pincode: z.number().optional(),
   doornumber: z.string().max(100).optional(),
@@ -18,7 +18,7 @@ export const createAddressSchema = z.object({
 
 export const updateAddressSchema = z.object({
   userid: z.number().optional(),
-  name: z.string().max(100).optional(),
+  name: z.string().trim().min(2, 'Name is required').max(100).optional(),
   mobilenumber: z.number().optional(),
   pincode: z.number().optional(),
   doornumber: z.string().max(100).optional(),
@@ -33,7 +33,7 @@ export const updateAddressSchema = z.object({
 export const upsertAddressSchema = z.object({
   id: z.string().optional(),
   userid: z.number().optional(),
-  name: z.string().max(100).optional(),
+  name: z.string().trim().min(2, 'Name is required').max(100),
   mobilenumber: z.number().optional(),
   pincode: z.number().optional(),
   doornumber: z.string().max(100).optional(),
@@ -53,4 +53,4 @@ export const addressParamsSchema = z.object({
 export type CreateAddressInput = z.infer<typeof createAddressSchema>;
 export type UpdateAddressInput = z.infer<typeof updateAddressSchema>;
 export type UpsertAddressInput = z.infer<typeof upsertAddressSchema>;
-export type AddressParams = z.infer<typeof addressParamsSchema>; 
+export type AddressParams = z.infer<typeof addressParamsSchema>;

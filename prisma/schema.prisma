@@ -8,78 +8,85 @@ datasource db {
 }
 
 model Product {
-  id                   BigInt      @id @default(autoincrement())
-  name                 String      @db.VarChar(500)
-  shortdescription     String?
-  fulldescription      String?
-  puc                  String      @unique @db.VarChar(255)
-  category             String?     @db.VarChar(255)
-  subcategory          String?     @db.VarChar(255)
-  subsubcategory       String?     @db.VarChar(255)
-  fragnancetype        String?     @db.VarChar(255)
-  large                String[]
-  medium               String[]
-  small                String[]
-  brand                String?     @db.VarChar(255)
-  pack                 String?     @db.VarChar(255)
-  searchtext           Unsupported("tsvector")?
-  isdealoftheday        Boolean     @default(false)
+  id               BigInt                   @id @default(autoincrement())
+  name             String                   @db.VarChar(1200)
+  shortname        String                   @db.VarChar(160)
+  shortdescription String?
+  fulldescription  String?
+  benefititems     Json?                    @db.JsonB
+  puc              String                   @unique @db.VarChar(255)
+  category         String?                  @db.VarChar(255)
+  subcategory      String?                  @db.VarChar(255)
+  subsubcategory   String?                  @db.VarChar(255)
+  fragnancetype    String?                  @db.VarChar(255)
+  large            String[]
+  medium           String[]
+  small            String[]
+  brand            String?                  @db.VarChar(255)
+  pack             String?                  @db.VarChar(255)
+  searchtext       Unsupported("tsvector")?
+  isdealoftheday   Boolean                  @default(false)
 
-  averagerating        Decimal?    @db.Decimal(2, 1)
-  discount             Int?
-  price                Decimal?    @db.Decimal(10, 2)
-  createddate          BigInt?
-  modifieddate         BigInt?
+  averagerating Decimal? @db.Decimal(2, 1)
+  discount      Int?
+  price         Decimal? @db.Decimal(10, 2)
+  createddate   BigInt?
+  modifieddate  BigInt?
 
-  quantity             Int?
-  orderedquantity      Int?
-  soldquantity         Int?
-  availablequantity    Int?
+  quantity              Int?
+  orderedquantity       Int?
+  soldquantity          Int?
+  availablequantity     Int?
   ecompublishedquantity Int?
-  productstatus        String?     @db.VarChar(255)
+  damagedquantity       Int?    @default(0)
+  productstatus         String? @db.VarChar(255)
 
   // Additional Product Information
-  material             String?     @db.VarChar(255)
-  itemlength           String?     @db.VarChar(255)
-  manufacturer         String?     @db.VarChar(255)
-  netform              String?     @db.VarChar(255)
-  netquantity          String?     @db.VarChar(255)
-  numberofitems        Int?
-  itemthickness        String?     @db.VarChar(255)
+  material      String? @db.VarChar(255)
+  itemlength    String? @db.VarChar(255)
+  manufacturer  String? @db.VarChar(255)
+  netform       String? @db.VarChar(255)
+  netquantity   String? @db.VarChar(255)
+  numberofitems Int?
+  itemthickness String? @db.VarChar(255)
 
-  purpose              String?     @db.VarChar(255)
-  burntime             String?     @db.VarChar(255)
-  power                String?     @db.VarChar(255)
-  usage                String?     @db.VarChar(255)
-  longevity            String?     @db.VarChar(255)
-  gender               String?     @db.VarChar(50)
-  remarks              String?     @db.VarChar(255)
-  iscombo    Boolean?  @default(false)
-  combotype  String?   @default("fixed") @db.VarChar(50)
-  
+  purpose   String?  @db.VarChar(255)
+  burntime  String?  @db.VarChar(255)
+  power     String?  @db.VarChar(255)
+  usage     String?
+  longevity String?  @db.VarChar(255)
+  gender    String?  @db.VarChar(50)
+  remarks   String   @db.VarChar(1000)
+  iscombo   Boolean? @default(false)
+  combotype String?  @default("fixed") @db.VarChar(50)
 
-  platformStocks       PlatformStock[]
-  orderline             orderline[]
-  stock                 Stock[]
-  rating                rating[]
-  bundleproducts        ProductBundleMap[] @relation("BundleProducts")
-  componentproducts     ProductBundleMap[] @relation("ComponentProducts")
+  platformStocks          PlatformStock[]
+  orderline               orderline[]
+  stock                   Stock[]
+  rating                  rating[]
+  bundleproducts          ProductBundleMap[]            @relation("BundleProducts")
+  componentproducts       ProductBundleMap[]            @relation("ComponentProducts")
+  marketplaceListings     MarketplaceListing[]
+  amazonOrderItems        AmazonMarketplaceOrderItem[]
+  amazonOrderReservations AmazonOrderStockReservation[]
+  amazonPublishDrafts     AmazonListingPublishDraft[]
+  amazonReturns           AmazonReturnEvent[]
 
   @@map("product")
 }
 
 model ProductBundleMap {
-  id                  BigInt   @id @default(autoincrement()) @db.BigInt
-  bundleproductid     BigInt   @db.BigInt
-  componentproductid  BigInt   @db.BigInt
-  requiredqty         Int      @default(1)
-  isactive            Boolean  @default(true)
-  createddate         BigInt?
-  modifieddate        BigInt?
+  id                 BigInt  @id @default(autoincrement()) @db.BigInt
+  bundleproductid    BigInt  @db.BigInt
+  componentproductid BigInt  @db.BigInt
+  requiredqty        Int     @default(1)
+  isactive           Boolean @default(true)
+  createddate        BigInt?
+  modifieddate       BigInt?
 
   // Relations
-  bundleproduct       Product  @relation("BundleProducts", fields: [bundleproductid], references: [id], onDelete: Cascade)
-  componentproduct    Product  @relation("ComponentProducts", fields: [componentproductid], references: [id], onDelete: Restrict)
+  bundleproduct    Product @relation("BundleProducts", fields: [bundleproductid], references: [id], onDelete: Cascade)
+  componentproduct Product @relation("ComponentProducts", fields: [componentproductid], references: [id], onDelete: Restrict)
 
   @@unique([bundleproductid, componentproductid], name: "unique_bundle_component")
   @@index([bundleproductid])
@@ -87,114 +94,108 @@ model ProductBundleMap {
   @@map("productbundlemap")
 }
 
-
 model PlatformStock {
-  id            BigInt   @id @default(autoincrement())
-  platform      String   @db.VarChar(100) // e.g. amazon, flipkart, nivapp
-  availableqty  Int      @default(0)
-  orderedqty    Int      @default(0)
-  soldqty       Int      @default(0)
-  totalqty      Int      @default(0)
-  ecomqty       Int      @default(0) // E-commerce published quantity (available AND ecompublish=true)
-  lockqty       Int?     @default(0) // Add this for NIVAPP cart locking
-  createddate   BigInt?
-  modifieddate  BigInt?
-  productid     BigInt
-  platformstatus        String?     @db.VarChar(255)
+  id                      BigInt                        @id @default(autoincrement())
+  platform                String                        @db.VarChar(100) // e.g. amazon, flipkart, nivapp
+  availableqty            Int                           @default(0)
+  orderedqty              Int                           @default(0)
+  soldqty                 Int                           @default(0)
+  totalqty                Int                           @default(0)
+  ecomqty                 Int                           @default(0) // E-commerce published quantity (available AND ecompublish=true)
+  damagedqty              Int                           @default(0)
+  lockqty                 Int?                          @default(0) // Add this for NIVAPP cart locking
+  createddate             BigInt?
+  modifieddate            BigInt?
+  productid               BigInt
+  platformstatus          String?                       @db.VarChar(255)
   // Relations
-  product       Product  @relation(fields: [productid], references: [id], onDelete: Cascade)
+  product                 Product                       @relation(fields: [productid], references: [id], onDelete: Cascade)
+  amazonOrderReservations AmazonOrderStockReservation[]
 
   @@unique([productid, platform])
   @@map("platformstock")
 }
 
-
-
 model Stock {
-  id                   BigInt      @id @default(autoincrement())
+  id                   BigInt                   @id @default(autoincrement())
   puc                  String
-  platform             String      @db.VarChar(100) // amazon, flipkart, nivapp
+  platform             String                   @db.VarChar(100) // amazon, flipkart, nivapp
   manufacturedyear     BigInt?
   releaseyear          BigInt?
-  isdeleted            Boolean?    @default(false)
-  isarchive            Boolean?    @default(false)
-  removefromrecyclebin Boolean?    @default(false)
-  ecompublish          Boolean?    @default(false)
+  isdeleted            Boolean?                 @default(false)
+  isarchive            Boolean?                 @default(false)
+  removefromrecyclebin Boolean?                 @default(false)
+  ecompublish          Boolean?                 @default(false)
   solddate             BigInt?
-  orderlinenumber      String?     @db.VarChar(500)
+  orderlinenumber      String?                  @db.VarChar(500)
   searchtext           Unsupported("tsvector")?
-  stockstatus          String      @default("available") @db.VarChar(500) // Available, Sold
-  serialnumber         String?     @db.VarChar(500)
-  sku                  String     @unique @db.VarChar(255)
+  stockstatus          String                   @default("available") @db.VarChar(500) // Available, Sold
+  serialnumber         String?                  @db.VarChar(500)
+  sku                  String                   @unique @db.VarChar(255)
   createddate          BigInt?
   modifieddate         BigInt?
   poid                 Int?
   supplierid           Int?
-  batchno              String?     @db.VarChar(255)
-  orderid              String?     @db.VarChar(500)
+  batchno              String?                  @db.VarChar(255)
+  orderid              String?                  @db.VarChar(500)
   platformhistory      Json?
-  rfid                 String?     @db.VarChar(500)
+  rfid                 String?                  @db.VarChar(500)
   rfidscannedtime      BigInt?
-  description          String?  // Added via: ALTER TABLE stock ADD COLUMN description TEXT;
+  description          String? // Added via: ALTER TABLE stock ADD COLUMN description TEXT;
 
   // Relations
-  product              Product?    @relation(fields: [puc], references: [puc], onDelete: Cascade, onUpdate: NoAction, map: "fk_puc")
-  orderline            orderline?  @relation(fields: [orderlinenumber], references: [orderlinenumber], onDelete: NoAction, onUpdate: NoAction, map: "fk_orderlinenumber")
-  orders               orders?     @relation(fields: [orderid], references: [orderid], onDelete: NoAction, onUpdate: NoAction, map: "stock_orderid_fkey")
-  po                   PurchaseOrder? @relation(fields: [poid], references: [id])
-  supplier             Supplier?      @relation(fields: [supplierid], references: [id])
-  
+  product   Product?       @relation(fields: [puc], references: [puc], onDelete: Cascade, onUpdate: NoAction, map: "fk_puc")
+  orderline orderline?     @relation(fields: [orderlinenumber], references: [orderlinenumber], onDelete: NoAction, onUpdate: NoAction, map: "fk_orderlinenumber")
+  orders    orders?        @relation(fields: [orderid], references: [orderid], onDelete: NoAction, onUpdate: NoAction, map: "stock_orderid_fkey")
+  po        PurchaseOrder? @relation(fields: [poid], references: [id])
+  supplier  Supplier?      @relation(fields: [supplierid], references: [id])
+
   @@index([sku], map: "idx_stock_sku")
- @@index([platform], map: "idx_stock_platform")
+  @@index([platform], map: "idx_stock_platform")
   @@index([createddate], map: "idx_stock_createddate")
   @@index([id], map: "idx_stock_id")
   @@index([puc], map: "idx_stock_puc")
   @@index([stockstatus], map: "idx_stock_stockstatus")
-
   @@map("stock")
 }
 
-
-
 model Picklist {
-  id                  Int     @id @default(autoincrement())
-  label               String? @db.VarChar(255)
-  value               String? @db.VarChar(255)
-  object              String? @db.VarChar(255)
-  controlledvalue     String? @db.VarChar(255)
-  fieldname           String? @db.VarChar(255)
-  controlledlabel     String? @db.VarChar(255)
-  controlledfieldname String? @db.VarChar(255)
-  parent              String? @db.VarChar(255)
-  description         String? @db.VarChar(255)
+  id                  Int      @id @default(autoincrement())
+  label               String?  @db.VarChar(255)
+  value               String?  @db.VarChar(255)
+  object              String?  @db.VarChar(255)
+  controlledvalue     String?  @db.VarChar(255)
+  fieldname           String?  @db.VarChar(255)
+  controlledlabel     String?  @db.VarChar(255)
+  controlledfieldname String?  @db.VarChar(255)
+  parent              String?  @db.VarChar(255)
+  description         String?  @db.VarChar(255)
   sortorder           Int?
   isactive            Boolean? @default(true)
-  createddate          BigInt?
-  modifieddate         BigInt?
+  createddate         BigInt?
+  modifieddate        BigInt?
 
   gstHsnMappingsAsSubcategory    GstHsnMapping[] @relation("SubcategoryMapping")
   gstHsnMappingsAsSubsubcategory GstHsnMapping[] @relation("SubsubcategoryMapping")
   categoryImage                  CategoryImage?
-  
+
   @@map("picklist")
 }
 
-
-
 model CategoryImage {
-  id           Int      @id @default(autoincrement())
-  picklistid   Int      @unique
-  imageurl     String   @db.Text
-  objectkey    String   @db.Text
-  thumbnailurl String?  @db.Text
-  thumbnailkey String?  @db.Text
-  bucket       String   @db.VarChar(255)
-  alttext      String?  @db.VarChar(255)
+  id           Int     @id @default(autoincrement())
+  picklistid   Int     @unique
+  imageurl     String  @db.Text
+  objectkey    String  @db.Text
+  thumbnailurl String? @db.Text
+  thumbnailkey String? @db.Text
+  bucket       String  @db.VarChar(255)
+  alttext      String? @db.VarChar(255)
   width        Int?
   height       Int?
   filesize     Int?
-  mimetype     String?  @db.VarChar(100)
-  isactive     Boolean  @default(true)
+  mimetype     String? @db.VarChar(100)
+  isactive     Boolean @default(true)
   createdby    Int?
   modifiedby   Int?
   createddate  BigInt?
@@ -206,7 +207,323 @@ model CategoryImage {
   @@map("category_images")
 }
 
+model ReturnReplacementPolicy {
+  id                    Int      @id @default(autoincrement())
+  category              String   @db.VarChar(255)
+  subcategory           String?  @db.VarChar(255)
+  scopekey              String   @unique @db.VarChar(900)
+  returnallowed         Boolean  @default(false)
+  replacementallowed    Boolean  @default(false)
+  returnwindowdays      Int?
+  replacementwindowdays Int?
+  allowedrefundmethods  String[]
+  notes                 String?
+  isactive              Boolean  @default(true)
+  createdby             Int?
+  modifiedby            Int?
+  createddate           BigInt?
+  modifieddate          BigInt?
 
+  policyReasonRules ReturnPolicyReasonRule[]
+
+  @@index([category, subcategory], map: "idx_return_replacement_policy_scope")
+  @@index([isactive], map: "idx_return_replacement_policy_isactive")
+  @@map("return_replacement_policies")
+}
+
+model ReturnReasonRule {
+  id                            Int      @id @default(autoincrement())
+  reasoncode                    String   @unique @db.VarChar(100)
+  reasonname                    String   @db.VarChar(255)
+  source                        String   @default("customer") @db.VarChar(50)
+  aliases                       String[]
+  allowedresolutions            String[]
+  schemaversion                 Int      @default(1) @map("schema_version")
+  raisewithinhours              Int?     @map("raise_within_hours")
+  evidencerules                 Json?    @map("evidence_rules")
+  photorequired                 Boolean  @default(true)
+  videorequired                 Boolean  @default(false)
+  packagephotorequired          Boolean  @default(false)
+  packagephotooptional          Boolean  @default(false)
+  unboxingvideorequired         Boolean  @default(false)
+  unboxingvideooptional         Boolean  @default(false)
+  openedpackageallowed          Boolean  @default(true)
+  pickuprequired                Boolean  @default(true)
+  evidencefirstapproval         Boolean  @default(false)
+  autocreatepickup              Boolean  @default(false)
+  resolutiontiming              String?  @map("resolution_timing") @db.VarChar(100)
+  stockunavailableresolution    String?  @map("stock_unavailable_resolution") @db.VarChar(100)
+  pickuptriggermode             String   @default("manual_admin") @map("pickup_trigger_mode") @db.VarChar(100)
+  notifycustomeronstockfallback Boolean  @default(true) @map("notify_customer_on_stock_fallback")
+  reverseshippingchargebearer   String?  @db.VarChar(50)
+  notes                         String?
+  status                        String   @default("active") @db.VarChar(50)
+  createddate                   BigInt?
+  modifieddate                  BigInt?
+
+  policyReasonRules ReturnPolicyReasonRule[]
+
+  @@index([source], map: "idx_return_reason_rules_source")
+  @@index([status], map: "idx_return_reason_rules_status")
+  @@map("return_reason_rules")
+}
+
+model ReturnPolicyReasonRule {
+  id                   Int     @id @default(autoincrement())
+  policyId             Int     @map("policy_id")
+  reasonId             Int     @map("reason_id")
+  configuration        Json
+  schemaVersion        Int     @default(1) @map("schema_version")
+  configurationVersion Int     @default(1) @map("configuration_version")
+  isActive             Boolean @default(true) @map("is_active")
+  createdBy            Int?    @map("created_by")
+  modifiedBy           Int?    @map("modified_by")
+  createdDate          BigInt? @map("created_date")
+  modifiedDate         BigInt? @map("modified_date")
+
+  policy ReturnReplacementPolicy @relation(fields: [policyId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  reason ReturnReasonRule        @relation(fields: [reasonId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@unique([policyId, reasonId], map: "return_policy_reason_rules_policy_reason_unique")
+  @@index([policyId], map: "idx_return_policy_reason_rules_policy")
+  @@index([reasonId], map: "idx_return_policy_reason_rules_reason")
+  @@index([isActive], map: "idx_return_policy_reason_rules_is_active")
+  @@map("return_policy_reason_rules")
+}
+
+model ReturnRequest {
+  id                              Int      @id @default(autoincrement())
+  requestnumber                   String   @unique @db.VarChar(100)
+  orderid                         Int?
+  orderlineid                     Int?
+  customerid                      Int?
+  requesttype                     String   @db.VarChar(50)
+  source                          String   @default("customer") @db.VarChar(50)
+  reason                          String   @db.VarChar(255)
+  reasoncode                      String   @db.VarChar(100)
+  requestedquantity               Int      @default(1)
+  requestedresolution             String?  @db.VarChar(100)
+  ispackageopened                 Boolean?
+  additionalremarks               String?
+  evidenceReviewStatus            String   @default("pending") @map("evidence_review_status") @db.VarChar(50)
+  evidenceRejectionReason         String?  @map("evidence_rejection_reason")
+  evidenceReviewRemarks           String?  @map("evidence_review_remarks")
+  evidenceReviewedBy              Int?     @map("evidence_reviewed_by")
+  evidenceReviewedDate            BigInt?  @map("evidence_reviewed_date")
+  requestReviewStatus             String?  @map("request_review_status") @db.VarChar(50)
+  requestReviewRemarks            String?  @map("request_review_remarks")
+  requestRejectionReason          String?  @map("request_rejection_reason")
+  requestReviewedBy               Int?     @map("request_reviewed_by")
+  requestReviewedDate             BigInt?  @map("request_reviewed_date")
+  pickupflow                      String?  @db.VarChar(50)
+  reverseShipmentTrackingId       String?  @map("reverse_shipment_tracking_id") @db.VarChar(500)
+  reverseShipmentProvider         String?  @map("reverse_shipment_provider") @db.VarChar(100)
+  appliedPolicyId                 Int?     @map("applied_policy_id")
+  appliedPolicyVersion            BigInt?  @map("applied_policy_version")
+  policyReasonRuleId              Int?     @map("policy_reason_rule_id")
+  policyReasonRuleVersion         Int?     @map("policy_reason_rule_version")
+  policysnapshot                  Json?    @map("policy_snapshot")
+  reasonrulesnapshot              Json?    @map("reason_rule_snapshot")
+  reasonruleversion               Int?     @map("reason_rule_version")
+  autoCreatePickup                Boolean  @default(false) @map("auto_create_pickup")
+  pickupCreatedBy                 String?  @map("pickup_created_by") @db.VarChar(50)
+  pickupPreparedBy                Int?     @map("pickup_prepared_by")
+  pickupPreparedDate              BigInt?  @map("pickup_prepared_date")
+  pickupRemarks                   String?  @map("pickup_remarks")
+  logisticsProviderSource         String?  @map("logistics_provider_source") @db.VarChar(100)
+  reverseShippingChargeBearer     String?  @map("reverse_shipping_charge_bearer") @db.VarChar(50)
+  reverseShippingChargeAdjustment String?  @map("reverse_shipping_charge_adjustment") @db.VarChar(100)
+  receivedQuantity                Int?     @map("received_quantity")
+  receivedCondition               String?  @map("received_condition") @db.VarChar(100)
+  receivedRemarks                 String?  @map("received_remarks")
+  receivedLocation                String?  @map("received_location") @db.VarChar(255)
+  receivedBy                      Int?     @map("received_by")
+  receivedDate                    BigInt?  @map("received_date")
+  status                          String   @default("requested") @db.VarChar(100)
+  createdby                       Int?
+  modifiedby                      Int?
+  createddate                     BigInt?
+  modifieddate                    BigInt?
+
+  order             orders?                   @relation(fields: [orderid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  orderline         orderline?                @relation(fields: [orderlineid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  customer          users?                    @relation(fields: [customerid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  attachments       ReturnRequestAttachment[]
+  inspections       ReturnInspection[]
+  resolutionActions ReturnResolutionAction[]
+  creditNotes       ReturnCreditNote[]
+  statusTimeline    ReturnStatusTimeline[]
+
+  @@index([orderid], map: "idx_return_requests_orderid")
+  @@index([orderlineid], map: "idx_return_requests_orderlineid")
+  @@index([customerid], map: "idx_return_requests_customerid")
+  @@index([source], map: "idx_return_requests_source")
+  @@index([status], map: "idx_return_requests_status")
+  @@index([reasoncode], map: "idx_return_requests_reasoncode")
+  @@index([appliedPolicyId], map: "idx_return_requests_applied_policy_id")
+  @@index([policyReasonRuleId], map: "idx_return_requests_policy_reason_rule_id")
+  @@map("return_requests")
+}
+
+model ReturnResolutionAction {
+  id                       Int      @id @default(autoincrement())
+  returnRequestId          Int      @map("return_request_id")
+  actionType               String   @map("action_type") @db.VarChar(100)
+  status                   String   @default("pending") @db.VarChar(50)
+  amount                   Decimal? @db.Decimal(10, 2)
+  refundMethod             String?  @map("refund_method") @db.VarChar(100)
+  externalReference        String?  @map("external_reference") @db.VarChar(500)
+  shipmentTrackingId       String?  @map("shipment_tracking_id") @db.VarChar(500)
+  shipmentProvider         String?  @map("shipment_provider") @db.VarChar(100)
+  quantity                 Int?
+  stockFallbackApplied     Boolean  @default(false) @map("stock_fallback_applied")
+  noReverseChargeDeduction Boolean  @default(true) @map("no_reverse_charge_deduction")
+  metadata                 Json?
+  notes                    String?
+  createdBy                Int?     @map("created_by")
+  completedBy              Int?     @map("completed_by")
+  createddate              BigInt?
+  modifieddate             BigInt?
+  completeddate            BigInt?
+
+  returnRequest ReturnRequest      @relation(fields: [returnRequestId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  creditNotes   ReturnCreditNote[]
+
+  @@index([returnRequestId], map: "idx_return_resolution_actions_request")
+  @@index([actionType], map: "idx_return_resolution_actions_action_type")
+  @@index([status], map: "idx_return_resolution_actions_status")
+  @@map("return_resolution_actions")
+}
+
+model ReturnCreditNote {
+  id                    Int      @id @default(autoincrement())
+  creditNoteNumber      String   @unique @map("credit_note_number") @db.VarChar(100)
+  returnRequestId       Int      @map("return_request_id")
+  resolutionActionId    Int?     @map("resolution_action_id")
+  originalOrderId       Int?     @map("original_order_id")
+  originalOrderNumber   String?  @map("original_order_number") @db.VarChar(500)
+  originalInvoiceNumber String?  @map("original_invoice_number") @db.VarChar(500)
+  originalInvoiceUrl    String?  @map("original_invoice_url") @db.VarChar(1000)
+  reasonCode            String?  @map("reason_code") @db.VarChar(100)
+  resolution            String?  @db.VarChar(100)
+  quantity              Int      @default(1)
+  refundAmount          Decimal  @map("refund_amount") @db.Decimal(10, 2)
+  taxableAmount         Decimal? @map("taxable_amount") @db.Decimal(10, 2)
+  gstRate               Decimal? @map("gst_rate") @db.Decimal(5, 2)
+  cgstAmount            Decimal? @map("cgst_amount") @db.Decimal(10, 2)
+  sgstAmount            Decimal? @map("sgst_amount") @db.Decimal(10, 2)
+  igstAmount            Decimal? @map("igst_amount") @db.Decimal(10, 2)
+  totalGstAmount        Decimal? @map("total_gst_amount") @db.Decimal(10, 2)
+  hsnCode               String?  @map("hsn_code") @db.VarChar(50)
+  status                String   @default("draft") @db.VarChar(50)
+  metadata              Json?
+  notes                 String?
+  createdBy             Int?     @map("created_by")
+  issuedBy              Int?     @map("issued_by")
+  createddate           BigInt?
+  modifieddate          BigInt?
+  issueddate            BigInt?
+
+  returnRequest    ReturnRequest           @relation(fields: [returnRequestId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  resolutionAction ReturnResolutionAction? @relation(fields: [resolutionActionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([returnRequestId], map: "idx_return_credit_notes_request")
+  @@index([resolutionActionId], map: "idx_return_credit_notes_resolution_action")
+  @@index([status], map: "idx_return_credit_notes_status")
+  @@map("return_credit_notes")
+}
+
+model InvoiceAdjustment {
+  id                    Int      @id @default(autoincrement())
+  adjustmentNumber      String   @unique @map("adjustment_number") @db.VarChar(120)
+  adjustmentType        String   @map("adjustment_type") @db.VarChar(100)
+  sourceAction          String   @map("source_action") @db.VarChar(100)
+  status                String   @default("draft") @db.VarChar(50)
+  orderId               Int?     @map("order_id")
+  orderNumber           String?  @map("order_number") @db.VarChar(500)
+  returnRequestId       Int?     @map("return_request_id")
+  resolutionActionId    Int?     @map("resolution_action_id")
+  originalInvoiceNumber String?  @map("original_invoice_number") @db.VarChar(500)
+  originalInvoiceUrl    String?  @map("original_invoice_url") @db.VarChar(1000)
+  adjustmentInvoiceUrl  String?  @map("adjustment_invoice_url") @db.VarChar(1000)
+  originalInvoiceAmount Decimal? @map("original_invoice_amount") @db.Decimal(10, 2)
+  remainingAmount       Decimal? @map("remaining_amount") @db.Decimal(10, 2)
+  reversedAmount        Decimal? @map("reversed_amount") @db.Decimal(10, 2)
+  creditNoteId          Int?     @map("credit_note_id")
+  creditNoteNumber      String?  @map("credit_note_number") @db.VarChar(100)
+  gstReversalApplicable Boolean  @default(false) @map("gst_reversal_applicable")
+  metadata              Json?
+  notes                 String?
+  createdBy             Int?     @map("created_by")
+  createddate           BigInt?
+  modifieddate          BigInt?
+
+  @@index([orderId], map: "idx_invoice_adjustments_order")
+  @@index([returnRequestId], map: "idx_invoice_adjustments_return_request")
+  @@index([adjustmentType], map: "idx_invoice_adjustments_type")
+  @@index([sourceAction], map: "idx_invoice_adjustments_source_action")
+  @@map("invoice_adjustments")
+}
+
+model ReturnStatusTimeline {
+  id              Int     @id @default(autoincrement())
+  returnRequestId Int     @map("return_request_id")
+  previousStatus  String? @map("previous_status") @db.VarChar(100)
+  status          String  @db.VarChar(100)
+  eventType       String  @map("event_type") @db.VarChar(100)
+  actorType       String? @map("actor_type") @db.VarChar(50)
+  actorId         Int?    @map("actor_id")
+  message         String?
+  metadata        Json?
+  createddate     BigInt?
+
+  returnRequest ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([returnRequestId], map: "idx_return_status_timeline_request")
+  @@index([status], map: "idx_return_status_timeline_status")
+  @@index([eventType], map: "idx_return_status_timeline_event_type")
+  @@map("return_status_timeline")
+}
+
+model ReturnRequestAttachment {
+  id                   Int     @id @default(autoincrement())
+  returnrequestid      Int
+  attachmenttype       String  @db.VarChar(100)
+  fileurl              String  @db.Text
+  isrequired           Boolean @default(false)
+  uploadedbycustomerid Int?
+  uploadeddate         BigInt?
+  status               String  @default("active") @db.VarChar(50)
+
+  returnrequest      ReturnRequest @relation(fields: [returnrequestid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  uploadedbycustomer users?        @relation(fields: [uploadedbycustomerid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([returnrequestid], map: "idx_return_request_attachments_request")
+  @@index([status], map: "idx_return_request_attachments_status")
+  @@map("return_request_attachments")
+}
+
+model ReturnInspection {
+  id                         Int     @id @default(autoincrement())
+  returnRequestId            Int     @map("return_request_id")
+  inspectedByInventoryUserId Int     @map("inspected_by_inventory_user_id")
+  receivedQuantity           Int     @map("received_quantity")
+  approvedQuantity           Int     @default(0) @map("approved_quantity")
+  rejectedQuantity           Int     @default(0) @map("rejected_quantity")
+  condition                  String  @db.VarChar(100)
+  inspectionNotes            String? @map("inspection_notes")
+  restockAction              String  @default("none") @map("restock_action") @db.VarChar(100)
+  createddate                BigInt?
+  modifieddate               BigInt?
+
+  returnRequest ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([returnRequestId], map: "idx_return_inspections_request")
+  @@index([inspectedByInventoryUserId], map: "idx_return_inspections_inspector")
+  @@index([condition], map: "idx_return_inspections_condition")
+  @@index([restockAction], map: "idx_return_inspections_restock_action")
+  @@map("return_inspections")
+}
 
 model PicklistBackup {
   backup_id           Int      @id @default(autoincrement())
@@ -228,23 +545,22 @@ model PicklistBackup {
   @@map("picklist_backup")
 }
 
-
 model GstHsnMapping {
-  id                  Int      @id @default(autoincrement())
-  subcategory_id      Int?
-  subcategory_value   String?  @db.VarChar(255)
-  subsubcategory_id   Int?
-  subsubcategory_value String? @db.VarChar(255)
-  hsn_code            String   @db.VarChar(50)
-  gst_rate            Decimal  @db.Decimal(5, 2)  // e.g., 5.00, 18.00
-  description         String?  @db.Text
-  isactive            Boolean? @default(true)
-  createddate         BigInt?
-  modifieddate        BigInt?
-  
-  subcategory         Picklist? @relation("SubcategoryMapping", fields: [subcategory_id], references: [id], onDelete: SetNull)
-  subsubcategory      Picklist? @relation("SubsubcategoryMapping", fields: [subsubcategory_id], references: [id], onDelete: SetNull)
-  
+  id                   Int      @id @default(autoincrement())
+  subcategory_id       Int?
+  subcategory_value    String?  @db.VarChar(255)
+  subsubcategory_id    Int?
+  subsubcategory_value String?  @db.VarChar(255)
+  hsn_code             String   @db.VarChar(50)
+  gst_rate             Decimal  @db.Decimal(5, 2) // e.g., 5.00, 18.00
+  description          String?  @db.Text
+  isactive             Boolean? @default(true)
+  createddate          BigInt?
+  modifieddate         BigInt?
+
+  subcategory    Picklist? @relation("SubcategoryMapping", fields: [subcategory_id], references: [id], onDelete: SetNull)
+  subsubcategory Picklist? @relation("SubsubcategoryMapping", fields: [subsubcategory_id], references: [id], onDelete: SetNull)
+
   // Note: Unique constraints handled via partial indexes in SQL (see SQL schema above)
   // Prisma doesn't support partial unique indexes directly, so we'll handle uniqueness in application logic
   @@index([subcategory_value])
@@ -254,9 +570,6 @@ model GstHsnMapping {
   @@index([isactive])
   @@map("gst_hsn_mapping")
 }
-
-
-
 
 model Supplier {
   id                  Int               @id @default(autoincrement())
@@ -328,7 +641,8 @@ model PurchaseOrder {
   poinvoice           poinvoice[]
   purchaserequest     PurchaseRequest? @relation(fields: [prnumber], references: [prnumber], onDelete: Cascade, onUpdate: NoAction, map: "fk_prnumber_purchaseorder")
   supplier            Supplier?        @relation(fields: [supplierid], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_supplierid_purchaseorder_supplier")
-  stocks    Stock[]
+  stocks              Stock[]
+
   @@map("purchaseorder")
 }
 
@@ -405,13 +719,13 @@ model inventoryusers {
   // sessiontoken removed - session management now handled by auth_sessions table
   resettoken        String? @db.VarChar(255)
   resettokenexpires BigInt?
-  
+
   // ADD THIS: One inventory user has one role (one-to-many relationship)
-  roleid           Int?        // Foreign key to roles.id
-  rolerelation     role?       @relation(fields: [roleid], references: [id], onDelete: SetNull)
-  
+  roleid       Int? // Foreign key to roles.id
+  rolerelation role? @relation(fields: [roleid], references: [id], onDelete: SetNull)
+
   // Note: amazonConnections relation removed - using userType field instead
-  
+
   @@index([roleid])
 }
 
@@ -452,131 +766,140 @@ model notes {
 }
 
 model orderline {
-  id              Int       @id @default(autoincrement())
-  orderid         Int  
-  orderlinenumber String?   @unique(map: "unique_orderlinenumber") @db.VarChar(500)
-  productid       BigInt?
-  quantity        Int?
-  createddate     BigInt?
-  modifieddate    BigInt?
-  userid          Int?
-  addressid       Int?
-  productamount   Decimal?  @db.Decimal(10,2)
-  discountamount  Decimal?  @db.Decimal(10,2)
-  orderamount     Decimal?  @db.Decimal(10,2)
-  merchanttransactionid String? @db.VarChar(500)
-  productname     String?   @db.VarChar(500)
-  productcategory String?   @db.VarChar(500)
-  productcolour   String?   @db.VarChar(500)
-  readytodispatchdate BigInt?
-  delivereddate   BigInt?
-  cancelleddate   BigInt?
-  returneddate    BigInt?
-  orderstatus     String?   @db.VarChar(500)
-  uniqueordderid  String?   @db.VarChar(500)
-  deliveryfrom    String?   @db.VarChar(500)
-  location        String?   @db.VarChar(500)
-  dispatcheddate  BigInt?
-  ordereddate     BigInt?
-  paymentfaileddate BigInt?
-  evaluation_id   String?   @db.VarChar(36)
-  original_price  Decimal?  @db.Decimal(10,2)
-  product_discount_amount  Decimal? @db.Decimal(10,2) @default(0)
-  promotion_discount_amount Decimal? @db.Decimal(10,2) @default(0)
-  shipping_cost            Decimal? @db.Decimal(10,2) @default(0)
+  id                        Int      @id @default(autoincrement())
+  orderid                   Int
+  orderlinenumber           String?  @unique(map: "unique_orderlinenumber") @db.VarChar(500)
+  productid                 BigInt?
+  quantity                  Int?
+  createddate               BigInt?
+  modifieddate              BigInt?
+  userid                    Int?
+  addressid                 Int?
+  productamount             Decimal? @db.Decimal(10, 2)
+  discountamount            Decimal? @db.Decimal(10, 2)
+  orderamount               Decimal? @db.Decimal(10, 2)
+  merchanttransactionid     String?  @db.VarChar(500)
+  productname               String?  @db.VarChar(1200)
+  productshortname          String?  @db.VarChar(160)
+  productcategory           String?  @db.VarChar(500)
+  productcolour             String?  @db.VarChar(500)
+  readytodispatchdate       BigInt?
+  delivereddate             BigInt?
+  cancelleddate             BigInt?
+  returneddate              BigInt?
+  orderstatus               String?  @db.VarChar(500)
+  uniqueordderid            String?  @db.VarChar(500)
+  deliveryfrom              String?  @db.VarChar(500)
+  location                  String?  @db.VarChar(500)
+  dispatcheddate            BigInt?
+  ordereddate               BigInt?
+  paymentfaileddate         BigInt?
+  evaluation_id             String?  @db.VarChar(36)
+  original_price            Decimal? @db.Decimal(10, 2)
+  product_discount_amount   Decimal? @default(0) @db.Decimal(10, 2)
+  promotion_discount_amount Decimal? @default(0) @db.Decimal(10, 2)
+  manual_discount_amount    Decimal? @default(0) @db.Decimal(10, 2)
+  shipping_cost             Decimal? @default(0) @db.Decimal(10, 2)
   // EKART Shipment Information (shared with order)
-  
-  hsn_code                String?   @db.VarChar(50)
-  gst_rate                Decimal?  @db.Decimal(5, 2)   // e.g., 5.00, 18.00
-  taxable_amount          Decimal?  @db.Decimal(10, 2)  // orderamount / (1 + gst_rate/100)
-  cgst_amount             Decimal?  @db.Decimal(10, 2)  // if same state
-  sgst_amount             Decimal?  @db.Decimal(10, 2)  // if same state
-  igst_amount             Decimal?  @db.Decimal(10, 2)  // if different state
-  total_gst_amount        Decimal?  @db.Decimal(10, 2)  // cgst + sgst OR igst
 
-  tracking_id             String?   @db.VarChar(500)
-  shipdate                BigInt?
-  status_history          Json?     // Array of status change history entries
-  address         address?  @relation(fields: [addressid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  product         Product?  @relation(fields: [productid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users           users?    @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  rating          rating[]
-  stock           Stock[]
-  tickets         tickets[] @ignore
-  orders          orders?   @relation(fields: [orderid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  hsn_code         String?  @db.VarChar(50)
+  gst_rate         Decimal? @db.Decimal(5, 2) // e.g., 5.00, 18.00
+  taxable_amount   Decimal? @db.Decimal(10, 2) // orderamount / (1 + gst_rate/100)
+  cgst_amount      Decimal? @db.Decimal(10, 2) // if same state
+  sgst_amount      Decimal? @db.Decimal(10, 2) // if same state
+  igst_amount      Decimal? @db.Decimal(10, 2) // if different state
+  total_gst_amount Decimal? @db.Decimal(10, 2) // cgst + sgst OR igst
+
+  tracking_id    String?         @db.VarChar(500)
+  shipdate       BigInt?
+  status_history Json? // Array of status change history entries
+  address        address?        @relation(fields: [addressid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  product        Product?        @relation(fields: [productid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users          users?          @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  rating         rating[]
+  stock          Stock[]
+  returnrequests ReturnRequest[]
+  tickets        tickets[]       @ignore
+  orders         orders?         @relation(fields: [orderid], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("orderline")
 }
 
 model orders {
-  id                    Int                      @id @default(autoincrement())
-  userid                Int?
-  addressid             Int?
-  createddate           BigInt?
-  modifieddate          BigInt?
-  orderamount           Decimal?                 @db.Decimal
-  orderid               String?                  @unique(map: "uniq_orderid") @db.VarChar(500)
-  orderstatus           String?                  @db.VarChar(500)
-  delivereddate         BigInt?
-  cancelleddate         BigInt?
-  returneddate          BigInt?
-  quantity              Int?
-  transactionid         String?                  @db.VarChar(500)
-  readytodispatchdate   BigInt?
-  dispatcheddate        BigInt?
-  productamount         Decimal?                 @db.Decimal
-  discountamount        Decimal?                 @db.Decimal
-  deliveryfrom          String?                  @db.VarChar(200)
-  orderprocessingtime   BigInt?
-  ispaymentsucceed      Boolean?                 @default(false)
-  merchanttransactionid String?                  @db.VarChar(250)
-  productid             Int[]
-  evaluation_id         String?                   @db.VarChar(36) @unique
-  promotion_discount_total    Decimal?            @db.Decimal(10,2) @default(0) // order-level + item-level promo discounts
-  original_total        Decimal?                  @db.Decimal(10,2)   // subtotal of items before any discount
-  shipping_cost         Decimal?                  @db.Decimal(10,2) @default(0)
-  tax_amount            Decimal?                  @db.Decimal(10,2) @default(0)
-  paymentfaileddate     BigInt?
-  searchtext            Unsupported("tsvector")?
+  id                           Int                      @id @default(autoincrement())
+  userid                       Int?
+  addressid                    Int?
+  createddate                  BigInt?
+  modifieddate                 BigInt?
+  orderamount                  Decimal?                 @db.Decimal
+  orderid                      String?                  @unique(map: "uniq_orderid") @db.VarChar(500)
+  orderstatus                  String?                  @db.VarChar(500)
+  delivereddate                BigInt?
+  cancelleddate                BigInt?
+  returneddate                 BigInt?
+  quantity                     Int?
+  transactionid                String?                  @db.VarChar(500)
+  readytodispatchdate          BigInt?
+  dispatcheddate               BigInt?
+  productamount                Decimal?                 @db.Decimal
+  discountamount               Decimal?                 @db.Decimal
+  deliveryfrom                 String?                  @db.VarChar(200)
+  orderprocessingtime          BigInt?
+  ispaymentsucceed             Boolean?                 @default(false)
+  merchanttransactionid        String?                  @unique(map: "uniq_orders_merchanttransactionid") @db.VarChar(250)
+  productid                    Int[]
+  evaluation_id                String?                  @unique @db.VarChar(36)
+  promotion_discount_total     Decimal?                 @default(0) @db.Decimal(10, 2) // order-level + item-level promo discounts
+  wallet_discount_total        Decimal?                 @default(0) @db.Decimal(10, 2)
+  original_total               Decimal?                 @db.Decimal(10, 2) // subtotal of items before any discount
+  shipping_cost                Decimal?                 @default(0) @db.Decimal(10, 2)
+  tax_amount                   Decimal?                 @default(0) @db.Decimal(10, 2)
+  paymentfaileddate            BigInt?
+  searchtext                   Unsupported("tsvector")?
   // Payment Mode & COD Tracking
-  mode                        String?   @db.VarChar(50)  // 'cod' | 'phonepe'
-  cod_payment_received_date   BigInt?                    // When COD payment collected (epoch milliseconds)
-  cod_transaction_reference   String?   @db.VarChar(500) // EKART/payment gateway transaction reference
-  cod_amount                  Decimal?  @db.Decimal(10,2) // COD amount for verification and reconciliation
+  mode                         String?                  @db.VarChar(50) // 'cod' | 'phonepe'
+  order_type                   String?                  @db.VarChar(50) // Set only by the dedicated in-store order flow
+  created_by_inventory_user_id Int?
+  manual_discount_total        Decimal?                 @default(0) @db.Decimal(10, 2)
+  manual_discount_reason       String?                  @db.VarChar(500)
+  cod_payment_received_date    BigInt? // When COD payment collected (epoch milliseconds)
+  cod_transaction_reference    String?                  @db.VarChar(500) // EKART/payment gateway transaction reference
+  cod_amount                   Decimal?                 @db.Decimal(10, 2) // COD amount for verification and reconciliation
   // EKART Shipment Information
-  tracking_id           String?                   @db.VarChar(500)
-  vendor                String?                   @db.VarChar(100) @default("EKART")
-  barcodes              Json?
-  label_url             String?                   @db.VarChar(1000)
-  public_tracking_link  String?                   @db.VarChar(1000)
-  shipment_created_at   BigInt?
-  label_downloaded_at   BigInt?
-  label_printed_at      BigInt?
-  shipdate              BigInt?
-  shipment_tracking_status String?                @db.VarChar(500)  // Tracking status from Ekart webhook
-  status_history        Json?                     // Array of status change history entries
+  tracking_id                  String?                  @db.VarChar(500)
+  vendor                       String?                  @default("EKART") @db.VarChar(100)
+  barcodes                     Json?
+  label_url                    String?                  @db.VarChar(1000)
+  public_tracking_link         String?                  @db.VarChar(1000)
+  shipment_created_at          BigInt?
+  label_downloaded_at          BigInt?
+  label_printed_at             BigInt?
+  shipdate                     BigInt?
+  shipment_tracking_status     String?                  @db.VarChar(500) // Tracking status from Ekart webhook
+  status_history               Json? // Array of status change history entries
 
-  items_total             Decimal?  @db.Decimal(10, 2)  // Σ(orderline.orderamount) = orderamount - shipping_cost
-  total_taxable_amount    Decimal?  @db.Decimal(10, 2)  // Sum of orderline.taxable_amount
-  total_cgst_amount       Decimal?  @db.Decimal(10, 2)  // Sum of orderline.cgst_amount
-  total_sgst_amount       Decimal?  @db.Decimal(10, 2)  // Sum of orderline.sgst_amount
-  total_igst_amount       Decimal?  @db.Decimal(10, 2)  // Sum of orderline.igst_amount
-  total_gst_amount        Decimal?  @db.Decimal(10, 2)  // Sum of orderline.total_gst_amount
-  
+  items_total          Decimal? @db.Decimal(10, 2) // Σ(orderline.orderamount) = orderamount - shipping_cost
+  total_taxable_amount Decimal? @db.Decimal(10, 2) // Sum of orderline.taxable_amount
+  total_cgst_amount    Decimal? @db.Decimal(10, 2) // Sum of orderline.cgst_amount
+  total_sgst_amount    Decimal? @db.Decimal(10, 2) // Sum of orderline.sgst_amount
+  total_igst_amount    Decimal? @db.Decimal(10, 2) // Sum of orderline.igst_amount
+  total_gst_amount     Decimal? @db.Decimal(10, 2) // Sum of orderline.total_gst_amount
+
   // Refund Tracking Fields (Added: December 2024)
-  refund_transaction_id   String?   @db.VarChar(500)    // PhonePe or payment gateway refund transaction ID
-  refund_amount           Decimal?  @db.Decimal(10, 2)  // Amount refunded to customer
-  refund_reference        String?   @db.VarChar(500)    // Bank or payment gateway confirmation reference
-  refund_initiated_date   BigInt?                        // Timestamp when refund was initiated (epoch ms)
-  refund_completed_date   BigInt?                        // Timestamp when refund was completed (epoch ms)
-  order_invoice_url       String?   @db.VarChar(1000)    // URL of the order invoice
+  refund_transaction_id String?  @db.VarChar(500) // PhonePe or payment gateway refund transaction ID
+  refund_amount         Decimal? @db.Decimal(10, 2) // Amount refunded to customer
+  refund_reference      String?  @db.VarChar(500) // Bank or payment gateway confirmation reference
+  refund_initiated_date BigInt? // Timestamp when refund was initiated (epoch ms)
+  refund_completed_date BigInt? // Timestamp when refund was completed (epoch ms)
+  order_invoice_url     String?  @db.VarChar(1000) // URL of the order invoice
 
-  orderline             orderline[]
-  address               address?                 @relation(fields: [addressid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_addressid_orders")
-  transaction           transaction?             @relation(fields: [transactionid], references: [transactionid], onDelete: Cascade, onUpdate: NoAction, map: "fk_transactionid")
-  users                 users?                   @relation(fields: [userid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_userid_orders")
-  revoinvoice           revoinvoice[]
-  stock                 Stock[]
+  orderline      orderline[]
+  address        address?        @relation(fields: [addressid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_addressid_orders")
+  transaction    transaction?    @relation(fields: [transactionid], references: [transactionid], onDelete: Cascade, onUpdate: NoAction, map: "fk_transactionid")
+  users          users?          @relation(fields: [userid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_userid_orders")
+  revoinvoice    revoinvoice[]
+  stock          Stock[]
+  returnrequests ReturnRequest[]
 }
 
 model permissions {
@@ -755,7 +1078,7 @@ model tickets {
   issuedescription          String?
   recipturl                 String?                  @db.VarChar(200)
   trackingnumber            String?                  @db.VarChar(255)
-  productname               String?                  @db.VarChar(255)
+  productname               String?                  @db.VarChar(1200)
   purchasedate              BigInt?
   userid                    Int?
   location                  String?                  @db.VarChar(255)
@@ -813,24 +1136,24 @@ model transaction {
 
 // 1. Role hierarchy and basic role information
 model role {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique @db.VarChar(100)
-  code        String   @unique @db.VarChar(50)  // e.g., "superadmin", "admin", "manager"
-  level       Int                               // Hierarchy level (1=highest, higher=lower, must be >= 1)
-  description String?  @db.VarChar(500)
-  isactive    Boolean  @default(true)
-  issystem    Boolean  @default(false)          // System roles cannot be deleted
-  
+  id          Int     @id @default(autoincrement())
+  name        String  @unique @db.VarChar(100)
+  code        String  @unique @db.VarChar(50) // e.g., "superadmin", "admin", "manager"
+  level       Int // Hierarchy level (1=highest, higher=lower, must be >= 1)
+  description String? @db.VarChar(500)
+  isactive    Boolean @default(true)
+  issystem    Boolean @default(false) // System roles cannot be deleted
+
   // Relations
   permissionsets permissionset[]
-  inventoryusers inventoryusers[]  // One-to-many: one role can have many inventory users
+  inventoryusers inventoryusers[] // One-to-many: one role can have many inventory users
   parentroleid   Int?
-  parentrole     role?     @relation("RoleHierarchy", fields: [parentroleid], references: [id], onDelete: SetNull)
-  childroles     role[]    @relation("RoleHierarchy")
-  
-  createddate    BigInt?
-  modifieddate   BigInt?
-  
+  parentrole     role?            @relation("RoleHierarchy", fields: [parentroleid], references: [id], onDelete: SetNull)
+  childroles     role[]           @relation("RoleHierarchy")
+
+  createddate  BigInt?
+  modifieddate BigInt?
+
   @@unique([level])
   @@index([code])
   @@index([level])
@@ -840,21 +1163,21 @@ model role {
 // 2. Permission Sets - Collection of permissions for a role
 // Permissions stored as JSONB (not separate table)
 model permissionset {
-  id          Int      @id @default(autoincrement())
-  name        String   @db.VarChar(200)
-  description String?  @db.VarChar(500)
-  roleid      Int?     // NULL for system-wide default
-  role        role?    @relation(fields: [roleid], references: [id], onDelete: Cascade)
-  isactive    Boolean  @default(true)
-  isdefault   Boolean  @default(false)          // System-wide default (not per-role) - used as fallback when role has no active set
-  
+  id          Int     @id @default(autoincrement())
+  name        String  @db.VarChar(200)
+  description String? @db.VarChar(500)
+  roleid      Int? // NULL for system-wide default
+  role        role?   @relation(fields: [roleid], references: [id], onDelete: Cascade)
+  isactive    Boolean @default(true)
+  isdefault   Boolean @default(false) // System-wide default (not per-role) - used as fallback when role has no active set
+
   // Permissions stored as JSONB array
   // Structure: Array of permission objects
-  permissions      Json         // See structure below
-  
-  createddate      BigInt?
-  modifieddate     BigInt?
-  
+  permissions Json // See structure below
+
+  createddate  BigInt?
+  modifieddate BigInt?
+
   @@index([roleid])
   @@index([isactive])
   @@map("permission_sets")
@@ -862,59 +1185,67 @@ model permissionset {
 
 // 3. User Hierarchy (OPTIONAL - for manager-subordinate relationships)
 model userhierarchy {
-  id            Int      @id @default(autoincrement())
-  userid        Int      @unique
-  managerid     Int?     // User's manager ID
-  subordinates  Json?    // Array of subordinate user IDs: [1, 2, 3]
-  
-  createddate   BigInt?
-  modifieddate  BigInt?
-  
+  id           Int   @id @default(autoincrement())
+  userid       Int   @unique
+  managerid    Int? // User's manager ID
+  subordinates Json? // Array of subordinate user IDs: [1, 2, 3]
+
+  createddate  BigInt?
+  modifieddate BigInt?
+
   @@index([managerid])
   @@map("user_hierarchies")
 }
 
 model users {
-  id               Int         @id @default(autoincrement())
-  useremail        String?     @unique(map: "unique_email_users") @db.VarChar(255)
-  userpassword     String?     @db.VarChar(255)
+  id               Int      @id @default(autoincrement())
+  useremail        String?  @unique(map: "unique_email_users") @db.VarChar(255)
+  userpassword     String?  @db.VarChar(255)
   createddate      BigInt?
   modifieddate     BigInt?
   usermobilenumber BigInt?
-  fcmid            String?     @db.VarChar(500)
-  firstname        String?     @db.VarChar(500)
-  lastname         String?     @db.VarChar(500)
-  gender           String?     @db.VarChar(50)
-  gstnumber        String?     @db.VarChar(20)
-  isbusinessuser   Boolean?    @default(false)
-  isguest          Boolean?    @default(false)
-  isactive         Boolean?    @default(true)
-  
+  fcmid            String?  @db.VarChar(500)
+  firstname        String?  @db.VarChar(500)
+  lastname         String?  @db.VarChar(500)
+  gender           String?  @db.VarChar(50)
+  gstnumber        String?  @db.VarChar(20)
+  isbusinessuser   Boolean? @default(false)
+  isguest          Boolean? @default(false)
+  isactive         Boolean? @default(true)
+
   // Existing relations
-  address          address[]
-  orderline        orderline[]
-  orders           orders[]
-  tickets          tickets[]   @ignore
-  rating           rating[]
+  address                    address[]
+  orderline                  orderline[]
+  orders                     orders[]
+  returnrequests             ReturnRequest[]
+  returnrequestattachments   ReturnRequestAttachment[]
+  tickets                    tickets[]                 @ignore
+  rating                     rating[]
+  promotion_assignments      promotion_assignments[]   @relation("AssignedCouponCustomer")
+  claimed_coupon_assignments promotion_assignments[]   @relation("ClaimedCouponCustomer")
+  customer_group_members     customer_group_members[]
+  coupon_group_members       coupon_group_members[]
+  wallet_credits             wallet_credits[]
+  wallet_reservations        wallet_reservations[]
   // Note: amazonConnections relation removed - using userType field instead
 
   @@map("users")
 }
 
 model pushdevice {
-  id               Int      @id @default(autoincrement())
+  id               Int     @id @default(autoincrement())
   userid           Int?
   inventoryuserid  Int?
-  usertype         String   @db.VarChar(30)
-  token            String   @unique @db.VarChar(2048)
-  platform         String   @db.VarChar(30)
-  provider         String   @db.VarChar(30)
-  deviceid         String?  @db.VarChar(255)
-  appversion       String?  @db.VarChar(100)
-  buildnumber      String?  @db.VarChar(100)
-  permissionstatus String?  @db.VarChar(50)
-  isactive         Boolean  @default(true)
-  failurecount     Int      @default(0)
+  usertype         String  @db.VarChar(30)
+  token            String  @unique @db.VarChar(2048)
+  platform         String  @db.VarChar(30)
+  provider         String  @db.VarChar(30)
+  deviceid         String? @db.VarChar(255)
+  appversion       String? @db.VarChar(100)
+  buildnumber      String? @db.VarChar(100)
+  permissionstatus String? @db.VarChar(50)
+  isactive         Boolean @default(true)
+  failurecount     Int     @default(0)
   createddate      BigInt?
   modifieddate     BigInt?
   lastseenat       BigInt?
@@ -929,17 +1260,17 @@ model pushdevice {
 }
 
 model StorefrontPageSection {
-  id             BigInt   @id @default(autoincrement()) @db.BigInt
-  page_key       String   @default("home") @db.VarChar(80)
-  section_key    String   @db.VarChar(120)
-  section_type   String   @db.VarChar(80)
-  name           String   @db.VarChar(255)
-  attributes     Json     @default("{}")
-  sort_order     Int      @default(0)
-  is_active      Boolean  @default(true)
+  id             BigInt    @id @default(autoincrement()) @db.BigInt
+  page_key       String    @default("home") @db.VarChar(80)
+  section_key    String    @db.VarChar(120)
+  section_type   String    @db.VarChar(80)
+  name           String    @db.VarChar(255)
+  attributes     Json      @default("{}")
+  sort_order     Int       @default(0)
+  is_active      Boolean   @default(true)
   schedule_start DateTime? @db.Timestamptz(6)
   schedule_end   DateTime? @db.Timestamptz(6)
-  version        Int      @default(1)
+  version        Int       @default(1)
   createdby      Int?
   modifiedby     Int?
   createddate    BigInt?
@@ -951,61 +1282,61 @@ model StorefrontPageSection {
   @@map("storefront_page_sections")
 }
 
-
-
-
-
 model promotions {
-  id              Int       @id @default(autoincrement())
-  name            String?   @db.Text
-  description     String?   @db.Text
-  type            String?   @db.Text // PERCENT_OFF_ITEM, FIXED_AMOUNT_OFF_ITEM, BOGO, PERCENT_OFF_CART, FIXED_AMOUNT_OFF_CART, FREE_SHIPPING,FREE_PRODUCT
-  code            String?   @db.Text // Coupon code (NULL for automatic promotions, populated for coupon-based promotions)
-  auto_apply      Boolean?
-  start_date      BigInt?   // Unix timestamp (seconds since epoch)
-  end_date        BigInt?   // Unix timestamp (seconds since epoch)
-  status          String?   @db.Text
-  priority        Int?
-  visibility      String?   @db.Text
-  max_redemptions Int?     // Total usage limit (replaces total_usage_limit from coupons)
-  per_user_limit  Int?     // Usage limit per user (replaces usage_limit_per_user from coupons)
-  stackable       Boolean?
-  budget          Decimal?  @db.Decimal(10, 2)
-  timezone        String?   @db.VarChar(50)
-  evaluation_expiry_minutes Int? @default(15)
-  conditions      Json?     // Array of condition objects: [{ "attribute": "cart.total_value", "operator": "GTE", "value": 500 }]
-  action          Json?     // Single action object: { "type": "PERCENT_OFF", "value": 15, "max_discount": 500 }
-  createddate     BigInt?
-  modifieddate    BigInt?
+  id                        Int      @id @default(autoincrement())
+  name                      String?  @db.Text
+  description               String?  @db.Text
+  type                      String?  @db.Text // PERCENT_OFF_ITEM, FIXED_AMOUNT_OFF_ITEM, BOGO, PERCENT_OFF_CART, FIXED_AMOUNT_OFF_CART, FREE_SHIPPING,FREE_PRODUCT
+  code                      String?  @db.Text // Coupon code (NULL for automatic promotions, populated for coupon-based promotions)
+  auto_apply                Boolean?
+  start_date                BigInt? // Unix timestamp (seconds since epoch)
+  end_date                  BigInt? // Unix timestamp (seconds since epoch)
+  status                    String?  @db.Text
+  priority                  Int?
+  visibility                String?  @db.Text
+  applicable_channel        String   @default("all") @db.VarChar(20) // all, web, mobile
+  application_mode          String   @default("click_to_apply") @db.VarChar(30) // automatic, click_to_apply, code_entry
+  max_redemptions           Int? // Total usage limit (replaces total_usage_limit from coupons)
+  per_user_limit            Int? // Usage limit per user (replaces usage_limit_per_user from coupons)
+  stackable                 Boolean?
+  budget                    Decimal? @db.Decimal(10, 2)
+  timezone                  String?  @db.VarChar(50)
+  evaluation_expiry_minutes Int?     @default(15)
+  conditions                Json? // Array of condition objects: [{ "attribute": "cart.total_value", "operator": "GTE", "value": 500 }]
+  action                    Json? // Single action object: { "type": "PERCENT_OFF", "value": 15, "max_discount": 500 }
+  createddate               BigInt?
+  modifieddate              BigInt?
 
   // Relations
-  redemptions           promotion_redemptions[]
+  redemptions promotion_redemptions[]
+  assignments promotion_assignments[]
 
+  @@index([application_mode])
   @@map("promotions")
 }
 
 model promotion_evaluations {
-  evaluation_id        String   @id @db.VarChar(36)
-  user_id              String?  @db.Text
-  cart_data            Json?
-  cart_signature       String? @db.VarChar(255)
-  original_total       Decimal? @db.Decimal(10, 2)
-  discounted_total     Decimal? @db.Decimal(10, 2)
-  applied_promotions   Json?
-  ineligible_coupons   Json?
-  context              Json? // channel, geo, payment_method
-   order_id             Int?    @unique              // FK -> orders.id (nullable until redeemed)
-  created_at           BigInt @db.BigInt 
-  expires_at           BigInt @db.BigInt 
-  status               String?  @default("active") @db.VarChar(50)
-  createddate          BigInt?
-  modifieddate         BigInt?
-  
+  evaluation_id      String   @id @db.VarChar(36)
+  user_id            String?  @db.Text
+  cart_data          Json?
+  cart_signature     String?  @db.VarChar(255)
+  original_total     Decimal? @db.Decimal(10, 2)
+  discounted_total   Decimal? @db.Decimal(10, 2)
+  applied_promotions Json?
+  ineligible_coupons Json?
+  context            Json? // channel, geo, payment_method
+  order_id           Int?     @unique // FK -> orders.id (nullable until redeemed)
+  created_at         BigInt   @db.BigInt
+  expires_at         BigInt   @db.BigInt
+  status             String?  @default("active") @db.VarChar(50)
+  createddate        BigInt?
+  modifieddate       BigInt?
+
   redemptions promotion_redemptions[]
-  
+
   @@index([user_id, created_at])
   @@index([expires_at])
-   @@index([cart_signature])
+  @@index([cart_signature])
   @@map("promotion_evaluations")
 }
 
@@ -1015,37 +1346,1031 @@ model promotion_redemptions {
   order_id        String?  @db.Text
   user_id         String?  @db.Text
   promotion_id    Int?
+  assignment_id   Int?
+  voucher_code    String?  @db.VarChar(100)
   discount_amount Decimal? @db.Decimal(10, 2)
   redeemed_at     BigInt
   redemption_data Json?
   createddate     BigInt?
   modifieddate    BigInt?
-  
-  evaluation promotion_evaluations @relation(fields: [evaluation_id], references: [evaluation_id])
+
+  evaluation promotion_evaluations  @relation(fields: [evaluation_id], references: [evaluation_id])
   promotion  promotions?            @relation(fields: [promotion_id], references: [id])
-  
+  assignment promotion_assignments? @relation(fields: [assignment_id], references: [id], onDelete: SetNull)
+
+  @@unique([evaluation_id, promotion_id])
   @@index([evaluation_id])
   @@index([order_id])
+  @@index([assignment_id])
+  @@index([voucher_code])
   @@map("promotion_redemptions")
 }
 
+model promotion_assignments {
+  id                      Int     @id @default(autoincrement())
+  promotion_id            Int
+  assignment_type         String  @db.VarChar(30) // customer, customer_group, anyone
+  customer_id             Int?
+  customer_group_id       Int?
+  claimed_by_customer_id  Int?
+  claimed_at              BigInt?
+  voucher_code            String  @unique @db.VarChar(100)
+  usage_limit             Int?
+  used_count              Int     @default(0)
+  start_date              BigInt?
+  end_date                BigInt?
+  status                  String  @default("active") @db.VarChar(30)
+  delivery_channel        String  @default("all") @db.VarChar(20) // all, web, mobile, print
+  source_coupon_group_id  Int?
+  dispatched_order_id     String? @db.VarChar(500)
+  reserved_by_customer_id Int?
+  reservation_reference   String? @db.VarChar(100)
+  reservation_expires_at  BigInt?
+  createddate             BigInt?
+  modifieddate            BigInt?
+
+  promotion           promotions              @relation(fields: [promotion_id], references: [id], onDelete: Cascade)
+  customer            users?                  @relation("AssignedCouponCustomer", fields: [customer_id], references: [id], onDelete: Cascade)
+  claimed_customer    users?                  @relation("ClaimedCouponCustomer", fields: [claimed_by_customer_id], references: [id], onDelete: SetNull)
+  customer_group      customer_groups?        @relation(fields: [customer_group_id], references: [id], onDelete: Cascade)
+  source_coupon_group coupon_groups?          @relation(fields: [source_coupon_group_id], references: [id], onDelete: SetNull)
+  redemptions         promotion_redemptions[]
+  wallet_credit       wallet_credits?
+
+  @@index([promotion_id])
+  @@index([customer_id])
+  @@index([claimed_by_customer_id])
+  @@index([customer_group_id])
+  @@index([source_coupon_group_id])
+  @@index([status])
+  @@index([reservation_expires_at])
+  @@map("promotion_assignments")
+}
+
+model wallet_credits {
+  id                       Int     @id @default(autoincrement())
+  customer_id              Int
+  assignment_id            Int?    @unique
+  source_type              String  @default("coupon") @db.VarChar(30)
+  source_reference         String? @unique @db.VarChar(150)
+  label                    String? @db.VarChar(255)
+  source_order_id          Int?
+  source_return_request_id Int?
+  original_amount          Decimal @db.Decimal(10, 2)
+  remaining_amount         Decimal @db.Decimal(10, 2)
+  minimum_cart_amount      Decimal @default(0) @db.Decimal(10, 2)
+  status                   String  @default("active") @db.VarChar(30)
+  expires_at               BigInt?
+  createddate              BigInt
+  modifieddate             BigInt
+
+  customer     users                  @relation(fields: [customer_id], references: [id], onDelete: Cascade)
+  assignment   promotion_assignments? @relation(fields: [assignment_id], references: [id], onDelete: Restrict)
+  reservations wallet_reservations[]
+
+  @@index([customer_id, status])
+  @@index([expires_at])
+  @@map("wallet_credits")
+}
+
+model RefundOperation {
+  id                      Int     @id @default(autoincrement())
+  operationNumber         String  @unique @map("operation_number") @db.VarChar(120)
+  idempotencyKey          String  @unique @map("idempotency_key") @db.VarChar(200)
+  orderId                 Int     @map("order_id")
+  returnRequestId         Int?    @map("return_request_id")
+  resolutionActionId      Int?    @map("resolution_action_id")
+  customerId              Int     @map("customer_id")
+  triggerType             String  @map("trigger_type") @db.VarChar(30)
+  destination             String  @db.VarChar(30)
+  approvedAmount          Decimal @map("approved_amount") @db.Decimal(10, 2)
+  originalWalletAmount    Decimal @default(0) @map("original_wallet_amount") @db.Decimal(10, 2)
+  eligibleWalletAmount    Decimal @default(0) @map("eligible_wallet_amount") @db.Decimal(10, 2)
+  expiredWalletAmount     Decimal @default(0) @map("expired_wallet_amount") @db.Decimal(10, 2)
+  onlineAmount            Decimal @default(0) @map("online_amount") @db.Decimal(10, 2)
+  nonExpiringWalletAmount Decimal @default(0) @map("non_expiring_wallet_amount") @db.Decimal(10, 2)
+  walletCreditedAmount    Decimal @default(0) @map("wallet_credited_amount") @db.Decimal(10, 2)
+  phonepeRefundAmount     Decimal @default(0) @map("phonepe_refund_amount") @db.Decimal(10, 2)
+  walletStatus            String  @default("pending") @map("wallet_status") @db.VarChar(30)
+  phonepeStatus           String  @default("not_required") @map("phonepe_status") @db.VarChar(30)
+  status                  String  @default("pending") @db.VarChar(30)
+  phonepeRefundId         String? @map("phonepe_refund_id") @db.VarChar(500)
+  consentAccepted         Boolean @default(false) @map("consent_accepted")
+  consentChannel          String? @map("consent_channel") @db.VarChar(50)
+  consentReference        String? @map("consent_reference") @db.VarChar(500)
+  consentNotes            String? @map("consent_notes")
+  consentAt               BigInt? @map("consent_at")
+  breakdown               Json?
+  failureReason           String? @map("failure_reason")
+  createdBy               Int?    @map("created_by")
+  createddate             BigInt
+  modifieddate            BigInt
+  completeddate           BigInt?
+
+  @@index([orderId])
+  @@index([returnRequestId])
+  @@index([customerId])
+  @@index([status])
+  @@map("refund_operations")
+}
+
+model ShipmozoOperation {
+  id                  Int     @id @default(autoincrement())
+  idempotencyKey      String  @unique @map("idempotency_key") @db.VarChar(200)
+  providerOrderId     String  @map("provider_order_id") @db.VarChar(500)
+  orderId             Int?    @map("order_id")
+  returnRequestId     Int?    @map("return_request_id")
+  direction           String  @db.VarChar(20)
+  operationType       String  @map("operation_type") @db.VarChar(50)
+  stage               String  @default("initialized") @db.VarChar(50)
+  status              String  @default("pending") @db.VarChar(30)
+  awbNumber           String? @map("awb_number") @db.VarChar(500)
+  courierName         String? @map("courier_name") @db.VarChar(255)
+  providerReference   String? @map("provider_reference") @db.VarChar(500)
+  requestPayload      Json?   @map("request_payload")
+  providerResponse    Json?   @map("provider_response")
+  lastProviderStatus  String? @map("last_provider_status") @db.VarChar(500)
+  lastSystemStatus    String? @map("last_system_status") @db.VarChar(100)
+  lastTrackingPayload Json?   @map("last_tracking_payload")
+  lastSyncedAt        BigInt? @map("last_synced_at")
+  nextSyncAt          BigInt? @map("next_sync_at")
+  retryCount          Int     @default(0) @map("retry_count")
+  failureReason       String? @map("failure_reason")
+  createddate         BigInt
+  modifieddate        BigInt
+  completeddate       BigInt?
+
+  @@index([orderId])
+  @@index([returnRequestId])
+  @@index([awbNumber])
+  @@index([status, nextSyncAt])
+  @@index([providerOrderId])
+  @@map("shipmozo_operations")
+}
+
+model RefundWalletAllocation {
+  id                Int     @id @default(autoincrement())
+  refundOperationId Int     @map("refund_operation_id")
+  reservationId     Int?    @map("reservation_id")
+  sourceCreditId    Int?    @map("source_credit_id")
+  targetCreditId    Int?    @map("target_credit_id")
+  allocationType    String  @map("allocation_type") @db.VarChar(40)
+  amount            Decimal @db.Decimal(10, 2)
+  status            String  @db.VarChar(30)
+  expiresAt         BigInt? @map("expires_at")
+  metadata          Json?
+  createddate       BigInt
+  modifieddate      BigInt
+
+  @@unique([refundOperationId, reservationId, allocationType], map: "refund_wallet_allocation_unique")
+  @@index([refundOperationId])
+  @@index([reservationId])
+  @@index([sourceCreditId])
+  @@map("refund_wallet_allocations")
+}
+
+model wallet_reservations {
+  id                      Int     @id @default(autoincrement())
+  customer_id             Int
+  wallet_credit_id        Int
+  merchant_transaction_id String  @db.VarChar(500)
+  amount                  Decimal @db.Decimal(10, 2)
+  status                  String  @default("reserved") @db.VarChar(30)
+  expires_at              BigInt
+  order_id                Int?
+  consumed_at             BigInt?
+  reversed_at             BigInt?
+  reversal_reason         String? @db.VarChar(100)
+  createddate             BigInt
+  modifieddate            BigInt
+
+  customer users          @relation(fields: [customer_id], references: [id], onDelete: Cascade)
+  credit   wallet_credits @relation(fields: [wallet_credit_id], references: [id], onDelete: Restrict)
+
+  @@unique([wallet_credit_id, merchant_transaction_id])
+  @@index([customer_id, status])
+  @@index([merchant_transaction_id])
+  @@index([expires_at])
+  @@map("wallet_reservations")
+}
+
+model customer_groups {
+  id           Int     @id @default(autoincrement())
+  name         String  @db.VarChar(255)
+  code         String  @unique @db.VarChar(100)
+  description  String? @db.Text
+  status       String  @default("active") @db.VarChar(30)
+  createddate  BigInt?
+  modifieddate BigInt?
+
+  members     customer_group_members[]
+  assignments promotion_assignments[]
+
+  @@index([status])
+  @@map("customer_groups")
+}
+
+model customer_group_members {
+  id                Int     @id @default(autoincrement())
+  customer_group_id Int
+  customer_id       Int
+  status            String  @default("active") @db.VarChar(30)
+  createddate       BigInt?
+  modifieddate      BigInt?
+
+  customer_group customer_groups @relation(fields: [customer_group_id], references: [id], onDelete: Cascade)
+  customer       users           @relation(fields: [customer_id], references: [id], onDelete: Cascade)
+
+  @@unique([customer_group_id, customer_id])
+  @@index([customer_id])
+  @@index([status])
+  @@map("customer_group_members")
+}
+
+model coupon_groups {
+  id           Int     @id @default(autoincrement())
+  name         String  @db.VarChar(255)
+  code         String  @unique @db.VarChar(100)
+  description  String? @db.Text
+  status       String  @default("active") @db.VarChar(30)
+  createddate  BigInt
+  modifieddate BigInt
+
+  members            coupon_group_members[]
+  issued_assignments promotion_assignments[]
+
+  @@index([status])
+  @@map("coupon_groups")
+}
+
+model coupon_group_members {
+  id              Int    @id @default(autoincrement())
+  coupon_group_id Int
+  customer_id     Int
+  status          String @default("active") @db.VarChar(30)
+  createddate     BigInt
+  modifieddate    BigInt
+
+  coupon_group coupon_groups @relation(fields: [coupon_group_id], references: [id], onDelete: Cascade)
+  customer     users         @relation(fields: [customer_id], references: [id], onDelete: Cascade)
+
+  @@unique([coupon_group_id, customer_id])
+  @@index([customer_id])
+  @@index([status])
+  @@map("coupon_group_members")
+}
+
 model AmazonConnection {
-  id            Int      @id @default(autoincrement())
-  userId        Int      // Can reference either inventoryusers.id or users.id
-  userType      String   @default("inventoryusers") @db.VarChar(50) // "inventoryusers" or "users"
-  sellerId      String   @db.VarChar(255)
-  refreshToken  String   @db.Text // Encrypted refresh token
-  marketplaceId String   @default("A21TJRUUN4KGV") @db.VarChar(50)
+  id            Int     @id @default(autoincrement())
+  userId        Int // Can reference either inventoryusers.id or users.id
+  userType      String  @default("inventoryusers") @db.VarChar(50) // "inventoryusers" or "users"
+  sellerId      String  @db.VarChar(255)
+  refreshToken  String  @db.Text // Encrypted refresh token
+  marketplaceId String  @default("A21TJRUUN4KGV") @db.VarChar(50)
   createdAt     BigInt?
   updatedAt     BigInt?
-  
+
   // Relations - Note: We'll use userId + userType to determine which table to reference
   // Prisma doesn't support conditional relations, so we'll handle this in application code
-  
-  @@unique([userId, sellerId, userType])
+
+  @@unique([userId, sellerId, marketplaceId, userType])
   @@index([userId, userType])
   @@index([sellerId])
   @@map("amazon_connections")
+}
+
+model MarketplaceListing {
+  id                      BigInt    @id @default(autoincrement()) @db.BigInt
+  marketplace             String    @default("AMAZON") @db.VarChar(30)
+  environment             String    @default("PRODUCTION") @db.VarChar(20)
+  marketplaceId           String    @db.VarChar(50)
+  sellerId                String    @db.VarChar(255)
+  sellerSku               String    @db.VarChar(255)
+  asin                    String?   @db.VarChar(20)
+  fnSku                   String?   @db.VarChar(255)
+  title                   String?   @db.Text
+  productType             String?   @db.VarChar(255)
+  listingStatus           String    @default("UNKNOWN") @db.VarChar(255)
+  originalFulfilmentValue String?   @db.VarChar(255)
+  fulfilmentChannel       String    @default("UNKNOWN") @db.VarChar(20)
+  publishedQuantity       Int?
+  fbaFulfillableQuantity  Int?
+  fbaReservedQuantity     Int?
+  fbaPendingOrderQuantity Int?
+  fbaTotalQuantity        Int?
+  price                   Decimal?  @db.Decimal(12, 2)
+  currency                String?   @db.VarChar(10)
+  amazonLastUpdatedAt     DateTime? @db.Timestamptz(3)
+  productId               BigInt?   @db.BigInt
+  mappingStatus           String    @default("UNMAPPED") @db.VarChar(20)
+  unitsPerListing         Int       @default(1)
+  mappedAt                DateTime? @db.Timestamptz(3)
+  inventorySyncMode       String    @default("DISABLED") @db.VarChar(20)
+  lastInventorySyncAt     DateTime? @db.Timestamptz(3)
+  lastInventorySyncStatus String?   @db.VarChar(20)
+  lastSyncedQuantity      Int?
+  pendingOfferPrice       Decimal?  @db.Decimal(12, 2)
+  pendingOfferQuantity    Int?
+  pendingHandlingTimeDays Int?
+  lastOfferUpdateAt       DateTime? @db.Timestamptz(3)
+  lastOfferUpdateStatus   String?   @db.VarChar(30)
+  lastOfferSubmissionId   String?   @db.VarChar(255)
+  lastImportedAt          DateTime  @default(now()) @db.Timestamptz(3)
+  createdAt               DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  product                      Product?                      @relation(fields: [productId], references: [id], onDelete: SetNull)
+  audits                       MarketplaceListingAudit[]
+  inventorySyncAttempts        AmazonInventorySyncAttempt[]
+  amazonOrderItems             AmazonMarketplaceOrderItem[]
+  amazonOrderStockReservations AmazonOrderStockReservation[]
+  offerUpdatePreviews          AmazonOfferUpdatePreview[]
+  amazonReturns                AmazonReturnEvent[]
+
+  @@unique([marketplace, marketplaceId, sellerId, sellerSku], map: "marketplace_listing_seller_sku_key")
+  @@index([productId], map: "marketplace_listings_product_id_idx")
+  @@index([marketplace, marketplaceId, sellerId, mappingStatus], map: "marketplace_listings_mapping_status_idx")
+  @@index([marketplace, marketplaceId, sellerId, fulfilmentChannel], map: "marketplace_listings_fulfilment_idx")
+  @@index([marketplace, marketplaceId, sellerId, listingStatus], map: "marketplace_listings_status_idx")
+  @@map("marketplace_listings")
+}
+
+model AmazonOfferUpdatePreview {
+  id                  BigInt    @id @default(autoincrement()) @db.BigInt
+  listingId           BigInt    @db.BigInt
+  sourceUpdatedAt     DateTime  @db.Timestamptz(3)
+  operationType       String    @default("OFFER") @db.VarChar(30)
+  requestedChanges    Json
+  amazonIssues        Json
+  canApply            Boolean
+  status              String    @default("PENDING") @db.VarChar(20)
+  expiresAt           DateTime  @db.Timestamptz(3)
+  requestedByUserId   Int?
+  requestedByUserType String?   @db.VarChar(30)
+  createdAt           DateTime  @default(now()) @db.Timestamptz(3)
+  consumedAt          DateTime? @db.Timestamptz(3)
+
+  listing MarketplaceListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId, status, expiresAt], map: "amazon_offer_preview_listing_status_idx")
+  @@map("amazon_offer_update_previews")
+}
+
+model AmazonListingPublishDraft {
+  id                      BigInt    @id @default(autoincrement()) @db.BigInt
+  productId               BigInt    @db.BigInt
+  marketplace             String    @default("AMAZON") @db.VarChar(30)
+  environment             String    @default("PRODUCTION") @db.VarChar(20)
+  sellerId                String    @db.VarChar(255)
+  marketplaceId           String    @db.VarChar(50)
+  activeDraftKey          String?   @unique(map: "amazon_publish_drafts_active_key_unique") @db.VarChar(600)
+  listingMode             String    @default("UNDECIDED") @db.VarChar(30)
+  sellerSku               String?   @db.VarChar(255)
+  asin                    String?   @db.VarChar(20)
+  productType             String?   @db.VarChar(255)
+  requirements            String?   @db.VarChar(40)
+  fulfilmentChannel       String    @default("UNKNOWN") @db.VarChar(20)
+  status                  String    @default("DRAFT") @db.VarChar(40)
+  lastValidationStatus    String?   @db.VarChar(40)
+  lastSubmissionStatus    String?   @db.VarChar(40)
+  draftRevision           Int       @default(1)
+  sourceProductModifiedAt BigInt?
+  sourceSnapshot          Json
+  candidateResults        Json
+  mappedAttributes        Json
+  schemaVersion           String?   @db.VarChar(100)
+  schemaChecksum          String?   @db.VarChar(128)
+  validatedPayloadHash    String?   @db.VarChar(128)
+  approvedByUserId        Int?
+  approvedByUserType      String?   @db.VarChar(30)
+  createdByUserId         Int?
+  createdByUserType       String?   @db.VarChar(30)
+  cancelledByUserId       Int?
+  cancelledByUserType     String?   @db.VarChar(30)
+  cancelledAt             DateTime? @db.Timestamptz(3)
+  createdAt               DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  product  Product                       @relation(fields: [productId], references: [id], onDelete: Restrict)
+  attempts AmazonListingPublishAttempt[]
+  audits   AmazonListingPublishAudit[]
+  images   AmazonListingPublishImage[]
+
+  @@index([productId, sellerId, marketplaceId, status], map: "amazon_publish_drafts_product_scope_status_idx")
+  @@index([sellerId, marketplaceId, status, updatedAt], map: "amazon_publish_drafts_scope_status_updated_idx")
+  @@index([sellerSku, sellerId, marketplaceId], map: "amazon_publish_drafts_sku_scope_idx")
+  @@map("amazon_listing_publish_drafts")
+}
+
+model AmazonListingPublishImage {
+  id                     BigInt    @id @default(autoincrement()) @db.BigInt
+  draftId                BigInt    @db.BigInt
+  sourceType             String    @db.VarChar(30)
+  sourceProductUrl       String?   @db.Text
+  url                    String    @db.Text
+  originalFileName       String?   @db.VarChar(500)
+  contentType            String?   @db.VarChar(100)
+  sizeBytes              Int?
+  width                  Int?
+  height                 Int?
+  sortOrder              Int
+  status                 String    @default("ACTIVE") @db.VarChar(20)
+  accessibilityStatus    String    @default("PENDING") @db.VarChar(20)
+  accessibilityError     String?   @db.Text
+  accessibilityCheckedAt DateTime? @db.Timestamptz(3)
+  validationErrors       Json
+  createdByUserId        Int?
+  createdByUserType      String?   @db.VarChar(30)
+  createdAt              DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  draft AmazonListingPublishDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+
+  @@index([draftId, status, sortOrder], map: "amazon_publish_images_draft_status_order_idx")
+  @@map("amazon_listing_publish_images")
+}
+
+model AmazonListingPublishAttempt {
+  id                  BigInt    @id @default(autoincrement()) @db.BigInt
+  draftId             BigInt    @db.BigInt
+  operation           String    @db.VarChar(30)
+  status              String    @db.VarChar(40)
+  requestKey          String    @unique(map: "amazon_publish_attempts_request_key_unique") @db.VarChar(128)
+  draftRevision       Int
+  payloadHash         String    @db.VarChar(128)
+  requestPayload      Json
+  responsePayload     Json?
+  amazonSubmissionId  String?   @db.VarChar(255)
+  amazonStatus        String?   @db.VarChar(40)
+  issues              Json
+  httpStatus          Int?
+  errorCode           String?   @db.VarChar(100)
+  errorMessage        String?   @db.Text
+  requestedByUserId   Int?
+  requestedByUserType String?   @db.VarChar(30)
+  startedAt           DateTime  @default(now()) @db.Timestamptz(3)
+  finishedAt          DateTime? @db.Timestamptz(3)
+  createdAt           DateTime  @default(now()) @db.Timestamptz(3)
+
+  draft AmazonListingPublishDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+
+  @@index([draftId, createdAt], map: "amazon_publish_attempts_draft_created_idx")
+  @@index([status, createdAt], map: "amazon_publish_attempts_status_created_idx")
+  @@map("amazon_listing_publish_attempts")
+}
+
+model AmazonListingPublishAudit {
+  id                  BigInt   @id @default(autoincrement()) @db.BigInt
+  draftId             BigInt   @db.BigInt
+  productId           BigInt   @db.BigInt
+  sellerId            String   @db.VarChar(255)
+  marketplaceId       String   @db.VarChar(50)
+  sellerSku           String?  @db.VarChar(255)
+  asin                String?  @db.VarChar(20)
+  operation           String   @db.VarChar(60)
+  beforeValues        Json?
+  afterValues         Json?
+  metadata            Json?
+  requestedByUserId   Int?
+  requestedByUserType String?  @db.VarChar(30)
+  createdAt           DateTime @default(now()) @db.Timestamptz(3)
+
+  draft AmazonListingPublishDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+
+  @@index([draftId, createdAt], map: "amazon_publish_audits_draft_created_idx")
+  @@index([sellerId, marketplaceId, createdAt], map: "amazon_publish_audits_scope_created_idx")
+  @@map("amazon_listing_publish_audits")
+}
+
+model AmazonProductTypeSchemaCache {
+  id                   BigInt   @id @default(autoincrement()) @db.BigInt
+  cacheKey             String   @unique(map: "amazon_product_type_schema_cache_key_unique") @db.VarChar(700)
+  sellerId             String?  @db.VarChar(255)
+  marketplaceId        String   @db.VarChar(50)
+  productType          String   @db.VarChar(255)
+  requirements         String   @db.VarChar(40)
+  requirementsEnforced String   @default("ENFORCED") @db.VarChar(30)
+  locale               String   @default("DEFAULT") @db.VarChar(20)
+  productTypeVersion   String   @default("LATEST") @db.VarChar(100)
+  resolvedVersion      String?  @db.VarChar(100)
+  schemaChecksum       String   @db.VarChar(128)
+  definitionSchema     Json
+  propertyGroups       Json?
+  fetchedAt            DateTime @default(now()) @db.Timestamptz(3)
+  expiresAt            DateTime @db.Timestamptz(3)
+  createdAt            DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime @default(now()) @updatedAt @db.Timestamptz(3)
+
+  @@index([marketplaceId, productType, requirements, expiresAt], map: "amazon_product_type_schema_lookup_idx")
+  @@map("amazon_product_type_schema_cache")
+}
+
+model AmazonInventorySyncAttempt {
+  id                  BigInt    @id @default(autoincrement()) @db.BigInt
+  listingId           BigInt    @db.BigInt
+  operation           String    @db.VarChar(20)
+  status              String    @db.VarChar(20)
+  amazonQuantity      Int?
+  nivaanaQuantity     Int
+  targetQuantity      Int
+  requestKey          String    @unique @db.VarChar(64)
+  previewId           BigInt?   @unique @db.BigInt
+  amazonSubmissionId  String?   @db.VarChar(255)
+  errorCode           String?   @db.VarChar(100)
+  errorMessage        String?   @db.Text
+  requestedByUserId   Int?
+  requestedByUserType String?   @db.VarChar(30)
+  startedAt           DateTime  @default(now()) @db.Timestamptz(3)
+  finishedAt          DateTime? @db.Timestamptz(3)
+  createdAt           DateTime  @default(now()) @db.Timestamptz(3)
+
+  listing MarketplaceListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId, createdAt], map: "amazon_inventory_sync_attempts_listing_idx")
+  @@index([status, createdAt], map: "amazon_inventory_sync_attempts_status_idx")
+  @@map("amazon_inventory_sync_attempts")
+}
+
+model AmazonMarketplaceOrder {
+  id                         BigInt    @id @default(autoincrement()) @db.BigInt
+  sellerId                   String    @db.VarChar(255)
+  marketplaceId              String    @db.VarChar(50)
+  amazonOrderId              String    @db.VarChar(255)
+  purchaseDate               DateTime  @db.Timestamptz(3)
+  lastUpdateDate             DateTime  @db.Timestamptz(3)
+  orderStatus                String    @db.VarChar(50)
+  buyerName                  String?   @db.VarChar(255)
+  buyerEmail                 String?   @db.VarChar(320)
+  fulfilmentType             String    @db.VarChar(30)
+  fulfilmentRoute            String    @db.VarChar(40)
+  syncState                  String    @db.VarChar(30)
+  hasUnmappedItems           Boolean   @default(false)
+  isCancelled                Boolean   @default(false)
+  buyerRequestedCancellation Boolean   @default(false)
+  shipByStart                DateTime? @db.Timestamptz(3)
+  shipByEnd                  DateTime? @db.Timestamptz(3)
+  programs                   Json?
+  lastImportedAt             DateTime  @default(now()) @db.Timestamptz(3)
+  createdAt                  DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt                  DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  items                 AmazonMarketplaceOrderItem[]
+  routeHandoff          AmazonOrderRouteHandoff?
+  stockReservations     AmazonOrderStockReservation[]
+  fulfillment           AmazonOrderFulfillment?
+  fulfillmentAudits     AmazonOrderFulfillmentAudit[]
+  fulfillmentExceptions AmazonOrderFulfillmentException[]
+  returns               AmazonReturnEvent[]
+
+  @@unique([sellerId, marketplaceId, amazonOrderId], map: "amazon_marketplace_orders_unique")
+  @@index([sellerId, marketplaceId, purchaseDate], map: "amazon_marketplace_orders_purchase_idx")
+  @@index([sellerId, marketplaceId, syncState], map: "amazon_marketplace_orders_sync_idx")
+  @@map("amazon_marketplace_orders")
+}
+
+model AmazonMarketplaceOrderItem {
+  id                    BigInt   @id @default(autoincrement()) @db.BigInt
+  orderId               BigInt   @db.BigInt
+  amazonOrderItemId     String   @db.VarChar(255)
+  sellerSku             String?  @db.VarChar(255)
+  asin                  String?  @db.VarChar(20)
+  title                 String?  @db.Text
+  quantityOrdered       Int      @default(0)
+  quantityShipped       Int      @default(0)
+  unitPrice             Decimal? @db.Decimal(12, 2)
+  currency              String?  @db.VarChar(10)
+  listingId             BigInt?  @db.BigInt
+  productId             BigInt?  @db.BigInt
+  unitsPerListing       Int      @default(1)
+  mappingStatus         String   @db.VarChar(20)
+  cancellationRequester String?  @db.VarChar(30)
+  buyerCancelReason     String?  @db.Text
+  createdAt             DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime @default(now()) @updatedAt @db.Timestamptz(3)
+
+  order   AmazonMarketplaceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  listing MarketplaceListing?    @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  product Product?               @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@unique([orderId, amazonOrderItemId], map: "amazon_marketplace_order_items_unique")
+  @@index([listingId], map: "amazon_marketplace_order_items_listing_idx")
+  @@index([productId], map: "amazon_marketplace_order_items_product_idx")
+  @@map("amazon_marketplace_order_items")
+}
+
+model AmazonOrderRouteHandoff {
+  id              BigInt   @id @default(autoincrement()) @db.BigInt
+  orderId         BigInt   @unique @db.BigInt
+  route           String   @db.VarChar(40)
+  status          String   @db.VarChar(40)
+  blockedReason   String?  @db.Text
+  lastEvaluatedAt DateTime @default(now()) @db.Timestamptz(3)
+  createdAt       DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime @default(now()) @updatedAt @db.Timestamptz(3)
+
+  order AmazonMarketplaceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([route, status], map: "amazon_order_route_handoffs_route_status_idx")
+  @@map("amazon_order_route_handoffs")
+}
+
+model AmazonOrderStockReservation {
+  id                 BigInt    @id @default(autoincrement()) @db.BigInt
+  orderId            BigInt    @db.BigInt
+  amazonOrderItemId  String    @db.VarChar(255)
+  productId          BigInt    @db.BigInt
+  listingId          BigInt?   @db.BigInt
+  platformStockId    BigInt?   @db.BigInt
+  quantity           Int
+  inventoryOwnership String    @default("SELLER") @db.VarChar(30)
+  status             String    @db.VarChar(30)
+  errorMessage       String?   @db.Text
+  reservedAt         DateTime? @db.Timestamptz(3)
+  releasedAt         DateTime? @db.Timestamptz(3)
+  soldAt             DateTime? @db.Timestamptz(3)
+  createdAt          DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  order         AmazonMarketplaceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product       Product                @relation(fields: [productId], references: [id], onDelete: Restrict)
+  listing       MarketplaceListing?    @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  platformStock PlatformStock?         @relation(fields: [platformStockId], references: [id], onDelete: SetNull)
+
+  @@unique([orderId, amazonOrderItemId], map: "amazon_order_stock_reservations_order_item_unique")
+  @@index([productId, status], map: "amazon_order_stock_reservations_product_status_idx")
+  @@index([listingId, inventoryOwnership, status], map: "amazon_order_stock_reservations_listing_owner_status_idx")
+  @@index([status, soldAt], map: "amazon_order_stock_reservations_status_sold_idx")
+  @@map("amazon_order_stock_reservations")
+}
+
+model AmazonOrderImportJob {
+  id                  BigInt    @id @default(autoincrement()) @db.BigInt
+  sellerId            String    @db.VarChar(255)
+  marketplaceId       String    @db.VarChar(50)
+  mode                String    @db.VarChar(20)
+  trigger             String    @db.VarChar(20)
+  status              String    @db.VarChar(20)
+  activeKey           String?   @unique @db.VarChar(350)
+  fetched             Int       @default(0)
+  created             Int       @default(0)
+  updated             Int       @default(0)
+  unmapped            Int       @default(0)
+  cancelled           Int       @default(0)
+  pagesProcessed      Int       @default(0)
+  searchStart         DateTime? @db.Timestamptz(3)
+  errorMessage        String?   @db.Text
+  requestedByUserId   Int?
+  requestedByUserType String?   @db.VarChar(30)
+  startedAt           DateTime? @db.Timestamptz(3)
+  finishedAt          DateTime? @db.Timestamptz(3)
+  createdAt           DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  notifications AmazonOrderNotification[]
+
+  @@index([sellerId, marketplaceId, createdAt], map: "amazon_order_import_jobs_scope_created_idx")
+  @@index([status, createdAt], map: "amazon_order_import_jobs_status_created_idx")
+  @@map("amazon_order_import_jobs")
+}
+
+model AmazonOrderNotification {
+  id               BigInt    @id @default(autoincrement()) @db.BigInt
+  notificationId   String    @unique @db.VarChar(255)
+  notificationType String    @db.VarChar(100)
+  sellerId         String    @db.VarChar(255)
+  marketplaceId    String    @db.VarChar(50)
+  eventTime        DateTime  @db.Timestamptz(3)
+  payload          Json
+  status           String    @db.VarChar(20)
+  jobId            BigInt?   @db.BigInt
+  errorMessage     String?   @db.Text
+  processedAt      DateTime? @db.Timestamptz(3)
+  createdAt        DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  job AmazonOrderImportJob? @relation(fields: [jobId], references: [id], onDelete: SetNull)
+
+  @@index([sellerId, marketplaceId, eventTime], map: "amazon_order_notifications_scope_event_idx")
+  @@index([status, createdAt], map: "amazon_order_notifications_status_created_idx")
+  @@map("amazon_order_notifications")
+}
+
+model AmazonReturnImportJob {
+  id                  BigInt    @id @default(autoincrement()) @db.BigInt
+  sellerId            String    @db.VarChar(255)
+  marketplaceId       String    @db.VarChar(50)
+  fulfilmentType      String    @db.VarChar(10)
+  reportType          String    @db.VarChar(100)
+  amazonReportId      String?   @db.VarChar(255)
+  status              String    @default("QUEUED") @db.VarChar(20)
+  activeKey           String?   @unique @db.VarChar(350)
+  fetched             Int       @default(0)
+  created             Int       @default(0)
+  updated             Int       @default(0)
+  unmapped            Int       @default(0)
+  errorMessage        String?   @db.Text
+  requestedByUserId   Int?
+  requestedByUserType String?   @db.VarChar(30)
+  startedAt           DateTime? @db.Timestamptz(3)
+  finishedAt          DateTime? @db.Timestamptz(3)
+  createdAt           DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  @@index([sellerId, marketplaceId, createdAt], map: "amazon_return_import_jobs_scope_created_idx")
+  @@index([status, createdAt], map: "amazon_return_import_jobs_status_created_idx")
+  @@map("amazon_return_import_jobs")
+}
+
+model AmazonReturnEvent {
+  id                  BigInt    @id @default(autoincrement()) @db.BigInt
+  fingerprint         String    @unique @db.VarChar(64)
+  sellerId            String    @db.VarChar(255)
+  marketplaceId       String    @db.VarChar(50)
+  fulfilmentType      String    @db.VarChar(10)
+  reportType          String    @db.VarChar(100)
+  amazonOrderId       String    @db.VarChar(255)
+  amazonRmaId         String?   @db.VarChar(255)
+  returnDate          DateTime  @db.Timestamptz(3)
+  sellerSku           String?   @db.VarChar(255)
+  asin                String?   @db.VarChar(20)
+  fnSku               String?   @db.VarChar(255)
+  quantity            Int
+  amazonStatus        String?   @db.VarChar(100)
+  disposition         String?   @db.VarChar(100)
+  reason              String?   @db.Text
+  fulfillmentCenterId String?   @db.VarChar(100)
+  licensePlateNumber  String?   @db.VarChar(255)
+  customerComments    String?   @db.Text
+  orderId             BigInt?   @db.BigInt
+  listingId           BigInt?   @db.BigInt
+  productId           BigInt?   @db.BigInt
+  inventoryAction     String    @default("REMOTE_ONLY") @db.VarChar(30)
+  quantityReceived    Int?
+  qcDisposition       String?   @db.VarChar(30)
+  receivedAt          DateTime? @db.Timestamptz(3)
+  processedAt         DateTime? @db.Timestamptz(3)
+  processedByUserId   Int?
+  processedByUserType String?   @db.VarChar(30)
+  rawData             Json?
+  createdAt           DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  order   AmazonMarketplaceOrder? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  listing MarketplaceListing?     @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  product Product?                @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([sellerId, marketplaceId, returnDate], map: "amazon_return_events_scope_date_idx")
+  @@index([amazonOrderId], map: "amazon_return_events_order_id_idx")
+  @@index([productId, fulfilmentType, inventoryAction], map: "amazon_return_events_product_action_idx")
+  @@map("amazon_return_events")
+}
+
+model AmazonOrderFulfillment {
+  id                       BigInt    @id @default(autoincrement()) @db.BigInt
+  orderId                  BigInt    @unique @db.BigInt
+  route                    String    @db.VarChar(40)
+  workflowStatus           String    @db.VarChar(40)
+  pickTaskReference        String?   @unique @db.VarChar(100)
+  pickedAt                 DateTime? @db.Timestamptz(3)
+  packedAt                 DateTime? @db.Timestamptz(3)
+  packageWeightGrams       Int?
+  packageLengthCm          Decimal?  @db.Decimal(10, 2)
+  packageWidthCm           Decimal?  @db.Decimal(10, 2)
+  packageHeightCm          Decimal?  @db.Decimal(10, 2)
+  packageIdentifier        String?   @db.VarChar(255)
+  shippingMethod           String?   @db.VarChar(100)
+  logisticsPartner         String?   @db.VarChar(100)
+  courierCode              String?   @db.VarChar(100)
+  courierName              String?   @db.VarChar(255)
+  trackingNumber           String?   @db.VarChar(255)
+  shippingDate             DateTime? @db.Timestamptz(3)
+  invoiceUrl               String?   @db.Text
+  packingSlipUrl           String?   @db.Text
+  shippingLabelUrl         String?   @db.Text
+  easyShipPackageId        String?   @db.VarChar(255)
+  easyShipSlotId           String?   @db.VarChar(255)
+  easyShipSlotStart        DateTime? @db.Timestamptz(3)
+  easyShipSlotEnd          DateTime? @db.Timestamptz(3)
+  easyShipHandoverMethod   String?   @db.VarChar(20)
+  easyShipStatus           String?   @db.VarChar(50)
+  amazonConfirmationStatus String    @default("NOT_REQUIRED") @db.VarChar(30)
+  amazonConfirmedAt        DateTime? @db.Timestamptz(3)
+  lastError                String?   @db.Text
+  createdAt                DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt                DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  order      AmazonMarketplaceOrder            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  audits     AmazonOrderFulfillmentAudit[]
+  exceptions AmazonOrderFulfillmentException[]
+
+  @@index([route, workflowStatus], map: "amazon_order_fulfillment_route_status_idx")
+  @@map("amazon_order_fulfillments")
+}
+
+model AmazonOrderFulfillmentAudit {
+  id            BigInt   @id @default(autoincrement()) @db.BigInt
+  orderId       BigInt   @db.BigInt
+  fulfillmentId BigInt?  @db.BigInt
+  action        String   @db.VarChar(50)
+  fromStatus    String?  @db.VarChar(40)
+  toStatus      String?  @db.VarChar(40)
+  outcome       String   @db.VarChar(20)
+  details       Json?
+  actorUserId   Int?
+  actorUserType String?  @db.VarChar(30)
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+
+  order       AmazonMarketplaceOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fulfillment AmazonOrderFulfillment? @relation(fields: [fulfillmentId], references: [id], onDelete: SetNull)
+
+  @@index([orderId, createdAt], map: "amazon_order_fulfillment_audit_order_created_idx")
+  @@map("amazon_order_fulfillment_audits")
+}
+
+model AmazonOrderFulfillmentException {
+  id                 BigInt    @id @default(autoincrement()) @db.BigInt
+  orderId            BigInt    @db.BigInt
+  fulfillmentId      BigInt?   @db.BigInt
+  action             String    @db.VarChar(50)
+  status             String    @default("OPEN") @db.VarChar(20)
+  errorCode          String    @db.VarChar(100)
+  message            String    @db.Text
+  retryPayload       Json?
+  retryCount         Int       @default(0)
+  lastRetriedAt      DateTime? @db.Timestamptz(3)
+  resolutionNote     String?   @db.Text
+  resolvedByUserId   Int?
+  resolvedByUserType String?   @db.VarChar(30)
+  resolvedAt         DateTime? @db.Timestamptz(3)
+  createdAt          DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  order       AmazonMarketplaceOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fulfillment AmazonOrderFulfillment? @relation(fields: [fulfillmentId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt], map: "amazon_order_fulfillment_exception_status_idx")
+  @@index([orderId, status], map: "amazon_order_fulfillment_exception_order_idx")
+  @@map("amazon_order_fulfillment_exceptions")
+}
+
+model ChannelSyncLog {
+  id                  BigInt    @id @default(autoincrement()) @db.BigInt
+  marketplace         String    @db.VarChar(30)
+  environment         String    @db.VarChar(20)
+  operation           String    @db.VarChar(50)
+  status              String    @db.VarChar(20)
+  marketplaceId       String    @db.VarChar(50)
+  sellerId            String    @db.VarChar(255)
+  totalFetched        Int       @default(0)
+  created             Int       @default(0)
+  updated             Int       @default(0)
+  unmapped            Int       @default(0)
+  conflicts           Int       @default(0)
+  inactive            Int       @default(0)
+  failed              Int       @default(0)
+  errorCode           String?   @db.VarChar(100)
+  errorMessage        String?   @db.Text
+  requestedByUserId   Int?
+  requestedByUserType String?   @db.VarChar(30)
+  startedAt           DateTime  @default(now()) @db.Timestamptz(3)
+  finishedAt          DateTime? @db.Timestamptz(3)
+  createdAt           DateTime  @default(now()) @db.Timestamptz(3)
+
+  listingAudits MarketplaceListingAudit[]
+
+  @@index([marketplace, environment, operation, startedAt], map: "channel_sync_logs_lookup_idx")
+  @@index([sellerId, marketplaceId, startedAt], map: "channel_sync_logs_seller_idx")
+  @@map("channel_sync_logs")
+}
+
+model AmazonOperationsSetting {
+  id                     BigInt    @id @default(autoincrement()) @db.BigInt
+  sellerId               String    @db.VarChar(255)
+  marketplaceId          String    @db.VarChar(50)
+  productionWritesPaused Boolean   @default(false)
+  pauseReason            String?   @db.Text
+  pausedAt               DateTime? @db.Timestamptz(3)
+  pausedByUserId         Int?
+  pausedByUserType       String?   @db.VarChar(30)
+  createdAt              DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  @@unique([sellerId, marketplaceId], map: "amazon_operations_settings_scope_unique")
+  @@map("amazon_operations_settings")
+}
+
+model AmazonRetryJob {
+  id                  BigInt    @id @default(autoincrement()) @db.BigInt
+  sellerId            String    @db.VarChar(255)
+  marketplaceId       String    @db.VarChar(50)
+  operation           String    @db.VarChar(50)
+  resourceType        String    @db.VarChar(50)
+  resourceId          String    @db.VarChar(255)
+  payload             Json?
+  status              String    @default("QUEUED") @db.VarChar(20)
+  attempts            Int       @default(0)
+  maxAttempts         Int       @default(3)
+  nextAttemptAt       DateTime  @default(now()) @db.Timestamptz(3)
+  lastError           String?   @db.Text
+  requestedByUserId   Int?
+  requestedByUserType String?   @db.VarChar(30)
+  startedAt           DateTime? @db.Timestamptz(3)
+  finishedAt          DateTime? @db.Timestamptz(3)
+  createdAt           DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  @@index([sellerId, marketplaceId, status, nextAttemptAt], map: "amazon_retry_jobs_scope_status_idx")
+  @@index([resourceType, resourceId, createdAt], map: "amazon_retry_jobs_resource_idx")
+  @@map("amazon_retry_jobs")
+}
+
+model AmazonOperationsAudit {
+  id                  BigInt   @id @default(autoincrement()) @db.BigInt
+  sellerId            String   @db.VarChar(255)
+  marketplaceId       String   @db.VarChar(50)
+  action              String   @db.VarChar(80)
+  outcome             String   @db.VarChar(20)
+  details             Json?
+  requestedByUserId   Int?
+  requestedByUserType String?  @db.VarChar(30)
+  createdAt           DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([sellerId, marketplaceId, createdAt], map: "amazon_operations_audits_scope_created_idx")
+  @@map("amazon_operations_audits")
+}
+
+model AmazonApiTelemetry {
+  id            BigInt   @id @default(autoincrement()) @db.BigInt
+  sellerId      String   @db.VarChar(255)
+  marketplaceId String   @db.VarChar(50)
+  operation     String   @db.VarChar(120)
+  method        String   @db.VarChar(10)
+  path          String   @db.VarChar(500)
+  statusCode    Int
+  rateLimit     String?  @db.VarChar(100)
+  requestId     String?  @db.VarChar(255)
+  retryAfter    String?  @db.VarChar(100)
+  throttled     Boolean  @default(false)
+  successful    Boolean  @default(false)
+  observedAt    DateTime @default(now()) @db.Timestamptz(3)
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime @default(now()) @updatedAt @db.Timestamptz(3)
+
+  @@unique([sellerId, marketplaceId, operation], map: "amazon_api_telemetry_scope_operation_unique")
+  @@index([sellerId, marketplaceId, observedAt], map: "amazon_api_telemetry_scope_observed_idx")
+  @@index([sellerId, marketplaceId, throttled, observedAt], map: "amazon_api_telemetry_throttled_idx")
+  @@map("amazon_api_telemetry")
+}
+
+model AmazonNotificationSubscription {
+  id                   BigInt    @id @default(autoincrement()) @db.BigInt
+  sellerId             String    @db.VarChar(255)
+  marketplaceId        String    @db.VarChar(50)
+  notificationType     String    @db.VarChar(100)
+  payloadVersion       String    @db.VarChar(30)
+  destinationKind      String    @db.VarChar(30)
+  destinationId        String?   @db.VarChar(255)
+  amazonSubscriptionId String?   @db.VarChar(255)
+  status               String    @default("NOT_CONFIGURED") @db.VarChar(30)
+  lastError            String?   @db.Text
+  lastCheckedAt        DateTime? @db.Timestamptz(3)
+  configuredAt         DateTime? @db.Timestamptz(3)
+  configuredByUserId   Int?
+  configuredByUserType String?   @db.VarChar(30)
+  createdAt            DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  @@unique([sellerId, marketplaceId, notificationType, payloadVersion], map: "amazon_notification_subscriptions_scope_type_unique")
+  @@index([sellerId, marketplaceId, status], map: "amazon_notification_subscriptions_scope_status_idx")
+  @@map("amazon_notification_subscriptions")
+}
+
+model MarketplaceListingAudit {
+  id                  BigInt   @id @default(autoincrement()) @db.BigInt
+  listingId           BigInt?  @db.BigInt
+  syncLogId           BigInt?  @db.BigInt
+  marketplace         String   @default("AMAZON") @db.VarChar(30)
+  environment         String   @default("PRODUCTION") @db.VarChar(20)
+  marketplaceId       String   @db.VarChar(50)
+  sellerId            String   @db.VarChar(255)
+  sellerSku           String   @db.VarChar(255)
+  operation           String   @db.VarChar(50)
+  changedFields       Json
+  beforeValues        Json?
+  afterValues         Json?
+  previousProductId   BigInt?  @db.BigInt
+  productId           BigInt?  @db.BigInt
+  requestedByUserId   Int?
+  requestedByUserType String?  @db.VarChar(30)
+  createdAt           DateTime @default(now()) @db.Timestamptz(3)
+
+  listing MarketplaceListing? @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  syncLog ChannelSyncLog?     @relation(fields: [syncLogId], references: [id], onDelete: SetNull)
+
+  @@index([listingId, createdAt], map: "marketplace_listing_audits_listing_idx")
+  @@index([syncLogId], map: "marketplace_listing_audits_sync_log_idx")
+  @@index([marketplace, marketplaceId, sellerId, createdAt], map: "marketplace_listing_audits_lookup_idx")
+  @@map("marketplace_listing_audits")
 }
 
 // ============================================
@@ -1053,16 +2378,16 @@ model AmazonConnection {
 // ============================================
 
 model AuthSession {
-  id                Int      @id @default(autoincrement())
-  userId            Int
-  userType          String   @db.VarChar(20) // 'inventory' or 'ecommerce'
-  refreshTokenHash  String   @db.Text
-  expiresAt         BigInt   // Unix timestamp in milliseconds
-  isRevoked         Boolean  @default(false)
-  ipAddress         String?  @db.VarChar(45) // Supports IPv4 and IPv6
-  userAgent         String?  @db.Text
-  createddate       BigInt?  // Matches other tables naming convention
-  modifieddate      BigInt?  // Matches other tables naming convention
+  id               Int     @id @default(autoincrement())
+  userId           Int
+  userType         String  @db.VarChar(20) // 'inventory' or 'ecommerce'
+  refreshTokenHash String  @db.Text
+  expiresAt        BigInt // Unix timestamp in milliseconds
+  isRevoked        Boolean @default(false)
+  ipAddress        String? @db.VarChar(45) // Supports IPv4 and IPv6
+  userAgent        String? @db.Text
+  createddate      BigInt? // Matches other tables naming convention
+  modifieddate     BigInt? // Matches other tables naming convention
 
   // Prisma doesn't support conditional relations based on userType
   // Relations will be handled in application code

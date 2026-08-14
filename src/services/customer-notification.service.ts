@@ -34,6 +34,20 @@ type PromotionBroadcastInput = {
   data?: Record<string, string | number | boolean> | undefined;
 };
 
+type ReturnStatusNotificationInput = {
+  userId: number | null | undefined;
+  orderId?: number | string | null | undefined;
+  orderNumber?: string | null | undefined;
+  returnRequestId?: number | string | null | undefined;
+  returnRequestNumber?: string | null | undefined;
+  status: string;
+  requestType?: string | null | undefined;
+  resolution?: string | null | undefined;
+  reason?: string | null | undefined;
+  trackingId?: string | null | undefined;
+  amount?: unknown;
+};
+
 const ORDER_TRACKING_BASE = 'nivaana://OrderTracking';
 const ORDER_DETAIL_BASE = 'nivaana://Main/ProfileTab/OrderDetail';
 const MY_ORDERS_URL = 'nivaana://Main/ProfileTab/MyOrders';
@@ -255,6 +269,155 @@ export class CustomerNotificationService {
         orderId: String(order.id),
         orderNumber: order.orderid || String(order.id),
         ...(destination.orderLineId ? { orderLineId: String(destination.orderLineId) } : {}),
+      },
+    });
+  }
+
+  async notifyReturnInspectionRejected(input: {
+    userId: number | null | undefined;
+    orderId?: number | string | null;
+    orderNumber?: string | null;
+    returnRequestNumber?: string | null;
+    reason?: string | null | undefined;
+  }) {
+    const user = this.asPushUser(input.userId);
+    if (!user) return null;
+
+    const orderLabel = input.orderNumber || (input.orderId ? `#${input.orderId}` : 'your order');
+    const requestLabel = input.returnRequestNumber ? ` ${input.returnRequestNumber}` : '';
+    const reason = input.reason?.trim();
+
+    return this.pushNotificationService.sendToUser(user, {
+      title: 'Return inspection update',
+      body: reason
+        ? `Return request${requestLabel} for ${orderLabel} was rejected: ${reason}.`
+        : `Return request${requestLabel} for ${orderLabel} was rejected after warehouse inspection.`,
+      url: MY_ORDERS_URL,
+      data: {
+        eventType: 'return_inspection_rejected',
+        orderId: input.orderId ? String(input.orderId) : '',
+        orderNumber: input.orderNumber || '',
+        returnRequestNumber: input.returnRequestNumber || '',
+      },
+    });
+  }
+
+  async notifyReturnStatus(input: ReturnStatusNotificationInput) {
+    const user = this.asPushUser(input.userId);
+    if (!user) return null;
+
+    const status = input.status.trim().toLowerCase();
+    if (!status) return null;
+
+    const requestLabel = input.returnRequestNumber || (
+      input.returnRequestId ? `#${input.returnRequestId}` : 'your request'
+    );
+    const orderLabel = input.orderNumber || (input.orderId ? `#${input.orderId}` : 'your order');
+    const amountLabel = this.toAmountLabel(input.amount);
+    const trackingText = input.trackingId ? ` Tracking: ${input.trackingId}.` : '';
+    let title = 'Return request update';
+    let body = `Return request ${requestLabel} for ${orderLabel} has a new update.`;
+
+    switch (status) {
+      case 'requested':
+      case 'evidence_pending':
+        title = 'Return request received';
+        body = `Return request ${requestLabel} for ${orderLabel} has been received.`;
+        break;
+      case 'evidence_approved':
+        title = 'Evidence approved';
+        body = `Evidence for return request ${requestLabel} has been approved.`;
+        break;
+      case 'evidence_rejected':
+        title = 'Evidence rejected';
+        body = `Evidence for return request ${requestLabel} could not be approved.`;
+        break;
+      case 'approved':
+        title = 'Return request approved';
+        body = `Return request ${requestLabel} has been approved.`;
+        break;
+      case 'rejected':
+        title = 'Return request rejected';
+        body = `Return request ${requestLabel} could not be approved.`;
+        break;
+      case 'pickup_prepared':
+        title = 'Pickup being prepared';
+        body = `Pickup for return request ${requestLabel} is being prepared.`;
+        break;
+      case 'pickup_created':
+        title = 'Pickup created';
+        body = `Pickup for return request ${requestLabel} has been created.${trackingText}`;
+        break;
+      case 'received_at_warehouse':
+        title = 'Return received';
+        body = `Return request ${requestLabel} has been received at the warehouse.`;
+        break;
+      case 'inspection_approved':
+        title = 'Return verified';
+        body = `Warehouse verification is approved for return request ${requestLabel}.`;
+        break;
+      case 'refund_pending':
+        title = 'Refund in progress';
+        body = amountLabel
+          ? `Refund of ${amountLabel} for return request ${requestLabel} is being processed.`
+          : `Refund for return request ${requestLabel} is being processed.`;
+        break;
+      case 'refund_completed':
+        title = 'Refund completed';
+        body = amountLabel
+          ? `Refund of ${amountLabel} for return request ${requestLabel} is completed.`
+          : `Refund for return request ${requestLabel} is completed.`;
+        break;
+      case 'refund_failed':
+        title = 'Refund update';
+        body = `Refund for return request ${requestLabel} needs review.`;
+        break;
+      case 'refund_cancelled':
+        title = 'Refund cancelled';
+        body = `Refund for return request ${requestLabel} was cancelled.`;
+        break;
+      case 'replacement_shipped':
+        title = 'Replacement shipped';
+        body = `Replacement for return request ${requestLabel} has been shipped.${trackingText}`;
+        break;
+      case 'replacement_delivered':
+        title = 'Replacement delivered';
+        body = `Replacement for return request ${requestLabel} has been delivered.`;
+        break;
+      case 'replacement_shipment_failed':
+        title = 'Replacement shipment update';
+        body = `Replacement shipment for return request ${requestLabel} needs review.`;
+        break;
+      case 'missing_item_shipped':
+        title = 'Missing item shipped';
+        body = `Missing item shipment for return request ${requestLabel} has been shipped.${trackingText}`;
+        break;
+      case 'missing_item_shipment_failed':
+        title = 'Missing item shipment update';
+        body = `Missing item shipment for return request ${requestLabel} needs review.`;
+        break;
+      case 'completed':
+        title = 'Return request completed';
+        body = `Return request ${requestLabel} has been completed.`;
+        break;
+      default:
+        return null;
+    }
+
+    return this.pushNotificationService.sendToUser(user, {
+      title,
+      body,
+      url: MY_ORDERS_URL,
+      data: {
+        eventType: 'return_status_update',
+        status,
+        orderId: input.orderId ? String(input.orderId) : '',
+        orderNumber: input.orderNumber || '',
+        returnRequestId: input.returnRequestId ? String(input.returnRequestId) : '',
+        returnRequestNumber: input.returnRequestNumber || '',
+        requestType: input.requestType || '',
+        resolution: input.resolution || '',
+        reason: input.reason || '',
       },
     });
   }

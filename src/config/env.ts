@@ -16,13 +16,12 @@ const REQUIRED_EXOTEL_ENV_VARS = [
   "EXOTEL_API_TOKEN",
   "EXOTEL_SENDER_ID",
 ] as const;
-const REQUIRED_FIREBASE_PUSH_ENV_VARS = [
+const REQUIRED_FIREBASE_DIRECT_PUSH_ENV_VARS = [
   "FIREBASE_PROJECT_ID",
   "FIREBASE_CLIENT_EMAIL",
   "FIREBASE_PRIVATE_KEY",
 ] as const;
-const REQUIRED_APNS_PUSH_ENV_VARS = [
-  "APNS_AUTH_KEY",
+const REQUIRED_APNS_IDENTITY_PUSH_ENV_VARS = [
   "APNS_KEY_ID",
   "APNS_TEAM_ID",
   "APNS_BUNDLE_ID",
@@ -134,28 +133,44 @@ function validatePrivateKeyEnvValue(key: string, value: string) {
 }
 
 function validatePushNotificationConfig(data: object) {
-  const isProduction = getEnvConfigValue(data, "NODE_ENV") === "production";
-  const hasFirebaseDirectConfig = REQUIRED_FIREBASE_PUSH_ENV_VARS.some((key) =>
-    Boolean(getEnvConfigValue(data, key)),
+  const isProduction = getEnvConfigValue(data, 'NODE_ENV') === 'production';
+  const hasFirebaseDirectConfig = Boolean(
+    getEnvConfigValue(data, 'FIREBASE_CLIENT_EMAIL') ||
+    getEnvConfigValue(data, 'FIREBASE_PRIVATE_KEY')
   );
-  const hasApnsConfig = REQUIRED_APNS_PUSH_ENV_VARS.some((key) =>
-    Boolean(getEnvConfigValue(data, key)),
+  const hasFirebaseServiceAccountJson = Boolean(getEnvConfigValue(data, 'FIREBASE_SERVICE_ACCOUNT_JSON'));
+  const hasFirebaseServiceAccountPath = Boolean(getEnvConfigValue(data, 'FIREBASE_SERVICE_ACCOUNT_PATH'));
+  const hasFirebaseDirectCompleteConfig = REQUIRED_FIREBASE_DIRECT_PUSH_ENV_VARS.every((key) =>
+    Boolean(getEnvConfigValue(data, key))
+  );
+  const hasApnsAuthKey = Boolean(getEnvConfigValue(data, 'APNS_AUTH_KEY'));
+  const hasApnsAuthKeyPath = Boolean(getEnvConfigValue(data, 'APNS_AUTH_KEY_PATH'));
+  const hasApnsIdentityConfig = REQUIRED_APNS_IDENTITY_PUSH_ENV_VARS.some((key) =>
+    Boolean(getEnvConfigValue(data, key))
   );
 
   const missingVars: string[] = [];
   const validationErrors: string[] = [];
 
-  if (isProduction || hasFirebaseDirectConfig) {
+  if (isProduction) {
+    if (!hasFirebaseServiceAccountJson && !hasFirebaseDirectCompleteConfig) {
+      missingVars.push('FIREBASE_SERVICE_ACCOUNT_JSON or FIREBASE_PROJECT_ID/FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY');
+    }
+  } else if (hasFirebaseDirectConfig && !hasFirebaseServiceAccountJson && !hasFirebaseServiceAccountPath) {
     missingVars.push(
-      ...REQUIRED_FIREBASE_PUSH_ENV_VARS.filter(
+      ...REQUIRED_FIREBASE_DIRECT_PUSH_ENV_VARS.filter(
         (key) => !getEnvConfigValue(data, key),
       ),
     );
   }
 
-  if (isProduction || hasApnsConfig) {
+  if (isProduction || hasApnsAuthKey || hasApnsAuthKeyPath || hasApnsIdentityConfig) {
+    const hasUsableApnsAuthKey = hasApnsAuthKey || (!isProduction && hasApnsAuthKeyPath);
+    if (!hasUsableApnsAuthKey) {
+      missingVars.push(isProduction ? 'APNS_AUTH_KEY' : 'APNS_AUTH_KEY or APNS_AUTH_KEY_PATH');
+    }
     missingVars.push(
-      ...REQUIRED_APNS_PUSH_ENV_VARS.filter(
+      ...REQUIRED_APNS_IDENTITY_PUSH_ENV_VARS.filter(
         (key) => !getEnvConfigValue(data, key),
       ),
     );
@@ -253,6 +268,9 @@ const envSchema = z.object({
   GCP_PROJECT_QUEUE: z.string().optional(),
   GCP_TASK_URL: z.string().optional(),
   GCP_STORAGE_BUCKET: z.string().optional(),
+  CATEGORY_IMAGES_BUCKET: z.string().optional(),
+  RETURN_REPLACEMENT_BUCKET: z.string().optional(),
+  RETURN_EVIDENCE_BUCKET: z.string().optional(),
   SHIPPING_BUCKET: z.string().optional(),
   FIREBASE_PROJECT_ID: z.string().optional(),
   FIREBASE_CLIENT_EMAIL: z.string().optional(),
@@ -317,15 +335,49 @@ const envSchema = z.object({
   ),
 
   // Amazon SP-API Configuration (Global keys - change values for sandbox/production)
+  AMAZON_INTEGRATION_ENABLED: z.enum(['true', 'false']).optional().default('true').transform((value) => value === 'true'),
   AMAZON_CLIENT_ID: z.string().optional(),
   AMAZON_CLIENT_SECRET: z.string().optional(),
+  AMAZON_SP_API_APP_ID: z.string().optional(),
+  AMAZON_OAUTH_VERSION: z.enum(['beta']).optional(),
   AMAZON_REFRESH_TOKEN: z.string().optional(),
-  AMAZON_ENVIRONMENT: z
-    .enum(["SANDBOX", "PRODUCTION"])
-    .optional()
-    .default("SANDBOX"),
+  AMAZON_SELLER_ID: z.string().optional(),
+  AMAZON_ENVIRONMENT: z.enum(["SANDBOX", "PRODUCTION"]).optional().default("SANDBOX"),
+  AMAZON_AUTO_SYNC_ENABLED: z.enum(["true", "false"]).optional().default("false").transform((value) => value === "true"),
+  AMAZON_ORDER_AUTO_SYNC_ENABLED: z.enum(["true", "false"]).optional().default("false").transform((value) => value === "true"),
+  AMAZON_ORDER_SYNC_CRON: z.string().optional().default("*/15 * * * *"),
+  AMAZON_RETURN_AUTO_SYNC_ENABLED: z.enum(["true", "false"]).optional().default("false").transform((value) => value === "true"),
+  AMAZON_RETURN_SYNC_CRON: z.string().optional().default("30 2 * * *"),
+  AMAZON_LISTING_AUTO_SYNC_ENABLED: z.enum(["true", "false"]).optional().default("false").transform((value) => value === "true"),
+  AMAZON_LISTING_SYNC_CRON: z.string().optional().default("0 */6 * * *"),
+  AMAZON_RETRY_WORKER_ENABLED: z.enum(["true", "false"]).optional().default("false").transform((value) => value === "true"),
+  AMAZON_RETRY_WORKER_CRON: z.string().optional().default("*/5 * * * *"),
+  AMAZON_NOTIFICATION_INGEST_SECRET: z.string().trim().min(32).optional(),
+  AMAZON_NOTIFICATION_DESTINATION_ID: z.string().trim().optional(),
+  AMAZON_NOTIFICATION_SQS_DESTINATION_ID: z.string().trim().optional(),
+  AMAZON_NOTIFICATION_EVENTBRIDGE_DESTINATION_ID: z.string().trim().optional(),
+  AMAZON_LISTING_IMPORT_ENABLED: z.enum(["true", "false"]).optional().default("false").transform((value) => value === "true"),
+  AMAZON_PRODUCTION_WRITES_ENABLED: z.enum(["true", "false"]).optional().default("false").transform((value) => value === "true"),
+  // Listing creation remains independently controllable even when other Amazon writes are enabled.
+  AMAZON_LISTING_CREATION_ENABLED: z.enum(["true", "false"]).optional().default("false").transform((value) => value === "true"),
+  AMAZON_FULL_CATALOG_CREATION_ENABLED: z.enum(["true", "false"]).optional().default("false").transform((value) => value === "true"),
+  AMAZON_LISTING_EDIT_ENABLED: z.enum(["true", "false"]).optional().default("false").transform((value) => value === "true"),
+  AMAZON_PRODUCTION_SP_API_BASE_URL: z.string().optional().default("https://sellingpartnerapi-eu.amazon.com"),
+  AMAZON_LISTING_IMPORT_PAGE_SIZE: z.string().optional().default("20").transform((value) => {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) ? Math.min(20, Math.max(1, parsed)) : 20;
+  }),
+  AMAZON_LISTING_IMPORT_MAX_RETRIES: z.string().optional().default("3").transform((value) => {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) ? Math.min(5, Math.max(0, parsed)) : 3;
+  }),
+  AMAZON_SANDBOX_CREDENTIAL_SOURCE: z.enum(["SANDBOX", "PRODUCTION"]).optional().default("SANDBOX"),
   AMAZON_MARKETPLACE_ID: z.string().optional().default("A21TJRUUN4KGV"), // Fixed for India
   AMAZON_SP_API_BASE_URL: z.string().optional(),
+  AMAZON_SANDBOX_CLIENT_ID: z.string().optional(),
+  AMAZON_SANDBOX_CLIENT_SECRET: z.string().optional(),
+  AMAZON_SANDBOX_REFRESH_TOKEN: z.string().optional(),
+  AMAZON_SANDBOX_SP_API_BASE_URL: z.string().optional().default('https://sandbox.sellingpartnerapi-eu.amazon.com'),
   AMAZON_AWS_IAM_ROLE_ARN: z.string().optional(),
   AMAZON_REGION: z.string().optional().default("eu-west-1"),
   AMAZON_SELLER_CENTRAL_URL: z
@@ -333,6 +385,11 @@ const envSchema = z.object({
     .optional()
     .default("https://sellercentral.amazon.in"),
   AMAZON_REDIRECT_URI: z.string().optional(),
+  AMAZON_TOKEN_ENCRYPTION_KEY: z.string().optional(),
+  AMAZON_OAUTH_STATE_TTL_SECONDS: z.string().optional().default('600').transform((value) => {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) ? Math.min(900, Math.max(300, parsed)) : 600;
+  }),
   AWS_ACCESS_KEY_ID: z.string().optional(),
   AWS_SECRET_ACCESS_KEY: z.string().optional(),
 
@@ -344,6 +401,18 @@ const envSchema = z.object({
     .string()
     .optional()
     .default("https://app.elite.ekartlogistics.in/api"),
+
+  // Shipmozo Logistics Configuration
+  // Credentials must only be configured on the backend/secret manager.
+  SHIPMOZO_INTEGRATION_ENABLED: z.enum(["true", "false"]).optional().default("true").transform((value) => value === "true"),
+  SHIPMOZO_PUBLIC_KEY: z.string().optional(),
+  SHIPMOZO_PRIVATE_KEY: z.string().optional(),
+  SHIPMOZO_BASE_URL: z.string().optional().default("https://shipping-api.com/app/api/v1"),
+  SHIPMOZO_WAREHOUSE_ID: z.string().optional(),
+  SHIPMOZO_TRACKING_SYNC_ENABLED: z.enum(["true", "false"]).optional().default("false"),
+  SHIPMOZO_TRACKING_SYNC_CRON: z.string().optional().default("*/30 * * * *"),
+  SHIPMOZO_TRACKING_SYNC_BATCH_SIZE: z.coerce.number().int().min(1).max(100).optional().default(25),
+  SHIPMOZO_WEBHOOK_SECRET: z.string().min(16).optional(),
 
   // Seller Information (for EKART shipments)
   SELLER_GST_TIN: z.string().optional(),

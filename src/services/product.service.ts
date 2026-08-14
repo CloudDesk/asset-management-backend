@@ -30,7 +30,73 @@ import { buildProductNaming } from '../utils/productNaming.js';
 const DEFAULT_PLATFORM_STOCK_PLATFORMS = ['amazon', 'flipkart', 'nivapp'] as const;
 const DEFAULT_PLATFORM_STATUS = 'outofstock';
 
+type CategoryImageSelection = {
+  imageurl: string;
+  thumbnailurl: string | null;
+  isactive: boolean;
+};
+
+const getActiveCategoryImageUrls = (
+  categoryImage: CategoryImageSelection | null | undefined
+): { imageUrl: string | null; thumbnailUrl: string | null } => ({
+  imageUrl: categoryImage?.isactive ? categoryImage.imageurl : null,
+  thumbnailUrl: categoryImage?.isactive ? categoryImage.thumbnailurl : null,
+});
+
 export class ProductService {
+  private async attachStockSummaries(products: any[]): Promise<void> {
+    const pucs = Array.from(
+      new Set(
+        products
+          .map((product: any) => product?.puc)
+          .filter((puc: unknown): puc is string => typeof puc === 'string' && puc.trim().length > 0)
+      )
+    );
+
+    if (pucs.length === 0) {
+      return;
+    }
+
+    const stockSummaries = await prisma.$queryRaw<any[]>`
+      SELECT
+        "puc",
+        COUNT(*) FILTER (WHERE LOWER("stockstatus") <> 'sold')::int AS "quantity",
+        COUNT(*) FILTER (WHERE LOWER("stockstatus") = 'available' AND COALESCE("ecompublish", false) = true)::int AS "available_quantity",
+        COUNT(*) FILTER (WHERE LOWER("stockstatus") = 'sold')::int AS "sold_quantity",
+        COUNT(*) FILTER (WHERE LOWER("stockstatus") = 'available' AND COALESCE("ecompublish", false) = true)::int AS "ecom_published_quantity",
+        COUNT(*) FILTER (WHERE LOWER("stockstatus") = 'damaged')::int AS "damaged_quantity"
+      FROM "stock"
+      WHERE "puc" IN (${Prisma.join(pucs)})
+        AND COALESCE("isdeleted", false) = false
+        AND COALESCE("isarchive", false) = false
+      GROUP BY "puc"
+    `;
+
+    const summaryByPuc = new Map<string, any>();
+    stockSummaries.forEach((summary: any) => {
+      if (summary.puc) {
+        summaryByPuc.set(String(summary.puc), summary);
+      }
+    });
+
+    products.forEach((product: any) => {
+      const summary = summaryByPuc.get(String(product.puc || ''));
+      if (!summary) {
+        product.damagedquantity = 0;
+        return;
+      }
+
+      const ecomPublishedQuantity = Number(summary.ecom_published_quantity || 0);
+      const orderedQuantity = Number(product.orderedquantity || 0);
+
+      product.quantity = Number(summary.quantity || 0);
+      product.availablequantity = Math.max(0, ecomPublishedQuantity - orderedQuantity);
+      product.soldquantity = Number(summary.sold_quantity || 0);
+      product.ecompublishedquantity = ecomPublishedQuantity;
+      product.damagedquantity = Number(summary.damaged_quantity || 0);
+    });
+  }
+
   async findMany(
     filters: FilterOptions,
     page: number,
@@ -160,6 +226,8 @@ export class ProductService {
         }
       }
 
+      await this.attachStockSummaries(products);
+
       logger.info({
         productCount: products.length,
         total,
@@ -244,6 +312,8 @@ export class ProductService {
         isCombo: (product as any).iscombo,
         componentCount: (product as any).iscombo ? ((product as any).components?.length || 0) : 0
       }, 'Dynamic product findById completed');
+
+      await this.attachStockSummaries([product]);
 
       return product;
     } catch (error) {
@@ -423,6 +493,8 @@ export class ProductService {
           });
         }
       }
+
+      await this.attachStockSummaries(products);
 
       return {
         data: products,
@@ -609,6 +681,7 @@ export class ProductService {
     if (filters.search) {
       where.OR = [
         { name: { contains: filters.search, mode: 'insensitive' } },
+        { shortname: { contains: filters.search, mode: 'insensitive' } },
         { shortdescription: { contains: filters.search, mode: 'insensitive' } },
         { fulldescription: { contains: filters.search, mode: 'insensitive' } },
       ];
@@ -633,7 +706,7 @@ export class ProductService {
       const namingPicklists = await prisma.picklist.findMany({
         where: {
           object: 'product',
-          fieldname: { in: ['brand', 'subcategory'] },
+          fieldname: 'brand',
           isactive: true,
         },
         select: {
@@ -845,14 +918,13 @@ export class ProductService {
       const namingFields = [
         'name',
         'brand',
-        'subcategory',
         'remarks',
       ];
       if (namingFields.some((field) => field in updateData)) {
         const namingPicklists = await prisma.picklist.findMany({
           where: {
             object: 'product',
-            fieldname: { in: ['brand', 'subcategory'] },
+            fieldname: 'brand',
             isactive: true,
           },
           select: {
@@ -864,7 +936,6 @@ export class ProductService {
         });
         const effectiveProduct = {
           brand: updateData.brand ?? existingProduct.brand,
-          subcategory: updateData.subcategory ?? existingProduct.subcategory,
           remarks: updateData.remarks ?? existingProduct.remarks,
         };
         Object.assign(
@@ -1021,6 +1092,7 @@ export class ProductService {
           availablequantity: 0,
           soldquantity: 0,
           ecompublishedquantity: 0,
+          damagedquantity: 0,
           productstatus: 'out_of_stock',
           modifieddate: BigInt(Date.now())
         };
@@ -1028,7 +1100,7 @@ export class ProductService {
         await dynamicUpdate('product', { id: productId }, updateData);
         logger.info({ productIdentifier, productId }, 'Updated product quantities to zero (no active stocks found)');
 
-        return { totalQuantity: 0, totalAvailable: 0, totalSold: 0, totalEcomPublished: 0 };
+        return { totalQuantity: 0, totalAvailable: 0, totalSold: 0, totalEcomPublished: 0, totalDamaged: 0 };
       }
 
       // Calculate totals based on stock records count (not stock.quantity field)
@@ -1036,6 +1108,7 @@ export class ProductService {
       let totalAvailable = 0;
       let totalSold = 0;
       let totalEcomPublished = 0;
+      let totalDamaged = 0;
 
       stocks.forEach(stock => {
         const stockStatus = stock.stockstatus?.toLowerCase();
@@ -1055,15 +1128,18 @@ export class ProductService {
           // Note: Available stocks with ecompublish=false are NOT counted in availablequantity
         } else if (stockStatus === 'sold') {
           totalSold += 1;
+        } else if (stockStatus === 'damaged') {
+          totalDamaged += 1;
         }
-        // Note: Damaged stocks are not counted in available or sold, but ARE counted in totalQuantity
+        // Damaged stocks are not sellable, but they remain counted in physical warehouse quantity.
       });
 
       const totals = {
         totalQuantity,
         totalAvailable, // Recalculated from actual stock data
         totalSold,
-        totalEcomPublished
+        totalEcomPublished,
+        totalDamaged
       };
 
       logger.info({
@@ -1077,6 +1153,7 @@ export class ProductService {
           availableAndEcomPublishedCount: totalAvailable, // Available AND ecompublish=true (for reference)
           soldCount: totalSold,
           ecomPublishedCount: totalEcomPublished,
+          damagedCount: totalDamaged,
 
           stockDetails: stocks.map(s => ({
             id: s.id,
@@ -1085,15 +1162,7 @@ export class ProductService {
             countsAsAvailable: s.stockstatus === 'Available' && s.ecompublish === true
           }))
         }
-      }, 'Calculated stock totals - availablequantity will be calculated using business formula: ecompublishedquantity - orderedquantity - soldquantity');
-
-      // Determine product status based on available quantity
-      let productStatus = 'out_of_stock';
-      if (totals.totalAvailable > 5) {
-        productStatus = 'in_stock';
-      } else if (totals.totalAvailable >= 1) {
-        productStatus = 'low_stock';
-      }
+      }, 'Calculated stock totals - availablequantity will be calculated using business formula: ecompublishedquantity - orderedquantity');
 
       // Handle orderedquantity decrease when stock changes to Sold
       let orderedQuantityAdjustment = 0;
@@ -1109,13 +1178,21 @@ export class ProductService {
         }, 'Stock status changed to Sold - will decrease orderedquantity');
       }
 
-      // Calculate availablequantity using business formula: ecompublishedquantity - orderedquantity - soldquantity
+      // Calculate availablequantity using business formula: ecompublishedquantity - orderedquantity
       const currentOrderedQuantity = product.orderedquantity || 0;
       const orderedQuantityAfterAdjustment = orderedQuantityAdjustment !== 0
         ? Math.max(0, currentOrderedQuantity + orderedQuantityAdjustment)
         : currentOrderedQuantity;
 
-      const calculatedAvailableQuantity = Math.max(0, totals.totalEcomPublished - orderedQuantityAfterAdjustment - totals.totalSold);
+      const calculatedAvailableQuantity = Math.max(0, totals.totalEcomPublished - orderedQuantityAfterAdjustment);
+
+      // Determine product status based on final sellable availability.
+      let productStatus = 'out_of_stock';
+      if (calculatedAvailableQuantity > 5) {
+        productStatus = 'in_stock';
+      } else if (calculatedAvailableQuantity >= 1) {
+        productStatus = 'low_stock';
+      }
 
       // Update product with calculated totals
       const updateData: Record<string, any> = {
@@ -1123,6 +1200,7 @@ export class ProductService {
         availablequantity: calculatedAvailableQuantity, // Use business formula instead of totalAvailable
         soldquantity: totals.totalSold,
         ecompublishedquantity: totals.totalEcomPublished,
+        damagedquantity: totals.totalDamaged,
         productstatus: productStatus,
         modifieddate: BigInt(Date.now())
       };
@@ -1830,16 +1908,14 @@ export class ProductService {
       for (const cat of categories) {
         if (!cat.value || !cat.label) continue; // Skip if value or label is null
 
+        const categoryImageUrls = getActiveCategoryImageUrls(cat.categoryImage);
+
         categoryMap.set(cat.value, {
           id: cat.value,
           label: cat.label,
           count: 0,
-          imageUrl: cat.categoryImage?.isactive
-            ? cat.categoryImage.imageurl
-            : null,
-          thumbnailUrl: cat.categoryImage?.isactive
-            ? cat.categoryImage.thumbnailurl
-            : null,
+          imageUrl: categoryImageUrls.imageUrl,
+          thumbnailUrl: categoryImageUrls.thumbnailUrl,
           subcategories: new Map(),
         });
       }
@@ -1852,17 +1928,14 @@ export class ProductService {
 
         if (categoryMap.has(parentCategory)) {
           const categoryEntry = categoryMap.get(parentCategory)!;
+          const subcategoryImageUrls = getActiveCategoryImageUrls(subcat.categoryImage);
 
           categoryEntry.subcategories.set(subcat.value, {
             id: subcat.value,
             label: subcat.label,
             count: 0,
-            imageUrl: subcat.categoryImage?.isactive
-              ? subcat.categoryImage.imageurl
-              : null,
-            thumbnailUrl: subcat.categoryImage?.isactive
-              ? subcat.categoryImage.thumbnailurl
-              : null,
+            imageUrl: subcategoryImageUrls.imageUrl,
+            thumbnailUrl: subcategoryImageUrls.thumbnailUrl,
             subsubcategories: [],
           });
         }
@@ -1923,17 +1996,16 @@ export class ProductService {
           const picklistSubcategory = subcategories.find(
             item => item.value === subcategory
           );
+          const subcategoryImageUrls = getActiveCategoryImageUrls(
+            picklistSubcategory?.categoryImage
+          );
 
           categoryEntry.subcategories.set(subcategory, {
             id: subcategory,
             label: picklistSubcategory?.label || this.formatLabel(subcategory),
             count: 0,
-            imageUrl: picklistSubcategory?.categoryImage?.isactive
-              ? picklistSubcategory.categoryImage.imageurl
-              : null,
-            thumbnailUrl: picklistSubcategory?.categoryImage?.isactive
-              ? picklistSubcategory.categoryImage.thumbnailurl
-              : null,
+            imageUrl: subcategoryImageUrls.imageUrl,
+            thumbnailUrl: subcategoryImageUrls.thumbnailUrl,
             subsubcategories: [],
           });
         }

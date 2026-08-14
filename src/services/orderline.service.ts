@@ -92,6 +92,15 @@ export class OrderlineService {
         ordereddate: data.ordereddate || currentTimestamp,
       };
 
+      // Snapshot the compact invoice label when the order line is created.
+      if (!createData.productshortname && createData.productid) {
+        const product = await prisma.product.findUnique({
+          where: { id: BigInt(createData.productid) },
+          select: { shortname: true },
+        });
+        createData.productshortname = product?.shortname?.trim() || undefined;
+      }
+
       // Generate unique orderlinenumber if not provided
       if (!createData.orderlinenumber) {
         createData.orderlinenumber = `OL-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -133,6 +142,14 @@ export class OrderlineService {
         ...data,
         modifieddate: data.modifieddate || Date.now(),
       };
+
+      if (data.productid && !data.productshortname) {
+        const product = await prisma.product.findUnique({
+          where: { id: BigInt(data.productid) },
+          select: { shortname: true },
+        });
+        updateData.productshortname = product?.shortname?.trim() || undefined;
+      }
 
       const orderline = await dynamicUpdate('orderline', { id: parseInt(id) }, updateData);
 
@@ -195,6 +212,21 @@ export class OrderlineService {
         additionalData?.source || (status.toLowerCase() === 'cancelled' ? 'customer' : 'system')
       );
       const inventoryUserId = additionalData?.inventory_user_id;
+
+      if (status.toLowerCase() === 'cancelled') {
+        const cancellableStatuses = new Set([
+          'order_placed',
+          'payment_completed',
+          'order_confirmed',
+          'packed',
+          'ready_for_dispatch',
+        ]);
+        const currentStatus = String(previousStatus || '').toLowerCase().trim();
+
+        if (!cancellableStatuses.has(currentStatus)) {
+          throw new Error(`Orderline cannot be cancelled. Current status: ${previousStatus || 'unknown'}`);
+        }
+      }
 
       // ✅ CANCELLATION FLOW: Handle EKART shipment cancellation before updating status
       // According to ORDER_FULFILLMENT_EKART_INTEGRATION_PLAN.md Section 6

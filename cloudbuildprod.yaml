@@ -97,6 +97,7 @@ steps:
       - "_SELLER_GST_TIN=${_SELLER_GST_TIN}"
       - "_WAREHOUSE_PINCODE=${_WAREHOUSE_PINCODE}"
       - "_STORAGE_BACKEND_URL=${_STORAGE_BACKEND_URL}"
+      - "_STORAGE_API_KEY=${_STORAGE_API_KEY}"
     args:
       - "-c"
       - |
@@ -175,6 +176,7 @@ steps:
           "SELLER_GST_TIN": "_SELLER_GST_TIN",
           "WAREHOUSE_PINCODE": "_WAREHOUSE_PINCODE",
           "STORAGE_BACKEND_URL": "_STORAGE_BACKEND_URL",
+          "STORAGE_API_KEY": "_STORAGE_API_KEY",
         }
 
         required_env_names = [
@@ -297,6 +299,7 @@ substitutions:
   _SELLER_GST_TIN: "${SELLER_GST_TIN}"
   _WAREHOUSE_PINCODE: "${WAREHOUSE_PINCODE}"
   _STORAGE_BACKEND_URL: "${STORAGE_BACKEND_URL}"
+  _STORAGE_API_KEY: "${STORAGE_API_KEY}"
 
 
 options:

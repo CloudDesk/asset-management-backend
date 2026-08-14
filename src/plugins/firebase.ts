@@ -9,6 +9,7 @@ import {
 } from "firebase-admin/app";
 import { getMessaging, Messaging } from "firebase-admin/messaging";
 import fs from "node:fs";
+import path from "node:path";
 import { env } from "../config/env.js";
 import { logger } from "../config/logger.js";
 import { normalizePemPrivateKey } from "../utils/privateKey.js";
@@ -69,8 +70,25 @@ export function initializeFirebaseAdmin(): FirebaseAdminContext | null {
         projectId,
       );
     } else if (env.FIREBASE_SERVICE_ACCOUNT_PATH) {
+      const serviceAccountPath = path.isAbsolute(env.FIREBASE_SERVICE_ACCOUNT_PATH)
+        ? env.FIREBASE_SERVICE_ACCOUNT_PATH
+        : path.resolve(process.cwd(), env.FIREBASE_SERVICE_ACCOUNT_PATH);
+
+      if (!fs.existsSync(serviceAccountPath)) {
+        const message = `Firebase service account file was not found at ${serviceAccountPath}`;
+        if (env.NODE_ENV === 'production') {
+          throw new Error(message);
+        }
+
+        logger.warn(
+          { path: serviceAccountPath },
+          `${message}; push sends will be disabled.`
+        );
+        return null;
+      }
+
       const serviceAccount = parseServiceAccountFromJson(
-        fs.readFileSync(env.FIREBASE_SERVICE_ACCOUNT_PATH, "utf8"),
+        fs.readFileSync(serviceAccountPath, "utf8"),
       );
       credential = buildServiceAccountCredential(
         serviceAccount.clientEmail,
@@ -105,6 +123,13 @@ export function initializeFirebaseAdmin(): FirebaseAdminContext | null {
       error instanceof Error
         ? error.message
         : "Unknown Firebase Admin initialization error";
+    if (env.NODE_ENV !== "production") {
+      logger.warn(
+        { message },
+        "Firebase Admin is unavailable in development; push sends will be disabled.",
+      );
+      return null;
+    }
     logger.error({ message }, "Failed to initialize Firebase Admin");
     throw error;
   }

@@ -21,6 +21,7 @@ import {
   dynamicFindManyWithFilters,
 } from "../utils/dynamicDbOperations.js";
 import { logger } from "../config/logger.js";
+import { amazonInventorySyncService } from "./amazon-inventory-sync.service.js";
 
 export class PlatformStockService {
   /**
@@ -150,6 +151,8 @@ export class PlatformStockService {
         "Dynamic platformStock create completed with calculated status"
       );
 
+      await amazonInventorySyncService.syncAfterPlatformStockChange(platformStock);
+
       return platformStock;
     } catch (error: any) {
       logger.error(
@@ -217,6 +220,8 @@ export class PlatformStockService {
         },
         "Dynamic platformStock update completed with calculated status"
       );
+
+      await amazonInventorySyncService.syncAfterPlatformStockChange(platformStock);
 
       return platformStock;
     } catch (error: any) {
@@ -507,8 +512,8 @@ export class PlatformStockService {
       const newSoldQty = Math.max(0, currentSoldQty + soldQtyChange);
       const newTotalQty = Math.max(0, currentTotalQty + totalQtyChange);
 
-      // Calculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
-      const newAvailableQty = Math.max(0, newEcomQty - currentOrderedQty - newSoldQty - currentLockQty);
+      // Calculate availableqty using formula: ecomqty - orderedqty - lockqty
+      const newAvailableQty = Math.max(0, newEcomQty - currentOrderedQty - currentLockQty);
 
       logger.debug(
         {
@@ -534,7 +539,7 @@ export class PlatformStockService {
             totalQtyChange
           },
           formula: {
-            availableqty: `${newEcomQty} - ${currentOrderedQty} - ${newSoldQty} - ${currentLockQty} = ${newAvailableQty}`
+            availableqty: `${newEcomQty} - ${currentOrderedQty} - ${currentLockQty} = ${newAvailableQty}`
           }
         },
         "PlatformStock quantity calculations"
@@ -652,7 +657,7 @@ export class PlatformStockService {
           
           const newEcomQty = Math.max(0, currentEcomQty - 1);
           const newTotalQty = Math.max(0, Number(fromRecord.totalqty) - 1);
-          const newAvailableQty = Math.max(0, newEcomQty - currentOrderedQty - currentSoldQty - currentLockQty);
+          const newAvailableQty = Math.max(0, newEcomQty - currentOrderedQty - currentLockQty);
           
           fromPlatformStock = await dynamicUpdate('platformstock', { id: fromRecord.id }, {
             ecomqty: newEcomQty,
@@ -696,7 +701,7 @@ export class PlatformStockService {
           
           const newEcomQty = currentEcomQty + 1;
           const newTotalQty = Number(toRecord.totalqty) + 1;
-          const newAvailableQty = Math.max(0, newEcomQty - currentOrderedQty - currentSoldQty - currentLockQty);
+          const newAvailableQty = Math.max(0, newEcomQty - currentOrderedQty - currentLockQty);
           
           toPlatformStock = await dynamicUpdate('platformstock', { id: toRecord.id }, {
             ecomqty: newEcomQty,
@@ -739,6 +744,11 @@ export class PlatformStockService {
         "Platform stock transfer completed successfully"
       );
 
+      await Promise.all([
+        amazonInventorySyncService.syncAfterPlatformStockChange(fromPlatformStock),
+        amazonInventorySyncService.syncAfterPlatformStockChange(toPlatformStock),
+      ]);
+
       return { fromPlatformStock, toPlatformStock };
     } catch (error: any) {
       logger.error(
@@ -780,7 +790,8 @@ export class PlatformStockService {
    * - totalqty = Count of ALL stocks for this product+platform
    * - ecomqty = Count of stocks where stockstatus = 'available' AND ecompublish = true
    * - soldqty = Count of stocks where stockstatus = 'sold'
-   * - availableqty = ecomqty - orderedqty - soldqty - lockqty
+   * - damagedqty = Count of stocks where stockstatus = 'damaged'
+   * - availableqty = ecomqty - orderedqty - lockqty
    */
   async recalculatePlatformStockQuantities(
     productId: number,
@@ -816,6 +827,7 @@ export class PlatformStockService {
           totalqty: 0,
           ecomqty: 0,
           soldqty: 0,
+          damagedqty: 0,
           availableqty: 0,
           platformstatus: 'out_of_stock',
           modifieddate: BigInt(Date.now())
@@ -853,6 +865,7 @@ export class PlatformStockService {
       let totalQty = 0;
       let ecomQty = 0;
       let soldQty = 0;
+      let damagedQty = 0;
 
       stocks.forEach(stock => {
         const stockStatus = stock.stockstatus?.toLowerCase();
@@ -867,6 +880,8 @@ export class PlatformStockService {
           }
         } else if (stockStatus === 'sold') {
           soldQty += 1;
+        } else if (stockStatus === 'damaged') {
+          damagedQty += 1;
         }
       });
 
@@ -882,8 +897,8 @@ export class PlatformStockService {
       const currentOrderedQty = existing && existing.length > 0 ? Number(existing[0].orderedqty || 0) : 0;
       const currentLockQty = existing && existing.length > 0 ? Number(existing[0].lockqty || 0) : 0;
 
-      // Calculate availableqty using formula: ecomqty - orderedqty - soldqty - lockqty
-      const availableQty = Math.max(0, ecomQty - currentOrderedQty - soldQty - currentLockQty);
+      // Calculate availableqty using formula: ecomqty - orderedqty - lockqty
+      const availableQty = Math.max(0, ecomQty - currentOrderedQty - currentLockQty);
 
       // Calculate platform status
       const platformStatus = this.calculatePlatformStatus(availableQty);
@@ -892,6 +907,7 @@ export class PlatformStockService {
         totalqty: totalQty,
         ecomqty: ecomQty,
         soldqty: soldQty,
+        damagedqty: damagedQty,
         availableqty: availableQty,
         orderedqty: currentOrderedQty,
         lockqty: currentLockQty,
@@ -915,12 +931,13 @@ export class PlatformStockService {
             totalqty: totalQty,
             ecomqty: ecomQty,
             soldqty: soldQty,
+            damagedqty: damagedQty,
             availableqty: availableQty,
             orderedqty: currentOrderedQty,
             lockqty: currentLockQty
           },
           formula: {
-            availableqty: `${ecomQty} - ${currentOrderedQty} - ${soldQty} - ${currentLockQty} = ${availableQty}`
+            availableqty: `${ecomQty} - ${currentOrderedQty} - ${currentLockQty} = ${availableQty}`
           },
           platformStatus
         },

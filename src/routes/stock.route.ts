@@ -109,6 +109,7 @@ export async function stockRoutes(fastify: FastifyInstance) {
                 orderedquantity: { type: 'number', description: 'Ordered quantity for the PUC' },
                 soldquantity: { type: 'number', description: 'Sold quantity for the PUC' },
                 ecompublishedquantity: { type: 'number', description: 'E-commerce published quantity for the PUC' },
+                damagedquantity: { type: 'number', description: 'Damaged quantity for the PUC' },
                 locations: {
                   type: 'array',
                   items: {
@@ -119,7 +120,8 @@ export async function stockRoutes(fastify: FastifyInstance) {
                       availablequantity: { type: 'number', description: 'Available stocks at this location' },
                       orderedquantity: { type: 'number', description: 'Ordered stocks at this location' },
                       soldquantity: { type: 'number', description: 'Sold stocks at this location' },
-                      ecompublishedquantity: { type: 'number', description: 'E-commerce published stocks at this location' }
+                      ecompublishedquantity: { type: 'number', description: 'E-commerce published stocks at this location' },
+                      damagedquantity: { type: 'number', description: 'Damaged stocks at this location' }
                     },
                     additionalProperties: false
                   }

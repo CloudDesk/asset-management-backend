@@ -302,6 +302,8 @@ export class OtpService {
    */
   async generateAndStoreOtp(phoneNumber: string, provider: OtpProvider = 'twilio', otpOverride?: string): Promise<OtpGenerateResult> {
     try {
+      await redisClient.ensureConnected();
+
       // 1. Check if phone is blocked
       const blockStatus = await this.isBlocked(phoneNumber);
       if (blockStatus.blocked) {
@@ -409,6 +411,8 @@ export class OtpService {
    */
   async verifyOtp(phoneNumber: string, inputOtp: string): Promise<OtpVerifyResult> {
     try {
+      await redisClient.ensureConnected();
+
       // 1. Check if phone is blocked
       const blockStatus = await this.isBlocked(phoneNumber);
       if (blockStatus.blocked) {

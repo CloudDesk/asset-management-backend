@@ -22,8 +22,7 @@ steps:
       - "push"
       - "gcr.io/nivaana/nivaana-sit:latest"
 
-  # Step 4: Deploy the image to Cloud Run SIT.
-  # Existing Cloud Run environment variables on nivaana-dev are retained.
+  # Step 4: Deploy to Cloud Run SIT using .env.sit plus Secret Manager for Amazon credentials.
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     entrypoint: "gcloud"
     args:
@@ -41,6 +40,12 @@ steps:
       - "nivaana-dev@nivaana.iam.gserviceaccount.com"
       - "--port"
       - "5600"
+      - "--memory"
+      - "512Mi"
+      - "--env-vars-file"
+      - ".env.sit"
+      - "--set-secrets"
+      - "AMAZON_CLIENT_ID=nivaana-sit-amazon-client-id:latest,AMAZON_CLIENT_SECRET=nivaana-sit-amazon-client-secret:latest,AMAZON_REFRESH_TOKEN=nivaana-sit-amazon-refresh-token:latest"
 
 options:
   logging: CLOUD_LOGGING_ONLY

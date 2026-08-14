@@ -360,7 +360,7 @@ export async function orderlineRoutes(fastify: FastifyInstance) {
             orderamount: { type: 'number', description: 'Order amount' },
             quantity: { type: 'number', description: 'Quantity' },
             merchanttransactionid: { type: 'string', maxLength: 250, description: 'Merchant transaction ID' },
-            productname: { type: 'string', maxLength: 500, description: 'Product name' },
+            productname: { type: 'string', maxLength: 1200, description: 'Product name' },
             productcategory: { type: 'string', maxLength: 500, description: 'Product category' },
             productcolour: { type: 'string', maxLength: 500, description: 'Product colour' },
             readytodispatchdate: { type: 'number', description: 'Ready to dispatch date (timestamp)' },
@@ -438,7 +438,7 @@ export async function orderlineRoutes(fastify: FastifyInstance) {
             orderamount: { type: 'number', description: 'Order amount' },
             quantity: { type: 'number', description: 'Quantity' },
             merchanttransactionid: { type: 'string', maxLength: 250, description: 'Merchant transaction ID' },
-            productname: { type: 'string', maxLength: 500, description: 'Product name' },
+            productname: { type: 'string', maxLength: 1200, description: 'Product name' },
             productcategory: { type: 'string', maxLength: 500, description: 'Product category' },
             productcolour: { type: 'string', maxLength: 500, description: 'Product colour' },
             readytodispatchdate: { type: 'number', description: 'Ready to dispatch date (timestamp)' },
@@ -678,7 +678,7 @@ export async function orderlineRoutes(fastify: FastifyInstance) {
             orderamount: { type: 'number', description: 'Order amount' },
             quantity: { type: 'number', description: 'Quantity' },
             merchanttransactionid: { type: 'string', maxLength: 250, description: 'Merchant transaction ID' },
-            productname: { type: 'string', maxLength: 500, description: 'Product name' },
+            productname: { type: 'string', maxLength: 1200, description: 'Product name' },
             productcategory: { type: 'string', maxLength: 500, description: 'Product category' },
             productcolour: { type: 'string', maxLength: 500, description: 'Product colour' },
             readytodispatchdate: { type: 'number', description: 'Ready to dispatch date (timestamp)' },
@@ -733,4 +733,4 @@ export async function orderlineRoutes(fastify: FastifyInstance) {
     }, orderlineController.upsertOrderline.bind(orderlineController));
   */
 
-} 
+}

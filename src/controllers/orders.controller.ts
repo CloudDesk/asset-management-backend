@@ -16,10 +16,31 @@ import { formatEntitiesForAPI } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
 import { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import { CustomerNotificationService } from '../services/customer-notification.service.js';
+import { ReturnRequestService } from '../services/return-request.service.js';
+import { RefundOperationService } from '../services/refund-operation.service.js';
+import { env } from '../config/env.js';
+
+const formatRefundOperationForApi = (operation: any) => ({
+  ...operation,
+  approvedAmount: Number(operation.approvedAmount || 0),
+  originalWalletAmount: Number(operation.originalWalletAmount || 0),
+  eligibleWalletAmount: Number(operation.eligibleWalletAmount || 0),
+  expiredWalletAmount: Number(operation.expiredWalletAmount || 0),
+  onlineAmount: Number(operation.onlineAmount || 0),
+  nonExpiringWalletAmount: Number(operation.nonExpiringWalletAmount || 0),
+  walletCreditedAmount: Number(operation.walletCreditedAmount || 0),
+  phonepeRefundAmount: Number(operation.phonepeRefundAmount || 0),
+  consentAt: operation.consentAt ? Number(operation.consentAt) : null,
+  createddate: Number(operation.createddate),
+  modifieddate: Number(operation.modifieddate),
+  completeddate: operation.completeddate ? Number(operation.completeddate) : null,
+});
 
 export class OrdersController {
   public ordersService = new OrdersService();
   private customerNotificationService = new CustomerNotificationService();
+  private returnRequestService = new ReturnRequestService();
+  private refundOperationService = new RefundOperationService();
 
   private async sendOrderNotification(order: any, status?: string | null) {
     try {
@@ -98,6 +119,18 @@ export class OrdersController {
         filtered: Object.keys(filters).length > 0
       }
     });
+  });
+
+  getReturnEligibility = asyncHandler(async (
+    request: AuthenticatedRequest & FastifyRequest<{ Params: { id: string } }>,
+    reply: FastifyReply
+  ) => {
+    const { id } = request.params;
+    const result = await this.returnRequestService.getOrderReturnEligibility(id, request.user);
+
+    return reply
+      .code(200)
+      .send(createSuccessResponse('Order return eligibility evaluated successfully', result));
   });
 
   /**
@@ -508,6 +541,52 @@ export class OrdersController {
       }));
     }
 
+    // Shipmozo shipments use the Shipmozo tracking API. Keep the existing
+    // EKART branch below unchanged for EKART and legacy records.
+    if (String(order.vendor || '').toUpperCase() === 'SHIPMOZO') {
+      if (!env.SHIPMOZO_INTEGRATION_ENABLED) {
+        return reply.code(404).send({
+          success: false,
+          message: 'Shipmozo integration is disabled in this environment',
+          statusCode: 404,
+          code: 'SHIPMOZO_INTEGRATION_DISABLED'
+        });
+      }
+
+      try {
+        const { buildShipmozoPublicTrackingUrl, shipmozoService } = await import('../services/shipmozo.service.js');
+        const { normalizeShipmozoTracking } = await import('../utils/shipmozo-status.js');
+        const trackingInfo = await shipmozoService.trackOrder(order.tracking_id);
+
+        return reply.code(200).send(createSuccessResponse('Order tracking retrieved successfully', {
+          order_id: order.id,
+          order_number: order.orderid,
+          order_status: order.orderstatus,
+          tracking_id: order.tracking_id,
+          vendor: 'SHIPMOZO',
+          public_tracking_link: order.public_tracking_link || buildShipmozoPublicTrackingUrl(order.tracking_id),
+          normalized_tracking: normalizeShipmozoTracking(trackingInfo),
+          shipmozo_tracking: trackingInfo,
+          tracking_available: true
+        }));
+      } catch (error: any) {
+        logger.error(
+          { error: error.message, trackingId: order.tracking_id },
+          'Failed to fetch Shipmozo tracking info'
+        );
+        return reply.code(200).send(createSuccessResponse('Order tracking information (Shipmozo tracking unavailable)', {
+          order_id: order.id,
+          order_number: order.orderid,
+          order_status: order.orderstatus,
+          tracking_id: order.tracking_id,
+          vendor: 'SHIPMOZO',
+          public_tracking_link: order.public_tracking_link || `https://app.shipmozo.com/track-order?awb=${encodeURIComponent(order.tracking_id)}`,
+          message: 'Shipmozo tracking information temporarily unavailable',
+          tracking_available: true
+        }));
+      }
+    }
+
     // Get EKART tracking info
     try {
       const { ekartService } = await import('../services/ekart.service.js');
@@ -873,6 +952,12 @@ export class OrdersController {
         refund_reference,
         actor.username
       );
+      if (status === 'cancelled_refunded') {
+        await this.refundOperationService.markCancellationRefundCompleted(
+          orderId,
+          refund_transaction_id || refund_reference || null,
+        );
+      }
       await this.sendOrderNotification(updatedOrder, status);
 
       const response = createSuccessResponse(
@@ -910,4 +995,66 @@ export class OrdersController {
       throw error;
     }
   });
-} 
+
+  getCancellationRefundPreview = asyncHandler(async (
+    request: FastifyRequest<{ Params: { id: string } }>,
+    reply: FastifyReply
+  ) => {
+    const actor = this.resolveInventoryActor(request);
+    if (!actor) {
+      return reply.code(401).send({ success: false, message: 'Authenticated inventory user is required' });
+    }
+    const rawId = request.params.id;
+    const order = isNaN(Number(rawId)) ? await this.ordersService.findByOrderNumber(rawId) : null;
+    const orderId = order?.id || Number(rawId);
+    const preview = await this.refundOperationService.previewCancellation(orderId);
+    return reply.send(createSuccessResponse('Cancellation refund preview calculated', preview));
+  });
+
+  initiateCancellationRefund = asyncHandler(async (
+    request: FastifyRequest<{
+      Params: { id: string };
+      Body: {
+        destination: 'original_sources' | 'wallet';
+        consent_accepted?: boolean;
+        consent_channel?: 'call' | 'whatsapp' | 'email' | 'support_ticket' | 'in_app' | 'other';
+        consent_reference?: string;
+        consent_notes?: string;
+        admin_user_id?: number;
+      };
+    }>,
+    reply: FastifyReply
+  ) => {
+    const actor = this.resolveInventoryActor(request, request.body.admin_user_id);
+    if (!actor) {
+      return reply.code(401).send({ success: false, message: 'Authenticated inventory user is required' });
+    }
+    const rawId = request.params.id;
+    const found = isNaN(Number(rawId)) ? await this.ordersService.findByOrderNumber(rawId) : null;
+    const orderId = found?.id || Number(rawId);
+    const operation = await this.refundOperationService.initiateCancellationRefund(orderId, {
+      ...request.body,
+      admin_user_id: actor.id,
+    });
+
+    const currentOrder = await this.ordersService.findById(orderId);
+    if (currentOrder?.orderstatus === 'cancelled') {
+      const completed = operation.status === 'completed';
+      await this.ordersService.updateRefundStatus(
+        orderId,
+        completed ? 'cancelled_refunded' : 'cancelled_refund_processing',
+        actor.id,
+        request.body.consent_notes || `Refund destination: ${request.body.destination}`,
+        operation.phonepeRefundId || operation.operationNumber,
+        Number(operation.walletCreditedAmount || 0) + Number(operation.phonepeRefundAmount || 0),
+        operation.operationNumber,
+        actor.username,
+      );
+    }
+
+    const updatedOrder = await this.ordersService.findById(orderId);
+    await this.sendOrderNotification(updatedOrder, updatedOrder?.orderstatus);
+    return reply.send(createSuccessResponse('Cancellation refund initiated', formatRefundOperationForApi(operation)));
+  });
+
+}

@@ -506,7 +506,7 @@ export async function picklistRoutesV2(fastify: FastifyInstance) {
               items: {
                 type: 'object',
                 properties: {
-                  id: { type: ['integer', 'string'] },
+                  id: { anyOf: [{ type: 'integer' }, { type: 'string' }] },
                   success: { type: 'boolean' },
                   data: {
                     type: 'object',

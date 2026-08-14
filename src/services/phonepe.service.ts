@@ -43,7 +43,9 @@ const PHONEPE_CONFIG = {
   REDIRECT_FAILURE:
     process.env.REDIRECT_URL_FAILURE || "https://nivaana.in/payments?payment=failure",
   REDIRECT_STATUS:
-    process.env.REDIRECT_URL_PAYMENT_STATUS || "https://nivaana-715569764663.asia-south1.run.app",
+    process.env.REDIRECT_URL_PAYMENT_STATUS ||
+    process.env.API_BASE_URL ||
+    "http://localhost:5600",
 };
 
 export interface PhonePePaymentRequest {
@@ -55,6 +57,39 @@ export interface PhonePePaymentRequest {
   productIds?: number[];
   transactionFor?: string;
   callbackUrl?: string;
+}
+
+function isAllowedCustomerRedirectUrl(value: unknown): value is string {
+  if (typeof value !== "string" || !value.trim()) return false;
+
+  try {
+    const url = new URL(value);
+    const configuredOrigins = (
+      process.env.PAYMENT_RETURN_URL_ALLOWED_ORIGINS || ""
+    )
+      .split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean);
+    const isLocalDevelopment =
+      process.env.NODE_ENV !== "production" &&
+      url.protocol === "http:" &&
+      ["localhost", "127.0.0.1"].includes(url.hostname);
+
+    return configuredOrigins.includes(url.origin) || isLocalDevelopment;
+  } catch {
+    return false;
+  }
+}
+
+function getPhonePeErrorMessage(error: any): string {
+  const providerData = error?.response?.data || error?.data;
+  const providerCode = providerData?.code || providerData?.errorCode || error?.code;
+  const providerMessage =
+    providerData?.message ||
+    providerData?.errorMessage ||
+    error?.message ||
+    "Unknown PhonePe error";
+  return [providerCode, providerMessage].filter(Boolean).join(": ");
 }
 
 export interface PhonePePaymentResponse {
@@ -181,10 +216,11 @@ export class PhonePeService {
         callbackUrl,
       } = paymentRequest;
 
-      // Create PhonePe callback URL
-      const finalCallbackUrl =
-        callbackUrl ||
-        `${PHONEPE_CONFIG.REDIRECT_STATUS}/v1/phonepe/callback/${merchantTransactionId}`;
+      // PhonePe's dashboard webhook handles server-to-server payment events.
+      // This SDK URL is only where the customer's browser returns afterward.
+      const finalCallbackUrl = isAllowedCustomerRedirectUrl(callbackUrl)
+        ? callbackUrl
+        : PHONEPE_CONFIG.REDIRECT_SUCCESS;
 
       logger.info(
         {
@@ -1009,7 +1045,8 @@ export class PhonePeService {
   async refundPayment(
     merchantTransactionId: string,
     refundAmount?: number,
-    reason?: string
+    reason?: string,
+    merchantRefundId?: string
   ): Promise<{
     success: boolean;
     message: string;
@@ -1022,14 +1059,14 @@ export class PhonePeService {
       );
 
       // Get original transaction
-      const transaction = await this.transactionService.findByTransactionId(
-        merchantTransactionId
-      );
+      const transaction =
+        await this.transactionService.findByTransactionId(merchantTransactionId) ||
+        await this.transactionService.findByMerchantTransactionId(merchantTransactionId);
       if (!transaction) {
         throw new ValidationError("Transaction not found");
       }
 
-      const refundId = `REFUND_${merchantTransactionId}_${Date.now()}`;
+      const refundId = merchantRefundId || `REFUND_${merchantTransactionId}_${Date.now()}`;
       const finalRefundAmount =
         refundAmount || parseFloat(transaction.amount?.toString() || "0");
 
@@ -1084,7 +1121,8 @@ export class PhonePeService {
 
       return {
         success: false,
-        message: "Refund initiation failed",
+        message: `Refund initiation failed: ${getPhonePeErrorMessage(error)}`,
+        ...(merchantRefundId ? { refundId: merchantRefundId } : {}),
       };
     }
   }
@@ -1104,27 +1142,46 @@ export class PhonePeService {
     refundId?: string;
   }> {
     try {
-      logger.info(
-        {
-          merchantTransactionId,
-          refundId,
-          refundAmount,
-        },
-        "SDK refund not fully implemented yet, falling back to legacy"
-      );
+      const request = RefundRequest.builder()
+        .merchantRefundId(refundId)
+        .originalMerchantOrderId(merchantTransactionId)
+        .amount(Math.round(refundAmount * 100))
+        .build();
+      const response = await this.sdkClient!.refund(request);
 
-      // For now, fall back to legacy refund method
-      return await this.refundPaymentLegacy(
-        merchantTransactionId,
-        refundId,
-        refundAmount,
-        reason,
-        transaction
+      const existingRefund = await this.transactionService.findByTransactionId(refundId);
+      if (!existingRefund) {
+        await this.transactionService.create({
+          transactionid: refundId,
+          merchanttransactionid: refundId,
+          name: transaction.name || "Refund",
+          amount: refundAmount,
+          mobilenumber: transaction.mobilenumber,
+          userid: transaction.userid,
+          productid: transaction.productid,
+          transactionfor: "refund",
+          transactiondata: {
+            status: response.state || "REFUND_INITIATED",
+            originalTransactionId: merchantTransactionId,
+            reason,
+            phonePeResponse: response,
+          },
+        });
+      }
+
+      logger.info(
+        { merchantTransactionId, refundId, refundAmount, state: response.state },
+        "PhonePe refund initiated via SDK"
       );
+      return {
+        success: !["FAILED", "FAILURE"].includes(String(response.state || "").toUpperCase()),
+        message: `PhonePe refund ${String(response.state || "initiated").toLowerCase()}`,
+        refundId,
+      };
     } catch (error: any) {
       logger.error(
         {
-          error: error.message,
+          error: getPhonePeErrorMessage(error),
           stack: error.stack,
           merchantTransactionId,
           refundId,
@@ -1251,15 +1308,12 @@ export class PhonePeService {
   }> {
     try {
       if (this.sdkClient) {
-        logger.info(
-          { refundId },
-          "SDK refund status check not fully implemented yet"
-        );
-
-        // For now, return a placeholder response
+        const response = await this.sdkClient.getRefundStatus(refundId);
+        const state = String(response.state || "PENDING").toUpperCase();
         return {
-          success: false,
-          message: "SDK refund status check not fully implemented yet",
+          success: ["COMPLETED", "SUCCESS", "SUCCESSFUL"].includes(state),
+          message: `PhonePe refund status: ${state}`,
+          refundData: response,
         };
       } else {
         logger.warn({ refundId }, "SDK not available for refund status check");
@@ -1279,7 +1333,7 @@ export class PhonePeService {
 
       return {
         success: false,
-        message: `Failed to check refund status: ${error.message}`,
+        message: `Failed to check refund status: ${getPhonePeErrorMessage(error)}`,
       };
     }
   }
@@ -1454,8 +1508,8 @@ export class PhonePeService {
       if (this.sdkClient) {
         // Use SDK validation method
         const callbackResponse = await this.sdkClient.validateCallback(
-          PHONEPE_CONFIG.CLIENT_ID, // username
-          PHONEPE_CONFIG.CLIENT_SECRET, // password
+          process.env.PHONEPE_WEBHOOK_USERNAME || PHONEPE_CONFIG.CLIENT_ID,
+          process.env.PHONEPE_WEBHOOK_PASSWORD || PHONEPE_CONFIG.CLIENT_SECRET,
           authHeader, // Authorization header
           payload // response body string
         );
@@ -1463,21 +1517,17 @@ export class PhonePeService {
         logger.info(
           {
             isValid: true, // SDK validation succeeded
-            eventType: "PAYMENT", // Default event type
-            state: "VALIDATED",
-            orderId: "N/A",
-            refundId: "N/A",
+            callbackType: callbackResponse.type,
+            state: callbackResponse.payload?.state,
+            merchantOrderId: callbackResponse.payload?.merchantOrderId,
+            refundId: callbackResponse.payload?.refundId,
           },
           "PhonePe SDK webhook validation result"
         );
 
         return {
           isValid: true,
-          callbackResponse: {
-            isValid: true,
-            eventType: "PAYMENT",
-            state: "VALIDATED",
-          },
+          callbackResponse,
         };
       } else {
         // Fall back to legacy validation
