@@ -1326,8 +1326,8 @@ export class PromotionsService {
         break;
 
       case 'FREE_SHIPPING':
-        // Assume shipping cost is 50 for now - this should be calculated properly
-        const shippingCost = 50;
+        // Keep recommendation savings aligned with the standard web/mobile shipping fee.
+        const shippingCost = 150;
         discountAmount = shippingCost;
         discountPercentage = cartInfo.total > 0 ? (shippingCost / cartInfo.total) * 100 : 0;
         savingsAmount = shippingCost;
