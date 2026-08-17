@@ -133,6 +133,19 @@ export async function shipmozoRoutes(fastify: FastifyInstance) {
     }
   }, controller.runTrackingSync);
 
+  fastify.post('/tracking/cron', {
+    schema: {
+      tags,
+      description: 'Run a bounded Shipmozo tracking batch from an external scheduler',
+      headers: {
+        type: 'object',
+        properties: { 'x-cron-secret': { type: 'string' } }
+      },
+      body: { type: 'object', properties: { limit: { type: 'integer', minimum: 1, maximum: 10 } } },
+      response: { 200: successResponse }
+    }
+  }, controller.runScheduledTrackingSync);
+
   fastify.post('/webhook/track-status', {
     schema: {
       tags,

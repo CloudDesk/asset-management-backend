@@ -1,4 +1,5 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
+import { timingSafeEqual } from 'node:crypto';
 import axios from 'axios';
 import FormData from 'form-data';
 import { env } from '../config/env.js';
@@ -511,6 +512,32 @@ export class ShipmozoController {
     }
     const result = await shipmozoTrackingSyncService.runBatch(limit);
     return reply.code(200).send(createSuccessResponse('Shipmozo tracking batch completed', result));
+  });
+
+  runScheduledTrackingSync = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    const configuredSecret = env.SHIPMOZO_CRON_SECRET;
+    const providedSecret = String(request.headers['x-cron-secret'] || '').trim();
+    if (!configuredSecret) {
+      logger.error('Shipmozo external tracking cron called before SHIPMOZO_CRON_SECRET was configured');
+      return reply.code(503).send({ success: false, message: 'Tracking cron is not configured', statusCode: 503 });
+    }
+
+    const configuredBuffer = Buffer.from(configuredSecret);
+    const providedBuffer = Buffer.from(providedSecret);
+    const secretMatches = configuredBuffer.length === providedBuffer.length
+      && timingSafeEqual(configuredBuffer, providedBuffer);
+    if (!secretMatches) {
+      logger.warn({ secretProvided: Boolean(providedSecret) }, 'Rejected Shipmozo tracking cron with invalid secret');
+      return reply.code(401).send({ success: false, message: 'Invalid cron secret', statusCode: 401 });
+    }
+
+    const body = (request.body || {}) as { limit?: number };
+    const limit = body.limit === undefined ? Math.min(env.SHIPMOZO_TRACKING_SYNC_BATCH_SIZE, 10) : Number(body.limit);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 10) {
+      throw new ValidationError('limit must be an integer between 1 and 10');
+    }
+    const result = await shipmozoTrackingSyncService.runBatch(limit);
+    return reply.code(200).send(createSuccessResponse('Scheduled Shipmozo tracking batch completed', result));
   });
 
   handleTrackingWebhook = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {

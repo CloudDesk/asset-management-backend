@@ -21,7 +21,9 @@ function parseHistory(value: unknown): any[] {
 
 function nextSyncAt(status: string | null, retryCount = 0): number | null {
   if (status && TERMINAL_STATUSES.has(status)) return null;
-  const baseMinutes = status === 'out_for_delivery' ? 30 : 60;
+  // External scheduling runs every five minutes. Keep each active shipment
+  // eligible on that cadence; failures still back off to protect Shipmozo.
+  const baseMinutes = 5;
   const retryMultiplier = Math.min(2 ** retryCount, 6);
   return Date.now() + baseMinutes * retryMultiplier * 60_000;
 }
