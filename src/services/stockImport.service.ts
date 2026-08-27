@@ -8,6 +8,7 @@ import { StockService } from './stock.service.js';
 import { ProductService } from './product.service.js';
 import { PlatformStockService } from './platformStock.service.js';
 import { amazonInventorySyncService } from './amazon-inventory-sync.service.js';
+import { flipkartInventoryService } from './flipkart-inventory.service.js';
 
 export type StockImportRowStatus = 'success' | 'warning' | 'error';
 
@@ -1517,6 +1518,9 @@ export class StockImportService {
           });
 
           await amazonInventorySyncService.syncAfterPlatformStockChange(
+            updatedPlatformStock as unknown as Record<string, unknown>
+          );
+          await flipkartInventoryService.syncAfterPlatformStockChange(
             updatedPlatformStock as unknown as Record<string, unknown>
           );
           

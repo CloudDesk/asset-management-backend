@@ -353,6 +353,16 @@ const envSchema = z.object({
     const parsed = Number.parseInt(value, 10);
     return Number.isFinite(parsed) ? Math.min(900, Math.max(300, parsed)) : 600;
   }),
+
+  // Flipkart Marketplace Seller API (self-access application).
+  // Credentials must remain backend-only. Production writes stay opt-in.
+  FLIPKART_APP_ID: z.string().trim().optional(),
+  FLIPKART_APP_SECRET: z.string().trim().optional(),
+  FLIPKART_SELLER_ID: z.string().trim().optional(),
+  FLIPKART_ENVIRONMENT: z.enum(['SANDBOX', 'PRODUCTION']).optional().default('PRODUCTION'),
+  FLIPKART_API_BASE_URL: z.string().url().optional().default('https://api.flipkart.net'),
+  FLIPKART_MOCK_MODE: z.enum(['true', 'false']).optional().default('true').transform((value) => value === 'true'),
+  FLIPKART_INVENTORY_WRITES_ENABLED: z.enum(['true', 'false']).optional().default('false').transform((value) => value === 'true'),
   AWS_ACCESS_KEY_ID: z.string().optional(),
   AWS_SECRET_ACCESS_KEY: z.string().optional(),
 

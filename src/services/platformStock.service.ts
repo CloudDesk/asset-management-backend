@@ -22,6 +22,7 @@ import {
 } from "../utils/dynamicDbOperations.js";
 import { logger } from "../config/logger.js";
 import { amazonInventorySyncService } from "./amazon-inventory-sync.service.js";
+import { flipkartInventoryService } from "./flipkart-inventory.service.js";
 
 export class PlatformStockService {
   /**
@@ -151,7 +152,10 @@ export class PlatformStockService {
         "Dynamic platformStock create completed with calculated status"
       );
 
-      await amazonInventorySyncService.syncAfterPlatformStockChange(platformStock);
+      await Promise.allSettled([
+        amazonInventorySyncService.syncAfterPlatformStockChange(platformStock),
+        flipkartInventoryService.syncAfterPlatformStockChange(platformStock),
+      ]);
 
       return platformStock;
     } catch (error: any) {
@@ -221,7 +225,10 @@ export class PlatformStockService {
         "Dynamic platformStock update completed with calculated status"
       );
 
-      await amazonInventorySyncService.syncAfterPlatformStockChange(platformStock);
+      await Promise.allSettled([
+        amazonInventorySyncService.syncAfterPlatformStockChange(platformStock),
+        flipkartInventoryService.syncAfterPlatformStockChange(platformStock),
+      ]);
 
       return platformStock;
     } catch (error: any) {
@@ -747,6 +754,8 @@ export class PlatformStockService {
       await Promise.all([
         amazonInventorySyncService.syncAfterPlatformStockChange(fromPlatformStock),
         amazonInventorySyncService.syncAfterPlatformStockChange(toPlatformStock),
+        flipkartInventoryService.syncAfterPlatformStockChange(fromPlatformStock),
+        flipkartInventoryService.syncAfterPlatformStockChange(toPlatformStock),
       ]);
 
       return { fromPlatformStock, toPlatformStock };
