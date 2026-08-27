@@ -1,0 +1,548 @@
+[
+  {
+    "id": "4",
+    "puc": "NIV-0004",
+    "productName": "NIVAANA - Incense Sticks - Kasturi - Value Pack - 30 Sticks",
+    "previousShortName": "NIVAANA - Incense Sticks - Kasturi - Value Pack - 30 Sticks",
+    "updatedShortName": "Kasturi - Premium Incense - 30 Sticks"
+  },
+  {
+    "id": "5",
+    "puc": "NIV-0005",
+    "productName": "NIVAANA - Incense Sticks - Parijat",
+    "previousShortName": "NIVAANA - Incense Sticks - Parijat",
+    "updatedShortName": "Parijat - Premium Incense - 30 Sticks"
+  },
+  {
+    "id": "6",
+    "puc": "NIV-0006",
+    "productName": "NIVAANA - Incense Sticks - Paradise Garden - Value Pack - 30 Sticks",
+    "previousShortName": "NIVAANA - Incense Sticks - Paradise Garden - Value Pack - 30 Sticks",
+    "updatedShortName": "Paradise garden- Premium Incense - 30 Sticks"
+  },
+  {
+    "id": "7",
+    "puc": "NIV-0007",
+    "productName": "NIVAANA - Incense Sticks - Kesar Chandan - Value Pack - 30 Sticks",
+    "previousShortName": "NIVAANA - Incense Sticks - Kesar Chandan - Value Pack - 30 Sticks",
+    "updatedShortName": "Kesar Chandan- Premium Incense - 30 Sticks"
+  },
+  {
+    "id": "8",
+    "puc": "NIV-0008",
+    "productName": "NIVAANA - Incense Sticks - Spiritual Harmony - Value Pack - 30 Sticks",
+    "previousShortName": "NIVAANA - Incense Sticks - Spiritual Harmony - Value Pack - 30 Sticks",
+    "updatedShortName": "Spiritual harmony- Premium Incense - 30 Sticks"
+  },
+  {
+    "id": "9",
+    "puc": "NIV-0009",
+    "productName": "NIVAANA - Incense Sticks - Floral Valley - Value Pack - 30 Sticks",
+    "previousShortName": "NIVAANA - Incense Sticks - Floral Valley - Value Pack - 30 Sticks",
+    "updatedShortName": "Floral Valley - Premium Incense - 30 Sticks"
+  },
+  {
+    "id": "10",
+    "puc": "NIV-0010",
+    "productName": "NIVAANA - Incense Sticks - Davana - Value Pack - 30 Sticks",
+    "previousShortName": "NIVAANA - Incense Sticks - Davana - Value Pack - 30 Sticks",
+    "updatedShortName": "Davana - Premium Incense - 30 Sticks"
+  },
+  {
+    "id": "11",
+    "puc": "NIV-0011",
+    "productName": "NIVAANA - Incense Sticks - Wild Canopy - Value Pack - 30 Sticks",
+    "previousShortName": "NIVAANA - Incense Sticks - Wild Canopy - Value Pack - 30 Sticks",
+    "updatedShortName": "Wild Canopy- Premium Incense - 30 Sticks"
+  },
+  {
+    "id": "12",
+    "puc": "NIV-0012",
+    "productName": "NIVAANA - Incense Sticks - Black Oudh - Value Pack - 30 Sticks",
+    "previousShortName": "NIVAANA - Incense Sticks - Black Oudh - Value Pack - 30 Sticks",
+    "updatedShortName": "Black oudh- Premium Incense - 30 Sticks"
+  },
+  {
+    "id": "13",
+    "puc": "NIV-0013",
+    "productName": "NIVAANA - Incense Sticks - Himalayan Cedar - Value Pack - 30 Sticks",
+    "previousShortName": "NIVAANA - Incense Sticks - Himalayan Cedar - Value Pack - 30 Sticks",
+    "updatedShortName": "Himalayan Cedar- Premium Incense - 30 Sticks"
+  },
+  {
+    "id": "14",
+    "puc": "NIV-0014",
+    "productName": "NIVAANA - Incense Sticks - Vanilla - Value Pack - 30 Sticks",
+    "previousShortName": "NIVAANA - Incense Sticks - Vanilla - Value Pack - 30 Sticks",
+    "updatedShortName": "Vanilla - Premium Incense - 30 Sticks"
+  },
+  {
+    "id": "15",
+    "puc": "NIV-0015",
+    "productName": "NIVAANA - Incense Sticks - First Rains - Value Pack - 30 Sticks",
+    "previousShortName": "NIVAANA - Incense Sticks - First Rains - Value Pack - 30 Sticks",
+    "updatedShortName": "First Rains - Premium Incense - 30 Sticks"
+  },
+  {
+    "id": "18",
+    "puc": "AUO-0018",
+    "productName": "AUORA - Wardrobe Fragrance - Vanilla",
+    "previousShortName": "AUORA - Wardrobe Fragrance - Vanilla",
+    "updatedShortName": "Vanilla- Wardrobe Fragrance"
+  },
+  {
+    "id": "19",
+    "puc": "AUO-0019",
+    "productName": "AUORA - Wardrobe Fragrance - Nishigandha",
+    "previousShortName": "AUORA - Wardrobe Fragrance - Nishigandha",
+    "updatedShortName": "Nishigandha - Wardrobe Fragrance"
+  },
+  {
+    "id": "20",
+    "puc": "AUO-0020",
+    "productName": "AUORA - Wardrobe Fragrance - Pinacolada",
+    "previousShortName": "AUORA - Wardrobe Fragrance - Pinacolada",
+    "updatedShortName": "Pinacolada - Wardrobe Fragrance"
+  },
+  {
+    "id": "21",
+    "puc": "AUO-0021",
+    "productName": "AUORA - Wardrobe Fragrance - Cherry Blossom",
+    "previousShortName": "AUORA - Wardrobe Fragrance - Cherry Blossom",
+    "updatedShortName": "Cherry Blossom - Wardrobe Fragrance"
+  },
+  {
+    "id": "22",
+    "puc": "AUO-0022",
+    "productName": "AUORA - Wardrobe Fragrance - Cool Aqua",
+    "previousShortName": "AUORA - Wardrobe Fragrance - Cool Aqua",
+    "updatedShortName": "Cool Aqua - Wardrobe Fragrance"
+  },
+  {
+    "id": "23",
+    "puc": "AUO-0023",
+    "productName": "AUORA - Wardrobe Fragrance - Jungle Vibe",
+    "previousShortName": "AUORA - Wardrobe Fragrance - Jungle Vibe",
+    "updatedShortName": "Jungle Vibe - Wardrobe Fragrance"
+  },
+  {
+    "id": "27",
+    "puc": "NIV-0027",
+    "productName": "NIVAANA - Fragrance Oils - Lavender - Diffuser Oil - 10 ml",
+    "previousShortName": "NIVAANA - Fragrance Oils - Lavender - Diffuser Oil - 10 ml",
+    "updatedShortName": "Lavender - Diffuser Oil - 10 ml"
+  },
+  {
+    "id": "28",
+    "puc": "NIV-0028",
+    "productName": "NIVAANA - Fragrance Oils - Vanilla Oak - Diffuser Oil - 10 ml",
+    "previousShortName": "NIVAANA - Fragrance Oils - Vanilla Oak - Diffuser Oil - 10 ml",
+    "updatedShortName": "Vanilla Oak - Diffuser Oil - 10 ml"
+  },
+  {
+    "id": "29",
+    "puc": "NIV-0029",
+    "productName": "NIVAANA - Fragrance Oils - Golden Dust - Diffuser Oil - 10 ml",
+    "previousShortName": "NIVAANA - Fragrance Oils - Golden Dust - Diffuser Oil - 10 ml",
+    "updatedShortName": "Golden Dust - Diffuser Oil - 10 ml"
+  },
+  {
+    "id": "30",
+    "puc": "NIV-0030",
+    "productName": "NIVAANA - Fragrance Oils - Black Opium - Diffuser Oil - 10 ml",
+    "previousShortName": "NIVAANA - Fragrance Oils - Black Opium - Diffuser Oil - 10 ml",
+    "updatedShortName": "Black Opium - Diffuser Oil - 10 ml"
+  },
+  {
+    "id": "31",
+    "puc": "NIV-0031",
+    "productName": "NIVAANA - Fragrance Oils - Teakwood - Diffuser Oil - 10 ml",
+    "previousShortName": "NIVAANA - Fragrance Oils - Teakwood - Diffuser Oil - 10 ml",
+    "updatedShortName": "Teakwood - Diffuser Oil - 10 ml"
+  },
+  {
+    "id": "33",
+    "puc": "NIV-0033",
+    "productName": "NIVAANA - Incense Sticks - First Rains - TRY-ME-OUT Pack - 10 Sticks",
+    "previousShortName": "NIVAANA - Incense Sticks - First Rains - TRY-ME-OUT Pack - 10 Sticks",
+    "updatedShortName": "First Rains - Premium Incense- 10 Sticks"
+  },
+  {
+    "id": "34",
+    "puc": "NIV-0034",
+    "productName": "NIVAANA - Incense Sticks - Kasturi - TRY-ME-OUT Pack - 10 Sticks",
+    "previousShortName": "NIVAANA - Incense Sticks - Kasturi - TRY-ME-OUT Pack - 10 Sticks",
+    "updatedShortName": "Kasturi - Premium Incense- 10 Sticks"
+  },
+  {
+    "id": "35",
+    "puc": "NIV-0035",
+    "productName": "NIVAANA - Incense Sticks - Parijat - TRY-ME-OUT Pack - 10 Sticks",
+    "previousShortName": "NIVAANA - Incense Sticks - Parijat - TRY-ME-OUT Pack - 10 Sticks",
+    "updatedShortName": "Parijat - Premium Incense - 10 Sticks"
+  },
+  {
+    "id": "36",
+    "puc": "NIV-0036",
+    "productName": "NIVAANA - Incense Sticks - Paradise Garden - TRY-ME-OUT Pack - 10 Sticks",
+    "previousShortName": "NIVAANA - Incense Sticks - Paradise Garden - TRY-ME-OUT Pack - 10 Sticks",
+    "updatedShortName": "Paradise Garden - Premium Incense- 10 Sticks"
+  },
+  {
+    "id": "37",
+    "puc": "NIV-0037",
+    "productName": "NIVAANA - Incense Sticks - Kesar Chandan - TRY-ME-OUT Pack - 10 Sticks",
+    "previousShortName": "NIVAANA - Incense Sticks - Kesar Chandan - TRY-ME-OUT Pack - 10 Sticks",
+    "updatedShortName": "Kesar Chandan - Premium Incense - 10 Sticks"
+  },
+  {
+    "id": "38",
+    "puc": "NIV-0038",
+    "productName": "NIVAANA - Incense Sticks - Spiritual Harmony - TRY-ME-OUT Pack - 10 Sticks",
+    "previousShortName": "NIVAANA - Incense Sticks - Spiritual Harmony - TRY-ME-OUT Pack - 10 Sticks",
+    "updatedShortName": "Spiritual Harmony - Premium Incense - 10 Sticks"
+  },
+  {
+    "id": "39",
+    "puc": "NIV-0039",
+    "productName": "NIVAANA - Incense Sticks - Black Oudh - TRY-ME-OUT Pack - 10 Sticks",
+    "previousShortName": "NIVAANA - Incense Sticks - Black Oudh - TRY-ME-OUT Pack - 10 Sticks",
+    "updatedShortName": "Black Oudh - Premium Incense- 10 Sticks"
+  },
+  {
+    "id": "40",
+    "puc": "NIV-0040",
+    "productName": "NIVAANA - Incense Sticks - Davana - TRY-ME-OUT Pack - 10 Sticks",
+    "previousShortName": "NIVAANA - Incense Sticks - Davana - TRY-ME-OUT Pack - 10 Sticks",
+    "updatedShortName": "Davana - Premium Incense - 10 Sticks"
+  },
+  {
+    "id": "41",
+    "puc": "NIV-0041",
+    "productName": "NIVAANA - Incense Sticks - Floral Valley - TRY-ME-OUT Pack - 10 Sticks",
+    "previousShortName": "NIVAANA - Incense Sticks - Floral Valley - TRY-ME-OUT Pack - 10 Sticks",
+    "updatedShortName": "Floral Valley - Premium Incense - 10 Sticks"
+  },
+  {
+    "id": "42",
+    "puc": "NIV-0042",
+    "productName": "NIVAANA - Incense Sticks - Himalayan Cedar - TRY-ME-OUT Pack - 10 Sticks",
+    "previousShortName": "NIVAANA - Incense Sticks - Himalayan Cedar - TRY-ME-OUT Pack - 10 Sticks",
+    "updatedShortName": "Himalayan Cedar - Premium Incense - 10 Sticks"
+  },
+  {
+    "id": "43",
+    "puc": "NIV-0043",
+    "productName": "NIVAANA - Incense Sticks - Vanilla - TRY-ME-OUT Pack - 10 Sticks",
+    "previousShortName": "NIVAANA - Incense Sticks - Vanilla - TRY-ME-OUT Pack - 10 Sticks",
+    "updatedShortName": "Vanilla - Premium Incense - 10 Sticks"
+  },
+  {
+    "id": "44",
+    "puc": "NIV-0044",
+    "productName": "NIVAANA - Incense Sticks - Wild Canopy - TRY-ME-OUT Pack - 10 Sticks",
+    "previousShortName": "NIVAANA - Incense Sticks - Wild Canopy - TRY-ME-OUT Pack - 10 Sticks",
+    "updatedShortName": "Wild Canopy - Premium Incense - 10 Sticks"
+  },
+  {
+    "id": "45",
+    "puc": "NIV-0045",
+    "productName": "NIVAANA - Air Fresheners - Lemongrass Whiff - Premium Room Mist - 100 ml",
+    "previousShortName": "NIVAANA - Air Fresheners - Lemongrass Whiff - Premium Room Mist - 100 ml",
+    "updatedShortName": "Lemongrass Whiff - Air Freshener- 100 ml"
+  },
+  {
+    "id": "46",
+    "puc": "NIV-0046",
+    "productName": "NIVAANA - Air Fresheners - Mystique Rose",
+    "previousShortName": "NIVAANA - Air Fresheners - Mystique Rose",
+    "updatedShortName": "Mystique Rose- Air Freshener- 100 ml"
+  },
+  {
+    "id": "47",
+    "puc": "NIV-0047",
+    "productName": "NIVAANA - Air Fresheners - Opium Vibe - Premium Room Mist - 100 ml",
+    "previousShortName": "NIVAANA - Air Fresheners - Opium Vibe - Premium Room Mist - 100 ml",
+    "updatedShortName": "Opium Vibe- Air Freshener- 100 ml"
+  },
+  {
+    "id": "48",
+    "puc": "KRA-0048",
+    "productName": "KRAFTELLA - Decor - LION-BOOKSHELF-BLACK",
+    "previousShortName": "KRAFTELLA - Decor - LION-BOOKSHELF-BLACK",
+    "updatedShortName": "Decor - LION-BOOKSHELF-BLACK"
+  },
+  {
+    "id": "49",
+    "puc": "KRA-0049",
+    "productName": "KRAFTELLA - Decor - PARROT-BOOKSHELF-TEAL",
+    "previousShortName": "KRAFTELLA - Decor - PARROT-BOOKSHELF-TEAL",
+    "updatedShortName": "Decor - PARROT-BOOKSHELF-TEAL"
+  },
+  {
+    "id": "50",
+    "puc": "KRA-0050",
+    "productName": "KRAFTELLA - Decor - ELEPHANT-SMALL",
+    "previousShortName": "KRAFTELLA - Decor - ELEPHANT-SMALL",
+    "updatedShortName": "Decor - ELEPHANT-SMALL"
+  },
+  {
+    "id": "51",
+    "puc": "KRA-0051",
+    "productName": "KRAFTELLA - Decor - ELEPHANT-LARGE",
+    "previousShortName": "KRAFTELLA - Decor - ELEPHANT-LARGE",
+    "updatedShortName": "Decor - ELEPHANT-LARGE"
+  },
+  {
+    "id": "52",
+    "puc": "KRA-0052",
+    "productName": "KRAFTELLA - Decor - ELEPHANT-PAIR",
+    "previousShortName": "KRAFTELLA - Decor - ELEPHANT-PAIR",
+    "updatedShortName": "Decor - ELEPHANT-PAIR"
+  },
+  {
+    "id": "53",
+    "puc": "KRA-0053",
+    "productName": "KRAFTELLA - Decor - LION-GOLD CROWN-WHITE",
+    "previousShortName": "KRAFTELLA - Decor - LION-GOLD CROWN-WHITE",
+    "updatedShortName": "Decor - LION-GOLD CROWN-WHITE"
+  },
+  {
+    "id": "54",
+    "puc": "KRA-0054",
+    "productName": "KRAFTELLA - Decor - FLAMINGO-GOLD TEAL",
+    "previousShortName": "KRAFTELLA - Decor - FLAMINGO-GOLD TEAL",
+    "updatedShortName": "Decor - FLAMINGO-GOLD TEAL"
+  },
+  {
+    "id": "55",
+    "puc": "NIV-0055",
+    "productName": "NIVAANA - Incense Sticks - ALL-IN-ONE Pack - 12 Fragrances - 120 Sticks",
+    "previousShortName": "NIVAANA - Incense Sticks - ALL-IN-ONE Pack - 12 Fragrances - 120 Sticks",
+    "updatedShortName": "ALL-IN-ONE Pack - Premium Incense - 12 Fragrances - 120 Sticks"
+  },
+  {
+    "id": "56",
+    "puc": "NIV-0056",
+    "productName": "NIVAANA - Relaxation & Calm - MEDITATION & MINDFULNESS COLLECTION",
+    "previousShortName": "NIVAANA - Relaxation & Calm - MEDITATION & MINDFULNESS COLLECTION",
+    "updatedShortName": "Premium Incense Combo - MEDITATION & MINDFULNESS COLLECTION"
+  },
+  {
+    "id": "57",
+    "puc": "NIV-0057",
+    "productName": "NIVAANA - Peaceful Nights - SACRED RITUALS COLLECTION",
+    "previousShortName": "NIVAANA - Peaceful Nights - SACRED RITUALS COLLECTION",
+    "updatedShortName": "Premium Incense Combo - SACRED RITUALS COLLECTION"
+  },
+  {
+    "id": "58",
+    "puc": "NIV-0058",
+    "productName": "NIVAANA - Incense Sticks - Premium Incense sticks",
+    "previousShortName": "NIVAANA - Incense Sticks - Premium Incense sticks",
+    "updatedShortName": "Premium Incense Combo - LUXURY COLLECTION"
+  },
+  {
+    "id": "59",
+    "puc": "NIV-0059",
+    "productName": "NIVAANA - Fresh Mornings - FEEL GOOD COLLECTION",
+    "previousShortName": "NIVAANA - Fresh Mornings - FEEL GOOD COLLECTION",
+    "updatedShortName": "Premium Incense Combo - FEEL GOOD COLLECTION"
+  },
+  {
+    "id": "60",
+    "puc": "KRA-0060",
+    "productName": "KRAFTELLA - Decor - Thermosteel Water bottle - 1000 ml - Black",
+    "previousShortName": "KRAFTELLA - Decor - Thermosteel Water bottle - 1000 ml - Black",
+    "updatedShortName": "Decor - Thermosteel Water bottle - 1000 ml - Black"
+  },
+  {
+    "id": "61",
+    "puc": "KRA-0061",
+    "productName": "KRAFTELLA - Decor - Thermosteel Water bottle - 1000 ml - Blue",
+    "previousShortName": "KRAFTELLA - Decor - Thermosteel Water bottle - 1000 ml - Blue",
+    "updatedShortName": "Decor - Thermosteel Water bottle - 1000 ml - Blue"
+  },
+  {
+    "id": "62",
+    "puc": "KRA-0062",
+    "productName": "KRAFTELLA - Decor - Thermosteel Water bottle - 1000 ml - Cyan",
+    "previousShortName": "KRAFTELLA - Decor - Thermosteel Water bottle - 1000 ml - Cyan",
+    "updatedShortName": "Decor - Thermosteel Water bottle - 1000 ml - Cyan"
+  },
+  {
+    "id": "63",
+    "puc": "KRA-0063",
+    "productName": "KRAFTELLA - Decor - Thermosteel Water bottle - 1000 ml - Pink",
+    "previousShortName": "KRAFTELLA - Decor - Thermosteel Water bottle - 1000 ml - Pink",
+    "updatedShortName": "Decor - Thermosteel Water bottle - 1000 ml - Pink"
+  },
+  {
+    "id": "64",
+    "puc": "NIV-0064",
+    "productName": "NIVAANA - Car Diffusers - Mini Portable Luxury Car Fragrance Diffuser with Ambient Lighting | Vent Clip Air Freshener Mist Dispenser with Auto On/Off, 3 Modes | 1 Car Fragrance Refill Included",
+    "previousShortName": "NIVAANA - Car Diffusers - Mini Portable Luxury Car Fragrance Diffuser with Ambient Lighting | Vent Clip Air Freshener Mist Dispenser with Auto On/Off, 3 Modes |",
+    "updatedShortName": "Car Diffusers - Cup Holder Model"
+  },
+  {
+    "id": "65",
+    "puc": "NIV-0065",
+    "productName": "NIVAANA - Car Diffusers - Smart Scent Waterless Car Diffuser | Cup Holder Aroma Diffuser with Star Light Projection | Intelligent Auto On/Off | Rechargeable | 60ml | Adjustable Fragrance Modes",
+    "previousShortName": "NIVAANA - Car Diffusers - Smart Scent Waterless Car Diffuser | Cup Holder Aroma Diffuser with Star Light Projection | Intelligent Auto On/Off | Rechargeable | 6",
+    "updatedShortName": "Car Diffusers - Vent Clip Model"
+  },
+  {
+    "id": "66",
+    "puc": "NIV-0066",
+    "productName": "NIVAANA - Home Diffusers - Smart Scent Waterless Aroma Diffuser | Cold Air Essential Oil & Fragrance Oil Diffuser | 60ml Capacity | Plug-in Home Fragrance Diffuser | Adjustable Fragrance Intensity | Ideal for Home, Office, Spa & Hotel",
+    "previousShortName": "NIVAANA - Home Diffusers - Smart Scent Waterless Aroma Diffuser | Cold Air Essential Oil & Fragrance Oil Diffuser | 60ml Capacity | Plug-in Home Fragrance Diffu",
+    "updatedShortName": "Home Diffusers - Plugin Model"
+  },
+  {
+    "id": "67",
+    "puc": "NIV-0067",
+    "productName": "NIVAANA - Home Diffusers - Smart Scent Waterless Aroma Diffuser - BLACK | Cold Air Fragrance Oil Diffuser | 150ml Capacity | Wall Mount & Tabletop | Adjustable Fragrance Intensity | Ideal for Large Home spaces, Office, Spa & Hotel",
+    "previousShortName": "NIVAANA - Home Diffusers - Smart Scent Waterless Aroma Diffuser - BLACK | Cold Air Fragrance Oil Diffuser | 150ml Capacity | Wall Mount & Tabletop | Adjustable",
+    "updatedShortName": "Home & Commercial Diffusers - Table Top / Wall Mount Model"
+  },
+  {
+    "id": "68",
+    "puc": "NIV-0068",
+    "productName": "NIVAANA - Dhoop Cones - BLISSFUL ROSE – Elegant Rose Floral Fragrance | Pure Essential Oil Enriched, Low Smoke, Long-Lasting Dhoop Cones for Home, Meditation & Daily Pooja | 100g",
+    "previousShortName": "NIVAANA - Dhoop Cones - BLISSFUL ROSE – Elegant Rose Floral Fragrance | Pure Essential Oil Enriched, Low Smoke, Long-Lasting Dhoop Cones for Home, Meditation &",
+    "updatedShortName": "Blissful Rose – Dhoop Cones | 100g"
+  },
+  {
+    "id": "69",
+    "puc": "NIV-0069",
+    "productName": "NIVAANA - Dhoop Cones - KESAR CHANDAN – Premium Saffron & Sandalwood Blend | Long-Lasting, Low Smoke Dhoop cones for Pooja, Meditation, Temple Aroma & Home Fragrance | 100 g",
+    "previousShortName": "NIVAANA - Dhoop Cones - KESAR CHANDAN – Premium Saffron & Sandalwood Blend | Long-Lasting, Low Smoke Dhoop cones for Pooja, Meditation, Temple Aroma & Home Frag",
+    "updatedShortName": "Kesar Chandan – Dhoop Cones | 100g"
+  },
+  {
+    "id": "70",
+    "puc": "NIV-0070",
+    "productName": "NIVAANA - Dhoop Cones - PANCHPUSHP – Exquisite Five Floral Fragrance Blend | Pure Essential Oil Enriched, Low Smoke, Long-Lasting Dhoop Cones for Home, Meditation & Daily Pooja | 100g",
+    "previousShortName": "NIVAANA - Dhoop Cones - PANCHPUSHP – Exquisite Five Floral Fragrance Blend | Pure Essential Oil Enriched, Low Smoke, Long-Lasting Dhoop Cones for Home, Meditati",
+    "updatedShortName": "Panchpushp– Dhoop Cones | 100g"
+  },
+  {
+    "id": "71",
+    "puc": "NIV-0071",
+    "productName": "NIVAANA - Dhoop Cones - RAJNIGANDHA – Enchanting Tuberose Floral Fragrance | Pure Essential Oil Enriched, Low Smoke, Long-Lasting Dhoop Cones for Home, Meditation & Daily Pooja | 100g",
+    "previousShortName": "NIVAANA - Dhoop Cones - RAJNIGANDHA – Enchanting Tuberose Floral Fragrance | Pure Essential Oil Enriched, Low Smoke, Long-Lasting Dhoop Cones for Home, Meditati",
+    "updatedShortName": "Rajnigandha– Dhoop Cones | 100g"
+  },
+  {
+    "id": "72",
+    "puc": "NIV-0072",
+    "productName": "NIVAANA - Dhoop Cones - VRINDAVAN HARMONY – Traditional Temple Aroma Blend with Sandalwood, Frankincense, Myrrh, Rose & Patchouli | Pure Ritual Fragrance, Low Smoke, Long-Lasting Dhoop | 100g",
+    "previousShortName": "NIVAANA - Dhoop Cones - VRINDAVAN HARMONY – Traditional Temple Aroma Blend with Sandalwood, Frankincense, Myrrh, Rose & Patchouli | Pure Ritual Fragrance, Low S",
+    "updatedShortName": "Vrindavan Harmony – Dhoop Cones | 100g"
+  },
+  {
+    "id": "73",
+    "puc": "NIV-0073",
+    "productName": "NIVAANA - Dhoop Sticks - Blissful Rose Dhoop Sticks – Premium Bambooless Incense Sticks with Elegant Rose Fragrance | Pure Essential Oil Enriched, Low Smoke, Long-Lasting Dhoop for Home, Meditation & Daily Pooja | 100g",
+    "previousShortName": "NIVAANA - Dhoop Sticks - Blissful Rose Dhoop Sticks – Premium Bambooless Incense Sticks with Elegant Rose Fragrance | Pure Essential Oil Enriched, Low Smoke, Lo",
+    "updatedShortName": "Blissful Rose– Dhoop Sticks | 100g"
+  },
+  {
+    "id": "74",
+    "puc": "NIV-0074",
+    "productName": "NIVAANA - Dhoop Sticks - Sacred Kasturi Dhoop Sticks – Premium Bambooless Incense Sticks with Rich Musk Fragrance | Pure Essential Oil Enriched, Low Smoke, Long-Lasting Dhoop for Home, Meditation & Daily Pooja | 100g",
+    "previousShortName": "NIVAANA - Dhoop Sticks - Sacred Kasturi Dhoop Sticks – Premium Bambooless Incense Sticks with Rich Musk Fragrance | Pure Essential Oil Enriched, Low Smoke, Long",
+    "updatedShortName": "Sacred Kasturi– Dhoop Sticks | 100g"
+  },
+  {
+    "id": "75",
+    "puc": "NIV-0075",
+    "productName": "NIVAANA - Dhoop Sticks - Kesar Chandan Dhoop Sticks – Premium Bambooless Incense Sticks with Saffron & Sandalwood Fragrance | Pure Essential Oil Enriched, Low Smoke, Long-Lasting Dhoop for Home, Meditation & Daily Pooja | 100g",
+    "previousShortName": "NIVAANA - Dhoop Sticks - Kesar Chandan Dhoop Sticks – Premium Bambooless Incense Sticks with Saffron & Sandalwood Fragrance | Pure Essential Oil Enriched, Low S",
+    "updatedShortName": "Kesar Chandan– Dhoop Sticks | 100g"
+  },
+  {
+    "id": "76",
+    "puc": "NIV-0076",
+    "productName": "NIVAANA - Dhoop Sticks - Spiritual Bliss Dhoop Sticks – Premium Bambooless Incense Sticks with Sacred Temple Fragrance | Pure Essential Oil Enriched, Low Smoke, Long-Lasting Dhoop for Home, Meditation & Daily Pooja | 100g",
+    "previousShortName": "NIVAANA - Dhoop Sticks - Spiritual Bliss Dhoop Sticks – Premium Bambooless Incense Sticks with Sacred Temple Fragrance | Pure Essential Oil Enriched, Low Smoke,",
+    "updatedShortName": "Spiritual Bliss– Dhoop Sticks | 100g"
+  },
+  {
+    "id": "77",
+    "puc": "NIV-0077",
+    "productName": "NIVAANA - Dhoop Sticks - Melon Dew Dhoop Sticks – Premium Bambooless Incense Sticks with Refreshing Melon Fragrance | Pure Essential Oil Enriched, Low Smoke, Long-Lasting Dhoop for Home, Relaxation & Everyday Ambience | 100g",
+    "previousShortName": "NIVAANA - Dhoop Sticks - Melon Dew Dhoop Sticks – Premium Bambooless Incense Sticks with Refreshing Melon Fragrance | Pure Essential Oil Enriched, Low Smoke, Lo",
+    "updatedShortName": "Melon Dew– Dhoop Sticks | 100g"
+  },
+  {
+    "id": "78",
+    "puc": "NIV-0078",
+    "productName": "NIVAANA - Dhoop Sticks - Fresh Jasmine Dhoop Sticks – Premium Bambooless Incense Sticks with Refreshing Jasmine Fragrance | Pure Essential Oil Enriched, Low Smoke, Long-Lasting Dhoop for Home, Meditation & Daily Pooja | 100g",
+    "previousShortName": "NIVAANA - Dhoop Sticks - Fresh Jasmine Dhoop Sticks – Premium Bambooless Incense Sticks with Refreshing Jasmine Fragrance | Pure Essential Oil Enriched, Low Smo",
+    "updatedShortName": "Fresh Jasmine– Dhoop Sticks | 100g"
+  },
+  {
+    "id": "79",
+    "puc": "NIV-0079",
+    "productName": "NIVAANA - Bath & Body - Misty Rose Premium Transparent Glycerine Bathing Bar | Moisturising Bath Soap | Gentle Daily Cleansing | Rich Creamy Lather | Hydrating Formula | Elegant Floral Fragrance | 100g",
+    "previousShortName": "NIVAANA - Bath & Body - Misty Rose Premium Transparent Glycerine Bathing Bar | Moisturising Bath Soap | Gentle Daily Cleansing | Rich Creamy Lather | Hydrating",
+    "updatedShortName": "Misty Rose - Premium Handmade Bathing Bar | 100g"
+  },
+  {
+    "id": "80",
+    "puc": "NIV-0080",
+    "productName": "NIVAANA - Bath & Body - Holy Basil Premium Glycerine Bathing Bar | Moisturising Bath Soap | Gentle Daily Cleansing | Rich Creamy Lather | Hydrating Formula | Refreshing Herbal Fragrance | 100g",
+    "previousShortName": "NIVAANA - Bath & Body - Holy Basil Premium Glycerine Bathing Bar | Moisturising Bath Soap | Gentle Daily Cleansing | Rich Creamy Lather | Hydrating Formula | Re",
+    "updatedShortName": "Holy Basil - Premium Handmade Bathing Bar | 100g"
+  },
+  {
+    "id": "81",
+    "puc": "NIV-0081",
+    "productName": "NIVAANA - Bath & Body - Crimson Sandal Premium Glycerine Bathing Bar | Moisturising Bath Soap | Gentle Daily Cleansing | Rich Creamy Lather | Hydrating Formula | Refreshing Herbal Fragrance | 100g",
+    "previousShortName": "NIVAANA - Bath & Body - Crimson Sandal Premium Glycerine Bathing Bar | Moisturising Bath Soap | Gentle Daily Cleansing | Rich Creamy Lather | Hydrating Formula",
+    "updatedShortName": "Crimson Sandal - Premium Handmade Bathing Bar | 100g"
+  },
+  {
+    "id": "82",
+    "puc": "NIV-0082",
+    "productName": "NIVAANA - Bath & Body - Sandal Royale Premium Glycerine Bathing Bar | Moisturising Bath Soap | Gentle Daily Cleansing | Rich Creamy Lather | Hydrating Formula | Refreshing Herbal Fragrance | 100g",
+    "previousShortName": "NIVAANA - Bath & Body - Sandal Royale Premium Glycerine Bathing Bar | Moisturising Bath Soap | Gentle Daily Cleansing | Rich Creamy Lather | Hydrating Formula |",
+    "updatedShortName": "Sandal Royale - Premium Handmade Bathing Bar | 100g"
+  },
+  {
+    "id": "83",
+    "puc": "NIV-0083",
+    "productName": "NIVAANA - Bath & Body - Oudh Royale Premium Glycerine Bathing Bar | Moisturising Bath Soap | Gentle Daily Cleansing | Rich Creamy Lather | Hydrating Formula | Refreshing Herbal Fragrance | 100g",
+    "previousShortName": "NIVAANA - Bath & Body - Oudh Royale Premium Glycerine Bathing Bar | Moisturising Bath Soap | Gentle Daily Cleansing | Rich Creamy Lather | Hydrating Formula | R",
+    "updatedShortName": "Oudh Royale - Premium Handmade Bathing Bar | 100g"
+  },
+  {
+    "id": "84",
+    "puc": "NIV-0084",
+    "productName": "NIVAANA - Bath & Body - Smoked Vanilla Premium Glycerine Bathing Bar | Moisturising Bath Soap | Gentle Daily Cleansing | Rich Creamy Lather | Hydrating Formula | Refreshing Herbal Fragrance | 100g",
+    "previousShortName": "NIVAANA - Bath & Body - Smoked Vanilla Premium Glycerine Bathing Bar | Moisturising Bath Soap | Gentle Daily Cleansing | Rich Creamy Lather | Hydrating Formula",
+    "updatedShortName": "Smoked Vanilla - Premium Handmade Bathing Bar | 100g"
+  },
+  {
+    "id": "85",
+    "puc": "NIV-0085",
+    "productName": "NIVAANA - Bath & Body - Black Ice Premium Glycerine Bathing Bar | Moisturising Bath Soap | Gentle Daily Cleansing | Rich Creamy Lather | Hydrating Formula | Refreshing Herbal Fragrance | 100g",
+    "previousShortName": "NIVAANA - Bath & Body - Black Ice Premium Glycerine Bathing Bar | Moisturising Bath Soap | Gentle Daily Cleansing | Rich Creamy Lather | Hydrating Formula | Ref",
+    "updatedShortName": "Black Ice - Premium Handmade Bathing Bar | 100g"
+  },
+  {
+    "id": "86",
+    "puc": "NIV-0086",
+    "productName": "NIVAANA - Bath & Body - Lemon Zest Premium Glycerine Bathing Bar | Moisturising Bath Soap | Gentle Daily Cleansing | Rich Creamy Lather | Hydrating Formula | Refreshing Herbal Fragrance | 100g",
+    "previousShortName": "NIVAANA - Bath & Body - Lemon Zest Premium Glycerine Bathing Bar | Moisturising Bath Soap | Gentle Daily Cleansing | Rich Creamy Lather | Hydrating Formula | Re",
+    "updatedShortName": "Lemon Zest - Premium Handmade Bathing Bar | 100g"
+  },
+  {
+    "id": "87",
+    "puc": "NIV-0087",
+    "productName": "NIVAANA - Bath & Body - Butter Bliss Premium Glycerine Bathing Bar | Moisturising Bath Soap | Gentle Daily Cleansing | Rich Creamy Lather | Hydrating Formula | Refreshing Herbal Fragrance | 100g",
+    "previousShortName": "NIVAANA - Bath & Body - Butter Bliss Premium Glycerine Bathing Bar | Moisturising Bath Soap | Gentle Daily Cleansing | Rich Creamy Lather | Hydrating Formula |",
+    "updatedShortName": "Butter Bliss - Premium Handmade Bathing Bar | 100g"
+  }
+]

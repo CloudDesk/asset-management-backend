@@ -41,6 +41,7 @@ import { amazonChannelRoutes } from './amazon-channel.route.js';
 import { amazonListingPublishRoutes } from './amazon-listing-publish.route.js';
 import { amazonOperationsRoutes } from './amazon-operations.route.js';
 import { amazonSchedulerJobsRoutes } from './amazon-scheduler-jobs.route.js';
+import { flipkartChannelRoutes } from './flipkart-channel.route.js';
 import { smartAuthentication } from '../middleware/smartAuth.middleware.js';
 import { createSuccessResponse } from '../utils/errorHandler.js';
 import { permissionRoutes } from './permission.route.js';
@@ -173,6 +174,7 @@ export async function routes(fastify: FastifyInstance) {
     await fastify.register(amazonOperationsRoutes, { prefix: '/api/channels/amazon/operations' });
     await fastify.register(amazonSchedulerJobsRoutes, { prefix: '/api/channels/amazon/jobs' });
   }
+  await fastify.register(flipkartChannelRoutes, { prefix: '/api/channels/flipkart' });
 
   // API v2 routes
   await fastify.register(async function (fastify) {

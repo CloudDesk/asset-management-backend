@@ -1,0 +1,277 @@
+[
+  {
+    "id": "4",
+    "puc": "NIV-0004",
+    "shortname": "Kasturi - Value Pack - 30 Sticks"
+  },
+  {
+    "id": "5",
+    "puc": "NIV-0005",
+    "shortname": "Parijat"
+  },
+  {
+    "id": "6",
+    "puc": "NIV-0006",
+    "shortname": "Paradise Garden - Value Pack - 30 Sticks"
+  },
+  {
+    "id": "7",
+    "puc": "NIV-0007",
+    "shortname": "Kesar Chandan - Value Pack - 30 Sticks"
+  },
+  {
+    "id": "8",
+    "puc": "NIV-0008",
+    "shortname": "Spiritual Harmony - Value Pack - 30 Sticks"
+  },
+  {
+    "id": "9",
+    "puc": "NIV-0009",
+    "shortname": "Floral Valley - Value Pack - 30 Sticks"
+  },
+  {
+    "id": "10",
+    "puc": "NIV-0010",
+    "shortname": "Davana - Value Pack - 30 Sticks"
+  },
+  {
+    "id": "11",
+    "puc": "NIV-0011",
+    "shortname": "Wild Canopy - Value Pack - 30 Sticks"
+  },
+  {
+    "id": "12",
+    "puc": "NIV-0012",
+    "shortname": "Black Oudh - Value Pack - 30 Sticks"
+  },
+  {
+    "id": "13",
+    "puc": "NIV-0013",
+    "shortname": "Himalayan Cedar - Value Pack - 30 Sticks"
+  },
+  {
+    "id": "14",
+    "puc": "NIV-0014",
+    "shortname": "Vanilla - Value Pack - 30 Sticks"
+  },
+  {
+    "id": "15",
+    "puc": "NIV-0015",
+    "shortname": "First Rains - Value Pack - 30 Sticks"
+  },
+  {
+    "id": "18",
+    "puc": "AUO-0018",
+    "shortname": "Vanilla"
+  },
+  {
+    "id": "19",
+    "puc": "AUO-0019",
+    "shortname": "Nishigandha"
+  },
+  {
+    "id": "20",
+    "puc": "AUO-0020",
+    "shortname": "Pinacolada"
+  },
+  {
+    "id": "21",
+    "puc": "AUO-0021",
+    "shortname": "Cherry Blossom"
+  },
+  {
+    "id": "22",
+    "puc": "AUO-0022",
+    "shortname": "Cool Aqua"
+  },
+  {
+    "id": "23",
+    "puc": "AUO-0023",
+    "shortname": "Jungle Vibe"
+  },
+  {
+    "id": "33",
+    "puc": "NIV-0033",
+    "shortname": "First Rains - TRY-ME-OUT Pack - 10 Sticks"
+  },
+  {
+    "id": "34",
+    "puc": "NIV-0034",
+    "shortname": "Kasturi - TRY-ME-OUT Pack - 10 Sticks"
+  },
+  {
+    "id": "35",
+    "puc": "NIV-0035",
+    "shortname": "Parijat - TRY-ME-OUT Pack - 10 Sticks"
+  },
+  {
+    "id": "36",
+    "puc": "NIV-0036",
+    "shortname": "Paradise Garden - TRY-ME-OUT Pack - 10 Sticks"
+  },
+  {
+    "id": "37",
+    "puc": "NIV-0037",
+    "shortname": "Kesar Chandan - TRY-ME-OUT Pack - 10 Sticks"
+  },
+  {
+    "id": "38",
+    "puc": "NIV-0038",
+    "shortname": "Spiritual Harmony - TRY-ME-OUT Pack - 10 Sticks"
+  },
+  {
+    "id": "39",
+    "puc": "NIV-0039",
+    "shortname": "Black Oudh - TRY-ME-OUT Pack - 10 Sticks"
+  },
+  {
+    "id": "40",
+    "puc": "NIV-0040",
+    "shortname": "Davana - TRY-ME-OUT Pack - 10 Sticks"
+  },
+  {
+    "id": "41",
+    "puc": "NIV-0041",
+    "shortname": "Floral Valley - TRY-ME-OUT Pack - 10 Sticks"
+  },
+  {
+    "id": "42",
+    "puc": "NIV-0042",
+    "shortname": "Himalayan Cedar - TRY-ME-OUT Pack - 10 Sticks"
+  },
+  {
+    "id": "43",
+    "puc": "NIV-0043",
+    "shortname": "Vanilla - TRY-ME-OUT Pack - 10 Sticks"
+  },
+  {
+    "id": "44",
+    "puc": "NIV-0044",
+    "shortname": "Wild Canopy - TRY-ME-OUT Pack - 10 Sticks"
+  },
+  {
+    "id": "45",
+    "puc": "NIV-0045",
+    "shortname": "Lemongrass Whiff - Premium Room Mist - 100 ml"
+  },
+  {
+    "id": "46",
+    "puc": "NIV-0046",
+    "shortname": "Mystique Rose"
+  },
+  {
+    "id": "47",
+    "puc": "NIV-0047",
+    "shortname": "Opium Vibe - Premium Room Mist"
+  },
+  {
+    "id": "48",
+    "puc": "KRA-0048",
+    "shortname": "LION-BOOKSHELF-BLACK"
+  },
+  {
+    "id": "49",
+    "puc": "KRA-0049",
+    "shortname": "PARROT-BOOKSHELF-TEAL"
+  },
+  {
+    "id": "50",
+    "puc": "KRA-0050",
+    "shortname": "ELEPHANT-SMALL"
+  },
+  {
+    "id": "51",
+    "puc": "KRA-0051",
+    "shortname": "ELEPHANT-LARGE"
+  },
+  {
+    "id": "52",
+    "puc": "KRA-0052",
+    "shortname": "ELEPHANT-PAIR"
+  },
+  {
+    "id": "53",
+    "puc": "KRA-0053",
+    "shortname": "LION-GOLD CROWN-WHITE"
+  },
+  {
+    "id": "54",
+    "puc": "KRA-0054",
+    "shortname": "FLAMINGO-GOLD TEAL"
+  },
+  {
+    "id": "55",
+    "puc": "NIV-0055",
+    "shortname": "ALL-IN-ONE Pack - 12 Fragrances - 120 Sticks"
+  },
+  {
+    "id": "56",
+    "puc": "NIV-0056",
+    "shortname": "MEDITATION & MINDFULNESS COLLECTION"
+  },
+  {
+    "id": "57",
+    "puc": "NIV-0057",
+    "shortname": "SACRED RITUALS COLLECTION"
+  },
+  {
+    "id": "58",
+    "puc": "NIV-0058",
+    "shortname": "Premium Incense sticks"
+  },
+  {
+    "id": "59",
+    "puc": "NIV-0059",
+    "shortname": "FEEL GOOD COLLECTION"
+  },
+  {
+    "id": "60",
+    "puc": "KRA-0060",
+    "shortname": "Thermosteel Water bottle - 1000 ml - Black"
+  },
+  {
+    "id": "61",
+    "puc": "KRA-0061",
+    "shortname": "Thermosteel Water bottle - 1000 ml - Blue"
+  },
+  {
+    "id": "62",
+    "puc": "KRA-0062",
+    "shortname": "Thermosteel Water bottle - 1000 ml - Cyan"
+  },
+  {
+    "id": "63",
+    "puc": "KRA-0063",
+    "shortname": "Thermosteel Water bottle - 1000 ml - Pink"
+  },
+  {
+    "id": "64",
+    "puc": "NIV-0064",
+    "shortname": "Test Product"
+  },
+  {
+    "id": "65",
+    "puc": "NIV-0065",
+    "shortname": "Lorem ipsum dolor sit amet, consectetuer adipiscing elit - NIV-0065"
+  },
+  {
+    "id": "66",
+    "puc": "NIV-0066",
+    "shortname": "Lorem ipsum dolor sit amet, consectetuer adipiscing elit - NIV-0066"
+  },
+  {
+    "id": "67",
+    "puc": "NIV-0067",
+    "shortname": "New Product"
+  },
+  {
+    "id": "68",
+    "puc": "NIV-0068",
+    "shortname": "Butter Bliss Premium Glycerine Bathing Bar - 100g"
+  },
+  {
+    "id": "69",
+    "puc": "NIV-0069",
+    "shortname": "short name"
+  }
+]
