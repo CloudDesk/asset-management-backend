@@ -45,6 +45,7 @@ import { createSuccessResponse } from '../utils/errorHandler.js';
 import { permissionRoutes } from './permission.route.js';
 import { instoreOrderRoutes } from './instore-order.route.js';
 import { env } from '../config/env.js';
+import { promotionsV2Routes } from './promotions-v2.route.js';
 
 export async function routes(fastify: FastifyInstance) {
   // Health check endpoint (public)
@@ -174,6 +175,7 @@ export async function routes(fastify: FastifyInstance) {
   // API v2 routes
   await fastify.register(async function (fastify) {
     await fastify.register(picklistRoutesV2, { prefix: '/picklists' });
+    await fastify.register(promotionsV2Routes, { prefix: '/promotions' });
     fastify.addHook('preHandler', smartAuthentication);
   }, { prefix: '/v2' });
 }

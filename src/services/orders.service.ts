@@ -21,9 +21,11 @@ import { gstService } from './gst.service.js';
 import { WalletRedemptionService } from './wallet-redemption.service.js';
 import { invoiceAdjustmentService } from './invoice-adjustment.service.js';
 import { buildShipmozoPublicTrackingUrl } from './shipmozo.service.js';
+import { PromotionCheckoutService } from './promotion-checkout.service.js';
 
 export class OrdersService {
   private walletRedemptionService = new WalletRedemptionService();
+  private promotionCheckoutService = new PromotionCheckoutService();
 
   private async cancelProviderShipment(order: any): Promise<any> {
     const trackingId = String(order?.tracking_id || '').trim();
@@ -607,6 +609,20 @@ export class OrdersService {
           createdOrderlines: orderlineResults.length,
           totalProducts: data.productid.length
         }, 'Order and orderlines creation completed');
+
+        // Promotions V2 gift allocation, inventory consumption and redemption are
+        // committed together. Legacy evaluations continue through the legacy path.
+        if (data.evaluation_id) {
+          const evaluation = await prisma.promotion_evaluations.findUnique({ where: { evaluation_id: String(data.evaluation_id) }, select: { context: true } });
+          const context = evaluation?.context && typeof evaluation.context === 'object' && !Array.isArray(evaluation.context)
+            ? evaluation.context as Record<string, unknown>
+            : {};
+          if (context.schema_version === 2) {
+            await this.promotionCheckoutService.commitEvaluationToOrder(order.id, String(data.evaluation_id), data.userid ? Number(data.userid) : undefined);
+            const giftLines = await prisma.orderline.findMany({ where: { orderid: order.id, evaluation_id: String(data.evaluation_id), is_free_item: true } });
+            orderlineResults.push(...giftLines);
+          }
+        }
 
         // ============================================
         // GST CALCULATION - Calculate and update GST for order and orderlines
