@@ -29,6 +29,47 @@ const USER_SEGMENT_CONFIG = {
 export class PromotionsService {
   private prisma = new PrismaClient();
 
+  /**
+   * Admin consumers need the canonical V2 rule together with the compatibility
+   * promotion row. Without it, a flexible Buy 2 Get 1 campaign is incorrectly
+   * presented as the legacy BOGO defaults (Buy 1 Get 1).
+   */
+  private async attachLatestV2Rules(promotions: any[]): Promise<any[]> {
+    const promotionIds = promotions
+      .map((promotion) => Number(promotion?.id))
+      .filter((id) => Number.isInteger(id) && id > 0);
+    if (!promotionIds.length) return promotions;
+
+    const versions = await this.prisma.promotionRuleVersion.findMany({
+      where: { promotionId: { in: promotionIds } },
+      orderBy: [{ promotionId: 'asc' }, { version: 'desc' }],
+      select: {
+        promotionId: true,
+        version: true,
+        status: true,
+        ruleJson: true
+      }
+    });
+    const latestByPromotion = new Map<number, (typeof versions)[number]>();
+    for (const version of versions) {
+      if (!latestByPromotion.has(version.promotionId)) {
+        latestByPromotion.set(version.promotionId, version);
+      }
+    }
+
+    return promotions.map((promotion) => {
+      const latest = latestByPromotion.get(Number(promotion.id));
+      return latest
+        ? {
+            ...promotion,
+            v2_rule: latest.ruleJson,
+            v2_rule_version: latest.version,
+            v2_rule_status: latest.status
+          }
+        : promotion;
+    });
+  }
+
   private normalizePromotionCode(value: string): string {
     return value.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
   }
@@ -207,13 +248,15 @@ export class PromotionsService {
       }
 
       if (data.type === 'BOGO') {
-        action.buy_quantity = data.buy_quantity || 1;
-        action.get_quantity = data.get_quantity || 1;
-        if (data.product_ids && data.product_ids.length > 0) {
-          action.product_ids = data.product_ids;
+        action.buy_quantity = data.buy_quantity ?? action.buy_quantity ?? 1;
+        action.get_quantity = data.get_quantity ?? action.get_quantity ?? 1;
+        const productIds = data.product_ids ?? action.product_ids;
+        if (productIds && productIds.length > 0) {
+          action.product_ids = productIds;
         }
-        if (data.max_free_items) {
-          action.max_free_items = data.max_free_items;
+        const maxFreeItems = data.max_free_items ?? action.max_free_items;
+        if (maxFreeItems) {
+          action.max_free_items = maxFreeItems;
         }
       }
 
@@ -1087,7 +1130,10 @@ export class PromotionsService {
         });
       }
 
-      return createPaginationResult(finalPromotions, total, page, limit);
+      const promotionsWithV2Rules = adminMode
+        ? await this.attachLatestV2Rules(finalPromotions)
+        : finalPromotions;
+      return createPaginationResult(promotionsWithV2Rules, total, page, limit);
     } catch (error) {
       logger.error({ error, filters, page, limit }, 'Error in dynamic promotions findMany operation');
       throw error;
@@ -1109,7 +1155,8 @@ export class PromotionsService {
         availableFields: Object.keys(promotion)
       }, 'Dynamic promotion findById completed');
 
-      return promotion;
+      const [promotionWithV2Rule] = await this.attachLatestV2Rules([promotion]);
+      return promotionWithV2Rule;
     } catch (error) {
       logger.error({ error, promotionId: id }, 'Error in promotion findById operation');
       throw error;

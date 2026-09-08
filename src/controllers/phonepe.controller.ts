@@ -3515,6 +3515,15 @@ export class PhonePeController {
               "Attempting to redeem promotion"
             );
 
+            const alreadyCommittedV2 = await prisma.promotion_evaluations.findFirst({
+              where: { evaluation_id: evaluationId, status: 'redeemed', order_id: order.id },
+              select: { evaluation_id: true },
+            });
+            if (alreadyCommittedV2) {
+              redemptionResults.push({ evaluationId, status: "success", message: "Promotion evaluation already committed atomically" });
+              continue;
+            }
+
             await redemptionService.redeemPromotion({
               evaluation_id: evaluationId,
               order_id: order.id.toString(),

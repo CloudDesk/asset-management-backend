@@ -481,6 +481,57 @@ export class OrdersController {
     }
   });
 
+  updateInvoiceSellerAddress = asyncHandler(async (
+    request: FastifyRequest<{
+      Params: { id: string };
+      Body: {
+        inventory_user_id: number;
+        alias: string;
+        phone: string;
+        address_line1: string;
+        address_line2?: string;
+        pincode: string;
+        city: string;
+        state: string;
+        country: string;
+        gstin: string;
+      };
+    }>,
+    reply: FastifyReply
+  ) => {
+    const actor = this.resolveInventoryActor(request, request.body.inventory_user_id);
+    if (!actor) {
+      return reply.code(401).send({
+        success: false,
+        message: 'Authenticated inventory user is required',
+        statusCode: 401,
+      });
+    }
+
+    try {
+      const { inventory_user_id: _inventoryUserId, ...sellerAddress } = request.body;
+      const result = await this.ordersService.updateInvoiceSellerAddress(
+        request.params.id,
+        sellerAddress
+      );
+
+      return reply.code(200).send(createSuccessResponse(
+        'Invoice seller address updated successfully',
+        {
+          invoice_seller_address: result.invoiceSellerAddress,
+          updated_by_inventory_user_id: actor.id,
+        }
+      ));
+    } catch (error: any) {
+      const statusCode = error.message.includes('Order not found') ? 404 : 400;
+      return reply.code(statusCode).send({
+        success: false,
+        message: error.message,
+        statusCode,
+      });
+    }
+  });
+
   updateOrderStatus = asyncHandler(async (request: FastifyRequest<{ Params: OrdersParams; Body: { status: string; additionalData?: Record<string, any> } }>, reply: FastifyReply) => {
     const { id } = ordersParamsSchema.parse(request.params);
     const { status, additionalData } = request.body;

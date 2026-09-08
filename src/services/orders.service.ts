@@ -21,9 +21,16 @@ import { gstService } from './gst.service.js';
 import { WalletRedemptionService } from './wallet-redemption.service.js';
 import { invoiceAdjustmentService } from './invoice-adjustment.service.js';
 import { buildShipmozoPublicTrackingUrl } from './shipmozo.service.js';
+import { PromotionCheckoutService } from './promotion-checkout.service.js';
+import {
+  InvoiceSellerAddress,
+  normalizeInvoiceSellerAddress,
+  validateInvoiceSellerAddress,
+} from '../utils/invoice-seller-address.js';
 
 export class OrdersService {
   private walletRedemptionService = new WalletRedemptionService();
+  private promotionCheckoutService = new PromotionCheckoutService();
 
   private async cancelProviderShipment(order: any): Promise<any> {
     const trackingId = String(order?.tracking_id || '').trim();
@@ -607,6 +614,20 @@ export class OrdersService {
           createdOrderlines: orderlineResults.length,
           totalProducts: data.productid.length
         }, 'Order and orderlines creation completed');
+
+        // Promotions V2 gift allocation, inventory consumption and redemption are
+        // committed together. Legacy evaluations continue through the legacy path.
+        if (data.evaluation_id) {
+          const evaluation = await prisma.promotion_evaluations.findUnique({ where: { evaluation_id: String(data.evaluation_id) }, select: { context: true } });
+          const context = evaluation?.context && typeof evaluation.context === 'object' && !Array.isArray(evaluation.context)
+            ? evaluation.context as Record<string, unknown>
+            : {};
+          if (context.schema_version === 2) {
+            await this.promotionCheckoutService.commitEvaluationToOrder(order.id, String(data.evaluation_id), data.userid ? Number(data.userid) : undefined);
+            const giftLines = await prisma.orderline.findMany({ where: { orderid: order.id, evaluation_id: String(data.evaluation_id), is_free_item: true } });
+            orderlineResults.push(...giftLines);
+          }
+        }
 
         // ============================================
         // GST CALCULATION - Calculate and update GST for order and orderlines
@@ -1799,28 +1820,11 @@ export class OrdersService {
       // Import axios
       const axios = (await import('axios')).default;
 
-      // Fetch seller data from EKART addresses endpoint
-      let sellerData: any = null;
-      try {
-        const { ekartService } = await import('./ekart.service.js');
-
-        logger.info('Fetching seller addresses from EKART service');
-
-        const addresses = await ekartService.getAddresses();
-
-        // Get the first address from the response (main sales office)
-        if (addresses && addresses.length > 0) {
-          sellerData = addresses[0];
-          logger.info({ seller: sellerData?.alias }, 'Seller data fetched successfully');
-        } else {
-          logger.warn('No seller addresses found in EKART response');
-        }
-      } catch (sellerError: any) {
-        logger.error({
-          error: sellerError.message
-        }, 'Failed to fetch seller data from EKART - continuing without seller info');
-        // Continue without seller data - don't fail invoice generation
-      }
+      // Use the editable seller snapshot stored with the order. Existing orders
+      // receive the established Nivaana sales-office default from getOrderDetails.
+      const sellerData = normalizeInvoiceSellerAddress(
+        orderDetails.order.invoice_seller_address
+      );
 
       // Call storage backend to generate invoice
       const storageBackendUrl = process.env.STORAGE_BACKEND_URL || 'http://localhost:4500';
@@ -1996,6 +2000,31 @@ export class OrdersService {
       order: updatedOrder,
       invoiceUrl
     };
+  }
+
+  async updateInvoiceSellerAddress(
+    orderIdOrNumber: string | number,
+    value: unknown
+  ): Promise<{ order: any; invoiceSellerAddress: InvoiceSellerAddress }> {
+    const order = typeof orderIdOrNumber === 'string' && isNaN(Number(orderIdOrNumber))
+      ? await this.findByOrderNumber(orderIdOrNumber)
+      : await this.findById(Number(orderIdOrNumber));
+
+    if (!order) {
+      throw new Error('Order not found');
+    }
+
+    const invoiceSellerAddress = validateInvoiceSellerAddress(value);
+    const updatedOrder = await dynamicUpdate('orders', { id: order.id }, {
+      invoice_seller_address: invoiceSellerAddress,
+      modifieddate: Date.now(),
+    });
+
+    if (!updatedOrder?.invoice_seller_address) {
+      throw new Error('Failed to save seller address; apply the invoice seller address database migration');
+    }
+
+    return { order: updatedOrder, invoiceSellerAddress };
   }
 
   /**
@@ -3017,6 +3046,7 @@ export class OrdersService {
         barcodes: fullOrder.barcodes,
         label_url: fullOrder.label_url,
         order_invoice_url: fullOrder.order_invoice_url,
+        invoice_seller_address: normalizeInvoiceSellerAddress(fullOrder.invoice_seller_address),
         public_tracking_link: fullOrder.public_tracking_link || (
           String(fullOrder.vendor || '').toUpperCase() === 'SHIPMOZO' && fullOrder.tracking_id
             ? buildShipmozoPublicTrackingUrl(fullOrder.tracking_id)

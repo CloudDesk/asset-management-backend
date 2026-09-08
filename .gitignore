@@ -8,7 +8,7 @@ node_modules
 build
 /node_modules
 /build
-debug_*.txt
+/debug_*.txt
 scripts/dryrun-logs/product-name-backup-*.json
 scripts/dryrun-logs/production-taxonomy-backup-*.json
 .codex-*.log

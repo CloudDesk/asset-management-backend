@@ -8068,3 +8068,21 @@ Filtered data: {
 Filtered data: {
   "modifieddate": 1777988985564
 }
+Filtered data: {
+  "invoice_seller_address": {
+    "alias": "VIP98 - SALES OFFICE",
+    "phone": "9003879665",
+    "address_line1": "968, 1ST FLOOR 4TH HOUSE, TNHB 1ST MAIN ROAD, VELACHERY",
+    "address_line2": "OPP. TO PURPLE PHARMACY",
+    "pincode": "600042",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "gstin": "33AABCU9603R1ZX"
+  },
+  "modifieddate": 1788864105092
+}
+Filtered data: {
+  "order_invoice_url": "https://storage.googleapis.com/niv_order_invoice/NIVAANA-0000000334/NIVAANA-0000000334.pdf",
+  "modifieddate": 1788864140707
+}

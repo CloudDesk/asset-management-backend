@@ -38,7 +38,10 @@
     "taxonomy:names:dry-run": "npx tsx scripts/migrate-product-names.ts",
     "taxonomy:names:apply": "npx tsx scripts/migrate-product-names.ts --apply --confirm=NIVAANA_PRODUCT_NAMES",
     "shortnames:dry-run": "npx tsx scripts/migrate-product-shortnames.ts",
-    "shortnames:apply:dev": "npx tsx scripts/migrate-product-shortnames.ts --apply --confirm=NIVAANA_PRODUCT_SHORTNAMES_DEV"
+    "shortnames:apply:dev": "npx tsx scripts/migrate-product-shortnames.ts --apply --confirm=NIVAANA_PRODUCT_SHORTNAMES_DEV",
+    "promotions:v2:migrate:dry-run": "npx tsx scripts/migrate-promotions-v2.ts",
+    "promotions:v2:migrate:apply": "npx tsx scripts/migrate-promotions-v2.ts --apply --confirm=NIVAANA_PROMOTIONS_V2",
+    "test:promotions:v2:load": "npx tsx scripts/load-test-promotions-v2.ts"
   },
   "repository": {
     "type": "git",

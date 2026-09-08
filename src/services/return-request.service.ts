@@ -73,7 +73,7 @@ const requestClient = () => prisma.returnRequest;
 const attachmentClient = () => prisma.returnRequestAttachment;
 const RETURN_REQUEST_INCLUDE = {
   attachments: true,
-  orderline: { include: { product: true, address: true, orders: { include: { address: true } } } },
+  orderline: { include: { product: true, address: true, orders: { include: { address: true } }, giftOrderlines: { include: { promotionAdjustment: true } } } },
   order: { include: { address: true } },
   customer: true,
 };
@@ -738,6 +738,10 @@ export class ReturnRequestService {
 
     if (authUser?.userType === 'ecommerce' && orderline.userid !== authUser.id) {
       throw new ValidationError('Orderline does not belong to customer', 'Customers can only create returns for their own order items');
+    }
+
+    if (orderline.is_free_item || orderline.line_type === 'PROMOTIONAL_GIFT') {
+      throw new ValidationError('Promotional gifts cannot be returned independently', 'Return the qualifying paid item; gift handling follows the promotion return policy');
     }
 
     this.validateDeliveredOrderline(orderline);
@@ -3539,6 +3543,20 @@ export class ReturnRequestService {
   }
 
   private async buildOrderlineEligibility(orderline: any, order: any) {
+    if (orderline.is_free_item || orderline.line_type === 'PROMOTIONAL_GIFT') {
+      return {
+        orderlineid: orderline.id, orderlinenumber: orderline.orderlinenumber,
+        productid: orderline.productid, productname: orderline.productname || orderline.product?.name || null,
+        category: orderline.product?.category || orderline.productcategory || null,
+        subcategory: orderline.product?.subcategory || null, orderstatus: orderline.orderstatus,
+        delivereddate: orderline.delivereddate || order.delivereddate || null,
+        orderedquantity: orderline.quantity || 1, activeorconsumedquantity: 0, remainingeligiblequantity: 0,
+        eligible: false, ispromotionalgift: true,
+        return: { eligible: false, policyeligible: false, policyid: null, policyversion: null, windowdays: 0, allowedrefundmethods: [], reason: 'Promotional gifts cannot be returned independently' },
+        replacement: { eligible: false, policyeligible: false, policyid: null, policyversion: null, windowdays: 0, reason: 'Promotional gifts cannot be replaced independently' },
+        allowedreasons: [], blockers: ['Promotional gifts cannot be returned independently'],
+      };
+    }
     const orderedQuantity = orderline.quantity || 1;
     const consumedQuantity = await this.getConsumedQuantity(orderline.id);
     const remainingEligibleQuantity = Math.max(0, orderedQuantity - consumedQuantity);
@@ -4330,11 +4348,23 @@ export class ReturnRequestService {
   private calculateClosureRefundAmount(request: any, data: CompleteReturnResolutionInput) {
     const requestedQuantity = Math.max(1, Number(request.requestedquantity || 1));
     const orderlineQuantity = Math.max(1, Number(request.orderline?.quantity || requestedQuantity));
+    const outstandingRequiredGifts = (request.orderline?.giftOrderlines ?? []).filter((gift: any) => {
+      const metadata = gift.promotionAdjustment?.metadata ?? {};
+      return metadata.return_policy === 'RETURN_GIFT' && !['returned', 'return_completed', 'cancelled'].includes(String(gift.orderstatus ?? '').toLowerCase());
+    });
+    if (outstandingRequiredGifts.length) {
+      throw new ValidationError('Promotional gift return required', 'Receive and mark the linked promotional gift as returned before completing this refund');
+    }
     const linePaidAmount = positiveNumber(
       request.orderline?.orderamount,
       positiveNumber(request.orderline?.productamount, positiveNumber(request.order?.orderamount, 0))
     );
-    const defaultRefundAmount = Number(((linePaidAmount / orderlineQuantity) * requestedQuantity).toFixed(2));
+    const giftDeduction = (request.orderline?.giftOrderlines ?? []).reduce((sum: number, gift: any) => {
+      const metadata = gift.promotionAdjustment?.metadata ?? {};
+      if (metadata.return_policy !== 'DEDUCT_GIFT_VALUE') return sum;
+      return sum + positiveNumber(gift.productamount, positiveNumber(gift.promotionAdjustment?.listAmount, 0));
+    }, 0) * Math.min(1, requestedQuantity / orderlineQuantity);
+    const defaultRefundAmount = Math.max(0, Number((((linePaidAmount / orderlineQuantity) * requestedQuantity) - giftDeduction).toFixed(2)));
 
     if (data.amount !== undefined) {
       const suppliedAmount = Number(data.amount.toFixed(2));

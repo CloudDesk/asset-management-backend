@@ -39,6 +39,7 @@ const JSONB_FIELDS = new Set([
   'status_history',
   'barcodes',
   'benefititems',
+  'invoice_seller_address',
 ]);
 const isJsonbField = (field: string | undefined): boolean => Boolean(field && JSONB_FIELDS.has(field));
 

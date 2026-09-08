@@ -798,6 +798,13 @@ model orderline {
   original_price            Decimal? @db.Decimal(10, 2)
   product_discount_amount   Decimal? @default(0) @db.Decimal(10, 2)
   promotion_discount_amount Decimal? @default(0) @db.Decimal(10, 2)
+  line_type                 String   @default("NORMAL") @db.VarChar(30)
+  promotion_id              Int?
+  promotion_adjustment_id   String?  @db.VarChar(36)
+  parent_orderline_id       Int?
+  list_unit_price           Decimal? @db.Decimal(10, 2)
+  promotion_unit_discount   Decimal? @default(0) @db.Decimal(10, 2)
+  is_free_item              Boolean  @default(false)
   manual_discount_amount    Decimal? @default(0) @db.Decimal(10, 2)
   shipping_cost             Decimal? @default(0) @db.Decimal(10, 2)
   // EKART Shipment Information (shared with order)
@@ -810,17 +817,21 @@ model orderline {
   igst_amount      Decimal? @db.Decimal(10, 2) // if different state
   total_gst_amount Decimal? @db.Decimal(10, 2) // cgst + sgst OR igst
 
-  tracking_id    String?         @db.VarChar(500)
-  shipdate       BigInt?
-  status_history Json? // Array of status change history entries
-  address        address?        @relation(fields: [addressid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  product        Product?        @relation(fields: [productid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users          users?          @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  rating         rating[]
-  stock          Stock[]
-  returnrequests ReturnRequest[]
-  tickets        tickets[]       @ignore
-  orders         orders?         @relation(fields: [orderid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  tracking_id         String?                        @db.VarChar(500)
+  shipdate            BigInt?
+  status_history      Json? // Array of status change history entries
+  address             address?                       @relation(fields: [addressid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  product             Product?                       @relation(fields: [productid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users               users?                         @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  rating              rating[]
+  stock               Stock[]
+  returnrequests      ReturnRequest[]
+  tickets             tickets[]                      @ignore
+  orders              orders?                        @relation(fields: [orderid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  promotion           promotions?                    @relation(fields: [promotion_id], references: [id], onDelete: SetNull)
+  promotionAdjustment PromotionEvaluationAdjustment? @relation(fields: [promotion_adjustment_id], references: [id], onDelete: SetNull)
+  parentOrderline     orderline?                     @relation("PromotionalGiftParent", fields: [parent_orderline_id], references: [id], onDelete: SetNull)
+  giftOrderlines      orderline[]                    @relation("PromotionalGiftParent")
 
   @@map("orderline")
 }
@@ -892,6 +903,7 @@ model orders {
   refund_initiated_date BigInt? // Timestamp when refund was initiated (epoch ms)
   refund_completed_date BigInt? // Timestamp when refund was completed (epoch ms)
   order_invoice_url     String?  @db.VarChar(1000) // URL of the order invoice
+  invoice_seller_address Json?   @db.JsonB // Editable seller snapshot used for invoice generation
 
   orderline      orderline[]
   address        address?        @relation(fields: [addressid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_addressid_orders")
@@ -1308,11 +1320,76 @@ model promotions {
   modifieddate              BigInt?
 
   // Relations
-  redemptions promotion_redemptions[]
-  assignments promotion_assignments[]
+  redemptions  promotion_redemptions[]
+  assignments  promotion_assignments[]
+  ruleVersions PromotionRuleVersion[]
+  orderlines   orderline[]
+  adjustments  PromotionEvaluationAdjustment[]
 
   @@index([application_mode])
   @@map("promotions")
+}
+
+model PromotionRuleVersion {
+  id            BigInt                          @id @default(autoincrement())
+  promotionId   Int                             @map("promotion_id")
+  version       Int
+  schemaVersion Int                             @default(2) @map("schema_version")
+  ruleJson      Json                            @map("rule_json") @db.JsonB
+  status        String                          @default("draft") @db.VarChar(30)
+  publishedAt   BigInt?                         @map("published_at")
+  publishedBy   Int?                            @map("published_by")
+  checksum      String                          @db.VarChar(64)
+  createdAt     BigInt                          @map("created_at")
+  modifiedAt    BigInt                          @map("modified_at")
+  promotion     promotions                      @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  targets       PromotionTarget[]
+  adjustments   PromotionEvaluationAdjustment[]
+
+  @@unique([promotionId, version])
+  @@index([promotionId, status])
+  @@index([status, publishedAt])
+  @@map("promotion_rule_versions")
+}
+
+model PromotionTarget {
+  id                     BigInt               @id @default(autoincrement())
+  promotionRuleVersionId BigInt               @map("promotion_rule_version_id")
+  facetType              String               @map("facet_type") @db.VarChar(40)
+  facetValue             String               @map("facet_value") @db.VarChar(255)
+  inclusion              String               @default("include") @db.VarChar(10)
+  createdAt              BigInt               @map("created_at")
+  ruleVersion            PromotionRuleVersion @relation(fields: [promotionRuleVersionId], references: [id], onDelete: Cascade)
+
+  @@unique([promotionRuleVersionId, facetType, facetValue, inclusion])
+  @@index([facetType, facetValue, inclusion])
+  @@map("promotion_targets")
+}
+
+model PromotionEvaluationAdjustment {
+  id                     String                @id @db.VarChar(36)
+  evaluationId           String                @map("evaluation_id") @db.VarChar(36)
+  promotionId            Int                   @map("promotion_id")
+  promotionRuleVersionId BigInt?               @map("promotion_rule_version_id")
+  adjustmentType         String                @map("adjustment_type") @db.VarChar(40)
+  cartRecordId           String?               @map("cart_record_id") @db.VarChar(100)
+  productId              BigInt?               @map("product_id")
+  affectedQuantity       Int                   @default(1) @map("affected_quantity")
+  amount                 Decimal               @default(0) @db.Decimal(12, 2)
+  listAmount             Decimal?              @map("list_amount") @db.Decimal(12, 2)
+  payableAmount          Decimal?              @map("payable_amount") @db.Decimal(12, 2)
+  sourceProductIds       Json?                 @map("source_product_ids") @db.JsonB
+  metadata               Json?                 @db.JsonB
+  createdAt              BigInt                @map("created_at")
+  ruleVersion            PromotionRuleVersion? @relation(fields: [promotionRuleVersionId], references: [id], onDelete: SetNull)
+  evaluation             promotion_evaluations @relation(fields: [evaluationId], references: [evaluation_id], onDelete: Cascade)
+  promotion              promotions            @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  orderlines             orderline[]
+
+  @@index([evaluationId])
+  @@index([promotionId])
+  @@index([productId])
+  @@map("promotion_evaluation_adjustments")
 }
 
 model promotion_evaluations {
@@ -1333,6 +1410,7 @@ model promotion_evaluations {
   modifieddate       BigInt?
 
   redemptions promotion_redemptions[]
+  adjustments PromotionEvaluationAdjustment[]
 
   @@index([user_id, created_at])
   @@index([expires_at])
