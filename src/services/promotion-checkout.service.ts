@@ -31,7 +31,7 @@ export class PromotionCheckoutService {
       const order = await tx.orders.findUniqueOrThrow({ where: { id: orderId } });
       const context = (evaluation.context && typeof evaluation.context === 'object' ? evaluation.context : {}) as Prisma.JsonObject;
       const quote = ((context.quote && typeof context.quote === 'object') ? context.quote : {}) as QuoteSnapshot;
-      if (quote.schema_version !== 2) throw new Error('Only Promotions V2 evaluations can create promotional gift lines');
+      if (quote.schema_version !== 2) throw new Error('This promotion evaluation cannot create promotional gift lines');
 
       const storedAdjustments = await tx.promotionEvaluationAdjustment.findMany({ where: { evaluationId } });
       const adjustments = storedAdjustments.length ? storedAdjustments : [];

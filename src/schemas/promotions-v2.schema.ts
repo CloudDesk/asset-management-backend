@@ -136,6 +136,7 @@ export const PromotionRuleV2Schema = z.object({
       'BUY_X_PERCENT_OFF',
       'QUANTITY_TIERED_PERCENT_OFF',
       'PERCENT_OFF_PRODUCTS',
+      'FIXED_AMOUNT_OFF_PRODUCTS',
       'PERCENT_OFF_CATEGORIES',
       'PERCENT_OFF_SUBCATEGORIES',
     ]).optional(),

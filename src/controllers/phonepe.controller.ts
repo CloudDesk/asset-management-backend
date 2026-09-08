@@ -3520,7 +3520,7 @@ export class PhonePeController {
               select: { evaluation_id: true },
             });
             if (alreadyCommittedV2) {
-              redemptionResults.push({ evaluationId, status: "success", message: "Promotions V2 evaluation already committed atomically" });
+              redemptionResults.push({ evaluationId, status: "success", message: "Promotion evaluation already committed atomically" });
               continue;
             }
 

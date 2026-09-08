@@ -44,7 +44,7 @@ export function convertLegacyPromotionRule(input: {
       // Former mappings are retained conceptually but disabled by scope:
       // FRAGRANCE <- fragrance/scent, BRAND <- brand, COLLECTION <- collection,
       // TAG <- tag, SUBSUBCATEGORY <- subsubcategory.
-      throw new Error(`Legacy condition ${condition.attribute} is outside the Promotions V2 scope`);
+      throw new Error(`Legacy condition ${condition.attribute} is outside the supported promotion scope`);
     }
     else if (attribute.includes('subcategory')) includes.push({ facet: 'SUBCATEGORY', values });
     else if (attribute.includes('category')) includes.push({ facet: 'CATEGORY', values });

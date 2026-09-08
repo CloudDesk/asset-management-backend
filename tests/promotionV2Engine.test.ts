@@ -157,6 +157,24 @@ test('applies compatible offers to different products', () => {
   assert.equal(quote.discount_total, 3_000);
 });
 
+test('applies a fixed amount only to selected products', () => {
+  const fixedProductOffer = rule({
+    qualifier: {
+      scope: { include: [{ facet: 'PRODUCT', values: ['A'] }], exclude: [], group_operator: 'OR' },
+      metric: 'ELIGIBLE_QUANTITY', aggregation: 'ACROSS_ELIGIBLE_PRODUCTS', minimum_quantity: 1,
+    },
+    benefit: { type: 'FIXED_AMOUNT_OFF', value: 1_000, target: 'ALL_QUALIFYING_UNITS' },
+  });
+  const quote = evaluatePromotionQuote(
+    [line('A', 1, 10_000), line('B', 1, 20_000)],
+    [campaign(1, fixedProductOffer)],
+    [],
+  );
+
+  assert.equal(quote.discount_total, 1_000);
+  assert.deepEqual(quote.adjustments.map((item) => item.product_id), ['A']);
+});
+
 test('rejects invalid or ambiguous tier definitions', () => {
   assert.throws(() => rule({ benefit: undefined, tiers: [
     { minimum: 3, benefit: { type: 'PERCENT_OFF', value: 15, target: 'ALL_QUALIFYING_UNITS', fulfilment: 'AUTO_ADD', out_of_stock_policy: 'REMOVE_PROMOTION' } },
