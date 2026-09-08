@@ -2,6 +2,7 @@ import { prisma } from '../models/prisma.js';
 import { logger } from '../config/logger.js';
 import { NotFoundError, ValidationError } from '../utils/errorHandler.js';
 import axios from 'axios';
+import { normalizeInvoiceSellerAddress } from '../utils/invoice-seller-address.js';
 
 type DbClient = typeof prisma | any;
 
@@ -439,23 +440,8 @@ export class InvoiceAdjustmentService {
     };
   }
 
-  private async loadInvoiceSeller() {
-    try {
-      const { ekartService } = await import('./ekart.service.js');
-      const addresses = await ekartService.getAddresses();
-      return addresses && addresses.length > 0 ? addresses[0] : {};
-    } catch (sellerError: any) {
-      logger.warn({ error: sellerError.message }, 'Failed to fetch seller data for invoice adjustment PDF');
-      return {
-        alias: process.env.SELLER_NAME || 'Nivaana',
-        address_line1: process.env.SELLER_ADDRESS || 'Chennai, Tamil Nadu, India',
-        city: '',
-        state: '',
-        pincode: '',
-        country: 'India',
-        phone: process.env.SELLER_PHONE || '+91-1234567890',
-      };
-    }
+  private loadInvoiceSeller(order: any) {
+    return normalizeInvoiceSellerAddress(order?.invoice_seller_address);
   }
 
   private async generateAdjustmentInvoicePdf(database: DbClient, data: {
@@ -523,7 +509,7 @@ export class InvoiceAdjustmentService {
       });
 
       const address = await this.loadInvoiceAddress(database, order);
-      const seller = await this.loadInvoiceSeller();
+      const seller = this.loadInvoiceSeller(order);
 
       const adjustedOrder = {
         ...order,

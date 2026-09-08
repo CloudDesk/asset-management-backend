@@ -903,6 +903,7 @@ model orders {
   refund_initiated_date BigInt? // Timestamp when refund was initiated (epoch ms)
   refund_completed_date BigInt? // Timestamp when refund was completed (epoch ms)
   order_invoice_url     String?  @db.VarChar(1000) // URL of the order invoice
+  invoice_seller_address Json?   @db.JsonB // Editable seller snapshot used for invoice generation
 
   orderline      orderline[]
   address        address?        @relation(fields: [addressid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_addressid_orders")

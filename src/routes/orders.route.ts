@@ -295,6 +295,69 @@ export async function ordersRoutes(fastify: FastifyInstance) {
     }
   }, ordersController.updateShipmentStatus.bind(ordersController));
 
+  // PATCH /v1/orders/:id/invoice-seller-address - Save the seller snapshot used by invoices
+  fastify.patch('/:id/invoice-seller-address', {
+    schema: {
+      description: 'Update the editable seller address snapshot used for order and adjustment invoices.',
+      tags: ['Orders'],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'Order ID (database ID) or order number (orderid)' }
+        },
+        required: ['id']
+      },
+      body: {
+        type: 'object',
+        additionalProperties: false,
+        required: [
+          'inventory_user_id', 'alias', 'phone', 'address_line1',
+          'pincode', 'city', 'state', 'country', 'gstin'
+        ],
+        properties: {
+          inventory_user_id: { type: 'number' },
+          alias: { type: 'string', minLength: 1, maxLength: 200 },
+          phone: { type: 'string', minLength: 10, maxLength: 20 },
+          address_line1: { type: 'string', minLength: 1, maxLength: 500 },
+          address_line2: { type: 'string', maxLength: 500 },
+          pincode: { type: 'string', pattern: '^\\d{6}$' },
+          city: { type: 'string', minLength: 1, maxLength: 100 },
+          state: { type: 'string', minLength: 1, maxLength: 100 },
+          country: { type: 'string', minLength: 1, maxLength: 100 },
+          gstin: { type: 'string', pattern: '^[0-9A-Za-z]{15}$' }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            data: { type: 'object', additionalProperties: true },
+            message: { type: 'string' }
+          }
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' }, message: { type: 'string' }, statusCode: { type: 'number' }
+          }
+        },
+        401: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' }, message: { type: 'string' }, statusCode: { type: 'number' }
+          }
+        },
+        404: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' }, message: { type: 'string' }, statusCode: { type: 'number' }
+          }
+        }
+      }
+    }
+  }, ordersController.updateInvoiceSellerAddress.bind(ordersController));
+
   // POST /v1/orders/:id/generate-invoice - Manually generate order invoice
   fastify.post('/:id/generate-invoice', {
     schema: {
