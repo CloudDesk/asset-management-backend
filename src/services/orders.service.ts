@@ -27,10 +27,37 @@ import {
   normalizeInvoiceSellerAddress,
   validateInvoiceSellerAddress,
 } from '../utils/invoice-seller-address.js';
+import { customerEmailNotificationService } from './customer-email-notification.service.js';
 
 export class OrdersService {
   private walletRedemptionService = new WalletRedemptionService();
   private promotionCheckoutService = new PromotionCheckoutService();
+
+  private notifyNewOrder(order: any): void {
+    customerEmailNotificationService.queueOrderEmail(order.id, 'order_confirmation');
+    if (order.ispaymentsucceed || ['payment_success', 'payment_completed'].includes(order.orderstatus)) {
+      customerEmailNotificationService.queueOrderEmail(order.id, 'payment_confirmation');
+    }
+  }
+
+  private notifyOrderStatus(
+    orderId: number,
+    status: string,
+    details: { reason?: string; refundAmount?: number; refundReference?: string; location?: string; description?: string } = {}
+  ): void {
+    const normalizedStatus = status.trim().toLowerCase();
+    if (['payment_success', 'payment_completed', 'cod_payment_received'].includes(normalizedStatus)) {
+      customerEmailNotificationService.queueOrderEmail(orderId, 'payment_confirmation', { status: normalizedStatus, ...details });
+    } else if (normalizedStatus === 'delivered') {
+      customerEmailNotificationService.queueOrderEmail(orderId, 'delivery_confirmation', { status: normalizedStatus, ...details });
+    } else if (['shipped', 'dispatched', 'in_transit', 'out_for_delivery', 'rto_initiated', 'rto_delivered'].includes(normalizedStatus)) {
+      customerEmailNotificationService.queueOrderEmail(orderId, 'shipment_update', { status: normalizedStatus, ...details });
+    } else if (['cancelled', 'partially_cancelled'].includes(normalizedStatus)) {
+      customerEmailNotificationService.queueOrderEmail(orderId, 'order_cancellation', { status: normalizedStatus, ...details });
+    } else if (['cancelled_refund_processing', 'cancelled_refunded'].includes(normalizedStatus)) {
+      customerEmailNotificationService.queueOrderEmail(orderId, 'refund_notification', { status: normalizedStatus, ...details });
+    }
+  }
 
   private async cancelProviderShipment(order: any): Promise<any> {
     const trackingId = String(order?.tracking_id || '').trim();
@@ -684,10 +711,12 @@ export class OrdersService {
         // ============================================
 
         // Return order with orderlines info
-        return {
+        const completedOrder = {
           ...order,
           orderlines: orderlineResults
         };
+        this.notifyNewOrder(completedOrder);
+        return completedOrder;
       }
 
       logger.info({
@@ -696,6 +725,7 @@ export class OrdersService {
         availableFields: Object.keys(order)
       }, 'Dynamic orders create completed (no orderlines created)');
 
+      this.notifyNewOrder(order);
       return order;
     } catch (error) {
       logger.error({ error, data }, 'Error in orders create operation');
@@ -1102,6 +1132,8 @@ export class OrdersService {
           newOrderStatus,
           orderlineStatuses
         }, 'Order status recalculated and history updated');
+
+        this.notifyOrderStatus(orderId, newOrderStatus);
       }
     } catch (error) {
       logger.error({ error, orderId }, 'Error recalculating order status');
@@ -2581,6 +2613,12 @@ export class OrdersService {
       });
 
       const updatedOrder = await this.findById(order.id);
+      if (status === 'cod_payment_received') {
+        this.notifyOrderStatus(order.id, status, {
+          ...(location ? { location } : {}),
+          ...(description ? { description } : {}),
+        });
+      }
       logger.info(
         {
           orderId: order.id,
@@ -2919,6 +2957,13 @@ export class OrdersService {
         orderid: order.orderid
       }, 'Orders status update completed');
 
+      this.notifyOrderStatus(Number(id), status, {
+        ...(additionalData?.cancellation_reason ? { reason: additionalData.cancellation_reason } : {}),
+        ...(additionalData?.refund_amount !== undefined ? { refundAmount: additionalData.refund_amount } : {}),
+        ...(additionalData?.refund_reference ? { refundReference: additionalData.refund_reference } : {}),
+        ...(additionalData?.location ? { location: additionalData.location } : {}),
+        ...(additionalData?.description ? { description: additionalData.description } : {}),
+      });
       return order;
     } catch (error) {
       logger.error({ error, orderId: id, status }, 'Error in orders status update operation');
@@ -4033,6 +4078,10 @@ export class OrdersService {
         userId,
         inventoryUserId
       }, 'Order cancelled successfully');
+
+      this.notifyOrderStatus(orderId, 'cancelled', {
+        ...(cancellationReason ? { reason: cancellationReason } : {}),
+      });
 
       // UPDATE TRANSACTION TABLE
       const currentTimestamp = Date.now();

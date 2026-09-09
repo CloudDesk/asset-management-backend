@@ -28,13 +28,52 @@ export class EmailService {
     });
 
     // Log configuration (without password) for debugging
-    logger.info('Email service initialized', {
+    logger.info({
       service: config.GMAIL_SERVICE,
       host: config.GMAIL_HOST,
       port: config.GMAIL_PORT,
       user: config.GMAIL_AUTH_USER,
       passwordConfigured: !!config.GMAIL_AUTH_PASSWORD
-    });
+    }, 'Email service initialized');
+  }
+
+  /**
+   * Send a transactional email. Domain services should normally use
+   * CustomerEmailNotificationService, which resolves the customer's email and
+   * safely skips customers who do not have one.
+   */
+  async sendTransactionalEmail(options: {
+    to: string;
+    subject: string;
+    html: string;
+    text: string;
+  }): Promise<void> {
+    const to = options.to.trim();
+    if (!to) {
+      logger.info('Skipping transactional email because recipient email is missing');
+      return;
+    }
+
+    try {
+      const result = await this.transporter.sendMail({
+        from: `"Nivaana" <${config.GMAIL_AUTH_USER}>`,
+        ...options,
+        to,
+      });
+      logger.info(
+        {
+          email: to,
+          subject: options.subject,
+          messageId: result.messageId,
+          accepted: result.accepted,
+          rejected: result.rejected,
+        },
+        'Transactional email sent successfully'
+      );
+    } catch (error) {
+      logger.error({ error, email: to, subject: options.subject }, 'Failed to send transactional email');
+      throw error;
+    }
   }
 
   /**
@@ -538,4 +577,4 @@ If you have any questions, please contact our support team.
       return false;
     }
   }
-} 
+}

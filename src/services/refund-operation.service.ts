@@ -5,6 +5,7 @@ import {
   calculateReturnRefundBreakdown,
   isRefundWalletSourceExpired,
 } from '../utils/refund-allocation.js';
+import { customerEmailNotificationService } from './customer-email-notification.service.js';
 
 const money = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 const nowSeconds = () => BigInt(Math.floor(Date.now() / 1000));
@@ -449,7 +450,8 @@ export class RefundOperationService {
 
   async finalizeRefundOperation(operationId: number, markPhonePeCompleted = false, refundReference?: string | null) {
     const timestamp = nowMillis();
-    return this.prisma.$transaction(async (database: any) => {
+    let shouldNotify = false;
+    const completedOperation = await this.prisma.$transaction(async (database: any) => {
       const operation = await database.refundOperation.findUnique({ where: { id: operationId } });
       if (!operation) throw new ValidationError('REFUND_OPERATION_NOT_FOUND');
       const allocations = await database.refundWalletAllocation.findMany({
@@ -563,6 +565,7 @@ export class RefundOperationService {
         : operation.phonepeStatus;
       const phonepeOkay = operation.destination === 'wallet' || Number(operation.phonepeRefundAmount || 0) <= 0 || phonepeStatus === 'completed';
       const completed = phonepeOkay;
+      shouldNotify = completed && operation.status !== 'completed';
       return database.refundOperation.update({
         where: { id: operation.id },
         data: {
@@ -579,6 +582,22 @@ export class RefundOperationService {
         },
       });
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+    if (shouldNotify && completedOperation.status === 'completed') {
+      const details: { status: string; refundAmount: number; refundReference?: string } = {
+        status: 'completed',
+        refundAmount: Number(completedOperation.approvedAmount || 0),
+      };
+      const reference = refundReference || completedOperation.phonepeRefundId;
+      if (reference) details.refundReference = reference;
+      customerEmailNotificationService.queueOrderEmail(
+        Number(completedOperation.orderId),
+        'refund_notification',
+        details,
+      );
+    }
+
+    return completedOperation;
   }
 
   async completeReturnRefundOperation(
@@ -629,7 +648,15 @@ export class RefundOperationService {
         modifieddate: nowMillis(),
       },
     });
-    return completed ? this.finalizeRefundOperation(updated.id, true, refundId) : updated;
+    if (completed) return this.finalizeRefundOperation(updated.id, true, refundId);
+    if (failed && operation.phonepeStatus !== 'failed') {
+      customerEmailNotificationService.queueOrderEmail(Number(updated.orderId), 'refund_notification', {
+        status: updated.status,
+        refundAmount: Number(updated.approvedAmount || 0),
+        refundReference: refundId,
+      });
+    }
+    return updated;
   }
 
   async markCancellationRefundCompleted(orderId: number, refundReference?: string | null) {

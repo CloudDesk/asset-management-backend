@@ -2,6 +2,7 @@ import { randomBytes } from 'crypto';
 import { Prisma, PrismaClient } from '@prisma/client';
 import type { CouponWalletListInput, CreateQuickCouponInput, UpdateQuickCouponInput } from '../schemas/coupon-wallet.schema.js';
 import { ValidationError } from '../utils/errorHandler.js';
+import { customerEmailNotificationService } from './customer-email-notification.service.js';
 
 const STANDALONE_DESCRIPTION_PREFIX = 'Private discount rule created for coupon ';
 const money = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
@@ -417,7 +418,7 @@ export class CouponWalletService {
   }
 
   async createQuickCoupon(input: CreateQuickCouponInput) {
-    return this.prisma.$transaction(async (database) => {
+    const result = await this.prisma.$transaction(async (database) => {
       let customerIds: number[] = [];
       if (input.assignment_type === 'customer') {
         const customer = await database.users.findUnique({ where: { id: input.customer_id! }, select: { id: true } });
@@ -493,6 +494,20 @@ export class CouponWalletService {
       }
       return { coupons: created, issued_count: created.length };
     });
+
+    for (const coupon of result.coupons) {
+      if (!coupon.customer?.id) continue;
+      customerEmailNotificationService.queuePromotionVoucher({
+        customerIds: [coupon.customer.id],
+        promotionName: coupon.promotion?.name || 'Nivaana voucher',
+        voucherCode: coupon.code,
+        startDate: coupon.start_date,
+        endDate: coupon.end_date,
+        usageLimit: coupon.usage_limit,
+      });
+    }
+
+    return result;
   }
 
   async updateQuickCoupon(assignmentId: number, input: UpdateQuickCouponInput) {

@@ -16,6 +16,7 @@ type AssignmentDatabase = Pick<
   Prisma.TransactionClient,
   'promotion_assignments' | 'promotions'
 >;
+import { customerEmailNotificationService } from './customer-email-notification.service.js';
 
 export class PromotionAssignmentService {
   constructor(private readonly prisma: PrismaClient = new PrismaClient()) {}
@@ -93,7 +94,7 @@ export class PromotionAssignmentService {
   async createVoucher(promotionId: number, input: CreatePromotionAssignmentInput) {
     const promotion = await this.prisma.promotions.findUnique({
       where: { id: promotionId },
-      select: { id: true, name: true, code: true, start_date: true, end_date: true }
+      select: { id: true, name: true, description: true, code: true, start_date: true, end_date: true }
     });
     if (!promotion) throw new Error('Promotion not found');
 
@@ -127,10 +128,32 @@ export class PromotionAssignmentService {
         modifieddate: now
     };
 
-    return this.prisma.promotion_assignments.create({
+    const assignment = await this.prisma.promotion_assignments.create({
       data: assignmentData,
       select: this.assignmentSelect
     });
+
+    const emailInput = {
+      promotionName: promotion.name || 'Nivaana promotion',
+      description: promotion.description,
+      voucherCode: assignment.voucher_code,
+      startDate: assignment.start_date,
+      endDate: assignment.end_date,
+      usageLimit: assignment.usage_limit,
+    };
+    if (assignment.assignment_type === 'customer' && assignment.customer_id) {
+      customerEmailNotificationService.queuePromotionVoucher({
+        ...emailInput,
+        customerIds: [assignment.customer_id],
+      });
+    } else if (assignment.customer_group_id) {
+      customerEmailNotificationService.queuePromotionVoucherForGroup(
+        assignment.customer_group_id,
+        emailInput,
+      );
+    }
+
+    return assignment;
   }
 
   async listVouchers(promotionId: number) {
