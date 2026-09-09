@@ -6,6 +6,7 @@ import { convertLegacyPromotionRule } from '../utils/legacy-promotion-v2.js';
 import { isPromotionChannelEligible } from '../utils/promotionChannel.js';
 import { logger } from '../config/logger.js';
 import { env } from '../config/env.js';
+import { promotionQuotesMatchForCheckout } from '../utils/promotionCheckoutValidation.js';
 
 const prisma = new PrismaClient();
 
@@ -483,5 +484,73 @@ export class PromotionsV2Service {
     request.selected_promotion_ids = [...ids];
     if (selection?.promotionId && selection.giftProductId) request.reward_selections = { ...request.reward_selections, [String(selection.promotionId)]: selection.giftProductId };
     return this.quote(request, authenticatedCustomerId, true);
+  }
+
+  async validateEvaluationForOrder(evaluationId: string, authenticatedCustomerId?: string): Promise<{
+    isValid: boolean;
+    reason?: string;
+    evaluationId?: string;
+    evaluation?: unknown;
+  }> {
+    const evaluation = await prisma.promotion_evaluations.findUnique({
+      where: { evaluation_id: evaluationId },
+    });
+    if (!evaluation) return { isValid: false, reason: 'PROMOTION_NOT_FOUND: Promotion evaluation was not found.' };
+    if (evaluation.user_id && evaluation.user_id !== authenticatedCustomerId) {
+      return { isValid: false, reason: 'PROMOTION_ASSIGNMENT_CHANGED: Promotion evaluation belongs to another customer.' };
+    }
+    if (evaluation.status !== 'active') {
+      return { isValid: false, reason: `PROMOTION_NO_LONGER_ELIGIBLE: Evaluation is ${evaluation.status}.` };
+    }
+
+    // V2 evaluation timestamps are epoch seconds; legacy evaluations use
+    // epoch milliseconds. This method is only for schema-version 2 records.
+    const expiresAtMilliseconds = Number(evaluation.expires_at) * 1000;
+    if (!Number.isFinite(expiresAtMilliseconds) || expiresAtMilliseconds <= Date.now()) {
+      await prisma.promotion_evaluations.updateMany({
+        where: { evaluation_id: evaluationId, status: 'active' },
+        data: { status: 'cancelled', modifieddate: seconds() },
+      });
+      return { isValid: false, reason: 'EVALUATION_EXPIRED: Refresh the cart and apply an available promotion again.' };
+    }
+
+    const context = evaluation.context as { schema_version?: number; quote?: PromotionQuote } | null;
+    if (context?.schema_version !== 2 || !context.quote) {
+      return { isValid: false, reason: 'PROMOTION_CART_CHANGED: Stored promotion quote is unavailable.' };
+    }
+
+    try {
+      const refreshedQuote = await this.requoteEvaluation(
+        evaluationId,
+        undefined,
+        authenticatedCustomerId,
+      );
+      if (!promotionQuotesMatchForCheckout(context.quote, refreshedQuote)) {
+        await prisma.promotion_evaluations.updateMany({
+          where: { evaluation_id: { in: [evaluationId, refreshedQuote.evaluation_id] }, status: 'active' },
+          data: { status: 'cancelled', modifieddate: seconds() },
+        });
+        return {
+          isValid: false,
+          reason: 'PROMOTION_CART_CHANGED: Promotion benefits changed during checkout. Refresh the cart to review the updated total.',
+        };
+      }
+
+      await prisma.promotion_evaluations.updateMany({
+        where: { evaluation_id: evaluationId, status: 'active' },
+        data: { status: 'cancelled', modifieddate: seconds() },
+      });
+      return {
+        isValid: true,
+        evaluationId: refreshedQuote.evaluation_id,
+        evaluation: refreshedQuote,
+      };
+    } catch (error) {
+      logger.warn({ evaluationId, error }, 'Promotions V2 evaluation failed checkout revalidation');
+      return {
+        isValid: false,
+        reason: `PROMOTION_NO_LONGER_ELIGIBLE: ${error instanceof Error ? error.message : 'Promotion could not be revalidated.'}`,
+      };
+    }
   }
 }

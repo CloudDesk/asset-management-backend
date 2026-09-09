@@ -1617,6 +1617,7 @@ export class PromotionEvaluationService {
     isValid: boolean;
     reason?: string;
     evaluation?: any;
+    evaluationId?: string;
   }> {
     try {
       const evaluation = await this.prisma.promotion_evaluations.findUnique({
@@ -1642,6 +1643,12 @@ export class PromotionEvaluationService {
           isValid: false,
           reason: `Evaluation is ${evaluation.status}`
         };
+      }
+
+      const evaluationContext = evaluation.context as { schema_version?: number } | null;
+      if (evaluationContext?.schema_version === 2) {
+        const { PromotionsV2Service } = await import('./promotions-v2.service.js');
+        return new PromotionsV2Service().validateEvaluationForOrder(evaluationId, userId);
       }
 
       const invalidateEvaluation = async (reason: string) => {
