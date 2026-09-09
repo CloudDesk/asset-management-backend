@@ -32,6 +32,7 @@ steps:
       - "_GCP_PROJECT_QUEUE=${_GCP_PROJECT_QUEUE}"
       - "_GCP_TASK_URL=${_GCP_TASK_URL}"
       - "_FIREBASE_PROJECT_ID=${_FIREBASE_PROJECT_ID}"
+      - "_FIREBASE_SERVICE_ACCOUNT_JSON=${_FIREBASE_SERVICE_ACCOUNT_JSON}"
       - "_FIREBASE_CLIENT_EMAIL=${_FIREBASE_CLIENT_EMAIL}"
       - "_FIREBASE_PRIVATE_KEY=${_FIREBASE_PRIVATE_KEY}"
       - "_APNS_AUTH_KEY=${_APNS_AUTH_KEY}"
@@ -120,6 +121,7 @@ steps:
           "GCP_PROJECT_QUEUE": "_GCP_PROJECT_QUEUE",
           "GCP_TASK_URL": "_GCP_TASK_URL",
           "FIREBASE_PROJECT_ID": "_FIREBASE_PROJECT_ID",
+          "FIREBASE_SERVICE_ACCOUNT_JSON": "_FIREBASE_SERVICE_ACCOUNT_JSON",
           "FIREBASE_CLIENT_EMAIL": "_FIREBASE_CLIENT_EMAIL",
           "FIREBASE_PRIVATE_KEY": "_FIREBASE_PRIVATE_KEY",
           "APNS_AUTH_KEY": "_APNS_AUTH_KEY",
@@ -203,7 +205,15 @@ steps:
           "TWILIO_ACCOUNT_SID",
           "TWILIO_AUTH_TOKEN",
           "TWILIO_PHONE_NUMBER",
+          "EXOTEL_ACCOUNT_SID",
+          "EXOTEL_API_KEY",
+          "EXOTEL_API_TOKEN",
+          "EXOTEL_SENDER_ID",
           "AMAZON_ENVIRONMENT",
+          "APNS_AUTH_KEY",
+          "APNS_KEY_ID",
+          "APNS_TEAM_ID",
+          "APNS_BUNDLE_ID",
           "SHIPMOZO_PUBLIC_KEY",
           "SHIPMOZO_PRIVATE_KEY",
         ]
@@ -215,6 +225,27 @@ steps:
         missing_required = [
           env_name for env_name in required_env_names if not env_values.get(env_name)
         ]
+        has_firebase_json = bool(env_values.get("FIREBASE_SERVICE_ACCOUNT_JSON"))
+        has_firebase_direct = all(
+          env_values.get(env_name)
+          for env_name in [
+            "FIREBASE_PROJECT_ID",
+            "FIREBASE_CLIENT_EMAIL",
+            "FIREBASE_PRIVATE_KEY",
+          ]
+        )
+        if not has_firebase_json and not has_firebase_direct:
+          missing_required.append(
+            "FIREBASE_SERVICE_ACCOUNT_JSON or FIREBASE_PROJECT_ID/FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY"
+          )
+        shipmozo_webhook_secret = env_values.get("SHIPMOZO_WEBHOOK_SECRET")
+        if shipmozo_webhook_secret and len(shipmozo_webhook_secret) < 16:
+          print(
+            "Invalid Cloud Build substitution for .env.prod: "
+            "SHIPMOZO_WEBHOOK_SECRET must be at least 16 characters",
+            file=sys.stderr,
+          )
+          sys.exit(1)
         if missing_required:
           print(
             "Missing required Cloud Build substitutions for .env.prod: "
@@ -225,6 +256,8 @@ steps:
 
         with open(".env.prod", "w", encoding="utf-8") as env_file:
             for env_name, value in env_values.items():
+                if value == "":
+                    continue
                 env_file.write(f"{env_name}: {json.dumps(value)}\n")
 
   # Step 6: Deploy the image to Cloud Run with env vars from .env.prod
@@ -256,9 +289,10 @@ substitutions:
   _GCP_PROJECT_QUEUE: "${GCP_PROJECT_QUEUE}"
   _GCP_TASK_URL: "${GCP_TASK_URL}"
   _FIREBASE_PROJECT_ID: "nivaana-6a12c"
-  _FIREBASE_CLIENT_EMAIL: ""
-  _FIREBASE_PRIVATE_KEY: ""
-  _APNS_AUTH_KEY: ""
+  _FIREBASE_SERVICE_ACCOUNT_JSON: "${FIREBASE_SERVICE_ACCOUNT_JSON}"
+  _FIREBASE_CLIENT_EMAIL: "${FIREBASE_CLIENT_EMAIL}"
+  _FIREBASE_PRIVATE_KEY: "${FIREBASE_PRIVATE_KEY}"
+  _APNS_AUTH_KEY: "${APNS_AUTH_KEY}"
   _APNS_KEY_ID: "G48G98A93P"
   _APNS_TEAM_ID: "FK27GDV4KD"
   _APNS_BUNDLE_ID: "com.Nivaana.app"
