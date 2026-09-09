@@ -288,3 +288,16 @@ test('customer cancellation persists Shipmozo confirmation and failure outcomes'
   assert.match(ordersService, /stage: 'cancellation_failed'/);
   assert.match(ordersService, /return await this\.cancelProviderShipment\(updatedOrder\)/);
 });
+
+test('cancelled Shipmozo bookings release the order for a new shipment without cancelling the order', () => {
+  const controller = readFileSync(resolve('src/controllers/shipmozo.controller.ts'), 'utf8');
+  const trackingSync = readFileSync(resolve('src/services/shipmozo-tracking-sync.service.ts'), 'utf8');
+
+  for (const source of [controller, trackingSync]) {
+    assert.match(source, /tracking_id: null/);
+    assert.match(source, /vendor: null/);
+    assert.match(source, /shipment_created_at: null/);
+    assert.match(source, /label_url: null/);
+  }
+  assert.doesNotMatch(trackingSync, /providerCancelled[\s\S]{0,100}orderstatus: ['"]cancelled['"]/);
+});

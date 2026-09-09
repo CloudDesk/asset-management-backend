@@ -665,6 +665,49 @@ export class ShipmozoController {
       awbNumber: payload.awb_number
     });
     if (operation) await shipmozoOperationService.complete(operation.id, 'shipment_cancelled', 'cancelled');
+    const order = await prisma.orders.findFirst({
+      where: {
+        tracking_id: payload.awb_number,
+        vendor: { equals: 'SHIPMOZO', mode: 'insensitive' }
+      },
+      include: { orderline: true }
+    });
+    if (order) {
+      const timestamp = Date.now();
+      const existingMetadata = order.barcodes && typeof order.barcodes === 'object' && !Array.isArray(order.barcodes)
+        ? order.barcodes as Record<string, any>
+        : {};
+      await prisma.$transaction([
+        prisma.orders.update({
+          where: { id: order.id },
+          data: {
+            tracking_id: null,
+            vendor: null,
+            public_tracking_link: null,
+            shipment_created_at: null,
+            label_url: null,
+            label_downloaded_at: null,
+            label_printed_at: null,
+            shipment_tracking_status: 'Cancelled',
+            barcodes: {
+              ...existingMetadata,
+              cancellation: {
+                provider: 'SHIPMOZO',
+                status: 'confirmed',
+                tracking_id: payload.awb_number,
+                confirmed_at: timestamp,
+                confirmation_source: 'cancel_api'
+              }
+            },
+            modifieddate: timestamp
+          }
+        }),
+        prisma.orderline.updateMany({
+          where: { orderid: order.id },
+          data: { tracking_id: null, modifieddate: timestamp }
+        })
+      ]);
+    }
     return reply.code(200).send(createSuccessResponse('Shipmozo shipment cancelled successfully', data));
   });
 }

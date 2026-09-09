@@ -878,7 +878,7 @@ model orders {
   cod_amount                   Decimal?                 @db.Decimal(10, 2) // COD amount for verification and reconciliation
   // EKART Shipment Information
   tracking_id                  String?                  @db.VarChar(500)
-  vendor                       String?                  @default("EKART") @db.VarChar(100)
+  vendor                       String?                  @db.VarChar(100)
   barcodes                     Json?
   label_url                    String?                  @db.VarChar(1000)
   public_tracking_link         String?                  @db.VarChar(1000)
