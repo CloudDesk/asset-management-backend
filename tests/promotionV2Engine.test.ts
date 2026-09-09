@@ -58,6 +58,24 @@ test('supports Buy 2 Get 1 as an auto-added gift and caps repetitions', () => {
   assert.equal(quote.discount_total, 10_000);
 });
 
+test('auto-adds the same qualifying product after the paid Buy X quantity is reached', () => {
+  const buyThreeGetOne = rule({
+    qualifier: {
+      scope: { include: [{ facet: 'PRODUCT', values: ['incense'] }], exclude: [], group_operator: 'OR' },
+      metric: 'PER_PRODUCT_QUANTITY', aggregation: 'PER_PRODUCT', minimum_quantity: 3,
+    },
+    benefit: { type: 'FREE_ITEM', quantity: 1, target: 'SAME_PRODUCT_AS_QUALIFIER', fulfilment: 'AUTO_ADD', out_of_stock_policy: 'REMOVE_PROMOTION' },
+  });
+  const incense = line('incense', 3, 4_000);
+  const quote = evaluatePromotionQuote([incense], [campaign(31, buyThreeGetOne)], [incense]);
+
+  assert.equal(quote.applied_promotions[0]?.promotion_id, 31);
+  assert.equal(quote.adjustments[0]?.product_id, 'incense');
+  assert.equal(quote.adjustments[0]?.affected_quantity, 1);
+  assert.equal(quote.adjustments[0]?.metadata.fulfilment, 'AUTO_ADD');
+  assert.equal(quote.discount_total, 4_000);
+});
+
 test('grants the configured free quantity only once when repetition is disabled', () => {
   const buyTwoGetOneOnce = rule({
     qualifier: {
@@ -88,11 +106,11 @@ test('chooses the greatest saving for overlapping units deterministically', () =
   assert.equal(quote.eligible_alternatives.length, 2);
 });
 
-test('combines overlapping promotions only when both allow combining', () => {
+test('combines overlapping promotions only when both allow combining and item reuse', () => {
   const stacking = {
     stackable: true,
     exclusive_group: 'MERCHANDISE_DISCOUNT',
-    item_reuse: 'DISALLOW' as const,
+    item_reuse: 'ALLOW' as const,
     selection_strategy: 'BEST_CUSTOMER_VALUE' as const,
     priority: 1,
   };
@@ -121,6 +139,38 @@ test('combines overlapping promotions only when both allow combining', () => {
   );
   assert.deepEqual(exclusive.applied_promotions.map((item) => item.promotion_id), [2]);
   assert.equal(exclusive.discount_total, 2_000);
+});
+
+test('uses ascending priority when stackable promotions cannot reuse the same items', () => {
+  const highPrecedence = rule({
+    benefit: { type: 'PERCENT_OFF', value: 10, target: 'ALL_QUALIFYING_UNITS' },
+    stacking: {
+      stackable: true,
+      exclusive_group: 'MERCHANDISE_DISCOUNT',
+      item_reuse: 'DISALLOW',
+      selection_strategy: 'BEST_CUSTOMER_VALUE',
+      priority: 1,
+    },
+  });
+  const lowPrecedence = rule({
+    benefit: { type: 'PERCENT_OFF', value: 50, target: 'ALL_QUALIFYING_UNITS' },
+    stacking: {
+      stackable: true,
+      exclusive_group: 'MERCHANDISE_DISCOUNT',
+      item_reuse: 'DISALLOW',
+      selection_strategy: 'BEST_CUSTOMER_VALUE',
+      priority: 5,
+    },
+  });
+
+  const quote = evaluatePromotionQuote(
+    [line('A', 1, 10_000)],
+    [+    [campaign+campaign(1, highPrecedence), campaign(5, lowPrecedence)],
+    [],
+  );
+
+  assert.deepEqual(quote.applied_promotions.map((item) => item.promotion_id), [1]);
+  assert.equal(quote.discount_total, 1_000);
 });
 
 test('keeps stackable legacy free shipping with a merchandise promotion', () => {

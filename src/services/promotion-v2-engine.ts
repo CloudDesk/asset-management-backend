@@ -317,21 +317,35 @@ function buildCandidate(
 }
 
 function candidatesConflict(left: Candidate, right: Candidate): boolean {
-  if (left.campaign.rule.stacking.stackable && right.campaign.rule.stacking.stackable) return false;
   if (left.campaign.rule.stacking.exclusive_group !== right.campaign.rule.stacking.exclusive_group) return false;
+  const bothStackable = left.campaign.rule.stacking.stackable && right.campaign.rule.stacking.stackable;
+  const bothAllowItemReuse = left.campaign.rule.stacking.item_reuse === 'ALLOW' && right.campaign.rule.stacking.item_reuse === 'ALLOW';
+  if (bothStackable && bothAllowItemReuse) return false;
   if (left.globalExclusive || right.globalExclusive) return true;
-  if (left.campaign.rule.stacking.item_reuse === 'ALLOW' && right.campaign.rule.stacking.item_reuse === 'ALLOW') return false;
   return [...left.consumedUnits].some((unit) => right.consumedUnits.has(unit));
 }
 
 function betterSet(left: Candidate[], right: Candidate[]): Candidate[] {
+  if (!left.length) return right;
+  if (!right.length) return left;
+  const priorities = (items: Candidate[]) => items
+    .map((item) => item.campaign.rule.stacking.priority)
+    .sort((a, b) => a - b);
+  const leftPriorities = priorities(left);
+  const rightPriorities = priorities(right);
+  const sharedLength = Math.min(leftPriorities.length, rightPriorities.length);
+  for (let index = 0; index < sharedLength; index += 1) {
+    if (leftPriorities[index] !== rightPriorities[index]) {
+      return leftPriorities[index]! < rightPriorities[index]! ? left : right;
+    }
+  }
+  if (leftPriorities.length !== rightPriorities.length) {
+    return leftPriorities.length > rightPriorities.length ? left : right;
+  }
   const saving = (items: Candidate[]) => items.reduce((sum, item) => sum + item.saving, 0);
   const leftSaving = saving(left);
   const rightSaving = saving(right);
   if (leftSaving !== rightSaving) return leftSaving > rightSaving ? left : right;
-  const leftPriority = left.reduce((sum, item) => sum + item.campaign.rule.stacking.priority, 0);
-  const rightPriority = right.reduce((sum, item) => sum + item.campaign.rule.stacking.priority, 0);
-  if (leftPriority !== rightPriority) return leftPriority > rightPriority ? left : right;
   const signature = (items: Candidate[]) => items.map((item) => item.campaign.promotionId).sort((a, b) => a - b).join(',');
   return signature(left).localeCompare(signature(right)) <= 0 ? left : right;
 }
@@ -339,7 +353,7 @@ function betterSet(left: Candidate[], right: Candidate[]): Candidate[] {
 function optimise(candidates: Candidate[]): Candidate[] {
   const ordered = [...candidates].sort((a, b) => a.campaign.promotionId - b.campaign.promotionId);
   if (ordered.length > 22) {
-    return ordered.sort((a, b) => b.saving - a.saving || b.campaign.rule.stacking.priority - a.campaign.rule.stacking.priority || a.campaign.promotionId - b.campaign.promotionId)
+    return ordered.sort((a, b) => a.campaign.rule.stacking.priority - b.campaign.rule.stacking.priority || b.saving - a.saving || a.campaign.promotionId - b.campaign.promotionId)
       .reduce<Candidate[]>((selected, candidate) => selected.some((existing) => candidatesConflict(existing, candidate)) ? selected : [...selected, candidate], []);
   }
   let best: Candidate[] = [];

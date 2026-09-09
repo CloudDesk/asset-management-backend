@@ -5,7 +5,6 @@ import { evaluatePromotionQuote, isLineInPromotionScope, type PromotionCampaign,
 import { convertLegacyPromotionRule } from '../utils/legacy-promotion-v2.js';
 import { isPromotionChannelEligible } from '../utils/promotionChannel.js';
 import { logger } from '../config/logger.js';
-import { env } from '../config/env.js';
 import { promotionQuotesMatchForCheckout } from '../utils/promotionCheckoutValidation.js';
 
 const prisma = new PrismaClient();
@@ -227,20 +226,9 @@ export class PromotionsV2Service {
     };
   }
 
-  async quote(input: unknown, authenticatedCustomerId?: string, allowWhenDisabled = false): Promise<PromotionQuote> {
+  async quote(input: unknown, authenticatedCustomerId?: string): Promise<PromotionQuote> {
     const startedAt = performance.now();
     const request = PromotionQuoteRequestSchema.parse(input);
-    // Explicit selection is also the compatibility bridge used by V1 clients
-    // for a campaign that already has a published V2 rule. General automatic
-    // V2 evaluation remains protected by the rollout flags.
-    if (
-      !env.PROMOTIONS_V2_ENABLED &&
-      !env.PROMOTIONS_V2_SHADOW &&
-      !(request.selected_promotion_ids?.length) &&
-      !allowWhenDisabled
-    ) {
-      throw Object.assign(new Error('Promotions are temporarily unavailable'), { statusCode: 503 });
-    }
     if (request.selected_promotion_ids?.length) {
       const selectedIds = [...new Set(request.selected_promotion_ids)];
       const versionedCount = await prisma.promotionRuleVersion.groupBy({
@@ -260,7 +248,7 @@ export class PromotionsV2Service {
     quote.rejected_candidates.push(...active.rejections.filter((rejection) => !quote.rejected_candidates.some((item) => item.promotion_id === rejection.promotion_id)));
     await this.persistQuote(quote, request, hydrated.lines);
     logger.info({
-      event: 'promotions_v2_quote', mode: env.PROMOTIONS_V2_ENABLED ? 'active' : 'shadow',
+      event: 'promotions_v2_quote', mode: 'active',
       evaluationId: quote.evaluation_id, channel: request.channel, cartLineCount: request.cart_items.length,
       appliedCount: quote.applied_promotions.length, rejectedCount: quote.rejected_candidates.length,
       conflictCount: quote.rejected_candidates.filter((item) => item.reason_code === 'CONFLICTED_WITH_BETTER_OFFER').length,
@@ -483,7 +471,7 @@ export class PromotionsV2Service {
     if (selection?.removePromotionId) ids.delete(selection.removePromotionId);
     request.selected_promotion_ids = [...ids];
     if (selection?.promotionId && selection.giftProductId) request.reward_selections = { ...request.reward_selections, [String(selection.promotionId)]: selection.giftProductId };
-    return this.quote(request, authenticatedCustomerId, true);
+    return this.quote(request, authenticatedCustomerId);
   }
 
   async validateEvaluationForOrder(evaluationId: string, authenticatedCustomerId?: string): Promise<{
