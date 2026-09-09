@@ -115,8 +115,16 @@ export class ShipmozoTrackingSyncService {
         where: { id: order.id },
         data: {
           shipment_tracking_status: normalized.provider_status,
-          public_tracking_link: order.public_tracking_link || buildShipmozoPublicTrackingUrl(order.tracking_id || ''),
+          public_tracking_link: providerCancelled
+            ? null
+            : order.public_tracking_link || buildShipmozoPublicTrackingUrl(order.tracking_id || ''),
           ...(providerCancelled ? {
+            tracking_id: null,
+            vendor: null,
+            shipment_created_at: null,
+            label_url: null,
+            label_downloaded_at: null,
+            label_printed_at: null,
             barcodes: {
               ...existingMetadata,
               cancellation: {
@@ -136,24 +144,27 @@ export class ShipmozoTrackingSyncService {
         }
       });
 
-      if (statusChanged) {
+      if (statusChanged || providerCancelled) {
         for (const line of order.orderline) {
           const lineHistory = parseHistory(line.status_history);
           await tx.orderline.update({
             where: { id: line.id },
             data: {
-              orderstatus: appliedStatus,
-              status_history: [
-                ...lineHistory.map((entry) => ({ ...entry, is_active: false })),
-                {
-                  previous_status: line.orderstatus,
-                  new_status: appliedStatus,
-                  changed_date: timestamp,
-                  source: 'shipmozo',
-                  shipmozo_original_status: normalized.provider_status,
-                  is_active: true
-                }
-              ],
+              ...(providerCancelled ? { tracking_id: null } : {}),
+              ...(statusChanged ? {
+                orderstatus: appliedStatus,
+                status_history: [
+                  ...lineHistory.map((entry) => ({ ...entry, is_active: false })),
+                  {
+                    previous_status: line.orderstatus,
+                    new_status: appliedStatus,
+                    changed_date: timestamp,
+                    source: 'shipmozo',
+                    shipmozo_original_status: normalized.provider_status,
+                    is_active: true
+                  }
+                ]
+              } : {}),
               ...(appliedStatus === 'shipped' && !line.shipdate ? { shipdate: timestamp } : {}),
               ...(appliedStatus === 'delivered' ? { delivereddate: timestamp } : {}),
               modifieddate: timestamp
