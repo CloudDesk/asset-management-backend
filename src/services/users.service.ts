@@ -6,6 +6,7 @@ import {
 } from '../schemas/users.schema.js';
 import { PaginationResult, createPaginationResult, getPrismaSkipTake } from '../utils/pagination.js';
 import { FilterOptions } from '../utils/filterBuilder.js';
+import { ValidationError } from '../utils/errorHandler.js';
 import { 
   dynamicFindManyWithFilters,
   dynamicFindUnique, 
@@ -202,6 +203,18 @@ export class UsersService {
 
       // Hash password if provided
       let userData = { ...data };
+      if (typeof userData.useremail === 'string') {
+        const normalizedEmail = userData.useremail.trim().toLowerCase();
+        const emailOwner = await this.findByEmail(normalizedEmail);
+        if (emailOwner && emailOwner.id !== parseInt(id)) {
+          throw new ValidationError(
+            'Email address is already in use',
+            'Please use a different email address.',
+            ['useremail']
+          );
+        }
+        userData.useremail = normalizedEmail;
+      }
       if (userData.userpassword) {
         userData.userpassword = await hashPassword(userData.userpassword);
       }
