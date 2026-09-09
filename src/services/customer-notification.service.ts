@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../models/prisma.js';
 import { PushNotificationService } from './push-notification.service.js';
 import { logger } from '../config/logger.js';
+import { customerEmailNotificationService } from './customer-email-notification.service.js';
 
 type EcommercePushUser = {
   id: number;
@@ -528,6 +529,11 @@ export class CustomerNotificationService {
     const campaignData: Record<string, string | number | boolean> = {
       ...(input.data || {}),
     };
+    let promotionEmail: {
+      voucherCode?: string | null;
+      startDate?: bigint | null;
+      endDate?: bigint | null;
+    } = {};
 
     if (input.promotionId) {
       const promotion = await prisma.promotions.findUnique({
@@ -539,6 +545,8 @@ export class CustomerNotificationService {
           code: true,
           status: true,
           visibility: true,
+          start_date: true,
+          end_date: true,
         },
       });
 
@@ -554,6 +562,11 @@ export class CustomerNotificationService {
         if (promotion.code) {
           campaignData.promotionCode = promotion.code;
         }
+        promotionEmail = {
+          voucherCode: promotion.code,
+          startDate: promotion.start_date,
+          endDate: promotion.end_date,
+        };
       }
     }
 
@@ -601,11 +614,20 @@ export class CustomerNotificationService {
       });
     }
 
+    const emailCustomerIds = targetUserIds.slice(0, maxUsers);
+    customerEmailNotificationService.queuePromotionVoucher({
+      customerIds: emailCustomerIds,
+      promotionName: title,
+      description: body,
+      ...promotionEmail,
+    });
+
     return {
       title,
       body,
       targetUsers: targetUserIds.slice(0, maxUsers).length,
       delivery,
+      emailQueued: emailCustomerIds.length,
     };
   }
 }

@@ -4,6 +4,7 @@ import { logger } from '../config/logger.js';
 import { prisma } from '../models/prisma.js';
 import { canApplyShipmozoStatus, normalizeShipmozoTracking } from '../utils/shipmozo-status.js';
 import { buildShipmozoPublicTrackingUrl, shipmozoService } from './shipmozo.service.js';
+import { customerEmailNotificationService } from './customer-email-notification.service.js';
 
 const TERMINAL_STATUSES = new Set(['delivered', 'rto_delivered', 'cancelled', 'returned']);
 function parseHistory(value: unknown): any[] {
@@ -84,12 +85,12 @@ export class ShipmozoTrackingSyncService {
       normalized.system_status && canApplyShipmozoStatus(currentStatus, normalized.system_status)
     );
     const appliedStatus = canAdvance ? normalized.system_status : null;
+    const statusChanged = Boolean(appliedStatus && appliedStatus !== currentStatus);
     const providerCancelled = normalized.is_provider_cancelled;
     const timestamp = Date.now();
 
     await prisma.$transaction(async (tx) => {
       const orderHistory = parseHistory(order.status_history);
-      const statusChanged = Boolean(appliedStatus && appliedStatus !== currentStatus);
       const updatedOrderHistory = statusChanged
         ? [
             ...orderHistory.map((entry) => ({ ...entry, is_active: false })),
@@ -210,6 +211,14 @@ export class ShipmozoTrackingSyncService {
         });
       }
     });
+
+    if (appliedStatus && statusChanged) {
+      const kind = appliedStatus === 'delivered' ? 'delivery_confirmation' : 'shipment_update';
+      customerEmailNotificationService.queueOrderEmail(order.id, kind, {
+        status: appliedStatus,
+        ...(normalized.provider_status ? { description: normalized.provider_status } : {}),
+      });
+    }
 
     return {
       order_id: order.id,

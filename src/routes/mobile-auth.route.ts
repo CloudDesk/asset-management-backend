@@ -99,7 +99,8 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
                 expiresIn: { type: 'number', description: 'OTP expiry time in seconds' },
                 canResendAfter: { type: 'number', description: 'Cooldown period in seconds before OTP can be resent' },
                 isNewUser: { type: 'boolean', description: 'Whether this mobile number belongs to a new user' },
-                requiresName: { type: 'boolean', description: 'Whether a name must be supplied during OTP verification' }
+                requiresName: { type: 'boolean', description: 'Whether a name must be supplied during OTP verification' },
+                requiresEmail: { type: 'boolean', description: 'Whether the customer account does not yet have an email address' }
               },
             },
             message: { type: 'string' },
@@ -261,7 +262,8 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
         expiresIn: expiresIn,
         canResendAfter: canResendAfter,
         isNewUser,
-        requiresName: !user?.firstname?.trim()
+        requiresName: !user?.firstname?.trim(),
+        requiresEmail: !user?.useremail?.trim()
       });
 
       return reply.code(200).send(response);
@@ -295,6 +297,12 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
             minLength: 2,
             maxLength: 100,
             description: 'Customer name; required for new customers or customers whose name is missing'
+          },
+          useremail: {
+            type: 'string',
+            format: 'email',
+            maxLength: 255,
+            description: 'Optional customer email address'
           },
         },
         additionalProperties: false,
@@ -376,10 +384,11 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
       },
     },
   }, asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
-    const { usermobilenumber, otp, firstname } = request.body as {
+    const { usermobilenumber, otp, firstname, useremail } = request.body as {
       usermobilenumber: number;
       otp?: number | string;
       firstname?: string;
+      useremail?: string;
     };
     // Custom OTP validation with user-friendly messages (Exotel: 4-digit OTP)
     if (otp === undefined || otp === null) {
@@ -417,6 +426,7 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
     try {
       let user = await usersService.findByMobileNumber(usermobilenumber);
       const normalizedName = firstname?.trim().replace(/\s+/g, ' ') || '';
+      const normalizedEmail = useremail?.trim().toLowerCase() || '';
       const requiresName = !user?.firstname?.trim();
 
       if (requiresName && (normalizedName.length < 2 || normalizedName.length > 100)) {
@@ -454,6 +464,18 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
         });
       }
 
+      if (normalizedEmail) {
+        const emailOwner = await usersService.findByEmail(normalizedEmail);
+        if (emailOwner && emailOwner.id !== user?.id) {
+          return reply.code(400).send({
+            success: false,
+            message: 'Email address is already in use',
+            details: 'Please use a different email address or leave the optional email field blank.',
+            statusCode: 400
+          });
+        }
+      }
+
       // Step 2: OTP is valid! Now check if user exists or create new one
       let isNewUser = false;
 
@@ -465,6 +487,7 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
           const newUserData = {
             usermobilenumber: usermobilenumber,
             firstname: normalizedName,
+            ...(normalizedEmail ? { useremail: normalizedEmail } : {}),
             createddate: Date.now(),
             modifieddate: Date.now()
           };
@@ -486,10 +509,15 @@ export async function mobileAuthRoutes(fastify: FastifyInstance) {
             statusCode: 500
           });
         }
-      } else if (!user.firstname?.trim()) {
-        user = await usersService.update(String(user.id), {
-          firstname: normalizedName
-        });
+      } else {
+        const profileUpdates: { firstname?: string; useremail?: string } = {};
+        if (!user.firstname?.trim()) profileUpdates.firstname = normalizedName;
+        if (normalizedEmail && normalizedEmail !== user.useremail?.trim().toLowerCase()) {
+          profileUpdates.useremail = normalizedEmail;
+        }
+        if (Object.keys(profileUpdates).length > 0) {
+          user = await usersService.update(String(user.id), profileUpdates);
+        }
       }
 
       // Step 3: Generate JWT token pair (access + refresh) - Same as inventory users
