@@ -22,7 +22,22 @@ steps:
       - "push"
       - "gcr.io/nivaana/nivaana-sit:latest"
 
-  # Step 4: Deploy to Cloud Run SIT using .env.sit plus Secret Manager for Amazon credentials.
+  # Step 4: Materialize the SIT environment from Secret Manager only inside the
+  # ephemeral Cloud Build workspace. Never commit this generated file.
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: "bash"
+    secretEnv:
+      - "SIT_ENV_FILE"
+    args:
+      - "-c"
+      - |
+        set -euo pipefail
+        umask 077
+        printf '%s' "$$SIT_ENV_FILE" > .env.sit
+        test -s .env.sit
+
+  # Step 5: Deploy to Cloud Run SIT using the generated environment file plus
+  # the existing per-variable Amazon secrets.
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     entrypoint: "gcloud"
     args:
@@ -46,6 +61,11 @@ steps:
       - ".env.sit"
       - "--set-secrets"
       - "AMAZON_CLIENT_ID=nivaana-sit-amazon-client-id:latest,AMAZON_CLIENT_SECRET=nivaana-sit-amazon-client-secret:latest,AMAZON_REFRESH_TOKEN=nivaana-sit-amazon-refresh-token:latest"
+
+availableSecrets:
+  secretManager:
+    - versionName: "projects/$PROJECT_ID/secrets/nivaana-sit-env/versions/latest"
+      env: "SIT_ENV_FILE"
 
 options:
   logging: CLOUD_LOGGING_ONLY

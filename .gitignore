@@ -1,7 +1,11 @@
+# Environment files may contain credentials. Keep only sanitized templates in Git.
 .env
-.env.sit
-.env.prod
+.env.*
+!.env.example
+!.env.*.example
 .env.amazon.local
+*.bak
+*.backup
 secrets/
 *.firebase-service-account.json
 node_modules
