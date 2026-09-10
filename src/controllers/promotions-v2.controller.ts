@@ -1,11 +1,14 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import { PromotionEligibilityRequestSchema, PromotionGiftSelectionSchema, PromotionSelectionSchema } from '../schemas/promotions-v2.schema.js';
+import { PromotionGiftFulfilmentSchema, PromotionPublishRequestSchema } from '../schemas/promotions-v3.schema.js';
 import { PromotionsV2Service } from '../services/promotions-v2.service.js';
+import { PromotionGiftEntitlementService } from '../services/promotion-gift-entitlement.service.js';
 import { asyncHandler, createSuccessResponse } from '../utils/errorHandler.js';
 
 export class PromotionsV2Controller {
   private readonly service = new PromotionsV2Service();
+  private readonly giftEntitlements = new PromotionGiftEntitlementService();
 
   private inventoryUser(request: FastifyRequest): number {
     const user = (request as AuthenticatedRequest).user;
@@ -51,6 +54,25 @@ export class PromotionsV2Controller {
     return reply.code(201).send(createSuccessResponse('Promotion rule draft created', await this.service.saveDraft(Number(promotionId), request.body)));
   });
 
+  quoteCurrent = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = (request as AuthenticatedRequest).user;
+    const customerId = user?.userType === 'ecommerce' ? String(user.id) : undefined;
+    return reply.send(createSuccessResponse('Promotion quote created', await this.service.quoteCurrent(request.body, customerId)));
+  });
+
+  validateCurrentQuote = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = (request as AuthenticatedRequest).user;
+    const customerId = user?.userType === 'ecommerce' ? String(user.id) : undefined;
+    const { evaluationId } = request.params as { evaluationId: string };
+    return reply.send(createSuccessResponse('Promotion quote validated', await this.service.validateCurrentQuote(evaluationId, customerId)));
+  });
+
+  saveCurrentDraft = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    this.inventoryUser(request);
+    const { promotionId } = request.params as { promotionId: string };
+    return reply.code(201).send(createSuccessResponse('Promotion rule draft created', await this.service.saveCurrentDraft(Number(promotionId), request.body)));
+  });
+
   migrateLegacy = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     this.inventoryUser(request);
     const { promotionId } = request.params as { promotionId: string };
@@ -69,6 +91,50 @@ export class PromotionsV2Controller {
     return reply.send(createSuccessResponse('Promotion simulation completed', await this.service.simulate(Number(promotionId), request.body)));
   });
 
+  publishCurrent = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    const userId = this.inventoryUser(request);
+    const { promotionId } = request.params as { promotionId: string };
+    const input = PromotionPublishRequestSchema.parse(request.body);
+    return reply.send(createSuccessResponse('Promotion rule published', await this.service.publishCurrent(Number(promotionId), input.expected_checksum, userId)));
+  });
+
+  packingGiftEntitlements = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    this.inventoryUser(request);
+    const { orderId } = request.params as { orderId: string };
+    return reply.send(createSuccessResponse('Packing gift entitlements retrieved', await this.giftEntitlements.listForOrder(Number(orderId))));
+  });
+
+  packingGiftProducts = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    this.inventoryUser(request);
+    const { entitlementId } = request.params as { entitlementId: string };
+    const { search = '' } = request.query as { search?: string };
+    return reply.send(createSuccessResponse('Eligible gift products retrieved', await this.giftEntitlements.eligibleProducts(entitlementId, search)));
+  });
+
+  fulfilPackingGift = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    const userId = this.inventoryUser(request);
+    const { entitlementId } = request.params as { entitlementId: string };
+    const input = PromotionGiftFulfilmentSchema.parse(request.body);
+    return reply.send(createSuccessResponse('Packing gift selected', await this.giftEntitlements.fulfil(entitlementId, input.product_id, input.quantity, userId)));
+  });
+
+  removeUnavailablePackingGift = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    this.inventoryUser(request);
+    const { entitlementId } = request.params as { entitlementId: string };
+    return reply.send(createSuccessResponse('Unavailable packing gift removed', await this.giftEntitlements.removeUnavailable(entitlementId)));
+  });
+
+  simulateCurrent = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    this.inventoryUser(request);
+    const { promotionId } = request.params as { promotionId: string };
+    return reply.send(createSuccessResponse('Promotion simulation completed', await this.service.simulateCurrent(Number(promotionId), request.body)));
+  });
+
+  simulateCampaigns = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    this.inventoryUser(request);
+    return reply.send(createSuccessResponse('Promotion campaign simulation completed', await this.service.simulateCampaigns(request.body)));
+  });
+
   facets = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     this.inventoryUser(request);
     return reply.send(createSuccessResponse('Promotion facets retrieved', await this.service.getFacets()));
@@ -85,6 +151,12 @@ export class PromotionsV2Controller {
     this.inventoryUser(request);
     const { promotionId } = request.params as { promotionId: string };
     return reply.send(createSuccessResponse('Latest promotion rule retrieved', await this.service.getLatestRule(Number(promotionId))));
+  });
+
+  latestCurrentRule = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    this.inventoryUser(request);
+    const { promotionId } = request.params as { promotionId: string };
+    return reply.send(createSuccessResponse('Latest promotion rule retrieved', await this.service.getLatestCurrentRule(Number(promotionId))));
   });
 
   analytics = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {

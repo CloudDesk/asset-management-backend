@@ -22,6 +22,7 @@ import {
   getRetainedManualPromotionCandidates,
   isPromotionConfiguredAutomatic
 } from '../utils/promotionPolicy.js';
+import { allocateLegacyBogoDiscounts } from '../utils/legacyBogo.js';
 
 export class PromotionEvaluationService {
   private prisma: PrismaClient;
@@ -38,7 +39,7 @@ export class PromotionEvaluationService {
   }
 
   // Enhanced helper to calculate discount with action object logic
-  private calculateDiscountWithAction(promotion: any, itemPrice: number, itemQuantity: number, totalCartValue?: number): number {
+  private calculateDiscountWithAction(promotion: any, itemPrice: number, itemQuantity: number, totalCartValue?: number, itemProductId: string = ''): number {
     if (!promotion.action) {
       // Fallback to old logic
       return this.getDiscountValue(promotion);
@@ -68,17 +69,11 @@ export class PromotionEvaluationService {
         break;
 
       case 'BOGO':
-        // BOGO logic - all fields are optional with defaults
-        const buyQuantity = action.buy_quantity || 1;
-        const getQuantity = action.get_quantity || 1;
-        
-        if (itemQuantity >= buyQuantity) {
-          const freeItems = Math.floor(itemQuantity / buyQuantity) * getQuantity;
-          // max_free_items is optional - if not specified, no limit
-          const maxFreeItems = action.max_free_items || freeItems;
-          const actualFreeItems = Math.min(freeItems, maxFreeItems);
-          discount = actualFreeItems * itemPrice;
-        }
+        discount = allocateLegacyBogoDiscounts(action, [{
+          product_id: itemProductId,
+          quantity: itemQuantity,
+          price: itemPrice,
+        }]).reduce((sum, allocation) => sum + allocation.discount, 0);
         break;
 
       case 'FREE_PRODUCT':
@@ -205,44 +200,15 @@ export class PromotionEvaluationService {
     }
 
     const action = promotion.action;
-    const buyQuantity = action.buy_quantity || 1;
-    const getQuantity = action.get_quantity || 1;
-    const maxFreeItems = action.max_free_items;
-    const productIds = action.product_ids || [];
-
-    let totalFreeItems = 0;
-    const affectedProducts: string[] = [];
-
-    for (const item of cartItems) {
-      // Check if item is eligible (either no product_ids specified or item is in the list)
-      const isEligible = productIds.length === 0 || productIds.includes(item.product_id);
-      
-      if (isEligible && item.quantity >= buyQuantity) {
-        // Check stock availability for BOGO products
-        const isStockAvailable = await this.checkProductStockAvailability(item.product_id, platform);
-        
-        if (isStockAvailable) {
-          const freeItems = Math.floor(item.quantity / buyQuantity) * getQuantity;
-          let actualFreeItems = freeItems;
-          
-          // Apply max_free_items limit if specified
-          if (maxFreeItems && totalFreeItems + freeItems > maxFreeItems) {
-            actualFreeItems = Math.max(0, maxFreeItems - totalFreeItems);
-          }
-          
-          if (actualFreeItems > 0) {
-            totalFreeItems += actualFreeItems;
-            affectedProducts.push(item.product_id);
-          }
-        }
-      }
-    }
+    const buyQuantity = Number(action.buy_quantity) > 0 ? Math.floor(Number(action.buy_quantity)) : 1;
+    const getQuantity = Number(action.get_quantity) > 0 ? Math.floor(Number(action.get_quantity)) : 1;
+    const allocations = allocateLegacyBogoDiscounts(action, cartItems);
 
     return {
       buy_quantity: buyQuantity,
       get_quantity: getQuantity,
-      affected_products: affectedProducts,
-      free_items_count: totalFreeItems
+      affected_products: allocations.map((allocation) => allocation.item.product_id),
+      free_items_count: allocations.reduce((sum, allocation) => sum + allocation.freeItems, 0)
     };
   }
 
@@ -854,20 +820,22 @@ export class PromotionEvaluationService {
         break;
 
       case 'BOGO':
-        // Buy One Get One Free logic
-        for (const item of cartData.items) {
-          if (this.isItemEligible(item, promotion) && item.quantity >= 2) {
-            const freeItems = Math.floor(item.quantity / 2);
-            const itemDiscount = freeItems * item.price;
-            totalDiscount += itemDiscount;
-            affectedItems.push(item.product_id);
-            itemDiscounts.push({
-              product_id: item.product_id,
-              original_price: item.price * item.quantity,
-              discounted_price: (item.price * item.quantity) - itemDiscount,
-              discount_amount: itemDiscount
-            });
-          }
+        // Legacy carts store the paid and free units together. Honour the
+        // configured Buy X/Get Y values instead of treating every rule as BOGO.
+        for (const allocation of allocateLegacyBogoDiscounts(
+          promotion.action,
+          cartData.items.filter((item) => this.isItemEligible(item, promotion)),
+        )) {
+          const item = allocation.item;
+          const itemDiscount = allocation.discount;
+          totalDiscount += itemDiscount;
+          affectedItems.push(item.product_id);
+          itemDiscounts.push({
+            product_id: item.product_id,
+            original_price: item.price * item.quantity,
+            discounted_price: (item.price * item.quantity) - itemDiscount,
+            discount_amount: itemDiscount
+          });
         }
         discountedTotal = totalValue - totalDiscount;
         break;
@@ -1444,7 +1412,13 @@ export class PromotionEvaluationService {
           discountPerItem = proportionalDiscount / item.quantity;
         } else {
           // For item-level promotions, calculate per item
-          const itemTotalDiscount = this.calculateDiscountWithAction(promotion, item.price, item.quantity);
+          const itemTotalDiscount = this.calculateDiscountWithAction(
+            promotion,
+            item.price,
+            item.quantity,
+            undefined,
+            item.product_id,
+          );
           discountPerItem = itemTotalDiscount / item.quantity;
         }
       }

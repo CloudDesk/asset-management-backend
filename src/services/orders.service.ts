@@ -502,6 +502,12 @@ export class OrdersService {
           where: whereClause,
           skip,
           take,
+          // Keep the orders list available during a rolling deployment. The
+          // snapshot column is additive and may not exist until the promotion
+          // migration reaches this environment.
+          omit: {
+            promotion_rule_snapshots: true
+          },
           include: {
             users: {
               select: {
@@ -1861,14 +1867,16 @@ export class OrdersService {
       // Call storage backend to generate invoice
       const storageBackendUrl = process.env.STORAGE_BACKEND_URL || 'http://localhost:4500';
       const invoiceEndpoint = `${storageBackendUrl}/order/invoice`;
-      const invoiceOrderlines = orderDetails.orderlines.map((line: any) => ({
+      const invoiceOrderlines = orderDetails.orderlines
+        .filter((line: any) => line.line_type !== 'SURPRISE_GIFT')
+        .map((line: any) => ({
         ...line,
         productid: line.productid === null || line.productid === undefined
           ? null
           : Number(line.productid),
         // Maintain compatibility with invoice services that only read productname.
         productname: line.productshortname?.trim() || line.productname,
-      }));
+        }));
 
       logger.info({
         endpoint: invoiceEndpoint,
@@ -3020,6 +3028,7 @@ export class OrdersService {
     address: any | null;
     wallet_usage: any[];
     refund_operations: any[];
+    promotion_breakdown: any | null;
   }> {
     try {
       logger.info({ idOrOrderNumber }, 'Getting order details with orderlines and address');
@@ -3134,11 +3143,16 @@ export class OrdersService {
             productname: ol.productname,
             productshortname: ol.productshortname,
             productcategory: ol.productcategory,
+            line_type: ol.line_type,
+            is_free_item: ol.is_free_item,
             hsn_code: ol.hsn_code,
             orderstatus: ol.orderstatus,
             original_price: ol.original_price ? Number(ol.original_price) : null,
             product_discount_amount: ol.product_discount_amount ? Number(ol.product_discount_amount) : null,
             promotion_discount_amount: ol.promotion_discount_amount ? Number(ol.promotion_discount_amount) : null,
+            promotion_id: ol.promotion_id ? Number(ol.promotion_id) : null,
+            promotion_adjustment_id: ol.promotion_adjustment_id || null,
+            promotion_unit_discount: ol.promotion_unit_discount ? Number(ol.promotion_unit_discount) : null,
             manual_discount_amount: ol.manual_discount_amount ? Number(ol.manual_discount_amount) : null,
             shipping_cost: ol.shipping_cost ? Number(ol.shipping_cost) : null,
             gst_rate: ol.gst_rate ? Number(ol.gst_rate) : null,
@@ -3223,6 +3237,183 @@ export class OrdersService {
           return orderlineData;
         })
       );
+
+      // Promotion totals alone are not sufficient for order support and audit.
+      // Return the immutable evaluation/adjustment details used at checkout,
+      // while retaining a legacy applied_promotions fallback for older orders.
+      let promotion_breakdown: any | null = null;
+      if (fullOrder.evaluation_id) {
+        try {
+          const evaluation = await prisma.promotion_evaluations.findUnique({
+            where: { evaluation_id: String(fullOrder.evaluation_id) },
+            include: {
+              adjustments: {
+                include: {
+                  promotion: { select: { id: true, name: true, type: true } },
+                  ruleVersion: { select: { version: true, schemaVersion: true } }
+                },
+                orderBy: { createdAt: 'asc' }
+              }
+            }
+          });
+
+          if (evaluation) {
+            const appliedPromotions = Array.isArray(evaluation.applied_promotions)
+              ? evaluation.applied_promotions as Array<Record<string, any>>
+              : [];
+            const ruleSnapshots = Array.isArray(evaluation.rule_snapshots)
+              ? evaluation.rule_snapshots as Array<Record<string, any>>
+              : [];
+            const ruleSnapshotByPromotion = new Map(
+              ruleSnapshots
+                .map((snapshot) => [Number(snapshot.promotion_id), snapshot] as const)
+                .filter(([promotionId]) => Number.isFinite(promotionId))
+            );
+            const promotionIds = new Set<number>([
+              ...appliedPromotions.map((item) => Number(item.promotion_id)).filter(Number.isFinite),
+              ...evaluation.adjustments.map((item) => item.promotionId)
+            ]);
+            const promotionRows = promotionIds.size
+              ? await prisma.promotions.findMany({
+                  where: { id: { in: [...promotionIds] } },
+                  select: { id: true, name: true, type: true }
+                })
+              : [];
+            const promotionsById = new Map(promotionRows.map((item) => [item.id, item]));
+            const appliedById = new Map(
+              appliedPromotions
+                .map((item) => [Number(item.promotion_id), item] as const)
+                .filter(([promotionId]) => Number.isFinite(promotionId))
+            );
+            const adjustmentsByPromotion = new Map<number, typeof evaluation.adjustments>();
+            for (const adjustment of evaluation.adjustments) {
+              const existing = adjustmentsByPromotion.get(adjustment.promotionId) ?? [];
+              existing.push(adjustment);
+              adjustmentsByPromotion.set(adjustment.promotionId, existing);
+            }
+
+            promotion_breakdown = {
+              evaluation_id: evaluation.evaluation_id,
+              status: evaluation.status,
+              schema_version: Number((evaluation.context as any)?.schema_version ?? (evaluation.adjustments.length ? 2 : 1)),
+              original_total: Number(evaluation.original_total ?? 0),
+              discounted_total: Number(evaluation.discounted_total ?? 0),
+              promotions: [...promotionIds].map((promotionId) => {
+                const applied = appliedById.get(promotionId);
+                const persistedAdjustments = adjustmentsByPromotion.get(promotionId) ?? [];
+                const promotion = promotionsById.get(promotionId) ?? persistedAdjustments[0]?.promotion;
+                const snapshot = ruleSnapshotByPromotion.get(promotionId);
+                const rule = snapshot?.rule as Record<string, any> | undefined;
+                const configuredBenefit = rule?.benefit ?? rule?.tiers?.at?.(-1)?.benefit;
+                const quantityPredicate = rule?.qualifier?.predicates?.find?.((predicate: any) => predicate.field === 'ELIGIBLE_QUANTITY');
+                const configuredBuyQuantity = rule?.qualifier?.minimum_quantity ?? quantityPredicate?.value;
+                const configuredGetQuantity = configuredBenefit?.type === 'FREE_ITEM' ? configuredBenefit.quantity : undefined;
+                const calculatedFreeQuantity = persistedAdjustments
+                  .filter((item) => item.adjustmentType === 'FREE_ITEM')
+                  .reduce((sum, item) => sum + Number(item.affectedQuantity ?? 0), 0);
+                const quantityReward = applied?.bogo_details ?? (
+                  configuredBuyQuantity && configuredGetQuantity
+                    ? {
+                        buy_quantity: Number(configuredBuyQuantity),
+                        get_quantity: Number(configuredGetQuantity),
+                        free_items_count: calculatedFreeQuantity,
+                        affected_products: persistedAdjustments
+                          .filter((item) => item.adjustmentType === 'FREE_ITEM' && item.productId)
+                          .map((item) => item.productId!.toString())
+                      }
+                    : null
+                );
+                const adjustmentTotal = persistedAdjustments.reduce((sum, item) => sum + Number(item.amount ?? 0), 0);
+                return {
+                  promotion_id: promotionId,
+                  name: applied?.promotion_name || rule?.presentation?.title || promotion?.name || `Promotion ${promotionId}`,
+                  type: configuredBenefit?.type || applied?.promotion_type || promotion?.type || null,
+                  discount_amount: persistedAdjustments.length ? adjustmentTotal : Number(applied?.discount_amount ?? 0),
+                  is_auto: applied?.is_auto ?? null,
+                  is_free_shipping: applied?.is_free_shipping ?? persistedAdjustments.some((item) => item.adjustmentType === 'FREE_SHIPPING'),
+                  rule_version: persistedAdjustments[0]?.ruleVersion?.version ?? null,
+                  schema_version: persistedAdjustments[0]?.ruleVersion?.schemaVersion ?? null,
+                  details: {
+                    ...(quantityReward ? { quantity_reward: quantityReward } : {}),
+                    ...(applied?.free_product_details ? { free_product: applied.free_product_details } : {}),
+                    ...(applied?.shipping_info ? { shipping: applied.shipping_info } : {})
+                  },
+                  adjustments: persistedAdjustments.map((adjustment) => ({
+                    adjustment_id: adjustment.id,
+                    adjustment_type: adjustment.adjustmentType,
+                    product_id: adjustment.productId ? adjustment.productId.toString() : null,
+                    product_name: adjustment.productId
+                      ? orderlines.find((line) => String(line.productid) === adjustment.productId?.toString())?.productname ?? null
+                      : null,
+                    affected_quantity: adjustment.affectedQuantity,
+                    amount: Number(adjustment.amount),
+                    list_amount: adjustment.listAmount === null ? null : Number(adjustment.listAmount),
+                    payable_amount: adjustment.payableAmount === null ? null : Number(adjustment.payableAmount),
+                    metadata: adjustment.metadata
+                  }))
+                };
+              })
+            };
+          }
+        } catch (error: any) {
+          // Keep order details available during rolling deployments where the
+          // additive promotion tables have not reached every environment yet.
+          if (error?.code !== 'P2021' && error?.code !== 'P2022') throw error;
+          logger.warn({ orderId: fullOrder.id, code: error.code }, 'Promotion breakdown tables are unavailable');
+        }
+      }
+      if (!promotion_breakdown && Number(fullOrder.promotion_discount_total ?? 0) > 0) {
+        const linePromotionIds = [...new Set(
+          rawOrderlines.map((line: any) => Number(line.promotion_id)).filter((promotionId: number) => Number.isFinite(promotionId) && promotionId > 0)
+        )];
+        const linePromotions = linePromotionIds.length
+          ? await prisma.promotions.findMany({
+              where: { id: { in: linePromotionIds } },
+              select: { id: true, name: true, type: true }
+            })
+          : [];
+        const linePromotionsById = new Map(linePromotions.map((promotion) => [promotion.id, promotion]));
+        const knownPromotions = linePromotionIds.map((promotionId) => {
+          const promotion = linePromotionsById.get(promotionId);
+          const matchingLines = rawOrderlines.filter((line: any) => Number(line.promotion_id) === promotionId);
+          return {
+            promotion_id: promotionId,
+            name: promotion?.name || `Promotion ${promotionId}`,
+            type: promotion?.type || null,
+            discount_amount: matchingLines.reduce((sum: number, line: any) => sum + Number(line.promotion_discount_amount ?? 0), 0),
+            is_auto: null,
+            is_free_shipping: promotion?.type === 'FREE_SHIPPING',
+            rule_version: null,
+            schema_version: null,
+            details: {},
+            adjustments: []
+          };
+        });
+        const knownTotal = knownPromotions.reduce((sum, promotion) => sum + promotion.discount_amount, 0);
+        const unallocatedDiscount = Math.max(0, Number(fullOrder.promotion_discount_total ?? 0) - knownTotal);
+        promotion_breakdown = {
+          evaluation_id: fullOrder.evaluation_id || null,
+          status: 'legacy_details_unavailable',
+          schema_version: 1,
+          original_total: Number(fullOrder.original_total ?? 0),
+          discounted_total: Number(fullOrder.orderamount ?? 0),
+          promotions: [
+            ...knownPromotions,
+            ...(unallocatedDiscount > 0 ? [{
+              promotion_id: 0,
+              name: 'Legacy promotion (campaign details were not recorded)',
+              type: null,
+              discount_amount: unallocatedDiscount,
+              is_auto: null,
+              is_free_shipping: false,
+              rule_version: null,
+              schema_version: null,
+              details: {},
+              adjustments: []
+            }] : [])
+          ]
+        };
+      }
 
       // Get address from first orderline (all orderlines share same address)
       let address = null;
@@ -3361,7 +3552,8 @@ export class OrdersService {
         orderlines,
         address,
         wallet_usage,
-        refund_operations
+        refund_operations,
+        promotion_breakdown
       };
     } catch (error) {
       logger.error({ error, idOrOrderNumber }, 'Error getting order details');

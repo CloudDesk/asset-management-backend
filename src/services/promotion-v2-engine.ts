@@ -339,13 +339,13 @@ function betterSet(left: Candidate[], right: Candidate[]): Candidate[] {
       return leftPriorities[index]! < rightPriorities[index]! ? left : right;
     }
   }
-  if (leftPriorities.length !== rightPriorities.length) {
-    return leftPriorities.length > rightPriorities.length ? left : right;
-  }
   const saving = (items: Candidate[]) => items.reduce((sum, item) => sum + item.saving, 0);
   const leftSaving = saving(left);
   const rightSaving = saving(right);
   if (leftSaving !== rightSaving) return leftSaving > rightSaving ? left : right;
+  if (leftPriorities.length !== rightPriorities.length) {
+    return leftPriorities.length > rightPriorities.length ? left : right;
+  }
   const signature = (items: Candidate[]) => items.map((item) => item.campaign.promotionId).sort((a, b) => a - b).join(',');
   return signature(left).localeCompare(signature(right)) <= 0 ? left : right;
 }

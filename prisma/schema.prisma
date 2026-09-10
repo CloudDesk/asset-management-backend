@@ -897,13 +897,14 @@ model orders {
   total_gst_amount     Decimal? @db.Decimal(10, 2) // Sum of orderline.total_gst_amount
 
   // Refund Tracking Fields (Added: December 2024)
-  refund_transaction_id String?  @db.VarChar(500) // PhonePe or payment gateway refund transaction ID
-  refund_amount         Decimal? @db.Decimal(10, 2) // Amount refunded to customer
-  refund_reference      String?  @db.VarChar(500) // Bank or payment gateway confirmation reference
-  refund_initiated_date BigInt? // Timestamp when refund was initiated (epoch ms)
-  refund_completed_date BigInt? // Timestamp when refund was completed (epoch ms)
-  order_invoice_url     String?  @db.VarChar(1000) // URL of the order invoice
-  invoice_seller_address Json?   @db.JsonB // Editable seller snapshot used for invoice generation
+  refund_transaction_id    String?  @db.VarChar(500) // PhonePe or payment gateway refund transaction ID
+  refund_amount            Decimal? @db.Decimal(10, 2) // Amount refunded to customer
+  refund_reference         String?  @db.VarChar(500) // Bank or payment gateway confirmation reference
+  refund_initiated_date    BigInt? // Timestamp when refund was initiated (epoch ms)
+  refund_completed_date    BigInt? // Timestamp when refund was completed (epoch ms)
+  order_invoice_url        String?  @db.VarChar(1000) // URL of the order invoice
+  invoice_seller_address   Json?    @db.JsonB // Editable seller snapshot used for invoice generation
+  promotion_rule_snapshots Json? @db.JsonB // Immutable promotion rules used to price the order
 
   orderline      orderline[]
   address        address?        @relation(fields: [addressid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_addressid_orders")
@@ -1352,6 +1353,27 @@ model PromotionRuleVersion {
   @@map("promotion_rule_versions")
 }
 
+model PromotionGiftEntitlement {
+  id                     String   @id @db.VarChar(36)
+  orderId                Int      @map("order_id")
+  evaluationId           String   @map("evaluation_id") @db.VarChar(36)
+  promotionId            Int      @map("promotion_id")
+  promotionRuleVersionId BigInt   @map("promotion_rule_version_id")
+  giftQuantity           Int      @map("gift_quantity")
+  rewardMode             String   @map("reward_mode") @db.VarChar(50)
+  allowedScopeJson       Json?    @map("allowed_scope_json") @db.JsonB
+  status                 String   @default("PENDING_PACKING") @db.VarChar(40)
+  selectedProductId      BigInt?  @map("selected_product_id")
+  selectedByUserId       Int?     @map("selected_by_user_id")
+  selectedAt             BigInt?  @map("selected_at")
+  createdAt              BigInt   @map("created_at")
+  modifiedAt             BigInt   @map("modified_at")
+
+  @@unique([evaluationId, promotionId])
+  @@index([orderId, status])
+  @@map("promotion_gift_entitlements")
+}
+
 model PromotionTarget {
   id                     BigInt               @id @default(autoincrement())
   promotionRuleVersionId BigInt               @map("promotion_rule_version_id")
@@ -1393,21 +1415,23 @@ model PromotionEvaluationAdjustment {
 }
 
 model promotion_evaluations {
-  evaluation_id      String   @id @db.VarChar(36)
-  user_id            String?  @db.Text
-  cart_data          Json?
-  cart_signature     String?  @db.VarChar(255)
-  original_total     Decimal? @db.Decimal(10, 2)
-  discounted_total   Decimal? @db.Decimal(10, 2)
-  applied_promotions Json?
-  ineligible_coupons Json?
-  context            Json? // channel, geo, payment_method
-  order_id           Int?     @unique // FK -> orders.id (nullable until redeemed)
-  created_at         BigInt   @db.BigInt
-  expires_at         BigInt   @db.BigInt
-  status             String?  @default("active") @db.VarChar(50)
-  createddate        BigInt?
-  modifieddate       BigInt?
+  evaluation_id          String   @id @db.VarChar(36)
+  user_id                String?  @db.Text
+  cart_data              Json?
+  cart_signature         String?  @db.VarChar(255)
+  original_total         Decimal? @db.Decimal(10, 2)
+  discounted_total       Decimal? @db.Decimal(10, 2)
+  applied_promotions     Json?
+  ineligible_coupons     Json?
+  context                Json? // channel, geo, payment_method
+  rule_snapshots         Json?    @db.JsonB // Immutable promotion rules used for this evaluation
+  rule_snapshot_checksum String?  @db.VarChar(64)
+  order_id               Int?     @unique // FK -> orders.id (nullable until redeemed)
+  created_at             BigInt   @db.BigInt
+  expires_at             BigInt   @db.BigInt
+  status                 String?  @default("active") @db.VarChar(50)
+  createddate            BigInt?
+  modifieddate           BigInt?
 
   redemptions promotion_redemptions[]
   adjustments PromotionEvaluationAdjustment[]

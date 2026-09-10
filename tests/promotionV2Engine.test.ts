@@ -165,7 +165,7 @@ test('uses ascending priority when stackable promotions cannot reuse the same it
 
   const quote = evaluatePromotionQuote(
     [line('A', 1, 10_000)],
-    [+    [campaign+campaign(1, highPrecedence), campaign(5, lowPrecedence)],
+    [campaign(1, highPrecedence), campaign(5, lowPrecedence)],
     [],
   );
 
@@ -193,10 +193,19 @@ test('keeps stackable legacy free shipping with a merchandise promotion', () => 
     { shippingAmount: 15_000 },
   );
 
-  assert.equal(freeShipping.qualifier.metric, 'ORDER_TOTAL');
+  assert.equal(freeShipping.qualifier.metric, 'CART_SUBTOTAL');
   assert.deepEqual(quote.applied_promotions.map((item) => item.promotion_id).sort((a, b) => a - b), [4, 33]);
   assert.equal(quote.discount_total, 30_000);
   assert.equal(quote.payable_total, 35_000);
+
+  const belowThreshold = evaluatePromotionQuote(
+    [line('A', 1, 49_000)],
+    [campaign(4, freeShipping)],
+    [],
+    { shippingAmount: 15_000 },
+  );
+  assert.deepEqual(belowThreshold.applied_promotions, []);
+  assert.equal(belowThreshold.payable_total, 64_000);
 });
 
 test('applies compatible offers to different products', () => {

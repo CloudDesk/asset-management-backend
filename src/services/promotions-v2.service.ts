@@ -1,7 +1,9 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { Prisma, PrismaClient } from '@prisma/client';
 import { PromotionEligibilityRequestSchema, PromotionQuoteRequestSchema, PromotionRuleV2Schema, type PromotionQuoteRequest, type PromotionRuleV2 } from '../schemas/promotions-v2.schema.js';
+import { PromotionQuoteRequestCurrentSchema, PromotionRuleV3Schema, PromotionV3MultiSimulationRequestSchema, PromotionV3SimulationRequestSchema, type PromotionRuleV3 } from '../schemas/promotions-v3.schema.js';
 import { evaluatePromotionQuote, isLineInPromotionScope, type PromotionCampaign, type PromotionCatalogProduct, type PromotionCartLine, type PromotionQuote } from './promotion-v2-engine.js';
+import { evaluateV3ItemPromotions } from './promotion-v3-engine.js';
 import { convertLegacyPromotionRule } from '../utils/legacy-promotion-v2.js';
 import { isPromotionChannelEligible } from '../utils/promotionChannel.js';
 import { logger } from '../config/logger.js';
@@ -31,7 +33,7 @@ function parseCachedRule(checksum: string, value: Prisma.JsonValue): PromotionRu
 export class PromotionsV2Service {
   async getLatestRule(promotionId: number): Promise<{ version: number; status: string; rule: PromotionRuleV2 } | null> {
     const version = await prisma.promotionRuleVersion.findFirst({
-      where: { promotionId },
+      where: { promotionId, schemaVersion: 2 },
       orderBy: { version: 'desc' },
     });
     if (!version) return null;
@@ -42,6 +44,19 @@ export class PromotionsV2Service {
     };
   }
 
+  async getLatestCurrentRule(promotionId: number): Promise<{ version: number; status: string; rule: PromotionRuleV3 } | null> {
+    const version = await prisma.promotionRuleVersion.findFirst({
+      where: { promotionId, schemaVersion: 3 },
+      orderBy: { version: 'desc' },
+    });
+    if (!version) return null;
+    return {
+      version: version.version,
+      status: version.status,
+      rule: PromotionRuleV3Schema.parse(version.ruleJson),
+    };
+  }
+
   async saveDraft(promotionId: number, input: unknown): Promise<{ id: string; version: number; checksum: string; rule: PromotionRuleV2 }> {
     const rule = PromotionRuleV2Schema.parse(input);
     const checksum = createHash('sha256').update(stableJson(rule)).digest('hex');
@@ -49,7 +64,7 @@ export class PromotionsV2Service {
     const version = (latest?.version ?? 0) + 1;
     const created = await prisma.$transaction(async (tx) => {
       await tx.promotionRuleVersion.updateMany({
-        where: { promotionId, status: 'draft' },
+        where: { promotionId, schemaVersion: 2, status: 'draft' },
         data: { status: 'retired', modifiedAt: seconds() },
       });
       const row = await tx.promotionRuleVersion.create({
@@ -65,13 +80,167 @@ export class PromotionsV2Service {
     return { id: created.id.toString(), version, checksum, rule };
   }
 
+  async saveCurrentDraft(promotionId: number, input: unknown): Promise<{ id: string; version: number; checksum: string; rule: PromotionRuleV3 }> {
+    const rule = PromotionRuleV3Schema.parse(input);
+    const checksum = createHash('sha256').update(stableJson(rule)).digest('hex');
+    const latest = await prisma.promotionRuleVersion.findFirst({
+      where: { promotionId },
+      orderBy: { version: 'desc' },
+      select: { version: true },
+    });
+    const version = (latest?.version ?? 0) + 1;
+    const created = await prisma.$transaction(async (tx) => {
+      await tx.promotionRuleVersion.updateMany({
+        where: { promotionId, schemaVersion: 3, status: 'draft' },
+        data: { status: 'retired', modifiedAt: seconds() },
+      });
+      const row = await tx.promotionRuleVersion.create({
+        data: {
+          promotionId,
+          version,
+          schemaVersion: 3,
+          ruleJson: asJson(rule),
+          status: 'draft',
+          checksum,
+          createdAt: seconds(),
+          modifiedAt: seconds(),
+        },
+      });
+      const targets = [
+        ...rule.qualifier.scope.include.flatMap((group) => group.values.map((facetValue) => ({
+          promotionRuleVersionId: row.id,
+          facetType: group.facet,
+          facetValue: facetValue.trim().toLocaleLowerCase('en-IN'),
+          inclusion: 'include',
+          createdAt: seconds(),
+        }))),
+        ...rule.qualifier.scope.exclude.flatMap((group) => group.values.map((facetValue) => ({
+          promotionRuleVersionId: row.id,
+          facetType: group.facet,
+          facetValue: facetValue.trim().toLocaleLowerCase('en-IN'),
+          inclusion: 'exclude',
+          createdAt: seconds(),
+        }))),
+      ];
+      if (targets.length) await tx.promotionTarget.createMany({ data: targets, skipDuplicates: true });
+      return row;
+    });
+    return { id: created.id.toString(), version, checksum, rule };
+  }
+
+  async publishCurrent(promotionId: number, expectedChecksum: string, publishedBy: number): Promise<{
+    promotion_id: number;
+    rule_version_id: string;
+    version: number;
+    checksum: string;
+    matched_products: number;
+    published_at: number;
+    rule_snapshot: PromotionRuleV3;
+  }> {
+    const draft = await prisma.promotionRuleVersion.findFirst({
+      where: { promotionId, schemaVersion: 3, status: 'draft' },
+      orderBy: { version: 'desc' },
+      include: { promotion: true },
+    });
+    if (!draft) throw Object.assign(new Error('No draft rule exists for this promotion'), { statusCode: 404 });
+    if (draft.checksum.toLowerCase() !== expectedChecksum.toLowerCase()) {
+      throw Object.assign(new Error('Promotion draft changed; reload it before publishing'), { statusCode: 409, code: 'PROMOTION_DRAFT_CHANGED' });
+    }
+    const rule = PromotionRuleV3Schema.parse(draft.ruleJson);
+    const matchedProducts = await this.countCurrentMatchedProducts(rule);
+    if (!matchedProducts) throw Object.assign(new Error('Promotion cannot be published because it matches no active products'), { statusCode: 422 });
+    if (draft.promotion.start_date && draft.promotion.end_date && draft.promotion.start_date >= draft.promotion.end_date) {
+      throw Object.assign(new Error('Promotion end date must be after its start date'), { statusCode: 422 });
+    }
+    if (draft.promotion.budget !== null && Number(draft.promotion.budget) < 0) {
+      throw Object.assign(new Error('Promotion budget cannot be negative'), { statusCode: 422 });
+    }
+    await this.validateCurrentGiftAvailability(rule, draft.promotion.applicable_channel);
+    const publishedAt = seconds();
+    await prisma.$transaction(async (tx) => {
+      const guarded = await tx.promotionRuleVersion.updateMany({
+        where: { id: draft.id, status: 'draft', checksum: draft.checksum },
+        data: { status: 'published', publishedAt, publishedBy, modifiedAt: publishedAt },
+      });
+      if (guarded.count !== 1) {
+        throw Object.assign(new Error('Promotion draft changed while publishing; reload and try again'), { statusCode: 409, code: 'PROMOTION_DRAFT_CHANGED' });
+      }
+      await tx.promotionRuleVersion.updateMany({
+        where: { promotionId, schemaVersion: 3, status: 'published', id: { not: draft.id } },
+        data: { status: 'retired', modifiedAt: publishedAt },
+      });
+      await tx.promotionRuleVersion.updateMany({
+        where: { promotionId, schemaVersion: 3, status: 'draft', id: { not: draft.id } },
+        data: { status: 'retired', modifiedAt: publishedAt },
+      });
+    });
+    return {
+      promotion_id: promotionId,
+      rule_version_id: draft.id.toString(),
+      version: draft.version,
+      checksum: draft.checksum,
+      matched_products: matchedProducts,
+      published_at: Number(publishedAt),
+      rule_snapshot: rule,
+    };
+  }
+
+  private async countCurrentMatchedProducts(rule: PromotionRuleV3): Promise<number> {
+    const products = await prisma.product.findMany({
+      where: { productstatus: { notIn: ['inactive', 'deleted'] } },
+      select: { id: true, category: true, subcategory: true },
+    });
+    const normalise = (value: string): string => value.trim().toLocaleLowerCase('en-IN');
+    const matches = (product: typeof products[number], group: PromotionRuleV3['qualifier']['scope']['include'][number]): boolean => {
+      if (group.facet === 'ENTIRE_CART') return group.values.includes('*');
+      const actual = group.facet === 'PRODUCT' ? [product.id.toString()]
+        : group.facet === 'CATEGORY' ? [product.category ?? ''] : [product.subcategory ?? ''];
+      const expected = new Set(group.values.map(normalise));
+      return actual.some((value) => value && expected.has(normalise(value)));
+    };
+    return products.filter((product) => {
+      const scope = rule.qualifier.scope;
+      const included = scope.include.length === 0 || (scope.group_operator === 'AND'
+        ? scope.include.every((group) => matches(product, group))
+        : scope.include.some((group) => matches(product, group)));
+      return included && !scope.exclude.some((group) => matches(product, group));
+    }).length;
+  }
+
+  private async validateCurrentGiftAvailability(rule: PromotionRuleV3, applicableChannel: string): Promise<void> {
+    if (!rule.reward || rule.reward.mode !== 'SPECIFIC_PRODUCT') return;
+    const platform = ['all', 'web', 'mobile', 'nivapp'].includes(applicableChannel.toLowerCase()) ? 'nivapp' : applicableChannel.toLowerCase();
+    const rows = await prisma.platformStock.findMany({
+      where: { productid: { in: rule.reward.product_ids.map(BigInt) }, platform, availableqty: { gt: 0 }, platformstatus: { not: 'inactive' } },
+      select: { productid: true },
+    });
+    const available = new Set(rows.map((row) => row.productid.toString()));
+    const missing = rule.reward.product_ids.filter((id) => !available.has(id));
+    if (missing.length) throw Object.assign(new Error(`Gift products unavailable for this channel: ${missing.join(', ')}`), { statusCode: 422 });
+  }
+
+  private async hydrateCurrentRewardCatalog(rules: PromotionRuleV3[], channel: PromotionQuoteRequest['channel']) {
+    const ids = [...new Set(rules.flatMap((rule) => rule.reward?.mode === 'SPECIFIC_PRODUCT' ? rule.reward.product_ids : []))];
+    if (!ids.length) return [];
+    const products = await prisma.product.findMany({ where: { id: { in: ids.map(BigInt) }, productstatus: { notIn: ['inactive', 'deleted'] } }, include: { platformStocks: true } });
+    const platform = ['web', 'mobile', 'nivapp'].includes(channel) ? 'nivapp' : channel;
+    return products.map((product) => {
+      const stock = product.platformStocks.find((item) => item.platform.toLowerCase() === platform)?.availableqty ?? 0;
+      const price = Math.max(0, Number(product.price ?? 0) - Math.max(0, Number(product.discount ?? 0)));
+      return {
+        product_id: product.id.toString(), quantity: 0, unit_price_paise: Math.round(price * 100), available_quantity: stock,
+        facets: { CATEGORY: product.category ? [product.category] : [], SUBCATEGORY: product.subcategory ? [product.subcategory] : [] },
+      };
+    });
+  }
+
   async migrateLegacy(promotionId: number): Promise<{ id: string; version: number; checksum: string; rule: PromotionRuleV2 }> {
     const promotion = await prisma.promotions.findUniqueOrThrow({ where: { id: promotionId } });
     return this.saveDraft(promotionId, convertLegacyPromotionRule(promotion));
   }
 
   async publish(promotionId: number, publishedBy?: number): Promise<{ promotion_id: number; version: number; matched_products: number }> {
-    const draft = await prisma.promotionRuleVersion.findFirst({ where: { promotionId, status: 'draft' }, orderBy: { version: 'desc' }, include: { promotion: true } });
+    const draft = await prisma.promotionRuleVersion.findFirst({ where: { promotionId, schemaVersion: 2, status: 'draft' }, orderBy: { version: 'desc' }, include: { promotion: true } });
     if (!draft) throw new Error('No draft rule version exists for this promotion');
     const rule = PromotionRuleV2Schema.parse(draft.ruleJson);
     const matched = await this.matchedProducts(promotionId, rule, 1, 1);
@@ -80,8 +249,8 @@ export class PromotionsV2Service {
     if (draft.promotion.budget !== null && Number(draft.promotion.budget) < 0) throw new Error('Promotion budget cannot be negative');
     await this.validateGiftAvailability(rule, draft.promotion.applicable_channel);
     await prisma.$transaction(async (tx) => {
-      await tx.promotionRuleVersion.updateMany({ where: { promotionId, status: 'published' }, data: { status: 'retired', modifiedAt: seconds() } });
-      await tx.promotionRuleVersion.updateMany({ where: { promotionId, status: 'draft', id: { not: draft.id } }, data: { status: 'retired', modifiedAt: seconds() } });
+      await tx.promotionRuleVersion.updateMany({ where: { promotionId, schemaVersion: 2, status: 'published' }, data: { status: 'retired', modifiedAt: seconds() } });
+      await tx.promotionRuleVersion.updateMany({ where: { promotionId, schemaVersion: 2, status: 'draft', id: { not: draft.id } }, data: { status: 'retired', modifiedAt: seconds() } });
       await tx.promotionRuleVersion.update({ where: { id: draft.id }, data: { status: 'published', publishedAt: seconds(), ...(publishedBy !== undefined ? { publishedBy } : {}), modifiedAt: seconds() } });
     });
     return { promotion_id: promotionId, version: draft.version, matched_products: matched.total };
@@ -120,7 +289,7 @@ export class PromotionsV2Service {
   }
 
   async getMatchedProducts(promotionId: number, page = 1, limit = 50): Promise<{ data: unknown[]; total: number; page: number; limit: number }> {
-    const version = await prisma.promotionRuleVersion.findFirst({ where: { promotionId }, orderBy: [{ status: 'asc' }, { version: 'desc' }] });
+    const version = await prisma.promotionRuleVersion.findFirst({ where: { promotionId, schemaVersion: 2 }, orderBy: [{ status: 'asc' }, { version: 'desc' }] });
     if (!version) throw new Error('No rule version exists for this promotion');
     return this.matchedProducts(promotionId, PromotionRuleV2Schema.parse(version.ruleJson), page, limit);
   }
@@ -152,12 +321,366 @@ export class PromotionsV2Service {
 
   async simulate(promotionId: number, request: unknown): Promise<PromotionQuote> {
     const parsed = PromotionQuoteRequestSchema.parse(request);
-    const version = await prisma.promotionRuleVersion.findFirst({ where: { promotionId }, orderBy: { version: 'desc' }, include: { promotion: true } });
+    const version = await prisma.promotionRuleVersion.findFirst({ where: { promotionId, schemaVersion: 2 }, orderBy: { version: 'desc' }, include: { promotion: true } });
     if (!version) throw new Error('No rule version exists for this promotion');
     const hydrated = await this.hydrateCart(parsed);
     const campaigns = [{ promotionId, ruleVersion: version.version, name: version.promotion.name ?? `Promotion ${promotionId}`, rule: PromotionRuleV2Schema.parse(version.ruleJson) }];
     const catalog = await this.hydrateRewardCatalog(campaigns, hydrated.catalog, parsed.channel);
     return evaluatePromotionQuote(hydrated.lines, campaigns, catalog, { shippingAmount: parsed.shipping_amount, rewardSelections: parsed.reward_selections });
+  }
+
+  async quoteCurrent(input: unknown, authenticatedCustomerId?: string): Promise<Record<string, unknown>> {
+    const request = PromotionQuoteRequestCurrentSchema.parse(input);
+    const hydrationRequest = PromotionQuoteRequestSchema.parse({
+      schema_version: 2,
+      cart_items: request.cart_items,
+      channel: request.channel,
+      shipping_amount: request.shipping_amount,
+    });
+    const hydrated = await this.hydrateCart(hydrationRequest);
+    const lines = hydrated.lines.map((line) => ({
+      ...(line.cartRecordId ? { cart_record_id: line.cartRecordId } : {}),
+      product_id: line.id,
+      quantity: line.quantity,
+      unit_price_paise: line.unitPricePaise,
+      ...(line.stock !== undefined ? { available_quantity: line.stock } : {}),
+      facets: line.facets,
+    }));
+    const now = seconds();
+    const activeAutomaticFilter = {
+      status: 'active',
+      OR: [{ application_mode: 'automatic' }, { auto_apply: true }],
+      AND: [
+        { OR: [{ start_date: null }, { start_date: { lte: now } }] },
+        { OR: [{ end_date: null }, { end_date: { gte: now } }] },
+      ],
+    } satisfies Prisma.promotionsWhereInput;
+    const [rows, legacyFreeShippingRows] = await Promise.all([
+      prisma.promotionRuleVersion.findMany({
+        where: {
+          schemaVersion: 3,
+          status: 'published',
+          promotion: activeAutomaticFilter,
+        },
+        include: { promotion: true },
+        orderBy: [{ promotionId: 'asc' }, { version: 'desc' }],
+      }),
+      // Free-shipping campaigns created before V3 do not have a canonical
+      // rule version. Evaluate them inside this quote during the migration so
+      // cart refreshes cannot lose shipping while retaining item promotions.
+      prisma.promotions.findMany({
+        where: {
+          ...activeAutomaticFilter,
+          type: 'FREE_SHIPPING',
+          ruleVersions: { none: { schemaVersion: 3, status: 'published' } },
+        },
+        include: { assignments: { where: { status: 'active' } } },
+        orderBy: { id: 'asc' },
+      }),
+    ]);
+    const latestRows = [...new Map(rows.map((row) => [row.promotionId, row])).values()]
+      .filter((row) => isPromotionChannelEligible(row.promotion.applicable_channel, request.channel === 'nivapp' ? 'mobile' : request.channel));
+    const channel = request.channel === 'nivapp' ? 'mobile' : request.channel;
+    const legacyFreeShipping = legacyFreeShippingRows.filter((promotion) =>
+      isPromotionChannelEligible(promotion.applicable_channel, channel));
+    const promotionIds = [...new Set([
+      ...latestRows.map((row) => row.promotionId),
+      ...legacyFreeShipping.map((promotion) => promotion.id),
+    ])];
+    const numericCustomerId = authenticatedCustomerId && /^\d+$/.test(authenticatedCustomerId)
+      ? Number(authenticatedCustomerId)
+      : undefined;
+    const [usage, customerUsage, groupMemberships] = await Promise.all([
+      prisma.promotion_redemptions.groupBy({ by: ['promotion_id'], where: { promotion_id: { in: promotionIds } }, _count: { _all: true }, _sum: { discount_amount: true } }),
+      authenticatedCustomerId
+        ? prisma.promotion_redemptions.groupBy({ by: ['promotion_id'], where: { promotion_id: { in: promotionIds }, user_id: authenticatedCustomerId }, _count: { _all: true } })
+        : Promise.resolve([]),
+      numericCustomerId !== undefined
+        ? prisma.customer_group_members.findMany({ where: { customer_id: numericCustomerId, status: 'active' }, select: { customer_group_id: true } })
+        : Promise.resolve([]),
+    ]);
+    const usageById = new Map(usage.map((item) => [item.promotion_id, { count: item._count._all, amount: Number(item._sum.discount_amount ?? 0) }]));
+    const customerUsageById = new Map(customerUsage.map((item) => [item.promotion_id, item._count._all]));
+    const customerGroups = new Set(groupMemberships.map((item) => item.customer_group_id));
+    const withinLimits = (promotion: { id: number; max_redemptions: number | null; per_user_limit: number | null; budget: Prisma.Decimal | null }): boolean => {
+      const used = usageById.get(promotion.id) ?? { count: 0, amount: 0 };
+      if (promotion.max_redemptions && used.count >= promotion.max_redemptions) return false;
+      if (promotion.per_user_limit && authenticatedCustomerId && (customerUsageById.get(promotion.id) ?? 0) >= promotion.per_user_limit) return false;
+      const budget = Number(promotion.budget ?? 0);
+      return budget <= 0 || used.amount < budget;
+    };
+    const eligibleRows = latestRows.filter((row) => {
+      const used = usageById.get(row.promotionId) ?? { count: 0, amount: 0 };
+      if (row.promotion.max_redemptions && used.count >= row.promotion.max_redemptions) return false;
+      if (row.promotion.per_user_limit && authenticatedCustomerId && (customerUsageById.get(row.promotionId) ?? 0) >= row.promotion.per_user_limit) return false;
+      const budget = Number(row.promotion.budget ?? 0);
+      return budget <= 0 || used.amount < budget;
+    });
+    const eligibleLegacyFreeShipping = legacyFreeShipping.filter((promotion) => {
+      if (!withinLimits(promotion)) return false;
+      const segmentCondition = Array.isArray(promotion.conditions)
+        ? (promotion.conditions as Array<{ attribute?: unknown; value?: unknown }>).find((condition) => condition.attribute === 'user.segment')
+        : undefined;
+      if (segmentCondition) {
+        const required = Array.isArray(segmentCondition.value)
+          ? segmentCondition.value.map(String)
+          : [String(segmentCondition.value ?? '')];
+        if (required.includes('authenticated_user') && !authenticatedCustomerId) return false;
+      }
+      if (!promotion.assignments.length) return true;
+      return promotion.assignments.some((assignment) => assignment.assignment_type === 'anyone'
+        || (numericCustomerId !== undefined && (assignment.customer_id === numericCustomerId || assignment.claimed_by_customer_id === numericCustomerId))
+        || (assignment.customer_group_id !== null && customerGroups.has(assignment.customer_group_id)));
+    });
+    const campaigns = eligibleRows.map((row) => ({
+      promotion_id: row.promotionId,
+      rule_version: row.version,
+      name: row.promotion.name ?? `Promotion ${row.promotionId}`,
+      rule: PromotionRuleV3Schema.parse(row.ruleJson),
+    }));
+    const rewardCatalog = await this.hydrateCurrentRewardCatalog(campaigns.map((campaign) => campaign.rule), request.channel);
+    const evaluation = evaluateV3ItemPromotions(lines, campaigns, {
+      channel: request.channel,
+      shipping_amount: request.shipping_amount,
+      customer_segments: request.customer_segments,
+      reward_catalog: rewardCatalog,
+    });
+    const legacyShippingQuote = evaluatePromotionQuote(
+      hydrated.lines,
+      eligibleLegacyFreeShipping.map((promotion) => ({
+        promotionId: promotion.id,
+        ruleVersion: 0,
+        name: promotion.name ?? `Promotion ${promotion.id}`,
+        rule: convertLegacyPromotionRule(promotion),
+      })),
+      hydrated.catalog,
+      { shippingAmount: request.shipping_amount },
+    );
+    const shippingAdjustments = legacyShippingQuote.adjustments.filter((adjustment) => adjustment.type === 'FREE_SHIPPING');
+    const shippingDiscount = shippingAdjustments.reduce((sum, adjustment) => sum + adjustment.amount, 0);
+    const appliedPromotions = [
+      ...evaluation.applied_promotions,
+      ...legacyShippingQuote.applied_promotions,
+    ];
+    const evaluationId = randomUUID();
+    const expiryMinutes = Math.max(1, Math.min(
+      ...eligibleRows.map((row) => row.promotion.evaluation_expiry_minutes ?? 15),
+      ...eligibleLegacyFreeShipping.map((promotion) => promotion.evaluation_expiry_minutes ?? 15),
+      15,
+    ));
+    const expiresAt = now + BigInt(expiryMinutes * 60);
+    const ruleSnapshots = eligibleRows
+      .filter((row) => evaluation.applied_promotions.some((promotion) => promotion.promotion_id === row.promotionId))
+      .map((row) => ({ promotion_id: row.promotionId, rule_version_id: row.id.toString(), version: row.version, schema_version: row.schemaVersion, checksum: row.checksum, rule: row.ruleJson }));
+    const snapshotChecksum = createHash('sha256').update(stableJson(ruleSnapshots)).digest('hex');
+    const quoteAdjustments = [
+      ...evaluation.adjustments.map((adjustment) => ({
+        ...adjustment,
+        type: adjustment.adjustment_type ?? 'ITEM_DISCOUNT',
+        source_product_ids: Array.isArray(adjustment.metadata?.source_product_ids) ? adjustment.metadata.source_product_ids : [adjustment.product_id],
+      })),
+      ...evaluation.order_adjustments.map((adjustment) => ({
+        ...adjustment,
+        type: adjustment.adjustment_type,
+        affected_quantity: 0,
+        list_amount: adjustment.basis_amount,
+        source_product_ids: [],
+        metadata: { application_level: 'ORDER' },
+      })),
+      ...shippingAdjustments,
+    ];
+    const quote = {
+      ...evaluation,
+      discount_total: evaluation.discount_total + shippingDiscount,
+      applied_promotions: appliedPromotions,
+      evaluation_id: evaluationId,
+      currency: 'INR' as const,
+      original_total: evaluation.original_merchandise_total + request.shipping_amount,
+      shipping_amount: request.shipping_amount,
+      payable_total: evaluation.payable_merchandise_total + request.shipping_amount - shippingDiscount,
+      adjustments: quoteAdjustments,
+      eligible_alternatives: [],
+      rejected_candidates: evaluation.rejected_candidates.map((candidate) => ({ promotion_id: candidate.promotion_id, reason_code: candidate.reason_codes[0] ?? 'NO_ELIGIBLE_PRODUCTS' })),
+      next_tier_progress: evaluation.progress.map((item) => ({ promotion_id: item.promotion_id, current: item.current, next_minimum: item.required, remaining: item.remaining, metric: item.field })),
+      gift_choices: [],
+      expires_at: new Date(Number(expiresAt) * 1000).toISOString(),
+    };
+    const signature = createHash('sha256').update(stableJson(lines.map((line) => ({ product_id: line.product_id, quantity: line.quantity, unit_price_paise: line.unit_price_paise })))).digest('hex');
+    const versionIds = new Map(eligibleRows.map((row) => [`${row.promotionId}:${row.version}`, row.id]));
+    const persistCurrentQuote = async (includeRuleSnapshots: boolean): Promise<void> => prisma.$transaction(async (tx) => {
+      await tx.promotion_evaluations.create({
+        data: {
+          evaluation_id: evaluationId,
+          user_id: authenticatedCustomerId ?? null,
+          cart_data: asJson(request),
+          cart_signature: signature,
+          original_total: quote.original_total / 100,
+          discounted_total: quote.payable_total / 100,
+          applied_promotions: asJson(appliedPromotions),
+          ineligible_coupons: asJson(evaluation.rejected_candidates),
+          context: asJson({ schema_version: 3, channel: request.channel, quote }),
+          ...(includeRuleSnapshots ? {
+            rule_snapshots: asJson(ruleSnapshots),
+            rule_snapshot_checksum: snapshotChecksum,
+          } : {}),
+          created_at: now,
+          expires_at: expiresAt,
+          status: 'active',
+          createddate: now,
+          modifieddate: now,
+        },
+        select: { evaluation_id: true },
+      });
+      if (quoteAdjustments.length) await tx.promotionEvaluationAdjustment.createMany({ data: quoteAdjustments.map((adjustment) => ({
+        id: adjustment.adjustment_id,
+        evaluationId,
+        promotionId: adjustment.promotion_id,
+        promotionRuleVersionId: versionIds.get(`${adjustment.promotion_id}:${adjustment.rule_version}`) ?? null,
+        adjustmentType: adjustment.type,
+        cartRecordId: 'cart_record_id' in adjustment ? adjustment.cart_record_id ?? null : null,
+        productId: 'product_id' in adjustment && adjustment.product_id !== undefined ? BigInt(adjustment.product_id) : null,
+        affectedQuantity: adjustment.affected_quantity,
+        amount: adjustment.amount / 100,
+        listAmount: adjustment.list_amount / 100,
+        payableAmount: adjustment.payable_amount / 100,
+        sourceProductIds: asJson(adjustment.source_product_ids),
+        metadata: asJson(adjustment.metadata ?? {}),
+        createdAt: now,
+      })) });
+    });
+    try {
+      await persistCurrentQuote(true);
+    } catch (error: any) {
+      if (error?.code !== 'P2022' || !String(error?.meta?.column ?? '').includes('rule_snapshot')) throw error;
+      logger.warn({ evaluationId }, 'Promotion snapshot columns unavailable; persisting current quote without snapshots');
+      await persistCurrentQuote(false);
+    }
+    return quote;
+  }
+
+  async validateCurrentQuote(evaluationId: string, authenticatedCustomerId?: string): Promise<Record<string, unknown>> {
+    const evaluation = await prisma.promotion_evaluations.findUnique({
+      where: { evaluation_id: evaluationId },
+      select: { user_id: true, status: true, expires_at: true, context: true },
+    });
+    if (!evaluation) throw Object.assign(new Error('Promotion quote was not found'), { statusCode: 404 });
+    if (evaluation.user_id && evaluation.user_id !== authenticatedCustomerId) throw Object.assign(new Error('This promotion quote belongs to another customer'), { statusCode: 403 });
+    if (evaluation.status !== 'active' || evaluation.expires_at <= seconds()) throw Object.assign(new Error('Promotion quote has expired'), { statusCode: 409 });
+    const context = evaluation.context as { schema_version?: number; quote?: Record<string, unknown> } | null;
+    if (context?.schema_version !== 3 || !context.quote) throw Object.assign(new Error('Promotion quote contract is not supported by this endpoint'), { statusCode: 409 });
+    return context.quote;
+  }
+
+  async simulateCurrent(promotionId: number, input: unknown): Promise<{
+    schema_version: 3;
+    promotion_id: number;
+    rule_version: number;
+    currency: 'INR';
+    original_merchandise_total: number;
+    shipping_amount: number;
+    discount_total: number;
+    payable_total: number;
+    evaluation: ReturnType<typeof evaluateV3ItemPromotions>;
+    rule_snapshot: PromotionRuleV3;
+  }> {
+    const request = PromotionV3SimulationRequestSchema.parse(input);
+    let rule = request.rule;
+    let ruleVersion = 0;
+    if (!rule) {
+      const stored = await prisma.promotionRuleVersion.findFirst({
+        where: { promotionId, schemaVersion: 3 },
+        orderBy: { version: 'desc' },
+      });
+      if (!stored) throw Object.assign(new Error('PROMOTION_RULE_NOT_FOUND'), { statusCode: 404 });
+      rule = PromotionRuleV3Schema.parse(stored.ruleJson);
+      ruleVersion = stored.version;
+    }
+    const hydrationRequest = PromotionQuoteRequestSchema.parse({
+      schema_version: 2,
+      cart_items: request.cart_items,
+      channel: request.channel,
+      shipping_amount: request.shipping_amount,
+    });
+    const hydrated = await this.hydrateCart(hydrationRequest);
+    const lines = hydrated.lines.map((line) => ({
+      ...(line.cartRecordId ? { cart_record_id: line.cartRecordId } : {}),
+      product_id: line.id,
+      quantity: line.quantity,
+      unit_price_paise: line.unitPricePaise,
+      ...(line.stock !== undefined ? { available_quantity: line.stock } : {}),
+      facets: line.facets,
+    }));
+    const rewardCatalog = await this.hydrateCurrentRewardCatalog([rule], request.channel);
+    const evaluation = evaluateV3ItemPromotions(lines, [{
+      promotion_id: promotionId,
+      rule_version: ruleVersion,
+      rule,
+    }], {
+      channel: request.channel,
+      shipping_amount: request.shipping_amount,
+      ...(request.remaining_cart_value !== undefined ? { remaining_cart_value: request.remaining_cart_value } : {}),
+      customer_segments: request.customer_segments,
+      reward_catalog: rewardCatalog,
+    });
+    return {
+      schema_version: 3,
+      promotion_id: promotionId,
+      rule_version: ruleVersion,
+      currency: 'INR',
+      original_merchandise_total: evaluation.original_merchandise_total,
+      shipping_amount: request.shipping_amount,
+      discount_total: evaluation.discount_total,
+      payable_total: evaluation.payable_merchandise_total + request.shipping_amount,
+      evaluation,
+      rule_snapshot: rule,
+    };
+  }
+
+  async simulateCampaigns(input: unknown): Promise<{
+    schema_version: 3;
+    currency: 'INR';
+    shipping_amount: number;
+    payable_total: number;
+    evaluation: ReturnType<typeof evaluateV3ItemPromotions>;
+    rule_snapshots: Array<{ promotion_id: number; rule_version: number; checksum: string; rule: PromotionRuleV3 }>;
+  }> {
+    const request = PromotionV3MultiSimulationRequestSchema.parse(input);
+    const hydrationRequest = PromotionQuoteRequestSchema.parse({
+      schema_version: 2,
+      cart_items: request.cart_items,
+      channel: request.channel,
+      shipping_amount: request.shipping_amount,
+    });
+    const hydrated = await this.hydrateCart(hydrationRequest);
+    const lines = hydrated.lines.map((line) => ({
+      ...(line.cartRecordId ? { cart_record_id: line.cartRecordId } : {}),
+      product_id: line.id,
+      quantity: line.quantity,
+      unit_price_paise: line.unitPricePaise,
+      ...(line.stock !== undefined ? { available_quantity: line.stock } : {}),
+      facets: line.facets,
+    }));
+    const rewardCatalog = await this.hydrateCurrentRewardCatalog(request.campaigns.map((campaign) => campaign.rule), request.channel);
+    const evaluation = evaluateV3ItemPromotions(lines, request.campaigns, {
+      channel: request.channel,
+      shipping_amount: request.shipping_amount,
+      ...(request.remaining_cart_value !== undefined ? { remaining_cart_value: request.remaining_cart_value } : {}),
+      customer_segments: request.customer_segments,
+      reward_catalog: rewardCatalog,
+    });
+    return {
+      schema_version: 3,
+      currency: 'INR',
+      shipping_amount: request.shipping_amount,
+      payable_total: evaluation.payable_merchandise_total + request.shipping_amount,
+      evaluation,
+      rule_snapshots: request.campaigns.map((campaign) => ({
+        promotion_id: campaign.promotion_id,
+        rule_version: campaign.rule_version,
+        checksum: createHash('sha256').update(stableJson(campaign.rule)).digest('hex'),
+        rule: campaign.rule,
+      })),
+    };
   }
 
   async eligibility(input: unknown, authenticatedCustomerId?: string): Promise<{
@@ -167,7 +690,7 @@ export class PromotionsV2Service {
   }> {
     const parsed = PromotionEligibilityRequestSchema.parse(input);
     const versionRows = await prisma.promotionRuleVersion.findMany({
-      where: { promotionId: { in: parsed.promotion_ids }, status: 'published' },
+      where: { promotionId: { in: parsed.promotion_ids }, schemaVersion: 2, status: 'published' },
       orderBy: [{ promotionId: 'asc' }, { version: 'desc' }],
       select: { promotionId: true },
     });
@@ -233,7 +756,7 @@ export class PromotionsV2Service {
       const selectedIds = [...new Set(request.selected_promotion_ids)];
       const versionedCount = await prisma.promotionRuleVersion.groupBy({
         by: ['promotionId'],
-        where: { promotionId: { in: selectedIds }, status: 'published' },
+        where: { promotionId: { in: selectedIds }, schemaVersion: 2, status: 'published' },
       });
       if (versionedCount.length !== selectedIds.length) {
         throw Object.assign(new Error('PROMOTION_V2_RULE_NOT_FOUND'), { statusCode: 404 });
@@ -275,6 +798,7 @@ export class PromotionsV2Service {
     const [rows, legacyAutomaticPromotions] = await Promise.all([
       prisma.promotionRuleVersion.findMany({
         where: {
+          schemaVersion: 2,
           status: 'published',
           OR: [{ targets: { none: { inclusion: 'include' } } }, { targets: { some: { inclusion: 'include', OR: targetMatches } } }],
           promotion: activeDateFilter,
@@ -440,17 +964,35 @@ export class PromotionsV2Service {
     })).sort((left, right) => left.product_id.localeCompare(right.product_id)))).digest('hex');
     const versionRows = quote.adjustments.length ? await prisma.promotionRuleVersion.findMany({
       where: { OR: quote.adjustments.map((adjustment) => ({ promotionId: adjustment.promotion_id, version: adjustment.rule_version })) },
-      select: { id: true, promotionId: true, version: true },
+      select: { id: true, promotionId: true, version: true, schemaVersion: true, checksum: true, ruleJson: true },
     }) : [];
     const versionIds = new Map(versionRows.map((row) => [`${row.promotionId}:${row.version}`, row.id]));
-    await prisma.$transaction(async (tx) => {
-      await tx.promotion_evaluations.create({ data: {
-        evaluation_id: quote.evaluation_id, user_id: request.customer_id ?? null, cart_data: asJson(request), cart_signature: signature,
-        original_total: quote.original_total / 100, discounted_total: quote.payable_total / 100,
-        applied_promotions: asJson(quote.applied_promotions), ineligible_coupons: asJson(quote.rejected_candidates),
-        context: asJson({ schema_version: 2, channel: request.channel, quote }), created_at: created,
-        expires_at: BigInt(Math.floor(new Date(quote.expires_at).getTime() / 1000)), status: 'active', createddate: created, modifieddate: created,
-      } });
+    const ruleSnapshots = versionRows.map((row) => ({
+      promotion_id: row.promotionId,
+      rule_version_id: row.id.toString(),
+      version: row.version,
+      schema_version: row.schemaVersion,
+      checksum: row.checksum,
+      rule: row.ruleJson,
+    })).sort((left, right) => left.promotion_id - right.promotion_id);
+    const ruleSnapshotChecksum = createHash('sha256').update(stableJson(ruleSnapshots)).digest('hex');
+    const persist = async (includeRuleSnapshots: boolean): Promise<void> => prisma.$transaction(async (tx) => {
+      await tx.promotion_evaluations.create({
+        data: {
+          evaluation_id: quote.evaluation_id, user_id: request.customer_id ?? null, cart_data: asJson(request), cart_signature: signature,
+          original_total: quote.original_total / 100, discounted_total: quote.payable_total / 100,
+          applied_promotions: asJson(quote.applied_promotions), ineligible_coupons: asJson(quote.rejected_candidates),
+          ...(includeRuleSnapshots ? {
+            rule_snapshots: asJson(ruleSnapshots),
+            rule_snapshot_checksum: ruleSnapshotChecksum,
+          } : {}),
+          context: asJson({ schema_version: 2, channel: request.channel, quote }), created_at: created,
+          expires_at: BigInt(Math.floor(new Date(quote.expires_at).getTime() / 1000)), status: 'active', createddate: created, modifieddate: created,
+        },
+        // Avoid Prisma's default RETURNING of additive columns that may not
+        // exist yet during a rolling deployment.
+        select: { evaluation_id: true },
+      });
       if (quote.adjustments.length) await tx.promotionEvaluationAdjustment.createMany({ data: quote.adjustments.map((adjustment) => ({
         id: adjustment.adjustment_id, evaluationId: quote.evaluation_id, promotionId: adjustment.promotion_id,
         promotionRuleVersionId: versionIds.get(`${adjustment.promotion_id}:${adjustment.rule_version}`) ?? null,
@@ -459,10 +1001,20 @@ export class PromotionsV2Service {
         payableAmount: adjustment.payable_amount / 100, sourceProductIds: asJson(adjustment.source_product_ids), metadata: asJson(adjustment.metadata), createdAt: created,
       })) });
     });
+    try {
+      await persist(true);
+    } catch (error: any) {
+      if (error?.code !== 'P2022' || !String(error?.meta?.column ?? '').includes('rule_snapshot')) throw error;
+      logger.warn({ evaluationId: quote.evaluation_id }, 'Promotion snapshot columns unavailable; persisting V2 quote without snapshots');
+      await persist(false);
+    }
   }
 
   async requoteEvaluation(evaluationId: string, selection?: { promotionId?: number; removePromotionId?: number; giftProductId?: string }, authenticatedCustomerId?: string): Promise<PromotionQuote> {
-    const evaluation = await prisma.promotion_evaluations.findUniqueOrThrow({ where: { evaluation_id: evaluationId } });
+    const evaluation = await prisma.promotion_evaluations.findUniqueOrThrow({
+      where: { evaluation_id: evaluationId },
+      select: { status: true, expires_at: true, user_id: true, cart_data: true },
+    });
     if (evaluation.status !== 'active' || evaluation.expires_at < seconds()) throw new Error('Promotion evaluation has expired');
     if (evaluation.user_id && evaluation.user_id !== authenticatedCustomerId) throw Object.assign(new Error('This promotion evaluation belongs to another customer'), { statusCode: 403 });
     const request = PromotionQuoteRequestSchema.parse(evaluation.cart_data);
@@ -482,6 +1034,7 @@ export class PromotionsV2Service {
   }> {
     const evaluation = await prisma.promotion_evaluations.findUnique({
       where: { evaluation_id: evaluationId },
+      select: { user_id: true, status: true, expires_at: true, context: true },
     });
     if (!evaluation) return { isValid: false, reason: 'PROMOTION_NOT_FOUND: Promotion evaluation was not found.' };
     if (evaluation.user_id && evaluation.user_id !== authenticatedCustomerId) {

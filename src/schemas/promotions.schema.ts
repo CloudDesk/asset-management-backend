@@ -295,7 +295,7 @@ export type PromotionsQuery = z.infer<typeof promotionsQuerySchema>;
 export type PromotionEligibilityInput = z.infer<typeof promotionEligibilitySchema>;
 export type PromotionEligibilityQueryInput = z.infer<typeof promotionEligibilityQuerySchema>;
 
-// New v3 types
+// Promotion evaluation types
 export type Condition = z.infer<typeof conditionSchema>;
 export type Action = z.infer<typeof actionSchema>;
 export type LineItem = z.infer<typeof lineItemSchema>;
