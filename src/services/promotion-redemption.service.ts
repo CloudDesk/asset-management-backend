@@ -1,6 +1,7 @@
 import { Prisma, PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../config/logger.js';
+import { getRemainingPromotionBudget } from '../utils/promotionBudget.js';
 import {
   RedemptionRequest, 
   RedemptionResponse, 
@@ -506,7 +507,10 @@ export class PromotionRedemptionService {
       });
 
       const totalBudgetUsed = Number(currentBudgetUsed._sum.discount_amount || 0);
-      const remainingBudget = promotion.budget ? Number(promotion.budget) - totalBudgetUsed : null;
+      const remainingBudget = getRemainingPromotionBudget(
+        promotion.budget,
+        totalBudgetUsed
+      );
 
       logger.info({
         promotionId,
@@ -516,7 +520,7 @@ export class PromotionRedemptionService {
         remainingBudget,
         maxRedemptions: promotion.max_redemptions,
         perUserLimit: promotion.per_user_limit,
-        budget: promotion.budget ? Number(promotion.budget) : null
+        budget: remainingBudget === null ? null : Number(promotion.budget)
       }, 'Promotion usage statistics calculated');
 
       // Check if promotion should be deactivated due to limits
@@ -528,7 +532,7 @@ export class PromotionRedemptionService {
         deactivationReason = 'Maximum redemptions reached';
       }
 
-      if (promotion.budget && remainingBudget !== null && remainingBudget <= 0) {
+      if (remainingBudget !== null && remainingBudget <= 0) {
         shouldDeactivate = true;
         deactivationReason = 'Budget exhausted';
       }
