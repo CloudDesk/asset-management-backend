@@ -44,6 +44,8 @@ steps:
       - "512Mi"
       - "--env-vars-file"
       - ".env.sit"
+      - "--update-env-vars"
+      - "PHONEPE_WEBHOOK_USERNAME=${_PHONEPE_WEBHOOK_USERNAME},PHONEPE_WEBHOOK_PASSWORD=${_PHONEPE_WEBHOOK_PASSWORD}"
       - "--set-secrets"
       - "AMAZON_CLIENT_ID=nivaana-sit-amazon-client-id:latest,AMAZON_CLIENT_SECRET=nivaana-sit-amazon-client-secret:latest,AMAZON_REFRESH_TOKEN=nivaana-sit-amazon-refresh-token:latest"
 

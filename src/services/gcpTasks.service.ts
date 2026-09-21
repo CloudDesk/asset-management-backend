@@ -14,6 +14,10 @@ const API_BASE_URL :any = process.env.API_BASE_URL;
 
 // Lock cleanup configuration
 const LOCK_CLEANUP_DELAY_SECONDS = parseInt(process.env.LOCK_CLEANUP_DELAY_SECONDS || '120'); // 2 minutes default (changed from 15 minutes)
+const TASK_DISPATCH_DEADLINE_SECONDS = Math.min(
+  300,
+  Math.max(30, parseInt(process.env.PAYMENT_TASK_DISPATCH_DEADLINE_SECONDS || '300'))
+);
 
 let client: CloudTasksClient;
 
@@ -78,6 +82,9 @@ export async function createLockCleanupTask(
         url: taskUrl,
         body: Buffer.from(payloadString).toString('base64'),
       },
+      dispatchDeadline: {
+        seconds: TASK_DISPATCH_DEADLINE_SECONDS,
+      },
     };
 
     // Schedule task with delay
@@ -116,6 +123,63 @@ export async function createLockCleanupTask(
       success: false,
       error: error.message
     };
+  }
+}
+
+/**
+ * Queue an immediate server-side payment reconciliation. The browser only
+ * observes status; order creation runs under Cloud Tasks and may safely retry.
+ */
+export async function createPaymentReconciliationTask(
+  merchantTransactionId: string
+): Promise<{ success: boolean; taskName?: string | undefined; error?: any }> {
+  try {
+    if (!client) {
+      throw new Error('CloudTasksClient not initialized');
+    }
+
+    if (!GCP_PROJECT_ID || !GCP_PROJECT_QUEUE || !GCP_PROJECT_LOCATION) {
+      throw new Error('GCP configuration missing. Check environment variables.');
+    }
+
+    const payloadString = JSON.stringify({
+      merchantTransactionId,
+      createdAt: new Date().toISOString(),
+      action: 'reconcile_successful_payment',
+    });
+    const parent = client.queuePath(GCP_PROJECT_ID, GCP_PROJECT_LOCATION, GCP_PROJECT_QUEUE);
+    const taskUrl = `${API_BASE_URL}/v1/phonepe/cleanup-lock`;
+    const [response] = await client.createTask({
+      parent,
+      task: {
+        httpRequest: {
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(payloadString).toString(),
+          },
+          httpMethod: 'POST',
+          url: taskUrl,
+          body: Buffer.from(payloadString).toString('base64'),
+        },
+        dispatchDeadline: {
+          seconds: TASK_DISPATCH_DEADLINE_SECONDS,
+        },
+      },
+    });
+
+    logger.info({
+      merchantTransactionId,
+      taskName: response.name,
+      dispatchDeadlineSeconds: TASK_DISPATCH_DEADLINE_SECONDS,
+    }, 'Payment reconciliation task created successfully');
+
+    return { success: true, taskName: response.name || undefined };
+  } catch (error: any) {
+    logger.error({
+      error: error.message,
+      merchantTransactionId,
+    }, 'Error creating payment reconciliation task');
+    return { success: false, error: error.message };
   }
 }
 
@@ -197,4 +261,3 @@ export async function cancelTask(taskName: string): Promise<{ success: boolean; 
     return { success: false, error: error.message };
   }
 }
-

@@ -81,6 +81,13 @@ function isAllowedCustomerRedirectUrl(value: unknown): value is string {
   }
 }
 
+function buildCustomerReturnUrl(baseUrl: string, merchantTransactionId: string): string {
+  const url = new URL(baseUrl);
+  url.searchParams.set("payment", "success");
+  url.searchParams.set("merchantTransactionId", merchantTransactionId);
+  return url.toString();
+}
+
 function getPhonePeErrorMessage(error: any): string {
   const providerData = error?.response?.data || error?.data;
   const providerCode = providerData?.code || providerData?.errorCode || error?.code;
@@ -218,9 +225,15 @@ export class PhonePeService {
 
       // PhonePe's dashboard webhook handles server-to-server payment events.
       // This SDK URL is only where the customer's browser returns afterward.
-      const finalCallbackUrl = isAllowedCustomerRedirectUrl(callbackUrl)
+      const configuredCallbackUrl = isAllowedCustomerRedirectUrl(callbackUrl)
         ? callbackUrl
         : PHONEPE_CONFIG.REDIRECT_SUCCESS;
+      // The return must be self-contained. Browser-local state is not reliable
+      // when an in-app browser hands the customer to the PhonePe app and back.
+      const finalCallbackUrl = buildCustomerReturnUrl(
+        configuredCallbackUrl,
+        merchantTransactionId
+      );
 
       logger.info(
         {
