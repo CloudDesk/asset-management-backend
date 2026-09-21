@@ -22,7 +22,9 @@ export class PicklistController {
     const allFilters: Record<string, any> = request.query || {};
     
     // Regular paginated mode - orders by fieldname first, then sortorder
-    const { page, limit } = getPaginationParams(allFilters);
+    // Picklist consumers build complete dependent-option trees, so allow them
+    // to request more than the default 100-record page used by other APIs.
+    const { page, limit } = getPaginationParams(allFilters, 1000);
     
     // Remove pagination params from filters
     const { page: _, limit: __, ...filters } = allFilters;
@@ -233,4 +235,4 @@ export class PicklistController {
 
     return reply.code(200).send(response);
   });
-} 
+}

@@ -2,8 +2,10 @@ import { z } from 'zod';
 
 export const paginationSchema = z.object({
   page: z.string().transform((val) => Math.max(1, parseInt(val, 10) || 1)).default('1'),
-  limit: z.string().transform((val) => Math.min(100, Math.max(1, parseInt(val, 10) || 10))).default('10'),
+  limit: z.string().transform((val) => Math.max(1, parseInt(val, 10) || 10)).default('10'),
 });
+
+const DEFAULT_MAX_LIMIT = 100;
 
 export interface PaginationParams {
   page: number;
@@ -22,11 +24,16 @@ export interface PaginationResult<T> {
   };
 }
 
-export function getPaginationParams(query: Record<string, unknown>): PaginationParams {
+export function getPaginationParams(
+  query: Record<string, unknown>,
+  maxLimit: number = DEFAULT_MAX_LIMIT
+): PaginationParams {
   const result = paginationSchema.parse(query);
+  const normalizedMaxLimit = Math.max(1, Math.floor(maxLimit));
+
   return {
     page: result.page,
-    limit: result.limit,
+    limit: Math.min(normalizedMaxLimit, result.limit),
   };
 }
 
@@ -56,4 +63,4 @@ export function getPrismaSkipTake(page: number, limit: number) {
     skip: (page - 1) * limit,
     take: limit,
   };
-} 
+}
