@@ -1,6 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { PhonePeController } from "../controllers/phonepe.controller.js";
 import logger from "../plugins/logger.js";
+import { createPaymentReconciliationTask } from "../services/gcpTasks.service.js";
 
 type PaymentRedirectStatus = "success" | "failure" | "pending" | "processing";
 
@@ -678,27 +679,32 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
             `Payment successful for transaction: ${transactionId}`
           );
 
-          const orderCreation =
-            await phonePeController.ensureOrderAfterSuccessfulPayment(
-              transactionId,
-              paymentStatus
-            );
+          const existingOrders = await phonePeController.ordersService.findMany(
+            { merchanttransactionid: transactionId },
+            1,
+            1
+          );
+          const existingOrderId = existingOrders.data?.[0]?.id;
+          const taskResult = existingOrderId
+            ? { success: true }
+            : await createPaymentReconciliationTask(transactionId);
+          const orderCreationStatus = existingOrderId
+            ? "already_exists"
+            : taskResult.success
+              ? "processing"
+              : "scheduled_cleanup";
 
           fastify.log.info(
             {
               transactionId,
-              orderCreationStatus: orderCreation.status,
-              orderId: orderCreation.orderId,
-              orderCreationError: orderCreation.error,
+              orderCreationStatus,
+              orderId: existingOrderId || null,
+              taskCreationError: taskResult.success ? null : taskResult.error,
             },
-            "Successful payment reconciliation completed"
+            "Successful payment reconciliation scheduled"
           );
 
-          if (orderCreation.status === "failed") {
-            return redirectToStorefront("processing", orderCreation.status);
-          }
-
-          return redirectToStorefront("success", orderCreation.status);
+          return redirectToStorefront("success", orderCreationStatus);
         } else if (
           paymentStatus.code === "PAYMENT_PENDING" ||
           paymentStatus.code === "PAYMENT_INITIATED"
@@ -1806,16 +1812,17 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
    * Lock cleanup endpoint (called by GCP Cloud Tasks)
    * POST /v1/phonepe/cleanup-lock
    *
-   * Triggered by GCP Cloud Tasks after 15 minutes of payment initiation.
-   * Checks payment status and releases locks for abandoned/failed payments.
+   * Triggered by GCP Cloud Tasks after payment initiation or immediately after
+   * a browser status check. It creates a missing paid order, or releases locks
+   * for abandoned/failed payments.
    */
   fastify.post(
     "/cleanup-lock",
     {
       schema: {
-        description: "Cleanup expired stock locks (GCP Cloud Tasks webhook)",
+        description: "Reconcile PhonePe payments and clean up expired stock locks",
         tags: ["PhonePe Payment", "Internal"],
-        summary: "Release locks for abandoned/failed payments",
+        summary: "Create missing paid orders or release abandoned payment locks",
         body: {
           type: "object",
           properties: {
@@ -1852,7 +1859,13 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
               },
               action: {
                 type: "string",
-                enum: ["none", "locks_released"],
+                enum: [
+                  "none",
+                  "locks_released",
+                  "order_created",
+                  "order_already_exists",
+                  "reconciliation_failed",
+                ],
                 description: "Action taken by cleanup task",
               },
               data: {

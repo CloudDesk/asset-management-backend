@@ -19,6 +19,7 @@ import {
 import { logger } from "../config/logger.js";
 import { WalletRedemptionService } from "../services/wallet-redemption.service.js";
 import { RefundOperationService } from "../services/refund-operation.service.js";
+import { createPaymentReconciliationTask } from "../services/gcpTasks.service.js";
 
 export class PhonePeController {
   public phonePeService = new PhonePeService();
@@ -1963,10 +1964,33 @@ export class PhonePeController {
           | undefined;
 
         if (paymentStatus.success && paymentStatus.code === "PAYMENT_SUCCESS") {
-          orderCreation = await this.ensureOrderAfterSuccessfulPayment(
-            merchantTransactionId,
-            paymentStatus
+          const existingOrders = await this.ordersService.findMany(
+            { merchanttransactionid: merchantTransactionId },
+            1,
+            1
           );
+
+          if (existingOrders.data?.length) {
+            orderCreation = {
+              status: "already_exists",
+              orderId: Number(existingOrders.data[0].id),
+              error: null,
+            };
+          } else {
+            const taskResult = await createPaymentReconciliationTask(
+              merchantTransactionId
+            );
+            orderCreation = {
+              status: taskResult.success ? "processing" : "scheduled_cleanup",
+              orderId: null,
+              error: taskResult.success
+                ? null
+                : String(
+                    taskResult.error ||
+                      "Immediate reconciliation task could not be created"
+                  ),
+            };
+          }
         } else if (!["PAYMENT_PENDING", "PAYMENT_INITIATED"].includes(paymentStatus.code)) {
           await this.walletRedemptionService.release(merchantTransactionId);
         }
@@ -5349,11 +5373,12 @@ export class PhonePeController {
   }
 
   /**
-   * Cleanup expired lock (called by GCP Cloud Task)
+   * Reconcile payment and clean up expired lock (called by GCP Cloud Task)
    * POST /v1/phonepe/cleanup-lock
    *
-   * This endpoint is triggered by GCP Cloud Tasks after 15 minutes of payment initiation.
-   * It checks payment status and releases stock locks for abandoned/failed payments.
+   * It creates a missing order after successful payment and releases stock
+   * locks for abandoned/failed payments. The operation is idempotent and may
+   * be retried by Cloud Tasks.
    */
   cleanupExpiredLock = asyncHandler(
     async (
@@ -5439,24 +5464,53 @@ export class PhonePeController {
           "Payment status retrieved for cleanup check"
         );
 
-        // Step 2: If payment successful or COD success, do nothing (lock already converted to order)
+        // Step 2: A successful payment must own an order. This task is the
+        // server-side safety net when the browser return or webhook is lost.
         if (
           paymentStatus.code === "PAYMENT_SUCCESS" ||
           paymentStatus.code === "SUCCESS" ||
           paymentStatus.code === "COMPLETED"
         ) {
+          const orderCreation = await this.ensureOrderAfterSuccessfulPayment(
+            merchantTransactionId,
+            paymentStatus
+          );
+
+          if (orderCreation.status === "failed") {
+            // Returning 5xx makes Cloud Tasks retry according to queue policy.
+            return reply.code(500).send({
+              success: false,
+              message: "Payment succeeded but order reconciliation failed",
+              action: "reconciliation_failed",
+              error: orderCreation.error,
+              data: {
+                merchantTransactionId,
+                paymentStatus: "SUCCESS",
+                orderId: orderCreation.orderId,
+              },
+            });
+          }
+
           logger.info(
-            { merchantTransactionId },
-            "Payment already successful - no cleanup needed"
+            {
+              merchantTransactionId,
+              orderId: orderCreation.orderId,
+              reconciliationStatus: orderCreation.status,
+            },
+            "Successful payment reconciled by Cloud Task"
           );
           return reply.code(200).send({
             success: true,
-            message: "Payment successful - no cleanup needed",
-            action: "none",
+            message: "Payment successful - order reconciled",
+            action:
+              orderCreation.status === "already_exists"
+                ? "order_already_exists"
+                : "order_created",
             data: {
               merchantTransactionId,
               paymentStatus: "SUCCESS",
-              lockStatus: "already_converted_to_order",
+              orderId: orderCreation.orderId,
+              reconciliationStatus: orderCreation.status,
             },
           });
         }
@@ -6086,10 +6140,20 @@ export class PhonePeController {
       };
 
       if (webhookPaymentStatus.success) {
-        await this.ensureOrderAfterSuccessfulPayment(
+        await this.updateTransactionStatus(
           transactionId,
+          "SUCCESS",
           webhookPaymentStatus
         );
+
+        const taskResult = await createPaymentReconciliationTask(transactionId);
+        if (!taskResult.success) {
+          // The delayed task created at payment initiation remains the fallback.
+          logger.error(
+            { transactionId, error: taskResult.error },
+            "Immediate payment reconciliation task could not be created"
+          );
+        }
       } else if (
         ["PENDING", "INITIATED", "PROCESSING"].includes(state) ||
         !state
