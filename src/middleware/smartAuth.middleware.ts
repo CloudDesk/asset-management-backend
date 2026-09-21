@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { logger } from '../config/logger.js';
-import { requireAuthentication, optionalAuthentication, AuthenticatedRequest } from './auth.middleware.js';
+import { requireAuthentication, AuthenticatedRequest } from './auth.middleware.js';
 import { isPublicRoute } from '../config/publicRoutes.js';
 
 /**
@@ -71,7 +71,16 @@ export async function optionalSmartAuthentication(
         return;
     }
 
-    // Attach the user for a valid token. Invalid or expired tokens are ignored
-    // on guest-capable routes without committing a 401 response.
-    await optionalAuthentication(request, reply);
+    // If token provided, verify it (but don't fail if invalid)
+    try {
+        await requireAuthentication(request, reply);
+    } catch (error) {
+        // Log but don't fail - continue as guest
+        logger.debug({
+            error,
+            method: request.method,
+            url: request.url,
+            ip: request.ip,
+        }, 'Optional authentication failed - continuing as guest');
+    }
 }
