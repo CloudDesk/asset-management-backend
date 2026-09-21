@@ -665,6 +665,9 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                       original_price: { type: 'number', nullable: true, description: 'Base price PER-UNIT (not multiplied by quantity)' },
                       product_discount_amount: { type: 'number', nullable: true, description: 'Product discount TOTAL for line item' },
                       promotion_discount_amount: { type: 'number', nullable: true, description: 'Promotion discount TOTAL for line item' },
+                      promotion_id: { type: 'number', nullable: true },
+                      promotion_adjustment_id: { type: 'string', nullable: true },
+                      promotion_unit_discount: { type: 'number', nullable: true },
                       shipping_cost: { type: 'number', nullable: true, description: 'Pro-rata shipping cost for this orderline' },
                       gst_rate: { type: 'number', nullable: true, description: 'GST percentage (e.g., 5.00)' },
                       taxable_amount: { type: 'number', nullable: true, description: 'Taxable base amount (orderamount / (1 + gst_rate/100))' },
@@ -754,6 +757,22 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                   type: 'array',
                   description: 'Source-aware cancellation and return refund operations',
                   items: { type: 'object', additionalProperties: true }
+                },
+                promotion_breakdown: {
+                  type: 'object',
+                  nullable: true,
+                  description: 'Promotion evaluation, campaign and adjustment breakdown used to price the order',
+                  properties: {
+                    evaluation_id: { type: 'string', nullable: true },
+                    status: { type: 'string', nullable: true },
+                    schema_version: { type: 'number' },
+                    original_total: { type: 'number' },
+                    discounted_total: { type: 'number' },
+                    promotions: {
+                      type: 'array',
+                      items: { type: 'object', additionalProperties: true }
+                    }
+                  }
                 },
                 address: {
                   type: 'object',

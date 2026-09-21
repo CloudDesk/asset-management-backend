@@ -3,12 +3,30 @@ import { PromotionsController } from '../controllers/promotions.controller.js';
 import { PromotionEvaluationController } from '../controllers/promotion-evaluation.controller.js';
 import { PromotionRedemptionController } from '../controllers/promotion-redemption.controller.js';
 import { PromotionAssignmentController } from '../controllers/promotion-assignment.controller.js';
+import { PromotionsV2Controller as PromotionRulesController } from '../controllers/promotions-v2.controller.js';
+import { optionalSmartAuthentication } from '../middleware/smartAuth.middleware.js';
 
 export async function promotionsRoutes(fastify: FastifyInstance) {
   const promotionsController = new PromotionsController();
   const evaluationController = new PromotionEvaluationController();
   const redemptionController = new PromotionRedemptionController();
   const assignmentController = new PromotionAssignmentController();
+  const rulesController = new PromotionRulesController();
+
+  // Canonical promotion rule and simulation endpoints. Rule schema versions
+  // remain an internal persistence detail and are not part of the URL.
+  fastify.post('/simulate', rulesController.simulateCampaigns);
+  fastify.post('/quote', { preHandler: optionalSmartAuthentication }, rulesController.quoteCurrent);
+  fastify.post('/quote/:evaluationId/validate', { preHandler: optionalSmartAuthentication }, rulesController.validateCurrentQuote);
+  fastify.get('/facets', rulesController.facets);
+  fastify.put('/:promotionId/rules/draft', rulesController.saveCurrentDraft);
+  fastify.post('/:promotionId/rules/publish', rulesController.publishCurrent);
+  fastify.get('/:promotionId/rules/latest', rulesController.latestCurrentRule);
+  fastify.post('/:promotionId/simulate', rulesController.simulateCurrent);
+  fastify.get('/packing/orders/:orderId/gift-entitlements', rulesController.packingGiftEntitlements);
+  fastify.get('/packing/gift-entitlements/:entitlementId/products', rulesController.packingGiftProducts);
+  fastify.post('/packing/gift-entitlements/:entitlementId/select', rulesController.fulfilPackingGift);
+  fastify.post('/packing/gift-entitlements/:entitlementId/unavailable', rulesController.removeUnavailablePackingGift);
 
   // GET /v1/promotions - Get all promotions with pagination and filtering
   fastify.get('/', {

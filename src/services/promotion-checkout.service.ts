@@ -9,6 +9,7 @@ type QuoteSnapshot = {
   schema_version?: number;
   payable_total?: number;
   adjustments?: Array<{ adjustment_id: string; promotion_id: number; type: string; product_id?: string; affected_quantity: number; list_amount: number; amount: number; source_product_ids?: string[]; metadata?: Record<string, unknown> }>;
+  gift_entitlements?: Array<{ promotion_id: number; rule_version: number; gift_quantity: number; reward_mode: string; allowed_scope: unknown; status: string }>;
 };
 
 type StoredCartRequest = {
@@ -18,8 +19,34 @@ type StoredCartRequest = {
 
 export class PromotionCheckoutService {
   async commitEvaluationToOrder(orderId: number, evaluationId: string, customerId?: number): Promise<{ gift_orderline_ids: number[]; promotion_ids: number[] }> {
+    const [snapshotSupport] = await prisma.$queryRaw<Array<{ supported: boolean }>>`
+      SELECT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = current_schema()
+          AND table_name = 'promotion_evaluations'
+          AND column_name = 'rule_snapshots'
+      ) AND EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = current_schema()
+          AND table_name = 'orders'
+          AND column_name = 'promotion_rule_snapshots'
+      ) AS supported
+    `;
+    const snapshotColumnsAvailable = snapshotSupport?.supported === true;
     return prisma.$transaction(async (tx) => {
-      const evaluation = await tx.promotion_evaluations.findUniqueOrThrow({ where: { evaluation_id: evaluationId } });
+      const evaluation = await tx.promotion_evaluations.findUniqueOrThrow({
+        where: { evaluation_id: evaluationId },
+        select: {
+          status: true,
+          order_id: true,
+          expires_at: true,
+          user_id: true,
+          context: true,
+          cart_data: true,
+          original_total: true,
+          ...(snapshotColumnsAvailable ? { rule_snapshots: true } : {}),
+        },
+      });
       if (evaluation.status === 'redeemed' && evaluation.order_id === orderId) {
         const existing = await tx.orderline.findMany({ where: { orderid: orderId, evaluation_id: evaluationId, is_free_item: true }, select: { id: true, promotion_id: true } });
         return { gift_orderline_ids: existing.map((line) => line.id), promotion_ids: [...new Set(existing.flatMap((line) => line.promotion_id ?? []))] };
@@ -28,10 +55,13 @@ export class PromotionCheckoutService {
       if (evaluation.user_id && String(customerId ?? '') !== evaluation.user_id) throw new Error('Promotion quote customer does not match the order customer');
       if (evaluation.order_id && evaluation.order_id !== orderId) throw new Error('Promotion quote has already been used by another order');
 
-      const order = await tx.orders.findUniqueOrThrow({ where: { id: orderId } });
+      const order = await tx.orders.findUniqueOrThrow({
+        where: { id: orderId },
+        select: { id: true, userid: true, addressid: true, orderstatus: true, orderid: true },
+      });
       const context = (evaluation.context && typeof evaluation.context === 'object' ? evaluation.context : {}) as Prisma.JsonObject;
       const quote = ((context.quote && typeof context.quote === 'object') ? context.quote : {}) as QuoteSnapshot;
-      if (quote.schema_version !== 2) throw new Error('This promotion evaluation cannot create promotional gift lines');
+      if (![2, 3].includes(quote.schema_version ?? 0)) throw new Error('This promotion evaluation cannot be committed to an order');
 
       const storedAdjustments = await tx.promotionEvaluationAdjustment.findMany({ where: { evaluationId } });
       const adjustments = storedAdjustments.length ? storedAdjustments : [];
@@ -53,13 +83,23 @@ export class PromotionCheckoutService {
         const discounted = Math.max(0, Number(product.price ?? 0) - Math.max(0, Number(product.discount ?? 0)));
         return sum + Math.round(discounted * 100) * (expectedQuantities.get(product.id.toString()) ?? 0);
       }, 0);
-      const autoGiftListPaise = (quote.adjustments ?? []).filter((item) => item.type === 'FREE_ITEM' && item.metadata?.fulfilment === 'AUTO_ADD').reduce((sum, item) => sum + item.list_amount, 0);
+      const autoGiftListPaise = (quote.adjustments ?? []).filter((item) =>
+        item.type === 'FREE_ITEM' &&
+        item.metadata?.fulfilment === 'AUTO_ADD' &&
+        (!Object.prototype.hasOwnProperty.call(item.metadata, 'added_quantity') || Number(item.metadata.added_quantity) > 0)
+      ).reduce((sum, item) => sum + item.list_amount, 0);
       if (quote.payable_total === undefined || evaluation.original_total === null || Math.round(Number(evaluation.original_total) * 100) !== currentMerchandisePaise + (cart.shipping_amount ?? 0) + autoGiftListPaise) {
         throw new Error('Prices changed after the promotion quote was created');
       }
 
       const normalAdjustments = adjustments.filter((item) => item.adjustmentType === 'PERCENT_DISCOUNT' || item.adjustmentType === 'FIXED_AMOUNT_DISCOUNT'
-        || (item.adjustmentType === 'FREE_ITEM' && (item.metadata as Prisma.JsonObject | null)?.fulfilment === 'DISCOUNT_EXISTING'));
+        || item.adjustmentType === 'ITEM_PERCENTAGE_DISCOUNT' || item.adjustmentType === 'ITEM_FIXED_DISCOUNT'
+        || (item.adjustmentType === 'FREE_ITEM' && (
+          (item.metadata as Prisma.JsonObject | null)?.fulfilment === 'DISCOUNT_EXISTING' ||
+          ((item.metadata as Prisma.JsonObject | null)?.fulfilment === 'AUTO_ADD' &&
+            Object.prototype.hasOwnProperty.call((item.metadata as Prisma.JsonObject | null) ?? {}, 'added_quantity') &&
+            Number((item.metadata as Prisma.JsonObject).added_quantity) === 0)
+        )));
       for (const line of normalLines) {
         if (!line.productid) continue;
         const lineAdjustments = normalAdjustments.filter((item) => item.productId === line.productid);
@@ -84,6 +124,7 @@ export class PromotionCheckoutService {
         if (adjustment.adjustmentType !== 'FREE_ITEM' || !adjustment.productId) continue;
         const metadata = (adjustment.metadata && typeof adjustment.metadata === 'object' ? adjustment.metadata : {}) as Prisma.JsonObject;
         if (metadata.fulfilment !== 'AUTO_ADD') continue;
+        if (Object.prototype.hasOwnProperty.call(metadata, 'added_quantity') && Number(metadata.added_quantity) <= 0) continue;
         const quantity = adjustment.affectedQuantity;
         const stockUpdated = await tx.platformStock.updateMany({
           where: { productid: adjustment.productId, platform: 'nivapp', availableqty: { gte: quantity } },
@@ -114,6 +155,26 @@ export class PromotionCheckoutService {
         giftLineIds.push(created.id);
       }
 
+      const evaluationSnapshots = (evaluation as typeof evaluation & { rule_snapshots?: Prisma.JsonValue }).rule_snapshots;
+      const snapshots = Array.isArray(evaluationSnapshots) ? evaluationSnapshots as Array<{ promotion_id?: unknown; rule_version_id?: unknown }> : [];
+      for (const entitlement of quote.gift_entitlements ?? []) {
+        const snapshot = snapshots.find((item) => Number(item.promotion_id) === entitlement.promotion_id);
+        if (!snapshot?.rule_version_id) throw new Error(`Promotion ${entitlement.promotion_id} is missing its immutable rule snapshot`);
+        promotionIds.add(entitlement.promotion_id);
+        const entitlementId = randomUUID();
+        const allowedScope = JSON.stringify(entitlement.allowed_scope ?? null);
+        await tx.$executeRaw`
+          INSERT INTO "promotion_gift_entitlements" (
+            "id", "order_id", "evaluation_id", "promotion_id", "promotion_rule_version_id",
+            "gift_quantity", "reward_mode", "allowed_scope_json", "status", "created_at", "modified_at"
+          ) VALUES (
+            ${entitlementId}, ${orderId}, ${evaluationId}, ${entitlement.promotion_id}, ${BigInt(String(snapshot.rule_version_id))},
+            ${entitlement.gift_quantity}, ${entitlement.reward_mode}, ${allowedScope}::jsonb, 'PENDING_PACKING', ${epoch()}, ${epoch()}
+          )
+          ON CONFLICT ("evaluation_id", "promotion_id") DO NOTHING
+        `;
+      }
+
       for (const promotionId of promotionIds) {
         const amount = adjustments.filter((item) => item.promotionId === promotionId).reduce((sum, item) => sum + Number(item.amount), 0);
         const promotion = await tx.promotions.findUniqueOrThrow({ where: { id: promotionId }, select: { max_redemptions: true, per_user_limit: true, budget: true } });
@@ -132,8 +193,20 @@ export class PromotionCheckoutService {
         } });
       }
       const merchandisePromotionTotal = adjustments.filter((item) => item.adjustmentType !== 'FREE_SHIPPING').reduce((sum, item) => sum + Number(item.amount), 0);
-      await tx.orders.update({ where: { id: orderId }, data: { evaluation_id: evaluationId, promotion_discount_total: merchandisePromotionTotal } });
-      await tx.promotion_evaluations.update({ where: { evaluation_id: evaluationId }, data: { status: 'redeemed', order_id: orderId, modifieddate: epoch() } });
+      await tx.orders.update({
+        where: { id: orderId },
+        data: {
+          evaluation_id: evaluationId,
+          promotion_discount_total: merchandisePromotionTotal,
+          ...(snapshotColumnsAvailable ? { promotion_rule_snapshots: evaluationSnapshots ?? Prisma.JsonNull } : {}),
+        },
+        select: { id: true },
+      });
+      await tx.promotion_evaluations.update({
+        where: { evaluation_id: evaluationId },
+        data: { status: 'redeemed', order_id: orderId, modifieddate: epoch() },
+        select: { evaluation_id: true },
+      });
       return { gift_orderline_ids: giftLineIds, promotion_ids: [...promotionIds] };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }).catch((error) => {
       logger.error({
