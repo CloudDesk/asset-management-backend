@@ -168,6 +168,18 @@ export class OrdersService {
     return await this.findById(order.id) || order;
   }
 
+  private queueProviderShipmentCancellation(order: any): void {
+    void this.cancelProviderShipment(order).catch((error) => {
+      logger.warn(
+        {
+          orderId: order?.id,
+          error: error instanceof Error ? error.message : String(error),
+        },
+        'Unexpected error while processing queued provider shipment cancellation'
+      );
+    });
+  }
+
   private resolveReturnWorkflowStatus(request: any): string {
     const requestType = String(request?.requesttype || 'return').toLowerCase();
     const requestStatus = String(request?.status || 'requested').toLowerCase();
@@ -3393,6 +3405,8 @@ export class OrdersService {
       orderamount: number | null;
       orderid: string | null;
       orderstatus: string | null;
+      transactionid: string | null;
+      merchanttransactionid: string | null;
       quantity: number | null;
       productamount: number | null;
       discountamount: number | null;
@@ -3726,6 +3740,8 @@ export class OrdersService {
           orderamount: order.orderamount ? Number(order.orderamount) : null,
           orderid: order.orderid,
           orderstatus: order.orderstatus,
+          transactionid: order.transactionid,
+          merchanttransactionid: order.merchanttransactionid,
           quantity: order.quantity,
           productid: order.productid,
           productamount: order.productamount ? Number(order.productamount) : null,
@@ -3832,7 +3848,10 @@ export class OrdersService {
         const walletRestoration = await this.walletRedemptionService.restoreForCancelledOrder(orderId);
         logger.info({ orderId, ...walletRestoration }, 'Wallet restoration checked for already-cancelled order');
 
-        if (order.orderstatus !== 'cancelled') return await this.cancelProviderShipment(order);
+        if (order.orderstatus !== 'cancelled') {
+          this.queueProviderShipmentCancellation(order);
+          return order;
+        }
 
         logger.info({
           orderId,
@@ -3871,7 +3890,8 @@ export class OrdersService {
               finalStatus: finalOrder.orderstatus
             }, 'COD order auto-completed during idempotent check');
 
-            return await this.cancelProviderShipment(finalOrder);
+            this.queueProviderShipmentCancellation(finalOrder);
+            return finalOrder;
           } catch (autoCompleteError: any) {
             logger.error({
               error: autoCompleteError.message,
@@ -3880,12 +3900,14 @@ export class OrdersService {
               orderNumber: order.orderid
             }, 'Failed to auto-complete COD order during idempotent check - returning cancelled order');
 
-            return await this.cancelProviderShipment(order);
+            this.queueProviderShipmentCancellation(order);
+            return order;
           }
         }
 
         // PhonePe orders: Just return as-is (already cancelled, waiting for admin refund)
-        return await this.cancelProviderShipment(order);
+        this.queueProviderShipmentCancellation(order);
+        return order;
       }
 
       // Define cancellable statuses
@@ -4163,8 +4185,10 @@ export class OrdersService {
             finalStatus: finalOrder.orderstatus
           }, 'COD order cancellation completed automatically');
 
-          // ASYNC PROVIDER CANCELLATION - Final step after all local updates (COD path)
-          return await this.cancelProviderShipment(finalOrder);
+          // Courier cancellation is external follow-up work. The local order is
+          // already cancelled, so do not hold the customer response open for it.
+          this.queueProviderShipmentCancellation(finalOrder);
+          return finalOrder;
         } catch (autoCompleteError: any) {
           // If auto-complete fails, log but return the cancelled order
           logger.error({
@@ -4176,8 +4200,8 @@ export class OrdersService {
             currentStatus: updatedOrder.orderstatus
           }, 'CRITICAL: Failed to auto-complete COD order, remains in cancelled status');
 
-          // ASYNC PROVIDER CANCELLATION - Even if COD auto-complete fails (fallback)
-          return await this.cancelProviderShipment(updatedOrder);
+          this.queueProviderShipmentCancellation(updatedOrder);
+          return updatedOrder;
         }
       } else {
         logger.info({
@@ -4197,8 +4221,8 @@ export class OrdersService {
         isPaymentSucceed: updatedOrder.ispaymentsucceed
       }, 'PhonePe order cancelled. Admin must manually process refund via PhonePe portal.');
 
-      // ASYNC PROVIDER CANCELLATION - Final step after all local updates (PhonePe path)
-      return await this.cancelProviderShipment(updatedOrder);
+      this.queueProviderShipmentCancellation(updatedOrder);
+      return updatedOrder;
     } catch (error) {
       logger.error({ error, orderId }, 'Error cancelling order');
       throw error;
