@@ -27,6 +27,11 @@ export const ECOMMERCE_PUBLIC_ROUTES = [
 
     // 3. Guest storefront promotions (curated public fields only)
     'GET /v1/promotions/public',
+    'POST /v2/promotions/evaluations',
+    'POST /v2/promotions/evaluations/:evaluationId/selections',
+    'DELETE /v2/promotions/evaluations/:evaluationId/selections/:promotionId',
+    'POST /v2/promotions/evaluations/:evaluationId/gift-selection',
+    'POST /v2/promotions/evaluations/:evaluationId/validate',
     'POST /v2/promotions/quote',
     'POST /v2/promotions/eligibility',
     'POST /v2/promotions/quote/:evaluationId/select',

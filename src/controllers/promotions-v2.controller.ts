@@ -16,7 +16,7 @@ export class PromotionsV2Controller {
   quote = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const user = (request as AuthenticatedRequest).user;
     const customerId = user?.userType === 'ecommerce' ? String(user.id) : undefined;
-    return reply.send(createSuccessResponse('Promotion quote created', await this.service.quote(request.body, customerId)));
+    return reply.send(createSuccessResponse('Promotion evaluation created', await this.service.quote(request.body, customerId)));
   });
 
   select = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
@@ -42,7 +42,7 @@ export class PromotionsV2Controller {
   validate = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const { evaluationId } = request.params as { evaluationId: string };
     const user = (request as AuthenticatedRequest).user;
-    return reply.send(createSuccessResponse('Promotion quote revalidated', await this.service.requoteEvaluation(evaluationId, undefined, user?.userType === 'ecommerce' ? String(user.id) : undefined)));
+    return reply.send(createSuccessResponse('Promotion evaluation revalidated', await this.service.requoteEvaluation(evaluationId, undefined, user?.userType === 'ecommerce' ? String(user.id) : undefined)));
   });
 
   saveDraft = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
