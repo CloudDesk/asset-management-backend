@@ -33,6 +33,8 @@
     "taxonomy:apply": "npx tsx scripts/migrate-product-taxonomy.ts --apply --confirm=NIVAANA_TWO_LEVEL_TAXONOMY",
     "taxonomy:dry-run:lower": "npx tsx scripts/migrate-product-taxonomy.ts --profile=lower",
     "taxonomy:apply:lower": "npx tsx scripts/migrate-product-taxonomy.ts --profile=lower --apply --confirm=NIVAANA_TWO_LEVEL_TAXONOMY",
+    "taxonomy:parents:dry-run": "npx tsx scripts/repair-subcategory-parents.ts",
+    "taxonomy:parents:apply": "npx tsx scripts/repair-subcategory-parents.ts --apply --confirm=NIVAANA_REPAIR_SUBCATEGORY_PARENTS",
     "taxonomy:gst:dry-run": "npx tsx scripts/migrate-gst-taxonomy.ts",
     "taxonomy:gst:apply": "npx tsx scripts/migrate-gst-taxonomy.ts --apply --confirm=NIVAANA_GST_TAXONOMY",
     "taxonomy:names:dry-run": "npx tsx scripts/migrate-product-names.ts",

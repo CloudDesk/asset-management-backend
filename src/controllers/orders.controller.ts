@@ -871,7 +871,8 @@ export class OrdersController {
         source,
         actor?.username
       );
-      await this.sendOrderNotification(cancelledOrder, 'cancelled');
+      // Notification delivery must not delay the cancellation response.
+      void this.sendOrderNotification(cancelledOrder, 'cancelled');
 
       const response = createSuccessResponse(
         'Order cancelled successfully',

@@ -123,6 +123,10 @@ export class PromotionsService {
         },
         orderBy: {
           created_at: 'desc' // Get most recent active evaluation
+        },
+        select: {
+          evaluation_id: true,
+          applied_promotions: true
         }
       });
 
@@ -1684,7 +1688,15 @@ export class PromotionsService {
         cart_signature: cartSignature,
         status: 'active'
       },
-      orderBy: { created_at: 'desc' }
+      orderBy: { created_at: 'desc' },
+      // Only these fields are needed here. Keeping the projection narrow also
+      // lets offer discovery continue during a rolling schema/client upgrade.
+      select: {
+        evaluation_id: true,
+        applied_promotions: true,
+        original_total: true,
+        discounted_total: true
+      }
     });
 
     let alreadyAppliedPromotionIds: number[] = [];

@@ -1653,8 +1653,14 @@ export class PromotionEvaluationService {
         return { isValid: false as const, reason };
       };
 
-      // Evaluation timestamps are stored as epoch milliseconds.
-      const expiresAt = Number(evaluation.expires_at);
+      // Legacy evaluations use epoch milliseconds while V2 quotes use epoch
+      // seconds. Normalize both before comparing them with Date.now().
+      const toEpochMilliseconds = (value: unknown) => {
+        const timestamp = Number(value);
+        if (!Number.isFinite(timestamp)) return Number.NaN;
+        return timestamp < 10_000_000_000 ? timestamp * 1000 : timestamp;
+      };
+      const expiresAt = toEpochMilliseconds(evaluation.expires_at);
       if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
         return invalidateEvaluation('EVALUATION_EXPIRED: Refresh the cart and apply an available promotion again.');
       }
@@ -1687,8 +1693,12 @@ export class PromotionEvaluationService {
             )
           }
         : null;
-      const context = (evaluation.context || undefined) as EvaluationRequest['context'];
-      const evaluatedAt = Number(evaluation.created_at || evaluation.createddate || 0);
+      const rawContext = evaluation.context && typeof evaluation.context === 'object'
+        ? evaluation.context as Record<string, unknown>
+        : undefined;
+      const context = rawContext as EvaluationRequest['context'];
+      const isV2Evaluation = Number(rawContext?.schema_version) === 2;
+      const evaluatedAt = toEpochMilliseconds(evaluation.created_at || evaluation.createddate || 0);
 
       for (const appliedPromotion of appliedPromotions) {
         const promotionId = Number(appliedPromotion?.promotion_id);
@@ -1707,11 +1717,54 @@ export class PromotionEvaluationService {
 
         // Any admin edit after the calculation (channel, audience, value,
         // dates, status, conditions, etc.) makes the stored total stale.
-        const promotionModifiedAt = Number(promotion.modifieddate || promotion.createddate || 0);
-        if (evaluatedAt > 0 && promotionModifiedAt > evaluatedAt) {
+        const promotionModifiedAt = toEpochMilliseconds(promotion.modifieddate || promotion.createddate || 0);
+        const promotionChangedAfterEvaluation = isV2Evaluation
+          ? Math.floor(promotionModifiedAt / 1000) > Math.floor(evaluatedAt / 1000)
+          : promotionModifiedAt > evaluatedAt;
+        if (evaluatedAt > 0 && promotionChangedAfterEvaluation) {
           return invalidateEvaluation(
             'PROMOTION_CONFIGURATION_CHANGED: Promotion details changed. Refresh the cart to recalculate available offers.'
           );
+        }
+
+        // V2 eligibility was calculated from an immutable published rule and
+        // its cart snapshot. Running that snapshot through the legacy rule
+        // validator produces false failures because V2 cart lines and rules
+        // have a different shape. The shared checks below still revalidate
+        // assignment and usage limits before accepting the quote.
+        if (isV2Evaluation) {
+          if (promotion.status !== 'active') {
+            return invalidateEvaluation('PROMOTION_NO_LONGER_ELIGIBLE: Promotion is no longer active.');
+          }
+
+          const nowSeconds = Math.floor(Date.now() / 1000);
+          const startsAt = Number(promotion.start_date || 0);
+          const endsAt = Number(promotion.end_date || 0);
+          if ((startsAt > 0 && startsAt > nowSeconds) || (endsAt > 0 && endsAt < nowSeconds)) {
+            return invalidateEvaluation('PROMOTION_NO_LONGER_ELIGIBLE: Promotion is outside its active date range.');
+          }
+
+          if (!isPromotionChannelEligible(promotion.applicable_channel, String(rawContext?.channel || 'web'))) {
+            return invalidateEvaluation('PROMOTION_NO_LONGER_ELIGIBLE: Promotion is not available on this channel.');
+          }
+
+          if (promotion.visibility !== 'public') {
+            if (!assignment || assignment.assignment_not_found) {
+              return invalidateEvaluation(
+                'PROMOTION_ASSIGNMENT_CHANGED: Promotion is no longer assigned to this customer.'
+              );
+            }
+            const assignmentReason = await this.validateVoucherAssignment(assignment, userId);
+            if (assignmentReason) {
+              return invalidateEvaluation(`PROMOTION_ASSIGNMENT_CHANGED: ${assignmentReason}`);
+            }
+          }
+
+          const usageReason = await this.validatePromotionUsage(promotion, userId);
+          if (usageReason) {
+            return invalidateEvaluation(`PROMOTION_USAGE_LIMIT_REACHED: ${usageReason}`);
+          }
+          continue;
         }
 
         if (!cartData) {
