@@ -285,13 +285,11 @@ export class PhonePeController {
                 }
               } else {
                 // Evaluation is valid - include it
-                const validatedEvaluationId = validation.evaluationId || evaluationId;
-                validEvaluations.push(validatedEvaluationId);
+                validEvaluations.push(evaluationId);
 
                 logger.info(
                   {
-                    evaluationId: validatedEvaluationId,
-                    originalEvaluationId: evaluationId,
+                    evaluationId,
                     userId: requestBody.transaction.userId,
                     status: "valid",
                   },

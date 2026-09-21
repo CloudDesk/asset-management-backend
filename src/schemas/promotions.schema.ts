@@ -68,7 +68,7 @@ export const createPromotionsSchema = z.object({
   applicable_channel: applicableChannelEnum.default('all').optional(),
   application_mode: promotionApplicationModeEnum.default('click_to_apply').optional(),
   max_redemptions: z.number().int().nullable().optional(),
-  per_user_limit: z.number().int().nullable().optional(),
+  per_user_limit: z.number().int().optional(),
   stackable: z.boolean().optional(),
   budget: z.number().positive().optional(),
   timezone: z.string().optional(),
@@ -94,7 +94,7 @@ export const updatePromotionsSchema = z.object({
   applicable_channel: applicableChannelEnum.optional(),
   application_mode: promotionApplicationModeEnum.optional(),
   max_redemptions: z.number().int().nullable().optional(),
-  per_user_limit: z.number().int().nullable().optional(),
+  per_user_limit: z.number().int().optional(),
   stackable: z.boolean().optional(),
   budget: z.number().positive().optional(),
   timezone: z.string().optional(),
@@ -121,7 +121,7 @@ export const upsertPromotionsSchema = z.object({
   applicable_channel: applicableChannelEnum.optional(),
   application_mode: promotionApplicationModeEnum.optional(),
   max_redemptions: z.number().int().nullable().optional(),
-  per_user_limit: z.number().int().nullable().optional(),
+  per_user_limit: z.number().int().optional(),
   stackable: z.boolean().optional(),
   budget: z.number().positive().optional(),
   timezone: z.string().optional(),
@@ -295,7 +295,7 @@ export type PromotionsQuery = z.infer<typeof promotionsQuerySchema>;
 export type PromotionEligibilityInput = z.infer<typeof promotionEligibilitySchema>;
 export type PromotionEligibilityQueryInput = z.infer<typeof promotionEligibilityQuerySchema>;
 
-// Promotion evaluation types
+// New v3 types
 export type Condition = z.infer<typeof conditionSchema>;
 export type Action = z.infer<typeof actionSchema>;
 export type LineItem = z.infer<typeof lineItemSchema>;

@@ -36,10 +36,9 @@ export interface AuthenticatedRequest extends FastifyRequest {
  * Global authentication middleware for all protected routes
  * This middleware ensures that ALL routes using it require authentication
  */
-async function authenticateRequest(
+export async function requireAuthentication(
   request: AuthenticatedRequest,
-  reply: FastifyReply,
-  options: { allowInvalidToken?: boolean } = {},
+  reply: FastifyReply
 ): Promise<void> {
   try {
     // Get token from Authorization header or query parameter
@@ -61,11 +60,6 @@ async function authenticateRequest(
         method: request.method,
         userAgent: request.headers['user-agent']
       }, 'Authentication failed: No token provided');
-
-      if (options.allowInvalidToken) {
-        delete request.user;
-        return;
-      }
 
       return reply.code(401).send({
         success: false,
@@ -123,11 +117,6 @@ async function authenticateRequest(
           userAgent: request.headers['user-agent']
         }, 'Authentication failed: User not found in expected table');
 
-        if (options.allowInvalidToken) {
-          delete request.user;
-          return;
-        }
-
         return reply.code(401).send({
           success: false,
           message: 'Invalid authentication token',
@@ -176,11 +165,6 @@ async function authenticateRequest(
           ip: request.ip
         }, 'JWT verification failed');
 
-        if (options.allowInvalidToken) {
-          delete request.user;
-          return;
-        }
-
         return reply.code(401).send({
           success: false,
           message: 'Invalid or expired token',
@@ -217,13 +201,6 @@ async function authenticateRequest(
   }
 }
 
-export async function requireAuthentication(
-  request: AuthenticatedRequest,
-  reply: FastifyReply,
-): Promise<void> {
-  return authenticateRequest(request, reply);
-}
-
 /**
  * Authentication middleware for inventory users (alias for backward compatibility)
  */
@@ -245,7 +222,7 @@ export async function optionalAuthentication(
     }
 
     // If authentication is provided, verify it
-    await authenticateRequest(request, reply, { allowInvalidToken: true });
+    await authenticateInventoryUser(request, reply);
   } catch (error) {
     // Log but don't fail the request
     logger.warn({ error }, 'Optional authentication failed');
