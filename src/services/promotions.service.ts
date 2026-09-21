@@ -123,6 +123,12 @@ export class PromotionsService {
         },
         orderBy: {
           created_at: 'desc' // Get most recent active evaluation
+        },
+        // Explicit selection keeps this legacy reader compatible while the
+        // additive V3 snapshot columns are rolling out.
+        select: {
+          evaluation_id: true,
+          applied_promotions: true
         }
       });
 
@@ -1684,7 +1690,15 @@ export class PromotionsService {
         cart_signature: cartSignature,
         status: 'active'
       },
-      orderBy: { created_at: 'desc' }
+      orderBy: { created_at: 'desc' },
+      // The offers endpoint only needs applied promotions. Selecting the
+      // entire row breaks environments that have not received V3 snapshots.
+      select: {
+        evaluation_id: true,
+        original_total: true,
+        discounted_total: true,
+        applied_promotions: true
+      }
     });
 
     let alreadyAppliedPromotionIds: number[] = [];
@@ -1726,7 +1740,12 @@ export class PromotionsService {
         take: 100, // Get more promotions to evaluate
         useAllColumns: true
       });
-      const customerId = Number(request.userId);
+      const parsedCustomerId = Number(request.userId);
+      // Guest storefront IDs are UUID/string values. Use an impossible
+      // customer id for assignment matching instead of passing NaN to Prisma.
+      const customerId = Number.isInteger(parsedCustomerId) && parsedCustomerId > 0
+        ? parsedCustomerId
+        : -1;
       const promotionIds = allPromotions
         .map((promotion: any) => Number(promotion.id))
         .filter((promotionId: number) => Number.isFinite(promotionId) && promotionId > 0);
