@@ -17,7 +17,11 @@ import {
 } from '../utils/promotionChannel.js';
 import { normalizePromotionConditionValues } from '../utils/promotionConditions.js';
 import { ValidationError } from '../utils/errorHandler.js';
-import { epochToDate } from '../utils/epochTimestamp.js';
+import {
+  epochToDate,
+  epochToMilliseconds,
+  normalizeLegacyIndiaShiftedEpochMilliseconds
+} from '../utils/epochTimestamp.js';
 import {
   getRetainedManualPromotionCandidates,
   isPromotionConfiguredAutomatic
@@ -1655,12 +1659,7 @@ export class PromotionEvaluationService {
 
       // Legacy evaluations use epoch milliseconds while V2 quotes use epoch
       // seconds. Normalize both before comparing them with Date.now().
-      const toEpochMilliseconds = (value: unknown) => {
-        const timestamp = Number(value);
-        if (!Number.isFinite(timestamp)) return Number.NaN;
-        return timestamp < 10_000_000_000 ? timestamp * 1000 : timestamp;
-      };
-      const expiresAt = toEpochMilliseconds(evaluation.expires_at);
+      const expiresAt = epochToMilliseconds(evaluation.expires_at);
       if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
         return invalidateEvaluation('EVALUATION_EXPIRED: Refresh the cart and apply an available promotion again.');
       }
@@ -1698,7 +1697,7 @@ export class PromotionEvaluationService {
         : undefined;
       const context = rawContext as EvaluationRequest['context'];
       const isV2Evaluation = Number(rawContext?.schema_version) === 2;
-      const evaluatedAt = toEpochMilliseconds(evaluation.created_at || evaluation.createddate || 0);
+      const evaluatedAt = epochToMilliseconds(evaluation.created_at || evaluation.createddate || 0);
 
       for (const appliedPromotion of appliedPromotions) {
         const promotionId = Number(appliedPromotion?.promotion_id);
@@ -1717,7 +1716,9 @@ export class PromotionEvaluationService {
 
         // Any admin edit after the calculation (channel, audience, value,
         // dates, status, conditions, etc.) makes the stored total stale.
-        const promotionModifiedAt = toEpochMilliseconds(promotion.modifieddate || promotion.createddate || 0);
+        const promotionModifiedAt = normalizeLegacyIndiaShiftedEpochMilliseconds(
+          promotion.modifieddate || promotion.createddate || 0
+        );
         const promotionChangedAfterEvaluation = isV2Evaluation
           ? Math.floor(promotionModifiedAt / 1000) > Math.floor(evaluatedAt / 1000)
           : promotionModifiedAt > evaluatedAt;
