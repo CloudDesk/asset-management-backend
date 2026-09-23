@@ -360,6 +360,230 @@ export class PromotionRedemptionService {
     }
   }
 
+  async getAllRedemptionHistory(filters: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    promotionType?: string;
+    status?: string;
+    redeemedFrom?: number;
+    redeemedTo?: number;
+  }) {
+    const page = Math.max(1, filters.page || 1);
+    const limit = Math.min(100, Math.max(1, filters.limit || 10));
+    const skip = (page - 1) * limit;
+    const search = filters.search?.trim();
+    const where: Prisma.promotion_redemptionsWhereInput = {};
+
+    if (filters.promotionType) {
+      where.promotion = { is: { type: filters.promotionType } };
+    }
+    if (filters.status) {
+      where.evaluation = { is: { status: filters.status } };
+    }
+    if (filters.redeemedFrom !== undefined || filters.redeemedTo !== undefined) {
+      where.redeemed_at = {
+        ...(filters.redeemedFrom !== undefined ? { gte: BigInt(filters.redeemedFrom) } : {}),
+        ...(filters.redeemedTo !== undefined ? { lte: BigInt(filters.redeemedTo) } : {}),
+      };
+    }
+
+    if (search) {
+      const [matchingOrders, matchingUsers] = await Promise.all([
+        this.prisma.orders.findMany({
+          where: {
+            OR: [
+              { orderid: { contains: search, mode: 'insensitive' } },
+              { users: { is: { OR: [
+                { firstname: { contains: search, mode: 'insensitive' } },
+                { lastname: { contains: search, mode: 'insensitive' } },
+                { useremail: { contains: search, mode: 'insensitive' } },
+              ] } } },
+            ],
+          },
+          select: { id: true, orderid: true },
+        }),
+        this.prisma.users.findMany({
+          where: {
+            OR: [
+              { firstname: { contains: search, mode: 'insensitive' } },
+              { lastname: { contains: search, mode: 'insensitive' } },
+              { useremail: { contains: search, mode: 'insensitive' } },
+            ],
+          },
+          select: { id: true },
+        }),
+      ]);
+      const orderIdentifiers = matchingOrders.flatMap((order) =>
+        [String(order.id), order.orderid].filter((value): value is string => Boolean(value))
+      );
+      const userIdentifiers = matchingUsers.map((user) => String(user.id));
+      where.OR = [
+        { promotion: { is: { name: { contains: search, mode: 'insensitive' } } } },
+        { promotion: { is: { code: { contains: search, mode: 'insensitive' } } } },
+        ...(orderIdentifiers.length > 0 ? [{ order_id: { in: orderIdentifiers } }] : []),
+        ...(userIdentifiers.length > 0 ? [{ user_id: { in: userIdentifiers } }] : []),
+      ];
+    }
+
+    const [redemptions, total] = await Promise.all([
+      this.prisma.promotion_redemptions.findMany({
+        where,
+        include: {
+          promotion: {
+            select: {
+              id: true,
+              name: true,
+              type: true,
+              code: true,
+              application_mode: true,
+              auto_apply: true,
+            },
+          },
+          evaluation: {
+            select: {
+              evaluation_id: true,
+              status: true,
+              context: true,
+            },
+          },
+        },
+        orderBy: [{ redeemed_at: 'desc' }, { id: 'desc' }],
+        skip,
+        take: limit,
+      }),
+      this.prisma.promotion_redemptions.count({ where }),
+    ]);
+
+    return {
+      redemptions: await this.enrichRedemptionHistory(redemptions),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNext: skip + limit < total,
+        hasPrev: page > 1,
+      },
+    };
+  }
+
+  private async enrichRedemptionHistory(redemptions: any[]) {
+    if (redemptions.length === 0) return [];
+
+    const orderIdentifiers = [...new Set(
+      redemptions.map((redemption) => redemption.order_id).filter(Boolean) as string[]
+    )];
+    const numericOrderIds = orderIdentifiers
+      .filter((value) => /^\d+$/.test(value))
+      .map(Number);
+    const directUserIds = [...new Set(
+      redemptions
+        .map((redemption) => redemption.user_id)
+        .filter((value): value is string => Boolean(value) && /^\d+$/.test(value))
+        .map(Number)
+    )];
+
+    const [orders, users] = await Promise.all([
+      this.prisma.orders.findMany({
+        where: {
+          OR: [
+            ...(orderIdentifiers.length > 0 ? [{ orderid: { in: orderIdentifiers } }] : []),
+            ...(numericOrderIds.length > 0 ? [{ id: { in: numericOrderIds } }] : []),
+          ],
+        },
+        select: {
+          id: true,
+          orderid: true,
+          userid: true,
+          orderstatus: true,
+          createddate: true,
+          original_total: true,
+          productamount: true,
+          orderamount: true,
+          promotion_discount_total: true,
+          shipping_cost: true,
+          users: {
+            select: {
+              id: true,
+              firstname: true,
+              lastname: true,
+              useremail: true,
+              usermobilenumber: true,
+            },
+          },
+        },
+      }),
+      directUserIds.length > 0
+        ? this.prisma.users.findMany({
+          where: { id: { in: directUserIds } },
+          select: {
+            id: true,
+            firstname: true,
+            lastname: true,
+            useremail: true,
+            usermobilenumber: true,
+          },
+        })
+        : Promise.resolve([]),
+    ]);
+
+    const orderByIdentifier = new Map<string, typeof orders[number]>();
+    for (const order of orders) {
+      orderByIdentifier.set(String(order.id), order);
+      if (order.orderid) orderByIdentifier.set(order.orderid, order);
+    }
+    const userById = new Map(users.map((user) => [String(user.id), user]));
+
+    return redemptions.map((redemption) => {
+      const order = redemption.order_id
+        ? orderByIdentifier.get(String(redemption.order_id))
+        : undefined;
+      const customer = order?.users ?? (
+        redemption.user_id ? userById.get(String(redemption.user_id)) : undefined
+      );
+      const snapshot = redemption.redemption_data && typeof redemption.redemption_data === 'object'
+        ? redemption.redemption_data as Record<string, any>
+        : {};
+      const customerName = customer
+        ? [customer.firstname, customer.lastname].filter(Boolean).join(' ').trim()
+          || customer.useremail
+          || `Customer #${customer.id}`
+        : redemption.user_id
+          ? `Customer #${redemption.user_id}`
+          : 'Customer unavailable';
+
+      return {
+        id: redemption.id,
+        evaluation_id: redemption.evaluation_id,
+        promotion_id: redemption.promotion_id,
+        promotion_name: snapshot.promotion_name ?? redemption.promotion?.name ?? `Promotion #${redemption.promotion_id}`,
+        promotion_code: redemption.promotion?.code ?? null,
+        promotion_type: redemption.promotion?.type ?? 'PROMOTION',
+        application_mode: redemption.promotion?.application_mode
+          ?? (redemption.promotion?.auto_apply ? 'automatic' : null),
+        order_internal_id: order?.id ?? null,
+        order_number: order?.orderid ?? redemption.order_id ?? null,
+        order_status: order?.orderstatus ?? null,
+        customer_id: customer?.id ?? (redemption.user_id ? Number(redemption.user_id) || null : null),
+        customer_name: customerName,
+        customer_email: customer?.useremail ?? null,
+        customer_mobile: customer?.usermobilenumber?.toString() ?? null,
+        order_date: order?.createddate ? Number(order.createddate) : null,
+        original_order_value: Number(order?.original_total ?? order?.productamount ?? 0),
+        total_promotion_discount: Number(order?.promotion_discount_total ?? 0),
+        discount_amount: Number(redemption.discount_amount ?? 0),
+        final_amount_paid: Number(order?.orderamount ?? 0),
+        shipping_fee: Number(order?.shipping_cost ?? 0),
+        redemption_status: redemption.evaluation?.status ?? 'redeemed',
+        redeemed_at: Number(redemption.redeemed_at),
+        redemption_data: redemption.redemption_data ?? null,
+        evaluation_context: redemption.evaluation?.context ?? null,
+        order_available: Boolean(order),
+      };
+    });
+  }
+
   // Get redemption by ID
   async getRedemptionById(redemptionId: string) {
     try {
@@ -371,14 +595,18 @@ export class PromotionRedemptionService {
               id: true,
               name: true,
               type: true,
-              code: true
+              code: true,
+              application_mode: true,
+              auto_apply: true,
             }
           },
           evaluation: {
             select: {
               evaluation_id: true,
               user_id: true,
-              created_at: true
+              created_at: true,
+              status: true,
+              context: true,
             }
           }
         }
@@ -388,19 +616,52 @@ export class PromotionRedemptionService {
         return null;
       }
 
+      const [enriched] = await this.enrichRedemptionHistory([redemption]);
+      if (!enriched) return null;
+
+      const couponReservations = enriched.order_internal_id
+        ? await this.prisma.wallet_reservations.findMany({
+          where: {
+            order_id: enriched.order_internal_id,
+            // Only consumed coupon credit reduced the final paid amount. A
+            // reversed reservation has already been restored and must not be
+            // presented as an applied coupon.
+            status: 'consumed',
+            credit: { is: { source_type: 'coupon' } },
+          },
+          include: {
+            credit: {
+              select: {
+                id: true,
+                label: true,
+                assignment: {
+                  select: {
+                    voucher_code: true,
+                    promotion: { select: { name: true } },
+                  },
+                },
+              },
+            },
+          },
+          orderBy: { id: 'asc' },
+        })
+        : [];
+
       return {
-        id: redemption.id,
-        evaluation_id: redemption.evaluation_id,
-        order_id: redemption.order_id,
-        user_id: redemption.user_id,
-        promotion_id: redemption.promotion_id,
-        promotion_name: redemption.promotion?.name,
-        promotion_type: redemption.promotion?.type,
-        promotion_code: redemption.promotion?.code,
-        discount_amount: redemption.discount_amount,
-        redeemed_at: redemption.redeemed_at,
-        redemption_data: redemption.redemption_data,
-        evaluation: redemption.evaluation
+        ...enriched,
+        coupons_applied: couponReservations.map((reservation) => ({
+          reservation_id: reservation.id,
+          coupon_name: reservation.credit.assignment?.promotion?.name
+            ?? reservation.credit.label
+            ?? null,
+          coupon_code: reservation.credit.assignment?.voucher_code ?? null,
+          amount: Number(reservation.amount),
+          status: reservation.status,
+        })),
+        coupon_discount_total: couponReservations.reduce(
+          (total, reservation) => total + Number(reservation.amount),
+          0,
+        ),
       };
 
     } catch (error) {

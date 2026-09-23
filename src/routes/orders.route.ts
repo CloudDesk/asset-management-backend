@@ -1,6 +1,37 @@
 import { FastifyInstance } from 'fastify';
 import { OrdersController } from '../controllers/orders.controller.js';
 
+const orderCostBreakdownSchema = {
+  type: 'object',
+  properties: {
+    original_cart_value: { type: 'number' },
+    promotions: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          promotion_id: { type: 'number', nullable: true },
+          promotion_name: { type: 'string' },
+          coupon_code: { type: 'string', nullable: true },
+          discount_type: { type: 'string' },
+          merchandise_discount: { type: 'number' },
+          free_item_discount: { type: 'number' },
+          shipping_discount: { type: 'number' },
+          discount_amount: { type: 'number' },
+        },
+      },
+    },
+    product_discount: { type: 'number' },
+    promotion_discount: { type: 'number' },
+    free_item_discount: { type: 'number' },
+    shipping_discount: { type: 'number' },
+    total_discount: { type: 'number' },
+    taxes: { type: 'number' },
+    delivery_charges: { type: 'number' },
+    final_payable_amount: { type: 'number' },
+  },
+} as const;
+
 export async function ordersRoutes(fastify: FastifyInstance) {
   const ordersController = new OrdersController();
 
@@ -611,6 +642,7 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                     total_igst_amount: { type: 'number', nullable: true },
                     total_gst_amount: { type: 'number', nullable: true },
                     tax_amount: { type: 'number', nullable: true },
+                    cost_breakdown: orderCostBreakdownSchema,
                     tracking_id: { type: 'string', nullable: true },
                     vendor: { type: 'string', nullable: true },
                     barcodes: { type: 'object', nullable: true },
@@ -665,6 +697,25 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                       original_price: { type: 'number', nullable: true, description: 'Base price PER-UNIT (not multiplied by quantity)' },
                       product_discount_amount: { type: 'number', nullable: true, description: 'Product discount TOTAL for line item' },
                       promotion_discount_amount: { type: 'number', nullable: true, description: 'Promotion discount TOTAL for line item' },
+                      promotion_breakdown: {
+                        type: 'array',
+                        description: 'Per-promotion share of the line promotion discount',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            promotion_id: { type: 'number', nullable: true },
+                            promotion_name: { type: 'string' },
+                            coupon_code: { type: 'string', nullable: true },
+                            discount_type: { type: 'string' },
+                            discount_amount: { type: 'number' },
+                            allocation_method: { type: 'string' }
+                          }
+                        }
+                      },
+                      line_type: { type: 'string', nullable: true, description: 'NORMAL or PROMOTIONAL_GIFT' },
+                      is_free_item: { type: 'boolean', nullable: true },
+                      list_unit_price: { type: 'number', nullable: true },
+                      promotion_unit_discount: { type: 'number', nullable: true },
                       shipping_cost: { type: 'number', nullable: true, description: 'Pro-rata shipping cost for this orderline' },
                       gst_rate: { type: 'number', nullable: true, description: 'GST percentage (e.g., 5.00)' },
                       taxable_amount: { type: 'number', nullable: true, description: 'Taxable base amount (orderamount / (1 + gst_rate/100))' },
@@ -863,6 +914,7 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                   total_sgst_amount: { type: 'number', nullable: true },
                   total_igst_amount: { type: 'number', nullable: true },
                   total_gst_amount: { type: 'number', nullable: true },
+                  cost_breakdown: orderCostBreakdownSchema,
                   tracking_id: { type: 'string', nullable: true },
                   vendor: { type: 'string', nullable: true },
                   label_url: { type: 'string', nullable: true },
@@ -912,6 +964,25 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                         original_price: { type: 'number', nullable: true, description: 'Base price PER-UNIT' },
                         product_discount_amount: { type: 'number', nullable: true, description: 'Product discount TOTAL' },
                         promotion_discount_amount: { type: 'number', nullable: true, description: 'Promotion discount TOTAL' },
+                        promotion_breakdown: {
+                          type: 'array',
+                          description: 'Per-promotion share of the line promotion discount',
+                          items: {
+                            type: 'object',
+                            properties: {
+                              promotion_id: { type: 'number', nullable: true },
+                              promotion_name: { type: 'string' },
+                              coupon_code: { type: 'string', nullable: true },
+                              discount_type: { type: 'string' },
+                              discount_amount: { type: 'number' },
+                              allocation_method: { type: 'string' }
+                            }
+                          }
+                        },
+                        line_type: { type: 'string', nullable: true, description: 'NORMAL or PROMOTIONAL_GIFT' },
+                        is_free_item: { type: 'boolean', nullable: true },
+                        list_unit_price: { type: 'number', nullable: true },
+                        promotion_unit_discount: { type: 'number', nullable: true },
                         shipping_cost: { type: 'number', nullable: true, description: 'Pro-rata shipping cost' },
                         gst_rate: { type: 'number', nullable: true, description: 'GST percentage' },
                         taxable_amount: { type: 'number', nullable: true, description: 'Taxable base amount' },

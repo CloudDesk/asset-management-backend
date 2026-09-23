@@ -116,7 +116,10 @@ export class PromotionCheckoutService {
 
       for (const promotionId of promotionIds) {
         const amount = adjustments.filter((item) => item.promotionId === promotionId).reduce((sum, item) => sum + Number(item.amount), 0);
-        const promotion = await tx.promotions.findUniqueOrThrow({ where: { id: promotionId }, select: { max_redemptions: true, per_user_limit: true, budget: true } });
+        const promotion = await tx.promotions.findUniqueOrThrow({
+          where: { id: promotionId },
+          select: { name: true, code: true, max_redemptions: true, per_user_limit: true, budget: true },
+        });
         const [campaignUsage, customerUsage] = await Promise.all([
           tx.promotion_redemptions.aggregate({ where: { promotion_id: promotionId }, _count: { _all: true }, _sum: { discount_amount: true } }),
           evaluation.user_id ? tx.promotion_redemptions.count({ where: { promotion_id: promotionId, user_id: evaluation.user_id } }) : Promise.resolve(0),
@@ -126,8 +129,13 @@ export class PromotionCheckoutService {
         if (promotion.budget && Number(campaignUsage._sum.discount_amount ?? 0) + amount > Number(promotion.budget)) throw new Error(`Promotion ${promotionId} budget was exhausted`);
         await tx.promotion_redemptions.create({ data: {
           id: randomUUID(), evaluation_id: evaluationId, order_id: order.orderid, user_id: evaluation.user_id,
-          promotion_id: promotionId, discount_amount: amount, redeemed_at: epoch(),
-          redemption_data: { schema_version: 2, adjustment_ids: adjustments.filter((item) => item.promotionId === promotionId).map((item) => item.id) },
+          promotion_id: promotionId, voucher_code: promotion.code || null, discount_amount: amount, redeemed_at: epoch(),
+          redemption_data: {
+            schema_version: 2,
+            promotion_name: promotion.name,
+            voucher_code: promotion.code || null,
+            adjustment_ids: adjustments.filter((item) => item.promotionId === promotionId).map((item) => item.id),
+          },
           createddate: epoch(), modifieddate: epoch(),
         } });
       }

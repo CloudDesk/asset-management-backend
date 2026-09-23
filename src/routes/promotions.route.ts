@@ -1006,6 +1006,85 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
     }
   }, redemptionController.getRedemptionsForOrder.bind(redemptionController));
 
+  // GET /v1/promotions/redemptions - Inventory promotion usage history
+  fastify.get('/redemptions', {
+    schema: {
+      description: 'Get paginated promotion redemption history for Inventory',
+      tags: ['Promotions', 'Redemption'],
+      querystring: {
+        type: 'object',
+        properties: {
+          page: { type: 'string' },
+          limit: { type: 'string' },
+          search: { type: 'string' },
+          promotion_type: { type: 'string' },
+          status: { type: 'string' },
+          redeemed_from: { type: 'string' },
+          redeemed_to: { type: 'string' }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            data: {
+              type: 'object',
+              properties: {
+                redemptions: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    additionalProperties: true,
+                    properties: {
+                      id: { type: 'string' },
+                      evaluation_id: { type: 'string' },
+                      promotion_id: { type: 'number', nullable: true },
+                      promotion_name: { type: 'string' },
+                      promotion_code: { type: 'string', nullable: true },
+                      promotion_type: { type: 'string' },
+                      application_mode: { type: 'string', nullable: true },
+                      order_internal_id: { type: 'number', nullable: true },
+                      order_number: { type: 'string', nullable: true },
+                      order_status: { type: 'string', nullable: true },
+                      customer_id: { type: 'number', nullable: true },
+                      customer_name: { type: 'string' },
+                      customer_email: { type: 'string', nullable: true },
+                      customer_mobile: { type: 'string', nullable: true },
+                      order_date: { type: 'number', nullable: true },
+                      original_order_value: { type: 'number' },
+                      total_promotion_discount: { type: 'number' },
+                      discount_amount: { type: 'number' },
+                      final_amount_paid: { type: 'number' },
+                      shipping_fee: { type: 'number' },
+                      redemption_status: { type: 'string' },
+                      redeemed_at: { type: 'number' },
+                      redemption_data: { type: 'object', nullable: true, additionalProperties: true },
+                      evaluation_context: { type: 'object', nullable: true, additionalProperties: true },
+                      order_available: { type: 'boolean' }
+                    }
+                  }
+                },
+                pagination: {
+                  type: 'object',
+                  properties: {
+                    page: { type: 'number' },
+                    limit: { type: 'number' },
+                    total: { type: 'number' },
+                    totalPages: { type: 'number' },
+                    hasNext: { type: 'boolean' },
+                    hasPrev: { type: 'boolean' }
+                  }
+                }
+              }
+            },
+            message: { type: 'string' }
+          }
+        }
+      }
+    }
+  }, redemptionController.getAllRedemptionHistory.bind(redemptionController));
+
   // GET /v1/promotions/redemptions/:id - Get redemption by ID
   fastify.get('/redemptions/:id', {
     schema: {
@@ -1023,7 +1102,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            data: { type: 'object' },
+            data: { type: 'object', additionalProperties: true },
             message: { type: 'string' }
           }
         },

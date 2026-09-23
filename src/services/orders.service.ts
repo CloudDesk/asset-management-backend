@@ -28,10 +28,91 @@ import {
   validateInvoiceSellerAddress,
 } from '../utils/invoice-seller-address.js';
 import { customerEmailNotificationService } from './customer-email-notification.service.js';
+import {
+  buildLinePromotionBreakdowns,
+  buildOrderCostBreakdown,
+  type OrderCostBreakdown,
+} from '../utils/order-cost-breakdown.js';
 
 export class OrdersService {
   private walletRedemptionService = new WalletRedemptionService();
   private promotionCheckoutService = new PromotionCheckoutService();
+
+  private async getOrderCostBreakdowns(
+    orders: any[],
+    orderlinesByOrderId: Map<number, any[]>,
+  ): Promise<Map<number, OrderCostBreakdown>> {
+    if (orders.length === 0) return new Map();
+
+    const orderByIdentifier = new Map<string, any>();
+    const orderByEvaluationId = new Map<string, any>();
+    for (const order of orders) {
+      orderByIdentifier.set(String(order.id), order);
+      if (order.orderid) orderByIdentifier.set(String(order.orderid), order);
+      if (order.evaluation_id) orderByEvaluationId.set(String(order.evaluation_id), order);
+    }
+
+    const redemptions = await prisma.promotion_redemptions.findMany({
+      where: { order_id: { in: [...orderByIdentifier.keys()] } },
+      include: {
+        promotion: { select: { name: true, type: true, code: true } },
+      },
+    });
+
+    const redemptionEvaluationIds = redemptions.map((redemption) => redemption.evaluation_id);
+    const evaluationIds = [...new Set([
+      ...orderByEvaluationId.keys(),
+      ...redemptionEvaluationIds,
+    ])];
+    const evaluations = await prisma.promotion_evaluations.findMany({
+      where: {
+        OR: [
+          { order_id: { in: orders.map((order) => Number(order.id)) } },
+          ...(evaluationIds.length > 0 ? [{ evaluation_id: { in: evaluationIds } }] : []),
+        ],
+      },
+      include: {
+        adjustments: {
+          include: {
+            promotion: { select: { name: true, type: true, code: true } },
+          },
+        },
+      },
+    });
+
+    const redemptionsByOrderId = new Map<number, typeof redemptions>();
+    const evaluationsByOrderId = new Map<number, typeof evaluations>();
+    const addToMap = <T>(map: Map<number, T[]>, orderId: number, value: T) => {
+      const values = map.get(orderId) ?? [];
+      values.push(value);
+      map.set(orderId, values);
+    };
+
+    for (const redemption of redemptions) {
+      const order = orderByIdentifier.get(String(redemption.order_id));
+      if (order) addToMap(redemptionsByOrderId, Number(order.id), redemption);
+    }
+    for (const evaluation of evaluations) {
+      const order = evaluation.order_id
+        ? orders.find((candidate) => Number(candidate.id) === Number(evaluation.order_id))
+        : orderByEvaluationId.get(String(evaluation.evaluation_id))
+          ?? redemptions
+            .filter((redemption) => redemption.evaluation_id === evaluation.evaluation_id)
+            .map((redemption) => orderByIdentifier.get(String(redemption.order_id)))
+            .find(Boolean);
+      if (order) addToMap(evaluationsByOrderId, Number(order.id), evaluation);
+    }
+
+    return new Map(orders.map((order) => [
+      Number(order.id),
+      buildOrderCostBreakdown(
+        order,
+        orderlinesByOrderId.get(Number(order.id)) ?? [],
+        redemptionsByOrderId.get(Number(order.id)) ?? [],
+        evaluationsByOrderId.get(Number(order.id)) ?? [],
+      ),
+    ]));
+  }
 
   private notifyNewOrder(order: any): void {
     customerEmailNotificationService.queueOrderEmail(order.id, 'order_confirmation');
@@ -3152,6 +3233,10 @@ export class OrdersService {
             product_discount_amount: ol.product_discount_amount ? Number(ol.product_discount_amount) : null,
             promotion_discount_amount: ol.promotion_discount_amount ? Number(ol.promotion_discount_amount) : null,
             manual_discount_amount: ol.manual_discount_amount ? Number(ol.manual_discount_amount) : null,
+            line_type: ol.line_type,
+            is_free_item: ol.is_free_item,
+            list_unit_price: ol.list_unit_price ? Number(ol.list_unit_price) : null,
+            promotion_unit_discount: ol.promotion_unit_discount ? Number(ol.promotion_unit_discount) : null,
             shipping_cost: ol.shipping_cost ? Number(ol.shipping_cost) : null,
             gst_rate: ol.gst_rate ? Number(ol.gst_rate) : null,
             taxable_amount: ol.taxable_amount ? Number(ol.taxable_amount) : null,
@@ -3367,9 +3452,24 @@ export class OrdersService {
         hasAddress: !!address
       }, 'Order details retrieved successfully');
 
+      const costBreakdowns = await this.getOrderCostBreakdowns(
+        [fullOrder],
+        new Map([[Number(fullOrder.id), rawOrderlines]]),
+      );
+      const costBreakdown = costBreakdowns.get(Number(fullOrder.id));
+      const linePromotionBreakdowns = buildLinePromotionBreakdowns(
+        rawOrderlines,
+        costBreakdown?.promotions ?? [],
+      );
+      for (const orderline of orderlines) {
+        orderline.promotion_breakdown = linePromotionBreakdowns.get(Number(orderline.id)) ?? [];
+      }
       const [orderWithEffectiveStatus] = await this.attachEffectiveStatuses([order]);
       return {
-        order: orderWithEffectiveStatus,
+        order: {
+          ...orderWithEffectiveStatus,
+          cost_breakdown: costBreakdown,
+        },
         orderlines,
         address,
         wallet_usage,
@@ -3694,10 +3794,18 @@ export class OrdersService {
         });
       }
 
+      const costBreakdowns = await this.getOrderCostBreakdowns(orders, orderlinesByOrderId);
+
       // Build response with orders, orderlines, and address
       const ordersWithDetails = orders.map((order: any) => {
+        const costBreakdown = costBreakdowns.get(Number(order.id));
+        const sourceOrderlines = orderlinesByOrderId.get(order.id) || [];
+        const linePromotionBreakdowns = buildLinePromotionBreakdowns(
+          sourceOrderlines,
+          costBreakdown?.promotions ?? [],
+        );
         // Get orderlines for this order
-        const orderOrderlines = (orderlinesByOrderId.get(order.id) || []).map((ol: any) => ({
+        const orderOrderlines = sourceOrderlines.map((ol: any) => ({
           id: ol.id,
           productname: ol.productname,
           productcategory: ol.productcategory,
@@ -3710,6 +3818,11 @@ export class OrdersService {
           original_price: ol.original_price ? Number(ol.original_price) : null,
           product_discount_amount: ol.product_discount_amount ? Number(ol.product_discount_amount) : null,
           promotion_discount_amount: ol.promotion_discount_amount ? Number(ol.promotion_discount_amount) : null,
+          promotion_breakdown: linePromotionBreakdowns.get(Number(ol.id)) ?? [],
+          line_type: ol.line_type,
+          is_free_item: ol.is_free_item,
+          list_unit_price: ol.list_unit_price ? Number(ol.list_unit_price) : null,
+          promotion_unit_discount: ol.promotion_unit_discount ? Number(ol.promotion_unit_discount) : null,
           shipping_cost: ol.shipping_cost ? Number(ol.shipping_cost) : null,
           gst_rate: ol.gst_rate ? Number(ol.gst_rate) : null,
           taxable_amount: ol.taxable_amount ? Number(ol.taxable_amount) : null,
@@ -3777,6 +3890,7 @@ export class OrdersService {
           refund_initiated_date: order.refund_initiated_date,
           refund_completed_date: order.refund_completed_date,
           status_history: this.parseStatusHistory(order.status_history),
+          cost_breakdown: costBreakdown,
           orderlines: orderOrderlines,
           address
         };
