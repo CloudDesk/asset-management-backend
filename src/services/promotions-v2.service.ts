@@ -244,9 +244,11 @@ export class PromotionsV2Service {
     const catalog = await this.hydrateRewardCatalog(active.campaigns, hydrated.catalog, request.channel);
     const quote = evaluatePromotionQuote(hydrated.lines, active.campaigns, catalog, { shippingAmount: request.shipping_amount, rewardSelections: request.reward_selections });
     quote.rejected_candidates.push(...active.rejections.filter((rejection) => !quote.rejected_candidates.some((item) => item.promotion_id === rejection.promotion_id)));
-    await this.persistQuote(quote, request, hydrated.lines);
+    // Guest previews are informational and are always recalculated after
+    // authentication. Do not persist them as checkout-ready evaluations.
+    if (!request.preview_only) await this.persistQuote(quote, request, hydrated.lines);
     logger.info({
-      event: 'promotions_v2_quote', mode: 'active',
+      event: 'promotions_v2_quote', mode: request.preview_only ? 'preview' : 'active',
       evaluationId: quote.evaluation_id, channel: request.channel, cartLineCount: request.cart_items.length,
       appliedCount: quote.applied_promotions.length, rejectedCount: quote.rejected_candidates.length,
       conflictCount: quote.rejected_candidates.filter((item) => item.reason_code === 'CONFLICTED_WITH_BETTER_OFFER').length,
@@ -328,6 +330,9 @@ export class PromotionsV2Service {
       if (!isPromotionChannelEligible(promotion.applicable_channel, request.channel === 'nivapp' ? 'mobile' : request.channel)) {
         rejections.push({ promotion_id: promotion.id, reason_code: 'CHANNEL_NOT_ELIGIBLE' }); continue;
       }
+      if (request.preview_only && !request.customer_id && promotion.visibility !== 'public') {
+        rejections.push({ promotion_id: promotion.id, reason_code: 'CUSTOMER_NOT_ELIGIBLE' }); continue;
+      }
       if (promotion.application_mode !== 'automatic' && !selected.has(promotion.id) && (!request.coupon_code || promotion.code?.toUpperCase() !== request.coupon_code.toUpperCase())) continue;
       const assignments = promotion.assignments;
       if (assignments.length) {
@@ -359,6 +364,9 @@ export class PromotionsV2Service {
       if (!isPromotionChannelEligible(promotion.applicable_channel, request.channel === 'nivapp' ? 'mobile' : request.channel)) {
         rejections.push({ promotion_id: promotion.id, reason_code: 'CHANNEL_NOT_ELIGIBLE' }); continue;
       }
+      if (request.preview_only && !request.customer_id && promotion.visibility !== 'public') {
+        rejections.push({ promotion_id: promotion.id, reason_code: 'CUSTOMER_NOT_ELIGIBLE' }); continue;
+      }
       const segmentCondition = Array.isArray(promotion.conditions)
         ? (promotion.conditions as Array<{ attribute?: unknown; value?: unknown }>).find((condition) => condition.attribute === 'user.segment')
         : undefined;
@@ -366,7 +374,13 @@ export class PromotionsV2Service {
         const requiredSegments = Array.isArray(segmentCondition.value)
           ? segmentCondition.value.map(String)
           : [String(segmentCondition.value ?? '')];
-        if (!request.customer_id || !requiredSegments.includes('authenticated_user')) {
+        const canPreviewPublicAuthenticatedOffer = Boolean(
+          request.preview_only &&
+          !request.customer_id &&
+          promotion.visibility === 'public' &&
+          requiredSegments.includes('authenticated_user')
+        );
+        if (!canPreviewPublicAuthenticatedOffer && (!request.customer_id || !requiredSegments.includes('authenticated_user'))) {
           rejections.push({ promotion_id: promotion.id, reason_code: 'CUSTOMER_NOT_ELIGIBLE' }); continue;
         }
       }
