@@ -8,12 +8,12 @@ export type AppliedPromotionState = {
 };
 
 export type PromotionUsageState = {
+  campaignUsage: number;
+  campaignLimit?: number | null | undefined;
   customerPromotionUsage: number;
   perCustomerLimit?: number | null | undefined;
   assignmentUsage: number;
   assignmentLimit?: number | null | undefined;
-  campaignUsage: number;
-  campaignLimit?: number | null | undefined;
 };
 
 export type PromotionAssignmentTarget = {
@@ -49,9 +49,9 @@ const hasReachedLimit = (usage: number, limit?: number | null): boolean =>
 
 /** Excludes exhausted offers before they reach recommendation or cart UI. */
 export const isPromotionUsageExhausted = (usage: PromotionUsageState): boolean =>
+  hasReachedLimit(usage.campaignUsage, usage.campaignLimit) ||
   hasReachedLimit(usage.customerPromotionUsage, usage.perCustomerLimit) ||
-  hasReachedLimit(usage.assignmentUsage, usage.assignmentLimit) ||
-  hasReachedLimit(usage.campaignUsage, usage.campaignLimit);
+  hasReachedLimit(usage.assignmentUsage, usage.assignmentLimit);
 
 /** Audience changes create a new assignment instead of rewriting ownership. */
 export const hasPromotionAssignmentTargetChanged = (

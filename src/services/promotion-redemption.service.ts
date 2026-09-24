@@ -1,7 +1,6 @@
 import { Prisma, PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../config/logger.js';
-import { getRemainingPromotionBudget } from '../utils/promotionBudget.js';
 import {
   RedemptionRequest, 
   RedemptionResponse, 
@@ -131,15 +130,17 @@ export class PromotionRedemptionService {
     for (const applied of appliedPromotions) {
       const promotion = await database.promotions.findUnique({
         where: { id: applied.promotion_id },
-        select: { id: true, status: true, max_redemptions: true, per_user_limit: true }
+        select: { id: true, status: true, max_redemptions: true, per_user_limit: true, budget: true }
       });
       if (!promotion || promotion.status !== 'active') throw new Error('PROMOTION_NOT_ACTIVE');
 
-      if (promotion.max_redemptions) {
-        const totalUsage = await database.promotion_redemptions.count({
-          where: { promotion_id: promotion.id }
-        });
-        if (totalUsage >= promotion.max_redemptions) throw new Error('PROMOTION_MAX_REDEMPTIONS_REACHED');
+      const campaignUsage = await database.promotion_redemptions.aggregate({
+        where: { promotion_id: promotion.id },
+        _count: { _all: true },
+        _sum: { discount_amount: true }
+      });
+      if (promotion.max_redemptions && campaignUsage._count._all >= promotion.max_redemptions) {
+        throw new Error('PROMOTION_MAX_REDEMPTIONS_REACHED');
       }
 
       if (promotion.per_user_limit) {
@@ -147,6 +148,11 @@ export class PromotionRedemptionService {
           where: { promotion_id: promotion.id, user_id: userId }
         });
         if (userUsage >= promotion.per_user_limit) throw new Error('PROMOTION_PER_USER_LIMIT_REACHED');
+      }
+      const usedBudget = Number(campaignUsage._sum.discount_amount ?? 0);
+      const currentDiscount = Number(applied.discount_amount ?? 0);
+      if (Number(promotion.budget ?? 0) > 0 && usedBudget + currentDiscount > Number(promotion.budget)) {
+        throw new Error('PROMOTION_BUDGET_EXHAUSTED');
       }
 
       if (applied.assignment_id) {
@@ -729,10 +735,7 @@ export class PromotionRedemptionService {
     return BigInt(new Date().getTime());
   }
 
-  /**
-   * Update promotion usage tracking after redemption
-   * This method updates budget consumption and usage counts
-   */
+  /** Log promotion usage after redemption without mutating configured status. */
   private async updatePromotionUsageTracking(promotionId: number, discountAmount: number): Promise<void> {
     try {
       logger.info({
@@ -758,74 +761,28 @@ export class PromotionRedemptionService {
       }
 
       // Calculate current usage statistics
-      const currentRedemptions = await this.prisma.promotion_redemptions.count({
-        where: { promotion_id: promotionId }
-      });
-
-      const currentBudgetUsed = await this.prisma.promotion_redemptions.aggregate({
+      const usage = await this.prisma.promotion_redemptions.aggregate({
         where: { promotion_id: promotionId },
+        _count: { _all: true },
         _sum: { discount_amount: true }
       });
-
-      const totalBudgetUsed = Number(currentBudgetUsed._sum.discount_amount || 0);
-      const remainingBudget = getRemainingPromotionBudget(
-        promotion.budget,
-        totalBudgetUsed
-      );
 
       logger.info({
         promotionId,
         promotionName: promotion.name,
-        currentRedemptions,
-        totalBudgetUsed,
-        remainingBudget,
+        currentRedemptions: usage._count._all,
+        totalBudgetUsed: Number(usage._sum.discount_amount ?? 0),
         maxRedemptions: promotion.max_redemptions,
         perUserLimit: promotion.per_user_limit,
-        budget: remainingBudget === null ? null : Number(promotion.budget)
+        budget: promotion.budget == null ? null : Number(promotion.budget)
       }, 'Promotion usage statistics calculated');
-
-      // Check if promotion should be deactivated due to limits
-      let shouldDeactivate = false;
-      let deactivationReason = '';
-
-      if (promotion.max_redemptions && currentRedemptions >= promotion.max_redemptions) {
-        shouldDeactivate = true;
-        deactivationReason = 'Maximum redemptions reached';
-      }
-
-      if (remainingBudget !== null && remainingBudget <= 0) {
-        shouldDeactivate = true;
-        deactivationReason = 'Budget exhausted';
-      }
-
-      // Update promotion status if needed
-      if (shouldDeactivate) {
-        await this.prisma.promotions.update({
-          where: { id: promotionId },
-          data: {
-            status: 'exhausted',
-            modifieddate: BigInt(Date.now())
-          }
-        });
-
-        logger.warn({
-          promotionId,
-          promotionName: promotion.name,
-          reason: deactivationReason,
-          currentRedemptions,
-          totalBudgetUsed,
-          remainingBudget
-        }, 'Promotion deactivated due to limits reached');
-      }
 
       logger.info({
         promotionId,
         promotionName: promotion.name,
         discountAmount,
-        currentRedemptions,
-        totalBudgetUsed,
-        remainingBudget,
-        isActive: !shouldDeactivate
+        currentRedemptions: usage._count._all,
+        configuredStatusUnchanged: true
       }, 'Promotion usage tracking updated successfully');
 
     } catch (error: any) {

@@ -580,13 +580,17 @@ export class PromotionEvaluationService {
   }
 
   private async validatePromotionUsage(promotion: any, userId: string): Promise<string | null> {
-    if (promotion.max_redemptions) {
-      const totalUsage = await this.prisma.promotion_redemptions.count({
-        where: { promotion_id: promotion.id }
-      });
-      if (totalUsage >= promotion.max_redemptions) return 'PROMOTION_MAX_REDEMPTIONS_REACHED';
+    const campaignUsage = await this.prisma.promotion_redemptions.aggregate({
+      where: { promotion_id: promotion.id },
+      _count: { _all: true },
+      _sum: { discount_amount: true }
+    });
+    if (promotion.max_redemptions && campaignUsage._count._all >= promotion.max_redemptions) {
+      return 'PROMOTION_MAX_REDEMPTIONS_REACHED';
     }
-
+    if (Number(promotion.budget ?? 0) > 0 && Number(campaignUsage._sum.discount_amount ?? 0) >= Number(promotion.budget)) {
+      return 'PROMOTION_BUDGET_EXHAUSTED';
+    }
     if (promotion.per_user_limit) {
       const userUsage = await this.prisma.promotion_redemptions.count({
         where: { promotion_id: promotion.id, user_id: userId }

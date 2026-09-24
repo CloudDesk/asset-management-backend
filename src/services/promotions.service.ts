@@ -526,6 +526,26 @@ export class PromotionsService {
         );
       }
     }
+    const visiblePromotionIds = [...new Set([
+      ...globalPromotions.map((promotion) => promotion.id),
+      ...assignments.map((assignment) => assignment.promotion_id)
+    ])];
+    const campaignUsage = await this.prisma.promotion_redemptions.groupBy({
+      by: ['promotion_id'],
+      where: { promotion_id: { in: visiblePromotionIds } },
+      _count: { _all: true },
+      _sum: { discount_amount: true }
+    });
+    const campaignUsageByPromotion = new Map(campaignUsage.map((usage) => [usage.promotion_id, {
+      count: usage._count._all,
+      discountAmount: Number(usage._sum.discount_amount ?? 0)
+    }]));
+    const hasCampaignCapacity = (promotion: any): boolean => {
+      const usage = campaignUsageByPromotion.get(promotion.id) ?? { count: 0, discountAmount: 0 };
+      if (promotion.max_redemptions && usage.count >= promotion.max_redemptions) return false;
+      if (Number(promotion.budget ?? 0) > 0 && usage.discountAmount >= Number(promotion.budget)) return false;
+      return true;
+    };
 
     const buildCustomerUsage = (
       promotion: any,
@@ -578,6 +598,7 @@ export class PromotionsService {
     const results = new Map<number, any>();
     for (const promotion of globalPromotions) {
       if (!this.isPromotionCurrentlyActive(promotion)) continue;
+      if (!hasCampaignCapacity(promotion)) continue;
       if (!isPromotionChannelEligible(promotion.applicable_channel, options.channel)) continue;
       if (!this.isPromotionApplicableToUser(promotion, userSegments, userCreatedDate)) continue;
       const customerUsage = buildCustomerUsage(promotion);
@@ -596,6 +617,7 @@ export class PromotionsService {
       if (assignment.end_date && assignment.end_date < nowSeconds) continue;
       if (assignment.usage_limit && assignment.used_count >= assignment.usage_limit) continue;
       if (!this.isPromotionCurrentlyActive(assignment.promotion)) continue;
+      if (!hasCampaignCapacity(assignment.promotion)) continue;
       if (!isPromotionChannelEligible(assignment.promotion.applicable_channel, options.channel)) continue;
       if (!this.isPromotionApplicableToUser(assignment.promotion, userSegments, userCreatedDate)) continue;
       const customerUsage = buildCustomerUsage(assignment.promotion, assignment);
@@ -1739,10 +1761,17 @@ export class PromotionsService {
         useAllColumns: true
       });
       const customerId = Number(request.userId);
-      const promotionIds = allPromotions
-        .map((promotion: any) => Number(promotion.id))
-        .filter((promotionId: number) => Number.isFinite(promotionId) && promotionId > 0);
-      const [customerAssignments, restrictedAssignments, userRedemptions, campaignRedemptionCounts] = await Promise.all([
+      const campaignUsage = await this.prisma.promotion_redemptions.groupBy({
+        by: ['promotion_id'],
+        where: { promotion_id: { in: allPromotions.map((promotion: any) => promotion.id) } },
+        _count: { _all: true },
+        _sum: { discount_amount: true }
+      });
+      const campaignUsageByPromotion = new Map(campaignUsage.map((usage) => [usage.promotion_id, {
+        count: usage._count._all,
+        discountAmount: Number(usage._sum.discount_amount ?? 0)
+      }]));
+      const [customerAssignments, restrictedAssignments, userRedemptions] = await Promise.all([
         this.prisma.promotion_assignments.findMany({
           where: {
             status: 'active',
@@ -1773,11 +1802,6 @@ export class PromotionsService {
         this.prisma.promotion_redemptions.findMany({
           where: { user_id: request.userId },
           select: { promotion_id: true, assignment_id: true }
-        }),
-        this.prisma.promotion_redemptions.groupBy({
-          by: ['promotion_id'],
-          where: { promotion_id: { in: promotionIds } },
-          _count: { _all: true }
         })
       ]);
       const customerAssignmentByPromotion = new Map(
@@ -1802,11 +1826,6 @@ export class PromotionsService {
           );
         }
       }
-      const campaignUsage = new Map<number, number>(
-        campaignRedemptionCounts
-          .filter((redemption) => redemption.promotion_id !== null)
-          .map((redemption) => [redemption.promotion_id as number, redemption._count._all])
-      );
       const exhaustedPromotionIds = new Set<number>();
       logger.info(allPromotions, "allPromotions")
       logger.info({ totalPromotions: allPromotions.length }, 'Retrieved active promotions');
@@ -1844,16 +1863,21 @@ export class PromotionsService {
                 assignmentUsageByCustomer.get(customerAssignment.id) || 0
               )
             : 0;
+          const totalUsage = campaignUsageByPromotion.get(promotion.id) ?? { count: 0, discountAmount: 0 };
           // Do not advertise an offer the customer or campaign has exhausted.
           // Apply and checkout validation remain the final concurrency guard.
           if (isPromotionUsageExhausted({
+            campaignUsage: totalUsage.count,
+            campaignLimit: promotion.max_redemptions,
             customerPromotionUsage,
             perCustomerLimit: promotion.per_user_limit,
             assignmentUsage: customerAssignmentUsage,
-            assignmentLimit: customerAssignment?.usage_limit,
-            campaignUsage: campaignUsage.get(promotion.id) || 0,
-            campaignLimit: promotion.max_redemptions
+            assignmentLimit: customerAssignment?.usage_limit
           })) {
+            exhaustedPromotionIds.add(promotion.id);
+            continue;
+          }
+          if (Number(promotion.budget ?? 0) > 0 && totalUsage.discountAmount >= Number(promotion.budget)) {
             exhaustedPromotionIds.add(promotion.id);
             continue;
           }

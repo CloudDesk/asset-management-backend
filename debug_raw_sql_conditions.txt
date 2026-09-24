@@ -4,3 +4,5 @@ Converted conditions: [{"value":["first_order","new_user"],"operator":"IN","attr
 Converted conditions: [{"value":"1000","operator":"GTE","attribute":"cart.total_value"}]
 Converted conditions: [{"value":"100","operator":"GTE","attribute":"cart.total_value"}]
 Converted conditions: [{"value":"1000","operator":"GTE","attribute":"cart.total_value"}]
+Converted conditions: [{"attribute":"cart.total_value","operator":"GTE","value":"500"},{"attribute":"user.segment","operator":"IN","value":"authenticated_user"}]
+Converted conditions: [{"attribute":"cart.total_value","operator":"GTE","value":"100"},{"attribute":"user.segment","operator":"IN","value":"authenticated_user"}]

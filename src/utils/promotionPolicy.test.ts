@@ -52,45 +52,45 @@ test('manual promotions are retained only for the exact same cart', () => {
 
 test('a promotion is exhausted at every configured usage boundary', () => {
   const available = {
+    campaignUsage: 0,
+    campaignLimit: 2,
     customerPromotionUsage: 0,
     perCustomerLimit: 1,
     assignmentUsage: 0,
     assignmentLimit: 1,
-    campaignUsage: 9,
-    campaignLimit: 10,
   };
 
   assert.equal(isPromotionUsageExhausted(available), false);
+  assert.equal(isPromotionUsageExhausted({ ...available, campaignUsage: 2 }), true);
   assert.equal(isPromotionUsageExhausted({ ...available, customerPromotionUsage: 1 }), true);
   assert.equal(isPromotionUsageExhausted({ ...available, assignmentUsage: 1 }), true);
-  assert.equal(isPromotionUsageExhausted({ ...available, campaignUsage: 10 }), true);
 });
 
 test('missing usage limits do not exhaust a promotion', () => {
   assert.equal(isPromotionUsageExhausted({
+    campaignUsage: 50,
     customerPromotionUsage: 50,
     assignmentUsage: 50,
-    campaignUsage: 50,
   }), false);
 });
 
 test('non-positive usage limits are treated as unlimited', () => {
   const usage = {
+    campaignUsage: 50,
     customerPromotionUsage: 50,
     assignmentUsage: 50,
-    campaignUsage: 50,
   };
 
   assert.equal(isPromotionUsageExhausted({
     ...usage,
+    campaignLimit: 0,
     perCustomerLimit: 0,
     assignmentLimit: 0,
-    campaignLimit: 0,
   }), false);
   assert.equal(isPromotionUsageExhausted({
     ...usage,
+    campaignLimit: -1,
     perCustomerLimit: -1,
     assignmentLimit: -1,
-    campaignLimit: -1,
   }), false);
 });

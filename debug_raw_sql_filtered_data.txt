@@ -8086,3 +8086,81 @@ Filtered data: {
   "order_invoice_url": "https://storage.googleapis.com/niv_order_invoice/NIVAANA-0000000334/NIVAANA-0000000334.pdf",
   "modifieddate": 1788864140707
 }
+Filtered data: {
+  "name": "Free Shipping Over ₹500",
+  "description": "Free Shipping Over ₹500",
+  "type": "FREE_SHIPPING",
+  "code": null,
+  "auto_apply": true,
+  "start_date": 1767249000,
+  "end_date": 2211607740,
+  "status": "inactive",
+  "priority": 1,
+  "visibility": "public",
+  "applicable_channel": "all",
+  "application_mode": "automatic",
+  "max_redemptions": 10000,
+  "per_user_limit": 100,
+  "budget": null,
+  "stackable": true,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "conditions": [
+    {
+      "attribute": "cart.total_value",
+      "operator": "GTE",
+      "value": "500"
+    },
+    {
+      "attribute": "user.segment",
+      "operator": "IN",
+      "value": "authenticated_user"
+    }
+  ],
+  "action": {
+    "type": "FREE_SHIPPING",
+    "value": 0
+  },
+  "id": 4,
+  "createddate": 1761661089,
+  "modifieddate": 1790235399361
+}
+Filtered data: {
+  "name": "Free Shipping Over ₹100",
+  "description": "",
+  "type": "FREE_SHIPPING",
+  "code": null,
+  "auto_apply": true,
+  "start_date": 1788201000,
+  "end_date": 1796063340,
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "applicable_channel": "all",
+  "application_mode": "automatic",
+  "max_redemptions": null,
+  "per_user_limit": null,
+  "budget": null,
+  "stackable": true,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "conditions": [
+    {
+      "attribute": "cart.total_value",
+      "operator": "GTE",
+      "value": "100"
+    },
+    {
+      "attribute": "user.segment",
+      "operator": "IN",
+      "value": "authenticated_user"
+    }
+  ],
+  "action": {
+    "type": "FREE_SHIPPING",
+    "value": 0
+  },
+  "id": 55,
+  "createddate": 1790235295,
+  "modifieddate": 1790235433304
+}

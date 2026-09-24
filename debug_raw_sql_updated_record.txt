@@ -19139,3 +19139,81 @@ Updated record: {
   "order_invoice_url": "https://storage.googleapis.com/niv_order_invoice/NIVAANA-0000000227/NIVAANA-0000000227.pdf",
   "shipment_tracking_status": "rto_delivered"
 }
+Updated record: {
+  "id": 4,
+  "name": "Free Shipping Over ₹500",
+  "type": "FREE_SHIPPING",
+  "code": null,
+  "auto_apply": true,
+  "status": "inactive",
+  "priority": 1,
+  "visibility": "public",
+  "max_redemptions": 10000,
+  "per_user_limit": 100,
+  "stackable": true,
+  "createddate": 1761661089,
+  "modifieddate": 1790235399,
+  "description": "Free Shipping Over ₹500",
+  "budget": null,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "conditions": [
+    {
+      "value": "500",
+      "operator": "GTE",
+      "attribute": "cart.total_value"
+    },
+    {
+      "value": "authenticated_user",
+      "operator": "IN",
+      "attribute": "user.segment"
+    }
+  ],
+  "start_date": 1767249000,
+  "end_date": 2211607740,
+  "action": {
+    "type": "FREE_SHIPPING",
+    "value": 0
+  },
+  "applicable_channel": "all",
+  "application_mode": "automatic"
+}
+Updated record: {
+  "id": 55,
+  "name": "Free Shipping Over ₹100",
+  "type": "FREE_SHIPPING",
+  "code": null,
+  "auto_apply": true,
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "max_redemptions": null,
+  "per_user_limit": null,
+  "stackable": true,
+  "createddate": 1790235295,
+  "modifieddate": 1790235433,
+  "description": "",
+  "budget": null,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "conditions": [
+    {
+      "value": "100",
+      "operator": "GTE",
+      "attribute": "cart.total_value"
+    },
+    {
+      "value": "authenticated_user",
+      "operator": "IN",
+      "attribute": "user.segment"
+    }
+  ],
+  "start_date": 1788201000,
+  "end_date": 1796063340,
+  "action": {
+    "type": "FREE_SHIPPING",
+    "value": 0
+  },
+  "applicable_channel": "all",
+  "application_mode": "automatic"
+}

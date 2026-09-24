@@ -2667,7 +2667,7 @@ export class PhonePeController {
 
         // Order creation currently performs promotion redemption after the
         // order row is committed. If that follow-up step fails (for example,
-        // another request has just consumed the promotion budget), the paid
+        // another request has just consumed the final configured redemption or budget), the paid
         // order still exists and must be treated as finalized rather than
         // briefly reported as failed.
         const recoveredOrders = await this.ordersService.findMany(

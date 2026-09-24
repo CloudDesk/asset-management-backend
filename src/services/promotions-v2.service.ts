@@ -76,7 +76,6 @@ export class PromotionsV2Service {
     const matched = await this.matchedProducts(promotionId, rule, 1, 1);
     if (!matched.total) throw new Error('Promotion cannot be published because it matches no active products');
     if (draft.promotion.start_date && draft.promotion.end_date && draft.promotion.start_date >= draft.promotion.end_date) throw new Error('Promotion end date must be after its start date');
-    if (draft.promotion.budget !== null && Number(draft.promotion.budget) < 0) throw new Error('Promotion budget cannot be negative');
     await this.validateGiftAvailability(rule, draft.promotion.applicable_channel);
     await prisma.$transaction(async (tx) => {
       await tx.promotionRuleVersion.updateMany({ where: { promotionId, status: 'published' }, data: { status: 'retired', modifiedAt: seconds() } });
@@ -298,8 +297,13 @@ export class PromotionsV2Service {
       ...rows.map((row) => row.promotionId),
       ...legacyAutomaticPromotions.map((promotion) => promotion.id),
     ])];
-    const [usage, customerUsage, groupMemberships] = await Promise.all([
-      prisma.promotion_redemptions.groupBy({ by: ['promotion_id'], where: { promotion_id: { in: promotionIds } }, _count: { _all: true }, _sum: { discount_amount: true } }),
+    const [campaignUsage, customerUsage, groupMemberships] = await Promise.all([
+      prisma.promotion_redemptions.groupBy({
+        by: ['promotion_id'],
+        where: { promotion_id: { in: promotionIds } },
+        _count: { _all: true },
+        _sum: { discount_amount: true },
+      }),
       request.customer_id
         ? prisma.promotion_redemptions.groupBy({ by: ['promotion_id'], where: { promotion_id: { in: promotionIds }, user_id: request.customer_id }, _count: { _all: true } })
         : Promise.resolve([]),
@@ -307,7 +311,10 @@ export class PromotionsV2Service {
         ? prisma.customer_group_members.findMany({ where: { customer_id: Number(request.customer_id), status: 'active' }, select: { customer_group_id: true } })
         : Promise.resolve([]),
     ]);
-    const usageByPromotion = new Map(usage.map((item) => [item.promotion_id, { count: item._count._all, amount: Number(item._sum.discount_amount ?? 0) }]));
+    const campaignUsageByPromotion = new Map(campaignUsage.map((item) => [item.promotion_id, {
+      count: item._count._all,
+      discountAmount: Number(item._sum.discount_amount ?? 0),
+    }]));
     const customerUsageByPromotion = new Map(customerUsage.map((item) => [item.promotion_id, item._count._all]));
     const customerGroups = new Set(groupMemberships.map((item) => item.customer_group_id));
     const seen = new Set<number>();
@@ -330,15 +337,21 @@ export class PromotionsV2Service {
           || (assignment.customer_group_id !== null && customerGroups.has(assignment.customer_group_id)));
         if (!audienceMatch) { rejections.push({ promotion_id: promotion.id, reason_code: 'CUSTOMER_NOT_ELIGIBLE' }); continue; }
       }
-      const used = usageByPromotion.get(promotion.id) ?? { count: 0, amount: 0 };
-      if (promotion.max_redemptions && used.count >= promotion.max_redemptions) { rejections.push({ promotion_id: promotion.id, reason_code: 'USAGE_LIMIT_REACHED' }); continue; }
+      const usage = campaignUsageByPromotion.get(promotion.id) ?? { count: 0, discountAmount: 0 };
+      if (promotion.max_redemptions && usage.count >= promotion.max_redemptions) { rejections.push({ promotion_id: promotion.id, reason_code: 'USAGE_LIMIT_REACHED' }); continue; }
       if (promotion.per_user_limit && request.customer_id && (customerUsageByPromotion.get(promotion.id) ?? 0) >= promotion.per_user_limit) { rejections.push({ promotion_id: promotion.id, reason_code: 'USAGE_LIMIT_REACHED' }); continue; }
-      const budget = Number(promotion.budget ?? 0);
-      // Existing promotions use 0 to mean "no budget limit". Prisma Decimal(0)
-      // is an object and therefore truthy, so checking the object itself marked
-      // every such promotion as exhausted.
-      if (budget > 0 && used.amount >= budget) { rejections.push({ promotion_id: promotion.id, reason_code: 'BUDGET_EXHAUSTED' }); continue; }
-      result.push({ promotionId: promotion.id, ruleVersion: row.version, name: promotion.name ?? `Promotion ${promotion.id}`, rule: parseCachedRule(row.checksum, row.ruleJson) });
+      const configuredBudget = Number(promotion.budget ?? 0);
+      const remainingBudgetPaise = configuredBudget <= 0
+        ? undefined
+        : Math.max(0, Math.round((configuredBudget - usage.discountAmount) * 100));
+      if (remainingBudgetPaise === 0) { rejections.push({ promotion_id: promotion.id, reason_code: 'BUDGET_EXHAUSTED' }); continue; }
+      result.push({
+        promotionId: promotion.id,
+        ruleVersion: row.version,
+        name: promotion.name ?? `Promotion ${promotion.id}`,
+        rule: parseCachedRule(row.checksum, row.ruleJson),
+        ...(remainingBudgetPaise === undefined ? {} : { remainingBudgetPaise }),
+      });
     }
     for (const promotion of legacyAutomaticPromotions) {
       if (seen.has(promotion.id)) continue;
@@ -365,11 +378,14 @@ export class PromotionsV2Service {
           || (assignment.customer_group_id !== null && customerGroups.has(assignment.customer_group_id)));
         if (!audienceMatch) { rejections.push({ promotion_id: promotion.id, reason_code: 'CUSTOMER_NOT_ELIGIBLE' }); continue; }
       }
-      const used = usageByPromotion.get(promotion.id) ?? { count: 0, amount: 0 };
-      if (promotion.max_redemptions && used.count >= promotion.max_redemptions) { rejections.push({ promotion_id: promotion.id, reason_code: 'USAGE_LIMIT_REACHED' }); continue; }
+      const usage = campaignUsageByPromotion.get(promotion.id) ?? { count: 0, discountAmount: 0 };
+      if (promotion.max_redemptions && usage.count >= promotion.max_redemptions) { rejections.push({ promotion_id: promotion.id, reason_code: 'USAGE_LIMIT_REACHED' }); continue; }
       if (promotion.per_user_limit && request.customer_id && (customerUsageByPromotion.get(promotion.id) ?? 0) >= promotion.per_user_limit) { rejections.push({ promotion_id: promotion.id, reason_code: 'USAGE_LIMIT_REACHED' }); continue; }
-      const budget = Number(promotion.budget ?? 0);
-      if (budget > 0 && used.amount >= budget) { rejections.push({ promotion_id: promotion.id, reason_code: 'BUDGET_EXHAUSTED' }); continue; }
+      const configuredBudget = Number(promotion.budget ?? 0);
+      const remainingBudgetPaise = configuredBudget <= 0
+        ? undefined
+        : Math.max(0, Math.round((configuredBudget - usage.discountAmount) * 100));
+      if (remainingBudgetPaise === 0) { rejections.push({ promotion_id: promotion.id, reason_code: 'BUDGET_EXHAUSTED' }); continue; }
       try {
         result.push({
           promotionId: promotion.id,
@@ -378,6 +394,7 @@ export class PromotionsV2Service {
           ruleVersion: 0,
           name: promotion.name ?? `Promotion ${promotion.id}`,
           rule: convertLegacyPromotionRule(promotion),
+          ...(remainingBudgetPaise === undefined ? {} : { remainingBudgetPaise }),
         });
       } catch (error) {
         logger.warn({ promotionId: promotion.id, error }, 'Unable to bridge legacy automatic promotion into V2 quote');

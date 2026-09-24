@@ -26,6 +26,8 @@ export interface PromotionCampaign {
   ruleVersion: number;
   name: string;
   rule: PromotionRuleV2;
+  /** Remaining configured campaign budget in paise; omitted means unlimited. */
+  remainingBudgetPaise?: number;
 }
 
 export interface PromotionAdjustment {
@@ -367,6 +369,7 @@ export function evaluatePromotionQuote(
   const giftChoices: Array<{ promotion_id: number; product_ids: string[] }> = [];
 
   for (const campaign of [...campaigns].sort((a, b) => a.promotionId - b.promotionId)) {
+    const candidateStart = candidates.length;
     const eligible = lines.filter((line) => isLineInPromotionScope(line, campaign.rule));
     if (!eligible.length) { rejected.push({ promotion_id: campaign.promotionId, reason_code: 'NO_ELIGIBLE_PRODUCTS' }); continue; }
     for (const bucket of qualificationBuckets(campaign.rule, eligible)) {
@@ -381,6 +384,27 @@ export function evaluatePromotionQuote(
       if (built.rejection) rejected.push(built.rejection);
       if (built.giftChoices && !giftChoices.some((choice) => choice.promotion_id === campaign.promotionId)) giftChoices.push({ promotion_id: campaign.promotionId, product_ids: built.giftChoices });
       if (built.candidate?.saving) candidates.push(...atomicCandidates(built.candidate));
+    }
+    const campaignSaving = candidates
+      .slice(candidateStart)
+      .reduce((sum, candidate) => sum + candidate.saving, 0);
+    if (
+      campaign.remainingBudgetPaise !== undefined &&
+      campaignSaving > campaign.remainingBudgetPaise
+    ) {
+      candidates.splice(candidateStart);
+      const giftChoiceIndex = giftChoices.findIndex(
+        (choice) => choice.promotion_id === campaign.promotionId
+      );
+      if (giftChoiceIndex >= 0) giftChoices.splice(giftChoiceIndex, 1);
+      rejected.push({
+        promotion_id: campaign.promotionId,
+        reason_code: 'BUDGET_EXHAUSTED',
+        details: {
+          remaining_budget: campaign.remainingBudgetPaise,
+          required_budget: campaignSaving,
+        },
+      });
     }
   }
 

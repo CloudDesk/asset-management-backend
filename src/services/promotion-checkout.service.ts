@@ -121,12 +121,23 @@ export class PromotionCheckoutService {
           select: { name: true, code: true, max_redemptions: true, per_user_limit: true, budget: true },
         });
         const [campaignUsage, customerUsage] = await Promise.all([
-          tx.promotion_redemptions.aggregate({ where: { promotion_id: promotionId }, _count: { _all: true }, _sum: { discount_amount: true } }),
-          evaluation.user_id ? tx.promotion_redemptions.count({ where: { promotion_id: promotionId, user_id: evaluation.user_id } }) : Promise.resolve(0),
+          tx.promotion_redemptions.aggregate({
+            where: { promotion_id: promotionId },
+            _count: { _all: true },
+            _sum: { discount_amount: true },
+          }),
+          evaluation.user_id
+            ? tx.promotion_redemptions.count({ where: { promotion_id: promotionId, user_id: evaluation.user_id } })
+            : Promise.resolve(0),
         ]);
-        if (promotion.max_redemptions && campaignUsage._count._all >= promotion.max_redemptions) throw new Error(`Promotion ${promotionId} usage limit was reached`);
+        if (promotion.max_redemptions && campaignUsage._count._all >= promotion.max_redemptions) {
+          throw new Error(`Promotion ${promotionId} campaign usage limit was reached`);
+        }
         if (promotion.per_user_limit && customerUsage >= promotion.per_user_limit) throw new Error(`Promotion ${promotionId} customer usage limit was reached`);
-        if (promotion.budget && Number(campaignUsage._sum.discount_amount ?? 0) + amount > Number(promotion.budget)) throw new Error(`Promotion ${promotionId} budget was exhausted`);
+        const usedBudget = Number(campaignUsage._sum.discount_amount ?? 0);
+        if (Number(promotion.budget ?? 0) > 0 && usedBudget + amount > Number(promotion.budget)) {
+          throw new Error(`Promotion ${promotionId} budget was reached`);
+        }
         await tx.promotion_redemptions.create({ data: {
           id: randomUUID(), evaluation_id: evaluationId, order_id: order.orderid, user_id: evaluation.user_id,
           promotion_id: promotionId, voucher_code: promotion.code || null, discount_amount: amount, redeemed_at: epoch(),

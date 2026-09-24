@@ -175,6 +175,43 @@ test('applies a fixed amount only to selected products', () => {
   assert.deepEqual(quote.adjustments.map((item) => item.product_id), ['A']);
 });
 
+test('rejects a promotion when the current order exceeds its remaining budget', () => {
+  const tenPercent = rule({
+    benefit: { type: 'PERCENT_OFF', value: 10, target: 'ALL_QUALIFYING_UNITS' },
+  });
+  const limitedCampaign = {
+    ...campaign(1, tenPercent),
+    remainingBudgetPaise: 999,
+  };
+  const quote = evaluatePromotionQuote(
+    [line('A', 1, 10_000)],
+    [limitedCampaign],
+    [],
+  );
+
+  assert.equal(quote.discount_total, 0);
+  assert.ok(quote.rejected_candidates.some((item) =>
+    item.promotion_id === 1 && item.reason_code === 'BUDGET_EXHAUSTED'
+  ));
+});
+
+test('allows a promotion when its current discount exactly fits the remaining budget', () => {
+  const tenPercent = rule({
+    benefit: { type: 'PERCENT_OFF', value: 10, target: 'ALL_QUALIFYING_UNITS' },
+  });
+  const limitedCampaign = {
+    ...campaign(1, tenPercent),
+    remainingBudgetPaise: 1_000,
+  };
+  const quote = evaluatePromotionQuote(
+    [line('A', 1, 10_000)],
+    [limitedCampaign],
+    [],
+  );
+
+  assert.equal(quote.discount_total, 1_000);
+});
+
 test('rejects invalid or ambiguous tier definitions', () => {
   assert.throws(() => rule({ benefit: undefined, tiers: [
     { minimum: 3, benefit: { type: 'PERCENT_OFF', value: 15, target: 'ALL_QUALIFYING_UNITS', fulfilment: 'AUTO_ADD', out_of_stock_policy: 'REMOVE_PROMOTION' } },
