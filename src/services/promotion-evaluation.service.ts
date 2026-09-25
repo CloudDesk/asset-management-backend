@@ -734,7 +734,9 @@ export class PromotionEvaluationService {
     for (const condition of conditions) {
       switch (condition.attribute) {
         case 'cart.total_value':
-          const totalValue = cartData.subtotal + cartData.shipping_cost + cartData.tax_amount;
+          // Cart-value eligibility is merchandise-only. Shipping and tax are
+          // payable components, not qualifying merchandise value.
+          const totalValue = cartData.subtotal;
           if (!this.evaluateNumericCondition(condition, totalValue)) {
             reasons.push({
               promotion_id: promotion.id,

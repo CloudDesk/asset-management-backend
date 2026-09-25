@@ -117,7 +117,9 @@ function metricValue(rule: PromotionRuleV2, eligible: PromotionCartLine[], allLi
     case 'PER_PRODUCT_QUANTITY': return eligible.length ? Math.max(...eligible.map((line) => line.quantity)) : 0;
     case 'QUALIFYING_SUBTOTAL': return eligible.reduce((sum, line) => sum + line.unitPricePaise * line.quantity, 0);
     case 'CART_SUBTOTAL': return allLines.filter((line) => !line.isGift).reduce((sum, line) => sum + line.unitPricePaise * line.quantity, 0);
-    case 'ORDER_TOTAL': return allLines.filter((line) => !line.isGift).reduce((sum, line) => sum + line.unitPricePaise * line.quantity, 0) + shippingAmount;
+    // Promotion thresholds are always based on merchandise. Shipping must not
+    // help an order qualify for a benefit that may itself remove shipping.
+    case 'ORDER_TOTAL': return allLines.filter((line) => !line.isGift).reduce((sum, line) => sum + line.unitPricePaise * line.quantity, 0);
     case 'ELIGIBLE_QUANTITY': return eligible.reduce((sum, line) => sum + line.quantity, 0);
   }
 }

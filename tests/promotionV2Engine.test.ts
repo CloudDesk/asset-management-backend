@@ -143,10 +143,51 @@ test('keeps stackable legacy free shipping with a merchandise promotion', () => 
     { shippingAmount: 15_000 },
   );
 
-  assert.equal(freeShipping.qualifier.metric, 'ORDER_TOTAL');
+  assert.equal(freeShipping.qualifier.metric, 'CART_SUBTOTAL');
   assert.deepEqual(quote.applied_promotions.map((item) => item.promotion_id).sort((a, b) => a - b), [4, 33]);
   assert.equal(quote.discount_total, 30_000);
   assert.equal(quote.payable_total, 35_000);
+});
+
+test('does not let shipping unlock a merchandise-value promotion', () => {
+  const freeShipping = convertLegacyPromotionRule({
+    type: 'FREE_SHIPPING',
+    conditions: [{ attribute: 'cart.total_value', operator: 'GTE', value: '100' }],
+    action: { type: 'FREE_SHIPPING', value: 0 },
+    name: 'Free Shipping Over Rs. 100',
+  });
+  const quote = evaluatePromotionQuote(
+    [line('A', 1, 4_000)],
+    [campaign(4, freeShipping)],
+    [],
+    { shippingAmount: 15_000 },
+  );
+
+  assert.equal(quote.applied_promotions.length, 0);
+  assert.equal(quote.discount_total, 0);
+  assert.equal(quote.payable_total, 19_000);
+  assert.ok(quote.rejected_candidates.some((item) =>
+    item.promotion_id === 4 && item.reason_code === 'MINIMUM_VALUE_NOT_MET'
+  ));
+});
+
+test('ORDER_TOTAL qualification also excludes shipping', () => {
+  const freeShipping = rule({
+    qualifier: {
+      scope: { include: [{ facet: 'ENTIRE_CART', values: ['*'] }], exclude: [], group_operator: 'OR' },
+      metric: 'ORDER_TOTAL', aggregation: 'ACROSS_ELIGIBLE_PRODUCTS', minimum_value: 10_000,
+    },
+    benefit: { type: 'FREE_SHIPPING', target: 'ALL_QUALIFYING_UNITS' },
+  });
+  const quote = evaluatePromotionQuote(
+    [line('A', 1, 4_000)],
+    [campaign(5, freeShipping)],
+    [],
+    { shippingAmount: 15_000 },
+  );
+
+  assert.equal(quote.applied_promotions.length, 0);
+  assert.equal(quote.payable_total, 19_000);
 });
 
 test('applies compatible offers to different products', () => {

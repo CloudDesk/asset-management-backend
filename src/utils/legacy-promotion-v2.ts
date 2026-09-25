@@ -32,7 +32,11 @@ export function convertLegacyPromotionRule(input: {
     const attribute = (condition.attribute ?? '').toLowerCase();
     const values = strings(condition.value);
     if (attribute.includes('item_count') || attribute.includes('quantity')) minimumQuantity = Number(condition.value);
-    else if (attribute.includes('total_value') || attribute.includes('order_total')) {
+    else if (attribute.includes('total_value')) {
+      minimumValue = Math.round(Number(condition.value) * 100);
+      valueMetric = 'CART_SUBTOTAL';
+    }
+    else if (attribute.includes('order_total')) {
       minimumValue = Math.round(Number(condition.value) * 100);
       valueMetric = 'ORDER_TOTAL';
     }
