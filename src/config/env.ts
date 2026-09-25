@@ -314,6 +314,9 @@ const envSchema = z.object({
   REDIRECT_URL_PAYMENT_STATUS: z.string().optional(),
   REDIRECT_URL_SUCCESS: z.string().optional(),
   REDIRECT_URL_FAILURE: z.string().optional(),
+  ECOM_PAYMENT_RETURN_URL: z.string().optional(),
+  MOBILE_PAYMENT_RETURN_URL: z.string().optional(),
+  PAYMENT_RETURN_URL_ALLOWED_ORIGINS: z.string().optional(),
   REDIRECT_INVENTORY_URL: z.string().optional(),
 
   // Optional OTP Configuration (has defaults)

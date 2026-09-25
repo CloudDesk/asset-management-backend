@@ -3,6 +3,10 @@ import axios from "axios";
 import { logger } from "../config/logger.js";
 import { TransactionService } from "./transaction.service.js";
 import {
+  appendPaymentReturnParams,
+  isAllowedPaymentReturnUrl,
+} from "../utils/paymentReturnUrl.js";
+import {
   createSuccessResponse,
   createErrorResponse,
   DatabaseError,
@@ -59,33 +63,12 @@ export interface PhonePePaymentRequest {
   callbackUrl?: string;
 }
 
-function isAllowedCustomerRedirectUrl(value: unknown): value is string {
-  if (typeof value !== "string" || !value.trim()) return false;
-
-  try {
-    const url = new URL(value);
-    const configuredOrigins = (
-      process.env.PAYMENT_RETURN_URL_ALLOWED_ORIGINS || ""
-    )
-      .split(",")
-      .map((origin) => origin.trim())
-      .filter(Boolean);
-    const isLocalDevelopment =
-      process.env.NODE_ENV !== "production" &&
-      url.protocol === "http:" &&
-      ["localhost", "127.0.0.1"].includes(url.hostname);
-
-    return configuredOrigins.includes(url.origin) || isLocalDevelopment;
-  } catch {
-    return false;
-  }
-}
-
 function buildCustomerReturnUrl(baseUrl: string, merchantTransactionId: string): string {
-  const url = new URL(baseUrl);
-  url.searchParams.set("payment", "success");
-  url.searchParams.set("merchantTransactionId", merchantTransactionId);
-  return url.toString();
+  return appendPaymentReturnParams(
+    baseUrl,
+    "success",
+    merchantTransactionId
+  );
 }
 
 function getPhonePeErrorMessage(error: any): string {
@@ -225,7 +208,7 @@ export class PhonePeService {
 
       // PhonePe's dashboard webhook handles server-to-server payment events.
       // This SDK URL is only where the customer's browser returns afterward.
-      const configuredCallbackUrl = isAllowedCustomerRedirectUrl(callbackUrl)
+      const configuredCallbackUrl = isAllowedPaymentReturnUrl(callbackUrl)
         ? callbackUrl
         : PHONEPE_CONFIG.REDIRECT_SUCCESS;
       // The return must be self-contained. Browser-local state is not reliable

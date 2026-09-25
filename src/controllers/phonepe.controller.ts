@@ -20,6 +20,8 @@ import { logger } from "../config/logger.js";
 import { WalletRedemptionService } from "../services/wallet-redemption.service.js";
 import { RefundOperationService } from "../services/refund-operation.service.js";
 import { createPaymentReconciliationTask } from "../services/gcpTasks.service.js";
+import { resolvePaymentReturnUrl } from "../utils/paymentReturnUrl.js";
+import type { PaymentChannel } from "../utils/paymentReturnUrl.js";
 
 const getEvaluationCartItems = (cartData: unknown): any[] => {
   if (Array.isArray(cartData)) return cartData;
@@ -73,6 +75,7 @@ export class PhonePeController {
       try {
         const requestBody = request.body as {
           mode: "phonepe" | "cod";
+          payment_channel?: PaymentChannel;
           evaluation_ids?: string[];
           wallet?: {
             apply: boolean;
@@ -100,6 +103,10 @@ export class PhonePeController {
           };
           returnUrl?: string;
         };
+        requestBody.returnUrl = resolvePaymentReturnUrl(
+          requestBody.payment_channel,
+          requestBody.returnUrl
+        );
         console.log("test");
         console.log(request.body, "req body");
 
@@ -1396,6 +1403,8 @@ export class PhonePeController {
             amount: paymentRequest.amount,
             userId: paymentRequest.userId,
             productIds: paymentRequest.productIds,
+            paymentChannel: requestBody.payment_channel || "legacy",
+            returnUrl: requestBody.returnUrl,
           },
           "Converted payload to PhonePe payment request"
         );
