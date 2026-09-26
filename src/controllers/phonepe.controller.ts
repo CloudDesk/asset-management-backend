@@ -20,8 +20,19 @@ import { logger } from "../config/logger.js";
 import { WalletRedemptionService } from "../services/wallet-redemption.service.js";
 import { RefundOperationService } from "../services/refund-operation.service.js";
 import { createPaymentReconciliationTask } from "../services/gcpTasks.service.js";
-import { resolvePaymentReturnUrl } from "../utils/paymentReturnUrl.js";
+import {
+  appendPaymentReturnParams,
+  resolvePaymentReturnUrl,
+} from "../utils/paymentReturnUrl.js";
 import type { PaymentChannel } from "../utils/paymentReturnUrl.js";
+import {
+  calculateCheckoutPricing,
+  checkoutAmountsMatch,
+  checkoutCartQuantitiesMatch,
+  STANDARD_CHECKOUT_SHIPPING_AMOUNT,
+  type CheckoutPricing,
+  uniqueCheckoutEvaluationIds,
+} from "../utils/checkoutPricing.js";
 
 const getEvaluationCartItems = (cartData: unknown): any[] => {
   if (Array.isArray(cartData)) return cartData;
@@ -101,6 +112,8 @@ export class PhonePeController {
             transactionfor: string;
             userId: number;
           };
+          shippingCost?: number;
+          taxAmount?: number;
           returnUrl?: string;
         };
         requestBody.returnUrl = resolvePaymentReturnUrl(
@@ -387,6 +400,7 @@ export class PhonePeController {
         // Step 2: Validate Product & PlatformStock availability BEFORE payment
         const PLATFORM_NAME = "nivapp";
         const validationErrors = [];
+        const checkoutProducts = new Map<number, { price: number; discount: number }>();
 
         logger.info(
           {
@@ -416,6 +430,8 @@ export class PhonePeController {
                 orderedquantity: true,
                 productstatus: true,
                 iscombo: true, // ✅ NEW: Check if product is combo
+                price: true,
+                discount: true,
               },
             });
 
@@ -441,6 +457,11 @@ export class PhonePeController {
               validationErrors.push(error);
               continue;
             }
+
+            checkoutProducts.set(productId, {
+              price: Number(product.price || 0),
+              discount: Math.max(0, Number(product.discount || 0)),
+            });
 
             // ========================================
             // STEP 2A.1: COMBO PRODUCT COMPONENT VALIDATION
@@ -904,6 +925,48 @@ export class PhonePeController {
           "All products passed validation (Product + PlatformStock) - proceeding with payment"
         );
 
+        const requestedQuantities = new Map<number, number>();
+        for (const item of requestBody.order) {
+          requestedQuantities.set(
+            item.productid,
+            (requestedQuantities.get(item.productid) || 0) + Number(item.quantity || 0),
+          );
+        }
+        const merchandiseSubtotal = [...requestedQuantities.entries()].reduce(
+          (sum, [productId, quantity]) => {
+            const product = checkoutProducts.get(productId);
+            if (!product) throw new ValidationError("CHECKOUT_PRODUCT_PRICE_UNAVAILABLE");
+            return sum + Math.max(0, product.price - product.discount) * quantity;
+          },
+          0,
+        );
+        const checkoutPricing = await this.resolveAuthoritativeCheckoutPricing(
+          requestBody.order,
+          validEvaluations,
+          merchandiseSubtotal,
+        );
+        const submittedAmount = Math.round(Number(requestBody.transaction.amount) * 100) / 100;
+        if (!checkoutAmountsMatch(submittedAmount, checkoutPricing.payable_before_wallet)) {
+          return reply.code(409).send({
+            success: false,
+            message: "Your order total changed. Refresh the checkout and review the updated amount before paying.",
+            error_code: "CHECKOUT_TOTAL_CHANGED",
+            submitted_amount: submittedAmount,
+            expected_amount: checkoutPricing.payable_before_wallet,
+            pricing: checkoutPricing,
+            action_required: "refresh_checkout_and_retry",
+            statusCode: 409,
+          });
+        }
+
+        // From this point onward only server-calculated values are used by the
+        // wallet, PhonePe, transaction snapshot, and order creation flows.
+        requestBody.transaction.amount = checkoutPricing.payable_before_wallet;
+        requestBody.shippingCost = checkoutPricing.shipping_payable;
+        if (requestBody.wallet) {
+          requestBody.wallet.eligibility_base = checkoutPricing.merchandise_subtotal;
+        }
+
         // STEP 3: Lock stock for order (for BOTH phonepe and cod modes)
         // This prevents race conditions where multiple users try to buy same product
         logger.info(
@@ -1349,12 +1412,30 @@ export class PhonePeController {
         //   );
         // }
 
+        // A fully discounted checkout must not be sent to PhonePe with a zero
+        // amount. Finalize it internally after all normal validation and stock
+        // locking have succeeded.
+        if (checkoutPricing.payable_before_wallet === 0) {
+          return await this.completeWithoutExternalPayment(
+            reply,
+            requestBody,
+            merchantTransactionId,
+            0,
+            validEvaluations,
+            invalidEvaluations,
+            limitReachedEvaluations,
+            lockResults,
+            checkoutPricing,
+            "promotion"
+          );
+        }
+
         if (requestBody.wallet?.apply) {
           const reservation = await this.walletRedemptionService.reserve(
             requestBody.transaction.userId,
             merchantTransactionId,
-            Number(requestBody.wallet.eligibility_base),
-            Number(requestBody.transaction.amount),
+            checkoutPricing.merchandise_subtotal,
+            checkoutPricing.payable_before_wallet,
           );
           walletDiscountAmount = reservation.discount_amount;
           if (walletDiscountAmount <= 0) {
@@ -1367,8 +1448,8 @@ export class PhonePeController {
             });
           }
 
-          if (walletDiscountAmount >= Number(requestBody.transaction.amount)) {
-            return await this.completeWalletOnlyOrder(
+          if (walletDiscountAmount >= checkoutPricing.payable_before_wallet) {
+            return await this.completeWithoutExternalPayment(
               reply,
               requestBody,
               merchantTransactionId,
@@ -1376,7 +1457,9 @@ export class PhonePeController {
               validEvaluations,
               invalidEvaluations,
               limitReachedEvaluations,
-              lockResults
+              lockResults,
+              checkoutPricing,
+              "wallet"
             );
           }
         }
@@ -1388,7 +1471,7 @@ export class PhonePeController {
         // Create PhonePe payment request
         paymentRequest = {
           merchantTransactionId,
-          amount: Math.round((Number(requestBody.transaction.amount) - walletDiscountAmount) * 100) / 100,
+          amount: Math.round((checkoutPricing.payable_before_wallet - walletDiscountAmount) * 100) / 100,
           name: requestBody.transaction.name,
           mobileNumber: requestBody.transaction.mobilenumber,
           userId: requestBody.transaction.userId,
@@ -1401,6 +1484,8 @@ export class PhonePeController {
           {
             merchantTransactionId: paymentRequest.merchantTransactionId,
             amount: paymentRequest.amount,
+            pricing: checkoutPricing,
+            wallet_discount_amount: walletDiscountAmount,
             userId: paymentRequest.userId,
             productIds: paymentRequest.productIds,
             paymentChannel: requestBody.payment_channel || "legacy",
@@ -1424,6 +1509,7 @@ export class PhonePeController {
               amount: walletDiscountAmount,
               eligibility_base: requestBody.wallet?.eligibility_base ?? null,
             },
+            checkout_pricing: checkoutPricing,
             invalid_evaluations: invalidEvaluations, // Track invalid ones for user info
             limit_reached_evaluations: limitReachedEvaluations, // Track limit-reached promotions
             originalPayload: requestBody,
@@ -1479,6 +1565,8 @@ export class PhonePeController {
             merchantTransactionId: result.transactionId,
             redirectUrl: result.redirectUrl,
             amount: paymentRequest.amount,
+            pricing: checkoutPricing,
+            wallet_discount_amount: walletDiscountAmount,
             status: "INITIATED", // Only PhonePe mode is allowed
             mode: requestBody.mode,
             message: userMessage,
@@ -1585,7 +1673,61 @@ export class PhonePeController {
     }
   );
 
-  private async completeWalletOnlyOrder(
+  private async resolveAuthoritativeCheckoutPricing(
+    orderItems: Array<{ productid: number; quantity: number }>,
+    evaluationIds: string[],
+    merchandiseSubtotal: number,
+  ): Promise<CheckoutPricing> {
+    if (evaluationIds.length === 0) {
+      return calculateCheckoutPricing({
+        merchandiseSubtotal,
+        shippingAmount: STANDARD_CHECKOUT_SHIPPING_AMOUNT,
+      });
+    }
+
+    const uniqueEvaluationIds = uniqueCheckoutEvaluationIds(evaluationIds);
+    if (uniqueEvaluationIds.length > 1) {
+      throw new ValidationError("PROMOTION_EVALUATION_CONFLICT");
+    }
+    const evaluations = await prisma.promotion_evaluations.findMany({
+      where: { evaluation_id: { in: uniqueEvaluationIds } },
+    });
+    if (evaluations.length !== uniqueEvaluationIds.length) {
+      throw new ValidationError("PROMOTION_EVALUATION_NOT_FOUND");
+    }
+
+    for (const evaluation of evaluations) {
+      if (!checkoutCartQuantitiesMatch(
+        orderItems,
+        getEvaluationCartItems(evaluation.cart_data),
+      )) {
+        throw new ValidationError("PROMOTION_CART_CHANGED");
+      }
+    }
+
+    const v2Evaluations = evaluations.filter((evaluation) =>
+      Boolean(getV2EvaluationQuote(evaluation)),
+    );
+    if (v2Evaluations.length === 1) {
+      return calculateCheckoutPricing({
+        merchandiseSubtotal,
+        shippingAmount: STANDARD_CHECKOUT_SHIPPING_AMOUNT,
+        v2Quote: getV2EvaluationQuote(v2Evaluations[0]),
+      });
+    }
+
+    return calculateCheckoutPricing({
+      merchandiseSubtotal,
+      shippingAmount: STANDARD_CHECKOUT_SHIPPING_AMOUNT,
+      legacyPromotions: evaluations.flatMap((evaluation) =>
+        Array.isArray(evaluation.applied_promotions)
+          ? evaluation.applied_promotions as any[]
+          : []
+      ),
+    });
+  }
+
+  private async completeWithoutExternalPayment(
     reply: FastifyReply,
     requestBody: any,
     merchantTransactionId: string,
@@ -1593,8 +1735,11 @@ export class PhonePeController {
     validEvaluations: string[],
     invalidEvaluations: any[],
     limitReachedEvaluations: any[],
-    lockResults: any[]
+    lockResults: any[],
+    checkoutPricing: CheckoutPricing,
+    internalMode: "wallet" | "promotion",
   ) {
+    const isWalletPayment = internalMode === "wallet";
     const paymentRequest = {
       merchantTransactionId,
       amount: 0,
@@ -1606,10 +1751,12 @@ export class PhonePeController {
       callbackUrl: requestBody.returnUrl,
     };
 
-    const walletPaymentStatus = {
-      code: "WALLET_PAYMENT_SUCCESS",
+    const internalPaymentStatus = {
+      code: isWalletPayment ? "WALLET_PAYMENT_SUCCESS" : "PROMOTION_PAYMENT_SUCCESS",
       state: "SUCCESS",
-      message: "Order fully paid using wallet credit",
+      message: isWalletPayment
+        ? "Order fully paid using wallet credit"
+        : "Order fully covered by promotions",
       merchantTransactionId,
       amount: 0,
       walletDiscountAmount,
@@ -1618,20 +1765,21 @@ export class PhonePeController {
 
     const transactionData = {
       status: "SUCCESS",
-      mode: "wallet",
+      mode: internalMode,
       evaluation_ids: validEvaluations,
       wallet_discount: {
-        applied: true,
+        applied: walletDiscountAmount > 0,
         amount: walletDiscountAmount,
         eligibility_base: requestBody.wallet?.eligibility_base ?? null,
       },
+      checkout_pricing: checkoutPricing,
       invalid_evaluations: invalidEvaluations,
       limit_reached_evaluations: limitReachedEvaluations,
       originalPayload: requestBody,
       paymentRequest,
       initiatedAt: new Date().toISOString(),
       completedAt: new Date().toISOString(),
-      walletPayment: walletPaymentStatus,
+      internalPayment: internalPaymentStatus,
       phonePeResponses: {},
       codData: null,
     };
@@ -1642,11 +1790,11 @@ export class PhonePeController {
       await this.storeTransactionDataWithStatus(paymentRequest, transactionData, "SUCCESS");
       reconciliation = await this.ensureOrderAfterSuccessfulPayment(
         merchantTransactionId,
-        walletPaymentStatus
+        internalPaymentStatus
       );
 
       if (reconciliation.status === "failed") {
-        throw new Error(reconciliation.error || "Wallet-funded order could not be created");
+        throw new Error(reconciliation.error || "Internally funded order could not be created");
       }
     } catch (error: any) {
       const existingOrders = await this.ordersService.findMany(
@@ -1676,18 +1824,32 @@ export class PhonePeController {
         orderId: reconciliation.orderId,
         walletDiscountAmount,
       },
-      "Wallet-only order created without external payment"
+      "Order created without external payment"
     );
 
     return reply.code(200).send(createSuccessResponse(
-      "Order placed successfully using wallet credit",
+      isWalletPayment
+        ? "Order placed successfully using wallet credit"
+        : "Order placed successfully using promotions",
       {
         merchantTransactionId,
         amount: 0,
+        redirectUrl: isWalletPayment
+          ? undefined
+          : appendPaymentReturnParams(
+              requestBody.returnUrl,
+              "success",
+              merchantTransactionId,
+              reconciliation.status,
+            ),
+        pricing: checkoutPricing,
+        wallet_discount_amount: walletDiscountAmount,
         status: "SUCCESS",
-        mode: "wallet",
-        paymentMode: "wallet",
-        message: "Your order was placed. No external payment was required.",
+        mode: internalMode,
+        paymentMode: internalMode,
+        message: isWalletPayment
+          ? "Your order was placed. No external payment was required."
+          : "Your promotions covered the complete order. No payment was required.",
         orderCreation: reconciliation,
         orderData: {
           orderId: reconciliation.orderId,
@@ -1702,7 +1864,7 @@ export class PhonePeController {
         },
         next_steps: {
           phonepe: null,
-          wallet: {
+          internal: {
             action: "order_complete",
             instructions: "Open My Orders to view the placed order.",
           },
@@ -2630,9 +2792,10 @@ export class PhonePeController {
       const expectedWalletDiscount = Number(
         transactions.data?.[0]?.transactiondata?.wallet_discount?.amount || 0
       );
+      const storedMode = transactions.data?.[0]?.transactiondata?.mode;
       const transactionMode =
-        transactions.data?.[0]?.transactiondata?.mode === "wallet"
-          ? "wallet"
+        storedMode === "wallet" || storedMode === "promotion"
+          ? storedMode
           : "phonepe";
 
       const existingOrders = await this.ordersService.findMany(
@@ -3150,8 +3313,18 @@ export class PhonePeController {
         }
       }
 
-      // Calculate product amount (after product discounts, before promotion discounts)
-      const productAmount = originalTotal - productDiscountTotal;
+      const authoritativePricing =
+        transaction.transactiondata?.checkout_pricing as CheckoutPricing | undefined;
+      if (authoritativePricing) {
+        promotionDiscountTotal = Number(authoritativePricing.merchandise_discount || 0);
+        shippingCost = Number(authoritativePricing.shipping_payable || 0);
+      }
+
+      // Calculate product amount (after product discounts, before promotion discounts).
+      // Prefer the immutable server-side payment snapshot over client line totals.
+      const productAmount = authoritativePricing
+        ? Number(authoritativePricing.merchandise_subtotal || 0)
+        : originalTotal - productDiscountTotal;
 
       // ============================================
       // BUGFIX: Enrich orderItems with per-line discount data
@@ -3250,7 +3423,12 @@ export class PhonePeController {
             }
 
             // Get promotion discount from applied_promotions breakdown
-            const appliedPromotions = (evaluationData.applied_promotions as any[]) || [];
+            // Legacy evaluations may have been created before the checkout cap
+            // was introduced. Allocate from the immutable payment snapshot so
+            // order lines can never persist more discount than the order header.
+            const appliedPromotions = authoritativePricing
+              ? authoritativePricing.applied_promotions || []
+              : (evaluationData.applied_promotions as any[]) || [];
             let foundPromotionBreakdown = false;
 
             const v2Quote = getV2EvaluationQuote(evaluationData);
@@ -3533,7 +3711,13 @@ export class PhonePeController {
         previous_status: "order_placed",
         new_status: initialOrderStatus,
         changed_date: currentTime,
-        source: isCodOrder ? "system" : mode === "wallet" ? "wallet" : "phonepe",
+        source: isCodOrder
+          ? "system"
+          : mode === "wallet"
+            ? "wallet"
+            : mode === "promotion"
+              ? "promotion"
+              : "phonepe",
         is_active: true
       }]);
       const walletDiscountTotal = Number(

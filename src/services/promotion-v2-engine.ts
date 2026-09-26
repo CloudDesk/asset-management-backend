@@ -64,7 +64,13 @@ export interface PromotionQuote {
   evaluation_id: string;
   currency: 'INR';
   original_total: number;
+  merchandise_subtotal: number;
+  merchandise_discount_total: number;
+  merchandise_payable: number;
   shipping_amount: number;
+  shipping_discount_total: number;
+  shipping_payable: number;
+  gift_savings_total: number;
   discount_total: number;
   payable_total: number;
   adjustments: PromotionAdjustment[];
@@ -357,6 +363,82 @@ function optimise(candidates: Candidate[]): Candidate[] {
   return best;
 }
 
+const isAutoAddedGift = (adjustment: PromotionAdjustment): boolean =>
+  adjustment.type === 'FREE_ITEM' && adjustment.metadata.fulfilment === 'AUTO_ADD';
+
+const isShippingAdjustment = (adjustment: PromotionAdjustment): boolean =>
+  adjustment.type === 'FREE_SHIPPING';
+
+function adjustmentLineKey(adjustment: PromotionAdjustment): string | undefined {
+  if (adjustment.cart_record_id) return `cart:${adjustment.cart_record_id}`;
+  if (adjustment.product_id) return `product:${adjustment.product_id}`;
+  return undefined;
+}
+
+function lineBalanceKey(line: PromotionCartLine): string {
+  return line.cartRecordId ? `cart:${line.cartRecordId}` : `product:${line.id}`;
+}
+
+/**
+ * Promotion candidates are calculated independently so the optimiser can
+ * compare their customer value. Once a compatible set is selected, stacked
+ * merchandise benefits must share the same finite line balances. This pass
+ * converts nominal savings into the amounts that can actually be applied.
+ */
+function capSelectedCandidates(
+  selected: Candidate[],
+  lines: PromotionCartLine[],
+  shippingAmount: number,
+): Candidate[] {
+  const remainingByLine = new Map<string, number>();
+  for (const line of lines.filter((item) => !item.isGift)) {
+    const key = lineBalanceKey(line);
+    remainingByLine.set(key, (remainingByLine.get(key) ?? 0) + line.unitPricePaise * line.quantity);
+  }
+
+  let remainingShipping = Math.max(0, shippingAmount);
+  const selectedOrder = new Map(
+    selected.map((candidate, index) => [candidate.campaign.promotionId, index]),
+  );
+  const ranked = [...selected].sort((left, right) =>
+    right.saving - left.saving ||
+    right.campaign.rule.stacking.priority - left.campaign.rule.stacking.priority ||
+    left.campaign.promotionId - right.campaign.promotionId
+  );
+
+  const capped = ranked.flatMap((candidate): Candidate[] => {
+    const adjustments = candidate.adjustments.flatMap((adjustment): PromotionAdjustment[] => {
+      if (isAutoAddedGift(adjustment)) return [adjustment];
+
+      if (isShippingAdjustment(adjustment)) {
+        const amount = Math.min(Math.max(adjustment.amount, 0), remainingShipping);
+        remainingShipping -= amount;
+        return amount > 0
+          ? [{ ...adjustment, amount, payable_amount: Math.max(0, adjustment.list_amount - amount) }]
+          : [];
+      }
+
+      const key = adjustmentLineKey(adjustment);
+      if (!key) return [];
+      const remaining = Math.max(0, remainingByLine.get(key) ?? 0);
+      const amount = Math.min(Math.max(adjustment.amount, 0), remaining);
+      remainingByLine.set(key, remaining - amount);
+      return amount > 0
+        ? [{ ...adjustment, amount, payable_amount: Math.max(0, adjustment.list_amount - amount) }]
+        : [];
+    });
+    const saving = adjustments.reduce((sum, adjustment) => sum + adjustment.amount, 0);
+    return saving > 0 ? [{ ...candidate, adjustments, saving }] : [];
+  });
+
+  // Allocation follows best-value rank, but the public response keeps the
+  // optimiser's stable ordering for backward compatibility.
+  return capped.sort((left, right) =>
+    (selectedOrder.get(left.campaign.promotionId) ?? 0) -
+    (selectedOrder.get(right.campaign.promotionId) ?? 0)
+  );
+}
+
 export function evaluatePromotionQuote(
   lines: PromotionCartLine[],
   campaigns: PromotionCampaign[],
@@ -410,7 +492,8 @@ export function evaluatePromotionQuote(
     }
   }
 
-  const selected = optimise(candidates);
+  const nominalSelected = optimise(candidates);
+  const selected = capSelectedCandidates(nominalSelected, lines, shippingAmount);
   const selectedIds = new Set(selected.map((candidate) => candidate.campaign.promotionId));
   for (const candidate of candidates) {
     if (!selectedIds.has(candidate.campaign.promotionId) && !rejected.some((item) => item.promotion_id === candidate.campaign.promotionId && item.reason_code === 'CONFLICTED_WITH_BETTER_OFFER')) {
@@ -421,8 +504,20 @@ export function evaluatePromotionQuote(
   const merchandise = lines.filter((line) => !line.isGift).reduce((sum, line) => sum + line.unitPricePaise * line.quantity, 0);
   const autoAddedGiftValue = adjustments.filter((adjustment) => adjustment.type === 'FREE_ITEM' && adjustment.metadata.fulfilment === 'AUTO_ADD')
     .reduce((sum, adjustment) => sum + adjustment.list_amount, 0);
+  const merchandiseDiscountTotal = adjustments
+    .filter((adjustment) => !isShippingAdjustment(adjustment) && !isAutoAddedGift(adjustment))
+    .reduce((sum, adjustment) => sum + adjustment.amount, 0);
+  const shippingDiscountTotal = adjustments
+    .filter(isShippingAdjustment)
+    .reduce((sum, adjustment) => sum + adjustment.amount, 0);
+  const giftSavingsTotal = adjustments
+    .filter(isAutoAddedGift)
+    .reduce((sum, adjustment) => sum + adjustment.amount, 0);
+  const merchandisePayable = Math.max(0, merchandise - merchandiseDiscountTotal);
+  const shippingPayable = Math.max(0, shippingAmount - shippingDiscountTotal);
   const originalTotal = merchandise + shippingAmount + autoAddedGiftValue;
-  const discountTotal = adjustments.reduce((sum, adjustment) => sum + adjustment.amount, 0);
+  const discountTotal = merchandiseDiscountTotal + shippingDiscountTotal + giftSavingsTotal;
+  const payableTotal = merchandisePayable + shippingPayable;
   const now = options.now ?? new Date();
 
   const appliedByPromotion = new Map<number, { promotion_id: number; name: string; saving: number }>();
@@ -432,7 +527,15 @@ export function evaluatePromotionQuote(
   }
   return {
     schema_version: 2, evaluation_id: randomUUID(), currency: 'INR', original_total: originalTotal,
-    shipping_amount: shippingAmount, discount_total: discountTotal, payable_total: Math.max(0, originalTotal - discountTotal),
+    merchandise_subtotal: merchandise,
+    merchandise_discount_total: merchandiseDiscountTotal,
+    merchandise_payable: merchandisePayable,
+    shipping_amount: shippingAmount,
+    shipping_discount_total: shippingDiscountTotal,
+    shipping_payable: shippingPayable,
+    gift_savings_total: giftSavingsTotal,
+    discount_total: discountTotal,
+    payable_total: payableTotal,
     adjustments,
     applied_promotions: [...appliedByPromotion.values()],
     eligible_alternatives: [...new Map(candidates.filter((candidate) => !selectedIds.has(candidate.campaign.promotionId)).map((candidate) => [candidate.campaign.promotionId, { promotion_id: candidate.campaign.promotionId, name: candidate.campaign.name, saving: candidate.saving }])).values()],

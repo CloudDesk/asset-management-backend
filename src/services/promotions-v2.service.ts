@@ -493,7 +493,18 @@ export class PromotionsV2Service {
 
   async requoteEvaluation(evaluationId: string, selection?: { promotionId?: number; removePromotionId?: number; giftProductId?: string }, authenticatedCustomerId?: string): Promise<PromotionQuote> {
     const evaluation = await prisma.promotion_evaluations.findUniqueOrThrow({ where: { evaluation_id: evaluationId } });
-    if (evaluation.status !== 'active' || evaluation.expires_at < seconds()) throw new Error('Promotion evaluation has expired');
+    if (evaluation.status !== 'active') {
+      throw Object.assign(new Error('Promotion evaluation is no longer active'), {
+        statusCode: 409,
+        code: 'PROMOTION_EVALUATION_INACTIVE',
+      });
+    }
+    if (evaluation.expires_at < seconds()) {
+      throw Object.assign(new Error('Promotion evaluation has expired'), {
+        statusCode: 409,
+        code: 'PROMOTION_EVALUATION_EXPIRED',
+      });
+    }
     if (evaluation.user_id && evaluation.user_id !== authenticatedCustomerId) throw Object.assign(new Error('This promotion evaluation belongs to another customer'), { statusCode: 403 });
     const request = PromotionQuoteRequestSchema.parse(evaluation.cart_data);
     const ids = new Set(request.selected_promotion_ids ?? []);

@@ -286,7 +286,7 @@ test('customer cancellation persists Shipmozo confirmation and failure outcomes'
   assert.match(ordersService, /status: 'failed'/);
   assert.match(ordersService, /stage: 'shipment_cancelled'/);
   assert.match(ordersService, /stage: 'cancellation_failed'/);
-  assert.match(ordersService, /return await this\.cancelProviderShipment\(updatedOrder\)/);
+  assert.match(ordersService, /this\.queueProviderShipmentCancellation\(updatedOrder\)/);
 });
 
 test('cancelled Shipmozo bookings release the order for a new shipment without cancelling the order', () => {

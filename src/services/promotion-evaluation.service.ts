@@ -26,6 +26,11 @@ import {
   getRetainedManualPromotionCandidates,
   isPromotionConfiguredAutomatic
 } from '../utils/promotionPolicy.js';
+import {
+  capLegacyMerchandisePromotions,
+  sumLegacyMerchandiseDiscounts
+} from '../utils/promotionDiscountCap.js';
+import { legacyPromotionEvaluationIds } from '../utils/promotionEvaluationVersion.js';
 
 export class PromotionEvaluationService {
   private prisma: PrismaClient;
@@ -782,21 +787,24 @@ export class PromotionEvaluationService {
 
   // Calculate discounts based on promotion type
   private async calculateDiscounts(promotion: any, cartData: CartData) {
-    const totalValue = cartData.subtotal + cartData.shipping_cost + cartData.tax_amount;
+    const merchandiseValue = Math.max(0, Number(cartData.subtotal) || 0);
+    const orderValue = merchandiseValue +
+      Math.max(0, Number(cartData.shipping_cost) || 0) +
+      Math.max(0, Number(cartData.tax_amount) || 0);
     let totalDiscount = 0;
-    let discountedTotal = totalValue;
+    let discountedTotal = orderValue;
     const affectedItems: string[] = [];
     const itemDiscounts: any[] = [];
 
     switch (promotion.type) {
       case 'FIXED_AMOUNT_OFF_CART':
-        totalDiscount = Math.min(this.getDiscountValue(promotion), totalValue);
-        discountedTotal = totalValue - totalDiscount;
+        totalDiscount = Math.min(this.getDiscountValue(promotion), merchandiseValue);
+        discountedTotal = orderValue - totalDiscount;
         break;
 
       case 'PERCENT_OFF_CART':
         const percentage = this.getDiscountValue(promotion) / 100;
-        totalDiscount = totalValue * percentage;
+        totalDiscount = merchandiseValue * percentage;
         
         // Apply max_discount cap if specified in action (optional field)
         if (promotion.action && 
@@ -806,12 +814,13 @@ export class PromotionEvaluationService {
           totalDiscount = promotion.action.max_discount;
         }
         
-        discountedTotal = totalValue - totalDiscount;
+        totalDiscount = Math.min(totalDiscount, merchandiseValue);
+        discountedTotal = orderValue - totalDiscount;
         break;
 
       case 'FREE_SHIPPING':
         totalDiscount = cartData.shipping_cost;
-        discountedTotal = totalValue - totalDiscount;
+        discountedTotal = orderValue - totalDiscount;
         break;
 
       case 'FIXED_AMOUNT_OFF_ITEM':
@@ -829,7 +838,8 @@ export class PromotionEvaluationService {
             });
           }
         }
-        discountedTotal = totalValue - totalDiscount;
+        totalDiscount = Math.min(totalDiscount, merchandiseValue);
+        discountedTotal = orderValue - totalDiscount;
         break;
 
       case 'PERCENT_OFF_ITEM':
@@ -838,13 +848,14 @@ export class PromotionEvaluationService {
         for (const item of cartData.items) {
           if (this.isItemEligible(item, promotion)) {
             const percentage = this.getDiscountValue(promotion) / 100;
-            const itemDiscount = (item.price * item.quantity) * percentage;
+            const itemTotal = item.price * item.quantity;
+            const itemDiscount = Math.min(itemTotal * percentage, itemTotal);
             totalItemDiscount += itemDiscount;
             affectedItems.push(item.product_id);
             itemDiscounts.push({
               product_id: item.product_id,
-              original_price: item.price * item.quantity,
-              discounted_price: (item.price * item.quantity) - itemDiscount,
+              original_price: itemTotal,
+              discounted_price: itemTotal - itemDiscount,
               discount_amount: itemDiscount
             });
           }
@@ -860,7 +871,8 @@ export class PromotionEvaluationService {
           totalDiscount = totalItemDiscount;
         }
         
-        discountedTotal = totalValue - totalDiscount;
+        totalDiscount = Math.min(totalDiscount, merchandiseValue);
+        discountedTotal = orderValue - totalDiscount;
         break;
 
       case 'BOGO':
@@ -879,13 +891,14 @@ export class PromotionEvaluationService {
             });
           }
         }
-        discountedTotal = totalValue - totalDiscount;
+        totalDiscount = Math.min(totalDiscount, merchandiseValue);
+        discountedTotal = orderValue - totalDiscount;
         break;
 
       case 'FREE_PRODUCT':
         // Free product logic - doesn't reduce cart total (like FREE_SHIPPING)
         totalDiscount = 0;  // Free products don't discount existing items
-        discountedTotal = totalValue; // Cart total remains unchanged
+        discountedTotal = orderValue; // Cart total remains unchanged
         break;
     }
 
@@ -1299,7 +1312,7 @@ export class PromotionEvaluationService {
 
       // Calculate discount breakdown
       const discountBreakdown = this.calculateDiscountBreakdown(promotion, request.cart_items);
-      const totalDiscount = discountBreakdown.reduce((sum, item) => sum + item.total_discount, 0);
+      const promotionDiscount = discountBreakdown.reduce((sum, item) => sum + item.total_discount, 0);
       
       // For FREE_SHIPPING promotions, the discount is applied to shipping, not cart total
       let discountedTotal = originalTotal;
@@ -1320,7 +1333,7 @@ export class PromotionEvaluationService {
         };
       } else {
         // For other promotions, apply discount to cart total
-        discountedTotal = originalTotal - totalDiscount;
+        discountedTotal = Math.max(0, originalTotal - promotionDiscount);
       }
 
       // Store evaluation for redemption
@@ -1341,7 +1354,7 @@ export class PromotionEvaluationService {
       logger.info({
         evaluationId,
         promotionId: promotion.id,
-        totalDiscount,
+        totalDiscount: promotionDiscount,
         discountedTotal,
         shippingInfo
       }, 'Promotion evaluation completed successfully');
@@ -1353,7 +1366,7 @@ export class PromotionEvaluationService {
         is_eligible: true,
         original_total: originalTotal,
         discounted_total: discountedTotal,
-        total_discount: totalDiscount,
+        total_discount: promotionDiscount,
         discount_breakdown: discountBreakdown,
         ineligible_reason: null,
         expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
@@ -1445,6 +1458,7 @@ export class PromotionEvaluationService {
                 totalCartDiscount > promotion.action.max_discount) {
               totalCartDiscount = promotion.action.max_discount;
             }
+            totalCartDiscount = Math.min(totalCartDiscount, totalCartValue);
           } else {
             totalCartDiscount = Math.min(this.getDiscountValue(promotion), totalCartValue);
           }
@@ -1454,7 +1468,10 @@ export class PromotionEvaluationService {
           discountPerItem = proportionalDiscount / item.quantity;
         } else {
           // For item-level promotions, calculate per item
-          const itemTotalDiscount = this.calculateDiscountWithAction(promotion, item.price, item.quantity);
+          const itemTotalDiscount = Math.min(
+            this.calculateDiscountWithAction(promotion, item.price, item.quantity),
+            item.price * item.quantity
+          );
           discountPerItem = itemTotalDiscount / item.quantity;
         }
       }
@@ -1824,14 +1841,24 @@ export class PromotionEvaluationService {
   }
 
   // Cancel all active evaluations for a user (before creating new one)
-  async cancelAllActiveEvaluationsForUser(userId: string): Promise<number> {
+  async cancelAllActiveEvaluationsForUser(userId: string, options: { preserveV2?: boolean } = {}): Promise<number> {
     try {
       logger.info({ userId }, 'Canceling all active evaluations for user');
+
+      const evaluationIds = options.preserveV2
+        ? legacyPromotionEvaluationIds(await this.prisma.promotion_evaluations.findMany({
+            where: { user_id: userId, status: 'active' },
+            select: { evaluation_id: true, context: true }
+          }))
+        : undefined;
+
+      if (evaluationIds && evaluationIds.length === 0) return 0;
 
       const result = await this.prisma.promotion_evaluations.updateMany({
         where: {
           user_id: userId,
-          status: 'active'
+          status: 'active',
+          ...(evaluationIds ? { evaluation_id: { in: evaluationIds } } : {})
         },
         data: {
           status: 'cancelled',
@@ -2475,7 +2502,7 @@ export class PromotionEvaluationService {
 
       // Calculate discount breakdown
       const discountBreakdown = this.calculateDiscountBreakdown(promotion, request.cart_items);
-      const totalDiscount = discountBreakdown.reduce((sum, item) => sum + item.total_discount, 0);
+      const promotionDiscount = discountBreakdown.reduce((sum, item) => sum + item.total_discount, 0);
       
       // For FREE_SHIPPING promotions, the discount is applied to shipping, not cart total
       let discountedTotal = originalTotal;
@@ -2494,7 +2521,7 @@ export class PromotionEvaluationService {
           is_free_shipping: true
         };
       } else {
-        discountedTotal = originalTotal - totalDiscount;
+        discountedTotal = Math.max(0, originalTotal - promotionDiscount);
       }
 
       // Get existing applied promotions
@@ -2505,7 +2532,7 @@ export class PromotionEvaluationService {
       if (promotion.type === 'FREE_SHIPPING') {
         discountAmount = shippingInfo?.shipping_discount || 0;
       } else {
-        discountAmount = totalDiscount;
+        discountAmount = promotionDiscount;
       }
 
       // Add the new manual promotion to existing ones
@@ -2525,16 +2552,31 @@ export class PromotionEvaluationService {
       // Check if this promotion is already applied (avoid duplicates)
       const isAlreadyApplied = existingAppliedPromotions.some((p: any) => p.promotion_id === promotion.id);
       
-      let updatedAppliedPromotions;
+      let promotionCandidates;
       if (isAlreadyApplied) {
         // Replace existing promotion with updated one
-        updatedAppliedPromotions = existingAppliedPromotions.map((p: any) => 
+        promotionCandidates = existingAppliedPromotions.map((p: any) =>
           p.promotion_id === promotion.id ? newPromotion : p
         );
       } else {
         // Add new promotion
-        updatedAppliedPromotions = [...existingAppliedPromotions, newPromotion];
+        promotionCandidates = [...existingAppliedPromotions, newPromotion];
       }
+      const updatedAppliedPromotions = capLegacyMerchandisePromotions(
+        this.selectCompatiblePromotions(promotionCandidates),
+        originalTotal
+      );
+      const combinedDiscount = updatedAppliedPromotions
+        .filter((appliedPromotion: any) =>
+          appliedPromotion.is_free_shipping !== true &&
+          appliedPromotion.promotion_type !== 'FREE_SHIPPING'
+        )
+        .reduce(
+          (sum: number, appliedPromotion: any) =>
+            sum + Number(appliedPromotion.discount_amount || 0),
+          0
+        );
+      discountedTotal = Math.max(0, originalTotal - combinedDiscount);
 
       // Update the existing evaluation
       logger.info({
@@ -2560,7 +2602,7 @@ export class PromotionEvaluationService {
         })),
         originalTotal,
         discountedTotal,
-        totalDiscount
+        totalDiscount: combinedDiscount
       }, 'Updating existing evaluation with manual promotion');
 
       await this.prisma.promotion_evaluations.update({
@@ -2576,7 +2618,7 @@ export class PromotionEvaluationService {
       logger.info({
         evaluationId: existingEvaluation.evaluation_id,
         promotionId: promotion.id,
-        totalDiscount,
+        totalDiscount: combinedDiscount,
         discountedTotal,
         updatedPromotionsCount: updatedAppliedPromotions.length
       }, 'Manual promotion added to existing evaluation successfully');
@@ -2588,7 +2630,7 @@ export class PromotionEvaluationService {
         is_eligible: true,
         original_total: originalTotal,
         discounted_total: discountedTotal,
-        total_discount: totalDiscount,
+        total_discount: combinedDiscount,
         discount_breakdown: discountBreakdown,
         ineligible_reason: null,
         expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
@@ -2634,7 +2676,9 @@ export class PromotionEvaluationService {
 
       // CRITICAL FIX: Cancel all existing active evaluations for this user
       // This prevents multiple active evaluations and ensures data consistency
-      const cancelledCount = await this.cancelAllActiveEvaluationsForUser(request.user_id);
+      // Legacy automatic evaluations may coexist during the V2 rollout, but
+      // they must never invalidate the canonical V2 checkout quote.
+      const cancelledCount = await this.cancelAllActiveEvaluationsForUser(request.user_id, { preserveV2: true });
       
       logger.info({
         userId: request.user_id,
@@ -2648,16 +2692,17 @@ console.log(request.cart_items,"request cartItems")
       // Calculate cart total using the price field (already after product discount)
       const cartTotal = request.cart_items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-      const appliedPromotions = await this.getEligibleAutomaticPromotions(
+      const eligiblePromotions = await this.getEligibleAutomaticPromotions(
         request.user_id,
         cartTotal,
         request.cart_items,
         request.context.channel
       );
-      const totalDiscount = appliedPromotions.reduce(
-        (sum, promotion) => sum + Number(promotion.discount_amount || 0),
-        0
+      const appliedPromotions = capLegacyMerchandisePromotions(
+        eligiblePromotions,
+        cartTotal
       );
+      const totalDiscount = sumLegacyMerchandiseDiscounts(appliedPromotions);
 
       // Create evaluation record
       const nowUtc = this.getUtcTimestamp();
@@ -2815,14 +2860,14 @@ console.log(request.cart_items,"request cartItems")
       request.context.channel,
       false
     );
-    const appliedPromotions = this.selectCompatiblePromotions([
-      ...manualPromotions,
-      ...automaticPromotions
-    ]);
-    const totalDiscount = appliedPromotions.reduce(
-      (sum: number, promotion: any) => sum + Number(promotion.discount_amount || 0),
-      0
+    const appliedPromotions = capLegacyMerchandisePromotions(
+      this.selectCompatiblePromotions([
+        ...manualPromotions,
+        ...automaticPromotions
+      ]),
+      cartTotal
     );
+    const totalDiscount = sumLegacyMerchandiseDiscounts(appliedPromotions);
     const expiresAt = this.getUtcTimestampWithOffset(15);
 
     const refreshedEvaluation = await this.prisma.promotion_evaluations.update({
@@ -3014,11 +3059,24 @@ console.log(request.cart_items,"request cartItems")
         ...automaticPromotions
       ]);
 
-      const enteredPromotionWasSelected = promotionsAfterConflictResolution.some(
+      // Remove duplicates and ensure each promotion_id is unique
+      const deduplicatedPromotions = promotionsAfterConflictResolution.reduce((acc: any[], current: any) => {
+        const existing = acc.find((item: any) => item.promotion_id === current.promotion_id);
+        if (!existing) {
+          acc.push(current);
+        }
+        return acc;
+      }, []);
+      const uniquePromotions = capLegacyMerchandisePromotions(
+        deduplicatedPromotions,
+        cartTotal
+      );
+
+      const enteredPromotionWasSelected = uniquePromotions.some(
         appliedPromotion => appliedPromotion.promotion_id === enhancedPromotion.promotion_id
       );
       if (!enteredPromotionWasSelected) {
-        const retainedPromotion = promotionsAfterConflictResolution[0];
+        const retainedPromotion = uniquePromotions[0] || promotionsAfterConflictResolution[0];
         const retainedSaving = Number(retainedPromotion?.discount_amount || 0);
         const enteredSaving = Number(enhancedPromotion.discount_amount || 0);
         throw new ValidationError(
@@ -3028,17 +3086,8 @@ console.log(request.cart_items,"request cartItems")
         );
       }
 
-      // Remove duplicates and ensure each promotion_id is unique
-      const uniquePromotions = promotionsAfterConflictResolution.reduce((acc: any[], current: any) => {
-        const existing = acc.find((item: any) => item.promotion_id === current.promotion_id);
-        if (!existing) {
-          acc.push(current);
-        }
-        return acc;
-      }, []);
-
       // Calculate new totals
-      const totalDiscount = uniquePromotions.reduce((sum: number, p: any) => sum + p.discount_amount, 0);
+      const totalDiscount = sumLegacyMerchandiseDiscounts(uniquePromotions);
       const discountedTotal = Math.max(cartTotal - totalDiscount, 0);
 
       // Update evaluation
@@ -3131,16 +3180,20 @@ console.log(request.cart_items,"request cartItems")
       ]);
 
       // Remove duplicates
-      const uniquePromotions = newAppliedPromotions.reduce((acc: any[], current: any) => {
+      const deduplicatedPromotions = newAppliedPromotions.reduce((acc: any[], current: any) => {
         const existing = acc.find((item: any) => item.promotion_id === current.promotion_id);
         if (!existing) {
           acc.push(current);
         }
         return acc;
       }, []);
+      const uniquePromotions = capLegacyMerchandisePromotions(
+        deduplicatedPromotions,
+        cartTotal
+      );
 
       // Calculate new totals
-      const totalDiscount = uniquePromotions.reduce((sum: number, p: any) => sum + p.discount_amount, 0);
+      const totalDiscount = sumLegacyMerchandiseDiscounts(uniquePromotions);
       const discountedTotal = Math.max(cartTotal - totalDiscount, 0);
 
       // Update evaluation

@@ -123,6 +123,67 @@ test('combines overlapping promotions only when both allow combining', () => {
   assert.equal(exclusive.discount_total, 2_000);
 });
 
+test('caps stacked merchandise promotions at the merchandise subtotal', () => {
+  const stacking = {
+    stackable: true,
+    exclusive_group: 'MERCHANDISE_DISCOUNT',
+    item_reuse: 'ALLOW' as const,
+    selection_strategy: 'BEST_CUSTOMER_VALUE' as const,
+    priority: 1,
+  };
+  const fixedAmount = rule({
+    benefit: { type: 'FIXED_AMOUNT_OFF', value: 6_000, target: 'ALL_QUALIFYING_UNITS' },
+    stacking,
+  });
+  const secondFixedAmount = rule({
+    benefit: { type: 'FIXED_AMOUNT_OFF', value: 5_000, target: 'ALL_QUALIFYING_UNITS' },
+    stacking,
+  });
+
+  const quote = evaluatePromotionQuote(
+    [line('A', 2, 4_000)],
+    [campaign(1, fixedAmount), campaign(2, secondFixedAmount)],
+    [],
+    { shippingAmount: 15_000 },
+  );
+
+  assert.equal(quote.merchandise_subtotal, 8_000);
+  assert.equal(quote.merchandise_discount_total, 8_000);
+  assert.equal(quote.merchandise_payable, 0);
+  assert.equal(quote.shipping_discount_total, 0);
+  assert.equal(quote.shipping_payable, 15_000);
+  assert.equal(quote.payable_total, 15_000);
+  assert.equal(quote.applied_promotions.reduce((sum, item) => sum + item.saving, 0), 8_000);
+  assert.equal(quote.adjustments.reduce((sum, item) => sum + item.amount, 0), 8_000);
+});
+
+test('keeps free shipping separate from a fully discounted cart', () => {
+  const merchandiseOffer = rule({
+    benefit: { type: 'FIXED_AMOUNT_OFF', value: 10_000, target: 'ALL_QUALIFYING_UNITS' },
+    stacking: { stackable: true, exclusive_group: 'MERCHANDISE_DISCOUNT' },
+  });
+  const freeShipping = convertLegacyPromotionRule({
+    type: 'FREE_SHIPPING',
+    conditions: [{ attribute: 'cart.total_value', operator: 'GTE', value: '80' }],
+    action: { type: 'FREE_SHIPPING', value: 0 },
+    stackable: true,
+    name: 'Free Shipping Over ₹80',
+  });
+
+  const quote = evaluatePromotionQuote(
+    [line('A', 2, 4_000)],
+    [campaign(1, merchandiseOffer), campaign(2, freeShipping)],
+    [],
+    { shippingAmount: 15_000 },
+  );
+
+  assert.equal(quote.merchandise_discount_total, 8_000);
+  assert.equal(quote.shipping_discount_total, 15_000);
+  assert.equal(quote.gift_savings_total, 0);
+  assert.equal(quote.payable_total, 0);
+  assert.equal(quote.discount_total, 23_000);
+});
+
 test('keeps stackable legacy free shipping with a merchandise promotion', () => {
   const merchandiseOffer = rule({
     benefit: { type: 'PERCENT_OFF', value: 30, target: 'ALL_QUALIFYING_UNITS' },

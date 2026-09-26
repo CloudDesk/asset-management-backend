@@ -148,9 +148,10 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
               properties: {
                 amount: {
                   type: "number",
-                  minimum: 0.01,
+                  minimum: 0,
                   maximum: 100000,
-                  description: "Total transaction amount in INR",
+                  description:
+                    "Total checkout amount in INR. Zero is allowed when promotions cover merchandise and shipping.",
                 },
                 mobilenumber: {
                   type: "string",
