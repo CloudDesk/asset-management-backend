@@ -71,6 +71,53 @@ export interface CheckoutPricing {
 }
 
 /**
+ * Resolve the monetary value that must be written to each legacy redemption.
+ * Merchandise promotions use their capped checkout value. A free-shipping
+ * promotion owns the shipping saving instead of recording a misleading zero.
+ */
+export function resolvePromotionRedemptionAmounts(
+  evaluatedPromotions: LegacyAppliedPromotion[],
+  checkoutPricing?: Partial<CheckoutPricing> | null,
+): Map<number, number> {
+  const resolved = new Map<number, number>();
+  const authoritativeById = new Map<number, LegacyAppliedPromotion>();
+
+  for (const promotion of checkoutPricing?.applied_promotions ?? []) {
+    const promotionId = Number(promotion.promotion_id);
+    if (Number.isInteger(promotionId) && promotionId > 0) {
+      authoritativeById.set(promotionId, promotion);
+    }
+  }
+
+  const shippingPromotions = evaluatedPromotions.filter(isShippingPromotion);
+  const shippingOwnerId = Number(shippingPromotions[0]?.promotion_id || 0);
+  const shippingSaving = money(Number(checkoutPricing?.shipping_discount || 0));
+
+  for (const promotion of evaluatedPromotions) {
+    const promotionId = Number(promotion.promotion_id);
+    if (!Number.isInteger(promotionId) || promotionId <= 0) continue;
+
+    if (isShippingPromotion(promotion)) {
+      resolved.set(
+        promotionId,
+        promotionId === shippingOwnerId
+          ? shippingSaving || money(Number(promotion.discount_amount || 0))
+          : 0,
+      );
+      continue;
+    }
+
+    const authoritative = authoritativeById.get(promotionId);
+    resolved.set(
+      promotionId,
+      money(Number(authoritative?.discount_amount ?? promotion.discount_amount ?? 0)),
+    );
+  }
+
+  return resolved;
+}
+
+/**
  * Authoritative checkout arithmetic shared by payment initiation tests and
  * the controller. Promotion discounts and shipping discounts have separate
  * balances, so one can never consume the other.

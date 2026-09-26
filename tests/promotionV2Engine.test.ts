@@ -157,6 +157,85 @@ test('caps stacked merchandise promotions at the merchandise subtotal', () => {
   assert.equal(quote.adjustments.reduce((sum, item) => sum + item.amount, 0), 8_000);
 });
 
+test('caps an oversized fixed cart discount across multiple product lines without losing value', () => {
+  const fixedAmount = rule({
+    benefit: { type: 'FIXED_AMOUNT_OFF', value: 10_000, target: 'ALL_QUALIFYING_UNITS' },
+    stacking: {
+      stackable: true,
+      exclusive_group: 'MERCHANDISE_DISCOUNT',
+      item_reuse: 'ALLOW',
+      selection_strategy: 'BEST_CUSTOMER_VALUE',
+      priority: 1,
+    },
+  });
+
+  const quote = evaluatePromotionQuote(
+    [line('A', 1, 4_000), line('B', 1, 4_000)],
+    [campaign(42, fixedAmount, 'NIV 100')],
+    [],
+    { shippingAmount: 15_000 },
+  );
+
+  assert.equal(quote.merchandise_subtotal, 8_000);
+  assert.equal(quote.merchandise_discount_total, 8_000);
+  assert.equal(quote.merchandise_payable, 0);
+  assert.equal(quote.shipping_discount_total, 0);
+  assert.equal(quote.shipping_payable, 15_000);
+  assert.equal(quote.payable_total, 15_000);
+  assert.deepEqual(quote.adjustments.map((item) => item.amount), [4_000, 4_000]);
+  assert.deepEqual(quote.adjustments.map((item) => item.payable_amount), [0, 0]);
+});
+
+test('does not let stacked merchandise offers exceed a multi-line subtotal', () => {
+  const stacking = {
+    stackable: true,
+    exclusive_group: 'MERCHANDISE_DISCOUNT',
+    item_reuse: 'ALLOW' as const,
+    selection_strategy: 'BEST_CUSTOMER_VALUE' as const,
+    priority: 1,
+  };
+  const fixedAmount = rule({
+    benefit: { type: 'FIXED_AMOUNT_OFF', value: 10_000, target: 'ALL_QUALIFYING_UNITS' },
+    stacking,
+  });
+  const tenPercent = rule({
+    benefit: { type: 'PERCENT_OFF', value: 10, target: 'ALL_QUALIFYING_UNITS' },
+    stacking,
+  });
+
+  const quote = evaluatePromotionQuote(
+    [line('A', 1, 4_000), line('B', 1, 4_000)],
+    [campaign(18, tenPercent), campaign(42, fixedAmount, 'NIV 100')],
+    [],
+    { shippingAmount: 15_000 },
+  );
+
+  assert.equal(quote.merchandise_discount_total, 8_000);
+  assert.equal(quote.merchandise_payable, 0);
+  assert.equal(quote.shipping_payable, 15_000);
+  assert.equal(quote.payable_total, 15_000);
+  assert.deepEqual(quote.applied_promotions, [{ promotion_id: 42, name: 'NIV 100', saving: 8_000 }]);
+});
+
+test('preserves proportional allocation when a fixed discount is below the subtotal', () => {
+  const fixedAmount = rule({
+    benefit: { type: 'FIXED_AMOUNT_OFF', value: 5_000, target: 'ALL_QUALIFYING_UNITS' },
+  });
+
+  const quote = evaluatePromotionQuote(
+    [line('A', 1, 3_000), line('B', 1, 5_000)],
+    [campaign(1, fixedAmount)],
+    [],
+  );
+
+  assert.equal(quote.merchandise_discount_total, 5_000);
+  assert.equal(quote.merchandise_payable, 3_000);
+  assert.deepEqual(
+    Object.fromEntries(quote.adjustments.map((item) => [item.product_id, item.amount])),
+    { A: 1_875, B: 3_125 },
+  );
+});
+
 test('keeps free shipping separate from a fully discounted cart', () => {
   const merchandiseOffer = rule({
     benefit: { type: 'FIXED_AMOUNT_OFF', value: 10_000, target: 'ALL_QUALIFYING_UNITS' },

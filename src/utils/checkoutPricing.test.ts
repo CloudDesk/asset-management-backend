@@ -4,6 +4,7 @@ import {
   calculateCheckoutPricing,
   checkoutAmountsMatch,
   checkoutCartQuantitiesMatch,
+  resolvePromotionRedemptionAmounts,
   uniqueCheckoutEvaluationIds,
 } from './checkoutPricing.js';
 
@@ -84,6 +85,37 @@ test('free shipping consumes only the shipping balance', () => {
   assert.equal(result.merchandise_discount, 80);
   assert.equal(result.shipping_discount, 150);
   assert.equal(result.payable_before_wallet, 0);
+});
+
+test('records the authoritative free-shipping saving in redemption history', () => {
+  const promotions = [
+    { promotion_id: 18, promotion_type: 'PERCENT_OFF_CART', discount_amount: 29.9 },
+    { promotion_id: 55, promotion_type: 'FREE_SHIPPING', is_free_shipping: true, discount_amount: 0 },
+  ];
+  const pricing = calculateCheckoutPricing({
+    merchandiseSubtotal: 299,
+    shippingAmount: 150,
+    legacyPromotions: promotions,
+  });
+
+  const amounts = resolvePromotionRedemptionAmounts(promotions, pricing);
+
+  assert.equal(amounts.get(18), 29.9);
+  assert.equal(amounts.get(55), 150);
+});
+
+test('does not duplicate one shipping saving across multiple shipping promotions', () => {
+  const promotions = [
+    { promotion_id: 55, promotion_type: 'FREE_SHIPPING', is_free_shipping: true, discount_amount: 0 },
+    { promotion_id: 56, promotion_type: 'FREE_SHIPPING', is_free_shipping: true, discount_amount: 0 },
+  ];
+  const amounts = resolvePromotionRedemptionAmounts(promotions, {
+    shipping_discount: 150,
+    applied_promotions: promotions,
+  });
+
+  assert.equal(amounts.get(55), 150);
+  assert.equal(amounts.get(56), 0);
 });
 
 test('uses the capped V2 quote totals and rejects a stale cart', () => {

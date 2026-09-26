@@ -20,15 +20,24 @@ export class PromotionCheckoutService {
   async commitEvaluationToOrder(orderId: number, evaluationId: string, customerId?: number): Promise<{ gift_orderline_ids: number[]; promotion_ids: number[] }> {
     return prisma.$transaction(async (tx) => {
       const evaluation = await tx.promotion_evaluations.findUniqueOrThrow({ where: { evaluation_id: evaluationId } });
+      const order = await tx.orders.findUniqueOrThrow({ where: { id: orderId } });
       if (evaluation.status === 'redeemed' && evaluation.order_id === orderId) {
         const existing = await tx.orderline.findMany({ where: { orderid: orderId, evaluation_id: evaluationId, is_free_item: true }, select: { id: true, promotion_id: true } });
         return { gift_orderline_ids: existing.map((line) => line.id), promotion_ids: [...new Set(existing.flatMap((line) => line.promotion_id ?? []))] };
       }
-      if (evaluation.status !== 'active' || evaluation.expires_at < epoch()) throw new Error('Promotion quote expired before checkout');
+      if (evaluation.status !== 'active') throw new Error('Promotion quote is no longer active');
+      // A successfully paid order may need to retry this commit after a
+      // transient DB failure. The quote was validated before payment, so do
+      // not strand its budget/usage ledger merely because the retry occurs
+      // after the display quote expiry.
+      const canReconcilePaidOrder =
+        order.ispaymentsucceed === true && order.evaluation_id === evaluationId;
+      if (evaluation.expires_at < epoch() && !canReconcilePaidOrder) {
+        throw new Error('Promotion quote expired before checkout');
+      }
       if (evaluation.user_id && String(customerId ?? '') !== evaluation.user_id) throw new Error('Promotion quote customer does not match the order customer');
       if (evaluation.order_id && evaluation.order_id !== orderId) throw new Error('Promotion quote has already been used by another order');
 
-      const order = await tx.orders.findUniqueOrThrow({ where: { id: orderId } });
       const context = (evaluation.context && typeof evaluation.context === 'object' ? evaluation.context : {}) as Prisma.JsonObject;
       const quote = ((context.quote && typeof context.quote === 'object') ? context.quote : {}) as QuoteSnapshot;
       if (quote.schema_version !== 2) throw new Error('This promotion evaluation cannot create promotional gift lines');

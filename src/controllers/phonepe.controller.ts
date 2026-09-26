@@ -19,6 +19,9 @@ import {
 import { logger } from "../config/logger.js";
 import { WalletRedemptionService } from "../services/wallet-redemption.service.js";
 import { RefundOperationService } from "../services/refund-operation.service.js";
+import { PromotionCheckoutService } from "../services/promotion-checkout.service.js";
+import { PromotionRedemptionService } from "../services/promotion-redemption.service.js";
+import { gstService } from "../services/gst.service.js";
 import { createPaymentReconciliationTask } from "../services/gcpTasks.service.js";
 import {
   appendPaymentReturnParams,
@@ -76,6 +79,8 @@ export class PhonePeController {
   public walletRedemptionService = new WalletRedemptionService();
   public returnRequestService = new ReturnRequestService();
   public refundOperationService = new RefundOperationService();
+  public promotionCheckoutService = new PromotionCheckoutService();
+  public promotionRedemptionService = new PromotionRedemptionService();
 
   /**
    * Initiate payment with PhonePe
@@ -2775,6 +2780,113 @@ export class PhonePeController {
     );
   }
 
+  private async reconcilePromotionEvaluationsForOrder(
+    orderId: number,
+    userId: number,
+    evaluationIds: string[],
+  ): Promise<void> {
+    for (const evaluationId of uniqueCheckoutEvaluationIds(evaluationIds)) {
+      const evaluation = await prisma.promotion_evaluations.findUnique({
+        where: { evaluation_id: evaluationId },
+        select: {
+          status: true,
+          order_id: true,
+          context: true,
+          redemptions: { select: { order_id: true } },
+        },
+      });
+      if (!evaluation) throw new Error(`Promotion evaluation ${evaluationId} was not found`);
+
+      const context = evaluation.context && typeof evaluation.context === "object" && !Array.isArray(evaluation.context)
+        ? evaluation.context as Record<string, unknown>
+        : {};
+      const isV2 = Number(context.schema_version) === 2;
+
+      if (isV2) {
+        if (evaluation.status === "redeemed" && evaluation.order_id === orderId) continue;
+
+        const maxAttempts = 3;
+        for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+          try {
+            await this.promotionCheckoutService.commitEvaluationToOrder(
+              orderId,
+              evaluationId,
+              userId,
+            );
+            break;
+          } catch (error: any) {
+            const transient =
+              error?.code === "P2028" ||
+              /unable to start a transaction|transaction.*timed out|write conflict/i.test(
+                String(error?.message || ""),
+              );
+            if (!transient || attempt === maxAttempts) throw error;
+            logger.warn(
+              { orderId, evaluationId, attempt, error: error?.message },
+              "Retrying transient V2 promotion ledger commit",
+            );
+            await new Promise((resolve) => setTimeout(resolve, attempt * 50));
+          }
+        }
+        continue;
+      }
+
+      const alreadyRedeemedForOrder = evaluation.redemptions.some(
+        (redemption) => redemption.order_id === String(orderId),
+      );
+      if (evaluation.status === "redeemed" && alreadyRedeemedForOrder) {
+        await this.promotionRedemptionService.reconcileRecordedRedemptionAmounts(
+          evaluationId,
+          orderId,
+        );
+        continue;
+      }
+      if (evaluation.status === "redeemed") {
+        throw new Error(`Promotion evaluation ${evaluationId} belongs to another order`);
+      }
+
+      await this.promotionRedemptionService.redeemPromotion({
+        evaluation_id: evaluationId,
+        order_id: String(orderId),
+        user_id: String(userId),
+      });
+    }
+
+    // If order creation previously stopped after the order row/lines were
+    // committed, finish the derived item/GST totals as part of the same
+    // idempotent reconciliation pass.
+    const order = await prisma.orders.findUnique({
+      where: { id: orderId },
+      select: {
+        addressid: true,
+        orderamount: true,
+        shipping_cost: true,
+        items_total: true,
+      },
+    });
+    if (order && order.items_total === null) {
+      try {
+        const gstResult = await gstService.processOrderGst(
+          orderId,
+          order.addressid,
+          Number(order.orderamount || 0),
+          Number(order.shipping_cost || 0),
+        );
+        if (!gstResult.success) {
+          logger.warn(
+            { orderId, error: gstResult.error },
+            "Order financial totals remain incomplete after promotion reconciliation",
+          );
+        }
+      } catch (error: any) {
+        logger.warn(
+          { orderId, error: error?.message },
+          "Could not reconcile order financial totals after promotion commit",
+        );
+      }
+    }
+  }
+
   async ensureOrderAfterSuccessfulPayment(
     transactionId: string,
     paymentStatus: any
@@ -2797,6 +2909,10 @@ export class PhonePeController {
         storedMode === "wallet" || storedMode === "promotion"
           ? storedMode
           : "phonepe";
+      const evaluationIds = uniqueCheckoutEvaluationIds(
+        transactions.data?.[0]?.transactiondata?.evaluation_ids || [],
+      );
+      const transactionUserId = Number(transactions.data?.[0]?.userid);
 
       const existingOrders = await this.ordersService.findMany(
         { merchanttransactionid: transactionId },
@@ -2806,6 +2922,11 @@ export class PhonePeController {
 
       if (existingOrders.data && existingOrders.data.length > 0) {
         orderId = Number(existingOrders.data[0].id);
+        await this.reconcilePromotionEvaluationsForOrder(
+          orderId,
+          transactionUserId,
+          evaluationIds,
+        );
         await this.walletRedemptionService.consume(transactionId, orderId, expectedWalletDiscount);
         await this.clearPurchasedCartForTransaction(
           transactionId,
@@ -2814,8 +2935,6 @@ export class PhonePeController {
         );
         return { status: "already_exists", orderId, error: null };
       }
-      const evaluationIds =
-        transactions.data?.[0]?.transactiondata?.evaluation_ids || [];
 
       let order: any;
       try {
@@ -2855,6 +2974,11 @@ export class PhonePeController {
 
         if (isMerchantTransactionConflict) {
           orderId = Number(recoveredOrder.id);
+          await this.reconcilePromotionEvaluationsForOrder(
+            orderId,
+            transactionUserId,
+            evaluationIds,
+          );
           await this.walletRedemptionService.consume(
             transactionId,
             orderId,
@@ -2884,6 +3008,11 @@ export class PhonePeController {
         order = recoveredOrder;
       }
       orderId = Number(order.id);
+      await this.reconcilePromotionEvaluationsForOrder(
+        orderId,
+        transactionUserId,
+        evaluationIds,
+      );
       await this.walletRedemptionService.consume(transactionId, orderId, expectedWalletDiscount);
 
       try {

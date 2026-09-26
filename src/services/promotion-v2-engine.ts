@@ -201,10 +201,14 @@ function qualificationBuckets(rule: PromotionRuleV2, eligible: PromotionCartLine
 
 function allocateAmount(lines: PromotionCartLine[], total: number, type: PromotionAdjustment['type'], campaign: PromotionCampaign): PromotionAdjustment[] {
   const eligibleTotal = lines.reduce((sum, line) => sum + line.unitPricePaise * line.quantity, 0);
-  let remainder = Math.min(total, eligibleTotal);
+  const distributableTotal = Math.min(Math.max(0, total), eligibleTotal);
+  let remainder = distributableTotal;
   return [...lines].sort((a, b) => a.id.localeCompare(b.id)).map((line, index, ordered) => {
     const lineTotal = line.unitPricePaise * line.quantity;
-    const amount = index === ordered.length - 1 ? remainder : Math.min(remainder, Math.floor(total * lineTotal / Math.max(eligibleTotal, 1)));
+    const proportionalAmount = Math.floor(distributableTotal * lineTotal / Math.max(eligibleTotal, 1));
+    const amount = index === ordered.length - 1
+      ? Math.min(lineTotal, remainder)
+      : Math.min(lineTotal, remainder, proportionalAmount);
     remainder -= amount;
     return {
       adjustment_id: randomUUID(), promotion_id: campaign.promotionId, rule_version: campaign.ruleVersion,

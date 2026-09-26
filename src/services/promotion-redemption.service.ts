@@ -7,6 +7,7 @@ import {
   RedemptionDetail 
 } from '../schemas/redemption.schema.js';
 import { isPromotionChannelEligible } from '../utils/promotionChannel.js';
+import { resolvePromotionRedemptionAmounts, type CheckoutPricing } from '../utils/checkoutPricing.js';
 
 export class PromotionRedemptionService {
   private prisma: PrismaClient;
@@ -39,8 +40,18 @@ export class PromotionRedemptionService {
         }
 
         await this.validateEvaluationChannels(evaluation, transaction);
-        await this.validateEvaluationUsage(evaluation, request.user_id, transaction);
-        const redemptionDetails = await this.createRedemptionRecords(evaluation, request, transaction);
+        const redemptionAmounts = await this.resolveRedemptionAmounts(
+          evaluation,
+          request,
+          transaction,
+        );
+        await this.validateEvaluationUsage(evaluation, request.user_id, transaction, redemptionAmounts);
+        const redemptionDetails = await this.createRedemptionRecords(
+          evaluation,
+          request,
+          transaction,
+          redemptionAmounts,
+        );
         await this.updateEvaluationStatus(request.evaluation_id, 'redeemed', transaction);
         return { evaluation, redemptionDetails };
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
@@ -79,6 +90,60 @@ export class PromotionRedemptionService {
     }
   }
 
+  async reconcileRecordedRedemptionAmounts(
+    evaluationId: string,
+    orderId: number,
+  ): Promise<number> {
+    return this.prisma.$transaction(async (transaction) => {
+      const evaluation = await transaction.promotion_evaluations.findUnique({
+        where: { evaluation_id: evaluationId },
+      });
+      if (!evaluation) throw new Error('Evaluation not found');
+
+      const request = {
+        evaluation_id: evaluationId,
+        order_id: String(orderId),
+        user_id: String(evaluation.user_id || ''),
+      };
+      const resolvedAmounts = await this.resolveRedemptionAmounts(
+        evaluation,
+        request,
+        transaction,
+      );
+      const redemptions = await transaction.promotion_redemptions.findMany({
+        where: { evaluation_id: evaluationId, order_id: String(orderId) },
+      });
+      let updated = 0;
+
+      for (const redemption of redemptions) {
+        if (!redemption.promotion_id) continue;
+        const expectedAmount = resolvedAmounts.get(redemption.promotion_id);
+        if (expectedAmount === undefined || Number(redemption.discount_amount || 0) === expectedAmount) {
+          continue;
+        }
+        const currentData = redemption.redemption_data && typeof redemption.redemption_data === 'object' && !Array.isArray(redemption.redemption_data)
+          ? redemption.redemption_data as Prisma.JsonObject
+          : {};
+        await transaction.promotion_redemptions.update({
+          where: { id: redemption.id },
+          data: {
+            discount_amount: expectedAmount,
+            redemption_data: {
+              ...currentData,
+              recorded_discount_amount: expectedAmount,
+              amount_reconciled: true,
+              amount_reconciled_at: new Date().toISOString(),
+            },
+            modifieddate: this.getUtcTimestamp(),
+          },
+        });
+        updated += 1;
+      }
+
+      return updated;
+    });
+  }
+
   // Get evaluation by ID
   private async getEvaluation(evaluationId: string) {
     return await this.prisma.promotion_evaluations.findUnique({
@@ -91,6 +156,38 @@ export class PromotionRedemptionService {
     return await this.prisma.promotion_redemptions.findFirst({
       where: { evaluation_id: evaluationId }
     });
+  }
+
+  private async resolveRedemptionAmounts(
+    evaluation: any,
+    request: RedemptionRequest,
+    database: Prisma.TransactionClient,
+  ): Promise<Map<number, number>> {
+    const orderId = Number(request.order_id);
+    let checkoutPricing: Partial<CheckoutPricing> | null = null;
+
+    if (Number.isInteger(orderId) && orderId > 0) {
+      const order = await database.orders.findUnique({
+        where: { id: orderId },
+        select: {
+          transaction: {
+            select: { transactiondata: true },
+          },
+        },
+      });
+      const transactionData = order?.transaction?.transactiondata;
+      if (transactionData && typeof transactionData === 'object' && !Array.isArray(transactionData)) {
+        const storedPricing = (transactionData as Prisma.JsonObject).checkout_pricing;
+        if (storedPricing && typeof storedPricing === 'object' && !Array.isArray(storedPricing)) {
+          checkoutPricing = storedPricing as unknown as Partial<CheckoutPricing>;
+        }
+      }
+    }
+
+    return resolvePromotionRedemptionAmounts(
+      (evaluation.applied_promotions as any[]) || [],
+      checkoutPricing,
+    );
   }
 
   private async validateEvaluationChannels(
@@ -122,7 +219,8 @@ export class PromotionRedemptionService {
   private async validateEvaluationUsage(
     evaluation: any,
     userId: string,
-    database: Prisma.TransactionClient
+    database: Prisma.TransactionClient,
+    redemptionAmounts: Map<number, number>,
   ): Promise<void> {
     const appliedPromotions = (evaluation.applied_promotions as any[]) || [];
     const nowSeconds = BigInt(Math.floor(Date.now() / 1000));
@@ -150,7 +248,9 @@ export class PromotionRedemptionService {
         if (userUsage >= promotion.per_user_limit) throw new Error('PROMOTION_PER_USER_LIMIT_REACHED');
       }
       const usedBudget = Number(campaignUsage._sum.discount_amount ?? 0);
-      const currentDiscount = Number(applied.discount_amount ?? 0);
+      const currentDiscount = Number(
+        redemptionAmounts.get(Number(applied.promotion_id)) ?? applied.discount_amount ?? 0,
+      );
       if (Number(promotion.budget ?? 0) > 0 && usedBudget + currentDiscount > Number(promotion.budget)) {
         throw new Error('PROMOTION_BUDGET_EXHAUSTED');
       }
@@ -198,7 +298,8 @@ export class PromotionRedemptionService {
   private async createRedemptionRecords(
     evaluation: any,
     request: RedemptionRequest,
-    database: Prisma.TransactionClient
+    database: Prisma.TransactionClient,
+    redemptionAmounts: Map<number, number>,
   ): Promise<RedemptionDetail[]> {
     const redemptionDetails: RedemptionDetail[] = [];
     const appliedPromotions = evaluation.applied_promotions as any[];
@@ -224,6 +325,9 @@ export class PromotionRedemptionService {
 
     for (const promotion of appliedPromotions) {
       const redemptionId = uuidv4();
+      const recordedDiscount = Number(
+        redemptionAmounts.get(Number(promotion.promotion_id)) ?? promotion.discount_amount ?? 0,
+      );
 
         await database.promotion_redemptions.create({
           data: {
@@ -234,13 +338,17 @@ export class PromotionRedemptionService {
             promotion_id: promotion.promotion_id,
             assignment_id: promotion.assignment_id || null,
             voucher_code: promotion.voucher_code || null,
-            discount_amount: promotion.discount_amount,
+            discount_amount: recordedDiscount,
             redeemed_at: nowUtc,    // UTC timestamp as bigint
             redemption_data: {
               promotion_name: promotion.promotion_name,
               assignment_id: promotion.assignment_id || null,
               voucher_code: promotion.voucher_code || null,
               evaluation_id: evaluation.evaluation_id,
+              benefit_type: promotion.is_free_shipping === true || promotion.promotion_type === 'FREE_SHIPPING'
+                ? 'shipping'
+                : 'merchandise',
+              recorded_discount_amount: recordedDiscount,
               redeemed_at: new Date(Number(nowUtc.toString())).toISOString() // ISO string for compatibility
             },
             createddate: nowUtc,               // UTC timestamp
@@ -282,7 +390,7 @@ export class PromotionRedemptionService {
 
       redemptionDetails.push({
         promotion_id: promotion.promotion_id,
-        discount_amount: promotion.discount_amount,
+        discount_amount: recordedDiscount,
         redeemed_at: new Date(Number(nowUtc.toString())).toISOString()
       });
     }
