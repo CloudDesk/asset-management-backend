@@ -177,7 +177,7 @@ export class FlipkartConnectionService {
 
   private async discoverSellerId(accessToken: string): Promise<string | null> {
     const baseUrl = this.options.apiBaseUrl ?? env.FLIPKART_API_BASE_URL;
-    const url = new URL('/sellers/listings/v3/product/search', baseUrl);
+    const url = new URL('/listings/v3/product/search', baseUrl);
 
     for (const internalState of LISTING_STATES) {
       let response: Response;
