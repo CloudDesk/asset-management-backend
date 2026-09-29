@@ -12,6 +12,23 @@ export const walletChannelSchema = z.object({
 export const walletDiscountQuoteSchema = z.object({
   eligibility_base: z.number().nonnegative(),
   payable_amount: z.number().nonnegative(),
+  merchandise_payable: z.number().nonnegative().optional(),
+  shipping_payable: z.number().nonnegative().optional(),
+});
+
+export const directCouponCheckoutQuoteSchema = z.object({
+  code: z.string().trim().min(4).max(100),
+  channel: z.enum(['web', 'mobile']).default('web'),
+  merchandise_subtotal: z.number().nonnegative(),
+  merchandise_remaining: z.number().nonnegative(),
+}).superRefine((value, context) => {
+  if (value.merchandise_remaining > value.merchandise_subtotal) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['merchandise_remaining'],
+      message: 'merchandise_remaining cannot exceed merchandise_subtotal',
+    });
+  }
 });
 
 export const couponWalletListSchema = z.object({
@@ -37,8 +54,11 @@ export const createQuickCouponSchema = z.object({
   start_date: z.string().datetime().optional(),
   end_date: z.string().datetime().optional(),
   dispatched_order_id: z.string().trim().max(500).optional(),
-  delivery_channel: z.enum(['all', 'web', 'mobile', 'print']).default('all'),
-  stackable: z.boolean().default(false),
+  // Accepted for backward compatibility with older Inventory clients, but
+  // standalone coupons are always available on both customer channels and
+  // never participate in generic promotion stacking.
+  delivery_channel: z.enum(['all', 'web', 'mobile', 'print']).optional().transform(() => 'all' as const),
+  stackable: z.boolean().optional().transform(() => false as const),
 }).superRefine((value, context) => {
   if (value.assignment_type === 'customer' && !value.customer_id) {
     context.addIssue({ code: z.ZodIssueCode.custom, path: ['customer_id'], message: 'customer_id is required' });
@@ -65,8 +85,9 @@ export const updateQuickCouponSchema = z.object({
   start_date: z.string().datetime().nullable().optional(),
   end_date: z.string().datetime().nullable().optional(),
   dispatched_order_id: z.string().trim().max(500).nullable().optional(),
-  delivery_channel: z.enum(['all', 'web', 'mobile', 'print']),
-  stackable: z.boolean(),
+  // See create schema: legacy values are deliberately normalized server-side.
+  delivery_channel: z.enum(['all', 'web', 'mobile', 'print']).optional().transform(() => 'all' as const),
+  stackable: z.boolean().optional().transform(() => false as const),
   status: z.enum(['active', 'inactive', 'revoked']),
 }).superRefine((value, context) => {
   if (value.assignment_type === 'customer' && !value.customer_id) {

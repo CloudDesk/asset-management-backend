@@ -3,6 +3,19 @@ import { ValidationError } from '../utils/errorHandler.js';
 
 const money = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 
+interface WalletPricingCapacity {
+  merchandisePayable: number;
+  shippingPayable: number;
+}
+
+interface WalletCreditAllocation {
+  wallet_credit_id: number;
+  source_type: string;
+  amount: number;
+  merchandise_amount: number;
+  shipping_amount: number;
+}
+
 export class WalletRedemptionService {
   private prisma = new PrismaClient();
 
@@ -36,20 +49,114 @@ export class WalletRedemptionService {
     });
   }
 
-  async quote(customerId: number, eligibilityBase: number, payableAmount: number) {
+  private allocateCredits(
+    credits: Array<{
+      id: number;
+      source_type?: string | null;
+      remaining_amount: Prisma.Decimal | number;
+      reservations: Array<{ amount: Prisma.Decimal | number }>;
+    }>,
+    payableAmount: number,
+    capacity?: WalletPricingCapacity,
+  ) {
+    let merchandiseOutstanding = money(capacity?.merchandisePayable ?? payableAmount);
+    let shippingOutstanding = money(capacity?.shippingPayable ?? 0);
+    let legacyOutstanding = money(payableAmount);
+    const sourceAware = Boolean(capacity);
+    const allocations: WalletCreditAllocation[] = [];
+    let eligibleBalance = 0;
+
+    for (const credit of credits) {
+      const reserved = credit.reservations.reduce(
+        (sum, reservation) => sum + Number(reservation.amount),
+        0,
+      );
+      const available = money(Math.max(Number(credit.remaining_amount) - reserved, 0));
+      eligibleBalance = money(eligibleBalance + available);
+      if (available <= 0) continue;
+
+      const sourceType = String(credit.source_type || 'coupon');
+      if (!sourceAware) {
+        const amount = money(Math.min(available, legacyOutstanding));
+        if (amount > 0) {
+          allocations.push({
+            wallet_credit_id: credit.id,
+            source_type: sourceType,
+            amount,
+            merchandise_amount: amount,
+            shipping_amount: 0,
+          });
+          legacyOutstanding = money(legacyOutstanding - amount);
+        }
+        continue;
+      }
+
+      const isRefundCredit = sourceType === 'cancellation_refund' || sourceType === 'return_refund';
+      const maximum = isRefundCredit
+        ? merchandiseOutstanding + shippingOutstanding
+        : merchandiseOutstanding;
+      const amount = money(Math.min(available, maximum));
+      if (amount <= 0) continue;
+
+      const merchandiseAmount = money(Math.min(amount, merchandiseOutstanding));
+      const shippingAmount = money(amount - merchandiseAmount);
+      allocations.push({
+        wallet_credit_id: credit.id,
+        source_type: sourceType,
+        amount,
+        merchandise_amount: merchandiseAmount,
+        shipping_amount: shippingAmount,
+      });
+      merchandiseOutstanding = money(merchandiseOutstanding - merchandiseAmount);
+      shippingOutstanding = money(shippingOutstanding - shippingAmount);
+    }
+
+    return {
+      eligible_balance: eligibleBalance,
+      discount_amount: money(allocations.reduce((sum, allocation) => sum + allocation.amount, 0)),
+      merchandise_discount_amount: money(
+        allocations.reduce((sum, allocation) => sum + allocation.merchandise_amount, 0),
+      ),
+      shipping_discount_amount: money(
+        allocations.reduce((sum, allocation) => sum + allocation.shipping_amount, 0),
+      ),
+      allocations,
+    };
+  }
+
+  async quote(
+    customerId: number,
+    eligibilityBase: number,
+    payableAmount: number,
+    capacity?: WalletPricingCapacity,
+  ) {
     if (!Number.isFinite(eligibilityBase) || eligibilityBase < 0 || !Number.isFinite(payableAmount) || payableAmount < 0) {
       throw new ValidationError('INVALID_WALLET_QUOTE_AMOUNTS');
     }
+    if (capacity && (
+      !Number.isFinite(capacity.merchandisePayable) || capacity.merchandisePayable < 0 ||
+      !Number.isFinite(capacity.shippingPayable) || capacity.shippingPayable < 0 ||
+      money(capacity.merchandisePayable + capacity.shippingPayable) !== money(payableAmount)
+    )) throw new ValidationError('INVALID_WALLET_QUOTE_CAPACITY');
     await this.releaseExpired(this.prisma);
     const credits = await this.eligibleCredits(this.prisma, customerId, eligibilityBase);
-    const eligibleBalance = money(credits.reduce((total, credit) => {
-      const reserved = credit.reservations.reduce((sum, reservation) => sum + Number(reservation.amount), 0);
-      return total + Math.max(Number(credit.remaining_amount) - reserved, 0);
-    }, 0));
-    return { eligible_balance: eligibleBalance, discount_amount: money(Math.min(eligibleBalance, payableAmount)) };
+    const quote = this.allocateCredits(credits, payableAmount, capacity);
+    return capacity
+      ? quote
+      : {
+          eligible_balance: quote.eligible_balance,
+          discount_amount: quote.discount_amount,
+        };
   }
 
-  async reserve(customerId: number, merchantTransactionId: string, eligibilityBase: number, payableAmount: number) {
+  async reserve(
+    customerId: number,
+    merchantTransactionId: string,
+    eligibilityBase: number,
+    merchandisePayable: number,
+    shippingPayable = 0,
+  ) {
+    const payableAmount = money(merchandisePayable + shippingPayable);
     if (payableAmount <= 0) throw new ValidationError('INVALID_WALLET_PAYABLE_AMOUNT');
     return this.prisma.$transaction(async (database) => {
       await this.releaseExpired(database);
@@ -61,33 +168,28 @@ export class WalletRedemptionService {
       }
 
       const credits = await this.eligibleCredits(database, customerId, eligibilityBase);
-      let outstanding = payableAmount;
-      let discount = 0;
+      const quote = this.allocateCredits(credits, payableAmount, {
+        merchandisePayable,
+        shippingPayable,
+      });
       const now = BigInt(Date.now());
       const expiresAt = BigInt(Date.now() + 15 * 60 * 1000);
 
-      for (const credit of credits) {
-        if (outstanding <= 0) break;
-        const reserved = credit.reservations.reduce((sum, reservation) => sum + Number(reservation.amount), 0);
-        const available = Math.max(Number(credit.remaining_amount) - reserved, 0);
-        const allocation = money(Math.min(available, outstanding));
-        if (allocation <= 0) continue;
+      for (const allocation of quote.allocations) {
         await database.wallet_reservations.create({
           data: {
             customer_id: customerId,
-            wallet_credit_id: credit.id,
+            wallet_credit_id: allocation.wallet_credit_id,
             merchant_transaction_id: merchantTransactionId,
-            amount: new Prisma.Decimal(allocation),
+            amount: new Prisma.Decimal(allocation.amount),
             status: 'reserved',
             expires_at: expiresAt,
             createddate: now,
             modifieddate: now,
           },
         });
-        discount = money(discount + allocation);
-        outstanding = money(outstanding - allocation);
       }
-      return { discount_amount: discount };
+      return quote;
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
 

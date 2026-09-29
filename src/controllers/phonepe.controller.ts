@@ -21,6 +21,11 @@ import { WalletRedemptionService } from "../services/wallet-redemption.service.j
 import { RefundOperationService } from "../services/refund-operation.service.js";
 import { PromotionCheckoutService } from "../services/promotion-checkout.service.js";
 import { PromotionRedemptionService } from "../services/promotion-redemption.service.js";
+import {
+  DirectCouponCheckoutService,
+  type DirectCouponCheckoutSnapshot,
+} from "../services/direct-coupon-checkout.service.js";
+import type { AuthenticatedRequest } from "../middleware/auth.middleware.js";
 import { gstService } from "../services/gst.service.js";
 import { createPaymentReconciliationTask } from "../services/gcpTasks.service.js";
 import {
@@ -30,6 +35,7 @@ import {
 import type { PaymentChannel } from "../utils/paymentReturnUrl.js";
 import {
   calculateCheckoutPricing,
+  applyDirectCouponToCheckoutPricing,
   checkoutAmountsMatch,
   checkoutCartQuantitiesMatch,
   STANDARD_CHECKOUT_SHIPPING_AMOUNT,
@@ -70,6 +76,12 @@ const getV2MerchandiseDiscount = (quote: any): number =>
         ) / 100
     : 0;
 
+const moneyBeforeDirectCoupon = (pricing: CheckoutPricing): number =>
+  Math.round(
+    (Number(pricing.merchandise_payable || 0) +
+      Number(pricing.direct_coupon_discount || 0)) * 100,
+  ) / 100;
+
 export class PhonePeController {
   public phonePeService = new PhonePeService();
   public transactionService = new TransactionService();
@@ -81,6 +93,7 @@ export class PhonePeController {
   public refundOperationService = new RefundOperationService();
   public promotionCheckoutService = new PromotionCheckoutService();
   public promotionRedemptionService = new PromotionRedemptionService();
+  public directCouponCheckoutService = new DirectCouponCheckoutService();
 
   /**
    * Initiate payment with PhonePe
@@ -88,11 +101,15 @@ export class PhonePeController {
   initiatePayment = asyncHandler(
     async (request: FastifyRequest, reply: FastifyReply) => {
       let walletReservationReference: string | null = null;
+      let directCouponReservationReference: string | null = null;
       try {
         const requestBody = request.body as {
           mode: "phonepe" | "cod";
           payment_channel?: PaymentChannel;
           evaluation_ids?: string[];
+          direct_coupon?: {
+            code: string;
+          };
           wallet?: {
             apply: boolean;
             eligibility_base: number;
@@ -125,6 +142,20 @@ export class PhonePeController {
           requestBody.payment_channel,
           requestBody.returnUrl
         );
+        const authenticatedUser = (request as AuthenticatedRequest).user;
+        if (
+          requestBody.direct_coupon &&
+          (!authenticatedUser ||
+            authenticatedUser.userType !== "ecommerce" ||
+            authenticatedUser.id !== requestBody.transaction.userId)
+        ) {
+          return reply.code(403).send({
+            success: false,
+            message: "The coupon can only be used by its authenticated customer.",
+            error_code: "DIRECT_COUPON_CUSTOMER_MISMATCH",
+            statusCode: 403,
+          });
+        }
         console.log("test");
         console.log(request.body, "req body");
 
@@ -945,11 +976,22 @@ export class PhonePeController {
           },
           0,
         );
-        const checkoutPricing = await this.resolveAuthoritativeCheckoutPricing(
+        let checkoutPricing = await this.resolveAuthoritativeCheckoutPricing(
           requestBody.order,
           validEvaluations,
           merchandiseSubtotal,
         );
+        let directCouponAllocation: DirectCouponCheckoutSnapshot | null = null;
+        if (requestBody.direct_coupon) {
+          const quotedCoupon = await this.directCouponCheckoutService.quote(
+            requestBody.transaction.userId,
+            requestBody.direct_coupon.code,
+            requestBody.payment_channel === "mobile" ? "mobile" : "web",
+            checkoutPricing.merchandise_subtotal,
+            checkoutPricing.merchandise_payable,
+          );
+          checkoutPricing = applyDirectCouponToCheckoutPricing(checkoutPricing, quotedCoupon);
+        }
         const submittedAmount = Math.round(Number(requestBody.transaction.amount) * 100) / 100;
         if (!checkoutAmountsMatch(submittedAmount, checkoutPricing.payable_before_wallet)) {
           return reply.code(409).send({
@@ -1349,6 +1391,24 @@ export class PhonePeController {
           PhonePeService.generateMerchantTransactionId();
         walletReservationReference = merchantTransactionId;
 
+        if (requestBody.direct_coupon) {
+          directCouponReservationReference = merchantTransactionId;
+          directCouponAllocation = await this.directCouponCheckoutService.reserve(
+            requestBody.transaction.userId,
+            requestBody.direct_coupon.code,
+            requestBody.payment_channel === "mobile" ? "mobile" : "web",
+            checkoutPricing.merchandise_subtotal,
+            moneyBeforeDirectCoupon(checkoutPricing),
+            merchantTransactionId,
+          );
+          if (!checkoutAmountsMatch(
+            directCouponAllocation.discount_amount,
+            checkoutPricing.direct_coupon_discount,
+          )) {
+            throw new ValidationError("DIRECT_COUPON_QUOTE_CHANGED");
+          }
+        }
+
         let walletDiscountAmount = 0;
 
         // ========================================
@@ -1431,6 +1491,7 @@ export class PhonePeController {
             limitReachedEvaluations,
             lockResults,
             checkoutPricing,
+            directCouponAllocation,
             "promotion"
           );
         }
@@ -1440,11 +1501,12 @@ export class PhonePeController {
             requestBody.transaction.userId,
             merchantTransactionId,
             checkoutPricing.merchandise_subtotal,
-            checkoutPricing.payable_before_wallet,
+            checkoutPricing.merchandise_payable,
+            checkoutPricing.shipping_payable,
           );
           walletDiscountAmount = reservation.discount_amount;
           if (walletDiscountAmount <= 0) {
-            await this.walletRedemptionService.release(merchantTransactionId);
+            await this.releasePaymentReservations(merchantTransactionId);
             return reply.code(400).send({
               success: false,
               message: "No wallet credit is currently eligible for this order.",
@@ -1464,6 +1526,7 @@ export class PhonePeController {
               limitReachedEvaluations,
               lockResults,
               checkoutPricing,
+              directCouponAllocation,
               "wallet"
             );
           }
@@ -1490,6 +1553,7 @@ export class PhonePeController {
             merchantTransactionId: paymentRequest.merchantTransactionId,
             amount: paymentRequest.amount,
             pricing: checkoutPricing,
+            direct_coupon: directCouponAllocation,
             wallet_discount_amount: walletDiscountAmount,
             userId: paymentRequest.userId,
             productIds: paymentRequest.productIds,
@@ -1515,6 +1579,7 @@ export class PhonePeController {
               eligibility_base: requestBody.wallet?.eligibility_base ?? null,
             },
             checkout_pricing: checkoutPricing,
+            direct_coupon: directCouponAllocation,
             invalid_evaluations: invalidEvaluations, // Track invalid ones for user info
             limit_reached_evaluations: limitReachedEvaluations, // Track limit-reached promotions
             originalPayload: requestBody,
@@ -1637,7 +1702,7 @@ export class PhonePeController {
           console.log(response, "response FInal ");
           return reply.code(200).send(response);
         } else {
-          await this.walletRedemptionService.release(merchantTransactionId);
+          await this.releasePaymentReservations(merchantTransactionId);
           // If result is not successful
           const errorResponse = createErrorResponse(
             result.message || "Payment initiation failed",
@@ -1648,7 +1713,9 @@ export class PhonePeController {
         }
       } catch (error: any) {
         if (walletReservationReference) {
-          await this.walletRedemptionService.release(walletReservationReference).catch(() => undefined);
+          await this.releasePaymentReservations(walletReservationReference).catch(() => undefined);
+        } else if (directCouponReservationReference) {
+          await this.directCouponCheckoutService.release(directCouponReservationReference).catch(() => undefined);
         }
         logger.error(
           {
@@ -1742,6 +1809,7 @@ export class PhonePeController {
     limitReachedEvaluations: any[],
     lockResults: any[],
     checkoutPricing: CheckoutPricing,
+    directCouponAllocation: DirectCouponCheckoutSnapshot | null,
     internalMode: "wallet" | "promotion",
   ) {
     const isWalletPayment = internalMode === "wallet";
@@ -1778,6 +1846,7 @@ export class PhonePeController {
         eligibility_base: requestBody.wallet?.eligibility_base ?? null,
       },
       checkout_pricing: checkoutPricing,
+      direct_coupon: directCouponAllocation,
       invalid_evaluations: invalidEvaluations,
       limit_reached_evaluations: limitReachedEvaluations,
       originalPayload: requestBody,
@@ -1848,6 +1917,7 @@ export class PhonePeController {
               reconciliation.status,
             ),
         pricing: checkoutPricing,
+        direct_coupon: directCouponAllocation,
         wallet_discount_amount: walletDiscountAmount,
         status: "SUCCESS",
         mode: internalMode,
@@ -1876,6 +1946,21 @@ export class PhonePeController {
         },
       }
     ));
+  }
+
+  private async releasePaymentReservations(merchantTransactionId: string): Promise<void> {
+    const results = await Promise.allSettled([
+      this.walletRedemptionService.release(merchantTransactionId),
+      this.directCouponCheckoutService.release(merchantTransactionId),
+    ]);
+    for (const result of results) {
+      if (result.status === "rejected") {
+        logger.warn(
+          { merchantTransactionId, error: result.reason?.message || String(result.reason) },
+          "Could not release one checkout reservation",
+        );
+      }
+    }
   }
 
   private async releaseLockedStockForWalletOrder(
@@ -2092,7 +2177,7 @@ export class PhonePeController {
             // The order can be created later using the stored transaction data
           }
         } else {
-          await this.walletRedemptionService.release(merchantTransactionId);
+          await this.releasePaymentReservations(merchantTransactionId);
           try {
             const transactions = await this.transactionService.findMany(
               { merchanttransactionid: merchantTransactionId },
@@ -2184,7 +2269,7 @@ export class PhonePeController {
             paymentStatus
           );
         } else if (!["PAYMENT_PENDING", "PAYMENT_INITIATED"].includes(paymentStatus.code)) {
-          await this.walletRedemptionService.release(merchantTransactionId);
+          await this.releasePaymentReservations(merchantTransactionId);
         }
 
         const response = createSuccessResponse(
@@ -2904,6 +2989,9 @@ export class PhonePeController {
       const expectedWalletDiscount = Number(
         transactions.data?.[0]?.transactiondata?.wallet_discount?.amount || 0
       );
+      const directCouponSnapshot =
+        (transactions.data?.[0]?.transactiondata?.direct_coupon || null) as
+          DirectCouponCheckoutSnapshot | null;
       const storedMode = transactions.data?.[0]?.transactiondata?.mode;
       const transactionMode =
         storedMode === "wallet" || storedMode === "promotion"
@@ -2926,6 +3014,11 @@ export class PhonePeController {
           orderId,
           transactionUserId,
           evaluationIds,
+        );
+        await this.directCouponCheckoutService.consume(
+          transactionId,
+          orderId,
+          directCouponSnapshot,
         );
         await this.walletRedemptionService.consume(transactionId, orderId, expectedWalletDiscount);
         await this.clearPurchasedCartForTransaction(
@@ -2979,6 +3072,11 @@ export class PhonePeController {
             transactionUserId,
             evaluationIds,
           );
+          await this.directCouponCheckoutService.consume(
+            transactionId,
+            orderId,
+            directCouponSnapshot,
+          );
           await this.walletRedemptionService.consume(
             transactionId,
             orderId,
@@ -3012,6 +3110,11 @@ export class PhonePeController {
         orderId,
         transactionUserId,
         evaluationIds,
+      );
+      await this.directCouponCheckoutService.consume(
+        transactionId,
+        orderId,
+        directCouponSnapshot,
       );
       await this.walletRedemptionService.consume(transactionId, orderId, expectedWalletDiscount);
 
@@ -3259,6 +3362,7 @@ export class PhonePeController {
       // Initialize promotion-related values
       let evaluationData = null;
       let promotionDiscountTotal = 0;
+      let directCouponDiscountTotal = 0;
       let originalTotal = 0;
       let productDiscountTotal = 0; // Add product discount total
       let shippingCost = 0;
@@ -3446,6 +3550,7 @@ export class PhonePeController {
         transaction.transactiondata?.checkout_pricing as CheckoutPricing | undefined;
       if (authoritativePricing) {
         promotionDiscountTotal = Number(authoritativePricing.merchandise_discount || 0);
+        directCouponDiscountTotal = Number(authoritativePricing.direct_coupon_discount || 0);
         shippingCost = Number(authoritativePricing.shipping_payable || 0);
       }
 
@@ -3483,6 +3588,10 @@ export class PhonePeController {
         "Starting orderItems enrichment with per-line discount data"
       );
 
+      let directCouponAmountToAllocate = directCouponDiscountTotal;
+      let directCouponBaseToAllocate = authoritativePricing
+        ? Number(authoritativePricing.merchandise_payable || 0) + directCouponDiscountTotal
+        : Math.max(productAmount - promotionDiscountTotal, 0);
       const enrichedOrderItems = originalOrderData
         .filter((item: any) => validProductIds.includes(item.productid))
         .map((item: any, index: number) => {
@@ -3685,6 +3794,38 @@ export class PhonePeController {
             }
           }
 
+          // Allocate the direct coupon only across merchandise that remains
+          // after product and promotion discounts. Keeping this separate from
+          // the promotion breakdown prevents the coupon from disappearing on
+          // V2 orders that already have per-line promotion adjustments.
+          const couponEligibleLineAmount = Math.max(
+            itemProductAmount - promotionDiscountAmount,
+            0,
+          );
+          if (
+            directCouponAmountToAllocate > 0 &&
+            directCouponBaseToAllocate > 0 &&
+            couponEligibleLineAmount > 0
+          ) {
+            const couponShare = Math.min(
+              couponEligibleLineAmount,
+              directCouponAmountToAllocate,
+              Math.round(
+                (directCouponAmountToAllocate * couponEligibleLineAmount /
+                  directCouponBaseToAllocate) * 100,
+              ) / 100,
+            );
+            promotionDiscountAmount += couponShare;
+            directCouponAmountToAllocate = Math.max(
+              0,
+              Math.round((directCouponAmountToAllocate - couponShare) * 100) / 100,
+            );
+            directCouponBaseToAllocate = Math.max(
+              0,
+              Math.round((directCouponBaseToAllocate - couponEligibleLineAmount) * 100) / 100,
+            );
+          }
+
           // Calculate pro-rata shipping cost based on product amount (after discount)
           // ✅ FIX: Use amount after product discount for fair pro-rata distribution
           const totalProductAmountForShipping = originalOrderData
@@ -3763,8 +3904,11 @@ export class PhonePeController {
         totalQuantity: enrichedOrderItems.reduce((sum: number, i: any) => sum + (parseInt(i.quantity?.toString() || '0') || 0), 0)
       };
 
-      // Calculate expected order-level orderamount (productAmount - promotionDiscountTotal)
-      const expectedOrderAmount = productAmount - promotionDiscountTotal;
+      const combinedMerchandiseDiscountTotal =
+        promotionDiscountTotal + directCouponDiscountTotal;
+      // Calculate expected order-level orderamount after promotions and the
+      // directly entered coupon. Shipping remains a separate balance.
+      const expectedOrderAmount = productAmount - combinedMerchandiseDiscountTotal;
 
       logger.info(
         {
@@ -3773,9 +3917,10 @@ export class PhonePeController {
           expectedOrderLevelTotals: {
             quantity: totalQuantity,
             productamount: productAmount,
-            discountamount: productDiscountTotal + promotionDiscountTotal,
+            discountamount: productDiscountTotal + combinedMerchandiseDiscountTotal,
             orderamount: expectedOrderAmount,
             promotion_discount_total: promotionDiscountTotal,
+            direct_coupon_discount_total: directCouponDiscountTotal,
             original_total: originalTotal,
             shipping_cost: shippingCost
           },
@@ -3783,20 +3928,20 @@ export class PhonePeController {
             quantity: Math.abs(enrichmentSummary.totalQuantity - totalQuantity),
             productAmount: Math.abs(enrichmentSummary.totalProductAmount - productAmount),
             productDiscount: Math.abs(enrichmentSummary.totalProductDiscount - productDiscountTotal),
-            promotionDiscount: Math.abs(enrichmentSummary.totalPromotionDiscount - promotionDiscountTotal),
-            discountAmount: Math.abs(enrichmentSummary.totalDiscountAmount - (productDiscountTotal + promotionDiscountTotal)),
+            promotionDiscount: Math.abs(enrichmentSummary.totalPromotionDiscount - combinedMerchandiseDiscountTotal),
+            discountAmount: Math.abs(enrichmentSummary.totalDiscountAmount - (productDiscountTotal + combinedMerchandiseDiscountTotal)),
             orderAmount: Math.abs(enrichmentSummary.totalOrderAmount - expectedOrderAmount),
             shipping: Math.abs(enrichmentSummary.totalShipping - shippingCost)
           },
           validations: {
             quantityMatch: Math.abs(enrichmentSummary.totalQuantity - totalQuantity) < 0.01,
             productAmountMatch: Math.abs(enrichmentSummary.totalProductAmount - productAmount) < 0.01,
-            promotionDiscountMatch: Math.abs(enrichmentSummary.totalPromotionDiscount - promotionDiscountTotal) < 0.01,
+            promotionDiscountMatch: Math.abs(enrichmentSummary.totalPromotionDiscount - combinedMerchandiseDiscountTotal) < 0.01,
             orderAmountMatch: Math.abs(enrichmentSummary.totalOrderAmount - expectedOrderAmount) < 0.01,
             allValid:
               Math.abs(enrichmentSummary.totalQuantity - totalQuantity) < 0.01 &&
               Math.abs(enrichmentSummary.totalProductAmount - productAmount) < 0.01 &&
-              Math.abs(enrichmentSummary.totalPromotionDiscount - promotionDiscountTotal) < 0.01 &&
+              Math.abs(enrichmentSummary.totalPromotionDiscount - combinedMerchandiseDiscountTotal) < 0.01 &&
               Math.abs(enrichmentSummary.totalOrderAmount - expectedOrderAmount) < 0.01
           }
         },
@@ -3819,6 +3964,7 @@ export class PhonePeController {
             original_total: originalTotal,
             product_discount_total: productDiscountTotal,
             promotion_discount_total: promotionDiscountTotal,
+            direct_coupon_discount_total: directCouponDiscountTotal,
             shipping_cost: shippingCost,
             tax_amount: taxAmount,
             productamount: productAmount,
@@ -3866,7 +4012,7 @@ export class PhonePeController {
             ? productAmount
             : parseFloat(transaction.amount?.toString() || "0"),
         // Wallet credit is a payment allocation, not a merchandise discount.
-        discountamount: productDiscountTotal + promotionDiscountTotal,
+        discountamount: productDiscountTotal + combinedMerchandiseDiscountTotal,
         ispaymentsucceed: !isCodOrder, // ✅ COD: false (payment pending), Prepaid: true
         merchanttransactionid: transaction.merchanttransactionid,
         productid: validProductIds, // Include product IDs for automatic orderline creation
@@ -3875,7 +4021,7 @@ export class PhonePeController {
         modifieddate: currentTime,
         // Add new promotion-related fields
         evaluation_id: primaryEvaluationId,
-        promotion_discount_total: promotionDiscountTotal, // Coupon/promotion discounts
+        promotion_discount_total: combinedMerchandiseDiscountTotal, // Promotions plus direct coupon
         wallet_discount_total: walletDiscountTotal,
         original_total: originalTotal,
         shipping_cost: shippingCost,
@@ -6216,7 +6362,7 @@ export class PhonePeController {
             },
             modifieddate: Date.now(),
           });
-          await this.walletRedemptionService.release(merchantTransactionId);
+          await this.releasePaymentReservations(merchantTransactionId);
 
           logger.info(
             {

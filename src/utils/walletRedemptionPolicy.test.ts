@@ -40,6 +40,74 @@ test('wallet quote is capped at the remaining post-promotion payable amount', as
   assert.deepEqual(result, { eligible_balance: 500, discount_amount: 150 });
 });
 
+test('source-aware wallet quote keeps coupon credit merchandise-only', async () => {
+  const service = new WalletRedemptionService() as any;
+  service.prisma = {
+    wallet_reservations: { updateMany: async () => ({ count: 0 }) },
+    wallet_credits: {
+      findMany: async () => [{
+        id: 1,
+        source_type: 'coupon',
+        remaining_amount: 500,
+        reservations: [],
+      }],
+    },
+  };
+
+  const result = await service.quote(10, 80, 230, {
+    merchandisePayable: 80,
+    shippingPayable: 150,
+  });
+
+  assert.equal(result.eligible_balance, 500);
+  assert.equal(result.discount_amount, 80);
+  assert.equal(result.merchandise_discount_amount, 80);
+  assert.equal(result.shipping_discount_amount, 0);
+  assert.deepEqual(result.allocations, [{
+    wallet_credit_id: 1,
+    source_type: 'coupon',
+    amount: 80,
+    merchandise_amount: 80,
+    shipping_amount: 0,
+  }]);
+});
+
+test('source-aware wallet quote allows refund credit to cover shipping', async () => {
+  const service = new WalletRedemptionService() as any;
+  service.prisma = {
+    wallet_reservations: { updateMany: async () => ({ count: 0 }) },
+    wallet_credits: {
+      findMany: async () => [{
+        id: 2,
+        source_type: 'return_refund',
+        remaining_amount: 500,
+        reservations: [],
+      }],
+    },
+  };
+
+  const result = await service.quote(10, 80, 230, {
+    merchandisePayable: 80,
+    shippingPayable: 150,
+  });
+
+  assert.equal(result.discount_amount, 230);
+  assert.equal(result.merchandise_discount_amount, 80);
+  assert.equal(result.shipping_discount_amount, 150);
+});
+
+test('source-aware wallet quote validates the supplied pricing capacity', async () => {
+  const service = new WalletRedemptionService();
+
+  await assert.rejects(
+    () => service.quote(10, 80, 230, {
+      merchandisePayable: 80,
+      shippingPayable: 100,
+    }),
+    /INVALID_WALLET_QUOTE_CAPACITY/,
+  );
+});
+
 test('wallet consumption rejects a checkout reservation after its 15-minute window', async () => {
   let expiryReleaseChecked = false;
   const database = {
@@ -91,6 +159,70 @@ test('wallet reservation never exceeds the post-promotion payable amount', async
 
   assert.equal(result.discount_amount, 150);
   assert.deepEqual(createdAmounts, [150]);
+});
+
+test('wallet reservation does not use coupon credit for shipping', async () => {
+  const createdAmounts: number[] = [];
+  const database = {
+    wallet_reservations: {
+      updateMany: async () => ({ count: 0 }),
+      findMany: async () => [],
+      create: async ({ data }: any) => {
+        createdAmounts.push(Number(data.amount));
+        return data;
+      },
+    },
+    wallet_credits: {
+      findMany: async () => [{
+        id: 1,
+        source_type: 'coupon',
+        remaining_amount: 500,
+        reservations: [],
+      }],
+    },
+  };
+  const service = new WalletRedemptionService() as any;
+  service.prisma = {
+    $transaction: async (callback: (database: unknown) => unknown) => callback(database),
+  };
+
+  const result = await service.reserve(10, 'NV-WALLET-MERCHANDISE-ONLY', 80, 80, 150);
+
+  assert.equal(result.discount_amount, 80);
+  assert.equal(result.shipping_discount_amount, 0);
+  assert.deepEqual(createdAmounts, [80]);
+});
+
+test('wallet reservation lets refund credit cover remaining shipping', async () => {
+  const createdAmounts: number[] = [];
+  const database = {
+    wallet_reservations: {
+      updateMany: async () => ({ count: 0 }),
+      findMany: async () => [],
+      create: async ({ data }: any) => {
+        createdAmounts.push(Number(data.amount));
+        return data;
+      },
+    },
+    wallet_credits: {
+      findMany: async () => [{
+        id: 2,
+        source_type: 'cancellation_refund',
+        remaining_amount: 500,
+        reservations: [],
+      }],
+    },
+  };
+  const service = new WalletRedemptionService() as any;
+  service.prisma = {
+    $transaction: async (callback: (database: unknown) => unknown) => callback(database),
+  };
+
+  const result = await service.reserve(10, 'NV-WALLET-REFUND-SHIPPING', 80, 80, 150);
+
+  assert.equal(result.discount_amount, 230);
+  assert.equal(result.shipping_discount_amount, 150);
+  assert.deepEqual(createdAmounts, [230]);
 });
 
 test('wallet reservation splits across credits but stops at the payable amount', async () => {

@@ -8,8 +8,6 @@ const baseCoupon = {
   discount_value: 100,
   assignment_type: 'customer' as const,
   customer_id: 42,
-  delivery_channel: 'print' as const,
-  stackable: false,
 };
 
 test('standalone wallet coupons must be personalized fixed-value credits', () => {
@@ -38,6 +36,32 @@ test('only admin lifecycle states are accepted for unclaimed coupon editing', ()
 
 test('website claims identify their channel by default', () => {
   assert.equal(claimCouponSchema.parse({ code: 'CUSTOMER-100' }).channel, 'web');
+});
+
+test('standalone coupon create policy defaults to all channels and non-stackable', () => {
+  const parsed = createQuickCouponSchema.parse(baseCoupon);
+  assert.equal(parsed.delivery_channel, 'all');
+  assert.equal(parsed.stackable, false);
+});
+
+test('legacy standalone coupon create settings are normalized by the backend', () => {
+  const parsed = createQuickCouponSchema.parse({
+    ...baseCoupon,
+    delivery_channel: 'print',
+    stackable: true,
+  });
+  assert.equal(parsed.delivery_channel, 'all');
+  assert.equal(parsed.stackable, false);
+});
+
+test('standalone coupon update no longer requires channel or stacking fields', () => {
+  const parsed = updateQuickCouponSchema.parse({
+    ...baseCoupon,
+    name: 'Customer coupon',
+    status: 'active',
+  });
+  assert.equal(parsed.delivery_channel, 'all');
+  assert.equal(parsed.stackable, false);
 });
 
 test('generated personalized codes use the compact Nivaana prefix', () => {

@@ -60,6 +60,20 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
               items: { type: "string" },
               description: "Promotion evaluation IDs array (optional)",
             },
+            direct_coupon: {
+              type: "object",
+              properties: {
+                code: {
+                  type: "string",
+                  minLength: 4,
+                  maxLength: 100,
+                  description: "One standalone customer coupon to apply directly at checkout",
+                },
+              },
+              required: ["code"],
+              additionalProperties: false,
+              description: "Optional direct coupon. The server revalidates ownership and calculates its amount.",
+            },
             wallet: {
               type: "object",
               properties: {

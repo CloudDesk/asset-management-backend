@@ -2,11 +2,41 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   calculateCheckoutPricing,
+  applyDirectCouponToCheckoutPricing,
   checkoutAmountsMatch,
   checkoutCartQuantitiesMatch,
   resolvePromotionRedemptionAmounts,
   uniqueCheckoutEvaluationIds,
 } from './checkoutPricing.js';
+
+test('applies a direct coupon only to merchandise remaining after promotions', () => {
+  const promotionPricing = calculateCheckoutPricing({
+    merchandiseSubtotal: 80,
+    legacyPromotions: [
+      { promotion_id: 1, promotion_type: 'PERCENT_OFF_CART', discount_amount: 8 },
+    ],
+  });
+  const result = applyDirectCouponToCheckoutPricing(promotionPricing, {
+    discount_amount: 100,
+  });
+
+  assert.equal(result.merchandise_discount, 8);
+  assert.equal(result.direct_coupon_discount, 72);
+  assert.equal(result.merchandise_payable, 0);
+  assert.equal(result.shipping_payable, 150);
+  assert.equal(result.payable_before_wallet, 150);
+});
+
+test('does not change shipping when a direct coupon exceeds merchandise', () => {
+  const result = applyDirectCouponToCheckoutPricing(
+    calculateCheckoutPricing({ merchandiseSubtotal: 40, shippingAmount: 150 }),
+    { discount_amount: 500 },
+  );
+
+  assert.equal(result.direct_coupon_discount, 40);
+  assert.equal(result.shipping_payable, 150);
+  assert.equal(result.payable_before_wallet, 150);
+});
 
 test('accepts the same payment amount after paise normalization', () => {
   assert.equal(checkoutAmountsMatch(230, 230.001), true);

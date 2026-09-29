@@ -43,6 +43,7 @@
     "shortnames:apply:dev": "npx tsx scripts/migrate-product-shortnames.ts --apply --confirm=NIVAANA_PRODUCT_SHORTNAMES_DEV",
     "promotions:v2:migrate:dry-run": "npx tsx scripts/migrate-promotions-v2.ts",
     "promotions:v2:migrate:apply": "npx tsx scripts/migrate-promotions-v2.ts --apply --confirm=NIVAANA_PROMOTIONS_V2",
+    "coupons:policy:audit": "npx tsx scripts/audit-standalone-coupon-policy.ts",
     "test:promotions:v2:load": "npx tsx scripts/load-test-promotions-v2.ts"
   },
   "repository": {

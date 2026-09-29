@@ -62,12 +62,40 @@ export interface CheckoutPricingInput {
 export interface CheckoutPricing {
   merchandise_subtotal: number;
   merchandise_discount: number;
+  direct_coupon_discount: number;
   merchandise_payable: number;
   shipping_amount: number;
   shipping_discount: number;
   shipping_payable: number;
   payable_before_wallet: number;
   applied_promotions: LegacyAppliedPromotion[];
+}
+
+export interface DirectCouponPricingAllocation {
+  discount_amount: number;
+}
+
+/**
+ * Apply a customer-entered standalone coupon after promotions. The coupon is
+ * deliberately constrained to the remaining merchandise balance, so it can
+ * never consume or hide shipping.
+ */
+export function applyDirectCouponToCheckoutPricing(
+  pricing: CheckoutPricing,
+  allocation: DirectCouponPricingAllocation | null,
+): CheckoutPricing {
+  const couponDiscount = money(Math.min(
+    Math.max(Number(allocation?.discount_amount || 0), 0),
+    Math.max(Number(pricing.merchandise_payable || 0), 0),
+  ));
+  const merchandisePayable = money(pricing.merchandise_payable - couponDiscount);
+
+  return {
+    ...pricing,
+    direct_coupon_discount: couponDiscount,
+    merchandise_payable: merchandisePayable,
+    payable_before_wallet: money(merchandisePayable + pricing.shipping_payable),
+  };
 }
 
 /**
@@ -163,6 +191,7 @@ export function calculateCheckoutPricing(input: CheckoutPricingInput): CheckoutP
     return {
       merchandise_subtotal: merchandiseSubtotal,
       merchandise_discount: merchandiseDiscount,
+      direct_coupon_discount: 0,
       merchandise_payable: merchandisePayable,
       shipping_amount: shippingAmount,
       shipping_discount: shippingDiscount,
@@ -193,6 +222,7 @@ export function calculateCheckoutPricing(input: CheckoutPricingInput): CheckoutP
   return {
     merchandise_subtotal: merchandiseSubtotal,
     merchandise_discount: merchandiseDiscount,
+    direct_coupon_discount: 0,
     merchandise_payable: merchandisePayable,
     shipping_amount: shippingAmount,
     shipping_discount: shippingDiscount,

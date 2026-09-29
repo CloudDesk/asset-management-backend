@@ -3,8 +3,16 @@ import { Prisma, PrismaClient } from '@prisma/client';
 import type { CouponWalletListInput, CreateQuickCouponInput, UpdateQuickCouponInput } from '../schemas/coupon-wallet.schema.js';
 import { ValidationError } from '../utils/errorHandler.js';
 import { customerEmailNotificationService } from './customer-email-notification.service.js';
+import {
+  buildCouponClaimLockWhere,
+  couponUseStateErrorCode,
+  isStandaloneCouponPromotion,
+  resolveStandaloneCouponUseState,
+  STANDALONE_COUPON_DELIVERY_CHANNEL,
+  STANDALONE_COUPON_DESCRIPTION_PREFIX,
+  STANDALONE_COUPON_STACKABLE,
+} from '../utils/couponWalletPolicy.js';
 
-const STANDALONE_DESCRIPTION_PREFIX = 'Private discount rule created for coupon ';
 const money = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 
 export const generatePersonalizedCouponCode = () => `NV-${randomBytes(6).toString('hex').toUpperCase()}`;
@@ -38,18 +46,10 @@ export class CouponWalletService {
   }
 
   private walletStatus(assignment: any, redemptionCount: number) {
-    const nowSeconds = BigInt(Math.floor(Date.now() / 1000));
-    const nowMs = BigInt(Date.now());
-    if (assignment.status === 'revoked') return 'revoked';
-    if (assignment.status === 'inactive') return 'inactive';
-    if (assignment.status === 'expired') return 'expired';
-    if (assignment.status !== 'active') return 'inactive';
-    if (assignment.end_date && assignment.end_date < nowSeconds) return 'expired';
-    if (assignment.start_date && assignment.start_date > nowSeconds) return 'scheduled';
-    if (assignment.claimed_at || assignment.wallet_credit) return 'claimed';
-    if (assignment.usage_limit && redemptionCount >= assignment.usage_limit) return 'redeemed';
-    if (assignment.reservation_expires_at && assignment.reservation_expires_at > nowMs) return 'reserved';
-    return 'available';
+    return resolveStandaloneCouponUseState({
+      ...assignment,
+      redemption_count: redemptionCount,
+    });
   }
 
   private formatCoupon(assignment: any) {
@@ -129,7 +129,7 @@ export class CouponWalletService {
     });
     const assignments = await this.prisma.promotion_assignments.findMany({
       where: {
-        promotion: { is: { visibility: 'private', description: { startsWith: STANDALONE_DESCRIPTION_PREFIX } } },
+        promotion: { is: { visibility: 'private', description: { startsWith: STANDALONE_COUPON_DESCRIPTION_PREFIX } } },
         AND: [
           { OR: [
             { assignment_type: 'customer', customer_id: customerId },
@@ -322,7 +322,7 @@ export class CouponWalletService {
     if (!assignment) throw new ValidationError('COUPON_NOT_FOUND');
     if (
       assignment.promotion.visibility !== 'private' ||
-      !assignment.promotion.description?.startsWith(STANDALONE_DESCRIPTION_PREFIX)
+      !isStandaloneCouponPromotion(assignment.promotion)
     ) throw new ValidationError('COUPON_NOT_WALLET_CREDIT');
     if (assignment.assignment_type !== 'customer' || assignment.customer_id !== customerId) {
       throw new ValidationError('COUPON_ASSIGNED_TO_ANOTHER_CUSTOMER');
@@ -338,9 +338,8 @@ export class CouponWalletService {
     ) throw new ValidationError('COUPON_NOT_AVAILABLE_ON_THIS_CHANNEL');
 
     const currentStatus = this.walletStatus(assignment, assignment.redemptions.length);
-    if (currentStatus !== 'available') throw new ValidationError(`COUPON_${currentStatus.toUpperCase()}`);
-    if (assignment.claimed_by_customer_id || assignment.claimed_at || assignment.wallet_credit) {
-      throw new ValidationError('COUPON_ALREADY_CLAIMED');
+    if (currentStatus !== 'available') {
+      throw new ValidationError(couponUseStateErrorCode(currentStatus));
     }
 
     const action = assignment.promotion.action as { type?: string; value?: number } | null;
@@ -383,16 +382,32 @@ export class CouponWalletService {
       const { assignment, amount, minimumCartAmount } = await this.validateCouponForClaim(database, customerId, rawCode, channel);
       const now = BigInt(Date.now());
       const locked = await database.promotion_assignments.updateMany({
-        where: {
-          id: assignment.id,
-          customer_id: customerId,
-          claimed_by_customer_id: null,
-          claimed_at: null,
-          status: 'active',
+        where: buildCouponClaimLockWhere(assignment.id, customerId, Number(now)),
+        data: {
+          claimed_by_customer_id: customerId,
+          claimed_at: now,
+          reserved_by_customer_id: null,
+          reservation_reference: null,
+          reservation_expires_at: null,
+          modifieddate: now,
         },
-        data: { claimed_by_customer_id: customerId, claimed_at: now, modifieddate: now },
       });
-      if (locked.count !== 1) throw new ValidationError('COUPON_ALREADY_CLAIMED');
+      if (locked.count !== 1) {
+        // Another claim or direct-checkout reservation may have won after the
+        // initial read. Re-read the assignment so the losing request receives
+        // the correct stable state instead of an inaccurate duplicate message.
+        const latest = await database.promotion_assignments.findUnique({
+          where: { id: assignment.id },
+          include: this.include,
+        });
+        if (latest) {
+          const latestStatus = this.walletStatus(latest, latest.redemptions.length);
+          if (latestStatus !== 'available') {
+            throw new ValidationError(couponUseStateErrorCode(latestStatus));
+          }
+        }
+        throw new ValidationError('COUPON_ALREADY_CLAIMED');
+      }
 
       await database.wallet_credits.create({
         data: {
@@ -451,7 +466,7 @@ export class CouponWalletService {
         const promotion = await database.promotions.create({
           data: {
             name: input.name || `Wallet coupon ${code}`,
-            description: `${STANDALONE_DESCRIPTION_PREFIX}${code}`,
+            description: `${STANDALONE_COUPON_DESCRIPTION_PREFIX}${code}`,
             type: 'FIXED_AMOUNT_OFF_CART',
             code: null,
             auto_apply: false,
@@ -463,7 +478,7 @@ export class CouponWalletService {
             application_mode: 'code_entry',
             max_redemptions: 1,
             per_user_limit: 1,
-            stackable: input.stackable,
+            stackable: STANDALONE_COUPON_STACKABLE,
             conditions: input.minimum_cart_amount
               ? [{ attribute: 'cart.total_value', operator: 'GTE', value: input.minimum_cart_amount }]
               : [],
@@ -483,7 +498,7 @@ export class CouponWalletService {
             start_date: startDate,
             end_date: endDate,
             status: 'active',
-            delivery_channel: input.delivery_channel,
+            delivery_channel: STANDALONE_COUPON_DELIVERY_CHANNEL,
             dispatched_order_id: input.dispatched_order_id?.trim() || null,
             createddate: now,
             modifieddate: now,
@@ -516,7 +531,7 @@ export class CouponWalletService {
       if (!existing) throw new Error('Coupon not found');
       if (
         existing.promotion.visibility !== 'private' ||
-        !existing.promotion.description?.startsWith(STANDALONE_DESCRIPTION_PREFIX)
+        !isStandaloneCouponPromotion(existing.promotion)
       ) throw new Error('Only standalone coupons can be edited from the coupon wallet');
       if (existing.claimed_at || existing.wallet_credit || existing.redemptions.length > 0) {
         throw new Error('Claimed or used coupons cannot be edited');
@@ -539,7 +554,7 @@ export class CouponWalletService {
           end_date: endDate,
           status: input.status,
           applicable_channel: 'all',
-          stackable: input.stackable,
+          stackable: STANDALONE_COUPON_STACKABLE,
           conditions: input.minimum_cart_amount
             ? [{ attribute: 'cart.total_value', operator: 'GTE', value: input.minimum_cart_amount }]
             : [],
@@ -556,7 +571,7 @@ export class CouponWalletService {
           start_date: startDate,
           end_date: endDate,
           status: input.status,
-          delivery_channel: input.delivery_channel,
+          delivery_channel: STANDALONE_COUPON_DELIVERY_CHANNEL,
           dispatched_order_id: input.dispatched_order_id?.trim() || null,
           modifieddate: now,
         },
@@ -571,7 +586,7 @@ export class CouponWalletService {
     const where: any = {};
     const standalonePromotionFilter = {
       visibility: 'private',
-      description: { startsWith: STANDALONE_DESCRIPTION_PREFIX },
+      description: { startsWith: STANDALONE_COUPON_DESCRIPTION_PREFIX },
     };
     if (input.scope === 'standalone') where.promotion = { is: standalonePromotionFilter };
     else if (input.scope === 'promotion') where.NOT = { promotion: { is: standalonePromotionFilter } };
