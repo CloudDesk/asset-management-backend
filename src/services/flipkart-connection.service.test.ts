@@ -32,6 +32,7 @@ test('authenticates and discovers seller ID without requiring it in configuratio
   assert.equal(result.sellerIdSource, 'LISTING_DISCOVERY');
   assert.equal(result.inventoryWritesEnabled, false);
   assert.equal(calls.length, 2);
+  assert.equal(calls[1]?.url, 'https://api.flipkart.test/listings/v3/product/search');
   assert.equal(calls[1]?.init?.headers && (calls[1].init.headers as Record<string, string>).Authorization, 'Bearer access-token');
   assert.equal(
     Buffer.from(((calls[0]?.init?.headers as Record<string, string>).Authorization).replace('Basic ', ''), 'base64').toString(),
