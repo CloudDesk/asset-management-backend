@@ -33,7 +33,9 @@ export class AnalyticsService {
                 outOfStockCount,
                 totalProducts,
                 platformDistribution,
-                totalStockItems
+                totalStockItems,
+                soldStockItems,
+                damagedStockItems
             ] = await Promise.all([
                 // Low stock on this platform (availableqty < 10 AND > 0)
                 prisma.platformStock.findMany({

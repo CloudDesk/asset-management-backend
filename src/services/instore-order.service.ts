@@ -32,6 +32,8 @@ interface PricedItem {
     category: string | null;
     subcategory: string | null;
     iscombo: boolean | null;
+    hsn_code?: string | null;
+    gst_rate?: Prisma.Decimal | number | null;
   };
   quantity: number;
   originalTotal: number;
@@ -163,6 +165,8 @@ export class InstoreOrderService {
           category: true,
           subcategory: true,
           iscombo: true,
+          hsn_code: true,
+          gst_rate: true,
         },
       });
       const productsById = new Map(products.map((product) => [Number(product.id), product]));
@@ -171,6 +175,10 @@ export class InstoreOrderService {
         .map((item) => {
           const product = productsById.get(item.product_id);
           if (!product) throw new ValidationError(`Product ${item.product_id} was not found`);
+          const gstRate = product.gst_rate === null ? NaN : Number(product.gst_rate);
+          if (!product.hsn_code?.trim() || !Number.isFinite(gstRate) || gstRate < 0 || gstRate > 100) {
+            throw new ValidationError(`${product.name} is missing mandatory HSN/GST configuration`);
+          }
           const unitPrice = Number(product.price || 0);
           if (unitPrice <= 0) throw new ValidationError(`${product.name} does not have a valid selling price`);
           const unitDiscount = Math.min(Math.max(Number(product.discount || 0), 0), unitPrice);
@@ -289,6 +297,8 @@ export class InstoreOrderService {
             productname: item.product.name,
             productshortname: item.product.shortname.trim(),
             productcategory: item.product.category || item.product.subcategory,
+            hsn_code: item.product.hsn_code ? String(item.product.hsn_code).trim() : null,
+            gst_rate: item.product.gst_rate ? Number(item.product.gst_rate) : null,
             delivereddate: now,
             orderstatus: 'delivered',
             uniqueordderid: order.orderid,
@@ -367,14 +377,15 @@ export class InstoreOrderService {
               id: line.id,
               productid: Number(line.productid),
               orderamount: Number(line.orderamount || 0),
+              hsn_code: line.hsn_code ? String(line.hsn_code) : null,
+              gst_rate: line.gst_rate === null || line.gst_rate === undefined ? null : Number(line.gst_rate),
             })),
             0,
             Number(order.orderamount || 0),
             storePincode,
             storePincode,
           );
-          await gstService.updateOrderlinesWithGst(gst.orderlineGst);
-          await gstService.updateOrderWithGst(order.id, gst.orderTotals);
+          await gstService.persistOrderGst(order.id, gst.orderlineGst, gst.orderTotals);
         }
         invoiceUrl = await this.ordersService.generateInvoice(order.id);
       } catch (error) {

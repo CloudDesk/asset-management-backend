@@ -104,7 +104,14 @@ export class PromotionCheckoutService {
           data: { availablequantity: { decrement: quantity }, orderedquantity: { increment: quantity }, modifieddate: BigInt(Date.now()) },
         });
         if (productUpdated.count !== 1) throw new Error(`Promotional gift ${adjustment.productId.toString()} total stock is unavailable`);
-        const product = await tx.product.findUniqueOrThrow({ where: { id: adjustment.productId }, select: { name: true, shortname: true, category: true } });
+        const product = await tx.product.findUniqueOrThrow({
+          where: { id: adjustment.productId },
+          select: { name: true, shortname: true, category: true, hsn_code: true, gst_rate: true },
+        });
+        const gstRate = product.gst_rate === null ? NaN : Number(product.gst_rate);
+        if (!product.hsn_code?.trim() || !Number.isFinite(gstRate) || gstRate < 0 || gstRate > 100) {
+          throw new Error(`Promotional gift ${adjustment.productId.toString()} is missing mandatory HSN/GST configuration`);
+        }
         const sources = Array.isArray(adjustment.sourceProductIds) ? adjustment.sourceProductIds.map(String) : [];
         const parent = normalLines.find((line) => line.productid && sources.includes(line.productid.toString()));
         const listUnitPrice = Number(adjustment.listAmount ?? adjustment.amount) / Math.max(1, quantity);
@@ -112,6 +119,7 @@ export class PromotionCheckoutService {
           orderid: orderId, productid: adjustment.productId, quantity, userid: order.userid, addressid: order.addressid,
           productamount: adjustment.listAmount ?? adjustment.amount, discountamount: adjustment.amount, orderamount: 0,
           productname: `${product.name} (Promotional Gift)`, productshortname: product.shortname, productcategory: product.category,
+          hsn_code: product.hsn_code.trim(), gst_rate: product.gst_rate,
           orderstatus: order.orderstatus, uniqueordderid: order.orderid, evaluation_id: evaluationId,
           original_price: listUnitPrice, promotion_discount_amount: adjustment.amount,
           line_type: 'PROMOTIONAL_GIFT', promotion_id: adjustment.promotionId, promotion_adjustment_id: adjustment.id,

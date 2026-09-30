@@ -14,6 +14,7 @@ import {
   formatEntitiesForAPI,
 } from "../utils/dynamicDbOperations.js";
 import { logger } from "../config/logger.js";
+import { prisma } from "../models/prisma.js";
 
 export class ProductController {
   public productService = new ProductService();
@@ -635,6 +636,38 @@ export class ProductController {
         result
       );
 
+      return reply.code(200).send(response);
+    }
+  );
+
+  getTaxPresets = asyncHandler(
+    async (_request: FastifyRequest, reply: FastifyReply) => {
+      const presets = await prisma.gstHsnMapping.findMany({
+        where: { isactive: true },
+        select: {
+          id: true,
+          subcategory_value: true,
+          subsubcategory_value: true,
+          hsn_code: true,
+          gst_rate: true,
+          description: true,
+        },
+        orderBy: { id: "asc" },
+      });
+
+      const formatted = presets.map((p) => ({
+        id: p.id,
+        subcategory_value: p.subcategory_value,
+        subsubcategory_value: p.subsubcategory_value,
+        hsn_code: p.hsn_code,
+        gst_rate: parseFloat(p.gst_rate.toString()),
+        description: p.description,
+      }));
+
+      const response = createSuccessResponse(
+        "Tax presets retrieved successfully",
+        formatted
+      );
       return reply.code(200).send(response);
     }
   );

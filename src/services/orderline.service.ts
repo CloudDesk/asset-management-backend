@@ -85,20 +85,29 @@ export class OrderlineService {
 
       // Auto-set created and modified dates if not provided
       const currentTimestamp = Date.now();
-      const createData = {
+      const createData: Record<string, any> = {
         ...data,
         createddate: data.createddate || currentTimestamp,
         modifieddate: data.modifieddate || currentTimestamp,
         ordereddate: data.ordereddate || currentTimestamp,
       };
 
-      // Snapshot the compact invoice label when the order line is created.
-      if (!createData.productshortname && createData.productid) {
+      // Snapshot product-owned tax data at the final orderline write boundary.
+      // This also protects generic/internal callers that bypass OrdersService.
+      if (createData.productid) {
         const product = await prisma.product.findUnique({
           where: { id: BigInt(createData.productid) },
-          select: { shortname: true },
+          select: { shortname: true, hsn_code: true, gst_rate: true },
         });
-        createData.productshortname = product?.shortname?.trim() || undefined;
+        if (!product) throw new Error(`Product ${createData.productid} not found`);
+        const hsnCode = product.hsn_code?.trim();
+        const gstRate = product.gst_rate === null ? NaN : Number(product.gst_rate);
+        if (!hsnCode || !Number.isFinite(gstRate) || gstRate < 0 || gstRate > 100) {
+          throw new Error(`Product ${createData.productid} is missing mandatory HSN/GST configuration`);
+        }
+        createData.hsn_code = hsnCode;
+        createData.gst_rate = gstRate;
+        if (!createData.productshortname) createData.productshortname = product.shortname.trim();
       }
 
       // Generate unique orderlinenumber if not provided

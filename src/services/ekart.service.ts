@@ -164,7 +164,6 @@ export interface ShippingRatesResponse {
 export class EkartService {
   private baseURL: string;
   private authService: typeof ekartAuthService;
-  private readonly DEFAULT_EKART_HSN_CODE = '33074100';
   private readonly DEFAULT_EKART_CATEGORY_OF_GOODS = 'premium_incense_sticks';
 
   constructor() {
@@ -496,11 +495,10 @@ export class EkartService {
       '✅ [SHIPMENT CREATE] Step 2 SUCCESS: GST TIN obtained'
     );
 
-    let derivedHsnCode = payload.hsn_code;
+    let derivedHsnCode: string | undefined;
     let derivedCategoryOfGoods = payload.category_of_goods;
 
-    if (!derivedHsnCode || !derivedCategoryOfGoods) {
-      try {
+    try {
         const { OrdersService } = await import('./orders.service.js');
         const ordersService = new OrdersService();
         const order = await ordersService.findByOrderIdString(payload.order_number);
@@ -510,17 +508,40 @@ export class EkartService {
             'orderline',
             { orderid: order.id.toString() },
             {
-              take: 1,
+              take: 1000,
               useAllColumns: true,
               orderBy: 'id',
               orderDirection: 'ASC'
             }
           );
 
-          const firstOrderline = orderlines?.[0];
+          const shippableOrderlines = orderlines.filter((line: any) =>
+            !['cancelled', 'returned'].includes(String(line.orderstatus || '').toLowerCase())
+          );
+          if (shippableOrderlines.length === 0) {
+            throw new Error('EKART shipment blocked: order has no shippable orderlines');
+          }
+
+          const firstOrderline = shippableOrderlines[0];
 
           if (firstOrderline) {
-            derivedHsnCode = derivedHsnCode || firstOrderline.hsn_code || this.DEFAULT_EKART_HSN_CODE;
+            const invalidSnapshots = shippableOrderlines.filter((line: any) => {
+              const gstRate = Number(line.gst_rate);
+              return !String(line.hsn_code || '').trim()
+                || line.gst_rate === null
+                || line.gst_rate === undefined
+                || !Number.isFinite(gstRate)
+                || gstRate < 0
+                || gstRate > 100;
+            });
+            if (invalidSnapshots.length > 0) {
+              throw new Error(`EKART shipment blocked: orderlines missing valid HSN/GST snapshots: ${invalidSnapshots.map((line: any) => line.id).join(', ')}`);
+            }
+            const hsnCodes = [...new Set(shippableOrderlines.map((line: any) => String(line.hsn_code).trim()))];
+            if (hsnCodes.length !== 1) {
+              throw new Error(`EKART shipment requires one HSN code, but this order contains: ${hsnCodes.join(', ')}`);
+            }
+            derivedHsnCode = hsnCodes[0];
             derivedCategoryOfGoods =
               derivedCategoryOfGoods ||
               firstOrderline.productcategory ||
@@ -530,11 +551,7 @@ export class EkartService {
               {
                 orderNumber: payload.order_number,
                 firstOrderlineId: firstOrderline.id,
-                hsnCodeSource: payload.hsn_code
-                  ? 'payload'
-                  : firstOrderline.hsn_code
-                    ? 'first_orderline'
-                    : 'default',
+                hsnCodeSource: 'orderline_snapshot',
                 categoryOfGoodsSource: payload.category_of_goods
                   ? 'payload'
                   : firstOrderline.productcategory
@@ -546,17 +563,19 @@ export class EkartService {
           }
         }
       } catch (error: any) {
-        logger.warn(
+        logger.error(
           {
             orderNumber: payload.order_number,
             error: error.message
           },
-          '⚠️ [SHIPMENT CREATE] Failed to derive HSN code/category from first orderline, falling back to defaults'
+          '❌ [SHIPMENT CREATE] Failed to derive HSN code from immutable orderline snapshots'
         );
+        throw error;
       }
-    }
 
-    derivedHsnCode = derivedHsnCode || this.DEFAULT_EKART_HSN_CODE;
+    if (!derivedHsnCode) {
+      throw new Error('EKART shipment blocked: order HSN snapshot is unavailable');
+    }
     derivedCategoryOfGoods =
       derivedCategoryOfGoods || this.DEFAULT_EKART_CATEGORY_OF_GOODS;
 

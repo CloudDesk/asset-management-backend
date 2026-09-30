@@ -681,6 +681,34 @@ export class OrdersService {
         createData.orderid = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       }
 
+      const requestedProductIds = Array.from(new Set(
+        (Array.isArray(data.orderItems) && data.orderItems.length > 0
+          ? data.orderItems.map((item: any) => Number(item.productid))
+          : Array.isArray(data.productid) ? data.productid.map(Number) : [])
+          .filter((id: number) => Number.isInteger(id) && id > 0)
+      ));
+      if (requestedProductIds.length > 0) {
+        const configuredProducts = await prisma.product.findMany({
+          where: { id: { in: requestedProductIds.map((id) => BigInt(id)) } },
+          select: { id: true, hsn_code: true, gst_rate: true },
+        });
+        const byId = new Map(configuredProducts.map((product) => [Number(product.id), product]));
+        const invalidIds = requestedProductIds.filter((id) => {
+          const product = byId.get(id);
+          const gstRate = product?.gst_rate === null || product?.gst_rate === undefined
+            ? NaN
+            : Number(product.gst_rate);
+          return !product
+            || !product.hsn_code?.trim()
+            || !Number.isFinite(gstRate)
+            || gstRate < 0
+            || gstRate > 100;
+        });
+        if (invalidIds.length > 0) {
+          throw new Error(`Cannot create order: products missing mandatory HSN/GST configuration: ${invalidIds.join(', ')}`);
+        }
+      }
+
       // Create the order first
       const order = await dynamicCreate('orders', createData);
 
@@ -789,15 +817,16 @@ export class OrdersService {
             logger.warn({
               orderId: order.id,
               error: gstResult.error
-            }, 'GST calculation failed - order created without GST data');
+            }, 'Mandatory GST calculation failed');
+            throw new Error(gstResult.error || 'GST calculation failed');
           }
         } catch (gstError: any) {
           logger.error({
             orderId: order.id,
             error: gstError.message,
             stack: gstError.stack
-          }, 'Error during GST calculation - order created without GST data');
-          // Don't fail order creation for GST calculation errors
+          }, 'Error during mandatory GST calculation');
+          throw gstError;
         }
         // ============================================
         // END GST CALCULATION
@@ -836,10 +865,17 @@ export class OrdersService {
     const orderlines = [];
     const products = await prisma.product.findMany({
       where: { id: { in: productIds.map((id) => BigInt(id)) } },
-      select: { id: true, shortname: true },
+      select: { id: true, shortname: true, hsn_code: true, gst_rate: true },
     });
-    const shortnamesByProductId = new Map(
-      products.map((product) => [Number(product.id), product.shortname.trim()]),
+    const productMetaById = new Map(
+      products.map((product) => [
+        Number(product.id),
+        {
+          shortname: product.shortname.trim(),
+          hsn_code: product.hsn_code ? String(product.hsn_code).trim() : null,
+          gst_rate: product.gst_rate ? parseFloat(product.gst_rate.toString()) : null,
+        },
+      ]),
     );
 
     // ✅ FIX: COD orderlines should start with order_confirmed, Prepaid with payment_completed
@@ -858,6 +894,7 @@ export class OrdersService {
 
     for (let i = 0; i < productIds.length; i++) {
       const productId = productIds[i]!;
+      const prodMeta = productMetaById.get(Number(productId));
 
       const orderlineData = {
         orderid: orderId, // Use the database ID, not the string orderid
@@ -869,7 +906,9 @@ export class OrdersService {
         orderamount: orderData.orderamount || null,
         quantity: orderData.quantity || 1, // Default quantity per line
         merchanttransactionid: orderData.merchanttransactionid || null,
-        productshortname: shortnamesByProductId.get(productId) || null,
+        productshortname: prodMeta?.shortname || null,
+        hsn_code: prodMeta?.hsn_code || null,
+        gst_rate: prodMeta?.gst_rate || null,
         orderstatus: orderData.orderstatus || defaultStatus, // ✅ COD: order_confirmed, Prepaid: payment_completed
         uniqueordderid: orderidString, // Use the string orderid
         deliveryfrom: orderData.deliveryfrom || null,
@@ -919,10 +958,17 @@ export class OrdersService {
       .filter((id) => Number.isInteger(id) && id > 0);
     const products = await prisma.product.findMany({
       where: { id: { in: productIds.map((id) => BigInt(id)) } },
-      select: { id: true, shortname: true },
+      select: { id: true, shortname: true, hsn_code: true, gst_rate: true },
     });
-    const shortnamesByProductId = new Map(
-      products.map((product) => [Number(product.id), product.shortname.trim()]),
+    const productMetaById = new Map(
+      products.map((product) => [
+        Number(product.id),
+        {
+          shortname: product.shortname.trim(),
+          hsn_code: product.hsn_code ? String(product.hsn_code).trim() : null,
+          gst_rate: product.gst_rate ? parseFloat(product.gst_rate.toString()) : null,
+        },
+      ]),
     );
 
     logger.info({
@@ -955,6 +1001,7 @@ export class OrdersService {
 
     for (let i = 0; i < orderItems.length; i++) {
       const orderItem = orderItems[i];
+      const prodMeta = productMetaById.get(Number(orderItem.productid));
 
       const orderlineData = {
         orderid: orderId, // Use the database ID, not the string orderid
@@ -966,7 +1013,9 @@ export class OrdersService {
         orderamount: parseFloat(orderItem.orderamount?.toString() || '0') || null,
         quantity: parseInt(orderItem.quantity?.toString() || '1') || 1,
         productname: orderItem.productname || null,
-        productshortname: shortnamesByProductId.get(Number(orderItem.productid)) || null,
+        productshortname: prodMeta?.shortname || null,
+        hsn_code: prodMeta?.hsn_code || null,
+        gst_rate: prodMeta?.gst_rate || null,
         productcategory: orderItem.productcategory || null,
         orderstatus: orderlineStatus, // ✅ COD: order_confirmed, Prepaid: payment_completed
         uniqueordderid: orderidString, // Use the string orderid

@@ -5,6 +5,18 @@ import { formatProductForAPI } from "../utils/dynamicDbOperations.js";
 export async function productRoutes(fastify: FastifyInstance) {
   const productController = new ProductController();
 
+  // GET /v1/products/tax-presets - Get all active GST/HSN mapping presets for UI auto-fill
+  fastify.get(
+    "/tax-presets",
+    {
+      schema: {
+        description: "Get active GST and HSN mapping presets for product taxonomy",
+        tags: ["Products"],
+      },
+    },
+    productController.getTaxPresets
+  );
+
   // GET /v1/products - Get all products with pagination and filtering
   fastify.get(
     "/",
@@ -1544,6 +1556,17 @@ export async function productRoutes(fastify: FastifyInstance) {
               type: "boolean",
               description: "Mark product as deal of the day",
             },
+            hsn_code: {
+              type: "string",
+              maxLength: 50,
+              description: "HSN Code",
+            },
+            gst_rate: {
+              type: "number",
+              minimum: 0,
+              maximum: 100,
+              description: "GST Rate percentage",
+            },
             // Additional Product Information
             material: {
               type: "string",
@@ -1644,7 +1667,7 @@ export async function productRoutes(fastify: FastifyInstance) {
               },
             },
           },
-          required: ["name", "shortname", "remarks"],
+          required: ["name", "shortname", "remarks", "hsn_code", "gst_rate"],
           additionalProperties: false, // Strict validation - only allow specified fields
         },
         response: {
@@ -2093,6 +2116,17 @@ export async function productRoutes(fastify: FastifyInstance) {
             isdealoftheday: {
               type: "boolean",
               description: "Mark product as deal of the day",
+            },
+            hsn_code: {
+              type: "string",
+              maxLength: 50,
+              description: "HSN Code",
+            },
+            gst_rate: {
+              type: "number",
+              minimum: 0,
+              maximum: 100,
+              description: "GST Rate percentage",
             },
             // Size array fields
             large: {
@@ -2776,6 +2810,18 @@ export async function productRoutes(fastify: FastifyInstance) {
               type: "number",
               minimum: 0,
               description: "Product price",
+            },
+            hsn_code: {
+              type: "string",
+              minLength: 1,
+              maxLength: 50,
+              description: "Mandatory product HSN code",
+            },
+            gst_rate: {
+              type: "number",
+              minimum: 0,
+              maximum: 100,
+              description: "Mandatory product GST percentage",
             },
             // Size-related fields
             large: {

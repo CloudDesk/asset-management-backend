@@ -23,7 +23,7 @@ export const ECOMMERCE_PUBLIC_ROUTES = [
     'GET /v1/products/platform/nivapp',
     'GET /v1/products/platform/nivapp/counts',
     'GET /v1/products/:productId/platform/:platform', // Support any platform for dynamic routing
-
+    'GET /v1/products/tax-presets',
 
     // 3. Guest storefront promotions (curated public fields only)
     'GET /v1/promotions/public',
@@ -79,6 +79,9 @@ export const INVENTORY_PUBLIC_ROUTES = [
     // 4. Health Check APIs
     'GET /v1/health',
     'GET /health',
+
+    // 5. Taxonomy Tax Presets
+    'GET /v1/products/tax-presets',
 ];
 
 // ============================================================================

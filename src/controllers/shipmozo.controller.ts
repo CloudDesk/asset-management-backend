@@ -107,6 +107,47 @@ export class ShipmozoController {
       );
     }
 
+    const { data: persistedOrderlines } = await this.orderlineService.findMany(
+      { orderid: order.id.toString() },
+      1,
+      1000
+    );
+    const shippableOrderlines = (persistedOrderlines || []).filter((line: any) =>
+      !['cancelled', 'returned'].includes(String(line.orderstatus || '').toLowerCase())
+    );
+    if (shippableOrderlines.length === 0) {
+      throw new ValidationError('Order has no shippable orderlines');
+    }
+    const missingTaxLineIds = shippableOrderlines
+      .filter((line: any) => {
+        const gstRate = Number(line.gst_rate);
+        return !String(line.hsn_code || '').trim()
+          || line.gst_rate === null
+          || line.gst_rate === undefined
+          || !Number.isFinite(gstRate)
+          || gstRate < 0
+          || gstRate > 100;
+      })
+      .map((line: any) => line.id);
+    if (missingTaxLineIds.length > 0) {
+      throw new ValidationError(`Shipment blocked: orderlines missing immutable HSN/GST snapshots: ${missingTaxLineIds.join(', ')}`);
+    }
+    const persistedProductDetail = shippableOrderlines.map((line: any) => {
+      const quantity = Math.max(1, Number(line.quantity || 1));
+      const grossUnitPrice = Number(
+        line.original_price || Number(line.productamount || line.orderamount || 0) / quantity
+      );
+      return {
+        name: String(line.productname || line.productshortname || `Product ${line.productid}`).trim().slice(0, 200),
+        sku_number: String(line.productshortname || line.productid),
+        quantity,
+        discount: Number((Number(line.discountamount || 0) / quantity).toFixed(2)),
+        hsn: String(line.hsn_code).trim(),
+        unit_price: Number(grossUnitPrice.toFixed(2)),
+        product_category: String(line.productcategory || 'Other'),
+      };
+    });
+
     const warehouseId = payload.warehouse_id?.trim() || env.SHIPMOZO_WAREHOUSE_ID;
     const {
       assignment_mode: requestedAssignmentMode,
@@ -127,7 +168,7 @@ export class ShipmozoController {
       requestPayload: {
         order_id: payload.order_id,
         payment_type: payload.payment_type,
-        product_count: payload.product_detail.length,
+        product_count: persistedProductDetail.length,
         weight: payload.weight,
         ...(warehouseId ? { warehouse_id: warehouseId } : {}),
         assignment_mode: assignmentMode,
@@ -143,6 +184,7 @@ export class ShipmozoController {
       if ([SHIPMOZO_OPERATION_STAGES.initialized, SHIPMOZO_OPERATION_STAGES.pushOrderFailed].includes(operation.stage as any)) {
         pushedOrder = await shipmozoService.pushOrder({
           ...orderPayload,
+          product_detail: persistedProductDetail,
           ...(warehouseId ? { warehouse_id: warehouseId } : {})
         } as Omit<ShipmozoPushOrderInput, 'assignment_mode' | 'courier_id' | 'schedule_pickup'>);
         const shipmozoOrderId = extractShipmozoOrderId(pushedOrder);
@@ -221,12 +263,7 @@ export class ShipmozoController {
       modifieddate: Date.now()
       });
 
-      const { data: orderlines } = await this.orderlineService.findMany(
-      { orderid: order.id.toString() },
-      1,
-      1000
-      );
-      for (const orderline of orderlines || []) {
+      for (const orderline of persistedOrderlines || []) {
         await this.orderlineService.update(orderline.id.toString(), { tracking_id: awbNumber });
       }
       await shipmozoOperationService.stage(operation.id, SHIPMOZO_OPERATION_STAGES.shipmentPersisted, {

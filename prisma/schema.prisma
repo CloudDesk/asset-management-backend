@@ -26,6 +26,8 @@ model Product {
   pack             String?                  @db.VarChar(255)
   searchtext       Unsupported("tsvector")?
   isdealoftheday   Boolean                  @default(false)
+  hsn_code         String                   @db.VarChar(50)
+  gst_rate         Decimal                  @db.Decimal(5, 2)
 
   averagerating Decimal? @db.Decimal(2, 1)
   discount      Int?

@@ -1,6 +1,7 @@
 import { prisma } from '../models/prisma.js';
 import { Prisma } from '@prisma/client';
 import {
+  createProductSchema,
   CreateProductInput,
   UpdateProductInput,
   UpsertProductInput,
@@ -697,10 +698,13 @@ export class ProductService {
 
   async create(data: CreateProductInput & Record<string, any>) {
     try {
-      logger.debug({ originalData: data }, 'Starting dynamic product create operation');
-      console.log(data);
+      // ProductService is called by more than the standard POST controller
+      // (upsert, file upload and internal callers). Validate here as the final
+      // boundary so none of those paths can create a product without tax data.
+      const validatedData = createProductSchema.parse(data);
+      logger.debug({ originalData: validatedData }, 'Starting dynamic product create operation');
       // Extract combo-related fields (components is only for create, not a product table field)
-      const { components, ...productData } = data;
+      const { components, ...productData } = validatedData;
       const isCombo = productData.iscombo === true;
 
       const namingPicklists = await prisma.picklist.findMany({
@@ -903,6 +907,19 @@ export class ProductService {
       // Silently extract and ignore combo-related fields from payload
       // These fields cannot be updated after product creation
       const { components, iscombo, combotype, ...updateData } = data;
+
+      const effectiveHsn = updateData.hsn_code ?? existingProduct.hsn_code;
+      const effectiveGstRate = updateData.gst_rate ?? existingProduct.gst_rate;
+      const numericGstRate = Number(effectiveGstRate);
+      if (
+        typeof effectiveHsn !== 'string'
+        || effectiveHsn.trim().length === 0
+        || !Number.isFinite(numericGstRate)
+        || numericGstRate < 0
+        || numericGstRate > 100
+      ) {
+        throw new Error('A valid HSN code and GST rate between 0 and 100 are required before this product can be updated');
+      }
 
       if (components || iscombo || combotype) {
         logger.debug({

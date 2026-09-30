@@ -46,7 +46,7 @@ const isJsonbField = (field: string | undefined): boolean => Boolean(field && JS
 // Predefined safe columns for common tables (to avoid schema queries)
 const PREDEFINED_SAFE_COLUMNS: Record<string, string[]> = {
   stock: ['id', 'puc', 'category', 'subcategory', 'brand', 'model', 'stockstatus', 'createddate', 'modifieddate', 'productname', 'serialnumber', 'location'],
-  product: ['id', 'productname', 'category', 'subcategory', 'subsubcategory', 'brand', 'model', 'price', 'createddate', 'modifieddate', 'productstatus', 'puc', 'quantity', 'availablequantity', 'orderedquantity', 'soldquantity', 'ecompublishedquantity', 'damagedquantity'],
+  product: ['id', 'productname', 'category', 'subcategory', 'subsubcategory', 'brand', 'model', 'price', 'createddate', 'modifieddate', 'productstatus', 'puc', 'quantity', 'availablequantity', 'orderedquantity', 'soldquantity', 'ecompublishedquantity', 'damagedquantity', 'hsn_code', 'gst_rate'],
   picklist: ['id', 'label', 'value', 'object', 'controlledvalue', 'fieldname', 'controlledlabel', 'controlledfieldname', 'parent'],
   orders: ['id', 'userid', 'addressid', 'orderamount', 'orderid', 'orderstatus', 'quantity', 'transactionid', 'readytodispatchdate', 'dispatcheddate', 'productamount', 'discountamount', 'deliveryfrom', 'orderprocessingtime', 'ispaymentsucceed', 'merchanttransactionid', 'productid', 'mode', 'order_type', 'created_by_inventory_user_id', 'manual_discount_total', 'manual_discount_reason', 'delivereddate', 'cancelleddate', 'returneddate', 'paymentfaileddate', 'createddate', 'modifieddate', 'items_total', 'total_taxable_amount', 'total_cgst_amount', 'total_sgst_amount', 'total_igst_amount', 'total_gst_amount', 'shipping_cost'],
   orderline: ['id', 'orderid', 'productid', 'userid', 'addressid', 'productamount', 'discountamount', 'orderamount', 'quantity', 'merchanttransactionid', 'productname', 'productcategory', 'productcolour', 'readytodispatchdate', 'delivereddate', 'cancelleddate', 'returneddate', 'orderstatus', 'uniqueordderid', 'orderlinenumber', 'deliveryfrom', 'location', 'dispatcheddate', 'ordereddate', 'paymentfaileddate', 'createddate', 'modifieddate', 'hsn_code', 'gst_rate', 'taxable_amount', 'cgst_amount', 'sgst_amount', 'igst_amount', 'total_gst_amount', 'manual_discount_amount', 'shipping_cost'],
@@ -2282,6 +2282,9 @@ export function formatProductForAPI(product: any): any {
   // Handle Decimal fields
   if (formatted.averagerating !== undefined) {
     formatted.averagerating = formatNumericField(formatted.averagerating);
+  }
+  if (formatted.gst_rate !== undefined) {
+    formatted.gst_rate = formatNumericField(formatted.gst_rate);
   }
 
   return formatted;
