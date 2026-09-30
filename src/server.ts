@@ -18,6 +18,7 @@ export async function buildServer() {
   const fastify = Fastify({
     logger: true, // Use default logger instead of passing pino instance
     disableRequestLogging: true, // We'll handle this in our logger plugin
+    pluginTimeout: 60000, // 60s timeout for remote cloud DB handshake (Railway proxy)
     ajv: {
       plugins: [ajvFilePlugin],
     },

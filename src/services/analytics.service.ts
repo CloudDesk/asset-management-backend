@@ -25,8 +25,16 @@ export class AnalyticsService {
                 ...buildProductTaxonomyWhere(filters),
             };
 
-            // Query platformStock table directly for platform-specific data
-            const [lowStockItems, outOfStockItems, allPlatformStocks, platformDistribution, stockItemCount] = await Promise.all([
+            // Parallel count and aggregate queries directly in DB for high performance
+            const [
+                lowStockItems,
+                outOfStockItems,
+                lowStockCount,
+                outOfStockCount,
+                totalProducts,
+                platformDistribution,
+                totalStockItems
+            ] = await Promise.all([
                 // Low stock on this platform (availableqty < 10 AND > 0)
                 prisma.platformStock.findMany({
                     where: {
@@ -64,7 +72,6 @@ export class AnalyticsService {
                     },
                 }),
                 // Out of stock on this platform (availableqty = 0)
-                // Note: PlatformStock.availableqty has default(0), so it should never be NULL
                 prisma.platformStock.findMany({
                     where: {
                         platform: filters.platform,
@@ -100,44 +107,67 @@ export class AnalyticsService {
                         },
                     },
                 }),
-                // All platform stocks for this platform (for counts)
-                prisma.platformStock.findMany({
+                // Count low stock products directly in DB (fast indexed count)
+                prisma.platformStock.count({
+                    where: {
+                        platform: filters.platform,
+                        availableqty: { lt: lowStockThreshold, gt: 0 },
+                        product: productWhere,
+                    },
+                }),
+                // Count out of stock products directly in DB (fast indexed count)
+                prisma.platformStock.count({
+                    where: {
+                        platform: filters.platform,
+                        availableqty: 0,
+                        product: productWhere,
+                    },
+                }),
+                // Count total distinct products for this platform directly in DB
+                prisma.platformStock.count({
                     where: {
                         platform: filters.platform,
                         product: productWhere,
                     },
-                    select: {
-                        availableqty: true,
-                    },
                 }),
-                // Platform distribution (all platforms)
+                // Platform distribution with category/taxonomy filtering applied
                 prisma.platformStock.groupBy({
                     by: ['platform'],
+                    where: {
+                        product: productWhere,
+                    },
                     _sum: {
                         availableqty: true,
                     },
                 }),
-                // Count individual stock items (from stock table)
+                // Count individual stock items (active sellable stock only: exclude deleted and non-available)
                 prisma.stock.count({
                     where: {
                         platform: filters.platform,
                         product: productWhere,
+                        isdeleted: { not: true },
+                        stockstatus: { in: ['available', 'Available'] },
+                    },
+                }),
+                // Count sold stock items
+                prisma.stock.count({
+                    where: {
+                        platform: filters.platform,
+                        product: productWhere,
+                        isdeleted: { not: true },
+                        stockstatus: { in: ['sold', 'Sold'] },
+                    },
+                }),
+                // Count damaged stock items
+                prisma.stock.count({
+                    where: {
+                        platform: filters.platform,
+                        product: productWhere,
+                        isdeleted: { not: true },
+                        stockstatus: { in: ['damaged', 'Damaged'] },
                     },
                 }),
             ]);
-
-            // Calculate counts based on platform-specific stock
-            // PlatformStock.availableqty has default(0), so null coalescing is safe but shouldn't be needed
-            const lowStockCount = allPlatformStocks.filter(ps => {
-                const qty = ps.availableqty ?? 0;
-                return qty > 0 && qty < lowStockThreshold;
-            }).length;
-            const outOfStockCount = allPlatformStocks.filter(ps => {
-                const qty = ps.availableqty ?? 0;
-                return qty === 0;
-            }).length;
-            const totalProducts = allPlatformStocks.length;
-            const totalStockItems = stockItemCount;
 
             // Format platform distribution
             const distribution = platformDistribution.map(p => ({
@@ -145,18 +175,38 @@ export class AnalyticsService {
                 count: p._sum.availableqty || 0,
             }));
 
-            // Transform platformStock results to match product format
-            const lowStockProducts = lowStockItems.map(ps => ps.product);
-            const outOfStockProducts = outOfStockItems.map(ps => ps.product);
+            // Transform platformStock results to match product format with platform-specific quantity
+            const lowStockProducts = lowStockItems.map(ps => ({
+                ...ps.product,
+                availablequantity: ps.availableqty,
+                totalquantity: ps.totalqty,
+                platform: ps.platform,
+            }));
+            const outOfStockProducts = outOfStockItems.map(ps => ({
+                ...ps.product,
+                availablequantity: ps.availableqty,
+                totalquantity: ps.totalqty,
+                platform: ps.platform,
+            }));
+
+            const platformStockHealth = [{
+                platform: filters.platform,
+                availableUnits: totalStockItems,
+                lowStockCount,
+                outOfStockCount,
+            }];
 
             return {
                 lowStockCount,
                 outOfStockCount,
                 totalProducts,
                 totalStockItems,
+                soldStockItems,
+                damagedStockItems,
                 distribution,
                 lowStockProducts,
                 outOfStockProducts,
+                platformStockHealth,
             };
         }
 
@@ -190,12 +240,27 @@ export class AnalyticsService {
         };
 
         // Run parallel queries for performance
-        const [lowStockCount, outOfStockCount, totalProducts, platformDistribution, lowStockProducts, outOfStockProducts, totalStockItems] = await Promise.all([
+        const [
+            lowStockCount,
+            outOfStockCount,
+            totalProducts,
+            platformDistribution,
+            lowStockProducts,
+            outOfStockProducts,
+            totalStockItems,
+            soldStockItems,
+            damagedStockItems,
+            platformLowStock,
+            platformOutOfStock
+        ] = await Promise.all([
             prisma.product.count({ where: whereClause }),
             prisma.product.count({ where: outOfStockWhere }),
             prisma.product.count({ where: Object.keys(totalSkuWhere).length > 0 ? totalSkuWhere : undefined }),
             prisma.platformStock.groupBy({
                 by: ['platform'],
+                where: {
+                    product: Object.keys(totalSkuWhere).length > 0 ? totalSkuWhere : { iscombo: false },
+                },
                 _sum: {
                     availableqty: true,
                 },
@@ -248,11 +313,47 @@ export class AnalyticsService {
                     },
                 },
             }),
-            // Count individual stock items (from stock table)
+            // Count individual stock items (active sellable stock only: exclude deleted and non-available)
             prisma.stock.count({
                 where: {
                     product: Object.keys(totalSkuWhere).length > 0 ? totalSkuWhere : { iscombo: false },
+                    isdeleted: { not: true },
+                    stockstatus: { in: ['available', 'Available'] },
                 },
+            }),
+            // Count sold stock items
+            prisma.stock.count({
+                where: {
+                    product: Object.keys(totalSkuWhere).length > 0 ? totalSkuWhere : { iscombo: false },
+                    isdeleted: { not: true },
+                    stockstatus: { in: ['sold', 'Sold'] },
+                },
+            }),
+            // Count damaged stock items
+            prisma.stock.count({
+                where: {
+                    product: Object.keys(totalSkuWhere).length > 0 ? totalSkuWhere : { iscombo: false },
+                    isdeleted: { not: true },
+                    stockstatus: { in: ['damaged', 'Damaged'] },
+                },
+            }),
+            // Platform-specific low stock product count
+            prisma.platformStock.groupBy({
+                by: ['platform'],
+                where: {
+                    availableqty: { lt: lowStockThreshold, gt: 0 },
+                    product: Object.keys(totalSkuWhere).length > 0 ? totalSkuWhere : { iscombo: false },
+                },
+                _count: { productid: true },
+            }),
+            // Platform-specific out of stock product count
+            prisma.platformStock.groupBy({
+                by: ['platform'],
+                where: {
+                    availableqty: 0,
+                    product: Object.keys(totalSkuWhere).length > 0 ? totalSkuWhere : { iscombo: false },
+                },
+                _count: { productid: true },
             }),
         ]);
 
@@ -262,14 +363,25 @@ export class AnalyticsService {
             count: p._sum.availableqty || 0,
         }));
 
+        // Format platform-specific health breakdown
+        const platformStockHealth = distribution.map(d => ({
+            platform: d.platform,
+            availableUnits: d.count,
+            lowStockCount: platformLowStock.find(p => p.platform.toLowerCase() === d.platform.toLowerCase())?._count.productid || 0,
+            outOfStockCount: platformOutOfStock.find(p => p.platform.toLowerCase() === d.platform.toLowerCase())?._count.productid || 0,
+        }));
+
         return {
             lowStockCount,
             outOfStockCount,
             totalProducts,
             totalStockItems,
+            soldStockItems,
+            damagedStockItems,
             distribution,
             lowStockProducts,
             outOfStockProducts,
+            platformStockHealth,
         };
     }
 
@@ -499,6 +611,9 @@ export class AnalyticsService {
             'cancelled_completed',           // COD cancellation complete (no payment collected)
             'payment_failed',                // Payment never succeeded
             'partially_cancelled',            // Partial cancellation (some items cancelled)
+            'returned',                      // Returned order
+            'partially_returned',            // Partially returned order
+            'rto_delivered',                 // Return to origin completed
         ];
 
         // Run parallel queries for performance

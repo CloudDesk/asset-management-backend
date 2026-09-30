@@ -1863,6 +1863,7 @@ export class ProductService {
       const productCounts = await prisma.product.groupBy({
         by: ['category', 'subcategory', 'subsubcategory'],
         where: {
+          iscombo: false,
           platformStocks: {
             some: {
               platform,
