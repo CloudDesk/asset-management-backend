@@ -13,6 +13,7 @@ import { startAmazonReturnScheduler, stopAmazonReturnScheduler } from './service
 (BigInt.prototype as any).toJSON = function () {
   return Number(this);
 };
+
 async function start() {
   try {
     // Initialize Redis connection
