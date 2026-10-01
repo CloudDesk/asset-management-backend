@@ -374,9 +374,13 @@ export class ProductService {
           orderBy: orderByField === 'modifieddate'
             ? [
               { modifieddate: sortOrder },
-              { createddate: sortOrder }
+              { createddate: sortOrder },
+              { id: 'asc' }
             ]
-            : { [orderByField]: sortOrder },
+            : [
+              { [orderByField]: sortOrder },
+              { id: 'asc' }
+            ],
         }),
         prisma.product.count({ where: whereClause }),
       ]);

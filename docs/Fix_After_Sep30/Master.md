@@ -23,6 +23,8 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 | **FIX-2026-09-30-13** | 2026-09-30 | **UX & Data Integrity** | Removed mini channel badges from Low/Out Stock cards and removed desynchronized "Channel Stock" column from problem table, ensuring cards strictly reflect global warehouse counts and table matches actual product available quantity. | ✅ Verified | [2026-09-30 Fix Details](2026-09-30-inventory-dashboard-analytics-security-accuracy-fix.md#issue-13-eliminated-misleading-channel-stock-chips-and-card-badges) |
 | **FIX-2026-09-30-14** | 2026-09-30 | **Dashboard UX & Layout** | Implemented static/sticky page header with backdrop blur; eliminated artificial `maxHeight: calc(100vh - 280px)` and card-level inner scrollbars, allowing natural chart display and unified smooth page scrolling. | ✅ Verified | [2026-09-30 UX Details](2026-09-30-dashboard-ux-scrolling-layout-enhancement.md) |
 | **ARCH-2026-09-30-15** | 2026-09-30 | **Tax & Catalog Architecture** | Migrated HSN Code & GST Rate from category mapping to individual product-level values with mandatory validation, optional UI auto-fill presets, and immutable orderline snapshots. Configured DB product data is complete (64/64); final database `NOT NULL` enforcement remains pending. | 🟡 Data Verified / Constraint Pending | [2026-09-30 HSN/GST Architecture](2026-09-30-product-level-hsn-gst-architecture-and-migration.md) |
+| **FEATURE-2026-10-01-16** | 2026-10-01 | **Category Images / Storefront** | Added centrally managed category/subcategory images, Inventory Admin preview and upload-review UX, explicit storefront visibility, Ecom consumption of active managed images, and a shared fallback. | ✅ Verified | [2026-10-01 Category Images](2026-10-01-category-images-inventory-and-ecommerce-integration.md) |
+| **FEATURE-2026-10-01-17** | 2026-10-01 | **Ecom Product Discovery** | Added compact price-range and sort controls that combine with existing category, subcategory, collection, offer, and search selections while preserving the existing cards and navigation design. | ✅ Verified | [2026-10-01 Ecom Filters](2026-10-01-ecommerce-product-price-and-sort-filters.md) |
 
 ---
 
@@ -60,3 +62,17 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Repositories / Files Modified:**
   - `asset_management_frontend_aromazen/src/pages/dashboard/DashboardPage.tsx`
   - `asset_management_frontend_aromazen/src/components/dashboard/DashboardWidget.tsx`
+
+### [2026-10-01: Category Images — Inventory Admin and Ecom Integration](2026-10-01-category-images-inventory-and-ecommerce-integration.md)
+* **Summary:** Added centralized category/subcategory image management across Backend and Inventory Admin, including full image previews, preview-before-upload, explicit storefront visibility, and Ecom consumption of active managed images with a shared fallback.
+* **Repositories Impacted:**
+  - `asset-management-backend`
+  - `asset_management_frontend_aromazen`
+  - `Nivaana-Ecom-Web`
+  - `vyb-lyf-file-upload`
+
+### [2026-10-01: Ecom Product Price and Sort Filters](2026-10-01-ecommerce-product-price-and-sort-filters.md)
+* **Summary:** Added compact price and sort controls to the Products heading. Filters compose with existing taxonomy/search/collection state, persist in URL parameters, and reuse the existing product listing API without changing product cards or category navigation design.
+* **Repositories Impacted:**
+  - `Nivaana-Ecom-Web`
+  - `asset-management-backend`
