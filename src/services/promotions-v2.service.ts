@@ -229,11 +229,22 @@ export class PromotionsV2Service {
     const request = PromotionQuoteRequestSchema.parse(input);
     if (request.selected_promotion_ids?.length) {
       const selectedIds = [...new Set(request.selected_promotion_ids)];
-      const versionedCount = await prisma.promotionRuleVersion.groupBy({
+      const versionedRows = await prisma.promotionRuleVersion.groupBy({
         by: ['promotionId'],
         where: { promotionId: { in: selectedIds }, status: 'published' },
       });
-      if (versionedCount.length !== selectedIds.length) {
+      const versionedIds = new Set(versionedRows.map((row) => row.promotionId));
+      const legacyIds = selectedIds.filter((id) => !versionedIds.has(id));
+      const legacyRows = legacyIds.length
+        ? await prisma.promotions.findMany({
+            where: {
+              id: { in: legacyIds },
+              ruleVersions: { none: { status: 'published' } },
+            },
+            select: { id: true },
+          })
+        : [];
+      if (versionedRows.length + legacyRows.length !== selectedIds.length) {
         throw Object.assign(new Error('PROMOTION_V2_RULE_NOT_FOUND'), { statusCode: 404 });
       }
     }
@@ -272,7 +283,15 @@ export class PromotionsV2Service {
         { OR: [{ end_date: null }, { end_date: { gte: BigInt(now) } }] },
       ],
     } satisfies Prisma.promotionsWhereInput;
-    const [rows, legacyAutomaticPromotions] = await Promise.all([
+    const selectedPromotionIds = [...new Set(request.selected_promotion_ids ?? [])];
+    const legacyPromotionSelectors: Prisma.promotionsWhereInput[] = [
+      { application_mode: 'automatic' },
+      { auto_apply: true },
+    ];
+    if (selectedPromotionIds.length) {
+      legacyPromotionSelectors.push({ id: { in: selectedPromotionIds } });
+    }
+    const [rows, legacyPromotions] = await Promise.all([
       prisma.promotionRuleVersion.findMany({
         where: {
           status: 'published',
@@ -281,14 +300,13 @@ export class PromotionsV2Service {
         },
         include: { promotion: { include: { assignments: { where: { status: 'active' } } } } }, orderBy: [{ promotionId: 'asc' }, { version: 'desc' }],
       }),
-      // During rollout, click-to-apply campaigns can have published V2 rules
-      // before long-lived automatic offers are migrated. Carry those legacy
-      // automatic offers into the canonical quote so shipping and payment
-      // validation cannot disagree with the legacy auto-evaluation.
+      // Bridge both automatic and explicitly selected legacy promotions into
+      // the canonical V2 engine. This keeps Web and Mobile on one quote route
+      // while older cart/free-shipping records are migrated to stored V2 rules.
       prisma.promotions.findMany({
         where: {
           ...activeDateFilter,
-          OR: [{ application_mode: 'automatic' }, { auto_apply: true }],
+          OR: legacyPromotionSelectors,
           ruleVersions: { none: { status: 'published' } },
         },
         include: { assignments: { where: { status: 'active' } } },
@@ -297,7 +315,7 @@ export class PromotionsV2Service {
     ]);
     const promotionIds = [...new Set([
       ...rows.map((row) => row.promotionId),
-      ...legacyAutomaticPromotions.map((promotion) => promotion.id),
+      ...legacyPromotions.map((promotion) => promotion.id),
     ])];
     const [campaignUsage, customerUsage, groupMemberships] = await Promise.all([
       prisma.promotion_redemptions.groupBy({
@@ -358,7 +376,7 @@ export class PromotionsV2Service {
         ...(remainingBudgetPaise === undefined ? {} : { remainingBudgetPaise }),
       });
     }
-    for (const promotion of legacyAutomaticPromotions) {
+    for (const promotion of legacyPromotions) {
       if (seen.has(promotion.id)) continue;
       seen.add(promotion.id);
       if (!isPromotionChannelEligible(promotion.applicable_channel, request.channel === 'nivapp' ? 'mobile' : request.channel)) {
@@ -411,7 +429,7 @@ export class PromotionsV2Service {
           ...(remainingBudgetPaise === undefined ? {} : { remainingBudgetPaise }),
         });
       } catch (error) {
-        logger.warn({ promotionId: promotion.id, error }, 'Unable to bridge legacy automatic promotion into V2 quote');
+        logger.warn({ promotionId: promotion.id, error }, 'Unable to bridge legacy promotion into V2 quote');
       }
     }
     return { campaigns: result, rejections };

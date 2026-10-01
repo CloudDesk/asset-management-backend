@@ -25,6 +25,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 | **ARCH-2026-09-30-15** | 2026-09-30 | **Tax & Catalog Architecture** | Migrated HSN Code & GST Rate from category mapping to individual product-level values with mandatory validation, optional UI auto-fill presets, and immutable orderline snapshots. Configured DB product data is complete (64/64); final database `NOT NULL` enforcement remains pending. | 🟡 Data Verified / Constraint Pending | [2026-09-30 HSN/GST Architecture](2026-09-30-product-level-hsn-gst-architecture-and-migration.md) |
 | **FEATURE-2026-10-01-16** | 2026-10-01 | **Category Images / Storefront** | Added centrally managed category/subcategory images, Inventory Admin preview and upload-review UX, explicit storefront visibility, Ecom consumption of active managed images, and a shared fallback. | ✅ Verified | [2026-10-01 Category Images](2026-10-01-category-images-inventory-and-ecommerce-integration.md) |
 | **FEATURE-2026-10-01-17** | 2026-10-01 | **Ecom Product Discovery** | Added compact price-range and sort controls that combine with existing category, subcategory, collection, offer, and search selections while preserving the existing cards and navigation design. | ✅ Verified | [2026-10-01 Ecom Filters](2026-10-01-ecommerce-product-price-and-sort-filters.md) |
+| **FIX-2026-10-01-18** | 2026-10-01 | **Promotion Pricing / Mobile Checkout** | Established the V2 quote as the promotion single source of truth, bridged automatic and selected manual legacy offers into V2, documented combination scenarios, corrected category/shipping savings, and enabled multiple manual stackable offers in Mobile. | ✅ Verified | [2026-10-01 Mobile Promotion V2 Parity](2026-10-01-mobile-promotion-v2-parity-and-offers-ui.md) |
 
 ---
 
@@ -76,3 +77,10 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Repositories Impacted:**
   - `Nivaana-Ecom-Web`
   - `asset-management-backend`
+
+### [2026-10-01: Mobile Promotion V2 Parity and Offers UI](2026-10-01-mobile-promotion-v2-parity-and-offers-ui.md)
+* **Summary:** Replaced Mobile's legacy automatic promotion calculation with the same canonical V2 quote used by Ecom Web. This restores category/subcategory/product targeting accuracy, keeps a single checkout evaluation ID, prevents free-shipping savings from being counted twice, supports multiple manual stackable offers, and presents automatic/manual offers with the correct actions. The detailed document begins with the authoritative promotion combination rules and examples.
+* **Compatibility:** No backend schema, promotion storage format, payment payload field, or order payload data type was changed.
+* **Repositories Impacted:**
+  - `Vibrant-Life-mobile-app`
+  - `asset-management-backend` (documentation and existing V2 API contract)

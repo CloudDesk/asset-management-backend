@@ -289,6 +289,30 @@ test('keeps stackable legacy free shipping with a merchandise promotion', () => 
   assert.equal(quote.payable_total, 35_000);
 });
 
+test('evaluates a bridged legacy fixed-cart offer in the canonical V2 engine', () => {
+  const legacyManualCartOffer = convertLegacyPromotionRule({
+    type: 'FIXED_AMOUNT_OFF_CART',
+    conditions: [{ attribute: 'cart.total_value', operator: 'GTE', value: '500' }],
+    action: { type: 'FIXED_AMOUNT_OFF', value: 100 },
+    stackable: true,
+    name: 'Legacy Manual Rs. 100 Off',
+  });
+  const quote = evaluatePromotionQuote(
+    [line('A', 1, 100_000)],
+    [campaign(70, legacyManualCartOffer)],
+    [],
+    { shippingAmount: 15_000 },
+  );
+
+  assert.deepEqual(quote.applied_promotions, [{
+    promotion_id: 70,
+    name: 'Offer 70',
+    saving: 10_000,
+  }]);
+  assert.equal(quote.merchandise_discount_total, 10_000);
+  assert.equal(quote.shipping_payable, 15_000);
+});
+
 test('does not let shipping unlock a merchandise-value promotion', () => {
   const freeShipping = convertLegacyPromotionRule({
     type: 'FREE_SHIPPING',
