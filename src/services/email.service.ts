@@ -87,13 +87,13 @@ export class EmailService {
     try {
       logger.info({ email }, 'Sending password reset email');
 
-      const resetUrl = `${process.env.RESET_PASSWORD_URL || 'http://localhost:3000/reset-password'}?token=${resetToken}`;
+      const resetUrl = `${process.env.RESET_PASSWORD_URL || 'https://nivaana-inventory-prod.web.app/reset-password'}?token=${resetToken}`;
       const displayName = userName || email.split('@')[0] || 'User';
 
       const mailOptions = {
-        from: `"Asset Management System" <${config.GMAIL_AUTH_USER}>`,
+        from: `"Nivaana" <${config.GMAIL_AUTH_USER}>`,
         to: email,
-        subject: 'Password Reset Request - Asset Management System',
+        subject: 'Password Reset Request - Nivaana',
         html: this.generatePasswordResetEmailTemplate(displayName, resetUrl),
         text: this.generatePasswordResetEmailText(displayName, resetUrl),
       };
@@ -128,7 +128,7 @@ export class EmailService {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Password Reset - Asset Management System</title>
+        <title>Password Reset - Nivaana</title>
         <style>
           body {
             font-family: Arial, sans-serif;
@@ -200,14 +200,14 @@ export class EmailService {
       <body>
         <div class="container">
           <div class="header">
-            <h1>Asset Management System</h1>
+            <h1>Nivaana</h1>
             <p>Password Reset Request</p>
           </div>
           
           <div class="content">
             <p>Hello <strong>${userName}</strong>,</p>
             
-            <p>We received a request to reset your password for your Asset Management System account. If you made this request, please click the button below to reset your password:</p>
+            <p>We received a request to reset your password for your Nivaana account. If you made this request, please click the button below to reset your password:</p>
             
             <div style="text-align: center;">
               <a href="${resetUrl}" class="reset-button">Reset Password</a>
@@ -230,7 +230,7 @@ export class EmailService {
             <p>If you're having trouble with the password reset process, please contact our support team.</p>
             
             <p>Best regards,<br>
-            Asset Management System Team</p>
+            Nivaana Team</p>
           </div>
           
           <div class="footer">
@@ -248,11 +248,11 @@ export class EmailService {
    */
   private generatePasswordResetEmailText(userName: string, resetUrl: string): string {
     return `
-Asset Management System - Password Reset Request
+Nivaana - Password Reset Request
 
 Hello ${userName},
 
-We received a request to reset your password for your Asset Management System account.
+We received a request to reset your password for your Nivaana account.
 
 To reset your password, please visit the following link:
 ${resetUrl}
@@ -265,7 +265,7 @@ IMPORTANT SECURITY INFORMATION:
 If you're having trouble with the password reset process, please contact our support team.
 
 Best regards,
-Asset Management System Team
+Nivaana Team
 
 ---
 This is an automated email. Please do not reply to this message.
