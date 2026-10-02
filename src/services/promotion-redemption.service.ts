@@ -8,6 +8,12 @@ import {
 } from '../schemas/redemption.schema.js';
 import { isPromotionChannelEligible } from '../utils/promotionChannel.js';
 import { resolvePromotionRedemptionAmounts, type CheckoutPricing } from '../utils/checkoutPricing.js';
+import {
+  PROMOTION_REDEMPTION_MILLISECONDS_THRESHOLD,
+  promotionRedemptionTimestampMilliseconds,
+  promotionRedemptionTimestampSeconds,
+  sortPromotionRedemptionsNewestFirst,
+} from '../utils/promotion-redemption-history.js';
 
 export class PromotionRedemptionService {
   private prisma: PrismaClient;
@@ -487,19 +493,33 @@ export class PromotionRedemptionService {
     const limit = Math.min(100, Math.max(1, filters.limit || 10));
     const skip = (page - 1) * limit;
     const search = filters.search?.trim();
-    const where: Prisma.promotion_redemptionsWhereInput = {};
+    const baseWhere: Prisma.promotion_redemptionsWhereInput = {};
 
     if (filters.promotionType) {
-      where.promotion = { is: { type: filters.promotionType } };
+      const versionedPromotionTypes = new Set([
+        'PERCENT_OFF_SUBCATEGORIES',
+        'PERCENT_OFF_CATEGORIES',
+        'PERCENT_OFF_PRODUCTS',
+        'FIXED_AMOUNT_OFF_PRODUCTS',
+      ]);
+      baseWhere.promotion = versionedPromotionTypes.has(filters.promotionType)
+        ? {
+          is: {
+            ruleVersions: {
+              some: {
+                status: 'published',
+                ruleJson: {
+                  path: ['presentation', 'template_type'],
+                  equals: filters.promotionType,
+                },
+              },
+            },
+          },
+        }
+        : { is: { type: filters.promotionType } };
     }
     if (filters.status) {
-      where.evaluation = { is: { status: filters.status } };
-    }
-    if (filters.redeemedFrom !== undefined || filters.redeemedTo !== undefined) {
-      where.redeemed_at = {
-        ...(filters.redeemedFrom !== undefined ? { gte: BigInt(filters.redeemedFrom) } : {}),
-        ...(filters.redeemedTo !== undefined ? { lte: BigInt(filters.redeemedTo) } : {}),
-      };
+      baseWhere.evaluation = { is: { status: filters.status } };
     }
 
     if (search) {
@@ -532,7 +552,7 @@ export class PromotionRedemptionService {
         [String(order.id), order.orderid].filter((value): value is string => Boolean(value))
       );
       const userIdentifiers = matchingUsers.map((user) => String(user.id));
-      where.OR = [
+      baseWhere.OR = [
         { promotion: { is: { name: { contains: search, mode: 'insensitive' } } } },
         { promotion: { is: { code: { contains: search, mode: 'insensitive' } } } },
         ...(orderIdentifiers.length > 0 ? [{ order_id: { in: orderIdentifiers } }] : []),
@@ -540,9 +560,40 @@ export class PromotionRedemptionService {
       ];
     }
 
-    const [redemptions, total] = await Promise.all([
+    const millisecondsRange: Prisma.BigIntFilter = {
+      gte: filters.redeemedFrom !== undefined
+        ? BigInt(filters.redeemedFrom)
+        : PROMOTION_REDEMPTION_MILLISECONDS_THRESHOLD,
+      ...(filters.redeemedTo !== undefined ? { lte: BigInt(filters.redeemedTo) } : {}),
+    };
+    const secondsRange: Prisma.BigIntFilter = {
+      lt: PROMOTION_REDEMPTION_MILLISECONDS_THRESHOLD,
+      ...(filters.redeemedFrom !== undefined
+        ? { gte: promotionRedemptionTimestampSeconds(filters.redeemedFrom) }
+        : {}),
+      ...(filters.redeemedTo !== undefined
+        ? { lte: promotionRedemptionTimestampSeconds(filters.redeemedTo) }
+        : {}),
+    };
+    const millisecondsWhere: Prisma.promotion_redemptionsWhereInput = {
+      AND: [baseWhere, { redeemed_at: millisecondsRange }],
+    };
+    const secondsWhere: Prisma.promotion_redemptionsWhereInput = {
+      AND: [baseWhere, { redeemed_at: secondsRange }],
+    };
+    const combinedWhere: Prisma.promotion_redemptionsWhereInput = {
+      AND: [baseWhere, {
+        OR: [
+          { redeemed_at: millisecondsRange },
+          { redeemed_at: secondsRange },
+        ],
+      }],
+    };
+    const fetchLimit = skip + limit;
+
+    const [millisecondRedemptions, secondRedemptions, total] = await Promise.all([
       this.prisma.promotion_redemptions.findMany({
-        where,
+        where: millisecondsWhere,
         include: {
           promotion: {
             select: {
@@ -552,6 +603,12 @@ export class PromotionRedemptionService {
               code: true,
               application_mode: true,
               auto_apply: true,
+              ruleVersions: {
+                where: { status: 'published' },
+                orderBy: { version: 'desc' },
+                take: 1,
+                select: { ruleJson: true },
+              },
             },
           },
           evaluation: {
@@ -563,11 +620,44 @@ export class PromotionRedemptionService {
           },
         },
         orderBy: [{ redeemed_at: 'desc' }, { id: 'desc' }],
-        skip,
-        take: limit,
+        take: fetchLimit,
       }),
-      this.prisma.promotion_redemptions.count({ where }),
+      this.prisma.promotion_redemptions.findMany({
+        where: secondsWhere,
+        include: {
+          promotion: {
+            select: {
+              id: true,
+              name: true,
+              type: true,
+              code: true,
+              application_mode: true,
+              auto_apply: true,
+              ruleVersions: {
+                where: { status: 'published' },
+                orderBy: { version: 'desc' },
+                take: 1,
+                select: { ruleJson: true },
+              },
+            },
+          },
+          evaluation: {
+            select: {
+              evaluation_id: true,
+              status: true,
+              context: true,
+            },
+          },
+        },
+        orderBy: [{ redeemed_at: 'desc' }, { id: 'desc' }],
+        take: fetchLimit,
+      }),
+      this.prisma.promotion_redemptions.count({ where: combinedWhere }),
     ]);
+    const redemptions = sortPromotionRedemptionsNewestFirst([
+      ...millisecondRedemptions,
+      ...secondRedemptions,
+    ]).slice(skip, skip + limit);
 
     return {
       redemptions: await this.enrichRedemptionHistory(redemptions),
@@ -659,6 +749,16 @@ export class PromotionRedemptionService {
       const snapshot = redemption.redemption_data && typeof redemption.redemption_data === 'object'
         ? redemption.redemption_data as Record<string, any>
         : {};
+      const publishedRule = redemption.promotion?.ruleVersions?.[0]?.ruleJson;
+      const configuredPromotionType = publishedRule
+        && typeof publishedRule === 'object'
+        && !Array.isArray(publishedRule)
+        && typeof publishedRule.presentation === 'object'
+        && publishedRule.presentation !== null
+        && !Array.isArray(publishedRule.presentation)
+        && typeof publishedRule.presentation.template_type === 'string'
+          ? publishedRule.presentation.template_type
+          : null;
       const customerName = customer
         ? [customer.firstname, customer.lastname].filter(Boolean).join(' ').trim()
           || customer.useremail
@@ -673,7 +773,7 @@ export class PromotionRedemptionService {
         promotion_id: redemption.promotion_id,
         promotion_name: snapshot.promotion_name ?? redemption.promotion?.name ?? `Promotion #${redemption.promotion_id}`,
         promotion_code: redemption.promotion?.code ?? null,
-        promotion_type: redemption.promotion?.type ?? 'PROMOTION',
+        promotion_type: configuredPromotionType ?? redemption.promotion?.type ?? 'PROMOTION',
         application_mode: redemption.promotion?.application_mode
           ?? (redemption.promotion?.auto_apply ? 'automatic' : null),
         order_internal_id: order?.id ?? null,
@@ -690,7 +790,7 @@ export class PromotionRedemptionService {
         final_amount_paid: Number(order?.orderamount ?? 0),
         shipping_fee: Number(order?.shipping_cost ?? 0),
         redemption_status: redemption.evaluation?.status ?? 'redeemed',
-        redeemed_at: Number(redemption.redeemed_at),
+        redeemed_at: promotionRedemptionTimestampMilliseconds(redemption.redeemed_at),
         redemption_data: redemption.redemption_data ?? null,
         evaluation_context: redemption.evaluation?.context ?? null,
         order_available: Boolean(order),
@@ -712,6 +812,12 @@ export class PromotionRedemptionService {
               code: true,
               application_mode: true,
               auto_apply: true,
+              ruleVersions: {
+                where: { status: 'published' },
+                orderBy: { version: 'desc' },
+                take: 1,
+                select: { ruleJson: true },
+              },
             }
           },
           evaluation: {

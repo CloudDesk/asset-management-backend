@@ -224,7 +224,7 @@ export class PromotionsV2Service {
     };
   }
 
-  async quote(input: unknown, authenticatedCustomerId?: string): Promise<PromotionQuote> {
+  async calculate(input: unknown, authenticatedCustomerId?: string): Promise<PromotionQuote> {
     const startedAt = performance.now();
     const request = PromotionQuoteRequestSchema.parse(input);
     if (request.selected_promotion_ids?.length) {
@@ -259,13 +259,13 @@ export class PromotionsV2Service {
     // authentication. Do not persist them as checkout-ready evaluations.
     if (!request.preview_only) await this.persistQuote(quote, request, hydrated.lines);
     logger.info({
-      event: 'promotions_v2_quote', mode: request.preview_only ? 'preview' : 'active',
+      event: 'promotions_v2_calculation', mode: request.preview_only ? 'preview' : 'active',
       evaluationId: quote.evaluation_id, channel: request.channel, cartLineCount: request.cart_items.length,
       appliedCount: quote.applied_promotions.length, rejectedCount: quote.rejected_candidates.length,
       conflictCount: quote.rejected_candidates.filter((item) => item.reason_code === 'CONFLICTED_WITH_BETTER_OFFER').length,
       giftCount: quote.adjustments.filter((item) => item.type === 'FREE_ITEM').length,
       discountPaise: quote.discount_total, durationMs: Math.round((performance.now() - startedAt) * 100) / 100,
-    }, 'Promotions V2 quote completed');
+    }, 'Promotions V2 calculation completed');
     return quote;
   }
 
@@ -509,7 +509,7 @@ export class PromotionsV2Service {
     });
   }
 
-  async requoteEvaluation(evaluationId: string, selection?: { promotionId?: number; removePromotionId?: number; giftProductId?: string }, authenticatedCustomerId?: string): Promise<PromotionQuote> {
+  async recalculateEvaluation(evaluationId: string, selection?: { promotionId?: number; removePromotionId?: number; giftProductId?: string }, authenticatedCustomerId?: string): Promise<PromotionQuote> {
     const evaluation = await prisma.promotion_evaluations.findUniqueOrThrow({ where: { evaluation_id: evaluationId } });
     if (evaluation.status !== 'active') {
       throw Object.assign(new Error('Promotion evaluation is no longer active'), {
@@ -530,6 +530,6 @@ export class PromotionsV2Service {
     if (selection?.removePromotionId) ids.delete(selection.removePromotionId);
     request.selected_promotion_ids = [...ids];
     if (selection?.promotionId && selection.giftProductId) request.reward_selections = { ...request.reward_selections, [String(selection.promotionId)]: selection.giftProductId };
-    return this.quote(request, authenticatedCustomerId);
+    return this.calculate(request, authenticatedCustomerId);
   }
 }

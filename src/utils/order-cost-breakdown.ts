@@ -28,7 +28,7 @@ export interface LinePromotionBreakdown {
   coupon_code: string | null;
   discount_type: string;
   discount_amount: number;
-  allocation_method: 'PROPORTIONAL';
+  allocation_method: 'EXACT' | 'PROPORTIONAL';
 }
 
 type BreakdownOrder = {
@@ -45,10 +45,12 @@ type BreakdownOrder = {
 
 type BreakdownOrderline = {
   id?: unknown;
+  productid?: unknown;
   original_price?: unknown;
   quantity?: unknown;
   product_discount_amount?: unknown;
   promotion_discount_amount?: unknown;
+  promotion_adjustment_id?: unknown;
 };
 
 type BreakdownRedemption = {
@@ -60,9 +62,12 @@ type BreakdownRedemption = {
 };
 
 type BreakdownAdjustment = {
+  id?: unknown;
   promotionId: number;
   adjustmentType: string;
+  productId?: unknown;
   amount: unknown;
+  metadata?: unknown;
   promotion?: { name?: string | null; type?: string | null; code?: string | null } | null;
 };
 
@@ -98,37 +103,61 @@ const classifyLegacyDiscount = (promotionType: string, discount: number) => {
   return { merchandise: discount, freeItem: 0, shipping: 0 };
 };
 
-/**
- * Allocates persisted line-level promotion totals across the applied promotions.
- * Orders created before per-promotion line allocations were persisted only have a
- * combined promotion_discount_amount on each line, so this response-only split
- * preserves every line total and every order-level promotion total to the cent.
- */
-export function buildLinePromotionBreakdowns(
-  orderlines: BreakdownOrderline[],
-  promotions: PromotionCostBreakdown[],
-): Map<number, LinePromotionBreakdown[]> {
-  const rows = orderlines
-    .map((line) => ({
-      id: Number(line.id),
-      cents: moneyToCents(line.promotion_discount_amount),
-    }))
-    .filter((line) => Number.isFinite(line.id) && line.cents > 0);
-  const columns = promotions
-    .map((promotion) => ({
-      promotion,
-      cents: moneyToCents(promotion.merchandise_discount + promotion.free_item_discount),
-    }))
-    .filter((column) => column.cents > 0);
+type AllocationRow = {
+  id: number;
+  cents: number;
+};
 
-  const result = new Map<number, LinePromotionBreakdown[]>();
-  if (rows.length === 0 || columns.length === 0) return result;
+type AllocationColumn = {
+  promotion: PromotionCostBreakdown;
+  cents: number;
+};
+
+const appendLineBreakdown = (
+  result: Map<number, LinePromotionBreakdown[]>,
+  lineId: number,
+  promotion: PromotionCostBreakdown,
+  cents: number,
+  allocationMethod: LinePromotionBreakdown['allocation_method'],
+) => {
+  if (cents <= 0) return;
+  const values = result.get(lineId) ?? [];
+  const existing = values.find((value) =>
+    value.promotion_id === promotion.promotion_id
+    && value.allocation_method === allocationMethod
+  );
+  if (existing) {
+    existing.discount_amount = (moneyToCents(existing.discount_amount) + cents) / 100;
+  } else {
+    values.push({
+      promotion_id: promotion.promotion_id,
+      promotion_name: promotion.promotion_name,
+      coupon_code: promotion.coupon_code,
+      discount_type: promotion.discount_type,
+      discount_amount: cents / 100,
+      allocation_method: allocationMethod,
+    });
+  }
+  result.set(lineId, values);
+};
+
+/**
+ * Allocates promotion columns across line capacities, preserving both totals to
+ * the cent. This is the compatibility path for legacy promotions that do not
+ * have product-targeted V2 adjustment rows.
+ */
+const allocateProportionally = (
+  rows: AllocationRow[],
+  columns: AllocationColumn[],
+  result: Map<number, LinePromotionBreakdown[]>,
+) => {
+  if (rows.length === 0 || columns.length === 0) return;
 
   const rowTotal = rows.reduce((sum, row) => sum + row.cents, 0);
   const columnTotal = columns.reduce((sum, column) => sum + column.cents, 0);
-  if (rowTotal <= 0 || columnTotal <= 0) return result;
+  if (rowTotal <= 0 || columnTotal <= 0) return;
 
-  // Normalize promotion targets to the persisted line total when legacy values
+  // Normalize promotion targets to the available line total when legacy values
   // differ by a rounding cent. The final column receives the exact remainder.
   let normalizedRemaining = rowTotal;
   const normalizedColumns = columns.map((column, index) => {
@@ -181,20 +210,106 @@ export function buildLinePromotionBreakdowns(
       if (allocatedCents <= 0) return;
       const row = rows[rowIndex];
       if (!row) return;
-      const values = result.get(row.id) ?? [];
-      values.push({
-        promotion_id: column.promotion.promotion_id,
-        promotion_name: column.promotion.promotion_name,
-        coupon_code: column.promotion.coupon_code,
-        discount_type: column.promotion.discount_type,
-        discount_amount: allocatedCents / 100,
-        allocation_method: 'PROPORTIONAL',
-      });
-      result.set(row.id, values);
+      appendLineBreakdown(result, row.id, column.promotion, allocatedCents, 'PROPORTIONAL');
       rowRemaining[rowIndex] = (rowRemaining[rowIndex] ?? 0) - allocatedCents;
     });
     capacityRemaining -= column.cents;
   });
+};
+
+/**
+ * Uses persisted V2 adjustment product IDs for an exact per-line breakdown.
+ * Promotions without usable V2 targeting retain the legacy proportional split,
+ * so old orders remain readable without a migration or data rewrite.
+ */
+export function buildLinePromotionBreakdowns(
+  orderlines: BreakdownOrderline[],
+  promotions: PromotionCostBreakdown[],
+  evaluations: BreakdownEvaluation[] = [],
+): Map<number, LinePromotionBreakdown[]> {
+  const rows = orderlines
+    .map((line) => ({
+      id: Number(line.id),
+      productId: line.productid === null || line.productid === undefined
+        ? null
+        : String(line.productid),
+      promotionAdjustmentId: line.promotion_adjustment_id === null || line.promotion_adjustment_id === undefined
+        ? null
+        : String(line.promotion_adjustment_id),
+      cents: moneyToCents(line.promotion_discount_amount),
+    }))
+    .filter((line) => Number.isFinite(line.id) && line.cents > 0);
+  const promotionById = new Map(promotions
+    .filter((promotion) => promotion.promotion_id !== null)
+    .map((promotion) => [Number(promotion.promotion_id), promotion]));
+  const allColumns = promotions
+    .map((promotion) => ({
+      promotion,
+      cents: moneyToCents(promotion.merchandise_discount + promotion.free_item_discount),
+    }))
+    .filter((column) => column.cents > 0);
+
+  const result = new Map<number, LinePromotionBreakdown[]>();
+  if (rows.length === 0 || allColumns.length === 0) return result;
+
+  const rowsByProductId = new Map<string, typeof rows>();
+  const rowByAdjustmentId = new Map<string, typeof rows[number]>();
+  const remainingByLineId = new Map(rows.map((row) => [row.id, row.cents]));
+  for (const row of rows) {
+    if (row.productId) {
+      const matchingRows = rowsByProductId.get(row.productId) ?? [];
+      matchingRows.push(row);
+      rowsByProductId.set(row.productId, matchingRows);
+    }
+    if (row.promotionAdjustmentId) rowByAdjustmentId.set(row.promotionAdjustmentId, row);
+  }
+
+  const exactPromotionIds = new Set<number>();
+  for (const evaluation of evaluations) {
+    for (const adjustment of evaluation.adjustments ?? []) {
+      const promotionId = Number(adjustment.promotionId);
+      const promotion = promotionById.get(promotionId);
+      const adjustmentType = String(adjustment.adjustmentType || '').toUpperCase();
+      if (!promotion || adjustmentType === 'FREE_SHIPPING') continue;
+
+      const adjustmentId = adjustment.id === null || adjustment.id === undefined
+        ? null
+        : String(adjustment.id);
+      const productId = adjustment.productId === null || adjustment.productId === undefined
+        ? null
+        : String(adjustment.productId);
+      const linkedGiftRow = adjustmentId ? rowByAdjustmentId.get(adjustmentId) : undefined;
+      const candidateRows = linkedGiftRow
+        ? [linkedGiftRow]
+        : productId
+          ? rowsByProductId.get(productId) ?? []
+          : [];
+      if (candidateRows.length === 0) continue;
+
+      let adjustmentRemaining = moneyToCents(adjustment.amount);
+      let allocated = 0;
+      for (const row of candidateRows) {
+        if (adjustmentRemaining <= 0) break;
+        const capacity = remainingByLineId.get(row.id) ?? 0;
+        const lineAllocation = Math.min(capacity, adjustmentRemaining);
+        if (lineAllocation <= 0) continue;
+        appendLineBreakdown(result, row.id, promotion, lineAllocation, 'EXACT');
+        remainingByLineId.set(row.id, capacity - lineAllocation);
+        adjustmentRemaining -= lineAllocation;
+        allocated += lineAllocation;
+      }
+      if (allocated > 0) exactPromotionIds.add(promotionId);
+    }
+  }
+
+  const fallbackRows = rows
+    .map((row) => ({ id: row.id, cents: remainingByLineId.get(row.id) ?? 0 }))
+    .filter((row) => row.cents > 0);
+  const fallbackColumns = allColumns.filter((column) =>
+    column.promotion.promotion_id === null
+    || !exactPromotionIds.has(Number(column.promotion.promotion_id))
+  );
+  allocateProportionally(fallbackRows, fallbackColumns, result);
 
   return result;
 }

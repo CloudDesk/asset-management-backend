@@ -41,7 +41,10 @@ export class OrdersService {
   private async getOrderCostBreakdowns(
     orders: any[],
     orderlinesByOrderId: Map<number, any[]>,
-  ): Promise<Map<number, OrderCostBreakdown>> {
+  ): Promise<Map<number, {
+    costBreakdown: OrderCostBreakdown;
+    linePromotionBreakdowns: ReturnType<typeof buildLinePromotionBreakdowns>;
+  }>> {
     if (orders.length === 0) return new Map();
 
     const orderByIdentifier = new Map<string, any>();
@@ -103,15 +106,25 @@ export class OrdersService {
       if (order) addToMap(evaluationsByOrderId, Number(order.id), evaluation);
     }
 
-    return new Map(orders.map((order) => [
-      Number(order.id),
-      buildOrderCostBreakdown(
+    return new Map(orders.map((order) => {
+      const orderId = Number(order.id);
+      const orderlines = orderlinesByOrderId.get(orderId) ?? [];
+      const orderEvaluations = evaluationsByOrderId.get(orderId) ?? [];
+      const costBreakdown = buildOrderCostBreakdown(
         order,
-        orderlinesByOrderId.get(Number(order.id)) ?? [],
-        redemptionsByOrderId.get(Number(order.id)) ?? [],
-        evaluationsByOrderId.get(Number(order.id)) ?? [],
-      ),
-    ]));
+        orderlines,
+        redemptionsByOrderId.get(orderId) ?? [],
+        orderEvaluations,
+      );
+      return [orderId, {
+        costBreakdown,
+        linePromotionBreakdowns: buildLinePromotionBreakdowns(
+          orderlines,
+          costBreakdown.promotions,
+          orderEvaluations,
+        ),
+      }];
+    }));
   }
 
   private notifyNewOrder(order: any): void {
@@ -3505,11 +3518,9 @@ export class OrdersService {
         [fullOrder],
         new Map([[Number(fullOrder.id), rawOrderlines]]),
       );
-      const costBreakdown = costBreakdowns.get(Number(fullOrder.id));
-      const linePromotionBreakdowns = buildLinePromotionBreakdowns(
-        rawOrderlines,
-        costBreakdown?.promotions ?? [],
-      );
+      const pricingBreakdown = costBreakdowns.get(Number(fullOrder.id));
+      const costBreakdown = pricingBreakdown?.costBreakdown;
+      const linePromotionBreakdowns = pricingBreakdown?.linePromotionBreakdowns ?? new Map();
       for (const orderline of orderlines) {
         orderline.promotion_breakdown = linePromotionBreakdowns.get(Number(orderline.id)) ?? [];
       }
@@ -3847,12 +3858,10 @@ export class OrdersService {
 
       // Build response with orders, orderlines, and address
       const ordersWithDetails = orders.map((order: any) => {
-        const costBreakdown = costBreakdowns.get(Number(order.id));
+        const pricingBreakdown = costBreakdowns.get(Number(order.id));
+        const costBreakdown = pricingBreakdown?.costBreakdown;
         const sourceOrderlines = orderlinesByOrderId.get(order.id) || [];
-        const linePromotionBreakdowns = buildLinePromotionBreakdowns(
-          sourceOrderlines,
-          costBreakdown?.promotions ?? [],
-        );
+        const linePromotionBreakdowns = pricingBreakdown?.linePromotionBreakdowns ?? new Map();
         // Get orderlines for this order
         const orderOrderlines = sourceOrderlines.map((ol: any) => ({
           id: ol.id,

@@ -145,7 +145,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
     },
   }, promotionsController.getPromotions.bind(promotionsController));
 
-  fastify.get('/mine', promotionsController.getMyPromotions);
+  fastify.get('/customer-offers', promotionsController.getMyPromotions);
   fastify.get('/public', promotionsController.getPublicPromotions);
 
 
@@ -1176,8 +1176,8 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
   // PROMOTION OFFERS ROUTES
   // ========================================
 
-  // POST /v1/promotions/offers - Get unified promotion offers (best + all eligible/ineligible)
-  fastify.post('/offers', {
+  // POST /v1/promotions/available-offers - Get unified promotion offers (best + all eligible/ineligible)
+  fastify.post('/available-offers', {
     schema: {
       description: 'Get unified promotion offers - best recommendation + all eligible/ineligible promotions',
       tags: ['Promotions', 'Offers'],

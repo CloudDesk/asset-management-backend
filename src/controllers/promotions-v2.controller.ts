@@ -13,36 +13,36 @@ export class PromotionsV2Controller {
     return user.id;
   }
 
-  quote = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+  calculate = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const user = (request as AuthenticatedRequest).user;
     const customerId = user?.userType === 'ecommerce' ? String(user.id) : undefined;
-    return reply.send(createSuccessResponse('Promotion quote created', await this.service.quote(request.body, customerId)));
+    return reply.send(createSuccessResponse('Promotion calculation completed', await this.service.calculate(request.body, customerId)));
   });
 
-  select = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+  applyPromotion = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const { evaluationId } = request.params as { evaluationId: string };
     const input = PromotionSelectionSchema.parse(request.body);
     const user = (request as AuthenticatedRequest).user;
-    return reply.send(createSuccessResponse('Promotion selection evaluated', await this.service.requoteEvaluation(evaluationId, { promotionId: input.promotion_id }, user?.userType === 'ecommerce' ? String(user.id) : undefined)));
+    return reply.send(createSuccessResponse('Promotion applied and totals recalculated', await this.service.recalculateEvaluation(evaluationId, { promotionId: input.promotion_id }, user?.userType === 'ecommerce' ? String(user.id) : undefined)));
   });
 
-  removeSelection = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+  removePromotion = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const { evaluationId, promotionId } = request.params as { evaluationId: string; promotionId: string };
     const user = (request as AuthenticatedRequest).user;
-    return reply.send(createSuccessResponse('Promotion selection removed', await this.service.requoteEvaluation(evaluationId, { removePromotionId: Number(promotionId) }, user?.userType === 'ecommerce' ? String(user.id) : undefined)));
+    return reply.send(createSuccessResponse('Promotion removed and totals recalculated', await this.service.recalculateEvaluation(evaluationId, { removePromotionId: Number(promotionId) }, user?.userType === 'ecommerce' ? String(user.id) : undefined)));
   });
 
-  selectGift = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+  chooseGift = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const { evaluationId } = request.params as { evaluationId: string };
     const input = PromotionGiftSelectionSchema.parse(request.body);
     const user = (request as AuthenticatedRequest).user;
-    return reply.send(createSuccessResponse('Gift selection evaluated', await this.service.requoteEvaluation(evaluationId, { promotionId: input.promotion_id, giftProductId: input.product_id }, user?.userType === 'ecommerce' ? String(user.id) : undefined)));
+    return reply.send(createSuccessResponse('Gift selected and totals recalculated', await this.service.recalculateEvaluation(evaluationId, { promotionId: input.promotion_id, giftProductId: input.product_id }, user?.userType === 'ecommerce' ? String(user.id) : undefined)));
   });
 
-  validate = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+  validateEvaluation = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const { evaluationId } = request.params as { evaluationId: string };
     const user = (request as AuthenticatedRequest).user;
-    return reply.send(createSuccessResponse('Promotion quote revalidated', await this.service.requoteEvaluation(evaluationId, undefined, user?.userType === 'ecommerce' ? String(user.id) : undefined)));
+    return reply.send(createSuccessResponse('Promotion calculation validated', await this.service.recalculateEvaluation(evaluationId, undefined, user?.userType === 'ecommerce' ? String(user.id) : undefined)));
   });
 
   saveDraft = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
@@ -74,7 +74,7 @@ export class PromotionsV2Controller {
     return reply.send(createSuccessResponse('Promotion facets retrieved', await this.service.getFacets()));
   });
 
-  eligibility = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+  checkEligibility = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const user = (request as AuthenticatedRequest).user;
     const input = PromotionEligibilityRequestSchema.parse(request.body);
     const customerId = user?.userType === 'ecommerce' ? String(user.id) : undefined;

@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Prisma, PrismaClient } from '@prisma/client';
 import { logger } from '../config/logger.js';
+import { promotionRedemptionTimestamp } from '../utils/promotion-redemption-timestamp.js';
 
 const prisma = new PrismaClient();
 const epoch = (): bigint => BigInt(Math.floor(Date.now() / 1000));
@@ -131,6 +132,7 @@ export class PromotionCheckoutService {
         giftLineIds.push(created.id);
       }
 
+      const redeemedAt = promotionRedemptionTimestamp();
       for (const promotionId of promotionIds) {
         const amount = adjustments.filter((item) => item.promotionId === promotionId).reduce((sum, item) => sum + Number(item.amount), 0);
         const promotion = await tx.promotions.findUniqueOrThrow({
@@ -157,14 +159,14 @@ export class PromotionCheckoutService {
         }
         await tx.promotion_redemptions.create({ data: {
           id: randomUUID(), evaluation_id: evaluationId, order_id: order.orderid, user_id: evaluation.user_id,
-          promotion_id: promotionId, voucher_code: promotion.code || null, discount_amount: amount, redeemed_at: epoch(),
+          promotion_id: promotionId, voucher_code: promotion.code || null, discount_amount: amount, redeemed_at: redeemedAt,
           redemption_data: {
             schema_version: 2,
             promotion_name: promotion.name,
             voucher_code: promotion.code || null,
             adjustment_ids: adjustments.filter((item) => item.promotionId === promotionId).map((item) => item.id),
           },
-          createddate: epoch(), modifieddate: epoch(),
+          createddate: redeemedAt, modifieddate: redeemedAt,
         } });
       }
       const merchandisePromotionTotal = adjustments.filter((item) => item.adjustmentType !== 'FREE_SHIPPING').reduce((sum, item) => sum + Number(item.amount), 0);
