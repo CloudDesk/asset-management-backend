@@ -289,6 +289,76 @@ test('keeps stackable legacy free shipping with a merchandise promotion', () => 
   assert.equal(quote.payable_total, 35_000);
 });
 
+test('combines free shipping with a non-stackable manual fixed-cart offer', () => {
+  const manualCartOffer = convertLegacyPromotionRule({
+    type: 'FIXED_AMOUNT_OFF_CART',
+    conditions: [{ attribute: 'cart.total_value', operator: 'GTE', value: '799' }],
+    action: { type: 'FIXED_AMOUNT_OFF', value: 149 },
+    stackable: false,
+    name: '149 Off',
+  });
+  const freeShipping = convertLegacyPromotionRule({
+    type: 'FREE_SHIPPING',
+    conditions: [{ attribute: 'cart.total_value', operator: 'GTE', value: '250' }],
+    action: { type: 'FREE_SHIPPING', value: 0 },
+    stackable: true,
+    name: 'Free Shipping',
+  });
+
+  const quote = evaluatePromotionQuote(
+    [line('A', 1, 50_000), line('B', 1, 22_000), line('C', 2, 5_000)],
+    [campaign(61, manualCartOffer, '149 Off'), campaign(70, freeShipping, 'Free Shipping')],
+    [],
+    { shippingAmount: 15_000 },
+  );
+
+  assert.deepEqual(
+    quote.applied_promotions.map((item) => item.promotion_id).sort((a, b) => a - b),
+    [61, 70],
+  );
+  assert.equal(quote.merchandise_discount_total, 14_900);
+  assert.equal(quote.shipping_discount_total, 15_000);
+  assert.equal(quote.discount_total, 29_900);
+  assert.equal(quote.payable_total, 67_100);
+});
+
+test('reports the full saving for an atomized eligible alternative', () => {
+  const stacking = {
+    stackable: true,
+    exclusive_group: 'MERCHANDISE_DISCOUNT',
+    item_reuse: 'DISALLOW' as const,
+    selection_strategy: 'BEST_CUSTOMER_VALUE' as const,
+    priority: 1,
+  };
+  const manualCartOffer = convertLegacyPromotionRule({
+    type: 'FIXED_AMOUNT_OFF_CART',
+    conditions: [{ attribute: 'cart.total_value', operator: 'GTE', value: '799' }],
+    action: { type: 'FIXED_AMOUNT_OFF', value: 149 },
+    stackable: false,
+    name: '149 Off',
+  });
+  const automaticTwentyPercent = rule({
+    benefit: { type: 'PERCENT_OFF', value: 20, target: 'ALL_QUALIFYING_UNITS' },
+    stacking,
+  });
+
+  const quote = evaluatePromotionQuote(
+    [line('A', 1, 50_000), line('B', 1, 22_000), line('C', 2, 5_000)],
+    [
+      campaign(61, manualCartOffer, '149 Off'),
+      campaign(71, automaticTwentyPercent, '20% Off'),
+      campaign(72, automaticTwentyPercent, 'Another 20% Off'),
+    ],
+    [],
+  );
+
+  assert.deepEqual(quote.applied_promotions.map((item) => item.promotion_id), [71, 72]);
+  assert.deepEqual(quote.eligible_alternatives, [{ promotion_id: 61, name: '149 Off', saving: 14_900 }]);
+  assert.ok(quote.rejected_candidates.some((item) =>
+    item.promotion_id === 61 && item.reason_code === 'CONFLICTED_WITH_BETTER_OFFER'
+  ));
+});
+
 test('evaluates a bridged legacy fixed-cart offer in the canonical V2 engine', () => {
   const legacyManualCartOffer = convertLegacyPromotionRule({
     type: 'FIXED_AMOUNT_OFF_CART',
@@ -378,6 +448,86 @@ test('applies a fixed amount only to selected products', () => {
 
   assert.equal(quote.discount_total, 1_000);
   assert.deepEqual(quote.adjustments.map((item) => item.product_id), ['A']);
+});
+
+test('caps a targeted percentage once across all selected categories', () => {
+  const cappedCategoryOffer = rule({
+    qualifier: {
+      scope: { include: [{ facet: 'CATEGORY', values: ['incense', 'gifts'] }], exclude: [], group_operator: 'OR' },
+      metric: 'ELIGIBLE_QUANTITY', aggregation: 'ACROSS_ELIGIBLE_PRODUCTS', minimum_quantity: 1,
+    },
+    benefit: { type: 'PERCENT_OFF', value: 20, target: 'ALL_QUALIFYING_UNITS' },
+    limits: { maximum_discount_amount: 5_000 },
+  });
+  const incense = line('A', 1, 20_000, 'incense');
+  const gift = line('B', 1, 30_000, 'gifts');
+  const unrelated = line('C', 1, 40_000, 'decor');
+
+  const quote = evaluatePromotionQuote(
+    [incense, gift, unrelated],
+    [campaign(1, cappedCategoryOffer)],
+    [],
+  );
+
+  assert.equal(quote.discount_total, 5_000);
+  assert.deepEqual(
+    quote.adjustments
+      .map((item) => ({ productId: item.product_id, amount: item.amount }))
+      .sort((left, right) => String(left.productId).localeCompare(String(right.productId))),
+    [{ productId: 'A', amount: 2_000 }, { productId: 'B', amount: 3_000 }],
+  );
+});
+
+test('keeps the calculated targeted percentage when it is below the cap', () => {
+  const cappedProductOffer = rule({
+    qualifier: {
+      scope: { include: [{ facet: 'PRODUCT', values: ['A'] }], exclude: [], group_operator: 'OR' },
+      metric: 'ELIGIBLE_QUANTITY', aggregation: 'ACROSS_ELIGIBLE_PRODUCTS', minimum_quantity: 1,
+    },
+    benefit: { type: 'PERCENT_OFF', value: 10, target: 'ALL_QUALIFYING_UNITS' },
+    limits: { maximum_discount_amount: 5_000 },
+  });
+
+  const quote = evaluatePromotionQuote(
+    [line('A', 1, 20_000), line('B', 1, 20_000)],
+    [campaign(1, cappedProductOffer)],
+    [],
+  );
+
+  assert.equal(quote.discount_total, 2_000);
+  assert.deepEqual(quote.adjustments.map((item) => item.product_id), ['A']);
+});
+
+test('caps a subcategory percentage and leaves unrelated lines unchanged', () => {
+  const cappedSubcategoryOffer = rule({
+    qualifier: {
+      scope: { include: [{ facet: 'SUBCATEGORY', values: ['sticks'] }], exclude: [], group_operator: 'OR' },
+      metric: 'ELIGIBLE_QUANTITY', aggregation: 'ACROSS_ELIGIBLE_PRODUCTS', minimum_quantity: 1,
+    },
+    benefit: { type: 'PERCENT_OFF', value: 25, target: 'ALL_QUALIFYING_UNITS' },
+    limits: { maximum_discount_amount: 1_500 },
+  });
+  const eligible = {
+    ...line('A', 2, 5_000),
+    facets: { CATEGORY: ['incense'], SUBCATEGORY: ['sticks'] },
+  };
+  const unrelated = {
+    ...line('B', 1, 10_000),
+    facets: { CATEGORY: ['incense'], SUBCATEGORY: ['cones'] },
+  };
+
+  const quote = evaluatePromotionQuote(
+    [eligible, unrelated],
+    [campaign(1, cappedSubcategoryOffer)],
+    [],
+  );
+
+  assert.equal(quote.discount_total, 1_500);
+  assert.deepEqual([...new Set(quote.adjustments.map((item) => item.product_id))], ['A']);
+  assert.equal(
+    quote.adjustments.reduce((sum, item) => sum + item.amount, 0),
+    1_500,
+  );
 });
 
 test('rejects a promotion when the current order exceeds its remaining budget', () => {

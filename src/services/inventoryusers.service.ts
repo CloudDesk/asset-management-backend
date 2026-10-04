@@ -44,7 +44,24 @@ export class InventoryUsersService {
     });
 
     const userName = user.firstname || user.useremail.split('@')[0] || 'User';
-    await this.emailService.sendPasswordResetEmail(user.useremail, token, userName);
+    try {
+      await this.emailService.sendPasswordResetEmail(user.useremail, token, userName);
+    } catch (error) {
+      // Do not leave a usable reset token behind when delivery fails.
+      try {
+        await dynamicUpdate('inventoryusers', { id: user.id }, {
+          resettoken: null,
+          resettokenexpires: null,
+          modifieddate: BigInt(Date.now())
+        });
+      } catch (cleanupError) {
+        logger.error(
+          { error: cleanupError, userId: user.id },
+          'Failed to clear password reset token after email delivery failure'
+        );
+      }
+      throw error;
+    }
 
     logger.info({
       userId: user.id,
@@ -171,19 +188,19 @@ export class InventoryUsersService {
 
   async findByEmail(email: string) {
     try {
-      logger.debug({ email }, 'Finding inventory user by email');
+      const normalizedEmail = email.trim().toLowerCase();
+      logger.debug({ email: normalizedEmail }, 'Finding inventory user by email');
 
-      const users = await dynamicFindManyWithFilters('inventoryusers', { useremail: email }, {
-        skip: 0,
-        take: 1,
-        useAllColumns: true
+      const user = await (prisma as any).inventoryusers.findFirst({
+        where: {
+          useremail: {
+            equals: normalizedEmail,
+            mode: 'insensitive'
+          }
+        }
       });
 
-      if (!users.data || users.data.length === 0) {
-        return null;
-      }
-
-      return users.data[0];
+      return user || null;
     } catch (error) {
       logger.error({ error, email }, 'Error finding inventory user by email');
       throw error;
@@ -527,23 +544,24 @@ export class InventoryUsersService {
   /**
    * Initiate password reset process
    */
-  async initiatePasswordReset(email: string): Promise<void> {
+  async initiatePasswordReset(email: string): Promise<'sent' | 'user_not_found'> {
     try {
-      logger.debug({ email }, 'Initiating password reset');
+      const normalizedEmail = email.trim().toLowerCase();
+      logger.debug({ email: normalizedEmail }, 'Initiating password reset');
 
-      const user = await this.findByEmail(email);
+      const user = await this.findByEmail(normalizedEmail);
       if (!user) {
-        // Don't reveal if email exists or not for security
-        logger.warn({ email }, 'Password reset requested for non-existent email');
-        return;
+        logger.warn({ email: normalizedEmail }, 'Password reset requested for non-existent email');
+        return 'user_not_found';
       }
 
       await this.sendPasswordSetLink(user);
 
       logger.info({
         userId: user.id,
-        email
+        email: normalizedEmail
       }, 'Password reset email sent successfully');
+      return 'sent';
     } catch (error) {
       logger.error({ error, email }, 'Error initiating password reset');
       throw error;

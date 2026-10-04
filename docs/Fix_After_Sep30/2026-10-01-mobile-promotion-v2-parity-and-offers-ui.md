@@ -108,6 +108,48 @@ Both Ecom Web and Mobile follow the same UI rules:
 
 No additional promotion configuration is required for the current campaign. The existing **Combine with other promotions** toggle is the `stackable` configuration and remains the single admin control.
 
+### Guest cart promotion presentation
+
+The Ecom guest cart may show only the automatic result returned by `POST /v2/promotions/calculate`. A manual promotion is not presented as an applied guest saving because it has not yet been selected and the signed-in customer may qualify for a different, higher-value combination.
+
+| Guest cart value | Display rule |
+| :--- | :--- |
+| Eligible automatic merchandise saving | Show `Automatic promotion` with the calculated amount and an estimate marker, for example `-₹100*`. |
+| Eligible automatic free shipping | Show the existing shipping amount struck through and `Free*`. |
+| Manual/click-to-apply or code promotion | Do not subtract or advertise its amount before sign-in. It becomes selectable only after the customer signs in and the eligible offer catalogue is loaded. |
+| Estimated total | Show the automatic preview total with `*`; the V2 result after sign-in remains authoritative. |
+
+The existing Order Summary container and **Login to Checkout** button remain unchanged. The guest guidance is shown after the estimated total and before the button:
+
+> **Get your best available offer**
+>
+> Sign in to view personalised offers and apply the one that saves you the most.
+
+The supporting note is:
+
+> \* Estimated savings based on your cart. Final offers depend on eligibility and availability after sign-in.
+
+This wording intentionally does not promise a particular manual promotion. For example, if a `₹149` manual offer exists alongside a better eligible automatic offer, the guest is encouraged to sign in without being misled that `₹149` will necessarily be the final selection.
+
+### Ecom evaluation identity and safe manual removal
+
+A promotion evaluation is a short-lived server snapshot. Every cached Ecom V2 calculation is therefore identified by:
+
+1. user ID;
+2. cart signature; and
+3. the normalized selected manual-promotion IDs, or `automatic` when none are selected.
+
+Automatic-only and manually selected calculations must never share the same cache entry. Before Apply or Remove, Ecom cancels in-flight calculations for that cart so a late automatic response cannot replace the selected result. When a newer calculation contains every selected promotion, its current `evaluation_id` and `expires_at` replace the saved client values.
+
+If Remove encounters an expired, inactive, or missing evaluation, Ecom performs one safe recovery attempt:
+
+1. recalculate the same cart with the same selected promotion IDs;
+2. use the newly issued evaluation ID;
+3. retry the requested removal once; and
+4. treat the operation as successful if the refreshed result already excludes that promotion.
+
+Other errors are not retried or hidden. This recovery changes neither the promotion-selection policy nor the Backend contract; it only prevents a stale client evaluation ID from causing an intermittent first-click Remove failure.
+
 ---
 
 ## Objective
@@ -251,6 +293,8 @@ The change is limited to Mobile promotion evaluation and presentation.
 - Coupon-code entry, wallet behaviour, and payment-method logic remain separate and unchanged.
 - The V1 offers route remains available for the manual offer catalogue.
 - Ecom Web continues to use the same canonical V2 calculation route.
+- Guest-cart copy and estimate markers do not change eligibility, stacking, calculation, or checkout behaviour.
+- Ecom stale-evaluation recovery does not change API payloads, database records, or Backend promotion logic.
 
 The legacy automatic evaluator must not be reintroduced as the source of truth for Mobile totals.
 
@@ -314,6 +358,14 @@ The Admin **Promotions** and **Redemption History** tabs apply search and filter
 
 The Mobile payment offer carousel and **Offers for your cart** modal no longer disable every remaining manual offer after the first manual selection. This enables multiple manual stackable promotions while preserving V2 conflict handling for non-stackable offers.
 
+### Ecom Web
+
+- `src/lib/cartPromotions.ts`
+- `src/pages/Cart.tsx`
+- `src/pages/Checkout.tsx`
+
+Ecom separates automatic and manual-selection calculation caches, refreshes stale evaluation identity, retries one recoverable manual-removal failure, and presents guest savings as an automatic estimate with neutral sign-in guidance.
+
 ### Backend
 
 - `src/services/promotions-v2.service.ts`
@@ -331,6 +383,8 @@ The backend V2 calculation bridges explicitly selected legacy promotions as well
 - Backend TypeScript validation: `npx tsc --noEmit --pretty false` — passed
 - Mobile TypeScript validation: `npx tsc --noEmit --pretty false` — passed
 - Mobile Jest: `npm test -- --runInBand --passWithNoTests` — 1/1 passed
+- Ecom production build: `npm run build` — passed
+- Ecom ESLint for the changed promotion files — no errors; only the pre-existing Cart hook warnings remain
 - Patch whitespace validation: `git diff --check` — passed
 
 ## Regression Checklist
@@ -350,6 +404,10 @@ The backend V2 calculation bridges explicitly selected legacy promotions as well
 - [ ] Checkout sends only the current V2 evaluation ID.
 - [ ] The backend accepts the evaluation and confirms the calculated payable total.
 - [ ] A manual legacy cart/free-shipping promotion selected by ID is evaluated through V2 on both Web and Mobile.
+- [ ] Guest Ecom shows only automatic promotion savings as estimates and does not subtract an unselected manual offer.
+- [ ] Guest guidance appears between the estimated total and the unchanged **Login to Checkout** button.
+- [ ] Automatic-only and manual-selected Ecom calculations use separate cache identities.
+- [ ] Removing a manual promotion from an expired/stale evaluation refreshes once and completes without requiring a second customer click.
 
 ## Related Reference
 

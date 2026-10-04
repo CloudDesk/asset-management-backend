@@ -11,6 +11,16 @@ const config = {
   GMAIL_AUTH_PASSWORD: process.env.GMAIL_AUTH_PASSWORD?.trim() || '',
 };
 
+export class PasswordResetEmailError extends Error {
+  public readonly statusCode = 503;
+  public readonly code = 'PASSWORD_RESET_EMAIL_FAILED';
+
+  constructor() {
+    super('Unable to send the password reset email. Please contact the administrator.');
+    this.name = 'PasswordResetEmailError';
+  }
+}
+
 export class EmailService {
   private readonly transporter: nodemailer.Transporter;
 
@@ -99,6 +109,16 @@ export class EmailService {
       };
 
       const result = await this.transporter.sendMail(mailOptions);
+
+      const acceptedRecipients = (result.accepted || []).map(String);
+      const rejectedRecipients = (result.rejected || []).map(String);
+      if (acceptedRecipients.length === 0 || rejectedRecipients.includes(email)) {
+        logger.error(
+          { email, accepted: acceptedRecipients, rejected: rejectedRecipients },
+          'Password reset email was not accepted by the mail server'
+        );
+        throw new PasswordResetEmailError();
+      }
       
       logger.info(
         { 
@@ -111,7 +131,10 @@ export class EmailService {
       );
     } catch (error) {
       logger.error({ error, email }, 'Failed to send password reset email');
-      throw new Error('Failed to send password reset email. Please try again later.');
+      if (error instanceof PasswordResetEmailError) {
+        throw error;
+      }
+      throw new PasswordResetEmailError();
     }
   }
 

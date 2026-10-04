@@ -27,6 +27,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 | **FEATURE-2026-10-01-17** | 2026-10-01 | **Ecom Product Discovery** | Added compact price-range and sort controls that combine with existing category, subcategory, collection, offer, and search selections while preserving the existing cards and navigation design. | ✅ Verified | [2026-10-01 Ecom Filters](2026-10-01-ecommerce-product-price-and-sort-filters.md) |
 | **FIX-2026-10-01-18** | 2026-10-01 | **Promotion Pricing / Mobile Checkout / Order Details** | Established V2 calculation as the promotion single source of truth, replaced ambiguous storefront route names with clear business-action names, bridged automatic and selected manual legacy offers into V2, corrected category/shipping savings, enabled multiple manual stackable offers, and mapped Admin order-line promotion labels from exact saved product adjustments with a legacy fallback. | ✅ Verified | [2026-10-01 Mobile Promotion V2 Parity](2026-10-01-mobile-promotion-v2-parity-and-offers-ui.md) |
 | **FIX-2026-10-04-19** | 2026-10-04 | **Inventory Product Search / UX** | Made Admin product search reactive with a 350 ms debounce, removed the Search button, retained combined Category/Status filters and pagination, presented the three-character rule as neutral guidance, and added backend partial matching so queries such as `auo` find `AUORA`. | ✅ Verified | [2026-10-04 Inventory Product Search](2026-10-04-inventory-product-reactive-search.md) |
+| **FIX-2026-10-04-20** | 2026-10-04 | **Ecom Promotion Evaluation / Guest UX** | Isolated V2 quote caches by selected manual promotions, added one-time stale-evaluation recovery for Apply/Remove safety, and clarified guest automatic savings without promising unselected manual offers. | ✅ Verified | [Promotion V2 reference](2026-10-01-mobile-promotion-v2-parity-and-offers-ui.md#guest-cart-promotion-presentation) |
 
 ---
 
@@ -95,3 +96,10 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Repositories Impacted:**
   - `asset_management_frontend_aromazen`
   - `asset-management-backend`
+
+### [2026-10-04: Ecom Promotion Evaluation Safety and Guest Offer Guidance](2026-10-01-mobile-promotion-v2-parity-and-offers-ui.md#guest-cart-promotion-presentation)
+* **Summary:** Guest Order Summary keeps automatic V2 savings as clearly marked estimates, does not subtract unselected manual promotions, and invites the customer to sign in to view the best eligible offer. Ecom calculation caches now include the normalized selected-promotion set, and an expired/inactive/missing evaluation is recalculated and retried once when removing a manual promotion.
+* **Compatibility:** No Backend route, request payload, database schema, promotion-selection rule, or checkout behaviour changed. The Order Summary container and **Login to Checkout** button are unchanged.
+* **Verification:** Ecom production build passed. Changed promotion files have no ESLint errors; only the existing Cart hook warnings remain.
+* **Repository Impacted:**
+  - `Nivaana-Ecom-Web`

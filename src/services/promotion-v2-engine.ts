@@ -529,6 +529,16 @@ export function evaluatePromotionQuote(
     const current = appliedByPromotion.get(candidate.campaign.promotionId);
     appliedByPromotion.set(candidate.campaign.promotionId, { promotion_id: candidate.campaign.promotionId, name: candidate.campaign.name, saving: (current?.saving ?? 0) + candidate.saving });
   }
+  const alternativesByPromotion = new Map<number, { promotion_id: number; name: string; saving: number }>();
+  for (const candidate of candidates) {
+    if (selectedIds.has(candidate.campaign.promotionId)) continue;
+    const current = alternativesByPromotion.get(candidate.campaign.promotionId);
+    alternativesByPromotion.set(candidate.campaign.promotionId, {
+      promotion_id: candidate.campaign.promotionId,
+      name: candidate.campaign.name,
+      saving: (current?.saving ?? 0) + candidate.saving,
+    });
+  }
   return {
     schema_version: 2, evaluation_id: randomUUID(), currency: 'INR', original_total: originalTotal,
     merchandise_subtotal: merchandise,
@@ -542,7 +552,7 @@ export function evaluatePromotionQuote(
     payable_total: payableTotal,
     adjustments,
     applied_promotions: [...appliedByPromotion.values()],
-    eligible_alternatives: [...new Map(candidates.filter((candidate) => !selectedIds.has(candidate.campaign.promotionId)).map((candidate) => [candidate.campaign.promotionId, { promotion_id: candidate.campaign.promotionId, name: candidate.campaign.name, saving: candidate.saving }])).values()],
+    eligible_alternatives: [...alternativesByPromotion.values()],
     rejected_candidates: rejected, next_tier_progress: progress, gift_choices: giftChoices,
     expires_at: new Date(now.getTime() + (options.ttlSeconds ?? 900) * 1000).toISOString(),
   };
