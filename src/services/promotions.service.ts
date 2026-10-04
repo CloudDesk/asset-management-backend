@@ -192,7 +192,7 @@ export class PromotionsService {
     status?: string | null;
     start_date?: number | string | bigint | null;
     end_date?: number | string | bigint | null;
-  }): 'active' | 'inactive' | 'expired' {
+  }): 'active' | 'scheduled' | 'expired' | 'disabled' {
     const now = new Date();
     const startDate = this.convertUnixTimestampToDate(
       promotion.start_date === null || promotion.start_date === undefined
@@ -205,9 +205,9 @@ export class PromotionsService {
         : promotion.end_date.toString()
     );
 
+    if ((promotion.status || '').toLowerCase() !== 'active') return 'disabled';
     if (endDate && endDate <= now) return 'expired';
-    if ((promotion.status || '').toLowerCase() !== 'active') return 'inactive';
-    if (startDate && startDate > now) return 'inactive';
+    if (startDate && startDate > now) return 'scheduled';
     return 'active';
   }
 
@@ -848,8 +848,9 @@ export class PromotionsService {
             if (a.status !== b.status) {
               const statusOrder: Record<string, number> = {
                 active: 0,
-                inactive: 1,
-                expired: 2
+                scheduled: 1,
+                expired: 2,
+                disabled: 3
               };
               return (statusOrder[a.status] ?? 999) - (statusOrder[b.status] ?? 999);
             }
@@ -906,8 +907,13 @@ export class PromotionsService {
           .sort((a: any, b: any) => {
             // Active promotions first
             if (a.status !== b.status) {
-              const statusOrder: Record<string, number> = { 'active': 0, 'draft': 1, 'expired': 2, 'inactive': 3 };
-              return (statusOrder[a.status] || 999) - (statusOrder[b.status] || 999);
+              const statusOrder: Record<string, number> = {
+                active: 0,
+                scheduled: 1,
+                expired: 2,
+                disabled: 3
+              };
+              return (statusOrder[a.status] ?? 999) - (statusOrder[b.status] ?? 999);
             }
             // Then by priority
             return (a.priority || 999) - (b.priority || 999);

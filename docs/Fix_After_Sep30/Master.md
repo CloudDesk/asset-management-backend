@@ -26,6 +26,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 | **FEATURE-2026-10-01-16** | 2026-10-01 | **Category Images / Storefront** | Added centrally managed category/subcategory images, Inventory Admin preview and upload-review UX, explicit storefront visibility, Ecom consumption of active managed images, and a shared fallback. | ✅ Verified | [2026-10-01 Category Images](2026-10-01-category-images-inventory-and-ecommerce-integration.md) |
 | **FEATURE-2026-10-01-17** | 2026-10-01 | **Ecom Product Discovery** | Added compact price-range and sort controls that combine with existing category, subcategory, collection, offer, and search selections while preserving the existing cards and navigation design. | ✅ Verified | [2026-10-01 Ecom Filters](2026-10-01-ecommerce-product-price-and-sort-filters.md) |
 | **FIX-2026-10-01-18** | 2026-10-01 | **Promotion Pricing / Mobile Checkout / Order Details** | Established V2 calculation as the promotion single source of truth, replaced ambiguous storefront route names with clear business-action names, bridged automatic and selected manual legacy offers into V2, corrected category/shipping savings, enabled multiple manual stackable offers, and mapped Admin order-line promotion labels from exact saved product adjustments with a legacy fallback. | ✅ Verified | [2026-10-01 Mobile Promotion V2 Parity](2026-10-01-mobile-promotion-v2-parity-and-offers-ui.md) |
+| **FIX-2026-10-04-19** | 2026-10-04 | **Inventory Product Search / UX** | Made Admin product search reactive with a 350 ms debounce, removed the Search button, retained combined Category/Status filters and pagination, presented the three-character rule as neutral guidance, and added backend partial matching so queries such as `auo` find `AUORA`. | ✅ Verified | [2026-10-04 Inventory Product Search](2026-10-04-inventory-product-reactive-search.md) |
 
 ---
 
@@ -83,6 +84,14 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Compatibility:** No backend schema, promotion storage format, payment payload field, or order payload data type was changed.
 * **Storage ownership:** `orderline` is the immutable source for combined promotion total, payable amount, HSN, and GST values. `promotion_evaluation_adjustments` stores the exact promotion-wise product allocation used by Admin breakdowns. Completed-order evaluations and adjustments must be retained; promotions should be deactivated or archived instead of hard-deleted.
 * **Redemption timestamps:** New V2 redemption-history rows use epoch milliseconds. Redemption History normalizes legacy seconds and current milliseconds for sorting, pagination, display, and date filtering without rewriting historical rows. Its type filter matches the seven visible Promotion create types.
+* **Admin promotion filters:** Promotions and Redemption History search/filter controls are reactive with a 350 ms debounce and a single Clear action per tab; API and promotion logic remain unchanged.
 * **Repositories Impacted:**
   - `Vibrant-Life-mobile-app`
   - `asset-management-backend` (documentation and existing V2 API contract)
+
+### [2026-10-04: Inventory Product Reactive Search](2026-10-04-inventory-product-reactive-search.md)
+* **Summary:** Removed the Products page Search button and aligned text search with the existing immediate Category and Status filters. Valid searches apply after a 350 ms debounce, short input shows neutral guidance without calling the API, and the last valid filters remain stable for pagination. Backend product search now combines PostgreSQL full-text search with case-insensitive partial matching so product fragments such as `auo` match `AUORA`.
+* **Compatibility:** Reuses `GET /v1/products` and its existing `searchtext`, `category`, `productstatus`, page, and limit parameters. No schema, response shape, or product persistence logic changed.
+* **Repositories Impacted:**
+  - `asset_management_frontend_aromazen`
+  - `asset-management-backend`

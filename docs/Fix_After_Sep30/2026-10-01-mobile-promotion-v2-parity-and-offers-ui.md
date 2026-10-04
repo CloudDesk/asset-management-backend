@@ -297,6 +297,10 @@ All newly created V2 `promotion_redemptions` rows store `redeemed_at`, `createdd
 
 This is a backward-compatible read correction and a forward-only write correction. Existing redemption rows are not rewritten or migrated. The Redemption History promotion-type filter uses the same seven visible types as the Promotion create module.
 
+### Admin promotion-filter UX
+
+The Admin **Promotions** and **Redemption History** tabs apply search and filter changes reactively after a 350 ms debounce. Manual Search buttons are intentionally removed. Each search input has a quick text-clear action, and each tab has one Clear action that resets all filters. The existing API parameters, pagination, promotion rules, and redemption calculations are unchanged.
+
 ## Files Updated
 
 ### Mobile App

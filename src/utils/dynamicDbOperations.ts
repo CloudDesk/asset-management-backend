@@ -43,6 +43,30 @@ const JSONB_FIELDS = new Set([
 ]);
 const isJsonbField = (field: string | undefined): boolean => Boolean(field && JSONB_FIELDS.has(field));
 
+export function buildProductSearchCondition(searchQuery: string, paramIndex: number): {
+  condition: string;
+  values: string[];
+  nextParamIndex: number;
+} {
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const partialMatchParamIndex = paramIndex + 1;
+
+  return {
+    condition: `(
+      searchtext @@ plainto_tsquery('english', $${paramIndex}) OR
+      LOWER(COALESCE(name, '')) LIKE $${partialMatchParamIndex} OR
+      LOWER(COALESCE(shortname, '')) LIKE $${partialMatchParamIndex} OR
+      LOWER(COALESCE(puc, '')) LIKE $${partialMatchParamIndex} OR
+      LOWER(COALESCE(brand, '')) LIKE $${partialMatchParamIndex} OR
+      LOWER(COALESCE(category, '')) LIKE $${partialMatchParamIndex} OR
+      LOWER(COALESCE(subcategory, '')) LIKE $${partialMatchParamIndex} OR
+      LOWER(COALESCE(fragnancetype, '')) LIKE $${partialMatchParamIndex}
+    )`,
+    values: [normalizedQuery, `%${normalizedQuery}%`],
+    nextParamIndex: paramIndex + 2,
+  };
+}
+
 // Predefined safe columns for common tables (to avoid schema queries)
 const PREDEFINED_SAFE_COLUMNS: Record<string, string[]> = {
   stock: ['id', 'puc', 'category', 'subcategory', 'brand', 'model', 'stockstatus', 'createddate', 'modifieddate', 'productname', 'serialnumber', 'location'],
@@ -634,28 +658,12 @@ async function buildDynamicWhereClause(
         const trimmedQuery = searchQuery.trim().toLowerCase();
 
         if (tableName === 'product') {
-          // HYBRID SEARCH STRATEGY:
-          // - Short queries (< 3 chars): Use ILIKE pattern matching to avoid stop words
-          // - Long queries (>= 3 chars): Use full-text search for better performance
-
-          if (trimmedQuery.length < 3) {
-            // Short query: Use ILIKE on key product fields
-            // This prevents PostgreSQL from filtering out short words as stop words
-            conditions.push(`(
-              LOWER(name) LIKE $${paramIndex} OR
-              LOWER(COALESCE(brand, '')) LIKE $${paramIndex} OR
-              LOWER(COALESCE(category, '')) LIKE $${paramIndex} OR
-              LOWER(COALESCE(subcategory, '')) LIKE $${paramIndex} OR
-              LOWER(COALESCE(fragnancetype, '')) LIKE $${paramIndex}
-            )`);
-            values.push(`%${trimmedQuery}%`);
-            paramIndex++;
-          } else {
-            // Long query: Use PostgreSQL full-text search with plainto_tsquery
-            conditions.push(`searchtext @@ plainto_tsquery('english', $${paramIndex})`);
-            values.push(trimmedQuery);
-            paramIndex++;
-          }
+          // Keep full-word ranking support while also matching partial names,
+          // codes and taxonomy values such as "auo" within "AUORA".
+          const productSearch = buildProductSearchCondition(trimmedQuery, paramIndex);
+          conditions.push(productSearch.condition);
+          values.push(...productSearch.values);
+          paramIndex = productSearch.nextParamIndex;
         } else if (tableName === 'picklist') {
           // For picklist, search across multiple fields with case-insensitive matching
           // Search in: object, fieldname, label, value, parent
