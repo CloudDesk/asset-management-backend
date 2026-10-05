@@ -1,5 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { TransactionService } from '../services/transaction.service.js';
+import { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import { 
   createTransactionSchema, 
   updateTransactionSchema, 
@@ -90,6 +91,15 @@ export class TransactionController {
         details: 'User ID must be a valid number',
         statusCode: 400,
       });
+    }
+
+    // A customer may only read their own transactions; inventory users may read any.
+    const authUser = (request as AuthenticatedRequest).user;
+    if (!authUser) {
+      return reply.code(401).send({ success: false, message: 'Authentication required', statusCode: 401 });
+    }
+    if (authUser.userType !== 'inventory' && Number(authUser.id) !== userId) {
+      return reply.code(403).send({ success: false, message: 'You can only view your own transactions', statusCode: 403 });
     }
 
     const allFilters: Record<string, any> = request.query || {};

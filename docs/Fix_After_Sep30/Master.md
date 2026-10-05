@@ -45,6 +45,8 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 | **FIX-2026-10-05-35** | 2026-10-05 | **Ecom Wishlist Description** | The wishlist card printed `shortdescription` as plain text, so its HTML tags showed ("<p>• Premium…</p>"). It now renders through the same sanitised `RichTextContent` as Product Details, compact, clamped to two lines with a fixed max height so the card never grows. Card actions restyled: price (with struck-through MRP and saving) and actions share one bottom row; Add to Cart uses the theme primary, Remove is a neutral icon button that turns red on hover. | 🟡 Implemented / Dev Verification Pending | `Nivaana-Ecom-Web/src/pages/Wishlist.tsx` |
 | **FIX-2026-10-06-36** | 2026-10-06 | **Ecom Product Listing Loading State** | Changing category/subcategory showed "Showing 0 products" and a plain spinner. The count is now a shimmer placeholder while loading, the grid shows product-card skeletons (badge, heart, title, rating, price, cart button) with a staggered shimmer, next pages append skeleton cards instead of a spinner, and real cards fade in. Also fixed the shared `Skeleton`, which rendered transparent site-wide. | 🟡 Implemented / Dev Verification Pending | `Nivaana-Ecom-Web/src/components/ProductCardSkeleton.tsx` |
 | **FIX-2026-10-06-37** | 2026-10-06 | **Ecom Order History Paging / Summary** | Web Orders loaded only the first 10 orders (no page/limit sent) and computed its summary cards from them, counting cancelled orders in "Total spent". Orders now load 10 at a time on scroll (with a Load more fallback and skeletons), deep links load pages until the order is found, and the cards use a new `GET /v1/orders/user/:userid/summary` (own orders only for customers): total, active, cancelled, and total spent = paid on non-cancelled orders minus completed return refunds. Mobile already paged correctly. | 🟡 Implemented / Logged-in Dev Verification Pending | `src/services/orders.service.ts` |
+| **FIX-2026-10-06-38** | 2026-10-06 | **Ecom Account Pages Layout Consistency** | The 9 account pages (My Account, Cart, Wishlist, Orders, Payments, Promotions, Wallet, Saved Addresses, Delete My Account) used different widths, paddings, title styles and spacing; Cart had no breadcrumb, Promotions used its own background and width, Wallet an icon title, Delete a centred card title. All now share `AccountPageHeader` (breadcrumb, title, subtitle, optional action) and one layout (`max-w-6xl`, `px-4 py-8 sm:px-6`, 32px below the header). No logic change. | 🟡 Implemented / Logged-in Dev Verification Pending | `Nivaana-Ecom-Web/src/components/AccountPageHeader.tsx` |
+| **FIX-2026-10-06-39** | 2026-10-06 | **Ecom Payments Page / Payment Data Access** | Payments showed "Not available from order API" for every transaction ID (the details API response schema dropped `transactionid`/`merchanttransactionid`), loaded only the first 10 orders, listed non-payment orders, and sat in a narrow box-in-a-box layout. The details API now returns both IDs; customers can read only their own order details and transactions (403 otherwise). Payments shows one full-width card per payment (Transaction ID, Paid on, Payment method, Paid/Refunded badges) with infinite scroll and a "Load more payments" fallback. | 🟡 Implemented / Logged-in Dev Verification Pending | `Nivaana-Ecom-Web/src/pages/Payments.tsx` |
 
 ---
 
@@ -287,6 +289,42 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Ecom:** `useInfiniteQuery` (10 per page, newest first) under the existing `["orders", userId]` key prefix so post-cancel/payment invalidations still refresh it; duplicates from shifted page boundaries are dropped; IntersectionObserver loads the next page with order skeletons and a "Load more orders" fallback; a deep-linked order keeps loading pages until found; summary cards read the new endpoint.
 * **Security note:** the existing `/orders/user/:userid/details` does not check that a customer requests their own user ID; raised as a separate task.
 * **Verification:** Summary matched an independent per-order calculation for the 6 users with the most orders (e.g. user 41: Rs. 12,497.40 → Rs. 12,089.40 after removing Rs. 400 cancelled and Rs. 8 return refund). Access rules: own 200, other customer 403, inventory 200, no session 401, invalid id 400. Paging for user 41: 30 orders over 3 pages, all unique. Backend suite 333/333 and TypeScript; Ecom TypeScript, ESLint (no new issues) and build passed. Pending: logged-in check on Web Orders.
+* **Repositories Impacted:**
+  - `asset-management-backend`
+  - `Nivaana-Ecom-Web`
+
+### 2026-10-06: Ecom Account Pages Layout Consistency
+* **Issue:** Pages reached from the account menu looked uneven: widths ranged from `max-w-4xl` to `max-w-7xl`, top padding from `py-8` to `py-12`, Cart had no breadcrumb, Wishlist's breadcrumb differed, Promotions used its own `#f6f7fb` background with the banner as the page title, Wallet had an icon title, Delete My Account showed a centred title inside its card, and the gap between title and content varied (16–32px). Signed-out screens used different padding again.
+* **Fix (layout only, no logic change):**
+  - New `components/AccountPageHeader.tsx`: breadcrumb (omitted on My Account), `text-3xl` title, muted subtitle and an optional right-side action (Cart "Go to Wishlist" on phones, Saved Addresses "Add Address").
+  - New `lib/accountLayout.ts`: `ACCOUNT_PAGE_MAIN` (`min-h-screen bg-[var(--color-surface)] px-4 py-8 sm:px-6`) and `ACCOUNT_PAGE_CONTAINER` (`mx-auto max-w-6xl`), used by all 9 pages including their signed-out states.
+  - First content block below the header uses `mt-8` everywhere.
+  - Cart / Wishlist subtitles pluralise counts ("1 item", "3 saved items").
+  - Promotions: standard header; the offers banner sits below it with an `h2`.
+  - Payments content kept at `max-w-4xl` inside the shared container; Delete My Account form is a centred `max-w-2xl` card (success screen unchanged).
+  - The title/breadcrumb is not made sticky: the site navbar is already fixed (~110px), and a second sticky bar would take too much height on phones.
+* **Verification:** Signed out in the browser, Cart, Wishlist and Delete My Account titles align at the same position with breadcrumbs. Ecom TypeScript, ESLint (no new issues) and build passed. Pending: logged-in check of Orders, Payments, Account, Promotions, Wallet and Saved Addresses.
+* **Repository Impacted:**
+  - `Nivaana-Ecom-Web`
+
+### 2026-10-06: Ecom Payments Page and Payment Data Access
+* **Issue:**
+  - Every row showed "Transaction: Not available from order API". The orders table has `transactionid` (e.g. `NIVAANA-TRAN-00815`) and `merchanttransactionid` (e.g. `TXN_1790877836877_4VT8Q2`) for all paid orders, and the service returns them, but the `GET /v1/orders/user/:userid/details` response schema did not list them, so Fastify removed them. The page's fallback (matching `/transactions/user/:id` by amount within 1 hour) also failed: transaction `createddate` is about 5.5 hours after the order's, and that list is sorted oldest first (first 50 only).
+  - Only the first 10 orders were requested (no `page`/`limit`).
+  - All orders were listed as payments (replacement orders and uncollected COD included).
+  - Layout: a narrow `max-w-4xl` card holding a second bordered list, a repeated "Payment History" heading, a spinner, a separate status line, and two large yellow buttons per row.
+  - `GET /v1/orders/user/:userid/details` and `GET /v1/transactions/user/:userId` did not check that a customer requested their own user ID.
+* **Backend:**
+  - Details response schema adds `transactionid` and `merchanttransactionid` (additive).
+  - Both endpoints: customers may read only their own data (403), inventory users any (200), no session 401 — same rule as the order summary endpoint.
+* **Ecom:**
+  - Payments loads orders 10 per page with `useInfiniteQuery` (key `["payments", userId, "history"]`: a new key so a cached plain-query result cannot reach the infinite query, still under the `["payments", userId]` prefix that existing invalidations use), an IntersectionObserver, card skeletons, and a "Load more payments" fallback; duplicates across page boundaries are dropped.
+  - Shows only payment records: excludes replacement orders, shows COD only once cash is collected, and otherwise requires `ispaymentsucceed`.
+  - One full-width card per payment, styled like Orders: order number (links to the order), Paid badge, Refunded or Order cancelled badge, amount; Transaction ID (`merchanttransactionid`), Paid on, Payment method; a "View order" button (and the order number) opens Orders with that order expanded, loading older pages until it is found; "Details" opens the reference, order status, item total, discount, shipping, GST, wallet/online split, refund and items.
+  - Removed: the transactions list request and amount/time matching, the per-row Refresh status button, and the repeated heading, spinner and nested box. The return-from-gateway status check is unchanged.
+  - `PaymentsSkeleton` updated to the card layout.
+* **Delete My Account:** the form card is centred (`mx-auto`).
+* **Verification:** In-process API check for user 41: details return both IDs on all 10 orders of page 1; 30 orders over 3 pages, all unique. Details: other customer 403, inventory 200, no session 401; transactions: own 200, other customer 403, inventory 200, no session 401. Backend 333/333 tests and TypeScript; Ecom TypeScript, ESLint and build passed. Pending: logged-in check on Web Payments after restarting the backend. Mobile only calls the details endpoint with the signed-in user's own ID.
 * **Repositories Impacted:**
   - `asset-management-backend`
   - `Nivaana-Ecom-Web`

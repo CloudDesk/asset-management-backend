@@ -785,6 +785,15 @@ export class OrdersController {
       });
     }
 
+    // A customer may only read their own orders; inventory users may read any.
+    const authUser = (request as AuthenticatedRequest).user;
+    if (!authUser) {
+      return reply.code(401).send({ success: false, message: 'Authentication required', statusCode: 401 });
+    }
+    if (authUser.userType !== 'inventory' && Number(authUser.id) !== Number(userid)) {
+      return reply.code(403).send({ success: false, message: 'You can only view your own orders', statusCode: 403 });
+    }
+
     const userId = parseInt(userid, 10);
 
     // Build filters object (only include defined values to satisfy TypeScript strict mode)

@@ -924,6 +924,8 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                   orderamount: { type: 'number', nullable: true },
                   orderid: { type: 'string', nullable: true },
                   orderstatus: { type: 'string', nullable: true },
+                  transactionid: { type: 'string', nullable: true, description: 'Internal transaction reference (transaction.transactionid)' },
+                  merchanttransactionid: { type: 'string', nullable: true, description: 'Payment gateway merchant transaction ID' },
                   fulfillment_status: { type: 'string', nullable: true },
                   effective_status: { type: 'string', nullable: true },
                   workflow_type: { type: 'string', nullable: true },
