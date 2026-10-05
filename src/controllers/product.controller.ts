@@ -16,6 +16,25 @@ import {
 import { logger } from "../config/logger.js";
 import { prisma } from "../models/prisma.js";
 
+/**
+ * Storefront product shape shared by the platform listing and the Home catalog:
+ * API formatting, then the platformStocks array is replaced by
+ * availablequantity from the platform stock record.
+ */
+const toPlatformProductResponse = (products: any[]): any[] =>
+  formatEntitiesForAPI(products, "product").map((product: any) => {
+    const { platformStocks, ...productWithoutPlatformStocks } = product;
+
+    // Extract availablequantity from the platform stock (first item since we only fetch one)
+    const platformStock = platformStocks && platformStocks[0];
+    const availablequantity = platformStock?.availableqty ?? null;
+
+    return {
+      ...productWithoutPlatformStocks,
+      availablequantity, // Add availablequantity from platform stock
+    };
+  });
+
 export class ProductController {
   public productService = new ProductService();
 
@@ -553,21 +572,7 @@ export class ProductController {
         sortOrder
       );
 
-      const formattedData = formatEntitiesForAPI(result.data, "product");
-
-      // Transform data: remove platformStocks array and add availablequantity from platform stock
-      const transformedData = formattedData.map((product: any) => {
-        const { platformStocks, ...productWithoutPlatformStocks } = product;
-
-        // Extract availablequantity from the platform stock (first item since we only fetch one)
-        const platformStock = platformStocks && platformStocks[0];
-        const availablequantity = platformStock?.availableqty ?? null;
-
-        return {
-          ...productWithoutPlatformStocks,
-          availablequantity, // Add availablequantity from platform stock
-        };
-      });
+      const transformedData = toPlatformProductResponse(result.data);
 
       const response = createSuccessResponse(
         `Products for ${platform} platform retrieved successfully`,
@@ -586,6 +591,27 @@ export class ProductController {
           sortOrder,
         },
       });
+    }
+  );
+
+  // GET /v1/products/platform/nivapp/home - Storefront Home catalog (read-only)
+  getHomeCatalogForPlatform = asyncHandler(
+    async (_request: FastifyRequest, reply: FastifyReply) => {
+      const platform = 'nivapp';
+      const catalog = await this.productService.getHomeCatalogForPlatform(platform);
+
+      const response = createSuccessResponse(
+        `Home catalog for ${platform} platform retrieved successfully`,
+        {
+          bestSellers: toPlatformProductResponse(catalog.bestSellers),
+          newArrivals: toPlatformProductResponse(catalog.newArrivals),
+          bestOfNivaana: toPlatformProductResponse(catalog.bestOfNivaana),
+          flavours: catalog.flavours,
+          categories: catalog.categories,
+        }
+      );
+
+      return reply.code(200).send(response);
     }
   );
 

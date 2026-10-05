@@ -22,6 +22,7 @@ export const ECOMMERCE_PUBLIC_ROUTES = [
     // 2. Product Browsing APIs (only nivapp platform is public, other platforms like amazon are protected)
     'GET /v1/products/platform/nivapp',
     'GET /v1/products/platform/nivapp/counts',
+    'GET /v1/products/platform/nivapp/home', // Storefront Home catalog (read-only)
     'GET /v1/products/:productId/platform/:platform', // Support any platform for dynamic routing
     'GET /v1/products/tax-presets',
 

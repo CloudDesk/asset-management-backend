@@ -26,10 +26,16 @@ import {
 } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
 import { buildProductTaxonomyWhere } from '../utils/productTaxonomy.js';
+import { buildStorefrontListingConditions, isStorefrontFilterMode } from '../utils/storefrontListingFilters.js';
 import { buildProductNaming } from '../utils/productNaming.js';
 
 const DEFAULT_PLATFORM_STOCK_PLATFORMS = ['amazon', 'flipkart', 'nivapp'] as const;
 const DEFAULT_PLATFORM_STATUS = 'outofstock';
+
+// Storefront Home section sizes (GET /products/platform/:platform/home).
+const HOME_BEST_SELLERS_LIMIT = 10;
+const HOME_NEW_ARRIVALS_LIMIT = 10;
+const HOME_BEST_OF_LIMIT = 8;
 
 type CategoryImageSelection = {
   imageurl: string;
@@ -324,6 +330,185 @@ export class ProductService {
   }
   // Add these methods to ProductService class
 
+  /**
+   * Platform stock include shared by every storefront product read.
+   * Keep listing and Home reads on the same selection so product cards
+   * receive identical stock data.
+   */
+  private buildPlatformProductInclude(platform: string) {
+    return {
+      platformStocks: {
+        where: { platform },
+        select: {
+          id: true,
+          platform: true,
+          availableqty: true,
+          platformstatus: true,
+          soldqty: true,
+          totalqty: true,
+          orderedqty: true,
+          lockqty: true,
+        } as any,
+        take: 1, // Only get one record since it's unique
+      },
+    };
+  }
+
+  /**
+   * Attach combo components and stock summaries exactly as the platform
+   * listing does. Shared by findManyForPlatform and the Home catalog.
+   */
+  private async hydratePlatformProducts(products: any[], platform: string): Promise<void> {
+    // Fetch components for combo products
+    const comboProductIds = products
+      .filter((p: any) => p.iscombo === true)
+      .map((p: any) => BigInt(p.id));
+
+    if (comboProductIds.length > 0) {
+      try {
+        // Batch fetch all components for all combo products with product details
+        const allComponents = await (prisma as any).productBundleMap.findMany({
+          where: {
+            bundleproductid: {
+              in: comboProductIds
+            }
+          },
+          select: {
+            bundleproductid: true,
+            componentproductid: true,
+            requiredqty: true,
+            isactive: true,
+            componentproduct: {
+              select: {
+                name: true,
+                puc: true,
+              }
+            }
+          },
+          orderBy: {
+            id: 'asc',
+          }
+        });
+
+        // Get all unique component product IDs
+        const componentProductIds = [...new Set(allComponents.map((comp: any) => comp.componentproductid))];
+
+        // Batch fetch platform stock for all component products (nivapp platform)
+        const componentPlatformStocks = componentProductIds.length > 0
+          ? await prisma.platformStock.findMany({
+            where: {
+              productid: { in: componentProductIds.map((id: any) => BigInt(id)) },
+              platform: 'nivapp'
+            },
+            select: {
+              productid: true,
+              availableqty: true,
+              lockqty: true,
+              orderedqty: true,
+              soldqty: true,
+              platformstatus: true,
+            }
+          })
+          : [];
+
+        // Create a map of component product ID to platform stock
+        const platformStockMap = new Map();
+        componentPlatformStocks.forEach((ps: any) => {
+          platformStockMap.set(ps.productid.toString(), {
+            availableqty: ps.availableqty,
+            lockqty: ps.lockqty || 0,
+            orderedqty: ps.orderedqty,
+            soldqty: ps.soldqty,
+            platformstatus: ps.platformstatus,
+          });
+        });
+
+        // Group components by bundleproductid
+        const componentsByBundle: Record<string, any[]> = {};
+        allComponents.forEach((comp: any) => {
+          const bundleId = comp.bundleproductid.toString();
+          const componentId = comp.componentproductid.toString();
+          if (!componentsByBundle[bundleId]) {
+            componentsByBundle[bundleId] = [];
+          }
+          componentsByBundle[bundleId].push({
+            componentproductid: Number(comp.componentproductid),
+            requiredqty: comp.requiredqty,
+            isactive: comp.isactive,
+            product: {
+              name: comp.componentproduct?.name || null,
+              puc: comp.componentproduct?.puc || null,
+            },
+            platformStock: platformStockMap.get(componentId) || null,
+          });
+        });
+
+        // Attach components to combo products
+        products.forEach((product: any) => {
+          if (product.iscombo === true) {
+            const productId = product.id.toString();
+            product.components = componentsByBundle[productId] || [];
+          }
+        });
+
+        logger.info({
+          comboProductCount: comboProductIds.length,
+          totalComponents: allComponents.length,
+          platform
+        }, 'Combo product components fetched successfully for platform');
+      } catch (componentError: any) {
+        logger.error(
+          {
+            error: componentError?.message,
+            platform,
+          },
+          'Failed to fetch combo product components in findManyForPlatform'
+        );
+        // Don't fail the request, just set empty arrays
+        products.forEach((product: any) => {
+          if (product.iscombo === true) {
+            product.components = [];
+          }
+        });
+      }
+    }
+
+    await this.attachStockSummaries(products);
+  }
+
+  /**
+   * One page of platform products ranked by platform sold quantity
+   * (platformstock.soldqty), the same rule as Home Best Sellers.
+   * Products with 0 sold are still returned, after those with sales.
+   * Prisma cannot order products by a to-many relation field, so the page is
+   * ranked on platformstock (unique per product+platform) and then loaded.
+   */
+  private async findPlatformProductsByBestSelling(
+    platform: string,
+    whereClause: any,
+    offset: number,
+    limit: number,
+    sortOrder: 'asc' | 'desc'
+  ): Promise<any[]> {
+    const rankedRows = await prisma.platformStock.findMany({
+      where: { platform, product: whereClause },
+      orderBy: [{ soldqty: sortOrder }, { productid: 'asc' }],
+      skip: offset,
+      take: limit,
+      select: { productid: true },
+    });
+    if (rankedRows.length === 0) return [];
+
+    const products = await prisma.product.findMany({
+      where: { id: { in: rankedRows.map((row) => row.productid) } },
+      include: this.buildPlatformProductInclude(platform),
+    });
+    const productById = new Map(products.map((product: any) => [String(product.id), product]));
+    return rankedRows
+      .map((row) => productById.get(String(row.productid)))
+      .filter((product): product is any => Boolean(product));
+  }
+
   async findManyForPlatform(
     platform: string,
     filters: Record<string, any> = {},
@@ -349,157 +534,36 @@ export class ProductService {
 
       // Build base query with platform stock join
       const whereClause = this.buildPlatformWhereClause(platform, filters);
-
-      const [products, total] = await Promise.all([
-        prisma.product.findMany({
-          where: whereClause,
-          include: {
-            platformStocks: {
-              where: { platform },
-              select: {
-                id: true,
-                platform: true,
-                availableqty: true,
-                platformstatus: true,
-                soldqty: true,
-                totalqty: true,
-                orderedqty: true,
-                lockqty: true,
-              } as any,
-              take: 1, // Only get one record since it's unique
-            },
-          },
-          skip: offset,
-          take: limit,
-          orderBy: orderByField === 'modifieddate'
-            ? [
-              { modifieddate: sortOrder },
-              { createddate: sortOrder },
-              { id: 'asc' }
-            ]
-            : [
-              { [orderByField]: sortOrder },
-              { id: 'asc' }
-            ],
-        }),
-        prisma.product.count({ where: whereClause }),
-      ]);
-
-      // Fetch components for combo products
-      const comboProductIds = products
-        .filter((p: any) => p.iscombo === true)
-        .map((p: any) => BigInt(p.id));
-
-      if (comboProductIds.length > 0) {
-        try {
-          // Batch fetch all components for all combo products with product details
-          const allComponents = await (prisma as any).productBundleMap.findMany({
-            where: {
-              bundleproductid: {
-                in: comboProductIds
-              }
-            },
-            select: {
-              bundleproductid: true,
-              componentproductid: true,
-              requiredqty: true,
-              isactive: true,
-              componentproduct: {
-                select: {
-                  name: true,
-                  puc: true,
-                }
-              }
-            },
-            orderBy: {
-              id: 'asc',
-            }
-          });
-
-          // Get all unique component product IDs
-          const componentProductIds = [...new Set(allComponents.map((comp: any) => comp.componentproductid))];
-
-          // Batch fetch platform stock for all component products (nivapp platform)
-          const componentPlatformStocks = componentProductIds.length > 0
-            ? await prisma.platformStock.findMany({
-              where: {
-                productid: { in: componentProductIds.map((id: any) => BigInt(id)) },
-                platform: 'nivapp'
-              },
-              select: {
-                productid: true,
-                availableqty: true,
-                lockqty: true,
-                orderedqty: true,
-                soldqty: true,
-                platformstatus: true,
-              }
-            })
-            : [];
-
-          // Create a map of component product ID to platform stock
-          const platformStockMap = new Map();
-          componentPlatformStocks.forEach((ps: any) => {
-            platformStockMap.set(ps.productid.toString(), {
-              availableqty: ps.availableqty,
-              lockqty: ps.lockqty || 0,
-              orderedqty: ps.orderedqty,
-              soldqty: ps.soldqty,
-              platformstatus: ps.platformstatus,
-            });
-          });
-
-          // Group components by bundleproductid
-          const componentsByBundle: Record<string, any[]> = {};
-          allComponents.forEach((comp: any) => {
-            const bundleId = comp.bundleproductid.toString();
-            const componentId = comp.componentproductid.toString();
-            if (!componentsByBundle[bundleId]) {
-              componentsByBundle[bundleId] = [];
-            }
-            componentsByBundle[bundleId].push({
-              componentproductid: Number(comp.componentproductid),
-              requiredqty: comp.requiredqty,
-              isactive: comp.isactive,
-              product: {
-                name: comp.componentproduct?.name || null,
-                puc: comp.componentproduct?.puc || null,
-              },
-              platformStock: platformStockMap.get(componentId) || null,
-            });
-          });
-
-          // Attach components to combo products
-          products.forEach((product: any) => {
-            if (product.iscombo === true) {
-              const productId = product.id.toString();
-              product.components = componentsByBundle[productId] || [];
-            }
-          });
-
-          logger.info({
-            comboProductCount: comboProductIds.length,
-            totalComponents: allComponents.length,
-            platform
-          }, 'Combo product components fetched successfully for platform');
-        } catch (componentError: any) {
-          logger.error(
-            {
-              error: componentError?.message,
-              platform,
-            },
-            'Failed to fetch combo product components in findManyForPlatform'
-          );
-          // Don't fail the request, just set empty arrays
-          products.forEach((product: any) => {
-            if (product.iscombo === true) {
-              product.components = [];
-            }
-          });
+      if (isStorefrontFilterMode(filters)) {
+        const storefrontConditions = await buildStorefrontListingConditions(filters);
+        if (storefrontConditions.length > 0) {
+          whereClause.AND = [...(whereClause.AND ?? []), ...storefrontConditions];
         }
       }
 
-      await this.attachStockSummaries(products);
+      const [products, total] = await Promise.all([
+        sortBy === 'bestselling'
+          ? this.findPlatformProductsByBestSelling(platform, whereClause, offset, limit, sortOrder)
+          : prisma.product.findMany({
+            where: whereClause,
+            include: this.buildPlatformProductInclude(platform),
+            skip: offset,
+            take: limit,
+            orderBy: orderByField === 'modifieddate'
+              ? [
+                { modifieddate: sortOrder },
+                { createddate: sortOrder },
+                { id: 'asc' }
+              ]
+              : [
+                { [orderByField]: sortOrder },
+                { id: 'asc' }
+              ],
+          }),
+        prisma.product.count({ where: whereClause }),
+      ]);
+
+      await this.hydratePlatformProducts(products, platform);
 
       return {
         data: products,
@@ -514,6 +578,157 @@ export class ProductService {
       };
     } catch (error: any) {
       logger.error({ error: error.message, platform, filters }, 'Error in findManyForPlatform');
+      throw error;
+    }
+  }
+
+  /**
+   * Storefront Home catalog (read-only).
+   *
+   * Every section is ranked in the database across all products that the
+   * platform listing exposes (same visibility rule as findManyForPlatform),
+   * so results no longer depend on the first page of products.
+   *
+   * Product cards are loaded with the same include and hydration as the
+   * platform listing, so price, discount, available quantity and combo
+   * component stock are identical to GET /products/platform/:platform.
+   */
+  async getHomeCatalogForPlatform(platform: string): Promise<{
+    bestSellers: any[];
+    newArrivals: any[];
+    bestOfNivaana: any[];
+    flavours: Array<{ value: string; large: string[]; medium: string[]; small: string[] }>;
+    categories: Array<{
+      category: string | null;
+      subcategory: string | null;
+      large: string[];
+      medium: string[];
+      small: string[];
+    }>;
+  }> {
+    try {
+      const visibleWhere = this.buildPlatformWhereClause(platform, {});
+
+      const [bestSellerRows, newArrivalRows, bestOfRows, flavourRows, categoryRows] = await Promise.all([
+        // Best Sellers: platform sold quantity (counted after dispatch), highest first.
+        // One platformstock row exists per product+platform (unique key), which is
+        // exactly the listing visibility rule.
+        prisma.platformStock.findMany({
+          where: { platform },
+          orderBy: [{ soldqty: 'desc' }, { productid: 'asc' }],
+          take: HOME_BEST_SELLERS_LIMIT,
+          select: { productid: true },
+        }),
+
+        // New Arrivals: newest products first.
+        prisma.product.findMany({
+          where: visibleWhere,
+          orderBy: [{ createddate: { sort: 'desc', nulls: 'last' } }, { id: 'asc' }],
+          take: HOME_NEW_ARRIVALS_LIMIT,
+          select: { id: true },
+        }),
+
+        // Best of Nivaana: same score the Home page used before
+        // (sold + rating x 10 + 8 when discounted), now on platform sold quantity.
+        prisma.$queryRaw<Array<{ id: bigint }>>`
+          SELECT p."id"
+          FROM "product" p
+          JOIN "platformstock" ps
+            ON ps."productid" = p."id" AND ps."platform" = ${platform}
+          ORDER BY
+            (
+              COALESCE(ps."soldqty", 0)
+              + COALESCE(p."averagerating", 0) * 10
+              + CASE WHEN COALESCE(p."discount", 0) > 0 THEN 8 ELSE 0 END
+            ) DESC,
+            p."id" ASC
+          LIMIT ${HOME_BEST_OF_LIMIT}
+        `,
+
+        // Flavours: every distinct fragrance value (comma separated field),
+        // with the image of the first product in listing order.
+        prisma.$queryRaw<Array<{ value: string; large: string[]; medium: string[]; small: string[] }>>`
+          SELECT DISTINCT ON (LOWER(f."value"))
+            f."value" AS "value", p."large", p."medium", p."small"
+          FROM "product" p
+          JOIN "platformstock" ps
+            ON ps."productid" = p."id" AND ps."platform" = ${platform}
+          CROSS JOIN LATERAL (
+            SELECT BTRIM(part, E' \t\r\n') AS "value"
+            FROM UNNEST(STRING_TO_ARRAY(p."fragnancetype", ',')) AS part
+          ) f
+          WHERE f."value" <> ''
+          ORDER BY LOWER(f."value"), p."modifieddate" DESC, p."createddate" DESC, p."id" ASC
+        `,
+
+        // Categories: distinct category/subcategory pairs with the image of the
+        // first product in listing order (used only when no showcase is configured).
+        prisma.$queryRaw<Array<{
+          category: string | null;
+          subcategory: string | null;
+          large: string[];
+          medium: string[];
+          small: string[];
+        }>>`
+          SELECT DISTINCT ON (k."key")
+            t."category" AS "category", t."subcategory" AS "subcategory",
+            p."large", p."medium", p."small"
+          FROM "product" p
+          JOIN "platformstock" ps
+            ON ps."productid" = p."id" AND ps."platform" = ${platform}
+          CROSS JOIN LATERAL (
+            SELECT
+              NULLIF(BTRIM(p."category", E' \t\r\n'), '') AS "category",
+              NULLIF(BTRIM(p."subcategory", E' \t\r\n'), '') AS "subcategory"
+          ) t
+          CROSS JOIN LATERAL (
+            SELECT LOWER(
+              COALESCE(t."category", 'nivaana') || ':' || COALESCE(t."subcategory", t."category", 'all')
+            ) AS "key"
+          ) k
+          WHERE t."category" IS NOT NULL OR t."subcategory" IS NOT NULL
+          ORDER BY k."key", p."modifieddate" DESC, p."createddate" DESC, p."id" ASC
+        `,
+      ]);
+
+      const bestSellerIds = bestSellerRows.map((row: any) => String(row.productid));
+      const newArrivalIds = newArrivalRows.map((row: any) => String(row.id));
+      const bestOfIds = bestOfRows.map((row: any) => String(row.id));
+      const uniqueIds = Array.from(new Set([...bestSellerIds, ...newArrivalIds, ...bestOfIds]));
+
+      const products = uniqueIds.length > 0
+        ? await prisma.product.findMany({
+          where: { id: { in: uniqueIds.map((id) => BigInt(id)) } },
+          include: this.buildPlatformProductInclude(platform),
+        })
+        : [];
+
+      await this.hydratePlatformProducts(products, platform);
+
+      const productById = new Map(products.map((product: any) => [String(product.id), product]));
+      const pick = (ids: string[]) =>
+        ids.map((id) => productById.get(id)).filter((product): product is any => Boolean(product));
+
+      return {
+        bestSellers: pick(bestSellerIds),
+        newArrivals: pick(newArrivalIds),
+        bestOfNivaana: pick(bestOfIds),
+        flavours: flavourRows.map((row) => ({
+          value: row.value,
+          large: row.large ?? [],
+          medium: row.medium ?? [],
+          small: row.small ?? [],
+        })),
+        categories: categoryRows.map((row) => ({
+          category: row.category,
+          subcategory: row.subcategory,
+          large: row.large ?? [],
+          medium: row.medium ?? [],
+          small: row.small ?? [],
+        })),
+      };
+    } catch (error: any) {
+      logger.error({ error: error.message, platform }, 'Error in getHomeCatalogForPlatform');
       throw error;
     }
   }
@@ -654,8 +869,12 @@ export class ProductService {
       },
     };
 
+    // Storefront mode applies category/subcategory/subsubcategory/search in
+    // findManyForPlatform (buildStorefrontListingConditions) instead.
+    const storefrontMode = isStorefrontFilterMode(filters);
+
     // Apply other filters
-    const taxonomyWhere = buildProductTaxonomyWhere(filters);
+    const taxonomyWhere = storefrontMode ? {} as ReturnType<typeof buildProductTaxonomyWhere> : buildProductTaxonomyWhere(filters);
     if (taxonomyWhere.AND) {
       where.AND = taxonomyWhere.AND;
     }
@@ -683,7 +902,7 @@ export class ProductService {
       };
     }
 
-    if (filters.search) {
+    if (filters.search && !storefrontMode) {
       where.OR = [
         { name: { contains: filters.search, mode: 'insensitive' } },
         { shortname: { contains: filters.search, mode: 'insensitive' } },
